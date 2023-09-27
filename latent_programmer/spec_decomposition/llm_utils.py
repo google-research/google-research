@@ -55,9 +55,46 @@ ROBUSTFILL_FUNCTIONS = [
     'Remove', 'RemoveAll',
 ]
 ROBUSTFILL_ENUMS = [
-    robustfill_dsl.Type, robustfill_dsl.Case, robustfill_dsl.Boundary,
+    robustfill_dsl.Regex, robustfill_dsl.Case, robustfill_dsl.Boundary,
 ]
 
+ROBUSTFILL_FUNCTION_DESCRIPTIONS_V2 = '''
+def SubStr(x: str, pos1: int, pos2: int) -> str:
+  """Returns a substring of x given start and end positions."""
+
+def GetSpan(x: str, regex1: Regex | str, index1: int, bound1: Boundary,
+            regex2: Regex | str, index2: int, bound2: Boundary) -> str:
+  """Returns a substring of x bounded by regex matches."""
+
+def GetToken(x: str, regex: Regex, index: int) -> str:
+  """Returns the index-th match of the regex in x."""
+
+def GetUpto(x: str, regex: Regex | str) -> str:
+  """Returns the prefix of x up to (excluding) the regex match."""
+
+def GetFrom(x: str, regex: Regex | str) -> str:
+  """Returns the suffix of x starting from (including) the regex match."""
+
+def GetFirst(x: str, regex: Regex, index: int) -> str:
+  """Concatenates the first index instances of the regex match in x."""
+
+def GetAll(x: str, regex: Regex) -> str:
+  """Concatenates all instances of the regex match in x."""
+
+def Substitute(x: str, regex: Regex, index: int, replacement: str) -> str:
+  """Replaces a specific occurrence of the regex match in x with a constant."""
+
+def SubstituteAll(x: str, regex: Regex, replacement: str) -> str:
+  """Replaces all occurrences of the regex match in x with a constant."""
+
+def Remove(x: str, regex: Regex, index: int) -> str:
+  """Removes a specific occurrence of the regex match in x."""
+
+def RemoveAll(x: str, regex: Regex) -> str:
+  """Removes all occurrences of the regex match in x."""
+'''.strip()
+
+ROBUSTFILL_ENUMS_V2 = [robustfill_dsl.Regex, robustfill_dsl.Boundary]
 
 # Enables using the exact same datasets for any settings *up to* these numbers
 # of examples, for more consistent comparisons between experiments that use
@@ -514,12 +551,17 @@ def dsl_description(dataset_type, version):
     else:
       raise ValueError(f'Unhandled version: {version}')
   elif dataset_type == 'robustfill':
+    dsl_purpose = 'manipulating strings'
     if version == 1:
-      dsl_purpose = 'manipulating strings'
       function_details = ', '.join(ROBUSTFILL_FUNCTIONS)
       constant_details = ', '.join(
           [robustfill_dsl.to_python(obj)  # pylint: disable=g-complex-comprehension
            for e in ROBUSTFILL_ENUMS for obj in e])
+    elif version == 2:
+      function_details = ROBUSTFILL_FUNCTION_DESCRIPTIONS_V2
+      constant_details = ', '.join(
+          [robustfill_dsl.to_python(obj)  # pylint: disable=g-complex-comprehension
+           for e in ROBUSTFILL_ENUMS_V2 for obj in e])
     else:
       raise ValueError(f'Unhandled version: {version}')
   else:

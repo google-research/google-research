@@ -163,9 +163,30 @@ ROBUSTFILL_EXAMPLE = llm_utils.DatasetElement(
 def program(x):
   parts = [
       dsl.Const('k'),
-      dsl.GetToken(x, dsl.Type.CHAR, -4),
-      dsl.ToCase(dsl.Remove(x, dsl.Type.CHAR, 1), dsl.Case.ALL_CAPS),
-      dsl.Substitute(dsl.GetToken(x, dsl.Type.PROP_CASE, 1), dsl.Type.CHAR, 1, '8'),
+      dsl.GetToken(x, dsl.Regex.CHAR, -4),
+      dsl.ToCase(dsl.Remove(x, dsl.Regex.CHAR, 1), dsl.Case.ALL_CAPS),
+      dsl.Substitute(dsl.GetToken(x, dsl.Regex.PROP_CASE, 1), dsl.Regex.CHAR, 1, '8'),
+      dsl.SubStr(x, 4, 15),
+  ]
+  return ''.join(parts)
+'''.strip(),
+)
+ROBUSTFILL_EXAMPLE_V2 = llm_utils.DatasetElement(
+    inputs=['#My##:Gxbo[Ned[Er%', '#%$Ua.Qaeq?Opa%Kcr#',
+            "%{Eos#(Mdjt#'Yi{Oclf", '%##Tq@Fh#Xza#?Fdlu'],
+    outputs=['k[MY##:GXBO[NED[ER%8y##:Gxbo[Ned[',
+             'kK%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%',
+             "kO{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi",
+             'kF##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F'],
+    dsl_program=('4 29|7 109 211|3 8 111 17 109 216|'
+                 '3 15 109 216 79 7 106 216|5 219 230'),
+    python_program='''
+def program(x):
+  parts = [
+      'k',
+      dsl.GetToken(x, dsl.Regex.CHAR, -4),
+      dsl.Remove(x, dsl.Regex.CHAR, 1).upper(),
+      dsl.Substitute(dsl.GetToken(x, dsl.Regex.PROP_CASE, 1), dsl.Regex.CHAR, 1, '8'),
       dsl.SubStr(x, 4, 15),
   ]
   return ''.join(parts)
@@ -216,11 +237,6 @@ class LlmUtilsTest(parameterized.TestCase):
         llm_utils.get_num_examples(DEEPCODER_EXAMPLE.inputs, 'deepcoder'),
         3)
 
-  def test_parse_dataset_robustfill(self):
-    self.assertEqual(
-        llm_utils.parse_dataset(ROBUSTFILL_DATASET, 'robustfill', version=1),
-        [ROBUSTFILL_EXAMPLE])
-
   def test_variable_canonicalization_deepcoder(self):
     canonicalized_example = llm_utils.canonicalize_deepcoder_variables(
         DEEPCODER_TRAIN_EXAMPLE
@@ -252,11 +268,25 @@ def program(x0):
     self.assertEqual(canonicalized_example.python_program, expected_program)
     self.assertEqual(canonicalized_example.inputs, expected_inputs)
 
-  def test_run_program_robustfill(self):
+  @parameterized.named_parameters(
+      ('1', 1, ROBUSTFILL_EXAMPLE),
+      ('2', 2, ROBUSTFILL_EXAMPLE_V2),
+  )
+  def test_parse_dataset_robustfill(self, version, expected_example):
     self.assertEqual(
-        llm_utils.run_program(ROBUSTFILL_EXAMPLE.python_program,
-                              ROBUSTFILL_EXAMPLE.inputs, 'robustfill'),
-        ROBUSTFILL_EXAMPLE.outputs)
+        llm_utils.parse_dataset(ROBUSTFILL_DATASET, 'robustfill',
+                                version=version),
+        [expected_example])
+
+  @parameterized.named_parameters(
+      ('1', ROBUSTFILL_EXAMPLE),
+      ('2', ROBUSTFILL_EXAMPLE_V2),
+  )
+  def test_run_program_robustfill(self, example):
+    self.assertEqual(
+        llm_utils.run_program(example.python_program, example.inputs,
+                              'robustfill'),
+        example.outputs)
 
   def test_get_num_examples_robustfill(self):
     self.assertEqual(
@@ -618,6 +648,7 @@ Program:
   def test_few_shot_exe_dec_prompt_deepcoder_version_1(self):
     # Temporarily raise the list length limit to run this test,
     # because the handwritten examples have longer inputs.
+    original_value = llm_utils.DEEPCODER_MAX_LIST_LENGTH
     llm_utils.DEEPCODER_MAX_LIST_LENGTH = 10
     few_shot_dataset = llm_utils.parse_dataset(
         llm_utils.get_handwritten_few_shot('deepcoder', 'NONE'),
@@ -631,7 +662,7 @@ Program:
         version=1,
     )
     # Change back to default value
-    llm_utils.DEEPCODER_MAX_LIST_LENGTH = 5
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = original_value
     # The following 2-shot prompt takes 1167 tokens for GPT-3 tokenizer
     expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
@@ -746,7 +777,7 @@ Step 1 computes:
 """.lstrip()
     self.assertEqual(prompt, expected)
 
-  def test_few_shot_prompt_robustfill(self):
+  def test_few_shot_prompt_robustfill_version_1(self):
     prompt = llm_utils.few_shot_prompt(
         few_shot_examples=[ROBUSTFILL_EXAMPLE],
         test_problem=ROBUSTFILL_TEST_PROBLEM,
@@ -760,7 +791,7 @@ Const, SubStr, GetSpan, GetToken, ToCase, Replace, Trim, GetUpto, GetFrom, GetFi
 
 Additionally, the module defines the following constants:
 
-dsl.Type.NUMBER, dsl.Type.WORD, dsl.Type.ALPHANUM, dsl.Type.ALL_CAPS, dsl.Type.PROP_CASE, dsl.Type.LOWER, dsl.Type.DIGIT, dsl.Type.CHAR, dsl.Case.PROPER, dsl.Case.ALL_CAPS, dsl.Case.LOWER, dsl.Boundary.START, dsl.Boundary.END
+dsl.Regex.NUMBER, dsl.Regex.WORD, dsl.Regex.ALPHANUM, dsl.Regex.ALL_CAPS, dsl.Regex.PROP_CASE, dsl.Regex.LOWER, dsl.Regex.DIGIT, dsl.Regex.CHAR, dsl.Case.PROPER, dsl.Case.ALL_CAPS, dsl.Case.LOWER, dsl.Boundary.START, dsl.Boundary.END
 
 Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
 
@@ -778,9 +809,9 @@ Program:
 def program(x):
   parts = [
       dsl.Const('k'),
-      dsl.GetToken(x, dsl.Type.CHAR, -4),
-      dsl.ToCase(dsl.Remove(x, dsl.Type.CHAR, 1), dsl.Case.ALL_CAPS),
-      dsl.Substitute(dsl.GetToken(x, dsl.Type.PROP_CASE, 1), dsl.Type.CHAR, 1, '8'),
+      dsl.GetToken(x, dsl.Regex.CHAR, -4),
+      dsl.ToCase(dsl.Remove(x, dsl.Regex.CHAR, 1), dsl.Case.ALL_CAPS),
+      dsl.Substitute(dsl.GetToken(x, dsl.Regex.PROP_CASE, 1), dsl.Regex.CHAR, 1, '8'),
       dsl.SubStr(x, 4, 15),
   ]
   return ''.join(parts)
@@ -798,6 +829,90 @@ Program:
 """.lstrip()
     self.assertEqual(prompt, expected)
 
+  def test_few_shot_prompt_robustfill_version_2(self):
+    prompt = llm_utils.few_shot_prompt(
+        few_shot_examples=[ROBUSTFILL_EXAMPLE_V2],
+        test_problem=ROBUSTFILL_TEST_PROBLEM,
+        dataset_type='robustfill',
+        version=2,
+    )
+    expected = '''
+The `dsl` module is a custom library for manipulating strings. It contains the following functions:
+
+def SubStr(x: str, pos1: int, pos2: int) -> str:
+  """Returns a substring of x given start and end positions."""
+
+def GetSpan(x: str, regex1: Regex | str, index1: int, bound1: Boundary,
+            regex2: Regex | str, index2: int, bound2: Boundary) -> str:
+  """Returns a substring of x bounded by regex matches."""
+
+def GetToken(x: str, regex: Regex, index: int) -> str:
+  """Returns the index-th match of the regex in x."""
+
+def GetUpto(x: str, regex: Regex | str) -> str:
+  """Returns the prefix of x up to (excluding) the regex match."""
+
+def GetFrom(x: str, regex: Regex | str) -> str:
+  """Returns the suffix of x starting from (including) the regex match."""
+
+def GetFirst(x: str, regex: Regex, index: int) -> str:
+  """Concatenates the first index instances of the regex match in x."""
+
+def GetAll(x: str, regex: Regex) -> str:
+  """Concatenates all instances of the regex match in x."""
+
+def Substitute(x: str, regex: Regex, index: int, replacement: str) -> str:
+  """Replaces a specific occurrence of the regex match in x with a constant."""
+
+def SubstituteAll(x: str, regex: Regex, replacement: str) -> str:
+  """Replaces all occurrences of the regex match in x with a constant."""
+
+def Remove(x: str, regex: Regex, index: int) -> str:
+  """Removes a specific occurrence of the regex match in x."""
+
+def RemoveAll(x: str, regex: Regex) -> str:
+  """Removes all occurrences of the regex match in x."""
+
+Additionally, the module defines the following constants:
+
+dsl.Regex.NUMBER, dsl.Regex.WORD, dsl.Regex.ALPHANUM, dsl.Regex.ALL_CAPS, dsl.Regex.PROP_CASE, dsl.Regex.LOWER, dsl.Regex.DIGIT, dsl.Regex.CHAR, dsl.Boundary.START, dsl.Boundary.END
+
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating their behavior.
+
+Important: All programs begin with ```python and end with ``` alone.
+
+
+Input-output test cases:
+  * "#My##:Gxbo[Ned[Er%" --> "k[MY##:GXBO[NED[ER%8y##:Gxbo[Ned["
+  * "#%$Ua.Qaeq?Opa%Kcr#" --> "kK%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%"
+  * "%{Eos#(Mdjt#'Yi{Oclf" --> "kO{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi"
+  * "%##Tq@Fh#Xza#?Fdlu" --> "kF##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F"
+
+Program:
+```python
+def program(x):
+  parts = [
+      'k',
+      dsl.GetToken(x, dsl.Regex.CHAR, -4),
+      dsl.Remove(x, dsl.Regex.CHAR, 1).upper(),
+      dsl.Substitute(dsl.GetToken(x, dsl.Regex.PROP_CASE, 1), dsl.Regex.CHAR, 1, '8'),
+      dsl.SubStr(x, 4, 15),
+  ]
+  return ''.join(parts)
+```
+
+
+Input-output test cases:
+  * "apple" --> "Apple!"
+  * "banana" --> "Banana!"
+  * "clementine" --> "Clementine!"
+  * "durian" --> "Durian!"
+
+Program:
+```python
+'''.lstrip()
+    self.assertEqual(prompt, expected)
+
   def test_few_shot_exe_dec_prompt_robustfill(self):
     prompt = llm_utils.few_shot_exe_dec_prompt(
         few_shot_examples=[ROBUSTFILL_EXAMPLE],
@@ -813,7 +928,7 @@ Const, SubStr, GetSpan, GetToken, ToCase, Replace, Trim, GetUpto, GetFrom, GetFi
 
 Additionally, the module defines the following constants:
 
-dsl.Type.NUMBER, dsl.Type.WORD, dsl.Type.ALPHANUM, dsl.Type.ALL_CAPS, dsl.Type.PROP_CASE, dsl.Type.LOWER, dsl.Type.DIGIT, dsl.Type.CHAR, dsl.Case.PROPER, dsl.Case.ALL_CAPS, dsl.Case.LOWER, dsl.Boundary.START, dsl.Boundary.END
+dsl.Regex.NUMBER, dsl.Regex.WORD, dsl.Regex.ALPHANUM, dsl.Regex.ALL_CAPS, dsl.Regex.PROP_CASE, dsl.Regex.LOWER, dsl.Regex.DIGIT, dsl.Regex.CHAR, dsl.Case.PROPER, dsl.Case.ALL_CAPS, dsl.Case.LOWER, dsl.Boundary.START, dsl.Boundary.END
 
 Below are example programming problems using the `dsl` module, with input-output test cases illustrating the program behavior step-by-step.
 
@@ -848,7 +963,7 @@ Step 2 computes:
 
 Step 2 code:
 ```python
-dsl.GetToken(x, dsl.Type.CHAR, -4)
+dsl.GetToken(x, dsl.Regex.CHAR, -4)
 ```
 
 Step 3 computes:
@@ -859,7 +974,7 @@ Step 3 computes:
 
 Step 3 code:
 ```python
-dsl.ToCase(dsl.Remove(x, dsl.Type.CHAR, 1), dsl.Case.ALL_CAPS)
+dsl.ToCase(dsl.Remove(x, dsl.Regex.CHAR, 1), dsl.Case.ALL_CAPS)
 ```
 
 Step 4 computes:
@@ -870,7 +985,7 @@ Step 4 computes:
 
 Step 4 code:
 ```python
-dsl.Substitute(dsl.GetToken(x, dsl.Type.PROP_CASE, 1), dsl.Type.CHAR, 1, '8')
+dsl.Substitute(dsl.GetToken(x, dsl.Regex.PROP_CASE, 1), dsl.Regex.CHAR, 1, '8')
 ```
 
 Step 5 computes:
@@ -889,9 +1004,9 @@ Putting the steps together, the problem is solved with the program:
 def program(x):
   parts = [
       dsl.Const('k'),
-      dsl.GetToken(x, dsl.Type.CHAR, -4),
-      dsl.ToCase(dsl.Remove(x, dsl.Type.CHAR, 1), dsl.Case.ALL_CAPS),
-      dsl.Substitute(dsl.GetToken(x, dsl.Type.PROP_CASE, 1), dsl.Type.CHAR, 1, '8'),
+      dsl.GetToken(x, dsl.Regex.CHAR, -4),
+      dsl.ToCase(dsl.Remove(x, dsl.Regex.CHAR, 1), dsl.Case.ALL_CAPS),
+      dsl.Substitute(dsl.GetToken(x, dsl.Regex.PROP_CASE, 1), dsl.Regex.CHAR, 1, '8'),
       dsl.SubStr(x, 4, 15),
   ]
   return ''.join(parts)

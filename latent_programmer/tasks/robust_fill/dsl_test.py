@@ -26,19 +26,19 @@ class DSLTest(absltest.TestCase):
 
   def test_programs(self):
     program1 = dsl.Concat(
-        dsl.GetToken(dsl.Type.ALPHANUM, 3),
+        dsl.GetToken(dsl.Regex.ALPHANUM, 3),
         dsl.GetFrom(':'),
-        dsl.GetFirst(dsl.Type.CHAR, 4))
+        dsl.GetFirst(dsl.Regex.CHAR, 4))
     self.assertEqual(program1('Ud 9:25,JV3 Obb'), '2525,JV3 ObbUd 9')
     self.assertEqual(program1('zLny xmHg 8:43 A44q'), '843 A44qzLny')
 
     program2 = dsl.Concat(
         dsl.Compose(
             dsl.Replace(' ', ','),
-            dsl.GetSpan(dsl.Type.PROP_CASE, 1, dsl.Boundary.START,
-                        dsl.Type.PROP_CASE, 4, dsl.Boundary.END)),
+            dsl.GetSpan(dsl.Regex.PROP_CASE, 1, dsl.Boundary.START,
+                        dsl.Regex.PROP_CASE, 4, dsl.Boundary.END)),
         dsl.ConstStr('.'),
-        dsl.GetToken(dsl.Type.PROP_CASE, -1))
+        dsl.GetToken(dsl.Regex.PROP_CASE, -1))
     self.assertEqual(program2('Jacob Ethan James Alexander Michael'),
                      'Jacob,Ethan,James,Alexander.Michael')
     self.assertEqual(program2('Earth Fire Wind Water Pluto Sun'),
@@ -50,10 +50,10 @@ class DSLTest(absltest.TestCase):
     program = dsl.Concat(
         dsl.Compose(
             dsl.Replace(' ', ','),
-            dsl.GetSpan(dsl.Type.PROP_CASE, 1, dsl.Boundary.START,
-                        dsl.Type.PROP_CASE, 4, dsl.Boundary.END)),
+            dsl.GetSpan(dsl.Regex.PROP_CASE, 1, dsl.Boundary.START,
+                        dsl.Regex.PROP_CASE, 4, dsl.Boundary.END)),
         dsl.ConstStr('.'),
-        dsl.GetToken(dsl.Type.PROP_CASE, -1))
+        dsl.GetToken(dsl.Regex.PROP_CASE, -1))
     encoding = program.encode(token_id_table)
     self.assertEqual(encoding[-1], token_id_table[dsl.EOS])
 
