@@ -65,6 +65,8 @@ ROBUSTFILL_ENUMS = [
 MAX_NUM_FEW_SHOT_EXAMPLES = 10
 MAX_NUM_TEST_PROBLEMS = 200
 
+DEEPCODER_MAX_LIST_LENGTH = 5
+
 
 def to_python_form(io):
   """Convert Deepcoder's "x1 = [ 1 2 ] | x2 = 3" into "x1 = [1, 2], x2 = 3"."""
@@ -575,6 +577,35 @@ def few_shot_prompt(few_shot_examples,
   return '\n'.join(prompt_parts)
 
 
+def check_deepcoder_object_valid(s):
+  """Check if the object is a valid DeepCoder object."""
+  # For DeepCoder, every object is either an int or a list of ints
+  if not (isinstance(s, int) or isinstance(s, list)):
+    raise ValueError(f'Invalid DeepCoder object: {s}, type: {type(s)}')
+  if isinstance(s, list):
+    # Every list has length <= DEEPCODER_MAX_LIST_LENGTH
+    if not len(s) <= DEEPCODER_MAX_LIST_LENGTH:
+      raise ValueError(f'Invalid DeepCoder object: {s}, length: {len(s)}')
+    for x in s:
+      if not isinstance(x, int):
+        raise ValueError(f'Invalid DeepCoder object: {s}, type: {type(x)}')
+      # Every int is in the range [-50, 50] inclusive
+      if not (-50 <= x <= 50):
+        raise ValueError(f'Invalid DeepCoder object: {s}, int: {x}')
+  else:
+    if not (-50 <= s <= 50):
+      raise ValueError(f'Invalid DeepCoder object: {s}, int: {s}')
+  return True
+
+
+def check_robustfill_object_valid(s):
+  if not isinstance(s, str):
+    raise ValueError(f'Invalid RobustFill object: {s}, type: {type(s)}')
+  if len(s) > 20:
+    raise ValueError(f'Invalid RobustFill object: {s}, length: {len(s)}')
+  return True
+
+
 def get_exe_dec_trajectory(
     dataset_element, dataset_type
 ):
@@ -603,6 +634,9 @@ def get_exe_dec_trajectory(
       actual_states = run_program(
           compose_program, dataset_element.inputs, dataset_type
       )
+      for s in actual_states:
+        if not check_deepcoder_object_valid(s):
+          raise ValueError(f'Invalid DeepCoder object: {s}')
       actual_states = {new_var: actual_states}
       new_targets = None
     elif dataset_type == 'robustfill':
@@ -622,6 +656,10 @@ def get_exe_dec_trajectory(
       previous_targets = trajectory[-1].targets
       new_targets = []
       num_examples = get_num_examples(dataset_element.inputs, dataset_type)
+
+      for s in actual_states:
+        if not check_robustfill_object_valid(s):
+          raise ValueError(f'Invalid RobustFill object: {s}')
       for i in range(num_examples):
         if (not isinstance(actual_states[i], str)) or (
             not previous_targets[i].startswith(actual_states[i])

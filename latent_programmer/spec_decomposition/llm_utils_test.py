@@ -521,6 +521,10 @@ Program:
     self.assertEqual(prompt, expected)
 
   def test_few_shot_prompt_deepcoder_version_5(self):
+    # Temporarily raise the list length limit to run this test,
+    # because the handwritten examples have longer inputs.
+    original_value = llm_utils.DEEPCODER_MAX_LIST_LENGTH
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = 10
     few_shot_dataset = llm_utils.parse_dataset(
         llm_utils.get_handwritten_few_shot('deepcoder', 'NONE'),
         dataset_type='deepcoder',
@@ -531,6 +535,8 @@ Program:
         dataset_type='deepcoder',
         version=5,
     )
+    # Change back to default value
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = original_value
     expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
 
@@ -610,6 +616,9 @@ Program:
     self.assertEqual(prompt, expected)
 
   def test_few_shot_exe_dec_prompt_deepcoder_version_1(self):
+    # Temporarily raise the list length limit to run this test,
+    # because the handwritten examples have longer inputs.
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = 10
     few_shot_dataset = llm_utils.parse_dataset(
         llm_utils.get_handwritten_few_shot('deepcoder', 'NONE'),
         dataset_type='deepcoder',
@@ -621,6 +630,8 @@ Program:
         dataset_type='deepcoder',
         version=1,
     )
+    # Change back to default value
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = 5
     # The following 2-shot prompt takes 1167 tokens for GPT-3 tokenizer
     expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
