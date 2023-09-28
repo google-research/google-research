@@ -35,17 +35,17 @@ MAX_TOKEN_LENGTH = 4
 
 def sample_type_str(t):
   """Map types to their regex string."""
-  if t == dsl.Regex.NUMBER or t == dsl.Regex.DIGIT:
+  if t == dsl.Type.NUMBER or t == dsl.Type.DIGIT:
     return get_number()
-  elif t == dsl.Regex.WORD:
+  elif t == dsl.Type.WORD:
     return get_word()
-  elif t == dsl.Regex.ALPHANUM or t == dsl.Regex.CHAR:
+  elif t == dsl.Type.ALPHANUM or t == dsl.Type.CHAR:
     return get_alphanumeric()
-  elif t == dsl.Regex.ALL_CAPS:
+  elif t == dsl.Type.ALL_CAPS:
     return get_caps()
-  elif t == dsl.Regex.PROP_CASE:
+  elif t == dsl.Type.PROP_CASE:
     return get_proper_case()
-  elif t == dsl.Regex.LOWER:
+  elif t == dsl.Type.LOWER:
     return get_lower()
   else:
     raise ValueError('Unsupported type: {}'.format(t))
@@ -131,7 +131,7 @@ def sample_inputs(num_examples,
           for j in range(num_examples):
             input_lists[j].append(delimiter)
       else:
-        type_ = random.choice(list(dsl.Regex))
+        type_ = random.choice(list(dsl.Type))
         k = random.randint(1, max_k)
         type_dict[type_] += k
         for _ in range(k):
@@ -151,7 +151,7 @@ def sample_inputs(num_examples,
       inputs.append(''.join(input_lists[i])[:max_input_length])
 
     # Everything is a character.
-    type_dict[dsl.Regex.CHAR] = max(len(input_value) for input_value in inputs)
+    type_dict[dsl.Type.CHAR] = max(len(input_value) for input_value in inputs)
 
     # Inputs should have appropriate lengths.
     if not all(0 < len(input_str) <= max_input_length for input_str in inputs):

@@ -46,7 +46,7 @@ def build_token_tables():
   for character in list(dsl.CHARACTER):   # Includes delimiter.
     tokens.append(character)
 
-  for t in dsl.Regex:
+  for t in dsl.Type:
     tokens.append(t)
 
   for case in dsl.Case:
