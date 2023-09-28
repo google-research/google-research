@@ -58,7 +58,6 @@ ROBUSTFILL_ENUMS = [
     robustfill_dsl.Type, robustfill_dsl.Case, robustfill_dsl.Boundary,
 ]
 
-
 # Enables using the exact same datasets for any settings *up to* these numbers
 # of examples, for more consistent comparisons between experiments that use
 # different settings. The datasets will change if these numbers are changed.
@@ -541,9 +540,10 @@ def dsl_description(dataset_type, version):
 def get_prompt_prefix(dataset_element,
                       dataset_type):
   """Gets a prefix of the prompt describing one dataset element."""
-  s = 'Input-output test cases:\n'
+  s = '[BEGIN PROBLEM]\n'
+  s += 'Input-output test cases:\n'
   for i in range(get_num_examples(dataset_element.inputs, dataset_type)):
-    s += '  * '
+    s += f'  Case {i + 1}. '
     if dataset_type == 'deepcoder':
       sep = ''
       for name in dataset_element.inputs:
@@ -559,7 +559,7 @@ def get_prompt_prefix(dataset_element,
 
 
 def get_prompt_suffix(dataset_element):
-  return f'{dataset_element.python_program}\n```\n\n'
+  return f'{dataset_element.python_program}\n```\n[END PROBLEM]\n\n'
 
 
 def get_prompt(dataset_element, dataset_type):
@@ -677,7 +677,9 @@ def get_exe_dec_trajectory(
 
 
 def get_exe_dec_prompt_prefix(
-    dataset_element, dataset_type
+    dataset_element,
+    dataset_type,
+    ablation_style = False,
 ):
   """Gets a prefix of the ExeDec prompt describing one dataset element."""
   # TODO(yldeng): support the ablation-style prompts
@@ -700,31 +702,42 @@ def get_exe_dec_prompt_prefix(
     raise ValueError(f'Unhandled dataset type: {dataset_type}')
 
   s += '\nWe solve this problem step-by-step.\n\n'
-  if dataset_element.python_program is None:
-    s += 'Step 1 computes:\n'
-    return s
+  if ablation_style:
+    if dataset_element.python_program is None:
+      s += 'Step 1 code:\n'
+      return s
+  else:
+    if dataset_element.python_program is None:
+      s += 'Step 1 computes:\n'
+      return s
   trajectory = get_exe_dec_trajectory(dataset_element, dataset_type)
   for j in range(1, len(trajectory)):
-    s += f'Step {j} computes:\n'
+    subgoals = f'Step {j} computes:\n'
     if dataset_type == 'deepcoder':
       for i in range(get_num_examples(dataset_element.inputs, dataset_type)):
-        s += f'  Case {i+1}. '
+        subgoals += f'  Case {i+1}. '
         sep = ''
         for name in trajectory[j].states:
-          s += f'{sep}{name} = {trajectory[j].states[name][i]}'
+          subgoals += f'{sep}{name} = {trajectory[j].states[name][i]}'
           sep = ', '
-        s += '\n'
+        subgoals += '\n'
     elif dataset_type == 'robustfill':
       for i in range(num_examples):
-        s += f'  Case {i+1}. '
-        s += (
+        subgoals += f'  Case {i+1}. '
+        subgoals += (
             f'"{trajectory[j].states[i]}" so "{trajectory[j].targets[i]}"'
             ' remains\n'
         )
     else:
       raise ValueError(f'Unhandled dataset type: {dataset_type}')
-    s += f'\nStep {j} code:\n'
-    s += f'```python\n{trajectory[j].python_program_step.strip()}\n```\n\n'
+    step_code = f'Step {j} code:\n'
+    step_code += (
+        f'```python\n{trajectory[j].python_program_step.strip()}\n```\n'
+    )
+    if ablation_style:
+      s += step_code + '\n' + subgoals + '\n'
+    else:
+      s += subgoals + '\n' + step_code + '\n'
   s += (
       'Putting the steps together, the problem is solved with the'
       ' program:\n```python\n'
@@ -737,10 +750,12 @@ def get_exe_dec_prompt_suffix(dataset_element):
 
 
 def get_exe_dec_prompt(
-    dataset_element, dataset_type
+    dataset_element,
+    dataset_type,
+    ablation_style = False,
 ):
   return get_exe_dec_prompt_prefix(
-      dataset_element, dataset_type
+      dataset_element, dataset_type, ablation_style=ablation_style
   ) + get_exe_dec_prompt_suffix(dataset_element)
 
 
@@ -749,6 +764,7 @@ def few_shot_exe_dec_prompt(
     test_problem,
     dataset_type,
     version,
+    ablation_style = False,
 ):
   """Generate the ExeDec few-shot prompt."""
   prompt_parts = [
@@ -758,9 +774,14 @@ def few_shot_exe_dec_prompt(
       )
   ]
   prompt_parts.extend(
-      get_exe_dec_prompt(d, dataset_type) for d in few_shot_examples
+      get_exe_dec_prompt(d, dataset_type, ablation_style=ablation_style)
+      for d in few_shot_examples
   )
-  prompt_parts.append(get_exe_dec_prompt_prefix(test_problem, dataset_type))
+  prompt_parts.append(
+      get_exe_dec_prompt_prefix(
+          test_problem, dataset_type, ablation_style=ablation_style
+      )
+  )
   return '\n'.join(prompt_parts)
 
 
@@ -802,4 +823,3 @@ def cut_program_from_sample(sample):
   if '```' in sample:
     sample = sample.partition('```')[0]
   return sample
-

@@ -284,10 +284,11 @@ Below are example programming problems using the `dsl` module, with input-output
 Important: All programs begin with ```python and end with ``` alone.
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [], x1 = [0] --> []
-  * x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
-  * x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
+  Case 1. x0 = [], x1 = [0] --> []
+  Case 2. x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
+  Case 3. x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
 
 Program:
 ```python
@@ -299,12 +300,14 @@ def program(x0, x1):
   x6 = dsl.ZipWith(dsl.MAX, x0, x5)
   return x6
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [1, 2, 3] --> 6
-  * x0 = [10, -10] --> 0
-  * x0 = [45] --> 45
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
 
 Program:
 ```python
@@ -369,10 +372,11 @@ Below are example programming problems using the `dsl` module, with input-output
 Important: All programs begin with ```python and end with ``` alone.
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [], x1 = [0] --> []
-  * x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
-  * x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
+  Case 1. x0 = [], x1 = [0] --> []
+  Case 2. x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
+  Case 3. x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
 
 Program:
 ```python
@@ -384,12 +388,14 @@ def program(x0, x1):
   x6 = dsl.ZipWith(dsl.MAX, x0, x5)
   return x6
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [1, 2, 3] --> 6
-  * x0 = [10, -10] --> 0
-  * x0 = [45] --> 45
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
 
 Program:
 ```python
@@ -442,10 +448,11 @@ Below are example programming problems using the `dsl` module, with input-output
 Important: All programs begin with ```python and end with ``` alone.
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [], x1 = [0] --> []
-  * x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
-  * x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
+  Case 1. x0 = [], x1 = [0] --> []
+  Case 2. x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
+  Case 3. x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
 
 Program:
 ```python
@@ -457,12 +464,14 @@ def program(x0, x1):
   x6 = [dsl.MAX(x, y) for (x, y) in zip(x0, x5)]
   return x6
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [1, 2, 3] --> 6
-  * x0 = [10, -10] --> 0
-  * x0 = [45] --> 45
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
 
 Program:
 ```python
@@ -493,10 +502,11 @@ Below are example programming problems using the `dsl` module, with input-output
 Important: All programs begin with ```python and end with ``` alone.
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [], x1 = [0] --> []
-  * x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
-  * x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
+  Case 1. x0 = [], x1 = [0] --> []
+  Case 2. x0 = [1, 0, 6, 9, 1], x1 = [9] --> [9, 4, 6, 9, 1]
+  Case 3. x0 = [3, 7, 1, 4], x1 = [-3, -1] --> [4, 7, 1, 4]
 
 Program:
 ```python
@@ -508,12 +518,14 @@ def program(x0, x1):
   x6 = [max(x, y) for (x, y) in zip(x0, x5)]
   return x6
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [1, 2, 3] --> 6
-  * x0 = [10, -10] --> 0
-  * x0 = [45] --> 45
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
 
 Program:
 ```python
@@ -576,10 +588,11 @@ Below are example programming problems using the `dsl` module, with input-output
 Important: All programs begin with ```python and end with ``` alone.
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [4, 2, 7], x1 = 5 --> [7, 4, 2]
-  * x0 = [-24, 15, 3, -8], x1 = 3 --> [15, 3, -24]
-  * x0 = [18, 22, 36, 13, 29, 4, 15, 10, 7], x1 = 6 --> [36, 29, 22, 18, 13, 4]
+  Case 1. x0 = [4, 2, 7], x1 = 5 --> [7, 4, 2]
+  Case 2. x0 = [-24, 15, 3, -8], x1 = 3 --> [15, 3, -24]
+  Case 3. x0 = [18, 22, 36, 13, 29, 4, 15, 10, 7], x1 = 6 --> [36, 29, 22, 18, 13, 4]
 
 Program:
 ```python
@@ -589,12 +602,14 @@ def program(x0, x1):
   x4 = list(reversed(x3))
   return x4
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [5, 2, 6, 7, 4] --> [2, 8, 12]
-  * x0 = [19, 2, 12, 6, 11, 15, 7, 8] --> [2, 14, 20, 28]
-  * x0 = [5, -4, 6, 7, -1, -2, 4, 1, -6] --> [-4, 2, 0, 4, -2]
+  Case 1. x0 = [5, 2, 6, 7, 4] --> [2, 8, 12]
+  Case 2. x0 = [19, 2, 12, 6, 11, 15, 7, 8] --> [2, 14, 20, 28]
+  Case 3. x0 = [5, -4, 6, 7, -1, -2, 4, 1, -6] --> [-4, 2, 0, 4, -2]
 
 Program:
 ```python
@@ -603,12 +618,14 @@ def program(x0):
   x2 = dsl.Scanl1(dsl.ADD, x1)
   return x2
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * x0 = [1, 2, 3] --> 6
-  * x0 = [10, -10] --> 0
-  * x0 = [45] --> 45
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
 
 Program:
 ```python
@@ -618,6 +635,7 @@ Program:
   def test_few_shot_exe_dec_prompt_deepcoder_version_1(self):
     # Temporarily raise the list length limit to run this test,
     # because the handwritten examples have longer inputs.
+    original_value = llm_utils.DEEPCODER_MAX_LIST_LENGTH
     llm_utils.DEEPCODER_MAX_LIST_LENGTH = 10
     few_shot_dataset = llm_utils.parse_dataset(
         llm_utils.get_handwritten_few_shot('deepcoder', 'NONE'),
@@ -631,7 +649,7 @@ Program:
         version=1,
     )
     # Change back to default value
-    llm_utils.DEEPCODER_MAX_LIST_LENGTH = 5
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = original_value
     # The following 2-shot prompt takes 1167 tokens for GPT-3 tokenizer
     expected = """
 The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
@@ -746,6 +764,139 @@ Step 1 computes:
 """.lstrip()
     self.assertEqual(prompt, expected)
 
+  def test_few_shot_exe_dec_ablation_prompt_deepcoder_version_1(self):
+    # Temporarily raise the list length limit to run this test,
+    # because the handwritten examples have longer inputs.
+    original_value = llm_utils.DEEPCODER_MAX_LIST_LENGTH
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = 10
+    few_shot_dataset = llm_utils.parse_dataset(
+        llm_utils.get_handwritten_few_shot('deepcoder', 'NONE'),
+        dataset_type='deepcoder',
+        version=1,
+    )
+    prompt = llm_utils.few_shot_exe_dec_prompt(
+        few_shot_examples=few_shot_dataset[:2],
+        test_problem=DEEPCODER_TEST_PROBLEM,
+        dataset_type='deepcoder',
+        version=1,
+        ablation_style=True,
+    )
+    # Change back to default value
+    llm_utils.DEEPCODER_MAX_LIST_LENGTH = original_value
+    # The following 2-shot prompt takes 1167 tokens for GPT-3 tokenizer
+    expected = """
+The `dsl` module is a custom library for manipulating lists of integers. It contains the following functions:
+
+Head, Last, Take, Drop, Access, Minimum, Maximum, Reverse, Sort, Sum, Map, Filter, Count, ZipWith, Scanl1
+
+Additionally, the module defines the following constants:
+
+PLUS_ONE, MINUS_ONE, TIMES_TWO, DIV_TWO, NEGATE, SQUARE, TIMES_THREE, DIV_THREE, TIMES_FOUR, DIV_FOUR, IS_POSITIVE, IS_NEGATIVE, IS_EVEN, IS_ODD, ADD, SUBTRACT, MULTIPLY, MIN, MAX
+
+Below are example programming problems using the `dsl` module, with input-output test cases illustrating the program behavior step-by-step.
+
+Important: All programs begin with ```python and end with ``` alone.
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x0 = [4, 2, 7], x1 = 5 --> [7, 4, 2]
+  Case 2. x0 = [-24, 15, 3, -8], x1 = 3 --> [15, 3, -24]
+  Case 3. x0 = [18, 22, 36, 13, 29, 4, 15, 10, 7], x1 = 6 --> [36, 29, 22, 18, 13, 4]
+
+We solve this problem step-by-step.
+
+Step 1 code:
+```python
+x2 = dsl.Take(x1, x0)
+```
+
+Step 1 computes:
+  Case 1. x2 = [4, 2, 7]
+  Case 2. x2 = [-24, 15, 3]
+  Case 3. x2 = [18, 22, 36, 13, 29, 4]
+
+Step 2 code:
+```python
+x3 = dsl.Sort(x2)
+```
+
+Step 2 computes:
+  Case 1. x3 = [2, 4, 7]
+  Case 2. x3 = [-24, 3, 15]
+  Case 3. x3 = [4, 13, 18, 22, 29, 36]
+
+Step 3 code:
+```python
+x4 = dsl.Reverse(x3)
+```
+
+Step 3 computes:
+  Case 1. x4 = [7, 4, 2]
+  Case 2. x4 = [15, 3, -24]
+  Case 3. x4 = [36, 29, 22, 18, 13, 4]
+
+Putting the steps together, the problem is solved with the program:
+```python
+def program(x0, x1):
+  x2 = dsl.Take(x1, x0)
+  x3 = dsl.Sort(x2)
+  x4 = dsl.Reverse(x3)
+  return x4
+```
+[END PROBLEM]
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x0 = [5, 2, 6, 7, 4] --> [2, 8, 12]
+  Case 2. x0 = [19, 2, 12, 6, 11, 15, 7, 8] --> [2, 14, 20, 28]
+  Case 3. x0 = [5, -4, 6, 7, -1, -2, 4, 1, -6] --> [-4, 2, 0, 4, -2]
+
+We solve this problem step-by-step.
+
+Step 1 code:
+```python
+x1 = dsl.Filter(dsl.IS_EVEN, x0)
+```
+
+Step 1 computes:
+  Case 1. x1 = [2, 6, 4]
+  Case 2. x1 = [2, 12, 6, 8]
+  Case 3. x1 = [-4, 6, -2, 4, -6]
+
+Step 2 code:
+```python
+x2 = dsl.Scanl1(dsl.ADD, x1)
+```
+
+Step 2 computes:
+  Case 1. x2 = [2, 8, 12]
+  Case 2. x2 = [2, 14, 20, 28]
+  Case 3. x2 = [-4, 2, 0, 4, -2]
+
+Putting the steps together, the problem is solved with the program:
+```python
+def program(x0):
+  x1 = dsl.Filter(dsl.IS_EVEN, x0)
+  x2 = dsl.Scanl1(dsl.ADD, x1)
+  return x2
+```
+[END PROBLEM]
+
+
+[BEGIN PROBLEM]
+Input-output test cases:
+  Case 1. x0 = [1, 2, 3] --> 6
+  Case 2. x0 = [10, -10] --> 0
+  Case 3. x0 = [45] --> 45
+
+We solve this problem step-by-step.
+
+Step 1 code:
+""".lstrip()
+    self.assertEqual(prompt, expected)
+
   def test_few_shot_prompt_robustfill(self):
     prompt = llm_utils.few_shot_prompt(
         few_shot_examples=[ROBUSTFILL_EXAMPLE],
@@ -767,11 +918,12 @@ Below are example programming problems using the `dsl` module, with input-output
 Important: All programs begin with ```python and end with ``` alone.
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * "#My##:Gxbo[Ned[Er%" --> "k[MY##:GXBO[NED[ER%8y##:Gxbo[Ned["
-  * "#%$Ua.Qaeq?Opa%Kcr#" --> "kK%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%"
-  * "%{Eos#(Mdjt#'Yi{Oclf" --> "kO{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi"
-  * "%##Tq@Fh#Xza#?Fdlu" --> "kF##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F"
+  Case 1. "#My##:Gxbo[Ned[Er%" --> "k[MY##:GXBO[NED[ER%8y##:Gxbo[Ned["
+  Case 2. "#%$Ua.Qaeq?Opa%Kcr#" --> "kK%$UA.QAEQ?OPA%KCR#8aUa.Qaeq?Opa%"
+  Case 3. "%{Eos#(Mdjt#'Yi{Oclf" --> "kO{EOS#(MDJT#'YI{OCLF8osos#(Mdjt#'Yi"
+  Case 4. "%##Tq@Fh#Xza#?Fdlu" --> "kF##TQ@FH#XZA#?FDLU8qTq@Fh#Xza#?F"
 
 Program:
 ```python
@@ -785,13 +937,15 @@ def program(x):
   ]
   return ''.join(parts)
 ```
+[END PROBLEM]
 
 
+[BEGIN PROBLEM]
 Input-output test cases:
-  * "apple" --> "Apple!"
-  * "banana" --> "Banana!"
-  * "clementine" --> "Clementine!"
-  * "durian" --> "Durian!"
+  Case 1. "apple" --> "Apple!"
+  Case 2. "banana" --> "Banana!"
+  Case 3. "clementine" --> "Clementine!"
+  Case 4. "durian" --> "Durian!"
 
 Program:
 ```python
