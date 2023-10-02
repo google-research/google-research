@@ -555,7 +555,7 @@ def matrix_inverse_pth_root(
     # Use absolute matrix epsilon scaling otherwise.
     max_ev = 1.0
 
-  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, _EPSILON)
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)
 
   # Sometimes error increases after an iteration before decreasing and
   # converging. 1.2 factor is used to bound the maximal allowed increase.
