@@ -26,12 +26,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-"""Demo for the RO-ViT paper (CVPR 2023).
+"""Demo for the DITO paper.
 
-Paper link: https://arxiv.org/abs/2305.07011.
+Paper link: https://arxiv.org/abs/2310.00161.
 
 This demo takes a sample image, and produces detections using a pretrained
-RO-ViT model.
+DITO model.
 
 
 """
@@ -53,8 +53,8 @@ import tensorflow as tf
 _DEMO_IMAGE_NAME = flags.DEFINE_string('demo_image_name', 'citrus.jpg',
                                        'The image file name under data/.')
 _MODEL = flags.DEFINE_enum('model', 'vit-large', ['vit-large'],
-                           'RO-ViT model size to use.')
-_MODEL_NAME = 'rovit'
+                           'DITO model size to use.')
+_MODEL_NAME = 'dito'
 _TEXT_EMBED = flags.DEFINE_enum('text_embed', 'lvis',
                                 ['lvis', 'lvis-base'],
                                 'Text embeddings to use.')
@@ -73,7 +73,7 @@ def main(argv):
   output_image_path = demo_image_path.replace('data', 'output')
   output_image_path = (
       output_image_path[:-4]
-      + f'_{_MODEL_NAME}{_MODEL.value.replace("vit", "")}'
+      + f'_{_MODEL_NAME}_{_MODEL.value}'
       + output_image_path[-4:]
   )
   with tf.io.gfile.GFile(demo_image_path, 'rb') as f:
@@ -81,7 +81,7 @@ def main(argv):
 
   # Load text embeddings.
   with tf.io.gfile.GFile(
-      f'./rovit/embeddings/{_TEXT_EMBED.value}_embed.npy', 'rb') as f:
+      f'./dito/embeddings/{_TEXT_EMBED.value}_embed.npy', 'rb') as f:
     text_embeddings = np.load(f)
     text_embeddings = text_embeddings[np.newaxis, :_MAX_TEXT_EMBEDDING]
 
@@ -103,7 +103,7 @@ def main(argv):
   image = np_data['image']
 
   logging.info('Loading saved model.')
-  saved_model_dir = f'./rovit/checkpoints/{_MODEL.value}'
+  saved_model_dir = f'./dito/checkpoints/{_MODEL.value}'
   model = tf.saved_model.load(saved_model_dir)
 
   logging.info('Computing forward pass.')
