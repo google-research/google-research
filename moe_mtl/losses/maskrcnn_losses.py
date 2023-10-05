@@ -173,7 +173,7 @@ class RpnScoreLoss(object):
     score_losses = []
     for level in levels:
       score_losses.append(
-          self._rpn_score_loss(
+          self._rpn_score_loss(  # pytype: disable=wrong-arg-types
               score_outputs[level],
               labels[level],
               normalizer=jnp.array(

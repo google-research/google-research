@@ -56,7 +56,7 @@ gin.external_configurable(initializers.he_normal, "he_normal")
 gin.external_configurable(initializers.xavier_uniform, "xavier_uniform")
 gin.external_configurable(initializers.xavier_normal, "xavier_normal")
 gin.constant("jnp.bfloat16", jnp.bfloat16)
-PRNGKey = Union[jax.numpy.ndarray, jax.random.KeyArray]
+PRNGKey = Union[jax.numpy.ndarray, jax.Array]
 
 
 class ExecutionMode(enum.Enum):
@@ -811,7 +811,7 @@ def _train_vmoe_mtl(
       first_step=int(init_step) + 1,
       train_steps=total_train_steps,
       **progress_config)
-  checkpoint_hook = trainer.create_checkpoint_hook(
+  checkpoint_hook = trainer.create_checkpoint_hook(  # pytype: disable=module-attr
       workdir=output_dir,
       progress_hook=progress_hook,
       train_state_axis_resources=train_state_axis_resources,
@@ -1699,7 +1699,7 @@ def _train_and_validate_vmoe_mtl(
       first_step=int(init_step) + 1,
       train_steps=int(total_train_steps),
       **progress_config)
-  checkpoint_hook = trainer.create_checkpoint_hook(
+  checkpoint_hook = trainer.create_checkpoint_hook(  # pytype: disable=module-attr
       workdir=output_dir,
       progress_hook=progress_hook,
       train_state_axis_resources=train_state_axis_resources,

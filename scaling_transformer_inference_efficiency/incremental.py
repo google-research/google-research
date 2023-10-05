@@ -544,7 +544,7 @@ class InferenceModel:
     by:
 
     ```
-    def rng_for_token(sample_id: int, token_index: int) -> jax.random.KeyArray:
+    def rng_for_token(sample_id: int, token_index: int) -> jax.Array:
       rng = jax.random.PRNGKey(0)
       rng = jax.random.fold_in(rng, sample_id)
       rng = jax.random.fold_in(rng, token_index)
