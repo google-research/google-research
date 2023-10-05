@@ -17,8 +17,8 @@
 from absl.testing import absltest
 
 from flax import linen as nn
+import jax
 from jax import numpy as jnp
-from jax import random
 
 from wildfire_perc_sim import config
 from wildfire_perc_sim import train_utils

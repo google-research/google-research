@@ -17,6 +17,7 @@
 
 from typing import Tuple, Optional, Union
 
+import jax
 from jax import numpy as jnp
 from jax import random
 import numpy as np

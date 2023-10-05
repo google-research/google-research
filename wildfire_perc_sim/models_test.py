@@ -21,6 +21,7 @@ from absl.testing import absltest
 
 import flax
 from flax import linen as nn
+import jax
 from jax import numpy as jnp
 from jax import random
 
