@@ -13,25 +13,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Package install."""
-
-from setuptools import find_packages
-from setuptools import setup
-
-
-setup(
-    name='latent_shift_adaptation',
-    version='0.1.0',
-    packages=find_packages(),
-    install_requires=([
-        'numpy>=1.24.1',
-        'scikit-learn>=1.2.0',
-        'tensorflow>=2.11.0',
-        'pandas>=1.5.2',
-        'jax>=0.4.1',
-        'scipy>=1.10.0',
-        'ml_collections',
-        'seaborn>0.12.2',
-        'git+https://github.com/tsai-kailin/ConditionalOSDE.git'
-    ]),
-)
