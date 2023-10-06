@@ -23,7 +23,6 @@ import functools
 import os
 from typing import List
 
-from absl import logging
 import numpy as np
 import pandas as pd
 import scipy.sparse
@@ -278,8 +277,6 @@ class Inferrer(object):
     if len(np_seqs.shape) != 1:
       raise ValueError('`list_of_seqs` should be convertible to a numpy vector '
                        'of strings. Got {}'.format(np_seqs))
-
-    logging.info('Predicting for %d sequences', len(list_of_seqs))
 
     lengths = np.array([len(seq) for seq in np_seqs])
     # Sort by reverse length, so that the longest element is first.
