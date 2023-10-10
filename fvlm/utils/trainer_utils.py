@@ -673,7 +673,7 @@ def train(output_dir,
           pretrained_clip)
     train_state = checkpoint_utils.restore_with_assignment_map(
         train_state, clip_weights, clip_target_filters, clip_pretrained_filters)
-    if frozen_clip_target_filters:
+    if not pretrained_detector and frozen_clip_target_filters:
       train_state = checkpoint_utils.restore_with_assignment_map(
           train_state, clip_weights, frozen_clip_target_filters,
           clip_pretrained_filters)
@@ -946,7 +946,7 @@ def evaluate(output_dir,
       train_state = checkpoint_utils.restore_with_assignment_map(
           train_state, clip_weights, clip_target_filters,
           clip_pretrained_filters)
-      if frozen_clip_target_filters:
+      if not pretrained_detector and frozen_clip_target_filters:
         train_state = checkpoint_utils.restore_with_assignment_map(
             train_state, clip_weights, frozen_clip_target_filters,
             clip_pretrained_filters)

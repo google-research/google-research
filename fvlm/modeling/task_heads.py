@@ -140,6 +140,7 @@ class ClipFasterRCNNHead(BaseTaskHead):
       prediction head.
     roi_head_fn: A function to pool the ROI features into class embeddings.
     roi_feature_fn: A function to crop and resize multilevel region features.
+    roi_scale_factor: A float scale of ROI crop size.
     generate_rois_fn: A function to generate the regions from region proposal
       head predictions.
     generate_rois_decoded_boxes_fn: A function to generate the regions and the
@@ -173,6 +174,7 @@ class ClipFasterRCNNHead(BaseTaskHead):
   roi_head_fn: Callable[Ellipsis, Array] = clip_models.AttentionPool
   roi_feature_fn: Callable[Ellipsis, Array] = (
       spatial_transform_ops.multilevel_crop_and_resize)
+  roi_scale_factor: Optional[float] = None
   generate_rois_fn: Callable[Ellipsis, Tuple[Array, Array]] = (
       roi_ops.multilevel_propose_rois)
   generate_rois_and_decoded_boxes_fn: Callable[
@@ -408,8 +410,17 @@ class ClipFasterRCNNHead(BaseTaskHead):
         top_feature_map = {max_level: frozen_vision_features[max_level]}
       else:
         top_feature_map = {max_level: vision_features[max_level]}
-      pretrained_roi_features = self.roi_feature_fn(
-          top_feature_map, rpn_rois, output_size=self.roi_output_size)
+
+      if self.roi_scale_factor:
+        scale_factor = self.roi_scale_factor
+        scale_rpn_rois = box_utils.rescale_boxes(
+            rpn_rois, labels['image_info'][:, 1], scale=scale_factor)
+        pretrained_roi_features = self.roi_feature_fn(
+            top_feature_map, scale_rpn_rois, output_size=self.roi_output_size)
+      else:
+        pretrained_roi_features = self.roi_feature_fn(
+            top_feature_map, rpn_rois, output_size=self.roi_output_size)
+
       pretrained_box_features = self.roi_head(pretrained_roi_features)
       pretrained_class_outputs = self.compute_region_text_similarity(
           pretrained_box_features, text_features, self.clip_sim_temp)

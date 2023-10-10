@@ -130,3 +130,105 @@ class FasterRcnnBoxCoder(box_coder.BoxCoder):
     ymax = ycenter + h / 2.
     xmax = xcenter + w / 2.
     return box_list.BoxList(tf.transpose(tf.stack([ymin, xmin, ymax, xmax])))
+
+
+class LRTBBoxCoder(box_coder.BoxCoder):
+  """Left-right-top-bottom format box coder.
+
+  It encodes the distance between anchor locations and the left, right, top,
+  bottom boundaries of the box.
+  """
+
+  def __init__(self, normalizer=1.0):
+    """Constructor for LRTBBoxCoder."""
+    self.normalizer = normalizer
+
+  @property
+  def code_size(self):
+    return 4
+
+  def _encode(self, boxes, anchors):
+    """Encode a box collection with respect to anchor collection.
+
+    Args:
+      boxes: BoxList holding N boxes to be encoded.
+      anchors: BoxList of anchors.
+
+    Returns:
+      center_targets: a centerness target of N boxes.
+      lrtb_targets: a tensor representing N anchor-encoded boxes of the format
+        [left, right, top, bottom].
+    """
+    # Convert anchors to the center coordinate representation.
+    ycenter_a, xcenter_a, ha, wa = anchors.get_center_coordinates_and_sizes()
+    _, _, h, w, ymin, xmin, ymax, xmax = (
+        boxes.get_center_coordinates_and_sizes_and_corners())
+
+    # Avoid NaN in division and log below.
+    ha += EPSILON
+    wa += EPSILON
+    h += EPSILON
+    w += EPSILON
+
+    left = (xcenter_a - xmin) / wa
+    right = (xmax - xcenter_a) / wa
+    top = (ycenter_a - ymin) / ha
+    bottom = (ymax - ycenter_a) / ha
+
+    left /= self.normalizer
+    right /= self.normalizer
+    top /= self.normalizer
+    bottom /= self.normalizer
+
+    # Create lrtb targets.
+    lrtb_targets = tf.transpose(tf.stack([left, right, top, bottom]))
+    valid_match = tf.greater(tf.reduce_min(lrtb_targets, -1), 0.0)
+    lrtb_targets = tf.where(
+        valid_match, lrtb_targets, tf.zeros_like(lrtb_targets))
+
+    # Centerness score.
+    left_right = tf.stack([left, right], axis=-1)
+
+    left_right = tf.where(tf.stack([valid_match, valid_match], -1),
+                          left_right, tf.zeros_like(left_right))
+    top_bottom = tf.stack([top, bottom], axis=-1)
+    top_bottom = tf.where(tf.stack([valid_match, valid_match], -1),
+                          top_bottom, tf.zeros_like(top_bottom))
+    center_targets = tf.sqrt(
+        (tf.reduce_min(left_right, -1) /
+         (tf.reduce_max(left_right, -1) + EPSILON)) *
+        (tf.reduce_min(top_bottom, -1) /
+         (tf.reduce_max(top_bottom, -1) + EPSILON)))
+    center_targets = tf.where(valid_match,
+                              center_targets,
+                              tf.zeros_like(center_targets))
+    return center_targets, lrtb_targets
+
+  def _decode(self, rel_codes, anchors):
+    """Decode relative codes to boxes.
+
+    Args:
+      rel_codes: a tensor representing N anchor-encoded boxes.
+      anchors: BoxList of anchors.
+
+    Returns:
+      boxes: BoxList holding N bounding boxes.
+    """
+    ycenter_a, xcenter_a, ha, wa = anchors.get_center_coordinates_and_sizes()
+
+    left, right, top, bottom = tf.unstack(tf.transpose(rel_codes))
+    left *= self.normalizer
+    right *= self.normalizer
+    top *= self.normalizer
+    bottom *= self.normalizer
+
+    left *= wa
+    right *= wa
+    top *= ha
+    bottom *= ha
+
+    ymin = ycenter_a - top
+    xmin = xcenter_a - left
+    ymax = ycenter_a - bottom
+    xmax = xcenter_a - right
+    return box_list.BoxList(tf.transpose(tf.stack([ymin, xmin, ymax, xmax])))
