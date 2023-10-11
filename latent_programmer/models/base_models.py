@@ -380,10 +380,10 @@ class EncoderDecoderBlock(nn.Module):
           use_bias=False,
           broadcast_dropout=False,
           dropout_rate=cfg.attention_dropout_rate,
-          deterministic=cfg.deterministic)(y, encoded, encoder_decoder_mask)
+          deterministic=cfg.deterministic,
+      )(y, encoded, mask=encoder_decoder_mask)
 
-    y = nn.Dropout(rate=cfg.dropout_rate)(
-        y, deterministic=cfg.deterministic)
+    y = nn.Dropout(rate=cfg.dropout_rate)(y, deterministic=cfg.deterministic)
     y = y + x
 
     # MLP block.
