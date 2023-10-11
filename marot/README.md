@@ -111,9 +111,14 @@ ten columns, one line per marked error:
         in the target segment. Same structure as source_sentence_splits.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
+      - **characteristics**: A dictionary of segment characteristics that may
+        be useful for slicing and dicing scores, or creating automated analyses
+        of what characteristics contribute the most to score differences between
+        systems (or even raters). For example:
+        - `source_length_class`: `short_0_to_10_chars`,
+        - `embedding_vilar_2d`: [42.678, 901.23],
       - In addition, any text annotation fields present in the input data are
-        copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
-        this would be all the fields present in the optional last column.
+        copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html), this would be all the fields present in the optional last column.
   - **feedback**: An object optionally present in the metadata of the first
     segment of a doc. This captures any feedback the rater may have provided.
     It can include a free-form text field (keyed by **notes**) and a string
