@@ -1241,6 +1241,7 @@ def distributed_shampoo(
     reuse_preconditioner=False,
     eigh=False,
     adagrad_dims=tuple(),
+    adagrad_learning_rate=1.0,
 ):
   """Distributed Shampoo optimizer.
 
@@ -2621,7 +2622,7 @@ def distributed_shampoo(
       diagonal_epsilon = 1e-12
       beta1 = 0.0
       beta2 = 1.0
-      learning_rate = 1.0
+      learning_rate = adagrad_learning_rate
 
     if (graft_type == GraftingType.ADAGRAD or
         graft_type == GraftingType.ADAGRAD_NORMALIZED):
