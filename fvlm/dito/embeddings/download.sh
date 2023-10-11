@@ -14,5 +14,5 @@
 
 #!/bin/bash
 
-wget https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/dito/lvis_embeddings.zip
-unzip lvis_embeddings.zip
+wget https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/dito/dito_large_embeddings.zip
+unzip dito_large_embeddings.zip
