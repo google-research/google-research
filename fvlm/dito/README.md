@@ -3,12 +3,25 @@
 This is a JAX/Flax implementation of DITO [Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection](https://arxiv.org/abs/2310.00161).
 
 ## Installation
-
-Install the package from the root directory.
+We use the Python built-in virtual env to set up the environment. Run the following commands:
 
 ```
+svn export https://github.com/google-research/google-research/trunk/fvlm
+
+PATH_TO_VENV=/path/to/your/venv
+python3 -m venv ${PATH_TO_VENV}
+source ${PATH_TO_VENV}/bin/activate
+```
+
+Install the requirements from the root fvlm directory.
+
+```
+pip install -r requirements.txt
 pip install -e .
 ```
+
+For GPU training, please refer to [this github page](https://github.com/google/jax/issues/13637) for installation instructions.
+
 
 ## Download the DITO checkpoint and precomputed text embeddings.
 Run the following commands from the root directory.
