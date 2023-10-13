@@ -18,7 +18,6 @@
 import dataclasses
 import enum
 import json
-import os
 
 from typing import Dict, Iterator, List, Optional, Tuple
 
@@ -27,10 +26,6 @@ import pandas as pd
 
 
 from psyborgs import llm_scoring_lib
-
-
-_ITEM_BANK_PROTOTYPE = os.path.join(
-    SURVEY_DIR, 'prototype_v2_multi_model.json')
 
 
 # build data classes w/ `dacite`
@@ -145,17 +140,23 @@ class PayloadSpec():
   model_id: str
 
 
-def load_admin_session():
-  """Builds session data classes from user-friendly JSON."""
-  with resources.GetResourceAsFile(_ITEM_BANK_PROTOTYPE) as f:
-    admin_session_dict = json.load(f)
+def load_admin_session(json_path):
+  """Builds session data classes from user-friendly JSON.
+
+  Args:
+    json_path: Path of the AdministrationSession in .json format.
+
+  Returns:
+    The Admin Session object.
+  """
+  json_file = open(json_path)
+  admin_session_dict = json.load(json_file)
 
   # dacite documentation on casting input values to objects can be found here:
   # https://github.com/konradhalas/dacite#casting
   admin_session = dacite.from_dict(data_class=AdministrationSession,
                                    data=admin_session_dict,
                                    config=dacite.Config(cast=[enum.Enum]))
-
   return admin_session
 
 
@@ -220,19 +221,16 @@ def generate_payload_spec(measure,
   prompt_text, continuation_text = assemble_payload(prompt,
                                                     continuation)
 
-  # TODO(gserapio): write object method to do this
   # rehydrate measure specification from measure
   measure_id = measure.measure_id
   measure_name = measure.measure.user_readable_name
   scale_id = measure.scale_id
 
-  # TODO(gserapio): write object method to do this
   # rehydrate prompt specification from prompt
   item_preamble_id = prompt.preamble.entry_id
   item_id = prompt.item.entry_id
   item_postamble_id = prompt.postamble.entry_id
 
-  # TODO(gserapio): write object method to do this
   # rehydrate continuation specification from continuation
   response_scale_id = continuation.response_scale_id
   response_value = continuation.response_value
@@ -247,8 +245,6 @@ def generate_payload_spec(measure,
   )
 
 
-# TODO(gserapio): change this to return a string only so that print and log
-# can be done separately
 def print_payload_specification(payload_spec):
   """Prints payload (item + options, etc.) specification for debugging."""
   print(f'prompt: \'{payload_spec.prompt_text}\'')
@@ -285,8 +281,6 @@ def assemble_and_score_payload(
   # generate payload_specification
   payload_spec = generate_payload_spec(measure, prompt, continuation, score,
                                        model_id)
-
-  # TODO(ccrepy, dariav): logging can go here
 
   if verbose:
     # view payload and specification if verbose
