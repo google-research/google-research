@@ -41,6 +41,16 @@
   color: gray;
   font-size: x-small
 }
+.marot-comparison-histograms,
+.marot-comparison-tables-pvalue,
+.marot-comparison-tables-rho {
+  margin: 8px;
+}
+.marot-comparison-tables-pvalue .marot-rho,
+.marot-comparison-tables-rho .marot-pvalue {
+  /** only one of pvalue/rho will be visible */
+  display: none;
+}
 .marot-deleted {
   background: lavender;
 }
@@ -126,6 +136,9 @@
   background: gainsboro;
   margin-left: 6px;
 }
+.marot-pvalue-significant {
+  font-weight: bold;
+}
 #marot-quote {
   text-align: center;
   margin-top: 300px;
@@ -198,12 +211,6 @@
 .marot-settings-row {
   margin: 6px 0;
 }
-.marot-sigtests {
-  margin: 8px;
-}
-.marot-sigtest-significant {
-  font-weight: bold;
-}
 .marot-stats-slice {
   background-color: #F0F0F0;
 }
@@ -213,11 +220,11 @@
 .marot-subheading {
   padding: 6px 0 0 4px;
 }
-.marot-sys-v-sys {
-  margin: 8px;
-}
-.marot-sys-v-sys-hist {
+.marot-histogram {
   cursor: pointer;
+}
+.marot-histogram-selected {
+  filter: brightness(60%);
 }
 .marot-table {
   border: none;
@@ -243,23 +250,23 @@
 .marot-table-ratings {
   border-collapse: collapse;
 }
-#marot-tbody td {
+#marot-segments-tbody td {
   padding: 0;
 }
-#marot-tbody div {
+#marot-segments-tbody div {
   overflow-wrap: anywhere;
   padding: 4px;
 }
-#marot-tbody p {
+#marot-segments-tbody p {
   margin-block-end: 0;
 }
-#marot-tbody p:not(:first-child) {
+#marot-segments-tbody p:not(:first-child) {
   margin-block-start: 1em;
 }
-#marot-tbody p:first-child {
+#marot-segments-tbody p:first-child {
   margin-block-start: 0;
 }
-#marot-tbody tr:not(:last-child) {
+#marot-segments-tbody tr:not(:last-child) {
   border-bottom: 1px solid gray;
 }
 #marot-th-doc {

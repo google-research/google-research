@@ -14,7 +14,7 @@
 
 /**
  * This file contains the background Worker thread code that computes
- * significance tests for metric score rankings of system pairs.
+ * significance tests for metric score rankings of system/rater pairs.
  *
  * The significance testing is done through paired one-sided approximate
  * randomization (PAR). The implemention follows sacrebleu at
@@ -45,24 +45,24 @@ class MarotSigtests {
 
   /**
    * Performs one trial of paired approximate randomization (PAR) for a given
-   * baseline and a system and returns the score difference. Returns null if no
-   * common segments are found.
-   * @param {!MarotSigtestsData} data
+   * baseline and a candidate item and returns the score difference. Returns
+   * null if no common segments are found.
+   * @param {!MarotSigtestsMetricData} data
    * @param {string} baseline
-   * @param {string} system
+   * @param {string} item
    * @return {number}
    */
-  runPAROneTrial(data, baseline, system) {
-    const baselineScores = data.segScoresBySystem[baseline];
-    const systemScores = data.segScoresBySystem[system];
-    const commonPos = data.commonPosBySystemPair[baseline][system];
+  runPAROneTrial(data, baseline, item) {
+    const baselineScores = data.segScores[baseline];
+    const itemScores = data.segScores[item];
+    const commonPos = data.commonPosByItemPair[baseline][item];
 
     if (!commonPos) {
       return null;
     }
 
     /**
-     * This random array indicates which shuffled system a given score should be
+     * This random array indicates which shuffled item a given score should be
      * assigned to.
      */
     const permutations = this.getRandomInt(2, commonPos.length);
@@ -72,9 +72,9 @@ class MarotSigtests {
       const pos = commonPos[idx];
       if (perm == 0) {
         shufA += baselineScores[pos];
-        shufB += systemScores[pos];
+        shufB += itemScores[pos];
       } else {
-        shufA += systemScores[pos];
+        shufA += itemScores[pos];
         shufB += baselineScores[pos];
       }
     }
@@ -86,102 +86,113 @@ class MarotSigtests {
   /**
    * Implements the core logic to perform paired one-sided approximate
    * randomization by incrementally conducting trials.
-   * @param {!MarotSigtestsData} sigtestsData is the MarotSigtestsData object
-   *     that contains various pieces of data needed for significance testing.
+   * @param {!Object} sigtestsData is the object that contains various pieces
+   *     of data needed for significance testing.
    */
   runPAR(sigtestsData) {
-    const finishedUpdate = {
-      finished: true,
-    };
-    for (let metric in sigtestsData.metricData) {
-      const data = sigtestsData.metricData[metric];
-      const systems = data.systems;
-      const metricDoneUpdate = {
-        metric: metric,
-        metricDone: true,
-      };
-      /** We should have at least 2 systems and 1 trial for signif. testing. */
-      if (systems.length < 2 || sigtestsData.numTrials < 1) {
-        postMessage(metricDoneUpdate);
+    for (const sysOrRater of ['sys', 'rater']) {
+      if (!sigtestsData.data.hasOwnProperty(sysOrRater)) {
         continue;
       }
-      const scoresBySystem = data.scoresBySystem;
-      const commonPos = data.commonPosBySystemPair;
-      const signMultiplier = data.lowerBetter ? 1.0 : -1.0;
-
-      /** Score differences by system pair. */
-      const parDiffs = {};
-
-      const log2NumTrials = Math.log2(sigtestsData.numTrials);
-
-      for (const [rowIdx, baseline] of systems.entries()) {
-        if (!parDiffs.hasOwnProperty(baseline)) {
-          parDiffs[baseline] = {};
+      const metricsData = sigtestsData.data[sysOrRater];
+      for (const metric in metricsData) {
+        const data = metricsData[metric];
+        const comparables = data.comparables;
+        const metricDoneUpdate = {
+          sysOrRater: sysOrRater,
+          metric: metric,
+          metricDone: true,
+        };
+        /** We should have at least 2 comparables and 1 trial for signif. testing. */
+        if (comparables.length < 2 || sigtestsData.numTrials < 1) {
+          postMessage(metricDoneUpdate);
+          continue;
         }
-        for (const [colIdx, system] of systems.entries()) {
-          if (rowIdx >= colIdx) {
-            /** We only fill in the upper triangle. */
-            continue;
-          }
-          const numCommonSegs = commonPos[baseline][system].length;
-          if (log2NumTrials > numCommonSegs) {
-            /** Not enough permutations possible, do not compute. */
-            continue;
-          }
-          if (!parDiffs[baseline].hasOwnProperty(system)) {
-            parDiffs[baseline][system] = [];
-          }
-          for (let i = 0; i < sigtestsData.numTrials; i++) {
-            const diff = this.runPAROneTrial(data, baseline, system);
-            /** This means no common segments are found. */
-            if (diff == null) break;
-            parDiffs[baseline][system].push(diff);
-          }
+        const scores = data.scores;
+        const commonPos = data.commonPosByItemPair;
+        const signMultiplier = data.lowerBetter ? 1.0 : -1.0;
 
-          const realDiff = (signMultiplier *
-              (scoresBySystem[system].score - scoresBySystem[baseline].score));
-          /**
-           * Real score differences should be non-negative since we are filling in
-           * the upper triangle.
-           */
-          console.assert(realDiff >= 0.0, realDiff);
-          let cnt = 0;
-          for (const diff of parDiffs[baseline][system]) {
-            /**
-             * Count how many samples of the null distribution are greater than or
-             * equal to the real difference. This corresponds to
-             * 'alternative="greater"' in scipy's API at
-             * https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html.
-             * Recall that a greater value than `realDiff` indicates a bigger
-             * difference between `system` and `baseline`.
-             */
-            if (diff >= realDiff) {
-              cnt += 1;
+        /** Score differences by item-pair. */
+        const parDiffs = {};
+
+        const log2NumTrials = Math.log2(sigtestsData.numTrials);
+
+        for (const [rowIdx, baseline] of comparables.entries()) {
+          if (!parDiffs.hasOwnProperty(baseline)) {
+            parDiffs[baseline] = {};
+          }
+          for (const [colIdx, item] of comparables.entries()) {
+            if (rowIdx >= colIdx) {
+              /** We only fill in the upper triangle. */
+              continue;
             }
+            const numCommonSegs = commonPos[baseline][item].length;
+            const update = {
+              sysOrRater: sysOrRater,
+              metric: metric,
+              row: rowIdx,
+              col: colIdx,
+              pValue: NaN,
+              numCommonSegs: numCommonSegs,
+            };
+            if (log2NumTrials > numCommonSegs) {
+              /** Not enough permutations possible, do not compute p-value. */
+              postMessage(update);
+              continue;
+            }
+            if (!parDiffs[baseline].hasOwnProperty(item)) {
+              parDiffs[baseline][item] = [];
+            }
+            for (let i = 0; i < sigtestsData.numTrials; i++) {
+              const diff = this.runPAROneTrial(data, baseline, item);
+              /** This means no common segments are found. */
+              if (diff == null) break;
+              parDiffs[baseline][item].push(diff);
+            }
+
+            const realDiff = (signMultiplier *
+                (scores[item].score - scores[baseline].score));
+            /**
+             * Real score differences should be non-negative since we are
+             * filling in the upper triangle.
+             */
+            console.assert(realDiff >= 0.0, realDiff);
+            let cnt = 0;
+            for (const diff of parDiffs[baseline][item]) {
+              /**
+               * Count how many samples of the null distribution are greater
+               * than or equal to the real difference. This corresponds to
+               * 'alternative="greater"' in scipy's API at
+               * https://docs.scipy.org/doc/scipy/reference/generated/scipy.stats.permutation_test.html.
+               * Recall that a greater value than `realDiff` indicates a bigger
+               * difference between `item` and `baseline`.
+               */
+              if (diff >= realDiff) {
+                cnt += 1;
+              }
+            }
+            const numTrials = parDiffs[baseline][item].length;
+            update.pValue = (cnt + 1) / (numTrials + 1);
+            postMessage(update);
           }
-          const numTrials = parDiffs[baseline][system].length;
-          const p = (cnt + 1) / (numTrials + 1);
-          const update = {
-            metric: metric,
-            row: rowIdx,
-            col: colIdx,
-            pValue: p,
-            numCommonSegs: numCommonSegs,
-          };
-          /** Send this p-value to the parent thread. */
-          postMessage(update);
         }
+        postMessage(metricDoneUpdate);
       }
-      postMessage(metricDoneUpdate);
+      postMessage({
+        sysOrRater: sysOrRater,
+        sysOrRaterDone: true,
+      });
     }
-    postMessage(finishedUpdate);
+    postMessage({
+      finished: true,
+    });
   }
 
   /**
    * Handles the message (to carry out sigtest computations) from the parent.
    * @param {!Event} e is the message event received from the parent thread.
-   *     The e.data field is the MarotSigtestsData object that contains various
-   *     pieces of data needed.
+   *     The e.data field is the object that contains various pieces of data
+   *     needed.
    */
   messageHandler(e) {
     this.runPAR(e.data);
@@ -189,10 +200,10 @@ class MarotSigtests {
 }
 
 /**
- * The Worker thread code includes the full JS fo the MarotSigtests class,
+ * The Worker thread code includes the full JS for the MarotSigtests class,
  * and then it creates a marotSigtests object with a handler for message
- * events. Upon receiving the message with MarotSigtestsData from the parent
- * thread, significance test computations are kicked off.
+ * events. Upon receiving the message with MarotSigtestsMetricData from the
+ * parent thread, significance test computations are kicked off.
  */
 marot.sigtestsWorkerJS = MarotSigtests.toString() + `
   marotSigtests = new MarotSigtests();

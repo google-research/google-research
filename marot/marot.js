@@ -96,35 +96,36 @@ let mqmDefaultSlices = [
 ];
 
 /**
- * An object that captures all the data needed for running significance
- * tests on one particular metric.
+ * An object that captures all the data needed for running pairwise significance
+ * tests on one particular metric over systems/raters.
  */
-class MarotSigtestsData {
+class MarotSigtestsMetricData {
   constructor() {
     /** {boolean} */
     this.lowerBetter = false;
     /**
      * {!Array<string>} Sorted array ordered by degrading scores.
      */
-    this.systems = [];
+    this.comparables = [];
      /**
-      * {!Object} Scores by system. Each score itself is an object containing
-      *     score and scoreDenominator.
+      * {!Object} Scores by system/rater. Each score itself is an object
+      *     containing score and scoreDenominator.
       */
-    this.scoresBySystem = {};
+    this.scores = {};
     /**
-     * {!Object} Segment scores by system. Each value is an array of scores that
-     *     are aligned such that elements at the n-th position of all arrays
-     *     correspond to the same segment. Note that some scores might be null
-     *     since some systems might be missing ratings for some segments.
+     * {!Object} Segment scores by system/rater. Each value is an array of
+     *     scores that are aligned such that elements at the n-th position of
+     *     all arrays correspond to the same segment. Note that some scores
+     *     might be null since some systems/raters might be missing scores for
+     *     some segments.
      */
-    this.segScoresBySystem = {};
+    this.segScores = {};
     /**
-     * {!Object} Common segments shared by a pair of systems. This stores
-     *     positions in segScoresBySystem.
+     * {!Object} Common segments shared by a pair of systems/raters. This stores
+     *     positions in segScores.
      */
-    this.commonPosBySystemPair = {};
-    /** {!Array<!Array<number>>} Computed matric of p-values. */
+    this.commonPosByItemPair = {};
+    /** {!Array<!Array<number>>} Computed matrix of p-values. */
     this.pValues = [];
   }
 }
@@ -174,11 +175,18 @@ class Marot {
     };
 
     /**
-     * dataFiltered has exactly the same format as data, except that it is
-     * limited to the current filters in place. It contains its metadata field
-     * in its JSON-encoded form.
+     * Each call to show() figures out the rowIds that pass current filters and
+     * populates selectedRows with that set.
      */
-    this.dataFiltered = [];
+    this.selectedRows = new Set();
+
+    /**
+     * If there are "viewing constraints" currently in place (because of a
+     * drill-down click on a histogram bar), then the selected histogram rect
+     * is recorded here (so that its styling can be cleared when the constraint)
+     * is removed.
+     */
+    this.histRectSelected = null;
 
     /** Array indices in each data[] entry */
     this.DATA_COL_SYSTEM = 0;
@@ -212,13 +220,16 @@ class Marot {
     this.tsvData = '';
 
     /**
-     * The first two stats* objects are keyed by [system][doc][docSegId]. Apart
-     * from all the systems, an additional, special system value
-     * ('_MAROT_TOTAL_') is used in both, for aggregates over all systems (for
-     * this aggregate, the doc key used is doc:system). statsByRater is first
-     * keyed by [rater] (and then by [system][doc][docSegId]). Each keyed entry
-     * is an array of per-rater stats (scores, score slices, error counts) for
-     * that segment (system+doc+docSegId).
+     * The following are all arrays of per-rater stats (scores, score slices,
+     * error counts) for one segment.
+     *
+     *   statsBySystem[system][doc][docSegId]
+     *   statsByRaterSystem[rater][system][doc][docSegId]
+     *   statsByRater[rater][doc][docSegId]
+     *      stats has a special system value ('MAROT_TOTAL') that aggregates
+     *      ratings for all systems, by using faux "doc" keys that look like
+     *      "[doc]:[system]". The doc keys in statsByRater also look like
+     *      "[doc]:[system]".
      *
      * sevcatStats[severity][category][system] is the total count of
      * annotations of a specific severity+category in a specific system.
@@ -226,12 +237,13 @@ class Marot {
      * Each of these stats objects is recomputed for any filtering applied to
      * the data.
      */
-    this.stats = {};
+    this.statsBySystem = {};
+    this.statsByRaterSystem = {};
     this.statsByRater = {};
     this.sevcatStats = {};
 
     /** {!Element} HTML table body elements for various tables */
-    this.table = null;
+    this.segmentsTable = null;
     this.statsTable = null;
     this.sevcatStatsTable = null;
     this.eventsTable = null;
@@ -257,9 +269,13 @@ class Marot {
     this.filterClauseAddAnd = null;
     this.filterClauseAddOr = null;
 
-    /** Selected system names for system-v-system comparison. */
-    this.system1 = null;
-    this.system2 = null;
+    /** Selected system and rater names for comparisons. */
+    this.comparisons = {
+      sys1: null,
+      sys2: null,
+      rater1: null,
+      rater2: null,
+    };
 
     /** A distinctive name used as the key for aggregate stats. */
     this.TOTAL = '_MAROT_TOTAL_';
@@ -270,11 +286,12 @@ class Marot {
     /**
      * An object with data for computing significance tests. This data is sent
      * to a background Worker thread. See computation details in
-     * marot-sigtests.js. The object metricData[] has one entry for each metric
-     * in this.metricsVisible[].
+     * marot-sigtests.js. The data object potentially has keys 'sys' and 'rater'
+     * and the values are objects keyed by metric id, with those values being
+     * objects of type MarotSigtestsMetricData.
      */
     this.sigtestsData = {
-      metricData: {},
+      data: {},
       /** {number} Number of trials. */
       numTrials: this.SIGTEST_TRIALS,
     };
@@ -289,9 +306,10 @@ class Marot {
      */
     this.sigtestsWorkerJS = '';
     /**
-     * {!Element} An HTML span that shows a sigtests computation status message.
+     * {!Element} HTML spans that shows sigtest computation status messages.
      */
-    this.sigtestsMsg = null;
+    this.sigtestsSysMsg = null;
+    this.sigtestsRaterMsg = null;
 
     /**
      * mqmWeights and mqmSlices are set from current settings in
@@ -1411,12 +1429,47 @@ class Marot {
   }
 
   /**
+   * Creates a background Worker for running significance tests. If sigtests
+   * are not applicable, then this returns without creating a Worker.
+   */
+  startSigtests() {
+    if (this.charScoring) {
+      const na = 'Not available for 100-source-chars scoring';
+      this.sigtestsSysMsg.innerHTML = na;
+      this.sigtestsRaterMsg.innerHTML = na;
+      return;
+    }
+    let noop = true;
+    if (this.sigtestsData.data.hasOwnProperty('sys')) {
+      noop = false;
+      this.sigtestsSysMsg.innerHTML = 'Computing p-values...';
+    }
+    if (this.sigtestsData.data.hasOwnProperty('rater')) {
+      noop = false;
+      this.sigtestsRaterMsg.innerHTML = 'Computing p-values...';
+    }
+    if (noop) {
+      return;
+    }
+    const elt = document.getElementById('marot-sigtests-num-trials');
+    this.sigtestsData.numTrials = parseInt(elt.value);
+    console.assert(this.sigtestsWorkerJS,
+                   'Missing code from marot-sigtests.js');
+    const blob = new Blob([this.sigtestsWorkerJS],
+                          {type: "text/javascript" });
+    this.sigtestsWorker = new Worker(window.URL.createObjectURL(blob));
+    this.sigtestsWorker.postMessage(this.sigtestsData);
+    this.sigtestsWorker.onmessage = this.sigtestsUpdate.bind(this);
+  }
+
+  /**
    * This resets the significance tests data and terminates the active sigtests
    * computation Worker if it exists.
    */
   resetSigtests() {
-    this.sigtestsMsg.innerHTML = '';
-    this.sigtestsData.metricData = {};
+    this.sigtestsSysMsg.innerHTML = '';
+    this.sigtestsRaterMsg.innerHTML = '';
+    this.sigtestsData.data = {};
     if (this.sigtestsWorker) {
       this.sigtestsWorker.terminate();
     }
@@ -1424,61 +1477,112 @@ class Marot {
   }
 
   /**
-   * This prepares significance tests data, setting various fields in
-   * this.sigtestsData.
-   * @param {!Object} statsBySysAggregates
+   * Runs Pearson correlation between scores from baseline and item, returning
+   * the rho value.
+   *
+   * @param {!MarotSigtestsMetricData} data
+   * @param {string} baseline
+   * @param {string} item
+   * @return {number}
    */
-  prepareSigtests(statsBySysAggregates) {
+  pearson(data, baseline, item) {
+    const baselineScores = data.segScores[baseline];
+    const itemScores = data.segScores[item];
+    const commonPos = data.commonPosByItemPair[baseline][item];
+
+    const n = commonPos.length ?? 0;
+    if (n <= 1 || this.charScoring) {
+      return NaN;
+    }
+    let sumX = 0.0, sumY = 0.0;
+    let sumX2 = 0.0, sumY2 = 0.0;
+    let sumXY = 0.0;
+    for (const pos of commonPos) {
+      const x = baselineScores[pos];
+      const y = itemScores[pos];
+      sumX += x;
+      sumY += y;
+      sumX2 += (x * x);
+      sumY2 += (y * y);
+      sumXY += (x * y);
+    }
+    return ((n * sumXY) - (sumX * sumY)) / Math.sqrt(
+      ((n * sumX2) - (sumX * sumX)) * ((n * sumY2) - (sumY * sumY)));
+  }
+
+  /**
+   * This prepares significance tests data for systems (sysOrRater = 'sys') or
+   * raters (sysOrRater = 'rater').
+   *
+   * @param {string} sysOrRater
+   * @param {!Object} stats Stats object keyed by system/rater.
+   * @param {!Object} statsAggregates Aggregation (also keyed by system/rater)
+   *     of stats over segments.
+   * @param {!Array<number>} metricIds
+   * @return {!Object} Returns an object keyed by metric name, where each
+   *     value is a MarotSigtestsMetricData object.
+   */
+  prepareSigtests(sysOrRater, stats, statsAggregates, metricIds) {
     /**
      * Each segment is uniquely determined by the (doc, docSegId) pair. We use
      * `pairToPos` to track which pair goes to which position in the aligned
-     * segScoresBySystem[system] array.
+     * segScores[] array.
      */
     const pairToPos = {};
     let maxPos = 0;
-    for (const doc of this.dataIter.docs) {
-      pairToPos[doc] = {};
-      for (const docSegId of this.dataIter.docSegs[doc]) {
-        pairToPos[doc][docSegId] = maxPos;
-        maxPos += 1;
+    for (const key in stats) {
+      for (const doc in stats[key]) {
+        if (!pairToPos.hasOwnProperty(doc)) {
+          pairToPos[doc] = {};
+        }
+        const docsegs = stats[key][doc];
+        for (const docSegId in docsegs) {
+          if (pairToPos[doc].hasOwnProperty(docSegId)) {
+            continue;
+          }
+          pairToPos[doc][docSegId] = maxPos;
+          maxPos += 1;
+        }
       }
     }
-    const elt = document.getElementById('marot-sigtests-num-trials');
-    this.sigtestsData.numTrials = parseInt(elt.value);
-    this.sigtestsData.metricData = {};
+    const sigtestsData = {
+    };
 
-    const systems = Object.keys(statsBySysAggregates);
-    systems.splice(systems.indexOf(this.TOTAL), 1);
+    const comparables = Object.keys(statsAggregates);
+    const indexOfTotal = comparables.indexOf(this.TOTAL);
+    if (indexOfTotal >= 0) {
+      comparables.splice(indexOfTotal, 1);
+    }
 
-    for (const m of this.metricsVisible) {
+    for (const m of metricIds) {
       const metricKey = 'metric-' + m;
       const metric = this.metrics[m];
       const metricInfo = this.metricsInfo[metric];
-      const data = new MarotSigtestsData();
-      this.sigtestsData.metricData[metric] = data;
-      data.systems = systems.slice();
+      const data = new MarotSigtestsMetricData();
+      sigtestsData[metric] = data;
+      data.comparables = comparables.slice();
       data.lowerBetter = metricInfo.lowerBetter || false;
       const signReverser = metricInfo.lowerBetter ? 1.0 : -1.0;
-      data.systems.sort(
+      data.comparables.sort(
           (s1, s2) => signReverser * (
-                          (statsBySysAggregates[s1][metricKey] ?? 0) -
-                          (statsBySysAggregates[s2][metricKey] ?? 0)));
-      for (const system of data.systems) {
-        data.scoresBySystem[system] =
-            statsBySysAggregates[system].metrics[metric] ??
+                          (statsAggregates[s1][metricKey] ?? 0) -
+                          (statsAggregates[s2][metricKey] ?? 0)));
+      for (const item of data.comparables) {
+        data.scores[item] =
+            statsAggregates[item].metrics[metric] ??
             {score: 0, scoreDenominator: 0};
       }
-      const segScores = data.segScoresBySystem;
-      for (const system of data.systems) {
+      const segScores = data.segScores;
+      for (const item of data.comparables) {
         /**
-         * For each system, we first compute the mapping from position to score.
-         * Any missing key correponds to one missing segment for this system.
+         * For each item, we first compute the mapping from position to score.
+         * Any missing key correponds to one missing segment for this item.
          */
         const posToScore = {};
-        for (const doc of Object.keys(this.stats[system])) {
-          for (const docSegId of Object.keys(this.stats[system][doc])) {
+        for (const doc of Object.keys(stats[item])) {
+          for (const docSegId of Object.keys(stats[item][doc])) {
             const pos = pairToPos[doc][docSegId];
-            const segs = this.stats[system][doc][docSegId];
+            const segs = stats[item][doc][docSegId];
             /** Note the extra "[]". */
             const aggregate = this.aggregateSegStats([segs]);
             const metricStats = aggregate.metrics[metric] ?? null;
@@ -1488,85 +1592,88 @@ class Marot {
           }
         }
         /** Now we can compute "segScores". */
-        segScores[system] = [];
+        segScores[item] = [];
         for (let pos = 0; pos < maxPos; pos++) {
           if (posToScore.hasOwnProperty(pos)) {
-            segScores[system].push(posToScore[pos]);
+            segScores[item].push(posToScore[pos]);
           } else {
-            /** This system is missing this specific segment. */
-            segScores[system].push(null);
+            /** This item is missing this specific segment. */
+            segScores[item].push(null);
           }
         }
       }
 
-      /** Compute common positions for each system pair in `commonPos`. */
-      const commonPos = data.commonPosBySystemPair;
-      for (const [idx, baseline] of data.systems.entries()) {
+      /** Compute common positions for each item pair in `commonPos`. */
+      const commonPos = data.commonPosByItemPair;
+      for (const [idx, baseline] of data.comparables.entries()) {
         if (!commonPos.hasOwnProperty(baseline)) {
           commonPos[baseline] = {};
         }
-        /** We only need the upper triangle in the significance test table. */
-        for (const system of data.systems.slice(idx + 1)) {
-          if (!commonPos[baseline].hasOwnProperty(system)) {
-            commonPos[baseline][system] = [];
+        /** We only need the upper triangle in the comparison table. */
+        for (const item of data.comparables.slice(idx + 1)) {
+          if (!commonPos[baseline].hasOwnProperty(item)) {
+            commonPos[baseline][item] = [];
           }
           for (let pos = 0; pos < maxPos; pos++) {
-            if ((segScores[system][pos] != null) &&
+            if ((segScores[item][pos] != null) &&
                 (segScores[baseline][pos] != null)) {
-              commonPos[baseline][system].push(pos);
+              commonPos[baseline][item].push(pos);
             }
           }
         }
       }
 
       /**
-       * Create pValues matrix, to be populated with updates from the Worker.
+       * Create p-values matrix, to be populated with updates from the Worker.
        */
-      const numSystems = data.systems.length;
-      data.pValues = Array(numSystems);
-      for (let row = 0; row < numSystems; row++) {
-        data.pValues[row] = Array(numSystems);
-        for (let col = 0; col < numSystems; col++) {
+      const numComparables = data.comparables.length;
+      data.pValues = Array(numComparables);
+      for (let row = 0; row < numComparables; row++) {
+        data.pValues[row] = Array(numComparables);
+        for (let col = 0; col < numComparables; col++) {
           data.pValues[row][col] = NaN;
         }
       }
     }
+    return sigtestsData;
   }
 
   /**
    * In the significance tests table, draw a solid line under every prefix of
-   * systems that is significantly better than all subsequent systems. Draw a
-   * dotted line to separate clusters within which no system is significantly
+   * items that is significantly better than all subsequent items. Draw a
+   * dotted line to separate clusters within which no item is significantly
    * better than any other.
+   * @param {string} sysOrRater
    * @param {string} metric
    */
-  clusterSigtests(metric) {
+  clusterSigtests(sysOrRater, metric) {
     const m = this.metricsInfo[metric].index;
-    const data = this.sigtestsData.metricData[metric];
-    const numSystems = data.systems.length;
-    const systemBetterThanAllAfter = Array(numSystems);
-    for (let row = 0; row < numSystems; row++) {
-      systemBetterThanAllAfter[row] = numSystems - 1;
-      for (let col = numSystems - 1; col > row; col--) {
+    const data = this.sigtestsData.data[sysOrRater][metric];
+    const numComparables = data.comparables.length;
+    const itemBetterThanAllAfter = Array(numComparables);
+    for (let row = 0; row < numComparables; row++) {
+      itemBetterThanAllAfter[row] = numComparables - 1;
+      for (let col = numComparables - 1; col > row; col--) {
         const pValue = data.pValues[row][col];
         if (isNaN(pValue) || pValue >= this.PVALUE_THRESHOLD) {
           break;
         }
-        systemBetterThanAllAfter[row] = col - 1;
+        itemBetterThanAllAfter[row] = col - 1;
       }
     }
     let maxBetterThanAllAfter = 0;  /** Max over rows 0..row */
     let dottedClusterStart = 0;
-    for (let row = 0; row < numSystems - 1; row++) {
-      const tr = document.getElementById('marot-sigtests-' + m + '-row-' + row);
+    for (let row = 0; row < numComparables - 1; row++) {
+      const tr = document.getElementById(
+          `marot-${sysOrRater}-sigtests-${m}-row-${row}`);
       maxBetterThanAllAfter = Math.max(maxBetterThanAllAfter,
-                                       systemBetterThanAllAfter[row]);
+                                       itemBetterThanAllAfter[row]);
       if (maxBetterThanAllAfter == row) {
         tr.className = 'marot-bottomed-tr';
         dottedClusterStart = row + 1;
         continue;
       }
-      /** Is no system in dottedClusterStart..row signif. better than row+1? */
+      /** Is no item in dottedClusterStart..row signif. better than row+1? */
       let noneSigBetter = true;
       for (let dottedClusterRow = dottedClusterStart;
            dottedClusterRow <= row; dottedClusterRow++) {
@@ -1595,79 +1702,119 @@ class Marot {
       this.resetSigtests();
       return;
     }
-    const metric = update.metric;
-    if (update.metricDone) {
-      this.clusterSigtests(metric);
+    if (update.sysOrRaterDone) {
+      if (update.sysOrRater == 'sys') {
+        this.sigtestsSysMsg.innerHTML = '';
+      } else {
+        this.sigtestsRaterMsg.innerHTML = '';
+      }
       return;
     }
-    const m = this.metricsInfo[metric].index;
-    const span = document.getElementById(
-        `marot-sigtest-${m}-${update.row}-${update.col}`);
-    span.innerText = update.pValue.toFixed(3);
-    span.title = `Based on ${update.numCommonSegs} common segments.`;
-    if (update.pValue < this.PVALUE_THRESHOLD) {
-      span.className = 'marot-sigtest-significant';
+    const metric = update.metric;
+    if (update.metricDone) {
+      this.clusterSigtests(update.sysOrRater, metric);
+      return;
     }
-    this.sigtestsData.metricData[metric].pValues[update.row][update.col] =
-        update.pValue;
+    const pValues = this.sigtestsData.data[update.sysOrRater][metric].pValues;
+    const row = update.row;
+    const col = update.col;
+    pValues[row][col] = update.pValue;
+    const m = this.metricsInfo[metric].index;
+    const spanId = `marot-${update.sysOrRater}-sigtest-${m}-${row}-${col}`;
+    const span = document.getElementById(spanId).firstElementChild;
+    span.innerHTML = isNaN(update.pValue) ? '-' : update.pValue.toFixed(3);
+    if (update.pValue < this.PVALUE_THRESHOLD) {
+      span.classList.add('marot-pvalue-significant');
+    }
   }
 
   /**
-   * Shows the table for significance tests.
-   * @param {!Object} statsBySysAggregates
+   * TODo
    */
-  showSigtests(statsBySysAggregates) {
-    const div = document.getElementById('marot-sigtests-tables');
-    div.innerHTML = '';
-    if (this.charScoring) {
-      this.sigtestsMsg.innerHTML = 'Not available for 100-source-chars scoring';
-      return;
+  switchCmpTable(sysOrRater) {
+    const section = document.getElementById(`marot-${sysOrRater}-comparison`);
+    const key = document.getElementById(
+        `marot-${sysOrRater}-v-${sysOrRater}-tables-type`).value;
+    if (key == 'pValue') {
+      section.className = 'marot-comparison-tables-pvalue';
+    } else {
+      section.className = 'marot-comparison-tables-rho';
     }
-    this.prepareSigtests(statsBySysAggregates);
+  }
+
+  /**
+   * Shows the table for significance tests for system/rater differences.
+   * @param {string} sysOrRater
+   * @param {!Object} stats
+   * @param {!Object} statsAggregates
+   * @param {!Array<number>} metricIds
+   */
+  showSigtests(sysOrRater, stats, statsAggregates, metricIds) {
+    const div = document.getElementById(
+        `marot-${sysOrRater}-v-${sysOrRater}-tables`);
+    div.innerHTML = '';
+    const sigtestsData = this.prepareSigtests(
+        sysOrRater, stats, statsAggregates, metricIds);
     let firstTable = true;
-    for (const m of this.metricsVisible) {
+    for (const m of metricIds) {
       const metric = this.metrics[m];
-      const data = this.sigtestsData.metricData[metric];
-      const systems = data.systems;
-      const scoresBySystem = data.scoresBySystem;
+      const data = sigtestsData[metric];
+      const comparables = data.comparables;
+      if (comparables.length == 0) {
+        continue;
+      }
+      const scores = data.scores;
 
       /** Header. */
       let html = `
       ${firstTable ? '' : '<br>'}
-      <table id="marot-sigtests-${m}" class="marot-table marot-numbers-table">
+      <table id="marot-${sysOrRater}-sigtests-${m}"
+          class="marot-table marot-numbers-table">
         <thead>
           <tr>
-            <th>System</th>
+            <th>${sysOrRater == 'sys' ? 'System' : 'Rater'}</th>
             <th>${this.metrics[m]}</th>`;
-      for (const system of systems) {
-        const s = scoresBySystem[system];
+      for (const item of comparables) {
+        const s = scores[item];
         if (s.scoreDenominator == 0) {
           continue;
         }
-        html += `<th>${system}</th>`;
+        html += `<th>${item}</th>`;
       }
       html += `</tr></thead>\n<tbody>\n`;
 
-      /** Show significance test p-value placeholders. */
-      for (const [rowIdx, baseline] of systems.entries()) {
+      /** Show Pearson correlations & significance test p-value placeholders. */
+      for (const [rowIdx, baseline] of comparables.entries()) {
         /** Show metric score in the second column. */
-        const s = scoresBySystem[baseline];
+        const s = scores[baseline];
         if (s.scoreDenominator == 0) {
           continue;
         }
         const displayScore = this.metricDisplay(s.score, s.scoreDenominator);
         html += `
-          <tr id="marot-sigtests-${m}-row-${rowIdx}">
+          <tr id="marot-${sysOrRater}-sigtests-${m}-row-${rowIdx}">
             <td>${baseline}</td>
             <td>${displayScore}</td>`;
-        for (const [colIdx, system] of systems.entries()) {
-          const s2 = scoresBySystem[system];
-          if (s2.scoreDenominator == 0) {
+        for (const [colIdx, item] of comparables.entries()) {
+          if (rowIdx >= colIdx) {
+            html += '<td></td>';
             continue;
           }
-          const spanId = `marot-sigtest-${m}-${rowIdx}-${colIdx}`;
-          const content = rowIdx >= colIdx ? '-' : '-.---';
-          html += `<td><span id="${spanId}">${content}<span></td>`;
+          const commonPos = data.commonPosByItemPair[baseline][item] ?? [];
+          const title = 'Based on ' + commonPos.length + ' common segments';
+          html += '<td title="' + title + '">';
+          const s2 = scores[item];
+          if (s2.scoreDenominator == 0) {
+            html += '</td>';
+            continue;
+          }
+          const spanId = `marot-${sysOrRater}-sigtest-${m}-${rowIdx}-${colIdx}`;
+          const rho = this.pearson(data, baseline, item);
+          const rhoDisp = isNaN(rho) ? '-' : rho.toFixed(3);
+          html += `<span id="${spanId}">
+              <span class="marot-pvalue">-.---</span>
+              <span class="marot-rho">${rhoDisp}</span>
+          <span></td>`;
         }
         html += `</tr>`;
       }
@@ -1675,15 +1822,9 @@ class Marot {
       div.insertAdjacentHTML('beforeend', html);
       firstTable = false;
     }
-
-    this.sigtestsMsg.innerHTML = 'Computing p-values...';
-    console.assert(this.sigtestsWorkerJS,
-                   'Missing code from marot-sigtests.js');
-    const blob = new Blob([this.sigtestsWorkerJS],
-                          {type: "text/javascript" });
-    this.sigtestsWorker = new Worker(window.URL.createObjectURL(blob));
-    this.sigtestsWorker.postMessage(this.sigtestsData);
-    this.sigtestsWorker.onmessage = this.sigtestsUpdate.bind(this);
+    if (!firstTable) {
+      this.sigtestsData.data[sysOrRater] = sigtestsData;
+    }
   }
 
   /**
@@ -1865,10 +2006,10 @@ class Marot {
   showSystemRaterStats() {
     const table = document.getElementById('marot-system-x-rater');
 
-    const systems = Object.keys(this.stats);
+    const systems = Object.keys(this.statsBySystem);
     const systemAggregates = {};
     for (const sys of systems) {
-      const segs = this.getSegStatsAsArray(this.stats[sys]);
+      const segs = this.getSegStatsAsArray(this.statsBySystem[sys]);
       systemAggregates[sys] = this.aggregateSegStats(segs);
     }
 
@@ -1881,7 +2022,7 @@ class Marot {
     const raters = Object.keys(this.statsByRater);
     const raterAggregates = {};
     for (const rater of raters) {
-      const segs = this.getSegStatsAsArray(this.statsByRater[rater][this.TOTAL]);
+      const segs = this.getSegStatsAsArray(this.statsByRater[rater]);
       raterAggregates[rater] = this.aggregateSegStats(segs);
     }
     raters.sort(
@@ -1923,7 +2064,7 @@ class Marot {
         <tr><td>${sys}</td><td>${allRatersScoreDisplay}</td>`;
       for (const rater of raters) {
         const segs = this.getSegStatsAsArray(
-            (this.statsByRater[rater] ?? {})[sys] ?? {});
+            (this.statsByRaterSystem[rater] ?? {})[sys] ?? {});
         if (segs && segs.length > 0) {
           const aggregate = this.aggregateSegStats(segs);
           const cls = ((aggregate.score < lastForRater[rater] &&
@@ -2001,116 +2142,110 @@ class Marot {
   }
 
   /**
-   * Creates the "system vs system" plots comparing two systems for all
-   * available metrics. This sets up the menus for selecting the systems,
-   * creates skeletal tables, and then calls this.showSysVSys() to populate the
-   * tables.
+   * Creates the "system vs system" or "rater vs rater" plots comparing the
+   * pairs for all available metrics. This sets up the menus for selecting the
+   * systems/raters, creates skeletal tables, and then calls this.showCmp() to
+   * populate the tables.
+   *
+   * @param {string} sysOrRater 'sys' or 'rater'
    */
-  createSysVSysTables() {
-    const div = document.getElementById('marot-sys-v-sys');
-    div.innerHTML = `
-      <div class="marot-sys-v-sys-header">
-        <label>
-          <b>System 1:</b>
-          <select id="marot-sys-v-sys-1"
-             onchange="marot.showSysVSys()"></select>
-        </label>
-        <span id="marot-sys-v-sys-1-segs"></span> segment(s).
-        <label>
-          <b>System 2:</b>
-          <select id="marot-sys-v-sys-2"
-             onchange="marot.showSysVSys()"></select>
-        </label>
-        <span id="marot-sys-v-sys-2-segs"></span> segment(s)
-        (<span id="marot-sys-v-sys-xsegs"></span> common).
-        The Y-axis uses a log scale.
-      </div>
-    `;
-    for (const m of this.metricsVisible) {
+  createCmpPlots(sysOrRater) {
+    const versus = `${sysOrRater}-v-${sysOrRater}`;
+    const plots = document.getElementById(`marot-${versus}-plots`);
+    const metricIds = (sysOrRater == 'sys') ? this.metricsVisible : [0];
+    plots.innerHTML = '';
+    for (const m of metricIds) {
       const metric = this.metrics[m];
       const html = `
-      <p id="marot-sys-v-sys-${m}">
+      <p id="marot-${versus}-${m}">
         <b>${metric}</b><br>
         <table>
           <tr>
           <td colspan="2">
-            <svg class="marot-sys-v-sys-plot" zoomAndPan="disable"
-                id="marot-sys-v-sys-plot-${m}">
+            <svg class="marot-${versus}-plot" zoomAndPan="disable"
+                id="marot-${versus}-plot-${m}">
             </svg>
           </td>
           </tr>
           <tr style="vertical-align:bottom">
           <td>
-            <svg class="marot-sys-v-sys-plot" zoomAndPan="disable"
-                id="marot-sys1-plot-${m}">
+            <svg class="marot-${versus}-plot" zoomAndPan="disable"
+                id="marot-${sysOrRater}1-plot-${m}">
             </svg>
           </td>
           <td>
-            <svg class="marot-sys-v-sys-plot" zoomAndPan="disable"
-                id="marot-sys2-plot-${m}">
+            <svg class="marot-${versus}-plot" zoomAndPan="disable"
+                id="marot-${sysOrRater}2-plot-${m}">
             </svg>
           </td>
           </tr>
         </table>
       </p>`;
-      div.insertAdjacentHTML('beforeend', html);
+      plots.insertAdjacentHTML('beforeend', html);
     }
 
     /** Populate menu choices. */
-    const selectSys1 = document.getElementById('marot-sys-v-sys-1');
-    const selectSys2 = document.getElementById('marot-sys-v-sys-2');
-    const systems = Object.keys(this.stats);
+    const select1 = document.getElementById(`marot-${versus}-1`);
+    const select2 = document.getElementById(`marot-${versus}-2`);
+    const stats = sysOrRater == 'sys' ? this.statsBySystem : this.statsByRater;
+
+    const comparables = Object.keys(stats);
+    const indexOfTotal = comparables.indexOf(this.TOTAL);
+    if (indexOfTotal >= 0) {
+      comparables.splice(indexOfTotal, 1);
+    }
+    const key1 = sysOrRater + '1';
+    const key2 = sysOrRater + '2';
     /**
      * If possible, use the previously set values.
      */
-    if (this.system1 && !this.stats.hasOwnProperty(this.system1)) {
-      this.system1 = '';
+    if (this.comparisons[key1] &&
+        !stats.hasOwnProperty(this.comparisons[key1])) {
+      this.comparisons[key1] = '';
     }
-    if (this.system2 && !this.stats.hasOwnProperty(this.system2)) {
-      this.system2 = '';
+    if (this.comparisons[key2] &&
+        !stats.hasOwnProperty(this.comparisons[key2])) {
+      this.comparisons[key2] = '';
     }
-    if (systems.length == 1) {
-      this.system1 = systems[0];
-      this.system2 = systems[0];
-    }
-    for (const system of systems) {
-      if (system == this.TOTAL) {
-        continue;
+    for (const [index, sr] of comparables.entries()) {
+      if (!this.comparisons[key1]) {
+        this.comparisons[key1] = sr;
       }
-      if (!this.system1) {
-        this.system1 = system;
-      }
-      if (!this.system2 && system != this.system1) {
-        this.system2 = system;
+      if (!this.comparisons[key2] &&
+          (sr != this.comparisons[key1] || (index == comparables.length - 1))) {
+        this.comparisons[key2] = sr;
       }
       const option1 = document.createElement('option');
-      option1.value = system;
-      option1.innerHTML = system;
-      if (system == this.system1) {
+      option1.value = sr;
+      option1.innerHTML = sr;
+      if (sr == this.comparisons[key1]) {
         option1.selected = true;
       }
-      selectSys1.insertAdjacentElement('beforeend', option1);
+      select1.insertAdjacentElement('beforeend', option1);
       const option2 = document.createElement('option');
-      option2.value = system;
-      option2.innerHTML = system;
-      if (system == this.system2) {
+      option2.value = sr;
+      option2.innerHTML = sr;
+      if (sr == this.comparisons[key2]) {
         option2.selected = true;
       }
-      selectSys2.insertAdjacentElement('beforeend', option2);
+      select2.insertAdjacentElement('beforeend', option2);
     }
-    this.showSysVSys();
+    this.showCmp(sysOrRater);
   }
 
   /**
    * Shows the system v system histograms of segment score differences.
+   * @param {string} sysOrRater 'sys' or 'rater'
    */
-  showSysVSys() {
-    const selectSys1 = document.getElementById('marot-sys-v-sys-1');
-    const selectSys2 = document.getElementById('marot-sys-v-sys-2');
-    this.system1 = selectSys1.value;
-    this.system2 = selectSys2.value;
-    const docsegs1 = this.getDocSegs(this.stats[this.system1] || {});
-    const docsegs2 = this.getDocSegs(this.stats[this.system2] || {});
+  showCmp(sysOrRater) {
+    const versus = `${sysOrRater}-v-${sysOrRater}`;
+    const select1 = document.getElementById(`marot-${versus}-1`);
+    const select2 = document.getElementById(`marot-${versus}-2`);
+    const sr1 = select1.value;
+    const sr2 = select2.value;
+    const stats = sysOrRater == 'sys' ? this.statsBySystem : this.statsByRater;
+    const docsegs1 = this.getDocSegs(stats[sr1] || {});
+    const docsegs2 = this.getDocSegs(stats[sr2] || {});
     /**
      * Find common segments.
      */
@@ -2131,47 +2266,49 @@ class Marot {
         i2++;
       }
     }
-    document.getElementById('marot-sys-v-sys-xsegs').innerHTML =
+    document.getElementById(`marot-${versus}-xsegs`).innerHTML =
         docsegs12.length;
-    document.getElementById('marot-sys-v-sys-1-segs').innerHTML =
+    document.getElementById(`marot-${versus}-1-segs`).innerHTML =
         docsegs1.length;
-    document.getElementById('marot-sys-v-sys-2-segs').innerHTML =
+    document.getElementById(`marot-${versus}-2-segs`).innerHTML =
         docsegs2.length;
 
-    const sameSys = this.system1 == this.system2;
+    const sameSR = sr1 == sr2;
 
-    for (const m of this.metricsVisible) {
+    const metricIds = (sysOrRater == 'sys') ? this.metricsVisible : [0];
+
+    for (const m of metricIds) {
       const metricKey = 'metric-' + m;
       /**
-       * We draw up to 3 plots for a metric: system-1, system-2, and their diff.
+       * We draw up to 3 plots for a metric: sr-1, sr-2, and their diff.
        */
       const hists = [
         {
           docsegs: docsegs1,
-          hide: !this.system1,
-          sys: this.system1,
+          hide: !sr1,
+          sr: sr1,
           color: 'lightgreen',
-          sysCmp: '',
+          srCmp: '',
           colorCmp: '',
-          id: 'marot-sys1-plot-' + m,
+          id: `marot-${sysOrRater}1-plot-` + m,
         },
         {
           docsegs: docsegs2,
-          hide: sameSys,
-          sys: this.system2,
+          hide: sameSR,
+          sr: sr2,
           color: 'lightblue',
-          sysCmp: '',
+          srCmp: '',
           colorCmp: '',
-          id: 'marot-sys2-plot-' + m,
+          id: `marot-${sysOrRater}2-plot-` + m,
         },
         {
           docsegs: docsegs12,
-          hide: sameSys,
-          sys: this.system1,
+          hide: sameSR,
+          sr: sr1,
           color: 'lightgreen',
-          sysCmp: this.system2,
+          srCmp: sr2,
           colorCmp: 'lightblue',
-          id: 'marot-sys-v-sys-plot-' + m,
+          id: `marot-${versus}-plot-` + m,
         },
       ];
       for (const hist of hists) {
@@ -2180,20 +2317,21 @@ class Marot {
         if (hist.hide) {
           continue;
         }
-        const histBuilder = new MarotHistogram(m, hist.sys, hist.color,
-                                               hist.sysCmp, hist.colorCmp);
+        const histBuilder = new MarotHistogram(sysOrRater,
+                                               m, hist.sr, hist.color,
+                                               hist.srCmp, hist.colorCmp);
         for (let i = 0; i < hist.docsegs.length; i++) {
           const doc = hist.docsegs[i][0];
           const docSegId = hist.docsegs[i][1];
           const aggregate1 = this.aggregateSegStats(
-              [this.stats[hist.sys][doc][docSegId]]);
+              [stats[hist.sr][doc][docSegId]]);
           if (!aggregate1.hasOwnProperty(metricKey)) {
             continue;
           }
           let score = aggregate1[metricKey];
-          if (hist.sysCmp) {
+          if (hist.srCmp) {
             const aggregate2 = this.aggregateSegStats(
-                [this.stats[hist.sysCmp][doc][docSegId]]);
+                [stats[hist.srCmp][doc][docSegId]]);
             if (!aggregate2.hasOwnProperty(metricKey)) {
               continue;
             }
@@ -2208,7 +2346,7 @@ class Marot {
 
   /**
    * Shows details of severity- and category-wise scores (from the
-   *   this.sevcatStats object) in the categories table.
+   * this.sevcatStats object) in the categories table.
    */
   showSevCatStats() {
     const stats = this.sevcatStats;
@@ -2372,10 +2510,10 @@ class Marot {
      * '_MAROT_TOTAL_' system (which lets us decide which score splits have
      * non-zero values and we show score columns for only those splits).
      */
-    const systems = Object.keys(this.stats);
+    const systems = Object.keys(this.statsBySystem);
     const statsBySysAggregates = {};
     for (const system of systems) {
-      const segs = this.getSegStatsAsArray(this.stats[system]);
+      const segs = this.getSegStatsAsArray(this.statsBySystem[system]);
       statsBySysAggregates[system] = this.aggregateSegStats(segs);
     }
     const overallStats = statsBySysAggregates[this.TOTAL] ?? {};
@@ -2399,8 +2537,7 @@ class Marot {
     const statsByRaterAggregates = {};
     const raters = Object.keys(this.statsByRater);
     for (const rater of raters) {
-      const segs = this.getSegStatsAsArray(
-          this.statsByRater[rater][this.TOTAL]);
+      const segs = this.getSegStatsAsArray(this.statsByRater[rater]);
       statsByRaterAggregates[rater] = this.aggregateSegStats(segs);
     }
 
@@ -2428,24 +2565,31 @@ class Marot {
     if (systems.length > 0) {
       this.showScoresSeparator(haveRaters, 'By system');
       for (const system of systems) {
-        this.showScores(system, haveRaters, this.stats[system],
+        this.showScores(system, haveRaters, this.statsBySystem[system],
                         statsBySysAggregates[system]);
       }
     }
     if (haveRaters) {
       this.showScoresSeparator(haveRaters, 'By rater');
       for (const rater of raters) {
-        this.showScores(rater, haveRaters, this.statsByRater[rater][this.TOTAL],
+        this.showScores(rater, haveRaters, this.statsByRater[rater],
                         statsByRaterAggregates[rater]);
       }
+      this.raterRelatedSections.style.display = '';
+    } else {
+      this.raterRelatedSections.style.display = 'none';
     }
     this.showScoresSeparator(haveRaters);
 
     this.showSystemRaterStats();
-    this.createSysVSysTables();
+    this.createCmpPlots('sys');
+    this.createCmpPlots('rater');
     this.showSevCatStats();
     this.showEvents();
-    this.showSigtests(statsBySysAggregates);
+    this.showSigtests('sys', this.statsBySystem, statsBySysAggregates,
+                      this.metricsVisible);
+    this.showSigtests('rater', this.statsByRater, statsByRaterAggregates, [0]);
+    this.startSigtests();
   }
 
   /**
@@ -2982,27 +3126,22 @@ class Marot {
   /**
    * Updates the display to show the segment data and scores according to the
    * current filters.
-   * @param {?Object=} viewingConstraints Optional dict of doc:seg to view. When
-   *     not null, only these segments are shown. When not null, this parameter
-   *     object should have two additional properties:
-   *       description: Shown to the user, describing the constrained view.
-   *       color: A useful identifying color that highlights the description.
    */
-  show(viewingConstraints=null) {
+  show() {
     // Cancel existing Sigtest computation when a new `this.show` is called.
     this.resetSigtests();
 
-    this.table.innerHTML = '';
     this.statsTable.innerHTML = '';
     this.sevcatStatsTable.innerHTML = '';
     this.eventsTable.innerHTML = '';
 
-    this.stats = {};
-    this.stats[this.TOTAL] = {};
+    this.statsBySystem = {};
+    this.statsBySystem[this.TOTAL] = {};
+    this.statsByRaterSystem = {};
     this.statsByRater = {};
     this.sevcatStats = {};
 
-    this.dataFiltered = [];
+    this.selectedRows.clear();
 
     this.events = {
       aggregates: {},
@@ -3011,19 +3150,6 @@ class Marot {
     const visibleMetrics = {};
     this.metricsVisible = [];
 
-    const viewingConstraintsDesc = document.getElementById(
-        'marot-viewing-constraints');
-    if (viewingConstraints) {
-      viewingConstraintsDesc.innerHTML = 'View limited to ' +
-          viewingConstraints.description +
-          ' Click on this text to remove this constraint.';
-      viewingConstraintsDesc.style.backgroundColor = viewingConstraints.color;
-      viewingConstraintsDesc.style.display = '';
-    } else {
-      viewingConstraintsDesc.innerHTML = '';
-      viewingConstraintsDesc.style.display = 'none';
-    }
-
     document.getElementById('marot-filter-expr-error').innerHTML = '';
     const allFilters = this.getAllFilters();
 
@@ -3031,25 +3157,15 @@ class Marot {
     let currSegStatsBySys = [];
     let currSegStatsByRater = [];
     let currSegStatsByRaterSys = [];
-    let unfilteredCount = 0;
-    let shownCount = 0;
-    const shownRows = [];
 
     document.body.style.cursor = 'wait';
     for (const doc of this.dataIter.docs) {
       for (const docSegId of this.dataIter.docSegs[doc]) {
-        let shownForDocSeg = 0;
-        let aggrDocSeg = null;
         for (const system of this.dataIter.docSys[doc]) {
-          let shownForDocSegSys = 0;
           let firstRowId = -1;
-          let ratingRowsHTML = '';
           let segmentMetadata = null;
-          let sourceTokens = null;
-          let targetTokens = null;
           let lastRater = '';
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
-          let aggrDocSegSys = null;
           const docColonSys = doc + ':' + system;
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             const parts = this.data[rowId];
@@ -3074,39 +3190,24 @@ class Marot {
               continue;
             }
 
-            unfilteredCount++;
+            this.selectedRows.add(rowId);
             const rater = parts[this.DATA_COL_RATER];
             const category = parts[this.DATA_COL_CATEGORY];
             const severity = parts[this.DATA_COL_SEVERITY];
-            if (!aggrDocSeg && metadata.segment &&
-                metadata.segment.aggrDocSeg) {
-              aggrDocSeg = metadata.segment.aggrDocSeg;
-            }
-            if (!aggrDocSegSys) {
-              aggrDocSegSys = metadata.segment;
-            }
 
-            /**
-             * Copy, as we will clear out unnecessary/bulky fields from the
-             * metadata in this.dataFiltered.
-             */
-            const filteredMetadata = {...metadata};
-            delete filteredMetadata.evaluation;
 
             if (firstRowId < 0) {
               firstRowId = rowId;
 
               segmentMetadata = metadata.segment;
-              sourceTokens = (segmentMetadata.source_tokens || []).slice();
-              targetTokens = (segmentMetadata.target_tokens || []).slice();
 
               currSegStats = this.getSegStats(
-                  this.stats[this.TOTAL], docColonSys, docSegId);
-              if (!this.stats.hasOwnProperty(system)) {
-                this.stats[system] = {};
+                  this.statsBySystem[this.TOTAL], docColonSys, docSegId);
+              if (!this.statsBySystem.hasOwnProperty(system)) {
+                this.statsBySystem[system] = {};
               }
               currSegStatsBySys =
-                  this.getSegStats(this.stats[system], doc, docSegId);
+                  this.getSegStats(this.statsBySystem[system], doc, docSegId);
               currSegStats.srcLen = parts.srcLen;
               currSegStatsBySys.srcLen = parts.srcLen;
               if (segmentMetadata.hasOwnProperty('metrics')) {
@@ -3115,22 +3216,7 @@ class Marot {
                   visibleMetrics[metric] = true;
                 }
               }
-              /**
-               * Clear aggregated docseg info from filteredMetadata.segment.
-               */
-              filteredMetadata.segment = {...segmentMetadata};
-              delete filteredMetadata.segment.aggrDocSeg;
-            } else {
-              /**
-               * We keep segment info only in the first filtered row's metadata.
-               */
-              delete filteredMetadata.segment;
             }
-
-            const partsForFilteredData = parts.slice();
-            partsForFilteredData[this.DATA_COL_METADATA] =
-                JSON.stringify(filteredMetadata);
-            this.dataFiltered.push(partsForFilteredData);
 
             if (rater && (rater != lastRater)) {
               lastRater = rater;
@@ -3139,32 +3225,26 @@ class Marot {
               currSegStats.push(this.initRaterStats(rater));
               currSegStatsBySys.push(this.initRaterStats(rater));
               if (!this.statsByRater.hasOwnProperty(rater)) {
-                /** New rater. **/
                 this.statsByRater[rater] = {};
-                this.statsByRater[rater][this.TOTAL] = {};
               }
               currSegStatsByRater = this.getSegStats(
-                  this.statsByRater[rater][this.TOTAL], docColonSys, docSegId);
+                  this.statsByRater[rater], docColonSys, docSegId);
               currSegStatsByRater.push(this.initRaterStats(rater));
               currSegStatsByRater.srcLen = parts.srcLen;
 
-              if (!this.statsByRater[rater].hasOwnProperty(system)) {
-                this.statsByRater[rater][system] = {};
+              if (!this.statsByRaterSystem.hasOwnProperty(rater)) {
+                this.statsByRaterSystem[rater] = {};
+              }
+              if (!this.statsByRaterSystem[rater].hasOwnProperty(system)) {
+                this.statsByRaterSystem[rater][system] = {};
               }
               currSegStatsByRaterSys = this.getSegStats(
-                  this.statsByRater[rater][system], doc, docSegId);
+                  this.statsByRaterSystem[rater][system], doc, docSegId);
               currSegStatsByRaterSys.push(this.initRaterStats(rater));
               currSegStatsByRaterSys.srcLen = parts.srcLen;
             }
-            let spanClass = '';
             if (rater) {
               /** An actual rater-annotation row, not just a metadata row */
-              spanClass = this.mqmSeverityClass(severity) +
-                          ` marot-anno-${shownRows.length}`;
-              this.markSpans(
-                  sourceTokens, metadata.source_spans || [], spanClass);
-              this.markSpans(
-                  targetTokens, metadata.target_spans || [], spanClass);
               const span = metadata.marked_text.length;
               const timeSpentMS = this.timeSpent(metadata);
               this.addErrorStats(this.arrayLast(currSegStats),
@@ -3179,9 +3259,144 @@ class Marot {
               this.addEvents(this.events, metadata,
                              doc, docSegId, system, rater);
             }
+          }
+        }
+      }
+    }
+    /**
+     * Update #unfiltered rows display.
+     */
+    document.getElementById('marot-num-rows').innerText = this.data.length;
+    document.getElementById('marot-num-unfiltered-rows').innerText =
+        this.selectedRows.size;
+
+    for (let m = 0; m < this.metrics.length; m++) {
+      const metric = this.metrics[m];
+      if (visibleMetrics[metric]) {
+        this.metricsVisible.push(m);
+      }
+    }
+    if (this.sortByField.startsWith('metric-')) {
+      /**
+       * If the currently chosen sort-by field is a metric that is not visible,
+       * then change it to be the first metric that *is* visible (if any,
+       * defaulting to metric-0, which is marot). Set the default direction
+       * based upon whether lower numbers are better for the chosen metric.
+       */
+      let sortingMetric = parseInt(this.sortByField.substr(7));
+      if (!this.metricsVisible.includes(sortingMetric)) {
+        sortingMetric = 0;
+        for (let m = 0; m < this.metrics.length; m++) {
+          const metric = this.metrics[m];
+          if (visibleMetrics[metric]) {
+            sortingMetric = m;
+            break;
+          }
+        }
+        this.sortByField = 'metric-' + sortingMetric;
+        this.sortReverse =
+            this.metricsInfo[this.metrics[sortingMetric]].lowerBetter ?
+            false : true;
+      }
+    }
+    this.showStats();
+    this.showSegments();
+    if (this.data.length > 0) {
+      this.showViewer();
+    }
+    document.body.style.cursor = 'auto';
+  }
+
+  /**
+   * Shows the segment data according to the current filters.
+   * @param {?Object=} viewingConstraints Optional dict of doc:seg or
+   *     doc:sys:seg to view. When not null, only these segments are shown.
+   *     When not null, this parameter object should have two additional
+   *     properties:
+   *       description: Shown to the user, describing the constrained view.
+   *       color: A useful identifying color that highlights the description.
+   */
+  showSegments(viewingConstraints=null) {
+    this.segmentsTable.innerHTML = '';
+    const viewingConstraintsDesc = document.getElementById(
+        'marot-viewing-constraints');
+    if (this.histRectSelected) {
+      this.histRectSelected.classList.remove('marot-histogram-selected');
+      this.histRectSelected = null;
+    }
+    if (viewingConstraints) {
+      viewingConstraintsDesc.innerHTML = 'View limited to ' +
+          viewingConstraints.description +
+          ' Click on this text to remove this constraint.';
+      viewingConstraintsDesc.style.backgroundColor = viewingConstraints.color;
+      viewingConstraintsDesc.style.display = '';
+      this.histRectSelected = viewingConstraints.rect;
+      this.histRectSelected.classList.add('marot-histogram-selected');
+    } else {
+      viewingConstraintsDesc.innerHTML = '';
+      viewingConstraintsDesc.style.display = 'none';
+    }
+
+    let shownCount = 0;
+    const shownRows = [];
+
+    for (const doc of this.dataIter.docs) {
+      for (const docSegId of this.dataIter.docSegs[doc]) {
+        let shownForDocSeg = 0;
+        let aggrDocSeg = null;
+        for (const system of this.dataIter.docSys[doc]) {
+          let shownForDocSegSys = 0;
+          let aggrDocSegSys = null;
+          let firstRowId = -1;
+          let ratingRowsHTML = '';
+          let segmentMetadata = null;
+          let sourceTokens = null;
+          let targetTokens = null;
+          let lastRater = '';
+          const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
+          const docColonSys = doc + ':' + system;
+          for (let rowId = range[0]; rowId < range[1]; rowId++) {
+            if (!this.selectedRows.has(rowId)) {
+              continue;
+            }
+            const parts = this.data[rowId];
+            const metadata = parts[this.DATA_COL_METADATA];
+            const rater = parts[this.DATA_COL_RATER];
+            const category = parts[this.DATA_COL_CATEGORY];
+            const severity = parts[this.DATA_COL_SEVERITY];
+            if (!aggrDocSeg && metadata.segment &&
+                metadata.segment.aggrDocSeg) {
+              aggrDocSeg = metadata.segment.aggrDocSeg;
+            }
+            if (!aggrDocSegSys) {
+              aggrDocSegSys = metadata.segment;
+            }
+
+            if (firstRowId < 0) {
+              firstRowId = rowId;
+
+              segmentMetadata = metadata.segment;
+              sourceTokens = (segmentMetadata.source_tokens || []).slice();
+              targetTokens = (segmentMetadata.target_tokens || []).slice();
+            }
+
+            if (rater && (rater != lastRater)) {
+              lastRater = rater;
+            }
+            let spanClass = '';
+            if (rater) {
+              /** An actual rater-annotation row, not just a metadata row */
+              spanClass = this.mqmSeverityClass(severity) +
+                          ` marot-anno-${shownRows.length}`;
+              this.markSpans(
+                  sourceTokens, metadata.source_spans || [], spanClass);
+              this.markSpans(
+                  targetTokens, metadata.target_spans || [], spanClass);
+            }
 
             if (viewingConstraints &&
-                !viewingConstraints[this.docsegKey(doc, docSegId)]) {
+                !viewingConstraints[this.docsegKey(doc, docSegId)] &&
+                !viewingConstraints[this.docsegKey(docColonSys, docSegId)]) {
               continue;
             }
             if (shownCount >= this.rowLimit) {
@@ -3232,7 +3447,7 @@ class Marot {
                             this.htmlFromReference(aggrDocSeg.references[ref]) +
                             '</div></td>';
               refRowHTML += '<td></td></tr>\n';
-              this.table.insertAdjacentHTML('beforeend', refRowHTML);
+              this.segmentsTable.insertAdjacentHTML('beforeend', refRowHTML);
             }
           }
           let rowHTML = '';
@@ -3261,11 +3476,13 @@ class Marot {
           rowHTML += '<td><div>' + source + '</div></td>';
           rowHTML += '<td><div>' + target + '</div></td>';
 
+          const currSegStatsBySys =
+              this.getSegStats(this.statsBySystem[system], doc, docSegId);
           rowHTML += '<td><table class="marot-table-ratings">' +
                      ratingRowsHTML + this.getSegScoresHTML(currSegStatsBySys) +
                      '</table></td>';
 
-          this.table.insertAdjacentHTML(
+          this.segmentsTable.insertAdjacentHTML(
               'beforeend', `<tr class="marot-row">${rowHTML}</tr>\n`);
           shownForDocSeg += shownForDocSegSys;
         }
@@ -3274,14 +3491,6 @@ class Marot {
         }
       }
     }
-    /**
-     * Update #unfiltered rows display.
-     */
-    document.getElementById('marot-num-rows').innerText = this.data.length;
-    document.getElementById('marot-num-unfiltered-rows').innerText =
-        unfilteredCount;
-
-    document.body.style.cursor = 'auto';
     /**
      * Add cross-highlighting listeners.
      */
@@ -3310,6 +3519,7 @@ class Marot {
         elts[i].addEventListener('mouseout', onNonHover);
       }
     }
+
     /**
      * Add filter listeners.
      */
@@ -3326,39 +3536,6 @@ class Marot {
           this.show();
         });
       }
-    }
-    for (let m = 0; m < this.metrics.length; m++) {
-      const metric = this.metrics[m];
-      if (visibleMetrics[metric]) {
-        this.metricsVisible.push(m);
-      }
-    }
-    if (this.sortByField.startsWith('metric-')) {
-      /**
-       * If the currently chosen sort-by field is a metric that is not visible,
-       * then change it to be the first metric that *is* visible (if any,
-       * defaulting to metric-0, which is marot). Set the default direction
-       * based upon whether lower numbers are better for the chosen metric.
-       */
-      let sortingMetric = parseInt(this.sortByField.substr(7));
-      if (!this.metricsVisible.includes(sortingMetric)) {
-        sortingMetric = 0;
-        for (let m = 0; m < this.metrics.length; m++) {
-          const metric = this.metrics[m];
-          if (visibleMetrics[metric]) {
-            sortingMetric = m;
-            break;
-          }
-        }
-        this.sortByField = 'metric-' + sortingMetric;
-        this.sortReverse =
-            this.metricsInfo[this.metrics[sortingMetric]].lowerBetter ?
-            false : true;
-      }
-    }
-    this.showStats();
-    if (this.data.length > 0) {
-      this.showViewer();
     }
   }
 
@@ -3851,15 +4028,40 @@ class Marot {
    */
   getFilteredTSVData() {
     let tsvData = '';
-    for (const row of this.dataFiltered) {
-      const tsvOrderedRow = [];
-      for (let i = 0; i < this.DATA_COL_NUM_PARTS; i++) {
-        tsvOrderedRow[i] = row[i];
-      }
-      /** Move "Rater" up from its position in this.dataFiltered. */
+    let lastDocSegSys = '';
+    for (const rowId of this.selectedRows) {
+      const row = this.data[rowId];
+      const tsvOrderedRow = this.data[rowId].slice(0, this.DATA_COL_NUM_PARTS);
+
+      /** Move "Rater" up from its position in row[] */
       tsvOrderedRow[4] = row[this.DATA_COL_RATER];
       tsvOrderedRow[5] = row[this.DATA_COL_SOURCE];
       tsvOrderedRow[6] = row[this.DATA_COL_TARGET];
+
+      /**
+       * Copy metadata, as we will clear out unnecessary/bulky fields and will
+       * then JSON-encode it.
+       */
+      const metadata = {...row[this.DATA_COL_METADATA]};
+
+      delete metadata.evaluation;
+
+      const docSegSys = JSON.stringify([row[this.DATA_COL_DOC],
+                                        row[this.DATA_COL_DOC_SEG_ID],
+                                        row[this.DATA_COL_SYSTEM]]);
+      if (lastDocSegSys != docSegSys) {
+        /** This is the first row for the current doc+seg+sys. */
+        lastDocSegSys = docSegSys;
+        /** Retain segment metadata, but delete aggregated docseg info. */
+        metadata.segment = {...metadata.segment};
+        delete metadata.segment.aggrDocSeg;
+      } else {
+        /** Delete segment metadata, already previously included. */
+        delete metadata.segment;
+      }
+
+      tsvOrderedRow[this.DATA_COL_METADATA] = JSON.stringify(metadata);
+
       tsvData += tsvOrderedRow.join('\t') + '\n';
     }
     return tsvData;
@@ -3884,11 +4086,11 @@ class Marot {
     const data = [];
     const FAKE_FIELD = '--marot-FAKE-FIELD--';
     if (aggregation == 'system') {
-      for (let system in this.stats) {
+      for (let system in this.statsBySystem) {
         if (system == this.TOTAL) {
           continue;
         }
-        const segs = this.getSegStatsAsArray(this.stats[system]);
+        const segs = this.getSegStatsAsArray(this.statsBySystem[system]);
         const aggregate = this.aggregateSegStats(segs);
         const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
         dataRow[this.DATA_COL_SYSTEM] = system;
@@ -3896,11 +4098,11 @@ class Marot {
         data.push(dataRow);
       }
     } else if (aggregation == 'document') {
-      for (let system in this.stats) {
+      for (let system in this.statsBySystem) {
         if (system == this.TOTAL) {
           continue;
         }
-        const stats = this.stats[system];
+        const stats = this.statsBySystem[system];
         for (let doc in stats) {
           const docStats = stats[doc];
           const segs = this.getSegStatsAsArray({doc: docStats});
@@ -3913,11 +4115,11 @@ class Marot {
         }
       }
     } else if (aggregation == 'segment') {
-      for (let system in this.stats) {
+      for (let system in this.statsBySystem) {
         if (system == this.TOTAL) {
           continue;
         }
-        const stats = this.stats[system];
+        const stats = this.statsBySystem[system];
         for (let doc in stats) {
           const docStats = stats[doc];
           for (let seg in docStats) {
@@ -3934,12 +4136,9 @@ class Marot {
         }
       }
     } else /* (aggregation == 'rater') */ {
-      for (let rater in this.statsByRater) {
-        for (let system in this.statsByRater[rater]) {
-          if (system == this.TOTAL) {
-            continue;
-          }
-          const stats = this.statsByRater[rater][system];
+      for (let rater in this.statsByRaterSystem) {
+        for (let system in this.statsByRaterSystem[rater]) {
+          const stats = this.statsByRaterSystem[rater][system];
           for (let doc in stats) {
             const docStats = stats[doc];
             for (let seg in docStats) {
@@ -4092,6 +4291,77 @@ class Marot {
   }
 
   /**
+   * Returns HTML for the Marot section where systems or raters are compared.
+   *
+   * @param {string} sysOrRater One of 'sys' or 'rater'
+   * @return {string}
+   */
+  getSystemOrRaterSectionHTML(sysOrRater) {
+    const fullName = sysOrRater == 'sys' ? 'System' : 'Rater';
+    const fullNameLC = fullName.toLowerCase();
+    const versus = `${sysOrRater}-v-${sysOrRater}`;
+    return `
+      <details>
+        <summary
+            title="Click to see pairwise ${sysOrRater} difference significance tests, correlations, and segment histograms">
+          <span class="marot-section">
+            ${fullName} score comparisons and histograms
+          </span>
+        </summary>
+        <p><b>${fullName} score
+          <select id="marot-${versus}-tables-type"
+              onchange="marot.switchCmpTable('${sysOrRater}')">
+            <option value="pValue"
+                selected>difference significance test p-values</option>
+            <option value="rho">Pearson correlations</option>
+          </select>
+        </b></p>
+        <div id="marot-${sysOrRater}-comparison"
+            class="marot-comparison-tables-pvalue">
+          <div id="marot-${versus}-tables">
+          </div>
+          <p class="marot-pvalue">
+            P-values < ${this.PVALUE_THRESHOLD} (bolded) indicate a significant
+            difference.
+          </p>
+          <p>
+            Missing values indicate a lack of enough common segments.
+            ${fullName}s above any solid line
+            ${sysOrRater == 'sys' ? ' are significantly better than' :
+                            ' give MQM scores signinificantly lower than'}
+            those below. Dotted lines identify clusters within which no
+            ${fullNameLC}'s score is significantly different from any other
+            ${fullNameLC}.
+            <span class="marot-warning"
+                id="marot-${sysOrRater}-sigtests-msg"></span>
+          </p>
+        </div>
+        <p><b>${fullName} and ${fullNameLC}-pair segment
+            score histograms</b></p>
+        <div class="marot-comparison-histograms">
+          <div class="marot-${versus}-header">
+            <label>
+              <b>${fullName} 1:</b>
+              <select id="marot-${versus}-1"
+                 onchange="marot.showCmp('${sysOrRater}')"></select>
+            </label>
+            <span id="marot-${versus}-1-segs"></span> segment(s).
+            <label>
+              <b>${fullName} 2:</b>
+              <select id="marot-${versus}-2"
+                 onchange="marot.showCmp('${sysOrRater}')"></select>
+            </label>
+            <span id="marot-${versus}-2-segs"></span> segment(s)
+            (<span id="marot-${versus}-xsegs"></span> common).
+            The Y-axis uses a log scale.
+          </div>
+          <div id="marot-${versus}-plots">
+          </div>
+        </div>
+      </details>`;
+  }
+
+  /**
    * Replaces the HTML contents of elt with the HTML needed to render the
    *     Marot viewer. If tsvDataOrURLs is not null, then it can be marot TSV-data,
    *     or a CSV list of URLs from which to fetch marot TSV-data.
@@ -4115,6 +4385,12 @@ class Marot {
               <option value="segments">Segments</option>
               <option value="characters">100 source characters</option>
             </select>
+          </div>
+          <div>
+            Number of trials for paired one-sided approximate randomization:
+            <input size="6" maxlength="6" type="text"
+                id="marot-sigtests-num-trials"
+                value="10000" onchange="marot.setSigtestsNumTrials()"/>
           </div>
           <div class="marot-settings-row">
              Note: Changes to the following tables of MQM weights and slices
@@ -4259,134 +4535,102 @@ class Marot {
 
       <br>
 
-      <details>
-        <summary
-            title="Click to see significance test results.">
-          <span class="marot-section">
-            Significance tests
-          </span>
-        </summary>
-        <div class="marot-sigtests">
-          <p>
-            P-values < ${this.PVALUE_THRESHOLD} (bolded) indicate a significant
-            difference.
-            <span class="marot-warning" id="marot-sigtests-msg"></span>
-          </p>
-          <div id="marot-sigtests-tables">
-          </div>
-          <p>
-            Systems above any solid line are significantly better than
-            those below. Dotted lines identify clusters within which no
-            system is significantly better than any other system.
-          </p>
-          <p>
-            Number of trials for paired one-sided approximate randomization:
-            <input size="6" maxlength="6" type="text"
-                id="marot-sigtests-num-trials"
-                value="10000" onchange="marot.setSigtestsNumTrials()"/>
-          </p>
-        <div>
-      </details>
+      ${this.getSystemOrRaterSectionHTML('sys')}
 
       <br>
 
-      <details>
-        <summary
-            title="Click to see a System x Rater matrix of scores highlighting individual system-rater scores that seem out of order">
-          <span class="marot-section">
-            System &times; Rater scores
-          </span>
-        </summary>
-        <table
-            title="Systems and raters are sorted using total marot score. A highlighted entry means this rater's rating of this system is contrary to the aggregate of all raters' ratings, when compared with the previous system."
-            class="marot-table marot-numbers-table" id="marot-system-x-rater">
-        </table>
-      </details>
+      <div id="marot-rater-related-sections">
 
-      <br>
+        ${this.getSystemOrRaterSectionHTML('rater')}
 
-      <details>
-        <summary
-            title="Click to see System-wise and comparative segment scores histograms">
-          <span class="marot-section">
-            System segment scores and comparative histograms
-          </span>
-        </summary>
-        <div class="marot-sys-v-sys" id="marot-sys-v-sys">
-        </div>
-      </details>
+        <br>
 
-      <br>
+        <details>
+          <summary
+              title="Click to see a System x Rater matrix of scores highlighting individual system-rater scores that seem out of order">
+            <span class="marot-section">
+              System &times; Rater scores
+            </span>
+          </summary>
+          <table
+              title="Systems and raters are sorted using total MQM score. A highlighted entry means this rater's rating of this system is contrary to the aggregate of all raters' ratings, when compared with the previous system."
+              class="marot-table marot-numbers-table" id="marot-system-x-rater">
+          </table>
+        </details>
 
-      <details>
-        <summary title="Click to see error severity / category counts">
-          <span class="marot-section">
-            Error severities and categories
-          </span>
-        </summary>
-        <table class="marot-table" id="marot-sevcat-stats">
-          <thead>
-            <tr>
-              <th title="Error severity"><b>Severity</b></th>
-              <th title="Error category"><b>Category</b></th>
-              <th> </th>
-              <th id="marot-sevcat-stats-th"
-                  title="Number of occurrences"><b>Count</b></th>
-            </tr>
-          </thead>
-          <tbody id="marot-sevcat-stats-tbody">
-          </tbody>
-        </table>
-      </details>
+        <br>
 
-      <br>
-
-      <details>
-        <summary title="Click to see user interface events and timings">
-          <span class="marot-section">
-            Annotation events and rater timelines
-          </span>
-        </summary>
-        <div>
-          <table class="marot-table" id="marot-events">
+        <details>
+          <summary title="Click to see error severity / category counts">
+            <span class="marot-section">
+              Error severities and categories
+            </span>
+          </summary>
+          <table class="marot-table" id="marot-sevcat-stats">
             <thead>
               <tr>
-                <th title="User interface event"><b>Event</b></th>
-                <th title="Number of occurrences"><b>Count</b></th>
-                <th title="Average time per occurrence"><b>Avg Time
-                    (millis)</b></th>
+                <th title="Error severity"><b>Severity</b></th>
+                <th title="Error category"><b>Category</b></th>
+                <th> </th>
+                <th id="marot-sevcat-stats-th"
+                    title="Number of occurrences"><b>Count</b></th>
               </tr>
             </thead>
-            <tbody id="marot-events-tbody">
+            <tbody id="marot-sevcat-stats-tbody">
             </tbody>
           </table>
-        </div>
-        <div>
-          <div class="marot-subheading"
-              title="The timeline is limited to events in filtered annotations">
-            <b>Rater timeline for</b>
-            <select onchange="marot.raterTimelineSelect()"
-                id="marot-rater-timelines-rater"></select>
-            (limited to ${this.RATER_TIMELINE_LIMIT} events)
-          </div>
-          <table class="marot-table" id="marot-rater-timelines">
-            <thead>
-              <tr>
-                <th><b>Timestamp</b></th>
-                <th><b>Event</b></th>
-                <th><b>Document</b></th>
-                <th><b>System</b></th>
-                <th><b>Segment</b></th>
-                <th><b>Side</b></th>
-                <th><b>Sentence</b></th>
-                <th><b>Visible</b></th>
-              </tr>
-            </thead>
-          </table>
-        </div>
-      </details>
+        </details>
 
-      <br>
+        <br>
+
+        <details>
+          <summary title="Click to see user interface events and timings">
+            <span class="marot-section">
+              Annotation events and rater timelines
+            </span>
+          </summary>
+          <div>
+            <table class="marot-table" id="marot-events">
+              <thead>
+                <tr>
+                  <th title="User interface event"><b>Event</b></th>
+                  <th title="Number of occurrences"><b>Count</b></th>
+                  <th title="Average time per occurrence"><b>Avg Time
+                      (millis)</b></th>
+                </tr>
+              </thead>
+              <tbody id="marot-events-tbody">
+              </tbody>
+            </table>
+          </div>
+          <div>
+            <div class="marot-subheading"
+              title="The timeline is limited to events in filtered annotations">
+              <b>Rater timeline for</b>
+              <select onchange="marot.raterTimelineSelect()"
+                  id="marot-rater-timelines-rater"></select>
+              (limited to ${this.RATER_TIMELINE_LIMIT} events)
+            </div>
+            <table class="marot-table" id="marot-rater-timelines">
+              <thead>
+                <tr>
+                  <th><b>Timestamp</b></th>
+                  <th><b>Event</b></th>
+                  <th><b>Document</b></th>
+                  <th><b>System</b></th>
+                  <th><b>Segment</b></th>
+                  <th><b>Side</b></th>
+                  <th><b>Sentence</b></th>
+                  <th><b>Visible</b></th>
+                </tr>
+              </thead>
+            </table>
+          </div>
+        </details>
+
+        <br>
+
+      </div> <!-- marot-rater-related-sections -->
 
       <details>
         <summary
@@ -4525,8 +4769,8 @@ class Marot {
 
       <span class="marot-section">Sample segments</span>
       <span id="marot-viewing-constraints" onclick="marot.show()"></span>
-      <table class="marot-table" id="marot-table">
-        <thead id="marot-thead">
+      <table class="marot-table" id="marot-segments-table">
+        <thead id="marot-segments-thead">
           <tr id="marot-head-row">
             <th id="marot-th-doc" title="Document name">
               Doc
@@ -4629,7 +4873,7 @@ class Marot {
             </th>
           </tr>
         </thead>
-        <tbody id="marot-tbody">
+        <tbody id="marot-segments-tbody">
         </tbody>
       </table>
     </div>  <!-- marot-viewer -->
@@ -4647,14 +4891,17 @@ class Marot {
       });
     }
 
-    this.sigtestsMsg = document.getElementById('marot-sigtests-msg');
+    this.sigtestsSysMsg = document.getElementById('marot-sys-sigtests-msg');
+    this.sigtestsRaterMsg = document.getElementById('marot-rater-sigtests-msg');
 
     this.quote = document.getElementById('marot-quote');
     this.viewer = document.getElementById('marot-viewer');
-    this.table = document.getElementById('marot-tbody');
+    this.segmentsTable = document.getElementById('marot-segments-tbody');
     this.statsTable = document.getElementById('marot-stats-tbody');
     this.sevcatStatsTable = document.getElementById('marot-sevcat-stats-tbody');
     this.eventsTable = document.getElementById('marot-events-tbody');
+    this.raterRelatedSections = document.getElementById(
+        'marot-rater-related-sections');
 
     this.resetSettings();
 

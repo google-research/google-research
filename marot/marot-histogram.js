@@ -25,28 +25,42 @@
  * slim gray bar for that exact value. This is always done for difference
  * histograms. For non-difference histograms, this is only done for metrics for
  * which 0 means a perfect score (such as MQM).
+ *
+ * The class can be used to compare raters or to compare systems.
  */
 class MarotHistogram {
   /**
+   * @param {string} sysOrRater is either 'sys' or 'rater'
    * @param {number} m The index of the metric in marot.metrics.
-   * @param {string} sys The name of the system.
-   * @param {string} color The color to use for system.
-   * @param {string=} sysCmp if the histogram is for diffs, then the name of
-   *     the system being compared against.
-   * @param {string=} colorCmp if the histogram is for diffs, then the color of
-   *     the system being compared against.
+   * @param {string} sr1 The name of the first system/rater.
+   * @param {string} color1 The color to use for the first system/rater.
+   * @param {string=} sr2 if the histogram is for diffs, then the name of
+   *     the system/rater being compared against.
+   * @param {string=} color2 if the histogram is for diffs, then the color of
+   *     the system/rater being compared against.
    */
-   constructor(m, sys, color, sysCmp='', colorCmp='') {
+   constructor(sysOrRater, m, sr1, color1, sr2='', color2='') {
+    this.sysOrRater = sysOrRater;
     this.metricIndex = m;
-    this.sys = sys;
-    this.sysCmp = sysCmp;
-    this.hasDiffs = sysCmp ? true : false;
+    this.sr1 = sr1;
+    this.sr2 = sr2;
+    this.hasDiffs = sr2 ? true : false;
     this.metric = marot.metrics[m];
-    this.color = color;
-    this.colorCmp = colorCmp;
+    this.color1 = color1;
+    this.color2 = color2;
 
     const metricInfo = marot.metricsInfo[this.metric];
     this.lowerBetter = metricInfo.lowerBetter || false;
+
+    if (sysOrRater == 'sys') {
+      this.hasOrGives = 'has';
+      this.haveOrGive = 'have';
+      this.betterOrLenient = 'better';
+    } else {
+      this.hasOrGives = 'gives';
+      this.haveOrGive = 'give';
+      this.betterOrLenient = 'more lenient';
+    }
 
     /**
      * Is there a dedicated bin for value == 0?
@@ -97,8 +111,8 @@ class MarotHistogram {
     this.maxCount = 8;
 
     this.totalCount = 0;
-    this.sys1BetterCount = 0;
-    this.sys2BetterCount = 0;
+    this.sr1BetterCount = 0;
+    this.sr2BetterCount = 0;
   }
 
   /**
@@ -121,7 +135,7 @@ class MarotHistogram {
    * Adds a segment to the histogram, updating the appropriate bin.
    * @param {string} doc
    * @param {string|number} docSegId
-   * @param {number} value The score for the first system
+   * @param {number} value The score for the first system/rater
    */
   addSegment(doc, docSegId, value) {
     const bin = this.binOf(value);
@@ -142,9 +156,9 @@ class MarotHistogram {
       const firstBetter = (firstLower && this.lowerBetter) ||
                           (!firstLower && !this.lowerBetter);
       if (firstBetter) {
-        this.sys1BetterCount++;
+        this.sr1BetterCount++;
       } else {
-        this.sys2BetterCount++;
+        this.sr2BetterCount++;
       }
     }
   }
@@ -188,7 +202,7 @@ class MarotHistogram {
      * elements).
      */
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.setAttributeNS(null, 'class', 'marot-sys-v-sys-hist');
+    g.setAttributeNS(null, 'class', 'marot-histogram');
     g.insertAdjacentHTML('beforeend',
                          `<title>Click to see examples of ${desc}</title>`);
     const rect = this.getRect(x, y, w, h, color);
@@ -199,8 +213,9 @@ class MarotHistogram {
     }
     viewingConstraints.description = desc;
     viewingConstraints.color = color;
+    viewingConstraints.rect = rect;
     g.addEventListener('click', (e) => {
-      marot.show(viewingConstraints);
+      marot.showSegments(viewingConstraints);
     });
     plot.appendChild(g);
   }
@@ -264,12 +279,12 @@ class MarotHistogram {
       return this.COLOR_ZERO;
     }
     if (!this.hasDiffs) {
-      return this.color;
+      return this.color1;
     } else {
       const firstLower = (numericBin < 0);
       const firstBetter = (firstLower && this.lowerBetter) ||
                           (!firstLower && !this.lowerBetter);
-      return firstBetter ? this.color : this.colorCmp;
+      return firstBetter ? this.color1 : this.color2;
     }
   }
 
@@ -283,8 +298,9 @@ class MarotHistogram {
   binDesc(bin, numericBin, count) {
     if (!this.hasDiffs) {
       if (bin == 'zero') {
-        return '' + count + ' segment(s) where ' + this.sys +
-               ' has ' + this.metric + ' score exactly equal to 0';
+        return '' + count + ' segment(s) where ' + this.sr1 + ' ' +
+               this.hasOrGives + ' ' + this.metric +
+               ' score exactly equal to 0';
       }
       const binLeft = numericBin;
       const binRight = numericBin + this.BIN_WIDTH;
@@ -292,27 +308,30 @@ class MarotHistogram {
                       ((numericBin == 0 && this.hasZeroBin) ? '(' : '[');
       let rightParen = (numericBin < 0) ?
                        ((binRight == 0 && this.hasZeroBin) ? ')' : ']') : ')';
-      return '' + count + ' segment(s) where ' + this.sys + ' has ' +
+      return '' + count + ' segment(s) where ' + this.sr1 + ' ' +
+             this.hasOrGives + ' ' +
              this.metric + ' score in ' + 'range ' + leftParen +
              this.binDisplay(binLeft) +
              ',' + this.binDisplay(binRight) + rightParen;
     } else {
       if (bin == 'zero') {
-        return '' + count + ' segment(s) where ' + this.sys + ' and ' +
-               this.sysCmp + ' have identical ' + this.metric + ' scores';
+        return '' + count + ' segment(s) where ' + this.sr1 + ' and ' +
+               this.sr2 + ' ' + this.haveOrGive + ' identical ' + this.metric +
+               ' scores';
       }
       const firstLower = (numericBin < 0);
       const firstBetter = (firstLower && this.lowerBetter) ||
                           (!firstLower && !this.lowerBetter);
-      const betterSys = firstBetter ? this.sys : this.sysCmp;
-      const worseSys = firstBetter ? this.sysCmp : this.sys;
+      const better = firstBetter ? this.sr1 : this.sr2;
+      const worse = firstBetter ? this.sr2 : this.sr1;
       const binLeft = numericBin;
       const binRight = numericBin + this.BIN_WIDTH;
       const absBinLeft = (numericBin < 0) ? (0 - binRight) : binLeft;
       const absBinRight = absBinLeft + this.BIN_WIDTH;
       const firstParen = (absBinLeft == 0 && this.hasZeroBin) ? '(' : '[';
-      return '' + count + ' segment(s) where ' + betterSys + ' is better than ' +
-             worseSys + ' with ' + this.metric + ' score diff in range ' +
+      return '' + count + ' segment(s) where ' + better + ' is ' +
+             this.betterOrLenient + ' than ' +
+             worse + ' with their ' + this.metric + ' score diff in range ' +
              firstParen + this.binDisplay(absBinLeft) + ',' +
              this.binDisplay(absBinRight) + ')';
     }
@@ -380,12 +399,14 @@ class MarotHistogram {
       /* legend, shown in the area above the plot */
       const legends = [
         {
-          color: this.color,
-          desc: this.sys1BetterCount + ' better segments for ' + this.sys,
+          color: this.color1,
+          desc: this.sr1BetterCount + ' segments where ' + this.sr1 + ' is ' +
+                this.betterOrLenient,
         },
         {
-          color: this.colorCmp,
-          desc: this.sys2BetterCount + ' better segments for ' + this.sysCmp,
+          color: this.color2,
+          desc: this.sr2BetterCount + ' segments where ' + this.sr2 + ' is ' +
+                this.betterOrLenient,
         },
       ];
       for (let s = 0; s < legends.length; s++) {
@@ -443,7 +464,7 @@ class MarotHistogram {
     /* X-axis name */
     this.makeText(plot, this.X_OFFSET_PIXELS, plotHeight + 40,
                   (this.hasDiffs ? this.metric + ' score differences' :
-                   this.sys + ': ' + this.totalCount + ' segments with ' +
+                   this.sr1 + ': ' + this.totalCount + ' segments with ' +
                    this.metric + ' scores'),
                   this.COLOR_LEGEND);
   }
