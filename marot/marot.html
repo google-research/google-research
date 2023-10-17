@@ -1,0 +1,71 @@
+<!--
+   Copyright 2023 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!--
+This is a web app that loads a translation quality evaluation data file from
+human evals (with Multidimensional Quality Metrics, or MQM) and automated evals
+provides various aggregate scores as well as interactive analysis. The interface
+allows the user to slice and dice the data by applying various filters and to
+compare different translation systems. One or more data files can be loaded by
+using the "Choose file(s)" button, replacing or augmenting any previously loaded
+data.
+
+To use this, you need to serve the files marot*.{html,js,css} (either from
+a web server, or just locally using file:// URLs).
+
+This web app can be optionally invoked with a "dataurls" parameter, whose value
+is a set of comma-separated URLs for data files. The URLs should be on the same
+host as marot itself, or should be fetch()able via Cross-Origin Resource
+Sharing (CORS).
+
+The data files should have tab-separated UTF-8-encoded data. You can find its
+format details in the README.md file.
+
+An optional header line in the first data file will be ignored (identified by
+the presence of the text "system\tdoc").
+
+Example human eval data files and details on score computations can be found
+here: https://github.com/google/wmt-mqm-human-evaluation
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>Marot</title>
+<link rel="stylesheet" type="text/css" href="marot.css"/>
+<script src="marot-histogram.js"></script>
+<script src="marot.js"></script>
+<script src="marot-sigtests.js"></script> <!-- Should come after marot.js -->
+<!--
+  Set mqmDefaultWeights and mqmDefaultSlices as per your needs here, if needed,
+  in a script tag.
+-->
+</head>
+<body>
+
+  <div id="marot">
+  </div>
+  <script>
+    function startMarot() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const dataUrls = urlParams ? (urlParams.get('dataurls') || '') : '';
+      marot.init(document.getElementById('marot'), dataUrls);
+    }
+    startMarot();
+  </script>
+
+</body>
+</html>

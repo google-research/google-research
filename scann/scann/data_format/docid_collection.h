@@ -22,9 +22,10 @@
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/container/node_hash_map.h"
+#include "absl/strings/string_view.h"
 #include "scann/data_format/docid_collection_interface.h"
 #include "scann/data_format/internal/short_string_optimized_string.h"
+#include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -97,7 +98,8 @@ class VariableLengthDocidCollection final : public DocidCollectionInterface {
    private:
     explicit Mutator(VariableLengthDocidCollection* docids) : docids_(docids) {}
     VariableLengthDocidCollection* docids_ = nullptr;
-    absl::flat_hash_map<string_view, DatapointIndex, absl::Hash<string_view>>
+    using string_view32 = data_format_internal::string_view32;
+    absl::flat_hash_map<string_view32, DatapointIndex, string_view32::Hash>
         docid_lookup_;
   };
 
@@ -187,7 +189,8 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
     explicit Mutator(FixedLengthDocidCollection* docids) : docids_(docids) {}
 
     FixedLengthDocidCollection* docids_ = nullptr;
-    absl::flat_hash_map<string_view, DatapointIndex, absl::Hash<string_view>>
+    using string_view32 = data_format_internal::string_view32;
+    absl::flat_hash_map<string_view32, DatapointIndex, string_view32::Hash>
         docid_lookup_;
   };
 

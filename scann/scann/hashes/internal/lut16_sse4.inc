@@ -282,9 +282,16 @@ SCANN_SSE4_INLINE int16_t GetInt16Threshold(float float_threshold) {
 }
 
 namespace {
-template <size_t kNumQueries, PrefetchStrategy kPrefetch, typename TopN>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch,
+          bool kWithSpilling = false, typename TopN>
 SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
     LUT16ArgsTopN<float, TopN> args) {
+  if constexpr (kWithSpilling) {
+    if (args.datapoint_translation_predicate)
+      LOG(FATAL)
+          << "Spilling is incompatible with datapoint translation predicates.";
+  }
+
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
@@ -353,7 +360,10 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
       while (push_mask) {
         const int offset = bits::FindLSBSetNonZero(push_mask);
         push_mask &= (push_mask - 1);
-        DatapointIndex dp_idx = first_dp_index + 32 * k + offset;
+        DatapointIndex dp_idx;
+        if constexpr (!kWithSpilling) {
+          dp_idx = first_dp_index + 32 * k + offset;
+        }
         DCHECK(
             !restrict_whitelist_ptrs[j] ||
             args.restrict_whitelists[j].IsWhitelisted(dp_idx - first_dp_index))

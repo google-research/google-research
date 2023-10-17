@@ -35,12 +35,7 @@ from smurf import smurf_flags  # pylint:disable=unused-import
 from smurf import smurf_plotting
 from smurf import smurf_evaluator
 
-try:
-  import cv2  # pylint:disable=g-import-not-at-top
-except:  # pylint:disable=bare-except
-  print('Missing cv2 dependency. Please install opencv-python.')
-
-
+import cv2
 
 flags.DEFINE_string('data_dir', '', 'Directory with images to run on. Images '
                     'should be named numerically, e.g., 1.png, 2.png.')

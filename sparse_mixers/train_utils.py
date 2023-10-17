@@ -223,7 +223,7 @@ def compute_classification_metrics(
     metrics["router_confidence"] = jnp.mean(
         stats.expert_metrics.router_confidence)
 
-  return metrics
+  return metrics  # pytype: disable=bad-return-type  # jnp-type
 
 
 def summarize_expert_metrics(state, auxiliary_loss_factor,
@@ -259,7 +259,7 @@ def summarize_expert_metrics(state, auxiliary_loss_factor,
   avg_confidence = jnp.mean(
       jnp.asarray([m.router_confidence for m in diversity_metrics]))
 
-  return DiversityMetrics(total_aux_loss, total_router_z_loss,
+  return DiversityMetrics(total_aux_loss, total_router_z_loss,  # pytype: disable=wrong-arg-types  # jnp-type
                           avg_fraction_tokens_left_behind, avg_expert_usage,
                           avg_confidence)
 

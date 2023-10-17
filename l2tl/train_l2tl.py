@@ -419,7 +419,7 @@ def main(unused_argv):
 
     dataset = tf.data.Dataset.zip((train_data, finetune_data, target_data))
     dataset = dataset.map(_merge_datasets)
-    dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+    dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
     return dataset
 
   max_train_steps = FLAGS.train_steps

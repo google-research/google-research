@@ -1,0 +1,6 @@
+absl-py
+gtest
+numpy
+protobuf
+tensorflow
+xmanager

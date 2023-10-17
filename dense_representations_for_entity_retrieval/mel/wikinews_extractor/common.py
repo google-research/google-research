@@ -15,6 +15,7 @@
 
 """Common utilities and classes for WikiNews-i18n."""
 
+import bz2
 import collections
 import glob
 import hashlib
@@ -25,7 +26,6 @@ import re
 import urllib
 
 from absl import logging
-import bz2file
 import pandas as pd
 
 from dense_representations_for_entity_retrieval.mel.wikinews_extractor import constants
@@ -92,7 +92,7 @@ class WikiNewsArchiveParser(object):
     file_list = glob.glob(self._wikinews_archive)
     assert file_list, self._wikinews_archive
     for archive in file_list:
-      with bz2file.open(archive, "rt", encoding="utf-8", errors="strict") as xf:
+      with bz2.open(archive, "rt", encoding="utf-8", errors="strict") as xf:
         # One line of json as produced by wikiextractor.
         for line in xf:
           record = json.loads(line)

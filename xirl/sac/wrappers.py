@@ -21,13 +21,12 @@ import os
 import time
 import typing
 
+import cv2
 import gym
 import imageio
 import numpy as np
 import torch
 from xirl.models import SelfSupervisedModel
-
-import cv2
 
 TimeStep = typing.Tuple[np.ndarray, float, bool, dict]
 ModelType = SelfSupervisedModel

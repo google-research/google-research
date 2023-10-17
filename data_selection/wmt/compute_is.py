@@ -241,8 +241,8 @@ def compute_is_scores(filename):
   tf.config.experimental.set_visible_devices([], 'GPU')
 
   if FLAGS.jax_backend_target:
-    jax.config.FLAGS.jax_xla_backend = 'tpu_driver'
-    jax.config.FLAGS.jax_backend_target = FLAGS.jax_backend_target
+    jax.config.update('jax_xla_backend', 'tpu_driver')
+    jax.config.update('jax_backend_target', FLAGS.jax_backend_target)
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()

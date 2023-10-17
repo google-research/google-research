@@ -21,11 +21,10 @@ from acme import types
 from acme import wrappers as acme_wrappers
 from acme.wrappers import base
 import dm_env
+from meltingpot import substrate as meltingpot_substrate
+from meltingpot.utils.substrates import builder as meltingpot_builder
 import numpy as np
 from PIL import Image
-
-from meltingpot.python import substrate as meltingpot_substrate
-from meltingpot.python.utils.substrates import builder as meltingpot_builder
 
 V = TypeVar("V")
 

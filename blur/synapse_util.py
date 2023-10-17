@@ -27,7 +27,7 @@ import tensorflow.compat.v1 as tf
 from blur import blur_env
 
 TensorShape = tf.TensorShape
-Tensor = Union[tf.Tensor, np.ndarray, jp.array]
+Tensor = Union[tf.Tensor, np.ndarray, jp.ndarray]
 
 
 @dc.dataclass

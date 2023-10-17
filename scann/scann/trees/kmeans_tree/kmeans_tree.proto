@@ -36,7 +36,7 @@ message SerializedKMeansTree {
 
     optional int32 leaf_id = 5 [default = -1];
 
-    repeated double residual_stdevs = 6 [packed = true];
+    repeated double residual_stdevs = 6 [packed = true, deprecated = true];
   }
 
   optional Node root = 1;

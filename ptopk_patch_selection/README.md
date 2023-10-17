@@ -1,5 +1,18 @@
 # Differentiable Patch Selection for Image Recognition 
 
+-----------------------------------------------------------------
+### UPDATE
+A few bugs in our implementation were brought to our attention by Zongtao ([Github](https://github.com/wztdream)) and 
+Tim Beyer ([Google Scholar](https://scholar.google.com/citations?user=mad4ZNsAAAAJ))
+
+The bugs are
+* We were using the transpose jacobian instead of the jacobian.
+* We take a dot product when computing the expected gradient by multiplying the `perturbed_output` and `noise_gradient`, whereas an outer product needs to be computed.
+
+A bug fixed pytorch implementation is available at https://github.com/benbergner/dps . We apologies for any inconvenience caused.
+
+-----------------------------------------------------------------
+
 This is a reference implementation for 
 "Differentiable Patch Selection for Image Recognition"
 by Jean-Baptiste Cordonnier, Aravindh Mahendran,

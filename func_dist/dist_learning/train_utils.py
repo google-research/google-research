@@ -32,7 +32,7 @@ from tensorflow.io import gfile
 from func_dist.agents.dist_regression import networks
 
 
-class TrainingState(struct.PyTreeNode):
+class TrainingState(struct.PyTreeNode):  # pytype: disable=invalid-function-definition  # dataclass_transform
   """Training state for distance model."""
   step: int
   epoch: int

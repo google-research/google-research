@@ -22,7 +22,6 @@ proto_library(
         ":input_output_proto",
         ":metadata_proto",
         ":partitioning_proto",
-        ":restricts_proto",
     ],
 )
 
@@ -46,7 +45,6 @@ scann_py_proto_library(
         ":input_output_py_pb2",
         ":metadata_py_pb2",
         ":partitioning_py_pb2",
-        ":restricts_py_pb2",
     ],
     tags = ["local"],
 )
@@ -95,18 +93,6 @@ scann_py_proto_library(
         ":incremental_updates_py_pb2",
     ],
     tags = ["local"],
-)
-
-proto_library(
-    name = "restricts_proto",
-    srcs = ["restricts.proto"],
-    tags = ["local"],
-)
-
-cc_proto_library(
-    name = "restricts_cc_proto",
-    tags = ["local"],
-    deps = [":restricts_proto"],
 )
 
 scann_py_proto_library(

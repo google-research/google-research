@@ -45,6 +45,18 @@ PyTree = Any
 EvalStepPjitFn = Callable[["EvalState", PyTree, Any], "EvalState"]
 
 
+def tree_shape_dtype_struct(tree):
+  """Converts a PyTree with array-like objects to jax.ShapeDtypeStruct."""
+
+  def fn(x):
+    shape, dtype = x.shape, x.dtype
+    # Useful to convert Tensorflow Tensors.
+    dtype = dtype.as_numpy_dtype if hasattr(dtype, "as_numpy_dtype") else dtype
+    return jax.ShapeDtypeStruct(shape=shape, dtype=dtype)
+
+  return jax.tree_map(fn, tree)
+
+
 class ExecutionMode(enum.Enum):
   """Defines the model execution mode."""
   TRAIN = 1
@@ -191,7 +203,7 @@ class EvaluateMultipleDatasets(object):
 
       t0 = time.time()
 
-      args = utils.tree_shape_dtype_struct((rngs, train_state, batch))
+      args = tree_shape_dtype_struct((rngs, train_state, batch))
 
       eval_step_pjit_ds = eval_step_pjit.lower(*args).compile()  # pytype: disable=attribute-error
       t1 = time.time()
@@ -401,19 +413,21 @@ def make_eval_step_pjit(
           metrics_fn=metrics_fn,
           mode=ExecutionMode.EVAL,
           use_ema=use_ema,
-          return_images=return_images),
-      in_axis_resources=(
+          return_images=return_images,
+      ),
+      in_shardings=(
           None,  # rng
           train_state_axis_resources,  # train_state_axis_resources
           input_axis_resources,  # batch
       ),
-      out_axis_resources=(
+      out_shardings=(
           None,
           None,
           None,
           None,
       ),
-      donate_argnums=(0, 2))
+      donate_argnums=(0, 2),
+  )
   return eval_step_pjit
 
 
@@ -505,7 +519,7 @@ class EvaluateMultipleDatasetsMTL:
       # eval step for a given dataset.
       t0 = time.time()
 
-      args = utils.tree_shape_dtype_struct((rngs, train_state, nb_det, nb_cls))
+      args = tree_shape_dtype_struct((rngs, train_state, nb_det, nb_cls))
       if not use_ema:
         eval_step_pjit_ds = eval_step_pjit.lower(*args).compile()
         t1 = time.time()
@@ -687,13 +701,15 @@ def make_eval_step_pjit_mtl(
           evaluate_step_mtl,
           use_ema=use_ema,
           model_fn=model_fn,
-          metrics_fn=metrics_fn),
-      in_axis_resources=(
+          metrics_fn=metrics_fn,
+      ),
+      in_shardings=(
           None,  # rng
           train_state_axis_resources,  # train_state_axis_resources
           input_axis_resources_det,  # batch_det
           input_axis_resources_cls,  # batch_cls
       ),
-      out_axis_resources=(None, None, None, None, None, None),
-      donate_argnums=(0, 2, 3))
+      out_shardings=(None, None, None, None, None, None),
+      donate_argnums=(0, 2, 3),
+  )
   return eval_step_pjit

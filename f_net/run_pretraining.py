@@ -186,7 +186,7 @@ def _compute_loss_and_accuracy_metrics(
           jnp.sum(stats["num_next_sentence_labels"]),
   }
   metrics["loss"] = metrics["masked_lm_loss"] + metrics["next_sentence_loss"]
-  return metrics
+  return metrics  # pytype: disable=bad-return-type  # jnp-type
 
 
 def train_and_evaluate(config, workdir,

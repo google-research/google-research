@@ -315,7 +315,7 @@ def fire_active(lit):
   walls = jnp.concatenate([walls, wall_n[jnp.newaxis, :]], axis=0)
   penetrated = jnp.any(walls, axis=0)
 
-  return jnp.any(jnp.logical_not(jnp.logical_or(exhausted, penetrated)))
+  return jnp.any(jnp.logical_not(jnp.logical_or(exhausted, penetrated)))  # pytype: disable=bad-return-type  # jnp-type
 
 
 def get_ignition_heat(simprop,

@@ -17,6 +17,7 @@
 
 
 import glob
+from typing import List, Tuple
 import pandas as pd
 
 from hst_clustering import dynamic_program
@@ -24,7 +25,9 @@ from hst_clustering import dynamic_program
 ROOT_ID = ""
 
 
-def LoadFilesIntoDataFrame(glob_string, dimensions):
+def LoadFilesIntoDataFrame(
+    glob_string, dimensions
+):
   """Creates a data frame from a collection of csv files representing a HST.
 
   Args:
@@ -45,7 +48,9 @@ def LoadFilesIntoDataFrame(glob_string, dimensions):
     with open(file, "r") as f:
       dfs.append(
           pd.read_csv(
-              f, names=columns, keep_default_na=False, dtype=str_type_dict))
+              f, names=columns, keep_default_na=False, dtype=str_type_dict
+          )
+      )
   return pd.concat(dfs), feature_columns
 
 

@@ -411,4 +411,4 @@ def marginal_logprob(diffusion,
     cp = conditional_prob(xi)
     event_nats.append(up - cp)
   event_nats = jnp.concatenate(event_nats, axis=0)
-  return event_nats.mean(), event_nats.std() / jnp.sqrt(num_samples)
+  return event_nats.mean(), event_nats.std() / jnp.sqrt(num_samples)  # pytype: disable=bad-return-type  # jnp-type

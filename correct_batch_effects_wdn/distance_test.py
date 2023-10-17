@@ -17,7 +17,7 @@
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pandas_testing
+import pandas.testing as pandas_testing
 import tensorflow.compat.v1 as tf
 
 from correct_batch_effects_wdn import distance

@@ -146,7 +146,7 @@ def rejection_sample(key, shape, maxval, rejects):
   Returns:
     samples: Sampled indices.
   """
-  in1dvec = jax.vmap(jnp.in1d)
+  in1dvec = jax.vmap(jnp.isin)
 
   def cond_fun(carry):
     _, _, discard = carry

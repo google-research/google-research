@@ -19,7 +19,7 @@ import string
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pandas_testing
+import pandas.testing as pandas_testing
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
@@ -124,15 +124,15 @@ class TransformTest(tf.test.TestCase):
     q_expected = np.array([[1.0 / np.sqrt(2), -1.0 / np.sqrt(2)],
                            [1.0 / np.sqrt(2), 1.0 / np.sqrt(2)]])
     # q should be orthonormal - make sure it really is
-    pandas_testing.assert_almost_equal(
+    np.testing.assert_almost_equal(
         q_expected.T.dot(q_expected), np.identity(2))
     lambda_expected = np.diag([3.0, 2.0])
     a = q_expected.dot(lambda_expected).dot(q_expected.T)
     lambda_computed, q_computed = transform.eig_symmetric(a)
-    pandas_testing.assert_almost_equal(
+    np.testing.assert_almost_equal(
         np.diag(lambda_expected), lambda_computed)
     # make sure q_computed is orthonormal
-    pandas_testing.assert_almost_equal(
+    np.testing.assert_almost_equal(
         np.identity(2), q_expected.T.dot(q_expected))
     for i in range(q_expected.shape[0]):
       ev_expected = q_expected[:, i]
@@ -141,7 +141,7 @@ class TransformTest(tf.test.TestCase):
       # unique up to sign.  Since the sign will depend on the particulars of
       # the algorithm used to generate the eigenvectors, just make sure that
       # the dot product with the expected eigenvectors is +/- 1
-      pandas_testing.assert_almost_equal(1.0,
+      np.testing.assert_almost_equal(1.0,
                                          np.abs(ev_expected.dot(ev_computed)))
 
   def testFactorAnalysisRun(self):

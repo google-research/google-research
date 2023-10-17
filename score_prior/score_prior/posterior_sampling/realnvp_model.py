@@ -26,7 +26,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
-PRNGKey = jax.random.PRNGKeyArray
+PRNGKey = jax.Array
 Array = jnp.ndarray
 Shape = Tuple[int, Ellipsis]
 Dtype = Any

@@ -32,5 +32,6 @@ setup(
         'scipy>=1.10.0',
         'ml_collections',
         'seaborn>0.12.2',
+        'git+https://github.com/tsai-kailin/ConditionalOSDE.git'
     ]),
 )

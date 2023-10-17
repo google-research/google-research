@@ -1,0 +1,551 @@
+{
+   "A red colored car.": {
+      "category": "Colors"
+   },
+   "A black colored car.": {
+      "category": "Colors"
+   },
+   "A pink colored car.": {
+      "category": "Colors"
+   },
+   "A black colored dog.": {
+      "category": "Colors"
+   },
+   "A red colored dog.": {
+      "category": "Colors"
+   },
+   "A blue colored dog.": {
+      "category": "Colors"
+   },
+   "A green colored banana.": {
+      "category": "Colors"
+   },
+   "A red colored banana.": {
+      "category": "Colors"
+   },
+   "A black colored banana.": {
+      "category": "Colors"
+   },
+   "A white colored sandwich.": {
+      "category": "Colors"
+   },
+   "A black colored sandwich.": {
+      "category": "Colors"
+   },
+   "An orange colored sandwich.": {
+      "category": "Colors"
+   },
+   "A pink colored giraffe.": {
+      "category": "Colors"
+   },
+   "A yellow colored giraffe.": {
+      "category": "Colors"
+   },
+   "A brown colored giraffe.": {
+      "category": "Colors"
+   },
+   "A red car and a white sheep.": {
+      "category": "Colors"
+   },
+   "A blue bird and a brown bear.": {
+      "category": "Colors"
+   },
+   "A green apple and a black backpack.": {
+      "category": "Colors"
+   },
+   "A green cup and a blue cell phone.": {
+      "category": "Colors"
+   },
+   "A yellow book and a red vase.": {
+      "category": "Colors"
+   },
+   "A white car and a red sheep.": {
+      "category": "Colors"
+   },
+   "A brown bird and a blue bear.": {
+      "category": "Colors"
+   },
+   "A black apple and a green backpack.": {
+      "category": "Colors"
+   },
+   "A blue cup and a green cell phone.": {
+      "category": "Colors"
+   },
+   "A red book and a yellow vase.": {
+      "category": "Colors"
+   },
+   "A horse riding an astronaut.": {
+      "category": "Conflicting"
+   },
+   "A pizza cooking an oven.": {
+      "category": "Conflicting"
+   },
+   "A bird scaring a scarecrow.": {
+      "category": "Conflicting"
+   },
+   "A blue coloured pizza.": {
+      "category": "Conflicting"
+   },
+   "Hovering cow abducting aliens.": {
+      "category": "Conflicting"
+   },
+   "A panda making latte art.": {
+      "category": "Conflicting"
+   },
+   "A shark in the desert.": {
+      "category": "Conflicting"
+   },
+   "An elephant under the sea.": {
+      "category": "Conflicting"
+   },
+   "Rainbow coloured penguin.": {
+      "category": "Conflicting"
+   },
+   "A fish eating a pelican.": {
+      "category": "Conflicting"
+   },
+   "One car on the street.": {
+      "category": "Counting"
+   },
+   "Two cars on the street.": {
+      "category": "Counting"
+   },
+   "Three cars on the street.": {
+      "category": "Counting"
+   },
+   "Four cars on the street.": {
+      "category": "Counting"
+   },
+   "Five cars on the street.": {
+      "category": "Counting"
+   },
+   "One dog on the street.": {
+      "category": "Counting"
+   },
+   "Two dogs on the street.": {
+      "category": "Counting"
+   },
+   "Three dogs on the street.": {
+      "category": "Counting"
+   },
+   "Four dogs on the street.": {
+      "category": "Counting"
+   },
+   "Five dogs on the street.": {
+      "category": "Counting"
+   },
+   "One cat and one dog sitting on the grass.": {
+      "category": "Counting"
+   },
+   "One cat and two dogs sitting on the grass.": {
+      "category": "Counting"
+   },
+   "One cat and three dogs sitting on the grass.": {
+      "category": "Counting"
+   },
+   "Two cats and one dog sitting on the grass.": {
+      "category": "Counting"
+   },
+   "Two cats and two dogs sitting on the grass.": {
+      "category": "Counting"
+   },
+   "Two cats and three dogs sitting on the grass.": {
+      "category": "Counting"
+   },
+   "Three cats and one dog sitting on the grass.": {
+      "category": "Counting"
+   },
+   "Three cats and two dogs sitting on the grass.": {
+      "category": "Counting"
+   },
+   "Three cats and three dogs sitting on the grass.": {
+      "category": "Counting"
+   },
+   "A triangular purple flower pot. A purple flower pot in the shape of a triangle.": {
+      "category": "DALL-E"
+   },
+   "A triangular orange picture frame. An orange picture frame in the shape of a triangle.": {
+      "category": "DALL-E"
+   },
+   "A triangular pink stop sign. A pink stop sign in the shape of a triangle.": {
+      "category": "DALL-E"
+   },
+   "A cube made of denim. A cube with the texture of denim.": {
+      "category": "DALL-E"
+   },
+   "A sphere made of kitchen tile. A sphere with the texture of kitchen tile.": {
+      "category": "DALL-E"
+   },
+   "A cube made of brick. A cube with the texture of brick.": {
+      "category": "DALL-E"
+   },
+   "A collection of nail is sitting on a table.": {
+      "category": "DALL-E"
+   },
+   "A single clock is sitting on a table.": {
+      "category": "DALL-E"
+   },
+   "A couple of glasses are sitting on a table.": {
+      "category": "DALL-E"
+   },
+   "An illustration of a large red elephant sitting on a small blue mouse.": {
+      "category": "DALL-E"
+   },
+   "An illustration of a small green elephant standing behind a large red mouse.": {
+      "category": "DALL-E"
+   },
+   "A small blue book sitting on a large red book.": {
+      "category": "DALL-E"
+   },
+   "A stack of 3 plates. A blue plate is on the top, sitting on a blue plate. The blue plate is in the middle, sitting on a green plate. The green plate is on the bottom.": {
+      "category": "DALL-E"
+   },
+   "A stack of 3 cubes. A red cube is on the top, sitting on a red cube. The red cube is in the middle, sitting on a green cube. The green cube is on the bottom.": {
+      "category": "DALL-E"
+   },
+   "A stack of 3 books. A green book is on the top, sitting on a red book. The red book is in the middle, sitting on a blue book. The blue book is on the bottom.": {
+      "category": "DALL-E"
+   },
+   "An emoji of a baby panda wearing a red hat, green gloves, red shirt, and green pants.": {
+      "category": "DALL-E"
+   },
+   "An emoji of a baby panda wearing a red hat, blue gloves, green shirt, and blue pants.": {
+      "category": "DALL-E"
+   },
+   "A fisheye lens view of a turtle sitting in a forest.": {
+      "category": "DALL-E"
+   },
+   "A side view of an owl sitting in a field.": {
+      "category": "DALL-E"
+   },
+   "A cross-section view of a brain.": {
+      "category": "DALL-E"
+   },
+   "A vehicle composed of two wheels held in a frame one behind the other, propelled by pedals and steered with handlebars attached to the front wheel.": {
+      "category": "Descriptions"
+   },
+   "A large motor vehicle carrying passengers by road, typically one serving the public on a fixed route and for a fare.": {
+      "category": "Descriptions"
+   },
+   "A small vessel propelled on water by oars, sails, or an engine.": {
+      "category": "Descriptions"
+   },
+   "A connection point by which firefighters can tap into a water supply.": {
+      "category": "Descriptions"
+   },
+   "A machine next to a parking space in a street, into which the driver puts money so as to be authorized to park the vehicle for a particular length of time.": {
+      "category": "Descriptions"
+   },
+   "A device consisting of a circular canopy of cloth on a folding metal frame supported by a central rod, used as protection against rain or sometimes sun.": {
+      "category": "Descriptions"
+   },
+   "A separate seat for one person, typically with a back and four legs.": {
+      "category": "Descriptions"
+   },
+   "An appliance or compartment which is artificially kept cool and used to store food and drink.": {
+      "category": "Descriptions"
+   },
+   "A mechanical or electrical device for measuring time.": {
+      "category": "Descriptions"
+   },
+   "An instrument used for cutting cloth, paper, and other thin material, consisting of two blades laid one on top of the other and fastened in the middle so as to allow them to be opened and closed by a thumb and finger inserted through rings on the end of their handles.": {
+      "category": "Descriptions"
+   },
+   "A large plant-eating domesticated mammal with solid hoofs and a flowing mane and tail, used for riding, racing, and to carry and pull loads.": {
+      "category": "Descriptions"
+   },
+   "A long curved fruit which grows in clusters and has soft pulpy flesh and yellow skin when ripe.": {
+      "category": "Descriptions"
+   },
+   "A small domesticated carnivorous mammal with soft fur, a short snout, and retractable claws. It is widely kept as a pet or for catching mice, and many breeds have been developed.": {
+      "category": "Descriptions"
+   },
+   "A domesticated carnivorous mammal that typically has a long snout, an acute sense of smell, nonretractable claws, and a barking, howling, or whining voice.": {
+      "category": "Descriptions"
+   },
+   "An organ of soft nervous tissue contained in the skull of vertebrates, functioning as the coordinating center of sensation and intellectual and nervous activity.": {
+      "category": "Descriptions"
+   },
+   "An American multinational technology company that focuses on artificial intelligence, search engine, online advertising, cloud computing, computer software, quantum computing, e-commerce, and consumer electronics.": {
+      "category": "Descriptions"
+   },
+   "A large keyboard musical instrument with a wooden case enclosing a soundboard and metal strings, which are struck by hammers when the keys are depressed. The strings' vibration is stopped by dampers when the keys are released and can be regulated for length and volume by two or three pedals.": {
+      "category": "Descriptions"
+   },
+   "A type of digital currency in which a record of transactions is maintained and new units of currency are generated by the computational solution of mathematical problems, and which operates independently of a central bank.": {
+      "category": "Descriptions"
+   },
+   "A large thick-skinned semiaquatic African mammal, with massive jaws and large tusks.": {
+      "category": "Descriptions"
+   },
+   "A machine resembling a human being and able to replicate certain human movements and functions automatically.": {
+      "category": "Descriptions"
+   },
+   "Paying for a quarter-sized pizza with a pizza-sized quarter.": {
+      "category": "Gary Marcus et al. "
+   },
+   "An oil painting of a couple in formal evening wear going home get caught in a heavy downpour with no umbrellas.": {
+      "category": "Gary Marcus et al. "
+   },
+   "A grocery store refrigerator has pint cartons of milk on the top shelf, quart cartons on the middle shelf, and gallon plastic jugs on the bottom shelf.": {
+      "category": "Gary Marcus et al. "
+   },
+   "In late afternoon in January in New England, a man stands in the shadow of a maple tree.": {
+      "category": "Gary Marcus et al. "
+   },
+   "An elephant is behind a tree. You can see the trunk on one side and the back legs on the other.": {
+      "category": "Gary Marcus et al. "
+   },
+   "A tomato has been put on top of a pumpkin on a kitchen stool. There is a fork sticking into the pumpkin. The scene is viewed from above.": {
+      "category": "Gary Marcus et al. "
+   },
+   "A pear cut into seven pieces arranged in a ring.": {
+      "category": "Gary Marcus et al. "
+   },
+   "A donkey and an octopus are playing a game. The donkey is holding a rope on one end, the octopus is holding onto the other. The donkey holds the rope in its mouth. A cat is jumping over the rope.": {
+      "category": "Gary Marcus et al. "
+   },
+   "Supreme Court Justices play a baseball game with the FBI. The FBI is at bat, the justices are on the field.": {
+      "category": "Gary Marcus et al. "
+   },
+   "Abraham Lincoln touches his toes while George Washington does chin-ups. Lincoln is barefoot. Washington is wearing boots.": {
+      "category": "Gary Marcus et al. "
+   },
+   "A train on top of a surfboard.": {
+      "category": "Positional"
+   },
+   "A wine glass on top of a dog.": {
+      "category": "Positional"
+   },
+   "A bicycle on top of a boat.": {
+      "category": "Positional"
+   },
+   "An umbrella on top of a spoon.": {
+      "category": "Positional"
+   },
+   "A laptop on top of a teddy bear.": {
+      "category": "Positional"
+   },
+   "A giraffe underneath a microwave.": {
+      "category": "Positional"
+   },
+   "A donut underneath a toilet.": {
+      "category": "Positional"
+   },
+   "A hair drier underneath a sheep.": {
+      "category": "Positional"
+   },
+   "A tennis racket underneath a traffic light.": {
+      "category": "Positional"
+   },
+   "A zebra underneath a broccoli.": {
+      "category": "Positional"
+   },
+   "A banana on the left of an apple.": {
+      "category": "Positional"
+   },
+   "A couch on the left of a chair.": {
+      "category": "Positional"
+   },
+   "A car on the left of a bus.": {
+      "category": "Positional"
+   },
+   "A cat on the left of a dog.": {
+      "category": "Positional"
+   },
+   "A carrot on the left of a broccoli.": {
+      "category": "Positional"
+   },
+   "A pizza on the right of a suitcase.": {
+      "category": "Positional"
+   },
+   "A cat on the right of a tennis racket.": {
+      "category": "Positional"
+   },
+   "A stop sign on the right of a refrigerator.": {
+      "category": "Positional"
+   },
+   "A sheep to the right of a wine glass.": {
+      "category": "Positional"
+   },
+   "A zebra to the right of a fire hydrant.": {
+      "category": "Positional"
+   },
+   "A church with stained glass windows depicting a hamburger and french fries.": {
+      "category": "Reddit"
+   },
+   "Painting of the orange cat Otto von Garfield, Count of Bismarck-Schönhausen, Duke of Lauenburg, Minister-President of Prussia. Depicted wearing a Prussian Pickelhaube and eating his favorite meal - lasagna.": {
+      "category": "Reddit"
+   },
+   "A baby fennec sneezing onto a strawberry, detailed, macro, studio light, droplets, backlit ears.": {
+      "category": "Reddit"
+   },
+   "A photo of a confused grizzly bear in calculus class.": {
+      "category": "Reddit"
+   },
+   "An ancient Egyptian painting depicting an argument over whose turn it is to take out the trash.": {
+      "category": "Reddit"
+   },
+   "A fluffy baby sloth with a knitted hat trying to figure out a laptop, close up, highly detailed, studio lighting, screen reflecting in its eyes.": {
+      "category": "Reddit"
+   },
+   "A tiger in a lab coat with a 1980s Miami vibe, turning a well oiled science content machine, digital art.": {
+      "category": "Reddit"
+   },
+   "A 1960s yearbook photo with animals dressed as humans.": {
+      "category": "Reddit"
+   },
+   "Lego Arnold Schwarzenegger.": {
+      "category": "Reddit"
+   },
+   "A yellow and black bus cruising through the rainforest.": {
+      "category": "Reddit"
+   },
+   "A medieval painting of the wifi not working.": {
+      "category": "Reddit"
+   },
+   "An IT-guy trying to fix hardware of a PC tower is being tangled by the PC cables like Laokoon. Marble, copy after Hellenistic original from ca. 200 BC. Found in the Baths of Trajan, 1506.": {
+      "category": "Reddit"
+   },
+   "35mm macro shot a kitten licking a baby duck, studio lighting.": {
+      "category": "Reddit"
+   },
+   "McDonalds Church.": {
+      "category": "Reddit"
+   },
+   "Photo of an athlete cat explaining it's latest scandal at a press conference to journalists.": {
+      "category": "Reddit"
+   },
+   "Greek statue of a man tripping over a cat.": {
+      "category": "Reddit"
+   },
+   "An old photograph of a 1920s airship shaped like a pig, floating over a wheat field.": {
+      "category": "Reddit"
+   },
+   "Photo of a cat singing in a barbershop quartet.": {
+      "category": "Reddit"
+   },
+   "A painting by Grant Wood of an astronaut couple, american gothic style.": {
+      "category": "Reddit"
+   },
+   "An oil painting portrait of the regal Burger King posing with a Whopper.": {
+      "category": "Reddit"
+   },
+   "A keyboard made of water, the water is made of light, the light is turned off.": {
+      "category": "Reddit"
+   },
+   "Painting of Mona Lisa but the view is from behind of Mona Lisa.": {
+      "category": "Reddit"
+   },
+   "Hyper-realistic photo of an abandoned industrial site during a storm.": {
+      "category": "Reddit"
+   },
+   "A screenshot of an iOS app for ordering different types of milk.": {
+      "category": "Reddit"
+   },
+   "A real life photography of super mario, 8k Ultra HD.": {
+      "category": "Reddit"
+   },
+   "Colouring page of large cats climbing the eifel tower in a cyberpunk future.": {
+      "category": "Reddit"
+   },
+   "Photo of a mega Lego space station inside a kid's bedroom.": {
+      "category": "Reddit"
+   },
+   "A spider with a moustache bidding an equally gentlemanly grasshopper a good day during his walk to work.": {
+      "category": "Reddit"
+   },
+   "A photocopy of a photograph of a painting of a sculpture of a giraffe.": {
+      "category": "Reddit"
+   },
+   "A bridge connecting Europe and North America on the Atlantic Ocean, bird's eye view.": {
+      "category": "Reddit"
+   },
+   "A maglev train going vertically downward in high speed, New York Times photojournalism.": {
+      "category": "Reddit"
+   },
+   "A magnifying glass over a page of a 1950s batman comic.": {
+      "category": "Reddit"
+   },
+   "A car playing soccer, digital art.": {
+      "category": "Reddit"
+   },
+   "Darth Vader playing with raccoon in Mars during sunset.": {
+      "category": "Reddit"
+   },
+   "A 1960s poster warning against climate change.": {
+      "category": "Reddit"
+   },
+   "Illustration of a mouse using a mushroom as an umbrella.": {
+      "category": "Reddit"
+   },
+   "A realistic photo of a Pomeranian dressed up like a 1980s professional wrestler with neon green and neon orange face paint and bright green wrestling tights with bright orange boots.": {
+      "category": "Reddit"
+   },
+   "A pyramid made of falafel with a partial solar eclipse in the background.": {
+      "category": "Reddit"
+   },
+   "A storefront with 'Hello World' written on it.": {
+      "category": "Text"
+   },
+   "A storefront with 'Diffusion' written on it.": {
+      "category": "Text"
+   },
+   "A storefront with 'Text to Image' written on it.": {
+      "category": "Text"
+   },
+   "A storefront with 'NeurIPS' written on it.": {
+      "category": "Text"
+   },
+   "A storefront with 'Deep Learning' written on it.": {
+      "category": "Text"
+   },
+   "A storefront with 'Google Brain Toronto' written on it.": {
+      "category": "Text"
+   },
+   "A storefront with 'Google Research Pizza Cafe' written on it.": {
+      "category": "Text"
+   },
+   "A sign that says 'Hello World'.": {
+      "category": "Text"
+   },
+   "A sign that says 'Diffusion'.": {
+      "category": "Text"
+   },
+   "A sign that says 'Text to Image'.": {
+      "category": "Text"
+   },
+   "A sign that says 'NeurIPS'.": {
+      "category": "Text"
+   },
+   "A sign that says 'Deep Learning'.": {
+      "category": "Text"
+   },
+   "A sign that says 'Google Brain Toronto'.": {
+      "category": "Text"
+   },
+   "A sign that says 'Google Research Pizza Cafe'.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'Hello World' written with fireworks on the sky.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'Diffusion' written with fireworks on the sky.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'Text to Image' written with fireworks on the sky.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'NeurIPS' written with fireworks on the sky.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'Deep Learning' written with fireworks on the sky.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'Google Brain Toronto' written with fireworks on the sky.": {
+      "category": "Text"
+   },
+   "New York Skyline with 'Google Research Pizza Cafe' written with fireworks on the sky.": {
+      "category": "Text"
+   }
+}

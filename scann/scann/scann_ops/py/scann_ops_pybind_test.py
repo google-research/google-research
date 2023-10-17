@@ -89,15 +89,19 @@ class ScannTest(parameterized.TestCase):
       np.testing.assert_allclose(dis, selected_distances, rtol=1e-6)
       np.testing.assert_allclose(dis, batch_dis[i], rtol=1e-6)
 
-  @parameterized.parameters(("squared_l2", True), ("squared_l2", False),
-                            ("dot_product", True), ("dot_product", False))
-  def test_tree_ah(self, dist, quantize_tree):
+  @parameterized.product(
+      dist=["squared_l2", "dot_product"],
+      quantize_tree=[True, False],
+      reorder=[True, False])
+  def test_tree_ah(self, dist, quantize_tree, reorder):
     n_dims = 50
     ds = np.random.rand(12345, n_dims).astype(np.float32)
-    s = scann_ops_pybind.builder(ds, 10, dist).tree(
+    builder = scann_ops_pybind.builder(ds, 10, dist).tree(
         300, 30, min_partition_size=10,
-        quantize_centroids=quantize_tree).score_ah(2).build()
-    self.verify_serialization(s, n_dims, 5)
+        quantize_centroids=quantize_tree).score_ah(2)
+    if reorder:
+      builder = builder.reorder(20)
+    self.verify_serialization(builder.build(), n_dims, 5)
 
   @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_pure_ah(self, dist):

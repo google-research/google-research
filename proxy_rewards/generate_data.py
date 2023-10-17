@@ -222,7 +222,7 @@ def generate_data(env_config,
 
     res.append(row)
 
-  df = pd.DataFrame.from_dict(res).sort_values('user')
+  df = pd.DataFrame.from_records(res).sort_values('user')
 
   logits = intercept + df['rating'] * rating_coef + df[
       'diversity_seeker'] * div_seek_coef + df['diversity'] * diversity_coef

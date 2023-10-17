@@ -21,6 +21,7 @@
 #include <set>
 #include <vector>
 
+#include "absl/container/btree_map.h"
 #include "matroid.h"
 #include "submodular_function.h"
 
@@ -110,7 +111,8 @@ void MaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
 // Returns if an element is needed to be removed from `matroid_` to insert
 // `element`. Returns "-1" if no element is needed to be remove and "-2" if
 // the element cannot be swapped.
-int MinWeightElementToRemove(Matroid* matroid, std::map<int, double>& weight,
+int MinWeightElementToRemove(Matroid* matroid,
+                             absl::btree_map<int, double>& weight,
                              const std::set<int>& const_elements,
                              const int element) {
   if (matroid->CanAdd(element)) {
@@ -131,7 +133,7 @@ void SubMaxIntersection(Matroid* matroid_a, Matroid* matroid_b,
                         const std::set<int>& const_elements,
                         const std::vector<int>& universe) {
   // DO NOT reset the matroids here.
-  std::map<int, double> weight;
+  absl::btree_map<int, double> weight;
   for (const int& element : universe) {
     if (const_elements.count(element)) continue;  // don't add const_elements
     int first_swap =

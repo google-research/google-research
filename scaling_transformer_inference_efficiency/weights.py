@@ -347,14 +347,14 @@ class Weights:
     with mesh:
       q_wi, kv, o_wo, embedding = pjit.pjit(
           preprocess,
-          in_axis_resources=(
+          in_shardings=(
               q_wi_input_axes,
               kv_axes,
               o_wo_axes,
               layernorm_scale_axes,
               embedding_axes,
           ),
-          out_axis_resources=(
+          out_shardings=(
               q_wi_output_axes,
               kv_axes,
               o_wo_axes,

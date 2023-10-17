@@ -61,7 +61,7 @@ def top_k_approx(scores, k=100):
   scores = jnp.pad(
       scores, ((0, 0), (0, padded_num_items - num_items)),
       mode="constant",
-      constant_values=jnp.NINF)
+      constant_values=-jnp.inf)
   scores = jnp.reshape(
       scores, (num_queries, k * num_windows_multiplier, window_lengths))
   approx_top_local_scores = jnp.max(scores, axis=2)

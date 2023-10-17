@@ -61,6 +61,10 @@ ten columns, one line per marked error:
     identifying the indices of the first and last target tokens in the marked
     span. These indices refer to the target_tokens array in the segment
     object.
+  - **marked_text**: The text that has been marked by the rater (or the
+    empty string if this metadata is not associated with an marked span). This
+    field is computed from source_spans/target_spans. It can be useful
+    when filtering.
   - **segment**: An object that has information about the segment (from the
     current doc+docSegId+system) that is not specific to any particular
     annotation/rater. This object may not necessarily be repeated across
@@ -74,7 +78,9 @@ ten columns, one line per marked error:
         required if "references" is present. This field too need not be repeated
         across different systems.
       - **metrics**: A dictionary in which the keys are the names of metrics
-        (such as "Bleurt-X") and values are the numbers for those metrics.
+        (such as "Bleurt-X") and values are the numbers for those metrics. The
+        metric name "MQM" is used for the MQM score. Note that this MQM score
+        for the segment is computed *without any filtering*.
       - **source_tokens**: An array of source text tokens.
       - **target_tokens**: An array of target text tokens.
       - **source_sentence_tokens**: An array specifying sentence segmentation
@@ -85,10 +91,6 @@ ten columns, one line per marked error:
         sentence.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
-      - **MQM**: The computed MQM score for the segment. This field may not
-        be present in data files, but is available for use in filtering within
-        MQM Viewer. Note that it is the MQM score for the segment *without
-        any filtering*.
       - In addition, any text annotation fields present in the input data are
         copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
         this would be all the fields present in the optional last column.
@@ -106,6 +108,7 @@ ten columns, one line per marked error:
         includes "errors" and "severities". Some bulky fields, notably
         "instructions" and "description" may have been stripped out from this
         object.
+      - **source_language**, **target_language**: Language codes.
     In MQMViewer, each metadata.evaluation object found is logged in the
     JavaScript debug console.
 
@@ -136,6 +139,29 @@ JavaScript function with the following name and behavior:
 function mqmDataConvertor(sourceName, data) {
   ...
   return data;
+}
+```
+
+## Data from URLs
+
+You can pass a `?dataurls=<url1>,...` parameter to MQM Viewer, to load data
+from the URLs listed. Note that any URLs have to be hosted on the same site
+as the viewer itself, or need to have a CORS exception.
+
+If your domain uses some custom way of storing data (Google uses the CNS file
+system, for example) that uses a way to convert data names to URLs, and you wish
+to directly pass such data names as URLs (to `?dataurls=`), then you can add a
+JavaScript function with the following name and behavior:
+```
+/**
+ * Transform a data name (that may be in some custom format) to a URL.
+ * @param {string} dataName The name or identifier for the data.
+ * @return {string} The URL from which the data can be loaded.
+ */
+function mqmURLMaker(dataName) {
+  /** Code to convert dataName into url */
+  let url = ...;
+  return url;
 }
 ```
 
@@ -181,13 +207,16 @@ filters.
       "Minor/Fluency/Punctuation" or are just the same as severities if
       categories are empty. This segment-level aggregation allows you
       to select specific segments rather than just specific error ratings.
+    - **aggrDocSeg.metrics** is an object keyed by the metric name and then by
+      system name. It provides the segment's metric scores (including MQM) for
+      all systems for which a metric is available for that segment.
     - **aggrDocSegSys** is just an alias for metadata.segment.
   - **Example**: docSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
+  - **Example**: metadata.marked_text.length >= 10
   - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
-  - **Example**: aggrDocSegSys.MQM > 4 &&
-    (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) < 0.1 (note that aggrDocSegSys.MQM
-    is the *unfiltered* MQM score for the segment).
+  - **Example**: aggrDocSegSys.metrics['MQM'] > 4 &&
+    (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) < 0.1.
   - **Example**: JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')
   - You can examine the metadata associated with any using the **Log metadata**
     interface shown in the **Filters** section. This can be useful for crafting

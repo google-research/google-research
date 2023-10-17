@@ -246,7 +246,7 @@ def create_dataset(
 
 
 def element_spec(game, batch_size):
-  num_actions = get_num_actions(game)
+  num_actions = get_num_actions(game)  # pytype: disable=wrong-arg-types
   obs_spec = jax.ShapeDtypeStruct(
       shape=(84, 84, 4, batch_size), dtype=jnp.uint8
   )

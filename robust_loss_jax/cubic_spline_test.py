@@ -63,14 +63,14 @@ class CubicSplineTest(chex.TestCase):
     """Check that interpolating at a knot produces the value at that knot."""
     x, values, tangents = self._setup_toy_data()
     y = self.variant(cubic_spline.interpolate1d)(x, values, tangents)
-    chex.assert_tree_all_close(y, values, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(y, values, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testInterpolationReproducesTangentsAtKnots(self):
     """Check that the derivative at a knot produces the tangent at that knot."""
     x, values, tangents = self._setup_toy_data()
     _, dy_dx = self.variant(self._interpolate1d)(x, values, tangents)
-    chex.assert_tree_all_close(dy_dx, tangents, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(dy_dx, tangents, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testZeroTangentMidpointValuesAndDerivativesAreCorrect(self):
@@ -94,12 +94,12 @@ class CubicSplineTest(chex.TestCase):
     # Check that the interpolated values of all queries lies at the midpoint of
     # its surrounding knot values.
     y_true = (values[0:-1] + values[1:]) / 2.
-    chex.assert_tree_all_close(y, y_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(y, y_true, atol=1e-5, rtol=1e-5)
 
     # Check that the derivative of all interpolated values is (fun fact!) 1.5x
     # the numerical difference between adjacent knot values.
     dy_dx_true = 1.5 * (values[1:] - values[0:-1])
-    chex.assert_tree_all_close(dy_dx, dy_dx_true, atol=1e-5, rtol=1e-5)
+    chex.assert_trees_all_close(dy_dx, dy_dx_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testZeroTangentIntermediateValuesAndDerivativesDoNotOvershoot(self):
@@ -158,7 +158,7 @@ class CubicSplineTest(chex.TestCase):
       tangents = jnp.ones_like(values) * slope
       y = fn(x, values, tangents)
       y_true = slope * x + bias
-      chex.assert_tree_all_close(y, y_true, atol=1e-5, rtol=1e-5)
+      chex.assert_trees_all_close(y, y_true, atol=1e-5, rtol=1e-5)
 
   @chex.all_variants()
   def testExtrapolationIsLinear(self):
@@ -185,13 +185,13 @@ class CubicSplineTest(chex.TestCase):
       # with the slope and bias of the beginning of the spline.
       y_below = fn(x_below, values, tangents)
       y_below_true = tangents[0] * x_below + values[0]
-      chex.assert_tree_all_close(y_below, y_below_true, atol=1e-5, rtol=1e-5)
+      chex.assert_trees_all_close(y_below, y_below_true, atol=1e-5, rtol=1e-5)
 
       # Query the spline above its support and check that it's a linear ramp
       # with the slope and bias of the end of the spline.
       y_above = fn(x_above, values, tangents)
       y_above_true = tangents[-1] * (x_above - (n - 1)) + values[-1]
-      chex.assert_tree_all_close(y_above, y_above_true, atol=1e-5, rtol=1e-5)
+      chex.assert_trees_all_close(y_above, y_above_true, atol=1e-5, rtol=1e-5)
 
 
 if __name__ == '__main__':

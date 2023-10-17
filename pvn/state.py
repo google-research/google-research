@@ -44,7 +44,7 @@ def identity(buffer, dummy_variable):
   return buffer, jnp.sin(dummy_variable**2)
 
 
-class TrainState(struct.PyTreeNode):
+class TrainState(struct.PyTreeNode):  # pytype: disable=invalid-function-definition  # dataclass_transform
   """Train State. This resembles Flax's train state."""
 
   step: int
@@ -85,7 +85,7 @@ class TrainState(struct.PyTreeNode):
     )
 
 
-class FittedValueTrainState(TrainState):
+class FittedValueTrainState(TrainState):  # pytype: disable=invalid-function-definition  # dataclass_transform
   """Train State for fitted value iteration methods."""
 
   target_params: core.FrozenDict[str, Any]
@@ -289,7 +289,6 @@ def maybe_restore_train_and_indicator_state(
 
     def closure(_):
       return checkpoint.ArrayRestoreArgs(
-          lazy=True,
           restore_type=jax.Array,
           mesh=mesh,
           mesh_axes=mesh_axes,
@@ -343,7 +342,6 @@ def maybe_restore_train_and_indicator_state(
       new_tree={'train': train_state, 'indicator': indicator_state},
       default_to_original=False,
   )
-  restored_state = checkpoint.lazy_utils.maybe_get_tree(restored_state)
   logging.info('Restore finished')
 
   return operator.itemgetter('train', 'indicator')(restored_state)

@@ -20,18 +20,22 @@
 #include <iterator>
 #include <memory>
 #include <utility>
+#include <vector>
 
 #include "absl/base/internal/spinlock.h"
 #include "absl/memory/memory.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/kmeans_tree_partitioner.pb.h"
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
+#include "scann/trees/kmeans_tree/kmeans_tree_node.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
@@ -85,7 +89,6 @@ unique_ptr<Partitioner<T>> KMeansTreePartitioner<T>::Clone() const {
   result->database_spilling_fixed_number_of_centers_ =
       database_spilling_fixed_number_of_centers_;
   result->query_tokenization_searcher_ = query_tokenization_searcher_;
-  result->populate_residual_stdev_ = populate_residual_stdev_;
   return std::move(result);
 }
 
@@ -116,7 +119,7 @@ void KMeansTreePartitioner<T>::set_query_spilling_threshold(double val) {
 
 constexpr int kAhMultiplierSpilling = 10;
 
-constexpr int kAhMultiplierNoSpilling = 100;
+constexpr int kAhMinReorderedPartitions = 100;
 
 template <typename T>
 Status KMeansTreePartitioner<T>::TokenForDatapoint(
@@ -132,7 +135,7 @@ Status KMeansTreePartitioner<T>::TokenForDatapoint(
       this->tokenization_mode() == UntypedPartitioner::QUERY;
   if (cur_type == ASYMMETRIC_HASHING) {
     int pre_reordering_num_neighbors =
-        TokenizationSearcher()->reordering_enabled() ? kAhMultiplierNoSpilling
+        TokenizationSearcher()->reordering_enabled() ? kAhMinReorderedPartitions
                                                      : 1;
     return TokenForDatapointUseSearcher(dptr, result,
                                         pre_reordering_num_neighbors);
@@ -143,8 +146,7 @@ Status KMeansTreePartitioner<T>::TokenForDatapoint(
     SCANN_RETURN_IF_ERROR(kmeans_tree_->Tokenize(
         dptr, *dist,
         KMeansTree::TokenizationOptions::NoSpilling(
-            static_cast<KMeansTree::TokenizationType>(cur_type),
-            populate_residual_stdev_),
+            static_cast<KMeansTree::TokenizationType>(cur_type)),
         &result_vec));
     *result = result_vec[0];
     return OkStatus();
@@ -170,8 +172,8 @@ Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
 
 template <typename T>
 Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
-    const TypedDataset<T>& queries,
-    vector<KMeansTreeSearchResult>* results) const {
+    const TypedDataset<T>& queries, vector<KMeansTreeSearchResult>* results,
+    ThreadPool* pool) const {
   if (cur_tokenization_type() != FLOAT || queries.IsSparse() ||
       !is_one_level_tree_) {
     results->resize(queries.size());
@@ -180,7 +182,7 @@ Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
     }
   }
   TF_ASSIGN_OR_RETURN(auto top1_results,
-                      TokenForDatapointBatchedImpl(queries, nullptr));
+                      TokenForDatapointBatchedImpl(queries, pool));
   *results = ToKmeansTreeSearchResults(top1_results);
   return OkStatus();
 }
@@ -199,7 +201,8 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpilling(
     if (query_tokenization_type_ == ASYMMETRIC_HASHING) {
       int pre_reordering_num_neighbors =
           TokenizationSearcher()->reordering_enabled()
-              ? max_centers * kAhMultiplierSpilling
+              ? std::max(kAhMinReorderedPartitions,
+                         max_centers * kAhMultiplierSpilling)
               : max_centers;
       return TokensForDatapointWithSpillingUseSearcher(
           dptr, result, max_centers, pre_reordering_num_neighbors);
@@ -209,16 +212,17 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpilling(
         dptr, *query_tokenization_dist_,
         KMeansTree::TokenizationOptions::UserSpecifiedSpilling(
             query_spilling_type_, query_spilling_threshold_, max_centers,
-            static_cast<KMeansTree::TokenizationType>(query_tokenization_type_),
-            populate_residual_stdev_),
+            static_cast<KMeansTree::TokenizationType>(
+                query_tokenization_type_)),
         result);
   } else if (this->tokenization_mode() == UntypedPartitioner::DATABASE) {
     if (database_spilling_fixed_number_of_centers_ > 0) {
       if (database_tokenization_type_ == ASYMMETRIC_HASHING) {
         int pre_reordering_num_neighbors =
             TokenizationSearcher()->reordering_enabled()
-                ? database_spilling_fixed_number_of_centers_ *
-                      kAhMultiplierSpilling
+                ? std::max(kAhMinReorderedPartitions,
+                           database_spilling_fixed_number_of_centers_ *
+                               kAhMultiplierSpilling)
                 : database_spilling_fixed_number_of_centers_;
         return TokensForDatapointWithSpillingUseSearcher(
             dptr, result, database_spilling_fixed_number_of_centers_,
@@ -230,8 +234,7 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpilling(
                 QuerySpillingConfig::FIXED_NUMBER_OF_CENTERS, 0.0,
                 database_spilling_fixed_number_of_centers_,
                 static_cast<KMeansTree::TokenizationType>(
-                    query_tokenization_type_),
-                populate_residual_stdev_),
+                    query_tokenization_type_)),
             result);
       }
     }
@@ -254,8 +257,7 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpilling(
         dptr, *database_tokenization_dist_,
         KMeansTree::TokenizationOptions::LearnedSpilling(
             static_cast<KMeansTree::TokenizationType>(
-                database_tokenization_type_),
-            populate_residual_stdev_),
+                database_tokenization_type_)),
         result);
   } else {
     return InternalError(absl::StrCat("Unknown tokenization mode:  ",
@@ -292,10 +294,6 @@ Status KMeansTreePartitioner<T>::TokenForDatapointUseSearcher(
   result->node = &root->Children()[token];
   DCHECK_EQ(result->node->LeafId(), token);
   result->distance_to_center = search_result[0].second;
-  result->residual_stdev =
-      populate_residual_stdev_ && token < root->residual_stdevs().size()
-          ? root->residual_stdevs()[token]
-          : 1.0;
   return OkStatus();
 }
 
@@ -354,11 +352,8 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingUseSearcher(
   const auto* root = kmeans_tree_->root();
   for (const auto& elem : search_result) {
     DCHECK_LE(elem.first, numeric_limits<int32_t>::max());
-    result->emplace_back(KMeansTreeSearchResult{
-        &root->Children()[elem.first], elem.second,
-        populate_residual_stdev_ && elem.first < root->residual_stdevs().size()
-            ? root->residual_stdevs()[elem.first]
-            : 1.0});
+    result->emplace_back(
+        KMeansTreeSearchResult{&root->Children()[elem.first], elem.second});
     DCHECK_EQ(elem.first, result->back().node->LeafId());
   }
   return OkStatus();
@@ -384,25 +379,14 @@ Datapoint<FloatT> ResidualizeImpl(const DatapointPtr<T>& dptr,
 
 template <typename T>
 StatusOr<Datapoint<float>> KMeansTreePartitioner<T>::ResidualizeToFloat(
-    const DatapointPtr<T>& dptr, int32_t token,
-    bool normalize_residual_by_cluster_stdev) const {
+    const DatapointPtr<T>& dptr, int32_t token) const {
   DatapointPtr<float> center = kmeans_tree()->CenterForToken(token);
-  if (normalize_residual_by_cluster_stdev) {
-    if (!populate_residual_stdev_) {
-      return InvalidArgumentError(
-          "normalize_residual_by_cluster_stdev can only apply on partitioner "
-          "with populate_residual_stdev enabled");
-    }
-    TF_ASSIGN_OR_RETURN(float multiplier,
-                        kmeans_tree()->ResidualStdevForToken(token));
-    float inv_multiplier = 1.0 / multiplier;
-    return ResidualizeImpl<float>(dptr, center, inv_multiplier);
-  }
   return ResidualizeImpl<float>(dptr, center);
 }
 
 template <typename T>
 const DenseDataset<float>& KMeansTreePartitioner<T>::LeafCenters() const {
+  if (is_one_level_tree_) return kmeans_tree_->root()->Centers();
   {
     absl::ReaderMutexLock lock(&leaf_centers_mutex_);
     if (!leaf_centers_.empty()) return leaf_centers_;
@@ -466,25 +450,41 @@ template <typename T>
 StatusOr<vector<std::vector<DatapointIndex>>>
 KMeansTreePartitioner<T>::TokenizeDatabase(const TypedDataset<T>& database,
                                            ThreadPool* pool_or_null) const {
+  return const_cast<KMeansTreePartitioner<T>*>(this)->TokenizeDatabase(
+      database, pool_or_null, AvqOptions{});
+}
+
+template <typename T>
+StatusOr<vector<std::vector<DatapointIndex>>>
+KMeansTreePartitioner<T>::TokenizeDatabase(const TypedDataset<T>& database,
+                                           ThreadPool* pool_or_null,
+                                           AvqOptions avq_opts) {
   if (this->tokenization_mode() != UntypedPartitioner::DATABASE) {
     return FailedPreconditionError(
         "Cannot run TokenizeDatabase when not in database tokenization mode.");
   }
-  if (typeid(*database_tokenization_dist_) == typeid(const SquaredL2Distance) &&
-      is_one_level_tree_ && database.IsDense() &&
-      kmeans_tree_->learned_spilling_type() ==
-          DatabaseSpillingConfig::NO_SPILLING &&
-      (IsSame<T, float>() || IsSame<T, double>()) &&
-      (database_tokenization_type_ == FLOAT)) {
-    const DenseDataset<T>& dense_database =
-        *down_cast<const DenseDataset<T>*>(&database);
-    TF_ASSIGN_OR_RETURN(
-        auto datapoint_index_to_result,
-        TokenizeDatabaseImplFastPath(dense_database, pool_or_null));
+  if (avq_opts.avq_after_primary && !database.IsDense()) {
+    return UnimplementedError("AVQ is not supported with sparse databases.");
+  }
+  auto dense = [&database]() -> const DenseDataset<T>& {
+    CHECK(database.IsDense());
+    return *down_cast<const DenseDataset<T>*>(&database);
+  };
+
+  if (false) {
+    return UnimplementedError("Not supported in ScaNN.");
+  } else if (typeid(*database_tokenization_dist_) ==
+                 typeid(const SquaredL2Distance) &&
+             is_one_level_tree_ && database.IsDense() &&
+             kmeans_tree_->learned_spilling_type() ==
+                 DatabaseSpillingConfig::NO_SPILLING &&
+             (IsSame<T, float>() || IsSame<T, double>()) &&
+             (database_tokenization_type_ == FLOAT)) {
+    TF_ASSIGN_OR_RETURN(auto datapoint_index_to_result,
+                        TokenizeDatabaseImplFastPath(dense(), pool_or_null));
     vector<std::vector<DatapointIndex>> token_to_datapoint_index(
         this->n_tokens());
-    for (DatapointIndex dp_index = 0;
-         dp_index < datapoint_index_to_result.size(); ++dp_index) {
+    for (DatapointIndex dp_index : IndicesOf(datapoint_index_to_result)) {
       const int32_t token = datapoint_index_to_result[dp_index].node->LeafId();
       token_to_datapoint_index[token].push_back(dp_index);
     }
@@ -492,9 +492,11 @@ KMeansTreePartitioner<T>::TokenizeDatabase(const TypedDataset<T>& database,
       elem.shrink_to_fit();
     }
     return std::move(token_to_datapoint_index);
+  } else {
+    TF_ASSIGN_OR_RETURN(
+        auto result, Partitioner<T>::TokenizeDatabase(database, pool_or_null));
+    return result;
   }
-
-  return Partitioner<T>::TokenizeDatabase(database, pool_or_null);
 }
 
 template <typename T>
@@ -508,36 +510,21 @@ KMeansTreePartitioner<T>::TokenizeDatabaseImplFastPath(
     return std::move(datapoint_index_to_result);
   }
 
-  if (database_tokenization_type_ == FLOAT) {
-    DCHECK_EQ(database_tokenization_type_, FLOAT);
-    TF_ASSIGN_OR_RETURN(
-        datapoint_index_to_result,
-        TokenizeDatabaseImplFastPath<float>(
-            database, kmeans_tree_->root()->Centers(), pool_or_null));
-  }
+  DCHECK_EQ(database_tokenization_type_, FLOAT);
+  TF_ASSIGN_OR_RETURN(
+      datapoint_index_to_result,
+      TokenizeDatabaseImplFastPath(database, kmeans_tree_->root()->Centers(),
+                                   pool_or_null));
   return std::move(datapoint_index_to_result);
 }
 
 template <typename T>
-template <typename CenterType>
-enable_if_t<IsSame<T, CenterType>(), StatusOr<vector<KMeansTreeSearchResult>>>
+StatusOr<vector<KMeansTreeSearchResult>>
 KMeansTreePartitioner<T>::TokenizeDatabaseImplFastPath(
-    const DenseDataset<T>& database, const DenseDataset<CenterType>& centers,
-    ThreadPool* pool_or_null) const {
-  SquaredL2Distance dist;
-  auto nearest_centers =
-      DenseDistanceManyToManyTop1<T>(dist, database, centers, pool_or_null);
-  return PostprocessNearestCenters<CenterType>(nearest_centers);
-}
-
-template <typename T>
-template <typename CenterType>
-enable_if_t<!IsSame<T, CenterType>(), StatusOr<vector<KMeansTreeSearchResult>>>
-KMeansTreePartitioner<T>::TokenizeDatabaseImplFastPath(
-    const DenseDataset<T>& database, const DenseDataset<CenterType>& centers,
+    const DenseDataset<T>& database, const DenseDataset<float>& centers,
     ThreadPool* pool_or_null) const {
   constexpr size_t kBatchSize = 128;
-  vector<pair<DatapointIndex, CenterType>> nearest_centers(database.size());
+  vector<pair<DatapointIndex, float>> nearest_centers(database.size());
   SquaredL2Distance dist;
 
   ParallelFor<1>(
@@ -545,38 +532,50 @@ KMeansTreePartitioner<T>::TokenizeDatabaseImplFastPath(
       [&](size_t batch_begin) {
         const size_t batch_end =
             std::min<size_t>(batch_begin + kBatchSize, database.size());
-        DenseDataset<CenterType> batch_submatrix =
-            GetBatchSubmatrix<CenterType>(database, batch_begin, batch_end);
-        auto local_results = DenseDistanceManyToManyTop1<CenterType>(
-            dist, batch_submatrix, centers);
+        DenseDataset<float> batch_submatrix =
+            GetBatchSubmatrix<float>(database, batch_begin, batch_end);
+        auto local_results =
+            DenseDistanceManyToManyTop1<float>(dist, batch_submatrix, centers);
         std::copy(local_results.begin(), local_results.end(),
                   nearest_centers.begin() + batch_begin);
       });
 
-  return PostprocessNearestCenters<CenterType>(nearest_centers);
+  vector<KMeansTreeSearchResult> result(database.size());
+  SCANN_RETURN_IF_ERROR(PostprocessNearestCenters<float>(
+      nearest_centers, MakeMutableSpan(result)));
+  return result;
+}
+
+template <>
+StatusOr<vector<KMeansTreeSearchResult>>
+KMeansTreePartitioner<float>::TokenizeDatabaseImplFastPath(
+    const DenseDataset<float>& database, const DenseDataset<float>& centers,
+    ThreadPool* pool_or_null) const {
+  SquaredL2Distance dist;
+  auto nearest_centers =
+      DenseDistanceManyToManyTop1<float>(dist, database, centers, pool_or_null);
+  vector<KMeansTreeSearchResult> result(nearest_centers.size());
+  SCANN_RETURN_IF_ERROR(PostprocessNearestCenters<float>(
+      nearest_centers, MakeMutableSpan(result)));
+  return result;
 }
 
 template <typename T>
 template <typename FloatT>
-vector<KMeansTreeSearchResult>
-KMeansTreePartitioner<T>::PostprocessNearestCenters(
-    ConstSpan<pair<DatapointIndex, FloatT>> nearest_centers) const {
-  vector<KMeansTreeSearchResult> datapoint_index_to_result(
-      nearest_centers.size());
-  const auto* root = kmeans_tree_->root();
+Status KMeansTreePartitioner<T>::PostprocessNearestCenters(
+    ConstSpan<pair<DatapointIndex, FloatT>> nearest_centers,
+    MutableSpan<KMeansTreeSearchResult> result) const {
+  SCANN_RET_CHECK(is_one_level_tree_);
+  SCANN_RET_CHECK_EQ(nearest_centers.size(), result.size());
+  const KMeansTreeNode* root = kmeans_tree_->root();
   const ConstSpan<KMeansTreeNode> nodes_array = root->Children();
   for (DatapointIndex dp_idx : IndicesOf(nearest_centers)) {
-    DCHECK_LT(nearest_centers[dp_idx].first,
-              numeric_limits<DatapointIndex>::max());
-    const auto token = nearest_centers[dp_idx].first;
-    datapoint_index_to_result[dp_idx] = {
-        &nodes_array[token], nearest_centers[dp_idx].second,
-        populate_residual_stdev_ && token < root->residual_stdevs().size()
-            ? root->residual_stdevs()[token]
-            : 1.0};
+    const DatapointIndex token = nearest_centers[dp_idx].first;
+    SCANN_RET_CHECK_NE(token, kInvalidDatapointIndex);
+    SCANN_RET_CHECK_LT(token, nodes_array.size());
+    result[dp_idx] = {&nodes_array[token], nearest_centers[dp_idx].second};
   }
-
-  return datapoint_index_to_result;
+  return OkStatus();
 }
 
 template <typename T>
@@ -602,22 +601,44 @@ KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatchedAndOverride(
 template <typename T>
 Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatched(
     const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-    MutableSpan<vector<KMeansTreeSearchResult>> results) const {
+    MutableSpan<vector<KMeansTreeSearchResult>> results,
+    ThreadPool* pool) const {
   if (!max_centers_override.empty() &&
-      queries.size() != max_centers_override.size())
+      queries.size() != max_centers_override.size()) {
     return InvalidArgumentError(
         "The max_centers override must have the same "
         "size as batched queries.");
+  }
 
-  if (this->tokenization_mode() != UntypedPartitioner::QUERY ||
-      !SupportsLowLevelQueryBatching() || !queries.IsDense()) {
-    for (DatapointIndex i = 0; i < queries.size(); ++i) {
-      const auto max_centers =
+  auto fallback = [&]() -> Status {
+    for (DatapointIndex i : IndicesOf(queries)) {
+      const int32_t max_centers =
           max_centers_override.empty() ? 0 : max_centers_override[i];
       SCANN_RETURN_IF_ERROR(
           TokensForDatapointWithSpilling(queries[i], max_centers, &results[i]));
     }
     return OkStatus();
+  };
+
+  if (this->tokenization_mode() == UntypedPartitioner::DATABASE) {
+    if (false) {
+      return UnimplementedError("Not supported in ScaNN.");
+    } else if (kmeans_tree_->learned_spilling_type() ==
+                   DatabaseSpillingConfig::NO_SPILLING &&
+               database_spilling_fixed_number_of_centers_ == 0) {
+      vector<KMeansTreeSearchResult> primary_results;
+      SCANN_RETURN_IF_ERROR(
+          TokenForDatapointBatched(queries, &primary_results));
+      vector<KMeansTreeSearchResult> secondary_results(results.size());
+      for (size_t i : IndicesOf(primary_results)) {
+        results[i] = {primary_results[i]};
+      }
+      return OkStatus();
+    } else {
+      return fallback();
+    }
+  } else if (!SupportsLowLevelQueryBatching() || !queries.IsDense()) {
+    return fallback();
   }
 
   const DenseDataset<float>& centers = kmeans_tree_->root()->Centers();
@@ -868,10 +889,6 @@ KMeansTreePartitioner<T>::ToKmeansTreeSearchResults(
     KMeansTreeSearchResult result;
     result.node = node;
     result.distance_to_center = partition.second;
-    result.residual_stdev =
-        populate_residual_stdev_ && token < root->residual_stdevs().size()
-            ? root->residual_stdevs()[token]
-            : 1.0;
     this_query_results.push_back(result);
   }
   return this_query_results;

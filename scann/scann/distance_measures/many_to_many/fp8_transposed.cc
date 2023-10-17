@@ -47,21 +47,35 @@ FP8SimdBlockTransposedDatabase::FP8SimdBlockTransposedDatabase(
 FP8SimdBlockTransposedDatabase::FP8SimdBlockTransposedDatabase(
     const DenseDataset<int8_t>& db, uint8_t simd_block_size,
     ConstSpan<float> inverse_fp8_multipliers)
-    : payload_(new int8_t[db.data().size()]),
+    : FP8SimdBlockTransposedDatabase(db.data(), db.dimensionality(),
+                                     simd_block_size, inverse_fp8_multipliers) {
+}
+
+FP8SimdBlockTransposedDatabase::FP8SimdBlockTransposedDatabase(
+    ConstSpan<int8_t> datapoint_major, DimensionIndex dimensionality,
+    ConstSpan<float> inverse_fp8_multipliers)
+    : FP8SimdBlockTransposedDatabase(datapoint_major, dimensionality,
+                                     SimdBlockSize(), inverse_fp8_multipliers) {
+}
+
+FP8SimdBlockTransposedDatabase::FP8SimdBlockTransposedDatabase(
+    ConstSpan<int8_t> datapoint_major, DimensionIndex dimensionality,
+    uint8_t simd_block_size, ConstSpan<float> inverse_fp8_multipliers)
+    : payload_(new int8_t[datapoint_major.size()]),
       inverse_fp8_multipliers_(inverse_fp8_multipliers.data()),
-      size_(db.size()),
-      dimensionality_(db.dimensionality()),
+      size_(datapoint_major.size() / dimensionality),
+      dimensionality_(dimensionality),
       simd_block_size_(simd_block_size) {
+  CHECK_EQ(0, datapoint_major.size() % dimensionality_);
   if (!inverse_fp8_multipliers.empty()) {
     CHECK_EQ(dimensionality_, inverse_fp8_multipliers.size());
   }
 
-  const DatapointIndex sz = db.size();
-  const int8_t* untransposed_ptr = db.data().data();
-  for (DatapointIndex block_start = 0; block_start < sz;
+  const int8_t* untransposed_ptr = datapoint_major.data();
+  for (DatapointIndex block_start = 0; block_start < size_;
        block_start += simd_block_size_) {
     const DatapointIndex block_size =
-        std::min<DatapointIndex>(simd_block_size_, sz - block_start);
+        std::min<DatapointIndex>(simd_block_size_, size_ - block_start);
     TransposeOneBlock(untransposed_ptr + block_start * dimensionality_,
                       block_size,
                       payload_.get() + block_start * dimensionality_);

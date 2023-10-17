@@ -397,7 +397,7 @@ class SNRLearner(acme.Learner):
       metrics['snr/loss_weight'] = snr_loss_weight
       num_gt_zero = jnp.sum(masked_s > 0.)
       metrics['snr/num_gt_zero'] = num_gt_zero
-      min_s = jnp.take(masked_s, [num_gt_zero - 1], axis=0)[0]
+      min_s = jnp.take(masked_s, [num_gt_zero - 1], axis=0)[0]  # pytype: disable=wrong-arg-types  # jnp-type
       num_gt_zero = num_gt_zero + 1e-6
       mean_s = jnp.sum(masked_s) / num_gt_zero
       std_s = jnp.sqrt((jnp.sum(masked_s**2) / num_gt_zero) - mean_s**2)

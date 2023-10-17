@@ -97,13 +97,13 @@ void UpdateSpanByVec(BinaryOp op, const DatapointPtr<T>& arg,
 
 template <typename BinaryOp, typename T, typename O>
 void InplaceUpdateDenseDatapoint(BinaryOp op, T arg, Datapoint<O>* result) {
-  UpdateSpanByScalar(op, arg, result->mutable_values_slice());
+  UpdateSpanByScalar(op, arg, result->mutable_values_span());
 }
 
 template <typename BinaryOp, typename T, typename O>
 void InplaceUpdateDenseDatapoint(BinaryOp op, const DatapointPtr<T>& arg,
                                  Datapoint<O>* result) {
-  UpdateSpanByVec(op, arg, result->mutable_values_slice());
+  UpdateSpanByVec(op, arg, result->mutable_values_span());
 }
 
 template <typename T>
@@ -175,7 +175,7 @@ Status StackedQuantizers<T>::Hash(const DatapointPtr<T>& input,
   output->mutable_values()->resize(num_codebooks);
   return StackedQuantizers<T>::Hash(input, projector, quantization_distance,
                                     codebook_list,
-                                    output->mutable_values_slice());
+                                    output->mutable_values_span());
 }
 
 template <typename T>

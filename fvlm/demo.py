@@ -42,17 +42,15 @@ import functools
 from absl import app
 from absl import flags
 from absl import logging
-import inputs
+from demo_utils import input_utils
+from demo_utils import vis_utils
 import jax
-import jax_clip
 import numpy as np
 from PIL import Image
 import tensorflow as tf
 import tqdm
-import utils
+from utils import clip_utils
 
-
-_MAX_NUM_CLS = 91
 
 _DEMO_IMAGE_NAME = flags.DEFINE_string('demo_image_name', 'citrus.jpg',
                                        'The image file name under data/.')
@@ -64,6 +62,8 @@ _MODEL = flags.DEFINE_enum('model', 'resnet_50',
                            'F-VLM model to use.')
 _MAX_BOXES_TO_DRAW = flags.DEFINE_integer('max_boxes_to_draw', 25,
                                           'Max number of boxes to draw.')
+_MAX_NUM_CLS = flags.DEFINE_integer('max_num_classes', 91,
+                                    'Max number of classes users can input.')
 _MIN_SCORE_THRESH = flags.DEFINE_float('min_score_thresh', 0.2,
                                        'Min score threshold.')
 
@@ -72,7 +72,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  clip_text_fn = jax_clip.get_clip_text_fn(_MODEL.value)
+  clip_text_fn = clip_utils.get_clip_text_fn(_MODEL.value)
 
   demo_image_path = f'./data/{_DEMO_IMAGE_NAME.value}'
   output_image_path = demo_image_path.replace('data', 'output')
@@ -90,7 +90,7 @@ def main(argv):
   else:
     # Use default text prompts.
     try:
-      categories = inputs.category_dict[_DEMO_IMAGE_NAME.value]
+      categories = input_utils.category_dict[_DEMO_IMAGE_NAME.value]
     except KeyError:
       raise KeyError(
           'Default categories do not exist. Please specify!'
@@ -111,7 +111,7 @@ def main(argv):
   background_embedding = background_embedding[np.newaxis, Ellipsis]
   empty_embeddings = empty_embeddings[np.newaxis, Ellipsis]
   tile_empty_embeddings = np.tile(
-      empty_embeddings, (_MAX_NUM_CLS - len(categories) - 1, 1)
+      empty_embeddings, (_MAX_NUM_CLS.value - len(categories) - 1, 1)
   )
   # Concatenate 'background' and 'empty' embeddings.
   text_embeddings = np.concatenate(
@@ -119,7 +119,7 @@ def main(argv):
   )
   text_embeddings = text_embeddings[np.newaxis, Ellipsis]
   # Parse the image data.
-  parser_fn = inputs.get_maskrcnn_parser()
+  parser_fn = input_utils.get_maskrcnn_parser()
   data = parser_fn({'image': np_image, 'source_id': np.array([0])})
   np_data = jax.tree_map(lambda x: x.numpy()[np.newaxis, Ellipsis], data)
   np_data['text'] = text_embeddings
@@ -137,17 +137,17 @@ def main(argv):
   logging.info('Preparing visualization.')
   id_mapping = {(i + 1): c for i, c in enumerate(categories)}
   id_mapping[0] = 'background'
-  for k in range(len(categories) + 2, _MAX_NUM_CLS):
+  for k in range(len(categories) + 2, _MAX_NUM_CLS.value):
     id_mapping[k] = 'empty'
-  category_index = inputs.get_category_index(id_mapping)
+  category_index = input_utils.get_category_index(id_mapping)
   maskrcnn_visualizer_fn = functools.partial(
-      utils.visualize_boxes_and_labels_on_image_array,
+      vis_utils.visualize_boxes_and_labels_on_image_array,
       category_index=category_index,
       use_normalized_coordinates=False,
       max_boxes_to_draw=_MAX_BOXES_TO_DRAW.value,
       min_score_thresh=_MIN_SCORE_THRESH.value,
       skip_labels=False)
-  vis_image = utils.visualize_instance_segmentations(
+  vis_image = vis_utils.visualize_instance_segmentations(
       output, image, labels['image_info'], maskrcnn_visualizer_fn
   )
   pil_vis_image = Image.fromarray(vis_image, mode='RGB')

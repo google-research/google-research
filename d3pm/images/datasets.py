@@ -80,9 +80,18 @@ class Dataset:
     """Number of classes."""
     raise NotImplementedError
 
-  def get_tf_dataset(self, *, batch_shape, split,
-                     global_rng, repeat, shuffle,
-                     augment, shard_id, num_shards):
+  def get_tf_dataset(
+      self,
+      *,
+      batch_shape,
+      split,
+      global_rng,
+      repeat,
+      shuffle,
+      augment,
+      shard_id,
+      num_shards
+  ):
     """Training dataset function.
 
     Args:

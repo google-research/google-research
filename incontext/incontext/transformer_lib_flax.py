@@ -91,7 +91,7 @@ def uniform_scaling(dtype = jnp.float_):
     if len(shape) == 1:
       input_size = shape[0]
     else:
-      input_size = np.product(shape[:-1])
+      input_size = np.prod(shape[:-1])
     max_val = np.sqrt(1 / input_size)
     return jax.random.uniform(key, shape, dtype, -max_val, max_val)
 

@@ -19,6 +19,7 @@ Borrows from:
 https://github.com/google-research/google-research/blob/master/tft/data_formatters/favorita.py
 """
 
+import datetime
 from data_formatting import base_data_formatter as base
 import pandas as pd
 import sklearn.preprocessing
@@ -122,7 +123,7 @@ class FavoritaFormatter(base.GenericDataFormatter):
     print('Formatting train-valid-test splits.')
 
     if valid_boundary is None:
-      valid_boundary = pd.datetime(2015, 12, 1)
+      valid_boundary = datetime.datetime(2015, 12, 1)
 
     fixed_params = self.get_fixed_params()
     time_steps = fixed_params['total_time_steps']

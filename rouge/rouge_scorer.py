@@ -81,7 +81,7 @@ class RougeScorer(scoring.BaseScorer):
       self._tokenizer = tokenizer
     else:
       self._tokenizer = tokenizers.DefaultTokenizer(use_stemmer)
-      logging.info("Using default tokenizer.")
+      logging.debug("Using default tokenizer.")
 
     self._split_summaries = split_summaries
 

@@ -145,7 +145,7 @@ class ImageGraph(graph_api.GraphAPI):
 
   def _pixel_coordinates_to_id(self, pixel_hw):
     node_id = self.image_shape[1] * pixel_hw[0] + pixel_hw[1]
-    return jnp.where(node_id < 0, -1, node_id)
+    return jnp.where(node_id < 0, -1, node_id)  # pytype: disable=bad-return-type  # jnp-type
 
   def _pixel_id_to_coordinates(self, pixel_id):
     """Converts pixel id to coordinates.
@@ -226,10 +226,10 @@ class ImageGraph(graph_api.GraphAPI):
         jnp.all(neighbor_coordinates >= 0, axis=-1, keepdims=True),
         neighbor_coordinates, -1)
 
-    neighbor_ids = jax.vmap(self._pixel_coordinates_to_id)(neighbor_coordinates)
+    neighbor_ids = jax.vmap(self._pixel_coordinates_to_id)(neighbor_coordinates)  # pytype: disable=wrong-arg-types  # jnp-type
     return neighbor_ids
 
-  def outgoing_edges(self, node_id):
+  def outgoing_edges(self, node_id):  # pytype: disable=signature-mismatch  # jnp-array
     """Returns the outgoing edges from `node_id`.
 
     Pixels outside of the image are mapped to node_id -1.

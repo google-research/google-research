@@ -15,6 +15,8 @@
 #ifndef SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
 #define SCANN_TREE_X_HYBRID_INTERNAL_UTILS_H_
 
+#include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -23,15 +25,12 @@
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
+#include "scann/utils/zip_sort.h"
 #include "tensorflow/core/platform/logging.h"
 
 namespace research_scann {
-
-inline void TranslateGlobalToLeafLocalWhitelist(
-    const SearchParameters& params,
-    ConstSpan<DatapointIndex> leaf_local_to_global,
-    SearchParameters* leaf_params) {}
 
 template <typename T, typename GetDatasetFunctor>
 StatusOr<vector<T>> CombineLeafDatasets(
@@ -147,6 +146,10 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
   }
   return opts;
 }
+
+StatusOr<bool> ValidateDatapointsByToken(
+    const vector<std::vector<DatapointIndex>>& datapoints_by_token,
+    DatapointIndex num_datapoints);
 
 }  // namespace research_scann
 

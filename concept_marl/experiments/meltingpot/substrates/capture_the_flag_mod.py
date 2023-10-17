@@ -24,12 +24,12 @@ whole) follow the design patterns introduced there.
 
 from typing import Any, Dict, List, Optional, Tuple
 
+from meltingpot.utils.substrates import shapes
+from meltingpot.utils.substrates import specs
 from ml_collections import config_dict
 import numpy as np
 
 from concept_marl.experiments.meltingpot.substrates import concept_specs
-from meltingpot.python.utils.substrates import shapes
-from meltingpot.python.utils.substrates import specs
 
 _COMPASS = ["N", "E", "S", "W"]
 

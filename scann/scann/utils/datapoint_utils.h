@@ -281,16 +281,16 @@ inline void CopyToDatapoint(const DatapointPtr<From>& input,
   output->clear();
   output->set_dimensionality(input.dimensionality());
   output->mutable_indices()->insert(output->mutable_indices()->end(),
-                                    input.indices_slice().begin(),
-                                    input.indices_slice().end());
+                                    input.indices_span().begin(),
+                                    input.indices_span().end());
   output->mutable_values()->insert(output->mutable_values()->end(),
-                                   input.values_slice().begin(),
-                                   input.values_slice().end());
+                                   input.values_span().begin(),
+                                   input.values_span().end());
 
   constexpr bool need_convert_binary = IsUint8<From>() && !IsUint8<To>();
   if (!need_convert_binary) return;
 
-  if (input.IsSparse() && input.values_slice().empty()) {
+  if (input.IsSparse() && input.values_span().empty()) {
     output->mutable_values()->resize(input.nonzero_entries(), To(1));
   }
   if (input.IsDense() && input.nonzero_entries() < input.dimensionality()) {

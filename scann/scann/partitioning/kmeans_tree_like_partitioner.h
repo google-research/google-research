@@ -22,9 +22,11 @@
 
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
@@ -50,21 +52,33 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
 
   virtual Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<KMeansTreeSearchResult>> results) const = 0;
+      MutableSpan<std::vector<KMeansTreeSearchResult>> results,
+      ThreadPool* pool) const = 0;
+  Status TokensForDatapointWithSpillingBatched(
+      const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
+      MutableSpan<std::vector<KMeansTreeSearchResult>> results) const {
+    return TokensForDatapointWithSpillingBatched(queries, max_centers_override,
+                                                 results, nullptr);
+  }
 
   virtual Status TokenForDatapoint(const DatapointPtr<T>& dptr,
                                    KMeansTreeSearchResult* result) const = 0;
 
   virtual Status TokenForDatapointBatched(
       const TypedDataset<T>& queries,
-      std::vector<KMeansTreeSearchResult>* result) const = 0;
+      std::vector<KMeansTreeSearchResult>* result, ThreadPool* pool) const = 0;
+  Status TokenForDatapointBatched(
+      const TypedDataset<T>& queries,
+      std::vector<KMeansTreeSearchResult>* result) const {
+    return TokenForDatapointBatched(queries, result, nullptr);
+  }
 
   virtual StatusOr<Datapoint<float>> ResidualizeToFloat(
-      const DatapointPtr<T>& dptr, int32_t token,
-      bool normalize_residual_by_cluster_stdev) const = 0;
+      const DatapointPtr<T>& dptr, int32_t token) const = 0;
 
-  virtual StatusOr<double> ResidualStdevForToken(int32_t token) const {
-    return 1.0;
+  StatusOr<Datapoint<float>> ResidualizeToFloat(const DatapointPtr<T>& dptr,
+                                                int32_t token, bool) const {
+    return ResidualizeToFloat(dptr, token);
   }
 };
 

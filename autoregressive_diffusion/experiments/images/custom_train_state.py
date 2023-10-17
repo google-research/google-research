@@ -32,7 +32,7 @@ import optax
 ParamDict = core.FrozenDict[str, Union[jnp.ndarray, core.FrozenDict]]
 
 
-class TrainState(struct.PyTreeNode):
+class TrainState(struct.PyTreeNode):  # pytype: disable=invalid-function-definition  # dataclass_transform
   """Simple train state for the common case with a single Optax optimizer.
   """
   # New with respect to Flax definition:

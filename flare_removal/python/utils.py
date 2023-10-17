@@ -14,12 +14,9 @@
 # limitations under the License.
 
 """General utility functions."""
-_INTERNAL = False  # pylint: disable=g-statement-before-imports
-
 import os.path
 
-if not _INTERNAL:
-  import cv2  # pylint: disable=g-import-not-at-top
+import cv2
 import numpy as np
 import skimage
 import skimage.morphology

@@ -84,7 +84,7 @@ Status Indexer<T>::Hash(const DatapointPtr<T>& input,
         MakeDatapointPtr(input.values(), input.dimensionality() - 1),
         *projector_, *quantization_distance_, model_->centers(), hashed));
     std::string s =
-        strings::FloatToKey(static_cast<float>(input.values_slice().back()));
+        strings::FloatToKey(static_cast<float>(input.values_span().back()));
     DCHECK_EQ(sizeof(float), s.size());
     const auto dim = hash_space_dimension() - sizeof(float);
     for (int i = 0; i < sizeof(float); i++) {
@@ -124,7 +124,7 @@ Status Indexer<T>::Hash(const DatapointPtr<T>& input,
     hashed->set_dimensionality(model_->centers().size());
   }
   hashed->mutable_values()->resize(hash_space_dimension());
-  return Hash(input, hashed->mutable_values_slice());
+  return Hash(input, hashed->mutable_values_span());
 }
 
 template <typename T>
@@ -155,7 +155,7 @@ Status Indexer<T>::HashWithNoiseShaping(
     const NoiseShapingParameter& noise_shaping_param) const {
   hashed->mutable_values()->resize(hash_space_dimension());
   return HashWithNoiseShaping(maybe_residual, original,
-                              hashed->mutable_values_slice(),
+                              hashed->mutable_values_span(),
                               noise_shaping_param);
 }
 
@@ -353,7 +353,7 @@ Status Indexer<T>::Reconstruct(ConstSpan<uint8_t> input,
                                 reconstructed);
   } else {
     return UnimplementedError(
-        "The model's quantization scheme is not supproted.");
+        "The model's quantization scheme is not supported.");
   }
   return OkStatus();
 }
@@ -363,8 +363,7 @@ Status Indexer<T>::Reconstruct(const DatapointPtr<uint8_t>& input,
                                Datapoint<FloatT>* reconstructed) const {
   reconstructed->mutable_values()->clear();
   reconstructed->mutable_values()->resize(original_space_dimension());
-  return Reconstruct(input.values_slice(),
-                     reconstructed->mutable_values_slice());
+  return Reconstruct(input.values_span(), reconstructed->mutable_values_span());
 }
 
 template <typename T>

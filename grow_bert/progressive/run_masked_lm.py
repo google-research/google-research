@@ -49,19 +49,31 @@ PolynomialWarmupConfig = optimization.PolynomialWarmupConfig
 @dataclasses.dataclass
 class BertOptimizationConfig(optimization.OptimizationConfig):
   """Bert optimization config."""
-  optimizer: optimization.OptimizerConfig = optimization.OptimizerConfig(
-      type='adamw',
-      adamw=AdamWeightDecay(
-          weight_decay_rate=0.01,
-          exclude_from_weight_decay=['LayerNorm', 'layer_norm', 'bias']))
-  learning_rate: optimization.LrConfig = optimization.LrConfig(
-      type='polynomial',
-      polynomial=PolynomialLr(
-          initial_learning_rate=1e-4,
-          decay_steps=1000000,
-          end_learning_rate=0.0))
-  warmup: optimization.WarmupConfig = optimization.WarmupConfig(
-      type='polynomial', polynomial=PolynomialWarmupConfig(warmup_steps=10000))
+  optimizer: optimization.OptimizerConfig = dataclasses.field(
+      default_factory=lambda: optimization.OptimizerConfig(  # pylint: disable=g-long-lambda
+          type='adamw',
+          adamw=AdamWeightDecay(
+              weight_decay_rate=0.01,
+              exclude_from_weight_decay=['LayerNorm', 'layer_norm', 'bias'],
+          ),
+      )
+  )
+  learning_rate: optimization.LrConfig = dataclasses.field(
+      default_factory=lambda: optimization.LrConfig(  # pylint: disable=g-long-lambda
+          type='polynomial',
+          polynomial=PolynomialLr(
+              initial_learning_rate=1e-4,
+              decay_steps=1000000,
+              end_learning_rate=0.0,
+          ),
+      )
+  )
+  warmup: optimization.WarmupConfig = dataclasses.field(
+      default_factory=lambda: optimization.WarmupConfig(  # pylint: disable=g-long-lambda
+          type='polynomial',
+          polynomial=PolynomialWarmupConfig(warmup_steps=10000),
+      )
+  )
 
 
 def get_exp_config():

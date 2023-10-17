@@ -23,9 +23,11 @@ web server:
   - [`template-mqm-paragraph.js`](template-mqm-paragraph.js)
   - [`template-mqm-webpage.js`](template-mqm-webpage.js)
   - [`template-mqm-monolingual.js`](template-mqm-monolingual.js)
-- MQM Viewer files (from a sibling project):
-  - [`mqm-viewer.css`](https://github.com/google-research/google-research/blob/master/mqm_viewer/mqm-viewer.css)
-  - [`mqm-viewer.js`](https://github.com/google-research/google-research/blob/master/mqm_viewer/mqm-viewer.js)
+- Marot files (from a sibling project):
+  - [`marot.css`](https://github.com/google-research/google-research/blob/master/mqm_viewer/marot.css)
+  - [`marot.js`](https://github.com/google-research/google-research/blob/master/mqm_viewer/marot.js)
+  - [`marot-histogram.js`](https://github.com/google-research/google-research/blob/master/mqm_viewer/marot-histogram.js)
+  - [`marot-sigtests.js`](https://github.com/google-research/google-research/blob/master/mqm_viewer/marot-sigtests.js)
 
 ## User guide
 The user guide is in [anthea-help.html](anthea-help.html) and is available as a

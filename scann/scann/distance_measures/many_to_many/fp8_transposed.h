@@ -37,6 +37,14 @@ class FP8SimdBlockTransposedDatabase {
                                  uint8_t simd_block_size,
                                  ConstSpan<float> inverse_fp8_multipliers = {});
 
+  FP8SimdBlockTransposedDatabase(ConstSpan<int8_t> datapoint_major,
+                                 DimensionIndex dimensionality,
+                                 ConstSpan<float> inverse_fp8_multipliers = {});
+  FP8SimdBlockTransposedDatabase(ConstSpan<int8_t> datapoint_major,
+                                 DimensionIndex dimensionality,
+                                 uint8_t simd_block_size,
+                                 ConstSpan<float> inverse_fp8_multipliers = {});
+
   uint8_t simd_block_size() const { return simd_block_size_; }
 
   DimensionIndex dimensionality() const { return dimensionality_; }

@@ -54,6 +54,7 @@ cc_library(
         "//scann/utils:parallel_for",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
+        "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/container:node_hash_map",

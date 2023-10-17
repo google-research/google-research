@@ -164,7 +164,7 @@ class GmmUtilsImplInterface : public VirtualDestructor {
                      size_t offset, const DenseDataset<double>& dataset_batch) {
           if (!finite_check_status.ok()) return;
           for (size_t i : IndicesOf(dataset_batch)) {
-            Status status = VerifyAllFinite(dataset_batch[i].values_slice());
+            Status status = VerifyAllFinite(dataset_batch[i].values_span());
             if (!status.ok()) {
               finite_check_status = AnnotateStatus(
                   status, StrFormat("(within-batch dp idx = %d)", offset + i));
@@ -415,7 +415,7 @@ Status GmmUtils::MeanDistanceInitializeCenters(
       distance_weights[i] *= weights[i];
     }
   }
-  SCANN_RETURN_IF_ERROR(VerifyAllFinite(last_center.values_slice()))
+  SCANN_RETURN_IF_ERROR(VerifyAllFinite(last_center.values_span()))
       << "(Center Number = " << centers.size() << ")";
   double min_dist = 0.0;
   double sum = 0.0;
@@ -487,7 +487,7 @@ Status GmmUtils::KMeansPPInitializeCenters(
   vector<double> distances(dataset_size, 0.0);
   vector<double> temp(dataset_size);
   while (centers.size() < num_clusters) {
-    SCANN_RETURN_IF_ERROR(VerifyAllFinite(last_center.values_slice()))
+    SCANN_RETURN_IF_ERROR(VerifyAllFinite(last_center.values_span()))
         << "(Center Number = " << centers.size() << ")";
     impl->DistancesFromPoint(last_center, MakeMutableSpan(temp));
     double min_dist = 0.0;
@@ -876,7 +876,7 @@ Status GmmUtils::RecomputeCentroidsSimple(
   for (size_t j : Seq(dataset_size)) {
     const uint32_t cluster_idx = top1_results[j].first;
     MutableSpan<double> mut_centroid = centroids->mutable_data(cluster_idx);
-    ConstSpan<double> datapoint = impl->GetPoint(j, &storage).values_slice();
+    ConstSpan<double> datapoint = impl->GetPoint(j, &storage).values_span();
     SCANN_RET_CHECK_EQ(mut_centroid.size(), dimensionality);
     SCANN_RET_CHECK_EQ(datapoint.size(), dimensionality);
     for (size_t jj : Seq(dimensionality)) {
@@ -910,7 +910,7 @@ Status GmmUtils::RecomputeCentroidsWeighted(
     denominators[cluster_idx] += weight;
     MutableSpan<double> mut_centroid = centroids->mutable_data(cluster_idx);
     ConstSpan<double> datapoint =
-        impl->GetPoint(dp_idx, &storage).values_slice();
+        impl->GetPoint(dp_idx, &storage).values_span();
     SCANN_RET_CHECK_EQ(mut_centroid.size(), dimensionality);
     SCANN_RET_CHECK_EQ(datapoint.size(), dimensionality);
     for (size_t dim_idx : Seq(dimensionality)) {
@@ -954,8 +954,8 @@ Status GmmUtils::RandomReinitializeCenters(
     } while (partition_sizes[cluster_idx] < min_cluster_size);
 
     ConstSpan<double> rand_point =
-        impl->GetPoint(rand_idx, &storage).values_slice();
-    ConstSpan<double> old_center = (*centroids)[cluster_idx].values_slice();
+        impl->GetPoint(rand_idx, &storage).values_span();
+    ConstSpan<double> old_center = (*centroids)[cluster_idx].values_span();
     MutableSpan<double> mut_centroid = centroids->mutable_data(c);
     SCANN_RET_CHECK_EQ(rand_point.size(), dimensionality);
     SCANN_RET_CHECK_EQ(old_center.size(), dimensionality);

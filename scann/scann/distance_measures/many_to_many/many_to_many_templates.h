@@ -23,6 +23,7 @@
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
+#include "scann/utils/intrinsics/fma.h"
 #include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
@@ -70,6 +71,23 @@
       break;                                                              \
     case 6:                                                               \
       function<6>(__VA_ARGS__);                                           \
+      break;                                                              \
+    default:                                                              \
+      LOG(FATAL) << "Invalid Batch Size";                                 \
+  }
+
+#define SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_3(batch_size, function, ...) \
+  switch (batch_size) {                                                   \
+    case 0:                                                               \
+      break;                                                              \
+    case 1:                                                               \
+      function<1>(__VA_ARGS__);                                           \
+      break;                                                              \
+    case 2:                                                               \
+      function<2>(__VA_ARGS__);                                           \
+      break;                                                              \
+    case 3:                                                               \
+      function<3>(__VA_ARGS__);                                           \
       break;                                                              \
     default:                                                              \
       LOG(FATAL) << "Invalid Batch Size";                                 \
@@ -272,6 +290,7 @@ Status DenseDistanceManyToManyFP8PretransposedImpl(
   return OkStatus();
 }
 
+#undef SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_3
 #undef SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_5
 #undef SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_6
 

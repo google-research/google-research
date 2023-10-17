@@ -425,8 +425,8 @@ Status DenseDataset<T>::Append(const DatapointPtr<T>& dptr, string_view docid) {
     to_insert = storage.ToPtr();
   }
   SCANN_RETURN_IF_ERROR(this->AppendDocid(docid));
-  data_.insert(data_.end(), to_insert.values_slice().begin(),
-               to_insert.values_slice().end());
+  data_.insert(data_.end(), to_insert.values_span().begin(),
+               to_insert.values_span().end());
   return OkStatus();
 }
 

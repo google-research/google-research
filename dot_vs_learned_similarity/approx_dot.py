@@ -17,8 +17,8 @@
 """
 
 import argparse
-import keras
 import numpy as np
+from tensorflow import keras
 
 rmse_best = 0.85
 rmse_naive = 1.13

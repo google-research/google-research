@@ -148,15 +148,15 @@ class KMeansTreeProjectingDecorator final
       vector<KMeansTreeSearchResult>* result) const final;
   Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<KMeansTreeSearchResult>> results) const final;
+      MutableSpan<std::vector<KMeansTreeSearchResult>> results,
+      ThreadPool* pool) const final;
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
                            KMeansTreeSearchResult* result) const final;
-  Status TokenForDatapointBatched(
-      const TypedDataset<T>& queries,
-      std::vector<KMeansTreeSearchResult>* result) const final;
-  StatusOr<Datapoint<float>> ResidualizeToFloat(
-      const DatapointPtr<T>& dptr, int32_t token,
-      bool normalize_residual_by_cluster_stdev) const final;
+  Status TokenForDatapointBatched(const TypedDataset<T>& queries,
+                                  std::vector<KMeansTreeSearchResult>* result,
+                                  ThreadPool* pool) const final;
+  StatusOr<Datapoint<float>> ResidualizeToFloat(const DatapointPtr<T>& dptr,
+                                                int32_t token) const final;
 
  private:
   StatusOrPtr<TypedDataset<ProjectionType>> CreateProjectedDataset(

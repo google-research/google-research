@@ -17,7 +17,7 @@ import os
 
 from absl.testing import absltest
 import pandas as pd
-from pandas.util import testing as pandas_testing
+from pandas import testing as pandas_testing
 
 from talk_about_random_splits.probing import probing_utils
 

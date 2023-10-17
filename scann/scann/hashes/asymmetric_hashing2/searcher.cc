@@ -184,7 +184,7 @@ Status Searcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
   } else if (opts_.quantization_scheme() ==
              AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     asymmetric_hashing_internal::AddBiasFunctor functor(
-        bias_, query.values_slice().back());
+        bias_, query.values_span().back());
     return FindNeighborsTopNDispatcher<
         asymmetric_hashing_internal::AddBiasFunctor>(query, params, functor,
                                                      result);

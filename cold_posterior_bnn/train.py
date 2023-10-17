@@ -239,7 +239,7 @@ def main(argv):
     logging.info('Use symplectic Euler integrator.')
 
   elif FLAGS.method == 'baoab':
-     # SG-MCMC optimizer, second-order accurate BAOAB integrator
+    # SG-MCMC optimizer, second-order accurate BAOAB integrator
     optimizer = sgmcmc.BAOABMCMC(
         total_sample_size=dataset_size,
         learning_rate=FLAGS.init_learning_rate,
@@ -381,8 +381,9 @@ def main(argv):
     }
     if tf.io.gfile.exists(csv_path):
       sweeps_df = pd.read_csv(csv_path)
-      sweeps_df = sweeps_df.append(
-          pd.DataFrame.from_dict(data), ignore_index=True).set_index('id')
+      sweeps_df = pd.concat(
+          [sweeps_df, pd.DataFrame.from_dict(data)], ignore_index=True
+      ).set_index('id')
     else:
       sweeps_df = pd.DataFrame.from_dict(data).set_index('id')
 

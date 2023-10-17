@@ -14,21 +14,19 @@
 # limitations under the License.
 
 """Different datasets implementation plus a general port for all the datasets."""
-INTERNAL = False  # pylint: disable=g-statement-before-imports
 import json
 import os
 from os import path
+import pickle
 import queue
 import threading
-if not INTERNAL:
-  import cv2  # pylint: disable=g-import-not-at-top
+from absl import logging
+import cv2
 import jax
-import pickle
 import numpy as np
 from PIL import Image
-from absl import logging
-from jaxbarf.src import utils
 from jaxbarf.src import camera_numpy as camera
+from jaxbarf.src import utils
 
 
 def get_dataset(split, args, train_mode=True, calib_matrix=None):

@@ -38,9 +38,9 @@ def align_examples(rng, x, x_index, y):
 
   Args:
     rng: an array of jax PRNG keys.
-    x: jnp.array; Matrix of shape `[N, M]`.
-    x_index: jnp.array; Vector of shape `[N,]`.
-    y: jnp.array; Matrix of shape `[N, M]`.
+    x: jnp.ndarray; Matrix of shape `[N, M]`.
+    x_index: jnp.ndarray; Vector of shape `[N,]`.
+    y: jnp.ndarray; Matrix of shape `[N, M]`.
 
   Returns:
     indices of aligned pairs.

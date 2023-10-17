@@ -13,16 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from tensorflow import keras
+"""Fit TEL on the Boston Housing regression dataset."""
+# We will fit TEL on the Boston Housing regression dataset.
+# First, load the dataset.
+from tensorflow.keras.datasets import boston_housing
 # Make sure the tf_trees directory is in the search path.
 from tf_trees import TEL
+from tensorflow import keras
 
 # The documentation of TEL can be accessed as follows
 print(TEL.__doc__)
-
-# We will fit TEL on the Boston Housing regression dataset.
-# First, load the dataset.
-from keras.datasets import boston_housing
 (x_train, y_train), (x_test, y_test) = boston_housing.load_data()
 
 # Define the tree layer; here we choose 10 trees, each of depth 3.

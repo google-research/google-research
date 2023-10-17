@@ -25,16 +25,18 @@ from typing import Any, List, Optional, Sequence, Tuple, Union, cast
 
 import jax
 from jax import core
-from jax import pxla
+from jax import lax
 from jax.experimental import mesh_utils
 from jax.experimental import pjit
 from jax.experimental.array_serialization import serialization as jax_array_serialization
+from jax.interpreters import pxla
 import jax.numpy as jnp
 from jax.sharding import Mesh
 from jax.sharding import NamedSharding
 from jax.sharding import PartitionSpec as P
 import numpy as np
 import tensorstore
+
 
 
 class AttnAllToAll(Enum):
@@ -215,19 +217,21 @@ def make_mesh(devices = None, one_d=False):
     if len(devices) == 8:
       if one_d:
         return Mesh(
-            mesh_utils.create_device_mesh((8, 1))[:, :, np.newaxis],
+            mesh_utils.create_device_mesh((8, 1), devices)[:, :, np.newaxis],
             ('x', 'y', 'z'),
         )
       else:
         return Mesh(
-            mesh_utils.create_device_mesh((2, 4))[:, :, np.newaxis],
+            mesh_utils.create_device_mesh((2, 4), devices)[:, :, np.newaxis],
             ('x', 'y', 'z'),
         )
     else:
       raise NotImplementedError
   if one_d:
     if len(devices) == 8:
-      return Mesh(mesh_utils.create_device_mesh((8, 1, 1)), ('x', 'y', 'z'))
+      return Mesh(
+          mesh_utils.create_device_mesh((8, 1, 1), devices), ('x', 'y', 'z')
+      )
     else:
       raise NotImplementedError
   if len(devices) == 1:
@@ -339,7 +343,7 @@ def _with_sharding_constraint(t,
         f'Uneven sharding. Shape: {t.shape}, spec: {spec}, axis: {axis}, axis'
         f' size: {axis_size}'
     )
-  return pjit.with_sharding_constraint(t, axes)
+  return lax.with_sharding_constraint(t, axes)
 
 
 def get_sharding_divisor(logical):

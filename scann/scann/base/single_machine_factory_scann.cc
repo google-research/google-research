@@ -35,6 +35,8 @@
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
+#include "scann/partitioning/kmeans_tree_partitioner.h"
+#include "scann/partitioning/partitioner_base.h"
 #include "scann/partitioning/partitioner_factory.h"
 #include "scann/partitioning/partitioner_factory_base.h"
 #include "scann/partitioning/projecting_decorator.h"
@@ -44,6 +46,7 @@
 #include "scann/proto/scann.pb.h"
 #include "scann/tree_x_hybrid/tree_ah_hybrid_residual.h"
 #include "scann/tree_x_hybrid/tree_x_hybrid_smmd.h"
+#include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/hash_leaf_helpers.h"
 #include "scann/utils/scalar_quantization_helpers.h"
@@ -55,31 +58,45 @@ namespace research_scann {
 namespace {
 
 template <typename T>
-StatusOr<unique_ptr<Partitioner<T>>> CreateTreeXPartitioner(
+struct CreateTreeXPartitionerResult {
+  unique_ptr<Partitioner<T>> partitioner;
+  vector<std::vector<DatapointIndex>> datapoints_by_token;
+};
+
+template <typename T>
+StatusOr<CreateTreeXPartitionerResult<T>> CreateTreeXPartitioner(
     shared_ptr<const TypedDataset<T>> dataset, const ScannConfig& config,
     SingleMachineFactoryOptions* opts) {
-  if (config.partitioning().num_partitioning_epochs() != 1) {
+  const PartitioningConfig& pconfig = config.partitioning();
+  if (pconfig.num_partitioning_epochs() != 1) {
     return InvalidArgumentError(
         "num_partitioning_epochs must be == 1 for tree-X hybrids.");
   }
 
+  bool should_apply_avq = false;
   unique_ptr<Partitioner<T>> partitioner;
   if (opts->kmeans_tree) {
     return InvalidArgumentError(
         "pre-trained kmeans-tree partitioners are not supported.");
   } else if (opts->serialized_partitioner) {
     TF_ASSIGN_OR_RETURN(
-        partitioner, PartitionerFromSerialized<T>(*opts->serialized_partitioner,
-                                                  config.partitioning()));
-  } else if (!config.partitioning().has_partitioner_prefix() ||
-             config.partitioning().partitioning_on_the_fly()) {
+        partitioner,
+        PartitionerFromSerialized<T>(*opts->serialized_partitioner, pconfig));
+  } else if (!pconfig.has_partitioner_prefix() ||
+             pconfig.partitioning_on_the_fly()) {
     if (!dataset) {
       return InvalidArgumentError(
           "Partitioning_on_the_fly needs original dataset to proceed.");
     }
-    TF_ASSIGN_OR_RETURN(
-        partitioner, PartitionerFactory<T>(dataset.get(), config.partitioning(),
-                                           opts->parallelization_pool));
+    if (opts->datapoints_by_token) {
+      return InvalidArgumentError(
+          "Cannot use a pretokenized dataset without a precomputed "
+          "partitioner.");
+    }
+    TF_ASSIGN_OR_RETURN(partitioner,
+                        PartitionerFactory<T>(dataset.get(), pconfig,
+                                              opts->parallelization_pool));
+    should_apply_avq = !std::isnan(pconfig.avq());
   } else {
     return InvalidArgumentError("Loading a partitioner is not supported.");
   }
@@ -87,7 +104,30 @@ StatusOr<unique_ptr<Partitioner<T>>> CreateTreeXPartitioner(
     return UnknownError("Error creating partitioner for tree-X hybrids.");
   }
   partitioner->set_tokenization_mode(UntypedPartitioner::DATABASE);
-  return std::move(partitioner);
+
+  vector<std::vector<DatapointIndex>> token_to_datapoint_index;
+  if (should_apply_avq) {
+    auto kmeans_tree_partitioner =
+        dynamic_cast<KMeansTreePartitioner<T>*>(partitioner.get());
+    if (!kmeans_tree_partitioner) {
+      return UnimplementedError(
+          "AVQ is only defined for KMeans tree partitioners and is not "
+          "currently supported when projection is enabled.");
+    }
+    TF_ASSIGN_OR_RETURN(
+        token_to_datapoint_index,
+        kmeans_tree_partitioner->TokenizeDatabase(
+            *dataset, opts->parallelization_pool.get(),
+            {.avq_after_primary = true, .avq_eta = pconfig.avq()}));
+  } else if (opts->datapoints_by_token) {
+    token_to_datapoint_index = std::move(*opts->datapoints_by_token);
+  } else {
+    TF_ASSIGN_OR_RETURN(token_to_datapoint_index,
+                        partitioner->TokenizeDatabase(
+                            *dataset, opts->parallelization_pool.get()));
+  }
+  return CreateTreeXPartitionerResult<T>{std::move(partitioner),
+                                         std::move(token_to_datapoint_index)};
 }
 
 template <typename T>
@@ -148,11 +188,15 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
     const ScannConfig& config, const shared_ptr<TypedDataset<float>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
   unique_ptr<Partitioner<float>> partitioner;
+  vector<std::vector<DatapointIndex>> datapoints_by_token;
   if (config.partitioning().has_partitioner_prefix()) {
     return InvalidArgumentError("Loading a partitioner is not supported.");
   } else {
-    TF_ASSIGN_OR_RETURN(partitioner,
+    TF_ASSIGN_OR_RETURN(auto create_tree_x_partitioner_results,
                         CreateTreeXPartitioner<float>(dataset, config, opts));
+    datapoints_by_token =
+        std::move(create_tree_x_partitioner_results.datapoints_by_token);
+    partitioner = std::move(create_tree_x_partitioner_results.partitioner);
   }
   unique_ptr<KMeansTreeLikePartitioner<float>> kmeans_tree_partitioner(
       dynamic_cast<KMeansTreeLikePartitioner<float>*>(partitioner.release()));
@@ -177,10 +221,9 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
       dense, params.pre_reordering_num_neighbors,
       params.pre_reordering_epsilon);
 
-  vector<std::vector<DatapointIndex>> datapoints_by_token = {};
   if (dataset && dataset->empty()) {
     datapoints_by_token.resize(kmeans_tree_partitioner->n_tokens());
-  } else {
+  } else if (datapoints_by_token.empty()) {
     if (opts->datapoints_by_token) {
       datapoints_by_token = std::move(*opts->datapoints_by_token);
     } else if (dense) {
@@ -223,10 +266,7 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
     TF_ASSIGN_OR_RETURN(
         auto residuals,
         TreeAHHybridResidual::ComputeResiduals(
-            *dense, kmeans_tree_partitioner.get(), datapoints_by_token,
-            config.hash()
-                .asymmetric_hash()
-                .use_normalized_residual_quantization()));
+            *dense, kmeans_tree_partitioner.get(), datapoints_by_token));
     asymmetric_hashing2::TrainingOptions<float> training_opts(
         config.hash().asymmetric_hash(), quantization_distance, residuals);
     TF_ASSIGN_OR_RETURN(
@@ -249,7 +289,8 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
   SCANN_RETURN_IF_ERROR(result->BuildLeafSearchers(
       config.hash().asymmetric_hash(), std::move(kmeans_tree_partitioner),
       std::move(ah_model), std::move(datapoints_by_token),
-      opts->hashed_dataset.get(), opts->parallelization_pool.get()));
+      {.hashed_dataset = opts->hashed_dataset.get(),
+       .pool = opts->parallelization_pool.get()}));
   opts->datapoints_by_token = nullptr;
 
   {
@@ -341,7 +382,7 @@ StatusOrSearcherUntyped PretrainedTreeSQFactoryFromAssets(
             inverse_multipliers, std::move(squared_l2_norms),
             params.pre_reordering_num_neighbors, params.pre_reordering_epsilon);
     if (!searcher_or_error.ok()) return searcher_or_error.status();
-    auto searcher = std::move(searcher_or_error.ValueOrDie());
+    auto searcher = std::move(searcher_or_error.value());
     return std::unique_ptr<SingleMachineSearcherBase<float>>(
         searcher.release());
   };
@@ -366,12 +407,15 @@ StatusOrSearcherUntyped PretrainedTreeSQFactoryFromAssets(
 StatusOrSearcherUntyped PretrainedSQTreeXHybridFactory(
     const ScannConfig& config, const shared_ptr<TypedDataset<float>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
-  TF_ASSIGN_OR_RETURN(unique_ptr<Partitioner<float>> partitioner,
-                      CreateTreeXPartitioner<float>(nullptr, config, opts));
-  DCHECK(partitioner);
-
   vector<std::vector<DatapointIndex>> datapoints_by_token;
-  datapoints_by_token = std::move(*(opts->datapoints_by_token));
+  unique_ptr<Partitioner<float>> partitioner;
+  TF_ASSIGN_OR_RETURN(auto create_tree_x_partitioner_results,
+                      CreateTreeXPartitioner<float>(nullptr, config, opts));
+  datapoints_by_token =
+      std::move(create_tree_x_partitioner_results.datapoints_by_token);
+  partitioner = std::move(create_tree_x_partitioner_results.partitioner);
+  SCANN_RET_CHECK(partitioner);
+
   if (datapoints_by_token.size() < partitioner->n_tokens()) {
     datapoints_by_token.resize(partitioner->n_tokens());
   }
@@ -384,29 +428,26 @@ template <typename T>
 StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
     const ScannConfig& config, const shared_ptr<TypedDataset<T>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
-  TF_ASSIGN_OR_RETURN(auto partitioner,
-                      CreateTreeXPartitioner<T>(dataset, config, opts));
-  DCHECK(partitioner);
-
-  bool use_serialized_per_leaf_hashers = false;
+  const bool using_pretokenized_database =
+      opts && opts->datapoints_by_token && !opts->datapoints_by_token->empty();
+  unique_ptr<Partitioner<T>> partitioner;
   vector<std::vector<DatapointIndex>> datapoints_by_token;
-  bool using_pretokenized_database = false;
-  if (opts && opts->datapoints_by_token &&
-      !opts->datapoints_by_token->empty()) {
-    using_pretokenized_database = true;
-
-    datapoints_by_token = std::move(*(opts->datapoints_by_token));
-    if (datapoints_by_token.size() < partitioner->n_tokens()) {
-      datapoints_by_token.resize(partitioner->n_tokens());
-    }
-
-    use_serialized_per_leaf_hashers =
-        config.has_hash() &&
-        ((config.hash().has_pca_hash() &&
-          config.hash().has_parameters_filename()) ||
-         (config.hash().has_asymmetric_hash() &&
-          config.hash().asymmetric_hash().has_centers_filename()));
+  TF_ASSIGN_OR_RETURN(auto create_tree_x_partitioner_results,
+                      CreateTreeXPartitioner<T>(dataset, config, opts));
+  datapoints_by_token =
+      std::move(create_tree_x_partitioner_results.datapoints_by_token);
+  partitioner = std::move(create_tree_x_partitioner_results.partitioner);
+  SCANN_RET_CHECK(partitioner);
+  if (datapoints_by_token.size() < partitioner->n_tokens()) {
+    datapoints_by_token.resize(partitioner->n_tokens());
   }
+
+  const bool use_serialized_per_leaf_hashers =
+      using_pretokenized_database && config.has_hash() &&
+      ((config.hash().has_pca_hash() &&
+        config.hash().has_parameters_filename()) ||
+       (config.hash().has_asymmetric_hash() &&
+        config.hash().asymmetric_hash().has_centers_filename()));
 
   if constexpr (std::is_same_v<T, float>) {
     if (config.brute_force().fixed_point().enabled()) {

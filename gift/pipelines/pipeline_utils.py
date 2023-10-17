@@ -605,8 +605,8 @@ def get_self_matching_matrix(batch,
 
   Args:
     batch: list(dict); Batch of examples (with inputs, and label keys).
-    reps: list(jnp array); List of representations of a selected layer for each
-      batch.
+    reps: list(jnp.ndarray); List of representations of a selected layer for
+      each batch.
     mode: str; Determines alignment method.
     label_cost: float; Weight of label cost when Sinkhorn matching is used.
     l2_cost: float; Weight of l2 cost when Sinkhorn matching is used.
@@ -667,9 +667,9 @@ def interpolate(rng,
 
   Args:
     rng: JAX PRNG key.
-    matching_matrix: jnp array; Alignment matrix.
-    reps1: jnp array; Tensor with shape [..., feature_size].
-    reps2: jnp array; Tensor with shape [..., feature_size]
+    matching_matrix: jnp.ndarray; Alignment matrix.
+    reps1: jnp.ndarray; Tensor with shape [..., feature_size].
+    reps2: jnp.ndarray; Tensor with shape [..., feature_size]
     num_lambdas: int; Number of interpolations per pair.
     alpha: float; Parameter of the beta distribution which lambdas are sampled
       from.

@@ -23,6 +23,7 @@
 
 #include "absl/base/internal/sysinfo.h"
 #include "absl/container/flat_hash_map.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
@@ -283,7 +284,7 @@ NearestNeighbors MergeNeighborListsWithCrowding(
 
 NearestNeighbors MergeNeighborListsRemoveDuplicateDocids(
     MutableSpan<NearestNeighbors> neighbor_lists, int num_neighbors) {
-  absl::node_hash_set<std::string> prev_docids;
+  absl::flat_hash_set<std::string> prev_docids;
   auto docid_seen = [&prev_docids](const NearestNeighbors::Neighbor* nn) {
     auto iter = prev_docids.find(nn->docid());
     if (iter == prev_docids.end()) {
@@ -324,7 +325,7 @@ void PackNibblesDatapoint(const DatapointPtr<uint8_t>& hash,
   packed->clear();
   packed->set_dimensionality(hash_size);
   packed->mutable_values()->resize((hash_size + 1) / 2, 0);
-  PackNibblesDatapoint(hash.values_slice(), packed->mutable_values_slice());
+  PackNibblesDatapoint(hash.values_span(), packed->mutable_values_span());
 }
 
 void PackNibblesDatapoint(ConstSpan<uint8_t> hash,
@@ -345,7 +346,7 @@ void UnpackNibblesDatapoint(const DatapointPtr<uint8_t>& packed,
   hash->clear();
   hash->set_dimensionality(hash_size);
   hash->mutable_values()->resize(hash_size, 0);
-  UnpackNibblesDatapoint(packed.values_slice(), hash->mutable_values_slice(),
+  UnpackNibblesDatapoint(packed.values_span(), hash->mutable_values_span(),
                          hash_size);
 }
 

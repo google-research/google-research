@@ -1872,8 +1872,8 @@ def main(_):
         (FLAGS.batch_size, n_devices))
 
   if FLAGS.jax_backend_target:
-    jax.config.FLAGS.jax_xla_backend = 'tpu_driver'
-    jax.config.FLAGS.jax_backend_target = FLAGS.jax_backend_target
+    jax.config.update('jax_xla_backend', 'tpu_driver')
+    jax.config.update('jax_backend_target', FLAGS.jax_backend_target)
 
   # Output functions (summary writers, writing out flags file) need only be
   # done once.

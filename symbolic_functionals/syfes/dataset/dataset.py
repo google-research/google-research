@@ -623,9 +623,11 @@ class Dataset:
     """
     try:
       pd.testing.assert_frame_equal(
-          self.property_df, other.property_df, check_less_precise=8)
+          self.property_df, other.property_df, atol=0.5e-8, rtol=0.5e-8
+      )
       pd.testing.assert_frame_equal(
-          self.dft_df, other.dft_df, check_less_precise=8)
+          self.dft_df, other.dft_df, atol=0.5e-8, rtol=0.5e-8
+      )
       assert self.geometries == other.geometries
       return True
     except AssertionError:

@@ -23,7 +23,7 @@ as well as the build_loss function in:
 third_party/cloud_tpu/models/detection/modeling/maskrcnn_model.py
 """
 
-from typing import Dict, Union
+from typing import Dict, Union, Any
 from absl import logging
 import gin
 import jax
@@ -173,7 +173,7 @@ class RpnScoreLoss(object):
     score_losses = []
     for level in levels:
       score_losses.append(
-          self._rpn_score_loss(
+          self._rpn_score_loss(  # pytype: disable=wrong-arg-types
               score_outputs[level],
               labels[level],
               normalizer=jnp.array(

@@ -14,6 +14,7 @@
 
 
 
+#include "scann/distance_measures/many_to_many/fp8_transposed.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/many_to_many/many_to_many_common.h"
 #include "scann/distance_measures/many_to_many/many_to_many_templates.h"

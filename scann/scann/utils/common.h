@@ -249,7 +249,7 @@ T ValueOrDie(StatusOr<T> statusor) {
   if (!statusor.ok()) {
     LOG(FATAL) << "VALUE_OR_DIE_FAILURE: " << statusor.status();
   }
-  return std::move(statusor).ValueOrDie();
+  return std::move(statusor).value();
 }
 
 template <ssize_t kStride = 1>

@@ -169,8 +169,8 @@ StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
   auto get_residual =
       [&](const DatapointPtr<float>& dptr,
           const int32_t token) -> StatusOr<DatapointPtr<float>> {
-    ConstSpan<float> datapoint = dptr.values_slice();
-    ConstSpan<float> center = kmeans_centers[token].values_slice();
+    ConstSpan<float> datapoint = dptr.values_span();
+    ConstSpan<float> center = kmeans_centers[token].values_span();
     DCHECK_EQ(center.size(), dimensionality);
     DCHECK_EQ(datapoint.size(), dimensionality);
     for (size_t d : Seq(dimensionality)) {
@@ -185,15 +185,12 @@ StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
 StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
     const DenseDataset<float>& dataset,
     const KMeansTreeLikePartitioner<float>* partitioner,
-    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
-    bool normalize_residual_by_cluster_stdev) {
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token) {
   Datapoint<float> residual;
   auto get_residual =
       [&](const DatapointPtr<float>& dptr,
           const int32_t token) -> StatusOr<DatapointPtr<float>> {
-    TF_ASSIGN_OR_RETURN(residual,
-                        partitioner->ResidualizeToFloat(
-                            dptr, token, normalize_residual_by_cluster_stdev));
+    TF_ASSIGN_OR_RETURN(residual, partitioner->ResidualizeToFloat(dptr, token));
     return residual.ToPtr();
   };
   return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token);
@@ -252,7 +249,7 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     unique_ptr<KMeansTreeLikePartitioner<float>> partitioner,
     shared_ptr<const asymmetric_hashing2::Model<float>> ah_model,
     vector<std::vector<DatapointIndex>> datapoints_by_token,
-    const DenseDataset<uint8_t>* hashed_dataset, ThreadPool* pool) {
+    BuildLeafSearchersOptions opts) {
   DCHECK(partitioner);
   SCANN_RETURN_IF_ERROR(
       CheckBuildLeafSearchersPreconditions(config, *partitioner));
@@ -276,10 +273,8 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
   const auto dataset =
       dynamic_cast<const DenseDataset<float>*>(this->dataset());
 
-  const bool normalize_residual_by_cluster_stdev =
-      config.use_normalized_residual_quantization();
-
-  if (hashed_dataset) {
+  auto hashed_dataset = opts.hashed_dataset;
+  if (hashed_dataset && datapoints_by_token_disjoint_) {
     get_hashed_datapoint = [hashed_dataset](DatapointIndex i, int32_t token,
                                             Datapoint<uint8_t>* storage)
         -> StatusOr<DatapointPtr<uint8_t>> { return (*hashed_dataset)[i]; };
@@ -287,17 +282,17 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     if (!this->dataset()) {
       return InvalidArgumentError(
           "At least one of dataset/hashed_dataset must be non-null in "
-          "TreeAHHybridResidual::BuildLeafSearchersPreTrained.");
+          "TreeAHHybridResidual::BuildLeafSearchersPreTrained.  If database "
+          "spilling is used, dataset must be non-null and hashed_dataset is "
+          "ignored.");
     }
     get_hashed_datapoint =
         [&](DatapointIndex i, int32_t token,
             Datapoint<uint8_t>* storage) -> StatusOr<DatapointPtr<uint8_t>> {
       DCHECK(dataset);
       DatapointPtr<float> original = (*dataset)[i];
-      TF_ASSIGN_OR_RETURN(
-          Datapoint<float> residual,
-          partitioner->ResidualizeToFloat(original, token,
-                                          normalize_residual_by_cluster_stdev));
+      TF_ASSIGN_OR_RETURN(Datapoint<float> residual,
+                          partitioner->ResidualizeToFloat(original, token));
       if (std::isnan(config.noise_shaping_threshold())) {
         SCANN_RETURN_IF_ERROR(indexer->Hash(residual.ToPtr(), storage));
       } else {
@@ -330,7 +325,7 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
       auto status_or_hashed_dptr =
           get_hashed_datapoint(dp_index, token, &hashed_storage);
       SCANN_RETURN_IF_ERROR(status_or_hashed_dptr.status());
-      auto hashed_dptr = status_or_hashed_dptr.ValueOrDie();
+      auto hashed_dptr = status_or_hashed_dptr.value();
       auto local_status = hashed_partition->Append(hashed_dptr, "");
       SCANN_RETURN_IF_ERROR(local_status);
     }
@@ -352,8 +347,8 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     return OkStatus();
   };
 
-  SCANN_RETURN_IF_ERROR(ParallelForWithStatus<1>(IndicesOf(datapoints_by_token),
-                                                 pool, build_leaf_for_token));
+  SCANN_RETURN_IF_ERROR(ParallelForWithStatus<1>(
+      IndicesOf(datapoints_by_token), opts.pool, build_leaf_for_token));
   for (auto& vec : datapoints_by_token) {
     for (DatapointIndex token : vec) {
       num_datapoints_ = std::max(token + 1, num_datapoints_);
@@ -361,6 +356,9 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
   }
 
   datapoints_by_token_ = std::move(datapoints_by_token);
+  TF_ASSIGN_OR_RETURN(
+      datapoints_by_token_disjoint_,
+      ValidateDatapointsByToken(datapoints_by_token_, num_datapoints_));
   leaf_tokens_by_norm_ = OrderLeafTokensByCenterNorm(*partitioner);
   partitioner->set_tokenization_mode(UntypedPartitioner::QUERY);
   query_tokenizer_ = std::move(partitioner);
@@ -471,8 +469,9 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
   vector<FastTopNeighbors<float>::Mutator> mutators(params.size());
   top_ns.reserve(params.size());
   for (const auto& [idx, p] : Enumerate(params)) {
-    top_ns.emplace_back(p.pre_reordering_num_neighbors(),
-                        p.pre_reordering_epsilon());
+    top_ns.emplace_back(
+        p.pre_reordering_num_neighbors() * spilling_multiplier(),
+        p.pre_reordering_epsilon());
     top_ns[idx].AcquireMutator(&mutators[idx]);
   }
   vector<NNResultsVector> leaf_results;
@@ -481,7 +480,7 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
     if (queries_for_cur_leaf.empty()) continue;
     vector<SearchParameters> leaf_params =
         tree_x_internal::CreateParamsSubsetForLeaf<QueryForLeaf>(
-            params, mutators, lookup_tables, queries_for_cur_leaf);
+            mutators, lookup_tables, queries_for_cur_leaf);
     auto get_query = [&queries, &queries_for_cur_leaf](DatapointIndex i) {
       return queries[queries_for_cur_leaf[i].query_index];
     };
@@ -497,20 +496,15 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
 
     ConstSpan<DatapointIndex> local_to_global_index =
         datapoints_by_token_[leaf_token];
-    auto status_or_partition_stdev =
-        query_tokenizer_->ResidualStdevForToken(leaf_token);
-    const float partition_stdev = status_or_partition_stdev.ok()
-                                      ? status_or_partition_stdev.ValueOrDie()
-                                      : 1.0;
     for (size_t j = 0; j < queries_for_cur_leaf.size(); ++j) {
       const DatapointIndex cur_query_index =
           queries_for_cur_leaf[j].query_index;
       tree_x_internal::AddLeafResultsToTopN(
           local_to_global_index, queries_for_cur_leaf[j].distance_to_center,
-          partition_stdev, leaf_results[j], &mutators[cur_query_index]);
+          leaf_results[j], &mutators[cur_query_index]);
     }
   }
-  for (size_t query_index = 0; query_index < results.size(); ++query_index) {
+  for (size_t query_index : IndicesOf(results)) {
     mutators[query_index].Release();
     top_ns[query_index].FinishUnsorted(&results[query_index]);
   }
@@ -524,14 +518,13 @@ Status TreeAHHybridResidual::FindNeighborsInternal1(
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else if (enable_global_topn_) {
-    FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
-                                  params.pre_reordering_epsilon());
+    FastTopNeighbors<float> top_n(
+        params.pre_reordering_num_neighbors() * spilling_multiplier(),
+        params.pre_reordering_epsilon());
     DCHECK(result);
     SearchParameters leaf_params;
     leaf_params.set_pre_reordering_num_neighbors(
-        params.pre_reordering_num_neighbors());
-    leaf_params.set_per_crowding_attribute_pre_reordering_num_neighbors(
-        params.per_crowding_attribute_pre_reordering_num_neighbors());
+        params.pre_reordering_num_neighbors() * spilling_multiplier());
     leaf_params.set_pre_reordering_epsilon(top_n.epsilon());
     auto query_preprocessing_results =
         params.unlocked_query_preprocessing_results<
@@ -558,8 +551,6 @@ Status TreeAHHybridResidual::FindNeighborsInternal1(
       leaf_specific_params->SetIndexAndBias(token << global_topn_shift_,
                                             distance_to_center);
 
-      TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
-                                          &leaf_params);
       SCANN_RETURN_IF_ERROR(
           leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
               query, leaf_params, &unused_leaf_results));
@@ -575,10 +566,12 @@ Status TreeAHHybridResidual::FindNeighborsInternal1(
     }
     return OkStatus();
   } else {
-    FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
-                                  params.pre_reordering_epsilon());
-    return FindNeighborsInternal2(query, params, centers_to_search,
-                                  std::move(top_n), result);
+    FastTopNeighbors<float> top_n(
+        params.pre_reordering_num_neighbors() * spilling_multiplier(),
+        params.pre_reordering_epsilon());
+    SCANN_RETURN_IF_ERROR(FindNeighborsInternal2(
+        query, params, centers_to_search, std::move(top_n), result));
+    return OkStatus();
   }
 }
 
@@ -588,11 +581,16 @@ Status TreeAHHybridResidual::FindNeighborsInternal2(
     ConstSpan<KMeansTreeSearchResult> centers_to_search, TopN top_n,
     NNResultsVector* result) const {
   DCHECK(result);
+  DCHECK(!params.pre_reordering_crowding_enabled() ||
+         datapoints_by_token_disjoint_);
   SearchParameters leaf_params;
   leaf_params.set_pre_reordering_num_neighbors(
-      params.pre_reordering_num_neighbors());
-  leaf_params.set_per_crowding_attribute_pre_reordering_num_neighbors(
-      params.per_crowding_attribute_pre_reordering_num_neighbors());
+      params.pre_reordering_num_neighbors() * spilling_multiplier());
+  if (params.pre_reordering_crowding_enabled()) {
+    SCANN_RET_CHECK_EQ(spilling_multiplier(), 1);
+    leaf_params.set_per_crowding_attribute_pre_reordering_num_neighbors(
+        params.per_crowding_attribute_pre_reordering_num_neighbors());
+  }
   auto query_preprocessing_results =
       params.unlocked_query_preprocessing_results<
           UnlockedTreeAHHybridResidualPreprocessingResults>();
@@ -610,66 +608,24 @@ Status TreeAHHybridResidual::FindNeighborsInternal2(
   }
   typename TopN::Mutator mutator;
   top_n.AcquireMutator(&mutator);
-  for (size_t i = 0; i < centers_to_search.size(); ++i) {
-    const int32_t token = centers_to_search[i].node->LeafId();
+  for (size_t center_idx : IndicesOf(centers_to_search)) {
+    const int32_t token = centers_to_search[center_idx].node->LeafId();
     NNResultsVector leaf_results;
-    const float distance_to_center = centers_to_search[i].distance_to_center;
+    const float distance_to_center =
+        centers_to_search[center_idx].distance_to_center;
     leaf_params.set_pre_reordering_epsilon(mutator.epsilon() -
                                            distance_to_center);
-    TranslateGlobalToLeafLocalWhitelist(params, datapoints_by_token_[token],
-                                        &leaf_params);
     SCANN_RETURN_IF_ERROR(
         leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
             query, leaf_params, &leaf_results));
-    float cluster_stdev_adjustment = centers_to_search[i].residual_stdev;
-    tree_x_internal::AddLeafResultsToTopN(
-        datapoints_by_token_[token], distance_to_center,
-        cluster_stdev_adjustment, leaf_results, &mutator);
+    tree_x_internal::AddLeafResultsToTopN(datapoints_by_token_[token],
+                                          distance_to_center, leaf_results,
+                                          &mutator);
   }
   mutator.Release();
 
   AssignResults(&top_n, result);
   return OkStatus();
-}
-
-StatusOr<pair<int32_t, DatapointPtr<float>>>
-TreeAHHybridResidual::TokenizeAndMaybeResidualize(
-    const DatapointPtr<float>& dptr, Datapoint<float>* residual_storage) {
-  KMeansTreeSearchResult token_storage;
-  SCANN_RETURN_IF_ERROR(
-      database_tokenizer_->TokenForDatapoint(dptr, &token_storage));
-  residual_storage->clear();
-  auto& vals = *residual_storage->mutable_values();
-  vals.resize(dptr.values_slice().size());
-  auto center = token_storage.node->cur_node_center();
-  for (size_t i : IndicesOf(vals)) {
-    vals[i] = dptr.values()[i] - center.values()[i];
-  }
-  return std::make_pair(token_storage.node->LeafId(),
-                        residual_storage->ToPtr());
-}
-
-StatusOr<vector<pair<int32_t, DatapointPtr<float>>>>
-TreeAHHybridResidual::TokenizeAndMaybeResidualize(
-    const TypedDataset<float>& dps,
-    MutableSpan<Datapoint<float>*> residual_storage) {
-  SCANN_RET_CHECK_EQ(dps.size(), residual_storage.size());
-  vector<KMeansTreeSearchResult> token_storage(dps.size());
-  SCANN_RETURN_IF_ERROR(
-      database_tokenizer_->TokenForDatapointBatched(dps, &token_storage));
-  vector<pair<int32_t, DatapointPtr<float>>> result(dps.size());
-  for (size_t dp_idx : IndicesOf(residual_storage)) {
-    DatapointPtr<float> dptr = dps[dp_idx];
-    std::vector<float>& vals = *residual_storage[dp_idx]->mutable_values();
-    vals.resize(dptr.values_slice().size());
-    auto center = token_storage[dp_idx].node->cur_node_center();
-    for (size_t dim_idx : IndicesOf(vals)) {
-      vals[dim_idx] = dptr.values()[dim_idx] - center.values()[dim_idx];
-    }
-    result[dp_idx] = {token_storage[dp_idx].node->LeafId(),
-                      residual_storage[dp_idx]->ToPtr()};
-  }
-  return result;
 }
 
 StatusOr<SingleMachineFactoryOptions>
@@ -707,7 +663,7 @@ void TreeAHHybridResidual::AttemptEnableGlobalTopN() {
     LOG(ERROR) << "Cannot enable global top-N: " << status_or_shift.status();
     return;
   }
-  global_topn_shift_ = status_or_shift.ValueOrDie();
+  global_topn_shift_ = status_or_shift.value();
   enable_global_topn_ = true;
 }
 

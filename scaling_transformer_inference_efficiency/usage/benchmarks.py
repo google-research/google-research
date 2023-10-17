@@ -836,7 +836,7 @@ def run_embed_unembed_topp(
         (div_up(h.embed, x_axis), div_up(h.vocab, y_axis * z_axis)),
         jnp.bfloat16,
     )
-    rng = jax.random.rbg_key(0)
+    rng = jax.random.PRNGKey(0, impl='rbg')
     return x, embed, rng
 
   @functools.partial(
@@ -967,8 +967,8 @@ def benchmark_generate_with_model(
   with model.mesh:
     context = pjit.pjit(
         ChunkResult.zeros,
-        in_axis_resources=(),
-        out_axis_resources=jax.tree_map(
+        in_shardings=(),
+        out_shardings=jax.tree_map(
             partitioning.logical_to_physical, ChunkResult.logical_axes()
         ),
         static_argnums=(0, 1, 2),

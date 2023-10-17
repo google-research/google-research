@@ -145,7 +145,7 @@ def train_step(
     if name == 'observation' or name == 'next_observation':
       x = jnp.transpose(x, axes=[3, 0, 1, 2])
     return mesh_utils.with_sharding_constraint(
-        x, mesh_utils.map_leading_axis_to_pspec(x, 'data')
+        x, mesh_utils.map_leading_axis_to_pspec(x, 'data')  # pytype: disable=wrong-arg-types  # jnp-type
     )
 
   with jax.profiler.TraceAnnotation('transpose-observation'):
@@ -270,7 +270,7 @@ def train_step(
           indicator_state.step < config.offline.indicator.num_qr_steps
       ) * proportion_loss
 
-    return loss, (train_infos, indicator_infos)
+    return loss, (train_infos, indicator_infos)  # pytype: disable=bad-return-type  # jnp-type
 
   grad_fn = jax.grad(loss_fn, argnums=(0, 1), has_aux=True, allow_int=True)
   (train_grads, indicator_grads), (train_infos, indicator_infos) = grad_fn(
@@ -369,8 +369,8 @@ def create_train_state_with_optional_mesh(
               target_params_update_fn=target_params_update_fn,
               rng=rng,
           ),
-          in_axis_resources=None,
-          out_axis_resources=train_state_pspec,
+          in_shardings=None,
+          out_shardings=train_state_pspec,
       )
       train_state = create_train_state()
   else:
@@ -427,8 +427,8 @@ def create_indicator_state_with_optional_mesh(
               optim=optim,
               rng=rng,
           ),
-          in_axis_resources=None,
-          out_axis_resources=indicator_state_pspec,
+          in_shardings=None,
+          out_shardings=indicator_state_pspec,
       )
 
       indicator_state = create_indicator_state()
@@ -478,14 +478,14 @@ def jit_train_step_with_optional_mesh(
         train_step,
         donate_argnums=(0, 1, 3, 4),
         static_argnums=(5,),
-        in_axis_resources=(
+        in_shardings=(
             train_state_pspec,
             indicator_state_pspec,
             batch_pspec,
             None,
             None,
         ),
-        out_axis_resources=(
+        out_shardings=(
             train_state_pspec,
             indicator_state_pspec,
             None,

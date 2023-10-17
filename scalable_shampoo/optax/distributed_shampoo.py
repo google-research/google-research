@@ -40,7 +40,6 @@ import chex
 from flax import struct
 import jax
 from jax import lax
-from jax.experimental import pjit
 from jax.experimental.sparse import linalg
 import jax.numpy as jnp
 import numpy as np
@@ -65,7 +64,7 @@ def _default_zero_field():
 T = TypeVar("T")
 
 
-def _maybe_ix(ls, ix):
+def _maybe_ix(ls: Optional[Sequence[T]], ix: int) -> Optional[T]:
   """Return ls[ix] if not None else None."""
   if ls is None:
     return None
@@ -102,9 +101,9 @@ class InversePthRootDiagnostics:
   p: chex.Array = _default_zero_field()
 
   @classmethod
-  def create(cls,
-             pth_inverse_root, matrix,
-             p):
+  def create(cls: type[InversePthRootDiagnosticsSubtype],
+             pth_inverse_root: jnp.ndarray, matrix: jnp.ndarray,
+             p: Union[jnp.ndarray, int]) -> InversePthRootDiagnosticsSubtype:
     """Generates a diagnostics struct from (-1/p) root result."""
     mat_m = jnp.matmul(
         mat_power(pth_inverse_root, p),
@@ -146,9 +145,9 @@ class LOBPCGDiagnostics:
   num_topk_eigenvectors: chex.Array = _default_zero_field()
 
   @classmethod
-  def create(cls, matrix,
-             eigvals, eigvecs,
-             lobpcg_iters):
+  def create(cls: type[LOBPCGDiagnosticsSubtype], matrix: jnp.ndarray,
+             eigvals: jnp.ndarray, eigvecs: jnp.ndarray,
+             lobpcg_iters: jnp.ndarray) -> LOBPCGDiagnosticsSubtype:
     """Generates LOBPCG diagnostics from the result of the routine."""
     num_topk = len(eigvals)
     num_off_diag = num_topk * (num_topk - 1)
@@ -247,9 +246,9 @@ def default_training_metrics(
 
 
 def init_training_metrics(
-    num_statistics,
-    generate_training_metrics,
-):
+    num_statistics: int,
+    generate_training_metrics: bool,
+) -> Union[TrainingMetrics, optax.MaskedNode]:
   """Initialize TrainingMetrics, masked if disabled."""
   if not generate_training_metrics:
     return optax.MaskedNode()
@@ -260,9 +259,9 @@ def init_training_metrics(
 
 
 def init_training_metrics_shapes(
-    num_statistics,
-    generate_training_metrics,
-):
+    num_statistics: int,
+    generate_training_metrics: bool,
+) -> Union[TrainingMetrics, optax.MaskedNode]:
   """Initialize training metrics shape/dtype."""
   seed = init_training_metrics(
       num_statistics,
@@ -272,8 +271,8 @@ def init_training_metrics_shapes(
 
 
 def init_training_metrics_pspec(
-    generate_training_metrics,
-):
+    generate_training_metrics: bool,
+) -> Union[TrainingMetrics, optax.MaskedNode]:
   """Initialize training metrics partition specification."""
   if not generate_training_metrics:
     return optax.MaskedNode()
@@ -322,12 +321,12 @@ class PreconditionerType(enum.IntEnum):
 
 
 def power_iteration(
-    matrix,
-    num_iters = 100,
-    error_tolerance = 1e-6,
-    precision = lax.Precision.HIGHEST,
-    padding_start = None,
-):
+    matrix: jnp.ndarray,
+    num_iters: int = 100,
+    error_tolerance: float = 1e-6,
+    precision: lax.Precision = lax.Precision.HIGHEST,
+    padding_start: Union[int, jnp.ndarray, None] = None,
+) -> Tuple[jnp.ndarray, jnp.ndarray]:
   r"""Power iteration algorithm.
 
   The power iteration algorithm takes a symmetric PSD matrix `A`, and produces
@@ -382,10 +381,10 @@ def power_iteration(
 
 
 def mat_power(
-    mat_m,
-    p,
-    precision = lax.Precision.HIGHEST,
-):
+    mat_m: jnp.ndarray,
+    p: Union[int, jnp.ndarray],
+    precision: lax.Precision = lax.Precision.HIGHEST,
+) -> jnp.ndarray:
   """A simple matrix power method. M^p where p can be TracedValue."""
   power = jnp.eye(mat_m.shape[0], dtype=_MAT_INV_PTH_ROOT_DTYPE)
 
@@ -407,8 +406,8 @@ def mat_power(
   return result
 
 
-def _pth_root_difference(w, alpha, beta,
-                         p):
+def _pth_root_difference(w: jnp.ndarray, alpha: jnp.ndarray, beta: jnp.ndarray,
+                         p: Union[int, jnp.ndarray]) -> jnp.ndarray:
   """Computes (w+alpha)^(-1/p)-(w+beta)^(-1/p)."""
 
   a = w + alpha
@@ -429,19 +428,19 @@ def _pth_root_difference(w, alpha, beta,
 
 
 def matrix_inverse_pth_root(
-    matrix,
-    p,
-    num_iters = 100,
-    ridge_epsilon = 1e-6,
-    error_tolerance = 1e-6,
-    precision = lax.Precision.HIGHEST,
-    relative_matrix_epsilon = True,
-    lobpcg_topk_precondition = 0,
-    lobpcg_max_iter = 0,
-    padding_start = None,
-    prev = None,
+    matrix: jnp.ndarray,
+    p: Union[int, jnp.ndarray],
+    num_iters: int = 100,
+    ridge_epsilon: float = 1e-6,
+    error_tolerance: float = 1e-6,
+    precision: lax.Precision = lax.Precision.HIGHEST,
+    relative_matrix_epsilon: bool = True,
+    lobpcg_topk_precondition: int = 0,
+    lobpcg_max_iter: int = 0,
+    padding_start: Union[int, jnp.ndarray, None] = None,
+    prev: Optional[jnp.ndarray] = None,
     eigh=False,
-):
+) -> Tuple[jnp.ndarray, TrainingMetrics]:
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
   This function uses the Eigh or Coupled newton iterations algorithm for
@@ -556,7 +555,7 @@ def matrix_inverse_pth_root(
     # Use absolute matrix epsilon scaling otherwise.
     max_ev = 1.0
 
-  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, _EPSILON)
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)
 
   # Sometimes error increases after an iteration before decreasing and
   # converging. 1.2 factor is used to bound the maximal allowed increase.
@@ -670,15 +669,15 @@ def matrix_inverse_pth_root(
 
 
 def matrix_inverse_pth_root_eigh(
-    matrix,
-    p,
-    ridge_epsilon = 1e-6,
-    error_tolerance = 1e-6,
-    precision = lax.Precision.HIGHEST,
-    relative_matrix_epsilon = True,
-    padding_start = None,
-    prev = None,
-):
+    matrix: jnp.ndarray,
+    p: Union[int, jnp.ndarray],
+    ridge_epsilon: float = 1e-6,
+    error_tolerance: float = 1e-6,
+    precision: lax.Precision = lax.Precision.HIGHEST,
+    relative_matrix_epsilon: bool = True,
+    padding_start: Union[int, jnp.ndarray, None] = None,
+    prev: Optional[jnp.ndarray] = None,
+) -> Tuple[jnp.ndarray, TrainingMetrics]:
   """Computes `matrix^(-1/p)`, where `p` is a positive integer.
 
   This function uses eigh for the computation of a matrix's inverse pth
@@ -792,7 +791,7 @@ def merge_small_dims(shape_to_merge, max_dim):
   return resulting_shape
 
 
-def pad_square_matrix(mat, max_size):
+def pad_square_matrix(mat: jnp.ndarray, max_size: int) -> jnp.ndarray:
   """Pad a square matrix up to max_size.
 
   Args:
@@ -821,7 +820,7 @@ def pad_square_matrix(mat, max_size):
   return mat
 
 
-def pad_vector(vec, max_size):
+def pad_vector(vec: jnp.ndarray, max_size: int) -> jnp.ndarray:
   """Pad a vector to a max_size.
 
   Args:
@@ -909,12 +908,12 @@ class BlockPartitioner:
 
 
 def gram_weighted_update(
-    old_stats,
-    g,
-    axis,
-    w1,
-    w2,
-    precision = None):
+    old_stats: chex.Array,
+    g: chex.Array,
+    axis: int,
+    w1: float,
+    w2: float,
+    precision: Optional[lax.Precision] = None) -> chex.Array:
   """Updated statistics via weighted average with new Gram matrix.
 
     Returns w₁ R + w₂ Gᵀ G where R is `old_stats` and G is the matrix whose
@@ -974,14 +973,14 @@ class Preconditioner:
 
   def updated_statistics_from_grad(
       self,
-      stats,
-      grad,
-      w1,
-      w2,
-      to_float = None,
-      from_float = None,
-      precision = None,
-  ):
+      stats: List[chex.Array],
+      grad: chex.Array,
+      w1: float,
+      w2: float,
+      to_float: Optional[Callable[[chex.Array], chex.Array]] = None,
+      from_float: Optional[Callable[[chex.Array], chex.Array]] = None,
+      precision: Optional[lax.Precision] = None,
+  ) -> List[chex.Array]:
     """Update statistics from gradients.
 
     Args:
@@ -1228,11 +1227,11 @@ def distributed_shampoo(
     skip_preconditioning_dim_size_gt=4096,
     clip_by_scaled_gradient_norm=None,
     precision=lax.Precision.HIGHEST,
-    tensordot_precision = None,
+    tensordot_precision: Optional[lax.Precision] = None,
     relative_matrix_epsilon=True,
     merge_small_dims_block_size=4096,
-    lobpcg_topk_precondition = 0,
-    lobpcg_max_iter = 0,
+    lobpcg_topk_precondition: int = 0,
+    lobpcg_max_iter: int = 0,
     precondtioner_type=PreconditionerType.ALL,
     custom_preconditioner=False,
     skip_preconditioning_rank_lt=1,
@@ -1241,6 +1240,8 @@ def distributed_shampoo(
     generate_training_metrics=True,
     reuse_preconditioner=False,
     eigh=False,
+    adagrad_dims=tuple(),
+    adagrad_learning_rate=1.0,
 ):
   """Distributed Shampoo optimizer.
 
@@ -1320,24 +1321,6 @@ def distributed_shampoo(
     lobpcg_max_iter: Number of LOBPCG iterations, if zero defaults to
       `lobpcg_topk_precondition`.
     precondtioner_type: Preconditioner type to select all, left only or right
-      only preconditioners.
-    skip_preconditioning_rank_lt: Skips preconditioning for parameters with rank
-      less than this value.
-    decoupled_learning_rate: If True, use decoupled learning rate, otherwise
-      couple it with preconditioned gradient computation. (Default True)
-    decoupled_weight_decay: If True, use decoupled weight decay, otherwise
-      couple with weight decay. (Default False)
-    generate_training_metrics: If True, gather training metrics, otherwise avoid
-      generating them (to reduce memory usage).
-    reuse_preconditioner: If True, pass the previous derived preconditioner as a
-      warm start to the next iteratin's inverse pth root computation.
-    eigh: If True, and uses eigen decomposition for inverse-pth root.
-
-  Returns:
-    a GradientTransformation.
-  """
-  reset_frequency = None
-
   def _graft_type_has_diagonal_statistics():
     """Returns True if using diagonal firt order method for grafting."""
     return graft_type not in [
@@ -1780,13 +1763,15 @@ def distributed_shampoo(
       prev_padded_preconditioners = None
 
     new_stacked_padded_statistics = jnp.stack(new_padded_statistics)
-    new_stacked_padded_statistics = pjit.with_sharding_constraint(
-        new_stacked_padded_statistics, statistics_partition_spec)
+    new_stacked_padded_statistics = lax.with_sharding_constraint(
+        new_stacked_padded_statistics, statistics_partition_spec
+    )
     stacked_padding_starts = jnp.array(padding_starts, jnp.int32)
     prev_stacked_padded_preconditioners = _maybe(jnp.stack)(
         prev_padded_preconditioners)
-    prev_stacked_padded_preconditioners = _maybe(pjit.with_sharding_constraint)(
-        prev_padded_preconditioners, statistics_partition_spec)
+    prev_stacked_padded_preconditioners = _maybe(lax.with_sharding_constraint)(
+        prev_padded_preconditioners, statistics_partition_spec
+    )
 
     def _internal_inverse_pth_root_all():
       preconditioners, metrics = _matrix_inverse_pth_root_pjit(
@@ -1973,18 +1958,20 @@ def distributed_shampoo(
                                     statistics_partition_spec=None):
     # Partition the concatenated statistics matrix across all cores.
     pspec_for_partition = preconditioner_partition_spec
-    partitioned_xs = pjit.with_sharding_constraint(xs, pspec_for_partition)
+    partitioned_xs = lax.with_sharding_constraint(xs, pspec_for_partition)
     if preconditioner_partition_spec:
       partitioned_ps_spec = jax.sharding.PartitionSpec(
           preconditioner_partition_spec[0]
       )
     else:
       partitioned_ps_spec = None
-    partitioned_ps = pjit.with_sharding_constraint(ps, partitioned_ps_spec)
-    partitioned_prev_preconds = _maybe(pjit.with_sharding_constraint)(
-        prev_preconds, preconditioner_partition_spec)
-    partitioned_padding_starts = pjit.with_sharding_constraint(
-        padding_starts, partitioned_ps_spec)  # paddings are scalars like ps.
+    partitioned_ps = lax.with_sharding_constraint(ps, partitioned_ps_spec)
+    partitioned_prev_preconds = _maybe(lax.with_sharding_constraint)(
+        prev_preconds, preconditioner_partition_spec
+    )
+    partitioned_padding_starts = lax.with_sharding_constraint(
+        padding_starts, partitioned_ps_spec
+    )  # paddings are scalars like ps.
     # Run matrix inverse pth root on each shard.
     partitioned_preconditioners, partitioned_metrics = (
         _matrix_inverse_pth_root_vmap(
@@ -1994,13 +1981,16 @@ def distributed_shampoo(
             prev=partitioned_prev_preconds))
     # Reshard output to have the same PSpec as input. This is required to avoid
     # vmap seeing the full set of statistics.
-    partitioned_preconditioners = pjit.with_sharding_constraint(
-        partitioned_preconditioners, pspec_for_partition)
+    partitioned_preconditioners = lax.with_sharding_constraint(
+        partitioned_preconditioners, pspec_for_partition
+    )
     # Recombine the outputs at each core.
-    preconditioners = pjit.with_sharding_constraint(partitioned_preconditioners,
-                                                    statistics_partition_spec)
-    metrics = pjit.with_sharding_constraint(partitioned_metrics,
-                                            jax.sharding.PartitionSpec())
+    preconditioners = lax.with_sharding_constraint(
+        partitioned_preconditioners, statistics_partition_spec
+    )
+    metrics = lax.with_sharding_constraint(
+        partitioned_metrics, jax.sharding.PartitionSpec()
+    )
     return preconditioners, metrics
 
   def _pmap_compute_preconditioners(states, step, statistics,
@@ -2611,11 +2601,28 @@ def distributed_shampoo(
                                            original_shapes, exponents, max_size,
                                            prev_preconditioners)
 
-  def _transform_grad(grad, state, param, step):
+  def _transform_grad(
+      grad,
+      state,
+      param,
+      step,
+      graft_type=graft_type,
+      diagonal_epsilon=diagonal_epsilon,
+      beta1=beta1,
+      beta2=beta2,
+      learning_rate=learning_rate,
+  ):
     """Transform per-parameter gradients."""
     preconditioner = preconditioner_from_params(param)
     sgd_update = grad
     new_diagonal_statistics = state.diagonal_statistics.to_float()
+
+    if any(d in param.shape for d in adagrad_dims):
+      graft_type = GraftingType.ADAGRAD
+      diagonal_epsilon = 1e-12
+      beta1 = 0.0
+      beta2 = 1.0
+      learning_rate = adagrad_learning_rate
 
     if (graft_type == GraftingType.ADAGRAD or
         graft_type == GraftingType.ADAGRAD_NORMALIZED):
@@ -2722,8 +2729,10 @@ def distributed_shampoo(
 
     if (weight_decay != 0 and weight_decay is not None and
         decoupled_weight_decay):
+      wd_lr = 1.0 if decoupled_learning_rate else lr
       nesterov_momentum_update = (
-          nesterov_momentum_update + lr * weight_decay * param)
+          nesterov_momentum_update + wd_lr * weight_decay * param
+      )
 
     momentum_multiplier = lr if decoupled_learning_rate else 1.0
     transformed_update = -1.0 * momentum_multiplier * nesterov_momentum_update

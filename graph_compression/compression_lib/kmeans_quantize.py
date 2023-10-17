@@ -40,7 +40,7 @@ def prune(matrix, fraction=0.5):
     a pruned matrix with bottom `fraction` entries set to zero.
   """
   matrix_shape = matrix.shape
-  matrix = np.reshape(matrix, np.product(matrix_shape))
+  matrix = np.reshape(matrix, np.prod(matrix_shape))
   sorted_indexes = np.argsort(np.absolute(matrix))
   bottom = sorted_indexes[:int(math.ceil(sorted_indexes.size * fraction))]
   for i in bottom:

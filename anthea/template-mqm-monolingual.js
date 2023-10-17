@@ -111,6 +111,10 @@ antheaTemplates['MQM-Monolingual'] = {
           display: 'Spelling',
           description: 'Issues related to spelling or capitalization of words, and incorrect omission/addition of whitespace.',
         },
+        breaking: {
+          display: 'Text-Breaking',
+          description: 'Issues related to missing or unwarranted paragraph breaks or line breaks.',
+        },
         punctuation: {
           display: 'Punctuation',
           description: 'Punctuation is used incorrectly (for the locale or style).',

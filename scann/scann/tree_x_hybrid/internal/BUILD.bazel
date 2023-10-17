@@ -7,6 +7,7 @@ package(
 
 cc_library(
     name = "utils",
+    srcs = ["utils.cc"],
     hdrs = ["utils.h"],
     tags = ["local"],
     deps = [
@@ -17,7 +18,9 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:common",
         "//scann/utils:types",
+        "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
     ],

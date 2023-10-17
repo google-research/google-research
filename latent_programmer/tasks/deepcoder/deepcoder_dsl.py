@@ -301,6 +301,11 @@ class Function(object):
 class Lambda(Function):
   """A lambda function like `*2` or `+`."""
 
+  def __init__(self, token, name, func,
+               inputs_type, output_type):
+    super().__init__(token, func, inputs_type, output_type)
+    self.name = name
+
 
 class Operation(Function):
   """Base class for first-order and higher-order operations."""
@@ -416,6 +421,86 @@ class Statement(object):
     return cls.from_tokens(string.split(' '), check_variable_name)
 
 
+def _get_python_rhs(token, args, python_lambdas):
+  """Get the Python form of an operation RHS."""
+  if token == 'Head':
+    return f'{args[0]}[0]'
+  elif token == 'Last':
+    return f'{args[0]}[-1]'
+  elif token == 'Take':
+    return f'{args[1]}[:{args[0]}]'
+  elif token == 'Drop':
+    return f'{args[1]}[{args[0]}:]'
+  elif token == 'Access':
+    # The actual behavior also checks that `0 <= n < len(xs)`.
+    return f'{args[1]}[{args[0]}]'
+  elif token == 'Minimum':
+    return f'min({args[0]})'
+  elif token == 'Maximum':
+    return f'max({args[0]})'
+  elif token == 'Reverse':
+    return f'list(reversed({args[0]}))'
+  elif token == 'Sort':
+    return f'sorted({args[0]})'
+  elif token == 'Sum':
+    return f'sum({args[0]})'
+  elif token == 'Map':
+    lambda_part = _lambda_call(args[0], ['x'], python_lambdas)
+    return f'[{lambda_part} for x in {args[1]}]'
+  elif token == 'Filter':
+    lambda_part = _lambda_call(args[0], ['x'], python_lambdas)
+    return f'[x for x in {args[1]} if {lambda_part}]'
+  elif token == 'Count':
+    lambda_part = _lambda_call(args[0], ['x'], python_lambdas)
+    return f'len([x for x in {args[1]} if {lambda_part}])'
+  elif token == 'ZipWith':
+    lambda_part = _lambda_call(args[0], ['x', 'y'], python_lambdas)
+    return f'[{lambda_part} for (x, y) in zip({args[1]}, {args[2]})]'
+  else:
+    raise ValueError(f'Unhandled token: {token}')
+
+
+def _lambda_source(token):
+  """Gets the lambda source, for lambdas passed to Scanl1."""
+  answer_dict = {
+      'dsl.ADD': 'lambda x, y: x + y',
+      'dsl.SUBTRACT': 'lambda x, y: x - y',
+      'dsl.MULTIPLY': 'lambda x, y: x * y',
+      'dsl.MIN': 'min',
+      'dsl.MAX': 'max',
+  }
+  return answer_dict[token]
+
+
+def _lambda_call(token, args, python_lambdas):
+  """Gets the lambda call for lambdas executed within list comprehensions."""
+  if python_lambdas:
+    answer_dict = {
+        'dsl.PLUS_ONE': 'x + 1',
+        'dsl.MINUS_ONE': 'x - 1',
+        'dsl.TIMES_TWO': 'x * 2',
+        'dsl.DIV_TWO': 'x // 2',
+        'dsl.NEGATE': '-x',
+        'dsl.SQUARE': 'x ** 2',
+        'dsl.TIMES_THREE': 'x * 3',
+        'dsl.DIV_THREE': 'x // 3',
+        'dsl.TIMES_FOUR': 'x * 4',
+        'dsl.DIV_FOUR': 'x // 4',
+        'dsl.IS_POSITIVE': 'x > 0',
+        'dsl.IS_NEGATIVE': 'x < 0',
+        'dsl.IS_EVEN': 'x % 2 == 0',
+        'dsl.IS_ODD': 'x % 2 == 1',
+        'dsl.ADD': 'x + y',
+        'dsl.SUBTRACT': 'x - y',
+        'dsl.MULTIPLY': 'x * y',
+        'dsl.MIN': 'min(x, y)',
+        'dsl.MAX': 'max(x, y)',
+    }
+    return answer_dict[token]
+  else:
+    return f'{token}({", ".join(args)})'
+
+
 class Program(object):
   """A full DeepCoder program including input handling."""
 
@@ -457,6 +542,43 @@ class Program(object):
   def __str__(self):
     return ' '.join(self.tokenize())
 
+  def to_python_program(self, name = 'program', version = 1):
+    """Converts the program into a Python program."""
+    lines = [f'def {name}({", ".join(self.input_variables)}):']
+    for statement in self.statements:
+      args = [f'dsl.{a.name}' if isinstance(a, Lambda) else a
+              for a in statement.args]
+      token = statement.operation.token
+      if version == 1:
+        # Version 1: every operation and lambda is in dsl.* form.
+        rhs = f'dsl.{token}({", ".join(args)})'
+      elif version == 2:
+        # Version 2: all higher-order ops and all lambdas are in dsl.* form.
+        # All first-order ops are in Python form.
+        if isinstance(statement.operation, HigherOrderOperation):
+          rhs = f'dsl.{token}({", ".join(args)})'
+        else:
+          rhs = _get_python_rhs(token, args, python_lambdas=False)
+      elif version == 3 or version == 5:
+        # Version 3: Scanl1 and all lambdas are in dsl.* form.
+        # Everything else is in Python form.
+        if token == 'Scanl1':
+          rhs = f'dsl.{token}({", ".join(args)})'
+        else:
+          rhs = _get_python_rhs(token, args, python_lambdas=False)
+      elif version == 4:
+        # Version 4: Scanl1 is in dsl.Scanl1(...) form.
+        # Everything else, including all lambdas, is in Python form.
+        if token == 'Scanl1':
+          rhs = f'dsl.{token}({_lambda_source(args[0])}, {args[1]})'
+        else:
+          rhs = _get_python_rhs(token, args, python_lambdas=True)
+      else:
+        raise ValueError(f'Unhandled version: {version}')
+      lines.append(f'  {statement.variable} = {rhs}')
+    lines.append(f'  return {self.statements[-1].variable}')
+    return '\n'.join(lines)
+
   @classmethod
   def from_tokens(cls, tokens):
     """Parses a Program from a list of tokens."""
@@ -477,6 +599,8 @@ class Program(object):
     input_variables = []
     statements = []
     for line in lines:
+      if not line:
+        raise ParseError('Encoutered empty line')
       if line[-1] == 'INPUT':
         if found_non_input:
           raise ParseError(f'Found INPUT after a statement: {lines}')
@@ -507,25 +631,25 @@ def _scanl1(f, xs):
 # Use the Python code from Appendix F in the DeepCoder paper.
 # pylint: disable=g-explicit-length-test, unnecessary-lambda
 LAMBDAS = [
-    Lambda('(+1)', lambda x: x + 1, [int], int),
-    Lambda('(-1)', lambda x: x - 1, [int], int),
-    Lambda('(*2)', lambda x: x * 2, [int], int),
-    Lambda('(/2)', lambda x: x // 2, [int], int),
-    Lambda('(*(-1))', lambda x: -x, [int], int),
-    Lambda('(**2)', lambda x: x ** 2, [int], int),
-    Lambda('(*3)', lambda x: x * 3, [int], int),
-    Lambda('(/3)', lambda x: x // 3, [int], int),
-    Lambda('(*4)', lambda x: x * 4, [int], int),
-    Lambda('(/4)', lambda x: x // 4, [int], int),
-    Lambda('(>0)', lambda x: x > 0, [int], bool),
-    Lambda('(<0)', lambda x: x < 0, [int], bool),
-    Lambda('(%2==0)', lambda x: x % 2 == 0, [int], bool),
-    Lambda('(%2==1)', lambda x: x % 2 == 1, [int], bool),
-    Lambda('(+)', lambda x, y: x + y, [int, int], int),
-    Lambda('(-)', lambda x, y: x - y, [int, int], int),
-    Lambda('(*)', lambda x, y: x * y, [int, int], int),
-    Lambda('(min)', lambda x, y: min(x, y), [int, int], int),
-    Lambda('(max)', lambda x, y: max(x, y), [int, int], int),
+    Lambda('(+1)', 'PLUS_ONE', lambda x: x + 1, [int], int),
+    Lambda('(-1)', 'MINUS_ONE', lambda x: x - 1, [int], int),
+    Lambda('(*2)', 'TIMES_TWO', lambda x: x * 2, [int], int),
+    Lambda('(/2)', 'DIV_TWO', lambda x: x // 2, [int], int),
+    Lambda('(*(-1))', 'NEGATE', lambda x: -x, [int], int),
+    Lambda('(**2)', 'SQUARE', lambda x: x ** 2, [int], int),
+    Lambda('(*3)', 'TIMES_THREE', lambda x: x * 3, [int], int),
+    Lambda('(/3)', 'DIV_THREE', lambda x: x // 3, [int], int),
+    Lambda('(*4)', 'TIMES_FOUR', lambda x: x * 4, [int], int),
+    Lambda('(/4)', 'DIV_FOUR', lambda x: x // 4, [int], int),
+    Lambda('(>0)', 'IS_POSITIVE', lambda x: x > 0, [int], bool),
+    Lambda('(<0)', 'IS_NEGATIVE', lambda x: x < 0, [int], bool),
+    Lambda('(%2==0)', 'IS_EVEN', lambda x: x % 2 == 0, [int], bool),
+    Lambda('(%2==1)', 'IS_ODD', lambda x: x % 2 == 1, [int], bool),
+    Lambda('(+)', 'ADD', lambda x, y: x + y, [int, int], int),
+    Lambda('(-)', 'SUBTRACT', lambda x, y: x - y, [int, int], int),
+    Lambda('(*)', 'MULTIPLY', lambda x, y: x * y, [int, int], int),
+    Lambda('(min)', 'MIN', lambda x, y: min(x, y), [int, int], int),
+    Lambda('(max)', 'MAX', lambda x, y: max(x, y), [int, int], int),
 ]
 
 FIRST_ORDER_OPERATIONS = [

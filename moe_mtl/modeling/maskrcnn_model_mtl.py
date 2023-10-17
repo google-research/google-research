@@ -33,7 +33,7 @@ from moe_mtl.modeling import uvit_vmoe_mtl
 ModuleDef = Any
 Array = jnp.ndarray
 LevelArray = Dict[int, Array]
-NamedLevelArray = Dict[str, Union[Array, LevelArray]]
+NamedLevelArray = Dict[str, Optional[Union[Array, LevelArray]]]
 
 
 @gin.register

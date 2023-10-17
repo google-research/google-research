@@ -84,7 +84,7 @@ def setup(mesh, batch_size, seq_len = 32):
 
   with mesh:
     model_init_lowered = pjit(
-        model_init, out_axis_resources=(params_sharding, chunk_sharding)
+        model_init, out_shardings=(params_sharding, chunk_sharding)
     ).lower()
     params_pjit_shape, token_chunk_shape = jax.eval_shape(model_init)
 

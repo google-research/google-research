@@ -72,8 +72,7 @@ def aggregate_image_measures(df, output_path, subdir, n_images, sparsity):
     predicted_mode_variant = variant['predictions'].mode().max()
     predicted_mode_base = baseline['predictions'].mode().max()
 
-    data = data.append(
-        pd.DataFrame(
+    data = pd.concat([data, pd.DataFrame(
             {
                 'pruning_fraction': sparsity,
                 'image_index': count,
@@ -83,8 +82,7 @@ def aggregate_image_measures(df, output_path, subdir, n_images, sparsity):
                 'baseline_modal_label': predicted_mode_base,
                 'baseline_number_observ': baseline_number_observ,
             },
-            index=[0]),
-        ignore_index=True)
+            index=[0])], ignore_index=True)
     count += 1
 
   time_ = str(time.time())

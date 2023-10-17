@@ -25,7 +25,7 @@ import jax.numpy as jp
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-Tensor = Union[tf.Tensor, np.ndarray, jp.array]
+Tensor = Union[tf.Tensor, np.ndarray, jp.ndarray]
 
 # Data comes as a dict with values containing a tuple of images and labels.
 DataInputType = Dict[Text, Tuple[tf.Tensor, tf.Tensor]]

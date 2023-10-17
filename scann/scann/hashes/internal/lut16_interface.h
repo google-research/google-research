@@ -88,28 +88,6 @@ class LUT16Interface {
     GetTopDistances(std::move(args));
   }
 
-  SCANN_INLINE static void GetTopFloatDistances(
-      const uint8_t* packed_dataset, bool should_prefetch,
-      size_t num_32dp_simd_iters, size_t num_blocks,
-      ConstSpan<const uint8_t*> lookups, DatapointIndex first_dp_index,
-      DatapointIndex num_datapoints,
-      ConstSpan<FastTopNeighbors<float>*> fast_topns, ConstSpan<float> biases,
-      ConstSpan<float> fixed_point_multipliers) {
-    LUT16ArgsTopN<float> args;
-    args.packed_dataset = packed_dataset;
-    args.prefetch_strategy =
-        should_prefetch ? PrefetchStrategy::kSeq : PrefetchStrategy::kOff;
-    args.num_32dp_simd_iters = num_32dp_simd_iters;
-    args.num_blocks = num_blocks;
-    args.lookups = lookups;
-    args.first_dp_index = first_dp_index;
-    args.num_datapoints = num_datapoints;
-    args.fast_topns = fast_topns;
-    args.biases = biases;
-    args.fixed_point_multipliers = fixed_point_multipliers;
-    GetTopFloatDistances(std::move(args));
-  }
-
   template <typename DistT, size_t kNumQueries>
   SCANN_INLINE static void GetDistances(
       const uint8_t* packed_dataset, size_t num_32dp_simd_iters,
@@ -140,20 +118,6 @@ class LUT16Interface {
                     num_blocks, ConstSpan<const uint8_t*>(&lookups1, 1),
                     first_dp_index, num_datapoints,
                     ConstSpan<FastTopNeighbors<DistT>*>(&fast_topn, 1));
-  }
-
-  SCANN_INLINE static void GetTopFloatDistances(
-      const uint8_t* packed_dataset, bool should_prefetch,
-      size_t num_32dp_simd_iters, size_t num_blocks, const uint8_t* lookups1,
-      DatapointIndex first_dp_index, DatapointIndex num_datapoints,
-      FastTopNeighbors<float>* fast_topn, float bias,
-      float fixed_point_multiplier) {
-    GetTopFloatDistances(packed_dataset, should_prefetch, num_32dp_simd_iters,
-                         num_blocks, ConstSpan<const uint8_t*>(&lookups1, 1),
-                         first_dp_index, num_datapoints,
-                         ConstSpan<FastTopNeighbors<float>*>(&fast_topn, 1),
-                         ConstSpan<float>(&bias, 1),
-                         ConstSpan<float>(&fixed_point_multiplier, 1));
   }
 
   static AlignedBuffer PlatformSpecificSwizzle(const uint8_t* packed_dataset,

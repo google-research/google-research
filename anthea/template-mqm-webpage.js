@@ -39,26 +39,6 @@ antheaTemplates['MQM-WebPage'] = {
         and wouldn't confuse or mislead the reader. These errors would still
         be noticed and might decrease stylistic quality, fluency, or clarity.`,
     },
-    unrateable: {
-      display: 'Not rateable',
-      action: 'Not rateable!',
-      shortcut: 'n',
-      color: 'silver',
-      description: `
-            Pick this severity level if there are problems with the visibility
-            of the text bounding boxes in the page images, or if a bounding box
-            does not contain the text shown, or if the translation text clearly
-            corresponds to a different page element than the source text.`,
-      /**
-       * When a severity itself has a full_span_error field, that error is
-       * used directly, (its id and display are the same as that of the
-       * severity), marking the whole translated side as the error span.
-       * Such an error implicitly has override_all_errors set to true.
-       */
-      full_span_error: {
-        needs_note: true,
-      },
-    },
   },
 
   /**
@@ -71,13 +51,6 @@ antheaTemplates['MQM-WebPage'] = {
    *     set to 0, then no limit is imposed.
    */
   MAX_ERRORS: 5,
-
-  /**
-   * @const {number} If there are preceding sentence groups at the beginning
-   *     of the first document, we show these many of them, making the
-   *     others accessible with a click on an expansion widget.
-   */
-  NUM_PRECEDING_VISIBLE: 0,
 
   /**
    * @const {boolean} Set this to true if the template instructions already
@@ -184,7 +157,18 @@ antheaTemplates['MQM-WebPage'] = {
     non_translation: {
       display: 'Non-translation!',
       description:
-          'The whole sentence group is completely not a translation of the source. This rare category, when used, overrides any other marked errors for that sentence group, and labels the full translated sentence group as the error span. Only available after choosing a major error. Examples: the translated sentence is completely unrelated to the source sentence or is gibberish or is such a bad translation that there is virtually no part of the meaning of the source that has persisted.',
+          'The whole sentence is completely not a translation of the source. This rare category, when used, overrides any other marked errors for that sentence, and labels the full translated sentence as the error span. Only available after choosing a major error. Examples: the translated sentence is completely unrelated to the source sentence or is gibberish or is such a bad translation that there is virtually no part of the meaning of the source that has persisted.',
+      forced_severity: 'major',
+      override_all_errors: true,
+    },
+    unrateable: {
+      display: 'Not rateable',
+      description: `
+            Pick this category if there are problems with the visibility
+            of the text bounding boxes in the page images, or if a bounding box
+            does not contain the text shown, or if the translation text clearly
+            corresponds to a different page element than the source text.`,
+      forced_severity: 'major',
       override_all_errors: true,
     },
   },
@@ -202,8 +186,7 @@ antheaTemplates['MQM-WebPage'] = {
     </p>
     <p>
       You will rate the quality of the translations by marking errors, one
-      sentence group at a time. A sentence group will usually have just one
-      sentence.
+      segment at a time.
     </p>
     <p>
       In most cases, a single task will correspond to a single document taken
@@ -268,9 +251,11 @@ antheaTemplates['MQM-WebPage'] = {
       Sometimes, the bounding boxes of the selected text sections may not be
       visible. Or the translation text shown might have been misidentified
       (with the real translation clearly visible elsewhere on the translated
-      page). In such cases, use the "Not rateable!" severity button and enter a
+      page). In such cases, use the "Not rateable!" error category and enter a
       short reason as to what seems to be the problem (such as,
-      "box not visible" or "translation is seen elsewhere").
+      "box not visible" or "translation is seen elsewhere"). Just like
+      "Non-Translation!" this error overrides all other errors in the sentence
+      and has Major severity.
     </p>
     <p>
       Occasionally, the translated sentence would have been altered to include
@@ -375,7 +360,7 @@ antheaTemplates['MQM-WebPage'] = {
                 as "Non-translation!".</li>
           </ul>
         </li>
-        <li>To change the rating for a previous sentence group in the current
+        <li>To change the rating for a previous sentence in the current
             document, you can click on it. You can delete any individual error
             you might have mistakenly added.</li>
         <li>The estimated time is 1 minute per sentence, so if there are 10

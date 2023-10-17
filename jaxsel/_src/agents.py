@@ -39,8 +39,9 @@ flax_dataclass = flax.struct.dataclass
 # Helper functions
 
 
-def _make_adjacency_mat_row_indices(node_id,
-                                    neighbor_node_ids):
+def _make_adjacency_mat_row_indices(
+    node_id, neighbor_node_ids
+):
   """Turns outgoing node ids and neighbor ids into sparse matrix indices.
 
   This allows us to fill in a sparse matrix from the node_ids.
@@ -143,7 +144,7 @@ class Agent(abc.ABC):
                   neighbor_features)
     probs = jax.nn.softmax(logits)
     sparse_rows = jsparse.BCOO(
-        (probs, _make_adjacency_mat_row_indices(node_ids, neighbor_ids)),
+        (probs, _make_adjacency_mat_row_indices(node_ids, neighbor_ids)),  # pytype: disable=wrong-arg-types  # jnp-array
         shape=(max_graph_size, max_graph_size))
     return sparse_rows
 

@@ -340,7 +340,7 @@ def img_to_bytes(image,
   Raises:
     ValueError: if input image is empty.
   """
-  if np.product(np.shape(image)) == 0:
+  if np.prod(np.shape(image)) == 0:
     raise ValueError('Cannot serialize an empty image.')
   if not isinstance(image, Image.Image):
     if not np.issubdtype(image.dtype, np.integer):

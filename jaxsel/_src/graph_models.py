@@ -48,8 +48,12 @@ class GraphModel(abc.ABC):
   """
 
   @abc.abstractmethod
-  def __call__(self, node_features, adjacency_mat,
-               qstar):
+  def __call__(
+      self,
+      node_features,
+      adjacency_mat,
+      qstar,
+  ):
     """Performs a forward pass on the model.
 
     Args:
@@ -90,10 +94,12 @@ class TransformerConfig:
   attention_dropout_rate: float = 0.1
   deterministic: bool = False
   # Initializers take in (key, shape, dtype) and return arrays.
-  kernel_init: Callable[[Any, Any, Any],
-                        jnp.array] = nn.initializers.xavier_uniform()
-  bias_init: Callable[[Any, Any, Any],
-                      jnp.array] = nn.initializers.normal(stddev=1e-6)
+  kernel_init: Callable[[Any, Any, Any], jnp.ndarray] = (
+      nn.initializers.xavier_uniform()
+  )
+  bias_init: Callable[[Any, Any, Any], jnp.ndarray] = nn.initializers.normal(
+      stddev=1e-6
+  )
 
 
 class MlpBlock(nn.Module):
@@ -140,9 +146,9 @@ class Encoder1DBlock(nn.Module):
   config: TransformerConfig
 
   @nn.compact
-  def __call__(self,
-               inputs,
-               encoder_mask = None):
+  def __call__(  # pytype: disable=annotation-type-mismatch  # jnp-array
+      self, inputs, encoder_mask = None
+  ):
     """Applies Encoder1DBlock module.
 
     Args:
@@ -204,8 +210,9 @@ class SubgraphEmbedding(nn.Module):
     self.node_hidden_layer = nn.Dense(cfg.hidden_dim)
     self.position_hidden_layer = nn.Dense(cfg.hidden_dim)
 
-  def __call__(self, node_features,
-               node_ids):
+  def __call__(
+      self, node_features, node_ids
+  ):
     """Embeds nodes by features and node_id.
 
     Args:
@@ -226,7 +233,7 @@ class SubgraphEmbedding(nn.Module):
     node_embs = node_embs.reshape(num_nodes, -1)
     node_hiddens = self.node_hidden_layer(node_embs)
     graph_hidden = self.graph_embedding(jnp.zeros(1, dtype=int))
-    node_hiddens = jnp.row_stack((node_hiddens, graph_hidden))
+    node_hiddens = jnp.vstack((node_hiddens, graph_hidden))
 
     # Embed positions
     # TODO(gnegiar): We need to clip the "not a node" node to make sure it
@@ -237,7 +244,7 @@ class SubgraphEmbedding(nn.Module):
     position_embs = self.position_embedding(node_ids + 1)
     position_hiddens = self.position_hidden_layer(position_embs)
     # The graph node has no position.
-    position_hiddens = jnp.row_stack(
+    position_hiddens = jnp.vstack(
         (position_hiddens, jnp.zeros(position_hiddens.shape[-1])))
 
     return node_hiddens, position_hiddens
@@ -251,9 +258,13 @@ class TransformerGraphEncoder(nn.Module):
   config: TransformerConfig
 
   @nn.compact
-  def __call__(self, node_feature_embeddings,
-               node_position_embeddings, adjacency_mat,
-               qstar):
+  def __call__(
+      self,
+      node_feature_embeddings,
+      node_position_embeddings,
+      adjacency_mat,
+      qstar,
+  ):
     """Applies the TransformerEncoder module.
 
     Args:
@@ -325,8 +336,13 @@ class TransformerClassifier(nn.Module):
     self.encoder = TransformerGraphEncoder(cfg)
     self.classifier = ClassificationHead(cfg)
 
-  def encode(self, node_features, node_ids,
-             adjacency_mat, qstar):
+  def encode(
+      self,
+      node_features,
+      node_ids,
+      adjacency_mat,
+      qstar,
+  ):
     node_feature_embeddings, node_position_embeddings = self.embedder(
         node_features, node_ids)
     return self.encoder(node_feature_embeddings, node_position_embeddings,
@@ -337,8 +353,13 @@ class TransformerClassifier(nn.Module):
     logits = self.classifier(graph_embedding)
     return logits
 
-  def __call__(self, node_features, node_ids,
-               adjacency_mat, qstar):
+  def __call__(
+      self,
+      node_features,
+      node_ids,
+      adjacency_mat,
+      qstar,
+  ):
     adjacency_mat = adjacency_mat.squeeze(-1)
     encoded_graph = self.encode(node_features, node_ids, adjacency_mat, qstar)
     # The encoder encodes the whole graph in a special token in last position

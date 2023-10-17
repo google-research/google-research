@@ -45,7 +45,7 @@ class AntheaManager {
     /** @private @const {!Element} */
     this.evalDiv_ = document.getElementById('anthea-eval-div');
     /** @private @const {!Element} */
-    this.mqmViewer_ = document.getElementById('anthea-mqm-viewer');
+    this.marot_ = document.getElementById('anthea-marot');
 
     /** @private @const {string} */
     this.ACTIVE_KEY_PREFIX_ = 'anthea-active:';
@@ -82,11 +82,11 @@ class AntheaManager {
     /** @private @const {!Element} */
     this.viewingCount_ = document.getElementById('anthea-viewing-count');
     /** @private @const {!Element} */
-    this.viewingMQMTab_ = document.getElementById('anthea-viewing-mqm-tab');
+    this.viewingMarotTab_ = document.getElementById('anthea-viewing-marot-tab');
     /** @private @const {!Element} */
-    this.viewingMQM_ = document.getElementById('anthea-viewing-mqm');
+    this.viewingMarot_ = document.getElementById('anthea-viewing-marot');
     /** @private {string} */
-    this.viewingMQMData_ = '';
+    this.viewingMarotData_ = '';
     /** @private @const {!Element} */
     this.viewingEvalTab_ = document.getElementById('anthea-viewing-eval-tab');
     /** @private @const {!Element} */
@@ -181,8 +181,8 @@ class AntheaManager {
         'change', this.handleChangeAfterDownload.bind(this));
     this.downloadButton_.addEventListener(
         'click', this.handleDownload.bind(this));
-    this.viewingMQM_.addEventListener(
-        'click', this.handleViewingMQMTab.bind(this));
+    this.viewingMarot_.addEventListener(
+        'click', this.handleViewingMarotTab.bind(this));
     this.viewingList_.addEventListener(
         'change', this.handleViewingChange.bind(this));
     this.viewingEval_.addEventListener(
@@ -277,7 +277,7 @@ class AntheaManager {
   }
 
   /**
-   * Append a messsage to to the list of messages.
+   * Append a message to to the list of messages.
    *
    * @param {string} level One of INFO/WARNING/ERROR.
    * @param {string} message The message to display.
@@ -530,8 +530,8 @@ class AntheaManager {
     this.closeMenu();
     this.clear();
     this.viewing_.style.display = '';
-    this.viewingMQMTab_.style.display = 'none';
-    this.viewingMQMData_ = '';
+    this.viewingMarotTab_.style.display = 'none';
+    this.viewingMarotData_ = '';
     let numRead = 0;
     const numToRead = this.viewFiles_.files.length;
     this.viewingCount_.innerHTML = numToRead;
@@ -542,10 +542,10 @@ class AntheaManager {
         this.addToViewingList(file.name, fileReader.result);
         numRead++;
         if (numRead == numToRead) {
-          if (this.viewingMQMData_) {
-            createMQMViewer(this.mqmViewer_, this.viewingMQMData_, false);
-            this.viewingMQMTab_.style.display = '';
-            this.handleViewingMQMTab();
+          if (this.viewingMarotData_) {
+            marot.init(this.marot_, this.viewingMarotData_);
+            this.viewingMarotTab_.style.display = '';
+            this.handleViewingMarotTab();
           }
         }
       };
@@ -593,8 +593,8 @@ class AntheaManager {
     this.evaluatingProject_.style.display = 'none';
     this.evaluatingTemplate_.style.display = 'none';
     this.viewing_.style.display = 'none';
-    this.mqmViewer_.innerHTML = '';
-    this.mqmViewer_.style.display = 'none';
+    this.marot_.innerHTML = '';
+    this.marot_.style.display = 'none';
 
     this.antheaBellQuote_.style.display = '';
   }
@@ -668,6 +668,9 @@ class AntheaManager {
     this.clearEval();
     this.antheaBellQuote_.style.display = 'none';
     this.eval_ = new AntheaEval(this, true /* readOnly */);
+    if (!evalData.template.instructions) {
+      evalData.template.instructions = '[Original instructions unavailable]';
+    }
     this.eval_.setUpEvalWithConfig(
         this.evalDiv_, evalData.templateName, evalData.template,
         evalData.parsedDocSys, evalData.results);
@@ -681,9 +684,9 @@ class AntheaManager {
    */
   handleViewingEvalTab() {
     this.viewingEvalTab_.className = 'anthea-viewing-tab-active';
-    this.mqmViewer_.style.display = 'none';
+    this.marot_.style.display = 'none';
     this.evalDiv_.style.display = '';
-    this.viewingMQMTab_.className = 'anthea-viewing-tab';
+    this.viewingMarotTab_.className = 'anthea-viewing-tab';
   }
 
   /**
@@ -694,15 +697,15 @@ class AntheaManager {
   }
 
   /**
-   * Event handler for a click on 'MQM Analysis'.
+   * Event handler for a click on 'Marot'.
    */
-  handleViewingMQMTab() {
-    this.viewingMQMTab_.className = 'anthea-viewing-tab-active';
+  handleViewingMarotTab() {
+    this.viewingMarotTab_.className = 'anthea-viewing-tab-active';
     this.viewingEvalTab_.className = 'anthea-viewing-tab';
     this.antheaBellQuote_.style.display = 'none';
-    this.log(this.INFO, 'Viewing MQM Analysis ');
+    this.log(this.INFO, 'Viewing Marot Analysis ');
     this.evalDiv_.style.display = 'none';
-    this.mqmViewer_.style.display = '';
+    this.marot_.style.display = '';
   }
 
   /**
@@ -726,7 +729,7 @@ class AntheaManager {
    * @param {!Object} error The error object, with start and end properties.
    * @return {string} The text after marking the error span.
    */
-  markMQMSpan(text, error) {
+  markErrorSpan(text, error) {
     const tokens = AntheaEval.tokenize(text);
     const start = error['start'];
     const end = error['end'];
@@ -754,22 +757,22 @@ class AntheaManager {
   }
 
   /**
-   * Get MQM-format data for the one error in the current segment.
+   * Get Marot-format data for the one error in the current segment.
    * @param {!Object} parsedData The full evaluation data.
    * @param {!AntheaDocSys} docsys The current AntheaDocSys.
    * @param {number} segIndex Index of the segment in this doc.
    * @param {string} src The source segment text.
    * @param {string} tgt The translated segment text.
    * @param {!Object} error The error object.
-   * @return {string} One line of MQM TSV data.
+   * @return {string} One line of Marot-formatted TSV data.
    */
-  getMQMSegData(parsedData, docsys, segIndex, src, tgt, error) {
+  getMarotSegData(parsedData, docsys, segIndex, src, tgt, error) {
     if (error.location == 'source') {
       error.metadata.source_spans = [[error['start'], error['end']]];
-      src = this.markMQMSpan(src, error);
+      src = this.markErrorSpan(src, error);
     } else if (error.location == 'translation') {
       error.metadata.target_spans = [[error['start'], error['end']]];
-      tgt = this.markMQMSpan(tgt, error);
+      tgt = this.markErrorSpan(tgt, error);
     }
     src = this.cleanText(src);
     tgt = this.cleanText(tgt);
@@ -785,7 +788,7 @@ class AntheaManager {
         }
       }
     }
-    let mqmSegData =
+    let marotSegData =
         docsys.sys +
         '\t' + docsys.doc +
         '\t' + segIndex +
@@ -796,33 +799,45 @@ class AntheaManager {
         '\t' + type + (subtype ? '/' + subtype : '') +
         '\t' + error['severity'] +
         '\t' + JSON.stringify(error.metadata);
-     mqmSegData += '\n';
-     return mqmSegData;
+     marotSegData += '\n';
+     return marotSegData;
   }
 
   /**
-   * Get sentence-split token sizes of text.
-   * 
+   * Get sentence-splits for text. Returns an array of objects, each with these
+   * fields:
+   *   num_tokens: number of tokens in the sentence.
+   *   ends_with_para_break: present and true if the sentence ends with '\n\n'.
+   *   ends_with_line_break: present and true if the sentence ends with '\n'
+   *                         (but not '\n\n').
    * @param {string} text
-   * @return {!Array<number>}
+   * @return {!Array<!Object>}
    */
-  getSentenceTokenSizes(text) {
+  getSentenceSplits(text) {
     const sentences = text.split('\u200b\u200b');
-    const sentence_token_sizes = [];
+    const sentence_splits = [];
     for (let sent of sentences) {
       const tokens = AntheaEval.tokenize(sent);
-      sentence_token_sizes.push(tokens.length);
+      const split = {
+        num_tokens: tokens.length
+      };
+      if (sent.endsWith('\n\n')) {
+        split.ends_with_para_break = true;
+      } else if (sent.endsWith('\n')) {
+        split.ends_with_line_break = true;
+      }
+      sentence_splits.push(split);
     }
-    return sentence_token_sizes;
+    return sentence_splits;
   }
 
   /**
-   * Return TSV-formatted MQM data from the parsed evaluation data.
+   * Return TSV-formatted Marot data from the parsed evaluation data.
    * @param {!Object} parsedData The parsed evaluation data.
    * @return {string}
    */
-  getMQMData(parsedData) {
-    let mqmData = '';
+  getMarotData(parsedData) {
+    let marotData = '';
     let resultIndex = 0;
     let evalMetadataAdded = false;
     for (let docsys of parsedData.parsedDocSys) {
@@ -845,46 +860,46 @@ class AntheaManager {
         if (!segResult.visited) {
           continue;
         }
-        const errors = segResult.errors.slice();
+        const errors = [];
+        const deletedErrors = [];
         let needNoError = true;
-        for (let e of errors) {
+        for (let e of segResult.errors) {
+          if (segResult.prior_rater) {
+            e.metadata.prior_rater = segResult.prior_rater;
+          }
+          if (e.marked_deleted) {
+            deletedErrors.push(e);
+            continue;
+          }
+          errors.push(e);
           if (e.severity && e.severity != 'HOTW-test') {
             needNoError = false;
-            break;
           }
         }
         if (needNoError) {
-          errors.push({
-            'severity': 'No-error',
-            'type': 'No-error',
-            'subtype': '',
-            'location': '',
-            'start': 0,
-            'end': 0,
-            'metadata': {
-              timestamp: segResult.timestamp,
-              timing: segResult.timing,
-            },
-          });
+          const noError = new AntheaError;
+          noError.severity = 'No-error';
+          noError.type = 'No-error';
+          noError.metadata.timestamp = segResult.timestamp;
+          noError.metadata.timing = segResult.timing;
+          if (segResult.prior_rater) {
+            noError.metadata.prior_rater = segResult.prior_rater;
+          }
+          errors.push(noError);
         }
         for (let hotw of segResult.hotw_list) {
           if (!hotw.done) {
             continue;
           }
-          errors.push({
-            'severity': 'HOTW-test',
-            'type': (hotw.found ? 'Found' : 'Missed'),
-            'subtype': '',
-            'location': '',
-            'start': 0,
-            'end': 0,
-            'metadata': {
-              timestamp: hotw.timestamp,
-              timing: hotw.timing,
-              'note': this.cleanText(hotw.injected_error),
-              'sentence_index': hotw.sentence_index,
-            },
-          });
+          const hotwError = new AntheaError;
+          hotwError.severity = 'HOTW-test';
+          hotwError.type = (hotw.found ? 'Found' : 'Missed');
+          hotwError.metadata.timestamp = hotw.timestamp;
+          hotwError.metadata.timing = hotw.timing;
+          hotwError.metadata.sentence_index = hotw.sentence_index;
+          hotwError.metadata.hotw_error = this.cleanText(hotw.injected_error);
+          hotwError.metadata.hotw_type = hotw.hotw_type;
+          errors.push(hotwError);
         }
         let isFirst = true;
         for (let error of errors) {
@@ -901,11 +916,12 @@ class AntheaManager {
             error.metadata.note = error.note;
           }
           if (isFirst) {
+            error.metadata.deleted_errors = deletedErrors;
             error.metadata.segment = {
               source_tokens: AntheaEval.tokenize(src),
               target_tokens: AntheaEval.tokenize(tgt),
-              source_sentence_tokens: this.getSentenceTokenSizes(src),
-              target_sentence_tokens: this.getSentenceTokenSizes(tgt),
+              source_sentence_splits: this.getSentenceSplits(src),
+              target_sentence_splits: this.getSentenceSplits(tgt),
             };
             if (startsPara) {
               error.metadata.segment.starts_paragraph = true;
@@ -956,12 +972,12 @@ class AntheaManager {
             }
             isFirst = false;
           }
-          mqmData += this.getMQMSegData(parsedData, docsys,
-                                        segIndex, src, tgt, error);
+          marotData += this.getMarotSegData(parsedData, docsys,
+                                            segIndex, src, tgt, error);
         }
       }
     }
-    return mqmData;
+    return marotData;
   }
 
   /**
@@ -1013,7 +1029,7 @@ class AntheaManager {
               Evaluated by: ${parsedData.raterId}
           </option>`);
       this.viewingListData_.push(parsedData);
-      this.viewingMQMData_ += this.getMQMData(parsedData);
+      this.viewingMarotData_ += this.getMarotData(parsedData);
     } catch (err) {
       this.clear();
       this.log(this.ERROR, 'Failed to open evaluation data file ' +

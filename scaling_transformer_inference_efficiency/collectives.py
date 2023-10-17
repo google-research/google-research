@@ -29,7 +29,7 @@ import numpy as np
 
 def interleave(a, b):
   """Interleave two 1D arrays."""
-  return jnp.dstack((a, b)).flatten()
+  return jnp.dstack((a, b)).flatten()  # pytype: disable=wrong-arg-types  # jnp-type
 
 
 def split_apart_axis(x, num_splits, axis):
@@ -112,9 +112,11 @@ def matmul_allgather_no_collective(
     rhs_split_axis,
     axis_name,
     layer,
-    layer_axis=0):
+    layer_axis=0,
+):
   """Non-overlapped allgather matmul using default allgather."""
-  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
+  if layer is not None:
+    rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
   lhs = lax.all_gather(lhs, axis_name, axis=rhs_split_axis, tiled=True)
   return jnp.einsum(einsum_spec, lhs, rhs)
 
@@ -126,7 +128,8 @@ def allgather_matmul_one_way(
     rhs_split_axis,
     axis_name,
     layer,
-    layer_axis=0):
+    layer_axis=0,
+):
   """Uses a single ICI direction, overlapped all gather -> matmul.
 
   Example usage:
@@ -308,7 +311,8 @@ def allgather_matmul_throughput(
 def preshuffle_for_allgather_matmul_latency(
     x,
     shuffle_axis,
-    axis_name):
+    axis_name,
+):
   """Pre-shuffle weights for allgather_matmul_latency.
 
     Function acts at a per-device view.
@@ -436,9 +440,11 @@ def matmul_reducescatter_no_collective(
     scatter_axis,
     axis_name,
     layer,
-    layer_axis=0):
+    layer_axis=0,
+):
   """Non overlapped matmul reduce scatter using default psum_scatter."""
-  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
+  if layer is not None:
+    rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
   tmp = jnp.einsum(einsum_spec, lhs, rhs)
   result = lax.psum_scatter(
       tmp, axis_name, scatter_dimension=scatter_axis, tiled=True)
@@ -650,7 +656,8 @@ def matmul_reducescatter_throughput(einsum_spec,
 def preshuffle_for_reducescatter_latency(
     x,
     scatter_axis,
-    axis_name):
+    axis_name,
+):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
   Function acts at a per-device view.
@@ -683,14 +690,16 @@ def preshuffle_for_reducescatter_latency(
   return permuted
 
 
-def matmul_reducescatter_latency(einsum_spec,
-                                 lhs,
-                                 rhs,
-                                 scatter_axis,
-                                 axis_name,
-                                 layer,
-                                 subsplit_axis,
-                                 layer_axis=0):
+def matmul_reducescatter_latency(
+    einsum_spec,
+    lhs,
+    rhs,
+    scatter_axis,
+    axis_name,
+    layer,
+    subsplit_axis,
+    layer_axis=0,
+):
   """Uses a two ICI directions, pre-communicate to halve the steps.
 
   Usage:

@@ -86,7 +86,8 @@ class DatasetTest(absltest.TestCase):
           expected_num_datasets=len(self.dataset.dataset_names) + 1)
 
   def test_verify_dataset_integrity_with_inconsistent_dataframes(self):
-    self.dataset.dft_df = self.dataset.dft_df.append(pd.Series(name='mol'))
+    self.dataset.dft_df = pd.concat(
+        [self.dataset.dft_df, pd.Series(name='mol').to_frame().T])
 
     with self.assertRaisesRegex(
         ValueError, 'dft_df contains rows not used by property_df.'):
@@ -108,7 +109,8 @@ class DatasetTest(absltest.TestCase):
                             self.dataset.property_df['num_single_points'])
 
   def test_filter_dft_df_with_property_df(self):
-    dft_df_long = self.dataset.dft_df.append(pd.Series(name='mol'))
+    dft_df_long = pd.concat(
+        [self.dataset.dft_df, pd.Series(name='mol').to_frame().T])
 
     dft_df_filtered = dataset.Dataset.filter_dft_df_with_property_df(
         self.dataset.property_df, dft_df_long)
@@ -143,7 +145,8 @@ class DatasetTest(absltest.TestCase):
     self.assertEmpty(subset.property_df)
 
   def test_get_subset_with_wrong_property_df_subset(self):
-    property_df_subset = self.dataset.property_df.append(pd.Series(name='mol'))
+    property_df_subset = pd.concat(
+        [self.dataset.property_df, pd.Series(name='mol').to_frame().T])
 
     with self.assertRaisesRegex(
         ValueError, 'Input dataframe is not a subset of property_df.'):

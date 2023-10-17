@@ -142,7 +142,7 @@ class LatentProgramTransformer(nn.Module):
              latents_padding_mask,
              encoded_padding_mask):
     """Applies decoder on programs and encoded specification."""
-    cfg = self.config
+    cfg = self.config.base_cfg
 
     assert programs.ndim == 2, ('Number of program dimensions should be 2,'
                                 ' but it is: %d' % programs.ndim)

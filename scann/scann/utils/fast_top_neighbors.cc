@@ -151,8 +151,15 @@ size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
 
   SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
       "ZipNthElementBranchOptimized from %d => %d elements", sz, keep_min);
-  ZipNthElementBranchOptimized(std::less<DistT>(), keep_min - 1, dd, dd + sz,
-                               ii, ii + sz);
+  vector<pair<DatapointIndexT, DistT>> tmp(sz);
+  for (size_t i : Seq(sz)) {
+    tmp[i] = {ii[i], dd[i]};
+  }
+  ZipNthElementBranchOptimized(DistanceComparatorBranchOptimized(),
+                               keep_min - 1, tmp.begin(), tmp.end());
+  for (size_t i : Seq(sz)) {
+    std::tie(ii[i], dd[i]) = tmp[i];
+  }
 
   dd[keep_min] = dd[keep_min - 1];
   ii[keep_min] = ii[keep_min - 1];
@@ -170,10 +177,15 @@ void FastTopNeighbors<DistT, DatapointIndexT>::AllocateArrays(size_t capacity) {
 }
 
 template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::FillDistancesForASan() {
+void FastTopNeighbors<DistT, DatapointIndexT>::FillDistancesForMSan() {
+#ifdef MEMORY_SANITIZER
+
   constexpr size_t kPadding = 96;
-  std::fill(distances_.get() + sz_, distances_.get() + capacity_ + kPadding,
-            epsilon_);
+  DistT* start = distances_.get() + sz_;
+  DistT* end = distances_.get() + capacity_ + kPadding;
+  const size_t len = (end - start) * sizeof(DistT);
+  __msan_unpoison(start, len);
+#endif
 }
 
 template <typename DistT, typename DatapointIndexT>
@@ -187,7 +199,7 @@ void FastTopNeighbors<DistT, DatapointIndexT>::ReallocateForPureEnn() {
 
   std::copy(old_indices.get(), old_indices.get() + sz_, indices_.get());
   std::copy(old_distances.get(), old_distances.get() + sz_, distances_.get());
-  FillDistancesForASan();
+  FillDistancesForMSan();
 }
 
 template <typename DistT, typename DatapointIndexT>

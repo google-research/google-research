@@ -56,7 +56,7 @@ gin.external_configurable(initializers.he_normal, "he_normal")
 gin.external_configurable(initializers.xavier_uniform, "xavier_uniform")
 gin.external_configurable(initializers.xavier_normal, "xavier_normal")
 gin.constant("jnp.bfloat16", jnp.bfloat16)
-PRNGKey = Union[jax.numpy.ndarray, jax.random.KeyArray]
+PRNGKey = Union[jax.numpy.ndarray, jax.Array]
 
 
 class ExecutionMode(enum.Enum):
@@ -480,6 +480,18 @@ def train_vmoe_mtl(
         output_dir, mesh, input_fn_det=input_fn_det, input_fn_cls=input_fn_cls)
 
 
+def tree_shape_dtype_struct(tree):
+  """Converts a PyTree with array-like objects to jax.ShapeDtypeStruct."""
+
+  def fn(x):
+    shape, dtype = x.shape, x.dtype
+    # Useful to convert Tensorflow Tensors.
+    dtype = dtype.as_numpy_dtype if hasattr(dtype, "as_numpy_dtype") else dtype
+    return jax.ShapeDtypeStruct(shape=shape, dtype=dtype)
+
+  return jax.tree_map(fn, tree)
+
+
 @gin.configurable(denylist=["output_dir", "mesh"])
 def _train_vmoe_mtl(
     output_dir,
@@ -778,16 +790,17 @@ def _train_vmoe_mtl(
 
   train_step_pjit = pjit.pjit(
       fun=functools.partial(train_step),
-      in_axis_resources=(
+      in_shardings=(
           train_state_axis_resources,  # train_state
           resources_det,  # images
           resources_cls,
       ),
-      out_axis_resources=(
+      out_shardings=(
           train_state_axis_resources,  # train_state
           None,  # metrics
       ),
-      donate_argnums=(0, 1, 2))
+      donate_argnums=(0, 1, 2),
+  )
 
   writer = metric_writers.create_default_writer(
       logdir=output_dir, just_logging=jax.process_index() > 0)
@@ -798,7 +811,7 @@ def _train_vmoe_mtl(
       first_step=int(init_step) + 1,
       train_steps=total_train_steps,
       **progress_config)
-  checkpoint_hook = trainer.create_checkpoint_hook(
+  checkpoint_hook = trainer.create_checkpoint_hook(  # pytype: disable=module-attr
       workdir=output_dir,
       progress_hook=progress_hook,
       train_state_axis_resources=train_state_axis_resources,
@@ -810,8 +823,8 @@ def _train_vmoe_mtl(
     t0 = time.time()
     # logging.info(jax.tree_map(lambda x: x.shape, batch))
     train_step_pjit = train_step_pjit.lower(
-        *utils.tree_shape_dtype_struct((train_state, sample_det,
-                                        sample_cls))).compile()
+        *tree_shape_dtype_struct((train_state, sample_det, sample_cls))
+    ).compile()
 
     t1 = time.time()
     writer.write_scalars(init_step + 1, {"train/compile_secs": t1 - t0})
@@ -819,12 +832,10 @@ def _train_vmoe_mtl(
     logging.info("create dataloader.")
     tr_iter_cls = pjit_utils.prefetch_to_device(
         iterator=make_dataset_iterator(dataset_cls),
-        axis_resources=jax.tree_map(lambda x: PartitionSpec(), batch_cls),
         size=2,
         mesh=mesh)
     tr_iter_det = pjit_utils.prefetch_to_device(
         iterator=make_dataset_iterator(dataset_det),
-        axis_resources=jax.tree_map(lambda x: PartitionSpec(), batch_det),
         size=2,
         mesh=mesh)
 
@@ -1288,8 +1299,6 @@ def restore_or_create_train_state(
     train_state = checkpoints_partitioned.restore_checkpoint(
         prefix=prefix,
         tree=jax.eval_shape(state_init_fn, rngs),
-        axis_resources=axis_resources,
-        mesh=mesh,
         thread_pool=thread_pool)
     # Copy TrainState to device memory, and return.
     with jax.sharding.Mesh(mesh.devices, mesh.axis_names):
@@ -1348,8 +1357,8 @@ def _train_and_validate_vmoe_mtl(
     raise ValueError("output_dir should be a non-empty path.")
   dataset_det, batch_det = create_input_generator(input_fn_det)
   dataset_cls, batch_cls = create_input_generator(input_fn_cls)
-  val_dataset_det, val_batch_det = create_input_generator(val_input_fn_det)
-  val_dataset_cls, val_batch_cls = create_input_generator(val_input_fn_cls)
+  val_dataset_det, _ = create_input_generator(val_input_fn_det)
+  val_dataset_cls, _ = create_input_generator(val_input_fn_cls)
   if isinstance(batch_det, tuple):
     images_det, labels_det = batch_det
     sample_det = {"images_det": images_det, "labels_det": labels_det}
@@ -1654,26 +1663,28 @@ def _train_and_validate_vmoe_mtl(
     )
   train_step_pjit = pjit.pjit(
       fun=functools.partial(train_step),
-      in_axis_resources=(
+      in_shardings=(
           train_state_axis_resources,  # train_state
           resources_det,  # images
           resources_cls,
       ),
-      out_axis_resources=(
+      out_shardings=(
           train_state_axis_resources,  # train_state
           None,  # metrics
       ),
-      donate_argnums=(0, 1, 2))
+      donate_argnums=(0, 1, 2),
+  )
 
   val_step_pjit = pjit.pjit(
       fun=val_step,
-      in_axis_resources=(
+      in_shardings=(
           train_state_axis_resources,  # train_state
           resources_det,  # images
           resources_cls,
       ),
-      out_axis_resources=None,
-      donate_argnums=(1, 2))
+      out_shardings=None,
+      donate_argnums=(1, 2),
+  )
   assign_pjit = pjit.pjit(
       fun=assign_func,
       in_shardings=(train_state_axis_resources, None, None, None, None),
@@ -1688,7 +1699,7 @@ def _train_and_validate_vmoe_mtl(
       first_step=int(init_step) + 1,
       train_steps=int(total_train_steps),
       **progress_config)
-  checkpoint_hook = trainer.create_checkpoint_hook(
+  checkpoint_hook = trainer.create_checkpoint_hook(  # pytype: disable=module-attr
       workdir=output_dir,
       progress_hook=progress_hook,
       train_state_axis_resources=train_state_axis_resources,
@@ -1700,32 +1711,28 @@ def _train_and_validate_vmoe_mtl(
     t0 = time.time()
     # logging.info(jax.tree_map(lambda x: x.shape, batch))
     train_step_pjit = train_step_pjit.lower(
-        *utils.tree_shape_dtype_struct((train_state, sample_det,
-                                        sample_cls))).compile()
+        *tree_shape_dtype_struct((train_state, sample_det, sample_cls))
+    ).compile()
     val_step_pjit = val_step_pjit.lower(
-        *utils.tree_shape_dtype_struct((train_state, sample_det,
-                                        sample_cls))).compile()
+        *tree_shape_dtype_struct((train_state, sample_det, sample_cls))
+    ).compile()
 
     t1 = time.time()
     writer.write_scalars(init_step + 1, {"train/compile_secs": t1 - t0})
     tr_iter_cls = pjit_utils.prefetch_to_device(
         iterator=make_dataset_iterator(dataset_cls),
-        axis_resources=jax.tree_map(lambda x: PartitionSpec(), batch_cls),
         size=2,
         mesh=mesh)
     tr_iter_det = pjit_utils.prefetch_to_device(
         iterator=make_dataset_iterator(dataset_det),
-        axis_resources=jax.tree_map(lambda x: PartitionSpec(), batch_det),
         size=2,
         mesh=mesh)
     val_iter_cls = pjit_utils.prefetch_to_device(
         iterator=make_dataset_iterator(val_dataset_cls),
-        axis_resources=jax.tree_map(lambda x: PartitionSpec(), val_batch_cls),
         size=2,
         mesh=mesh)
     val_iter_det = pjit_utils.prefetch_to_device(
         iterator=make_dataset_iterator(val_dataset_det),
-        axis_resources=jax.tree_map(lambda x: PartitionSpec(), val_batch_det),
         size=2,
         mesh=mesh)
     encoder_config = gin.query_parameter(
@@ -1853,26 +1860,28 @@ def _train_and_validate_vmoe_mtl(
           del val_step_pjit
           train_step_pjit = pjit.pjit(
               fun=train_step,
-              in_axis_resources=(
+              in_shardings=(
                   train_state_axis_resources,  # train_state
                   resources_det,  # images
                   resources_cls,
               ),
-              out_axis_resources=(
+              out_shardings=(
                   train_state_axis_resources,  # train_state
                   None,  # metrics
               ),
-              donate_argnums=(1, 2))
+              donate_argnums=(1, 2),
+          )
 
           val_step_pjit = pjit.pjit(
               fun=val_step,
-              in_axis_resources=(
+              in_shardings=(
                   train_state_axis_resources,  # train_state
                   resources_det,  # images
                   resources_cls,
               ),
-              out_axis_resources=None,
-              donate_argnums=(1, 2))
+              out_shardings=None,
+              donate_argnums=(1, 2),
+          )
           flag = True
 
       train_state = assign_pjit(train_state, current_k_det, current_k_cls,

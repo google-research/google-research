@@ -22,14 +22,14 @@ import abc
 import collections
 from typing import Optional, Tuple
 
+import cv2
 import numpy as np
 import torch
 from xirl.models import SelfSupervisedModel
 
-import cv2
-
 Batch = collections.namedtuple(
-    "Batch", ["obses", "actions", "rewards", "next_obses", "masks"])
+    "Batch", ["obses", "actions", "rewards", "next_obses", "masks"]
+)
 TensorType = torch.Tensor
 ModelType = SelfSupervisedModel
 

@@ -28,17 +28,13 @@ import sys
 import time
 import warnings
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage as ski
 import tensorflow as tf
 
 from keypose import utils
-
-try:
-  import cv2  # pylint: disable=g-import-not-at-top
-except ImportError as e:
-  print(e)
 
 
 def image_as_ubyte(image):

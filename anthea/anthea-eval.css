@@ -89,6 +89,9 @@
   position: relative;
   margin-top: 12px;
 }
+.anthea-deleted-error {
+  text-decoration: line-through;
+}
 .anthea-docnav-eval-button {
   margin-right: 8px;
   padding: 12px;
@@ -149,6 +152,9 @@
 .anthea-document-text-table > tr:nth-of-type(3) > td {
   border-top: 0 solid;
 }
+.anthea-being-edited {
+  text-decoration: red wavy underline;
+}
 .anthea-error-button {
   background-color: lightblue;
   text-align: left;
@@ -195,12 +201,12 @@
   text-align: center;
 }
 .anthea-eval-panel {
+  background: white;
   border-top: 1px solid black;
   box-sizing: border-box;
   display: inline-block;
   left: 0;
   max-height: 640px;
-  overflow-y: auto;
   position: absolute;
   text-align: left;
   width: 100%;
@@ -214,11 +220,15 @@
   text-align: center;
   vertical-align: top;
 }
+.anthea-eval-panel-mod {
+  min-height: 6ex;
+  width: 24px;
+}
 .anthea-eval-panel-nav {
   width: 25px;
 }
-.anthea-eval-panel-short {
-  min-height: 6ex;
+.anthea-eval-panel-row:hover .anthea-modifier-menu {
+  display: block;
 }
 .anthea-eval-panel-subtypes {
   background-clip: border-box;
@@ -275,7 +285,7 @@
 .anthea-feedback-panel {
   background-image:
     repeating-linear-gradient(to bottom, white, white 13px, lightgray 14px);
-  height: 150px;
+  height: 80px;
   outline: none;
   text-align: left;
   white-space: break-spaces;
@@ -326,6 +336,22 @@
 }
 .anthea-hotw-revealed {
   background: lightblue;
+}
+.anthea-modifier-menu-button {
+  background: whitesmoke;
+  min-height: 4ex;
+  min-width: 140px;
+}
+.anthea-modifier-menu-parent {
+  position: relative;
+}
+.anthea-modifier-menu {
+  background: white;
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 6ex;
+  z-index: 3;
 }
 .anthea-mqm-instructions li {
   line-height: 1.2;

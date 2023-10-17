@@ -384,10 +384,12 @@ class TransformT(object):
 identity = TransformT('Identity', lambda pil_img, level: pil_img)
 flip_lr = TransformT(
     'FlipLR',
-    lambda pil_img, level: pil_img.transpose(Image.FLIP_LEFT_RIGHT))
+    lambda pil_img, level: pil_img.transpose(Image.Transpose.FLIP_LEFT_RIGHT),
+)
 flip_ud = TransformT(
     'FlipUD',
-    lambda pil_img, level: pil_img.transpose(Image.FLIP_TOP_BOTTOM))
+    lambda pil_img, level: pil_img.transpose(Image.Transpose.FLIP_TOP_BOTTOM),
+)
 # pylint:disable=g-long-lambda
 auto_contrast = TransformT(
     'AutoContrast',
@@ -446,7 +448,9 @@ def _shear_x_impl(pil_img, level):
   level = float_parameter(level, 0.3)
   if random.random() > 0.5:
     level = -level
-  return pil_img.transform((32, 32), Image.AFFINE, (1, level, 0, 0, 1, 0))
+  return pil_img.transform(
+      (32, 32), Image.Transform.AFFINE, (1, level, 0, 0, 1, 0)
+  )
 
 
 shear_x = TransformT('ShearX', _shear_x_impl)
@@ -469,7 +473,9 @@ def _shear_y_impl(pil_img, level):
   level = float_parameter(level, 0.3)
   if random.random() > 0.5:
     level = -level
-  return pil_img.transform((32, 32), Image.AFFINE, (1, 0, 0, level, 1, 0))
+  return pil_img.transform(
+      (32, 32), Image.Transform.AFFINE, (1, 0, 0, level, 1, 0)
+  )
 
 
 shear_y = TransformT('ShearY', _shear_y_impl)
@@ -492,7 +498,9 @@ def _translate_x_impl(pil_img, level):
   level = int_parameter(level, 10)
   if random.random() > 0.5:
     level = -level
-  return pil_img.transform((32, 32), Image.AFFINE, (1, 0, level, 0, 1, 0))
+  return pil_img.transform(
+      (32, 32), Image.Transform.AFFINE, (1, 0, level, 0, 1, 0)
+  )
 
 
 translate_x = TransformT('TranslateX', _translate_x_impl)
@@ -515,13 +523,15 @@ def _translate_y_impl(pil_img, level):
   level = int_parameter(level, 10)
   if random.random() > 0.5:
     level = -level
-  return pil_img.transform((32, 32), Image.AFFINE, (1, 0, 0, 0, 1, level))
+  return pil_img.transform(
+      (32, 32), Image.Transform.AFFINE, (1, 0, 0, 0, 1, level)
+  )
 
 
 translate_y = TransformT('TranslateY', _translate_y_impl)
 
 
-def _crop_impl(pil_img, level, interpolation=Image.BILINEAR):
+def _crop_impl(pil_img, level, interpolation=Image.Resampling.BILINEAR):
   """Applies a crop to `pil_img` with the size depending on the `level`."""
   cropped = pil_img.crop((level, level, IMAGE_SIZE - level, IMAGE_SIZE - level))
   resized = cropped.resize((IMAGE_SIZE, IMAGE_SIZE), interpolation)

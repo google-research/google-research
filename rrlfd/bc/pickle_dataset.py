@@ -489,7 +489,8 @@ class DemoReader:
     e = cos / scale_y
     f = y - nx * d - ny * e
     image = image.transform(
-        image.size, Image.AFFINE, (a, b, c, d, e, f), fillcolor=255)
+        image.size, Image.Transform.AFFINE, (a, b, c, d, e, f), fillcolor=255
+    )
     return image
 
   def augment_images(self, observations):

@@ -107,7 +107,7 @@ class KVCache:
         lengths=P('attn_batch'),
         k=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
         v=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
-        offset=P(None),
+        offset=P(),
         circular=circular,
     )  # pytype: disable=wrong-arg-types
 
@@ -151,7 +151,10 @@ def flat_broadcast(x, size):
 
 
 def _attend_chunk_multihead(
-    q, k, v, mask
+    q,
+    k,
+    v,
+    mask,
 ):
   """Multihead attention over a single chunk.
 
@@ -207,7 +210,10 @@ def _attend_chunk_multihead(
 
 
 def _attend_chunk(
-    q, k, v, mask
+    q,
+    k,
+    v,
+    mask,
 ):
   """Multiquery attention over a single chunk.
 
@@ -218,8 +224,8 @@ def _attend_chunk(
     q: Query. f32[qbatch, qlen, num_heads, d_qkv].
     k: Key. f32[kbatch, klen, (num_heads,)? d_qkv].
     v: Value. f32[kbatch, klen, (num_heads,)? d_qkv].
-    mask: Attention mask. Broadcastable to
-      bool[kbatch, qbatch // kbatch, num_heads, qlen, klen].
+    mask: Attention mask. Broadcastable to bool[kbatch, qbatch // kbatch,
+      num_heads, qlen, klen].
 
   Returns:
     (local_out, local_max, local_sum), where:
@@ -231,7 +237,12 @@ def _attend_chunk(
       f32[qbatch, qlen, num_heads, 1]
   """
   if k.ndim == 4:
-    return _attend_chunk_multihead(q, k, v, mask)
+    return _attend_chunk_multihead(
+        q,
+        k,
+        v,
+        mask,
+    )
 
   q_batch, qlen, num_heads, qkv = q.shape
   kv_batch, klen, qkv = k.shape
@@ -369,7 +380,12 @@ def attend(
       # mask: [kbatch, num_samples, num_heads, qlen, klen]
       mask = mask[:, np.newaxis, np.newaxis, np.newaxis, :]
 
-      local_out, local_max, local_sum = _attend_chunk(q, cache_k, cache_v, mask)
+      local_out, local_max, local_sum = _attend_chunk(
+          q,
+          cache_k,
+          cache_v,
+          mask,
+      )
       local_outs.append(local_out)
       local_maxes.append(local_max)
       local_sums.append(local_sum)
@@ -380,7 +396,10 @@ def attend(
       cache_k = my_layer(kv_cache.k)
       cache_v = my_layer(kv_cache.v)
       local_out, local_max, local_sum = _attend_chunk(
-          q, cache_k, cache_v, custom_prefix_mask
+          q,
+          cache_k,
+          cache_v,
+          custom_prefix_mask,
       )
       local_outs.append(local_out)
       local_maxes.append(local_max)
@@ -396,7 +415,12 @@ def attend(
       mask = q_iota >= k_iota
     else:
       mask = custom_mask
-    local_out, local_max, local_sum = _attend_chunk(q, k, v, mask)
+    local_out, local_max, local_sum = _attend_chunk(
+        q,
+        k,
+        v,
+        mask,
+    )
     local_outs.append(local_out)
     local_maxes.append(local_max)
     local_sums.append(local_sum)

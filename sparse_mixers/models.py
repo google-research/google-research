@@ -505,7 +505,7 @@ class SequenceClassificationModel(nn.Module):
       # Logits have shape: [BATCH_SIZE, 1].
       per_example_loss = jnp.sum((logits[Ellipsis, 0] - labels)**2, axis=-1)
       batch_loss = jnp.mean(per_example_loss)
-      return ClassificationStats(batch_loss=batch_loss, num_labels=labels.size)
+      return ClassificationStats(batch_loss=batch_loss, num_labels=labels.size)  # pytype: disable=wrong-arg-types  # jnp-type
 
     else:  # Classification task
       # Logits have shape: [BATCH_SIZE, self.n_classes].
@@ -514,7 +514,7 @@ class SequenceClassificationModel(nn.Module):
           onehot(labels, logits.shape[-1]) * logits, axis=-1)
       batch_loss = jnp.mean(per_example_loss)
       correct_predictions = jnp.sum(logits.argmax(-1) == labels)
-      return ClassificationStats(
+      return ClassificationStats(  # pytype: disable=wrong-arg-types  # jnp-type
           batch_loss=batch_loss,
           num_labels=labels.size,
           correct_predictions=correct_predictions)

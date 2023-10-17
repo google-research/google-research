@@ -83,7 +83,7 @@ class FastTopNeighbors {
     }
 
     AllocateArrays(capacity_);
-    FillDistancesForASan();
+    FillDistancesForMSan();
   }
 
   void InitWithCapacity(size_t capacity) {
@@ -91,7 +91,7 @@ class FastTopNeighbors {
     epsilon_.store(MaxOrInfinity<DistT>(), std::memory_order_relaxed);
     capacity_ = max_capacity_ = capacity;
     AllocateArrays(capacity_);
-    FillDistancesForASan();
+    FillDistancesForMSan();
   }
 
   SCANN_INLINE DistT epsilon() const {
@@ -131,6 +131,11 @@ class FastTopNeighbors {
     auto indices = MutableSpan<DatapointIndexT>(indices_.get(), sz_);
     auto dists = MutableSpan<DistT>(distances_.get(), sz_);
     return std::make_pair(indices, dists);
+  }
+
+  SCANN_INLINE void resize(size_t new_sz) {
+    DCHECK_LE(new_sz, sz_);
+    sz_ = new_sz;
   }
 
   SCANN_INLINE pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
@@ -180,7 +185,7 @@ class FastTopNeighbors {
   }
 
   void AllocateArrays(size_t capacity);
-  void FillDistancesForASan();
+  void FillDistancesForMSan();
   void ReallocateForPureEnn();
 
   SCANN_INLINE void ReleaseMutator(ssize_t pushes_remaining_negated) {
@@ -245,6 +250,8 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
   SCANN_INLINE DistT epsilon() const {
     return parent_->epsilon_.load(std::memory_order_relaxed);
   }
+
+  size_t max_results() const { return parent_->max_results_; }
 
   SCANN_INLINE void GarbageCollect() {
     parent_->sz_ = parent_->capacity_ + pushes_remaining_negated_;

@@ -427,7 +427,8 @@ def update_incremental_mean(
     metrics,
     counts,
     batch_metrics,
-    batch_or_none):
+    batch_or_none,
+):
   """Update averaged metrics in-place with batch metrics weighted by batch size.
 
   Args:

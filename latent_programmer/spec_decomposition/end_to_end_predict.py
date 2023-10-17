@@ -21,6 +21,7 @@
 import collections
 import functools
 import itertools
+import json
 import os
 import statistics
 import sys
@@ -593,11 +594,15 @@ def main(_):
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
   hparam_dict = work_unit.parameters['args']
-  hparam_str = ','.join(sorted([f'{k}={v}' for k, v in hparam_dict.items()]))
+  hparam_str = 'hparams-' + ','.join(sorted([f'{k}={v}'
+                                             for k, v in hparam_dict.items()]))
 
-  if jax.host_id() == 0:
-    summary_writer = tensorboard.SummaryWriter(
-        os.path.join(_SAVE_DIR.value, 'tb', hparam_str))
+  write_summary = jax.host_id() == 0
+  tb_dir = (os.path.join(_SAVE_DIR.value, 'tb', hparam_str) if write_summary
+            else '')
+  summary_writer = tensorboard.SummaryWriter(tb_dir)
+  result_json_path = os.path.join(
+      tb_dir, f'results-{_PREDICTION_TYPE.value}.json')
 
   # TODO(jxihong): end-to-end loop is not batched right now.
   batch_size = 1
@@ -743,6 +748,8 @@ def main(_):
           for decoded_output in decoded_outputs
       ]
       last_step = (output_parts_str == decoded_outputs)
+    else:
+      raise ValueError(f'Unsupported dataset type: {_DATASET_TYPE.value}')
 
     return valid, last_step, np.array(step_outputs), np.array(current_outputs)
 
@@ -760,9 +767,6 @@ def main(_):
       # Decode the SpecDecomposerModel prediction and separate examples.
       input_parts_str = [decode_spec(part) for part in input_parts]
     decoded_current_inputs = [decode_spec(inp) for inp in current_inputs]
-    logging.info('input_parts: %s', input_parts)
-    logging.info('input_parts_str: %s', input_parts_str)
-    logging.info('decoded_current_inputs: %s', decoded_current_inputs)
     assert len(input_parts_str) == len(decoded_current_inputs)
 
     current_inputs_str = [
@@ -916,7 +920,7 @@ def main(_):
   assert _SLOW_DECODE.value, 'Fast decoding is not implemented yet.'
 
   rng = jax.random.PRNGKey(0)
-  rng, init_rng = jax.random.split(rng)
+  rng, init_rng = jax.random.split(rng)  # pylint: disable=unused-variable
 
   # Main Prediction Loop
   # ---------------------------------------------------------------------------
@@ -986,6 +990,8 @@ def main(_):
   num_steps = []
   num_ground_truth_steps = []
 
+  result_json = []
+
   for test_example_index, batch in enumerate(test_dataset.as_numpy_iterator()):
     if test_example_index % 10 == 0:
       logging.info('Processing test example #%s', test_example_index)
@@ -1005,6 +1011,7 @@ def main(_):
         ground_truth.statements if _DATASET_TYPE.value == 'deepcoder'
         else ground_truth.expressions)
 
+    log_message = ''  # Avoid pytype errors.
     if do_logging:
       inputs_str = '\n  '.join(decoded_inputs)
       outputs_str = '\n  '.join(decoded_outputs)
@@ -1022,6 +1029,7 @@ def main(_):
     next_history_id = itertools.count().__next__
     step_index = 0
     first_error = None
+    solution_program = None
 
     if _DATASET_TYPE.value == 'deepcoder':
       initial_program = []
@@ -1099,8 +1107,8 @@ def main(_):
 
         # Run the SpecDecomposerModel.
         start_time = timeit.default_timer()
-        predicted_spec_parts, scores, aux = spec_decomposer_pred_step(
-            params=spec_decomposer_optimizer.target,
+        predicted_spec_parts, scores, aux = spec_decomposer_pred_step(  # pylint: disable=undefined-variable
+            params=spec_decomposer_optimizer.target,  # pylint: disable=undefined-variable
             inputs=aux['current_inputs'],
             outputs=aux['current_outputs'],
             cache=None,
@@ -1391,6 +1399,7 @@ def main(_):
         )
       if success_i:
         success = True
+        solution_program = program_i
         if not do_logging:  # Log all programs when desired.
           break
 
@@ -1437,23 +1446,27 @@ def main(_):
           f'total time: {total_times[-1]:.1f} sec\n'
           f'```'
       )
-      print(log_message)
+      logging.info(log_message)
 
-    if do_logging:
-      log_message += (
-          f'\nground_truth: {ground_truth}\n'
-          f'num steps taken:        {step_index}\n'
-          f'num ground truth steps: {ground_truth_length}\n\n'
-          f'overall success: {success}\n'
-          f'first error: {first_error}\n'
-          f'total time: {total_times[-1]:.1f} sec\n'
-          f'```'
-      )
-      print(log_message)
+      if write_summary:
+        summary_writer.text((f'predictions_{test_example_index}, '
+                             f'beam_size={beam_size}'),
+                            log_message, 0)
+        summary_writer.flush()
 
-      summary_writer.text(f'predictions_{test_example_index}',
-                          log_message, 0)
-      summary_writer.flush()
+    logging.info('Test example %d resulted in: %s', test_example_index,
+                 'success' if success else 'failure')
+
+    result_json.append({
+        'test_example_index': test_example_index,
+        'success': success,
+        'inputs': decoded_inputs,
+        'outputs': decoded_outputs,
+        'ground_truth': str(ground_truth),
+        'ground_truth_length': ground_truth_length,
+        'solution': str(solution_program),
+        'num_steps': step_index,
+    })
 
   # Compute overall metrics and write to tensorboard.
   num_success = sum(successes)
@@ -1464,44 +1477,52 @@ def main(_):
   assert (len(total_times) == len(num_steps) == len(num_ground_truth_steps)
           == total)
 
-  if jax.host_id() == 0:
-    summary_writer.scalar('raw/# success & no errors', metric_a, 0)
-    summary_writer.scalar('raw/# success & SpecDecomposerModel error', metric_b,
-                          0)
-    summary_writer.scalar('raw/# success & SynthesizerModel error', metric_c, 0)
-    summary_writer.scalar('raw/# failure & SpecDecomposerModel error', metric_e,
-                          0)
-    summary_writer.scalar('raw/# failure & SynthesizerModel error', metric_f, 0)
+  if write_summary:
+    with tf.io.gfile.GFile(result_json_path, 'w') as f:
+      json.dump(result_json, f)
 
-    summary_writer.scalar('main/total success rate',
+    bs = f'beam_size={beam_size}'
+    summary_writer.scalar(f'raw/# success & no errors, {bs}',
+                          metric_a, 0)
+    summary_writer.scalar(f'raw/# success & SpecDecomposerModel error, {bs}',
+                          metric_b, 0)
+    summary_writer.scalar(f'raw/# success & SynthesizerModel error, {bs}',
+                          metric_c, 0)
+    summary_writer.scalar(f'raw/# failure & SpecDecomposerModel error, {bs}',
+                          metric_e, 0)
+    summary_writer.scalar(f'raw/# failure & SynthesizerModel error, {bs}',
+                          metric_f, 0)
+
+    summary_writer.scalar(f'main/total success rate, {bs}',
                           100 * num_success / total, 0)
     summary_writer.scalar(
-        'main/failures from SpecDecomposerModel, among all failures',
+        f'main/failures from SpecDecomposerModel, among all failures, {bs}',
         divide_no_nan(100 * metric_e, num_failure), 0)
     summary_writer.scalar(
-        'main/failures from SynthesizerModel, among all failures',
+        f'main/failures from SynthesizerModel, among all failures, {bs}',
         divide_no_nan(100 * metric_f, num_failure), 0)
 
     summary_writer.scalar(
-        'error_recovery/specDecomposerModel error recovery rate',
+        f'error_recovery/specDecomposerModel error recovery rate, {bs}',
         divide_no_nan(100 * metric_b, metric_b + metric_e), 0)
     summary_writer.scalar(
-        'error_recovery/synthesizerModel error recovery rate',
+        f'error_recovery/synthesizerModel error recovery rate, {bs}',
         divide_no_nan(100 * metric_c, metric_c + metric_f), 0)
     summary_writer.scalar(
-        'error_recovery/error recovery rate',
+        f'error_recovery/error recovery rate, {bs}',
         divide_no_nan(100 * (metric_b + metric_c),
                       metric_b + metric_c + metric_e + metric_f), 0)
     summary_writer.scalar(
-        'error_recovery/recovered errors among successes',
+        f'error_recovery/recovered errors among successes, {bs}',
         divide_no_nan(100 * (metric_b + metric_c), num_success), 0)
 
-    summary_writer.scalar('steps/avg. steps taken',
+    summary_writer.scalar(f'steps/avg. steps taken, {bs}',
                           statistics.mean(num_steps), 0)
-    summary_writer.scalar('steps/avg. ground-truth steps',
+    summary_writer.scalar(f'steps/avg. ground-truth steps, {bs}',
                           statistics.mean(num_ground_truth_steps), 0)
     summary_writer.scalar(
-        'steps/success and (taken > ground truth steps), among all successes',
+        (f'steps/success and (taken > ground truth steps), '
+         f'among all successes, {bs}'),
         divide_no_nan(
             len([0 for taken, gt, success in zip(num_steps,
                                                  num_ground_truth_steps,
@@ -1509,7 +1530,8 @@ def main(_):
                  if taken > gt and success]) * 100,
             num_success), 0)
     summary_writer.scalar(
-        'steps/success and (taken < ground truth steps), among all successes',
+        (f'steps/success and (taken < ground truth steps), '
+         f'among all successes, {bs}'),
         divide_no_nan(
             len([0 for taken, gt, success in zip(num_steps,
                                                  num_ground_truth_steps,
@@ -1517,7 +1539,8 @@ def main(_):
                  if taken < gt and success]) * 100,
             num_success), 0)
     summary_writer.scalar(
-        'steps/failure and (taken > ground truth steps), among all failures',
+        (f'steps/failure and (taken > ground truth steps), '
+         f'among all failures, {bs}'),
         divide_no_nan(
             len([0 for taken, gt, success in zip(num_steps,
                                                  num_ground_truth_steps,
@@ -1525,7 +1548,8 @@ def main(_):
                  if taken > gt and not success]) * 100,
             num_failure), 0)
     summary_writer.scalar(
-        'steps/failure and (taken < ground truth steps), among all failures',
+        (f'steps/failure and (taken < ground truth steps), '
+         f'among all failures, {bs}'),
         divide_no_nan(
             len([0 for taken, gt, success in zip(num_steps,
                                                  num_ground_truth_steps,
@@ -1533,20 +1557,20 @@ def main(_):
                  if taken < gt and not success]) * 100,
             num_failure), 0)
 
-    summary_writer.scalar('time/total time per problem',
+    summary_writer.scalar(f'time/total time per problem, {bs}',
                           statistics.mean(total_times), 0)
     if spec_prediction_times:
-      summary_writer.scalar('time/per SpecDecomposerModel call',
+      summary_writer.scalar(f'time/per SpecDecomposerModel call, {bs}',
                             statistics.mean(spec_prediction_times), 0)
-      summary_writer.scalar('time/per spec processing',
+      summary_writer.scalar(f'time/per spec processing, {bs}',
                             statistics.mean(spec_processing_times), 0)
-      summary_writer.scalar('time/per spec analysis',
+      summary_writer.scalar(f'time/per spec analysis, {bs}',
                             statistics.mean(spec_analysis_times), 0)
-    summary_writer.scalar('time/per SynthesizerModel call',
+    summary_writer.scalar(f'time/per SynthesizerModel call, {bs}',
                           statistics.mean(synthesis_prediction_times), 0)
-    summary_writer.scalar('time/per synthesis processing',
+    summary_writer.scalar(f'time/per synthesis processing, {bs}',
                           statistics.mean(synthesis_processing_times), 0)
-    summary_writer.scalar('time/per synthesis analysis',
+    summary_writer.scalar(f'time/per synthesis analysis, {bs}',
                           statistics.mean(synthesis_analysis_times), 0)
 
     summary_writer.flush()

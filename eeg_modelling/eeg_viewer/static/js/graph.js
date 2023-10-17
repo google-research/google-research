@@ -381,7 +381,13 @@ class Graph extends ChartBase {
    */
   formatDomainForRendering(store, dataTable) {
     for (let row = 0; row < dataTable.getNumberOfRows(); row++) {
-      const timeValue = dataTable.getValue(row, 0);
+      const timeValue = Number(dataTable.getValue(row, 0));
+      /**
+       * @suppress {checkTypes} actual parameter 1 of formatter.formatTime does
+       * not match formal parameter
+       *    found   : (number|string)
+       *    required: number
+       */
       const formattedTime =
           formatter.formatTime(store.absStart + timeValue, true);
       dataTable.setFormattedValue(row, 0, formattedTime);

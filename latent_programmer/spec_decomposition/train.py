@@ -116,6 +116,8 @@ flags.DEFINE_enum('model_type', 'spec_decomposer_model',
                    'baseline_model'],
                   'Which model to train.')
 
+flags.DEFINE_bool('predict_only', False,
+                  'Whether to only do beam search prediction, no training.')
 
 _internal = False
 if not _internal:
@@ -537,6 +539,8 @@ def main(_):
   hparam_dict = work_unit.parameters['args']
   hparam_str = ','.join(sorted(['%s=%s' % (shorten(k), str(v))
                                 for k, v in hparam_dict.items()]))
+  if hparam_str.startswith('s=') or hparam_str.startswith('r='):
+    hparam_str = 'hparams-' + hparam_str
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -544,6 +548,9 @@ def main(_):
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
         os.path.join(FLAGS.save_dir, 'tb', hparam_str))
+  else:
+    # Only to appease pytype.
+    summary_writer = tensorboard.SummaryWriter('')
 
   batch_size = FLAGS.per_device_batch_size * n_devices
   io_shape = (FLAGS.per_device_batch_size,
@@ -775,12 +782,16 @@ def main(_):
         1,
         padded_shapes=predict_padded_shapes,
         drop_remainder=False)
+    test_batch_size = 8
+    if test_batch_size % n_devices:
+      raise ValueError(f'Test batch size {test_batch_size} should be divisible '
+                       f'by n_devices {n_devices}')
     quick_test_dataset = (test_dataset
                           # In end-to-end predict, we used 1000 programs
                           # (not batches!).
                           .take(1000)
                           .unbatch()
-                          .padded_batch(10,
+                          .padded_batch(test_batch_size,
                                         padded_shapes=predict_padded_shapes,
                                         drop_remainder=False))
     final_test_dataset = quick_test_dataset
@@ -866,6 +877,12 @@ def main(_):
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(target_shape, jnp.float32))
 
+  num_params = sum(x.size for x in jax.tree_leaves(initial_variables['params']))
+  logging.info('Model has %d parameters (embedding_dim=%d, hidden_dim=%d, '
+               'num_layers=%d, num_heads=%d).',
+               num_params, FLAGS.embedding_dim, FLAGS.hidden_dim,
+               FLAGS.num_layers, FLAGS.num_heads)
+
   optimizer_def = optim.Adam(
       FLAGS.lr,
       beta1=0.9,
@@ -885,17 +902,18 @@ def main(_):
     start_step = int(optimizer.state.step)
     logging.info('Found model checkpointed at step %d.', start_step)
 
-    # TODO(kshi): It is likely that this code can lead to the job stalling for
-    # 10+ hours when restarting from a checkpoint that had been trained a long
-    # time, possibly because dataset skipping is slow.
-    logging.info('Skipping %s steps...', start_step)
-    train_ds = train_ds.skip(start_step)
-    dummy_p_train_step = jax.pmap(
-        lambda dropout_rng: jax.random.split(dropout_rng)[1])
-    for _ in range(start_step):
-      dropout_rng = dummy_p_train_step(dropout_rng)
-    logging.info('Finished skipping steps')
-    logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
+    if not FLAGS.predict_only:
+      # TODO(kshi): It is likely that this code can lead to the job stalling for
+      # 10+ hours when restarting from a checkpoint that had been trained a long
+      # time, possibly because dataset skipping is slow.
+      logging.info('Skipping %s steps...', start_step)
+      train_ds = train_ds.skip(start_step)
+      dummy_p_train_step = jax.pmap(
+          lambda dropout_rng: jax.random.split(dropout_rng)[1])
+      for _ in range(start_step):
+        dropout_rng = dummy_p_train_step(dropout_rng)
+      logging.info('Finished skipping steps')
+      logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
 
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
@@ -939,67 +957,72 @@ def main(_):
   metrics_all = []
   tick = time.time()
   train_iter = train_ds.as_numpy_iterator()
+  if FLAGS.predict_only and start_step == FLAGS.num_train_steps:
+    start_step -= 1
   for step in range(start_step, FLAGS.num_train_steps):
-    inputs, outputs, targets, rng = load_data(next(train_iter), rng)
-
-    optimizer, metrics, dropout_rng = p_train_step(
-        optimizer, inputs, outputs, targets,
-        dropout_rng=dropout_rng)
-    metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
-    # Periodic metric handling.
+    if not FLAGS.predict_only:
+      inputs, outputs, targets, rng = load_data(next(train_iter), rng)
 
-    # Training Metrics
-    if (step and step % FLAGS.log_freq == 0) or is_last_step:
-      logging.info('Gathering training metrics.')
-      metrics_all = common_utils.get_metrics(metrics_all)
-      lr = metrics_all.pop('learning_rate').mean()
-      metrics_sums = jax.tree_map(jnp.sum, metrics_all)
-      denominator = metrics_sums.pop('denominator')
-      summary = jax.tree_map(
-          lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
-          metrics_sums)
-      summary['learning_rate'] = lr
-      # Calculate (clipped) perplexity after averaging log-perplexities:
-      summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+      optimizer, metrics, dropout_rng = p_train_step(
+          optimizer, inputs, outputs, targets,
+          dropout_rng=dropout_rng)
+      metrics_all.append(metrics)
 
-      if jax.host_id() == 0:
-        logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
-        tock = time.time()
-        steps_per_sec = FLAGS.log_freq / (tock - tick)
-        tick = tock
-        summary_writer.scalar('train/steps per second', steps_per_sec, step)
-        for key, val in summary.items():
-          summary_writer.scalar('train/' + key, val, step)
-        summary_writer.flush()
-      # Reset metric accumulation for next evaluation cycle.
-      metrics_all = []
+      # Periodic metric handling.
 
-    # Evaluation Metrics
-    if (step and step % FLAGS.eval_freq == 0) or is_last_step:
-      logging.info('Gathering evaluation metrics.')
-      t_evaluation_start = time.time()
-      eval_metrics = []
-      for batches in eval_ds.as_numpy_iterator():
-        inputs, outputs, targets, rng = load_data(batches, rng)
+      # Training Metrics
+      if (step and step % FLAGS.log_freq == 0) or is_last_step:
+        logging.info('Gathering training metrics.')
+        metrics_all = common_utils.get_metrics(metrics_all)
+        lr = metrics_all.pop('learning_rate').mean()
+        metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+        denominator = metrics_sums.pop('denominator')
+        summary = jax.tree_map(
+            lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
+            metrics_sums)
+        summary['learning_rate'] = lr
+        # Calculate (clipped) perplexity after averaging log-perplexities:
+        summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
 
-        metrics = p_eval_step(optimizer.target, inputs, outputs, targets)
-        eval_metrics.append(metrics)
+        if jax.host_id() == 0:
+          logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
+          tock = time.time()
+          steps_per_sec = FLAGS.log_freq / (tock - tick)
+          tick = tock
+          summary_writer.scalar('train/steps per second', steps_per_sec, step)
+          for key, val in summary.items():
+            summary_writer.scalar('train/' + key, val, step)
+          summary_writer.flush()
+        # Reset metric accumulation for next evaluation cycle.
+        metrics_all = []
 
-      eval_metrics = common_utils.get_metrics(eval_metrics)
-      eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
-      eval_denominator = eval_metrics_sums.pop('denominator')
-      eval_summary = jax.tree_map(
-          lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
-          eval_metrics_sums)
+      # Evaluation Metrics
+      if (step and step % FLAGS.eval_freq == 0) or is_last_step:
+        logging.info('Gathering evaluation metrics.')
+        t_evaluation_start = time.time()
+        eval_metrics = []
+        for batches in eval_ds.as_numpy_iterator():
+          inputs, outputs, targets, rng = load_data(batches, rng)
 
-      if jax.host_id() == 0:
-        logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
-                     time.time()-t_evaluation_start, step, eval_summary['loss'])
-        for key, val in eval_summary.items():
-          summary_writer.scalar('eval/' + key, val, step)
-        summary_writer.flush()
+          metrics = p_eval_step(optimizer.target, inputs, outputs, targets)
+          eval_metrics.append(metrics)
+
+        eval_metrics = common_utils.get_metrics(eval_metrics)
+        eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+        eval_denominator = eval_metrics_sums.pop('denominator')
+        eval_summary = jax.tree_map(
+            lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
+            eval_metrics_sums)
+
+        if jax.host_id() == 0:
+          logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
+                       time.time()-t_evaluation_start, step,
+                       eval_summary['loss'])
+          for key, val in eval_summary.items():
+            summary_writer.scalar('eval/' + key, val, step)
+          summary_writer.flush()
 
     # Beam search metrics.
     if (step and step % FLAGS.predict_freq == 0) or is_last_step:
@@ -1089,6 +1112,12 @@ def main(_):
           all_total_successes, all_total_denominator = per_host_sum_pmap(
               jax.tree_map(np.array, (total_successes, total_denominator)))
 
+          logging.info('host %d %s: total_success=%d, total_denominator=%d. '
+                       'all_total_successes=%d, all_total_denominator=%d.',
+                       jax.host_id(), predict_or_test,
+                       total_successes, total_denominator,
+                       all_total_successes, all_total_denominator)
+
           # Record beam search results as text summaries.
           message = []
           for n in np.random.choice(np.arange(len(predictions)), 8):
@@ -1106,25 +1135,34 @@ def main(_):
                 predict_or_test, step, beam_size,
                 all_total_successes, all_total_denominator, accuracy,
                 time.time() - t_inference_start)
+            predict_only_label = '_predict-only' if FLAGS.predict_only else ''
             summary_writer.scalar(
-                '{}/beam-size-{}'.format(predict_or_test, beam_size),
+                '{}/beam-size-{}{}'.format(predict_or_test,
+                                           beam_size,
+                                           predict_only_label),
                 accuracy, step)
 
-            summary_writer.text('{}-samples-beam-{}'.format(predict_or_test,
-                                                            beam_size),
-                                '\n------\n'.join(message), step)
+            summary_writer.text(
+                '{}-samples-beam-{}{}'.format(predict_or_test, beam_size,
+                                              predict_only_label),
+                '\n------\n'.join(message), step)
             summary_writer.flush()
+
+      if FLAGS.predict_only:
+        # If only prediction, then don't do it multiple times.
+        break
 
     # Save a Checkpoint. Do this at the end of the training loop, so that if a
     # worker is descheduled during a round of prediction (which takes a while),
     # we will redo prediction upon restarting (to avoid losing data).
-    if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
-      if jax.host_id() == 0:
-        # Save unreplicated optimizer + model state.
-        checkpoints.save_checkpoint(
-            os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
-            jax_utils.unreplicate(optimizer),
-            step)
+    if not FLAGS.predict_only and (
+        (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step):
+      # Save unreplicated optimizer + model state.
+      checkpoints.save_checkpoint_multiprocess(
+          os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
+          jax_utils.unreplicate(optimizer),
+          step,
+          keep_every_n_steps=100_000)
 
 if __name__ == '__main__':
   app.run(main)

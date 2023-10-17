@@ -60,8 +60,11 @@ class ClassificationPipeline(nn.Module):
         config=self.config.graph_classifier_config)
 
   def _add_supernode(
-      self, node_features, dense_submat,
-      dense_q):
+      self,
+      node_features,
+      dense_submat,
+      dense_q,
+  ):
     """Adds supernode with full incoming and outgoing connectivity.
 
     Adds a row and column of 1s to `dense_submat`, and normalizes. Also adds a
@@ -78,7 +81,7 @@ class ClassificationPipeline(nn.Module):
       dense_submat: Shape (num_nodes + 1, num_nodes + 1) Adjacency matrix.
       dense_q: Shape (num_nodes + 1,) Node weights.
     """
-    dense_submat = jnp.row_stack(
+    dense_submat = jnp.vstack(
         (dense_submat, jnp.ones(dense_submat.shape[1])))
     dense_submat = jnp.column_stack(
         (dense_submat, jnp.ones(dense_submat.shape[0])))
@@ -109,13 +112,13 @@ class ClassificationPipeline(nn.Module):
     """Computes the model's predicted class."""
     num_classes = self.config.graph_classifier_config.num_classes
     if num_classes > 2:
-      return logits.argmax(-1)
+      return logits.argmax(-1)  # pytype: disable=bad-return-type  # jnp-array
     else:
       return (jax.scipy.special.expit(logits) > .5).astype(int).squeeze()
 
   def __call__(
-      self, graph,
-      start_node_id):
+      self, graph, start_node_id
+  ):
     """Predicts class logits for a given graph.
 
     Args:

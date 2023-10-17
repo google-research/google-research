@@ -259,7 +259,7 @@ class SacAgent(tf_agent.TFAgent):
     # authors and has in our experience been more stable for gym/mujoco.
     flat_action_spec = tf.nest.flatten(action_spec)
     target_entropy = -np.sum([
-        np.product(single_spec.shape.as_list())
+        np.prod(single_spec.shape.as_list())
         for single_spec in flat_action_spec
     ]) / 2.0
     return target_entropy

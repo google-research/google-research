@@ -1,45 +1,40 @@
-load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository", "new_git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # https://github.com/dsharlet/array
-new_git_repository(
+http_archive(
     name = "com_github_dsharlet_array",
-    branch = "master",
-    build_file = "//:deps/array.BUILD",
-    remote = "https://github.com/dsharlet/array.git",
+    sha256 = "e2ce5b2271734e0de85a51750bd85a9121bb5a7a6a5881f6b6a0c2f0d366057c",
+    strip_prefix = "array-4b684ec1047a63f30d6e2b919b9abefda1496386",
+    urls = [
+        "https://github.com/dsharlet/array/archive/4b684ec1047a63f30d6e2b919b9abefda1496386.zip",
+    ],
 )
 
-# abseil-cpp, depends on rules_cc.
+# abseil-cpp depends on bazel_skylib.
 http_archive(
-    name = "rules_cc",
-    strip_prefix = "rules_cc-262ebec3c2296296526740db4aefce68c80de7fa",
-    urls = ["https://github.com/bazelbuild/rules_cc/archive/262ebec3c2296296526740db4aefce68c80de7fa.zip"],
+    name = "bazel_skylib",
+    sha256 = "b8a1527901774180afc798aeb28c4634bdccf19c4d98e7bdd1ce79d1fe9aaad7",
+    urls = [
+        "https://mirror.bazel.build/github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+        "https://github.com/bazelbuild/bazel-skylib/releases/download/1.4.1/bazel-skylib-1.4.1.tar.gz",
+    ],
 )
 
 http_archive(
     name = "com_google_absl",
-    strip_prefix = "abseil-cpp-98eb410c93ad059f9bba1bf43f5bb916fc92a5ea",
-    urls = ["https://github.com/abseil/abseil-cpp/archive/98eb410c93ad059f9bba1bf43f5bb916fc92a5ea.zip"],
-)
-
-# glog, depends on gflags.
-http_archive(
-    name = "com_github_gflags_gflags",
-    sha256 = "34af2f15cf7367513b352bdcd2493ab14ce43692d2dcd9dfc499492966c64dcf",
-    strip_prefix = "gflags-2.2.2",
-    urls = ["https://github.com/gflags/gflags/archive/v2.2.2.tar.gz"],
-)
-
-http_archive(
-    name = "com_github_google_glog",
-    sha256 = "62efeb57ff70db9ea2129a16d0f908941e355d09d6d83c9f7b18557c0a7ab59e",
-    strip_prefix = "glog-d516278b1cd33cd148e8989aec488b6049a4ca0b",
-    urls = ["https://github.com/google/glog/archive/d516278b1cd33cd148e8989aec488b6049a4ca0b.zip"],
+    sha256 = "497ebdc3a4885d9209b9bd416e8c3f71e7a1fb8af249f6c2a80b7cbeefcd7e21",
+    strip_prefix = "abseil-cpp-20230802.1",
+    urls = [
+        "https://github.com/abseil/abseil-cpp/archive/abseil-cpp-20230802.1.zip",
+    ],
 )
 
 # gtest.
-git_repository(
-    name = "gtest",
-    branch = "v1.10.x",
-    remote = "https://github.com/google/googletest",
+http_archive(
+    name = "com_github_google_googletest",
+    sha256 = "1f357c27ca988c3f7c6b4bf68a9395005ac6761f034046e9dde0896e3aba00e4",
+    strip_prefix = "googletest-1.14.0",
+    urls = [
+        "https://github.com/google/googletest/archive/refs/tags/v1.14.0.zip",
+    ],
 )

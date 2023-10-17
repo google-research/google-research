@@ -143,7 +143,8 @@ def make_environment(
     logdir = None,
     counter = None,
     record_every = 100,
-    num_episodes_to_record = 3):
+    num_episodes_to_record = 3,
+):
   """Create the environment and its wrappers."""
   env = gym.make(task)
   env = gym_wrapper.GymWrapper(env)
@@ -178,7 +179,8 @@ def load_distance_fn(
   def embed_and_predict_distance(
       model_state,
       state,
-      goal):
+      goal,
+  ):
     params = {'params': model_state.distance_optimizer.target}  # pytype: disable=attribute-error  # numpy-scalars
     batched_state = jnp.expand_dims(state, axis=0)
     batched_goal = jnp.expand_dims(goal, axis=0)
@@ -221,8 +223,7 @@ def load_scenic_distance_fn(
       config,
       state,
       goal,
-    ):
-
+  ):
     variables = {
         'params': train_state.optimizer['target'],
         **train_state.model_state

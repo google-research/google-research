@@ -265,16 +265,13 @@ def plot_vanilla_ite_values():
         matching_count = condition.sum()
 
         # Add to ite_tracker.
-        ite_tracker = ite_tracker.append(
-            pd.DataFrame({
+        ite_tracker = pd.concat([ite_tracker, pd.DataFrame({
                 'sample_str': [sample_str] * matching_count,
                 'x_y_trues': list(x_y_trues[condition]),
                 'x_y_preds': list(x_y_preds[condition]),
                 'hparam_col': [col] * matching_count,
                 'hparam_val': [val] * matching_count,
-            }),
-            ignore_index=True,
-        )
+            })], ignore_index=True)
 
     # For some unknown reason, although process_hparams saves hparams as float32
     # the column values in ite_tracker are being saved as float64 which is then
@@ -1349,10 +1346,7 @@ def plot_paper_figures():
         file_data.insert(0, 'range_accuracy', [range_accuracy] * count, True)
         file_data.insert(1, 'explan_type', [explan_type] * count, True)
         file_data.insert(2, 'kernel_type', [kernel_type] * count, True)
-        treatment_effect_tracker = treatment_effect_tracker.append(
-            file_data,
-            ignore_index=True,
-        )
+        treatment_effect_tracker = pd.concat([treatment_effect_tracker, file_data], ignore_index=True)
 
         # if kernel_type == 'rbf':
         #   file_name = (

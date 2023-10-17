@@ -72,6 +72,8 @@ patch external/stylegan/metrics/metric_utils.py external/stylegan/metrics/metric
 # train.py
 wget https://raw.githubusercontent.com/NVlabs/stylegan3/583f2bdd139e014716fc279f23d362959bcc0f39/train.py -O train_layout.py
 patch train_layout.py train_layout.patch
+# diff augment library from GSN (unchanged)
+wget https://raw.githubusercontent.com/apple/ml-gsn/07044f0b7f3649c2e66a3bf4d2c7f0c75a42f399/models/diff_augment.py -P external/gsn/models/
 
 ### training - triplane model eg3d pipeline
 # dataset.py, loss.py, augment.py (no changes), training_loop.py, dual_discriminator.py

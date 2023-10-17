@@ -48,7 +48,6 @@ void KMeansTreeNode::Reset() {
   learned_spilling_threshold_ = numeric_limits<double>::quiet_NaN();
   indices_.clear();
   children_.clear();
-  residual_stdevs_.clear();
 }
 
 void KMeansTreeNode::UnionIndices(vector<DatapointIndex>* result) const {
@@ -99,10 +98,6 @@ void KMeansTreeNode::BuildFromProto(const SerializedKMeansTree::Node& proto) {
 
   indices_.clear();
   children_.clear();
-  residual_stdevs_.clear();
-  residual_stdevs_.insert(residual_stdevs_.begin(),
-                          proto.residual_stdevs().begin(),
-                          proto.residual_stdevs().end());
   if (proto.children_size() == 0) {
     indices_.insert(indices_.begin(), proto.indices().begin(),
                     proto.indices().end());
@@ -236,30 +231,6 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
     }
   }
 
-  if (opts->compute_residual_stdev) {
-    residual_stdevs_.resize(centers.size());
-    ParallelFor<1>(Seq(centers.size()),
-                   opts->training_parallelization_pool.get(), [&](size_t i) {
-                     double sq_residual_sum = 0.0;
-                     uint32_t count = subpartitions[i].size();
-                     DatapointPtr<double> center = centers.at(i);
-                     for (auto j : subpartitions[i]) {
-                       Datapoint<double> double_dp;
-                       training_data.GetDatapoint(j, &double_dp);
-                       sq_residual_sum +=
-                           SquaredL2DistanceBetween(double_dp.ToPtr(), center);
-                     }
-
-                     residual_stdevs_[i] = std::max(
-                         count == 0
-                             ? 1.0
-                             : count == 1
-                                   ? std::sqrt(sq_residual_sum)
-                                   : std::sqrt(sq_residual_sum / (count - 1)),
-                         opts->residual_stdev_min_value);
-                   });
-  }
-
   FreeBackingStorage(&indices_);
   children_ = vector<KMeansTreeNode>(centers.size());
   for (size_t i = 0; i < children_.size(); ++i) {
@@ -333,17 +304,13 @@ void KMeansTreeNode::CopyToProto(SerializedKMeansTree::Node* proto,
     const DatapointPtr<float> center = float_centers_[i];
     DCHECK(center.IsDense());
     auto center_proto = proto->add_centers();
-    for (const float& elem : center.values_slice()) {
+    for (const float& elem : center.values_span()) {
       center_proto->add_dimension(elem);
     }
   }
 
   proto->set_leaf_id(leaf_id_);
   proto->set_learned_spilling_threshold(learned_spilling_threshold_);
-
-  for (const double& residual_stdev : residual_stdevs_) {
-    proto->add_residual_stdevs(residual_stdev);
-  }
 
   if (IsLeaf() && with_indices) {
     for (const auto& index : indices_) {

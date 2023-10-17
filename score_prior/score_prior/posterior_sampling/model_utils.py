@@ -31,7 +31,7 @@ class State:
   opt_state: optax.OptState
   params: PyTree
   model_state: PyTree
-  rng: jax.random.PRNGKeyArray
+  rng: jax.Array
   data_weight: float = 1.
   prior_weight: float = 1.
   entropy_weight: float = 1.

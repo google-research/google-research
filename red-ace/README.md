@@ -1,5 +1,5 @@
 # RED-ACE
-Data and code for the paper [RED-ACE: Robust Error Detection for ASR using Confidence Embeddings](https://arxiv.org/abs/2203.07172) (EMNLP 2022).
+Data and code for the paper [RED-ACE: Robust Error Detection for ASR using Confidence Embeddings](https://aclanthology.org/2022.emnlp-main.180/) (EMNLP 2022).
 
 RED-ACE is an ASR Error Detection (AED) model.
 Our approach is based on a modified BERT encoder with an additional embedding

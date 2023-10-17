@@ -15,7 +15,7 @@
 
 """Dropout layer which doesn't rescale the kept elements."""
 
-from keras.utils import control_flow_util
+import tensorflow as tf
 
 from kws_streaming.layers.compat import tf
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
@@ -31,7 +31,6 @@ class NonScalingDropout(tf.keras.layers.Dropout):
   """
 
   def call(self, inputs, training=None):
-
     if self.rate == 0.0:
       return inputs
 
@@ -41,11 +40,15 @@ class NonScalingDropout(tf.keras.layers.Dropout):
     if self.noise_shape is None:
       self.noise_shape = tf.shape(inputs)
 
-    return control_flow_util.smart_cond(
-        training, lambda: self._non_scaling_drop_op(inputs),
-        lambda: array_ops.identity(inputs))
+    return tf._keras_internal.utils.control_flow_util.smart_cond(  # pylint:disable=protected-access
+        training,
+        lambda: self._non_scaling_drop_op(inputs),
+        lambda: array_ops.identity(inputs),
+    )
 
   def _non_scaling_drop_op(self, inputs):
     return inputs * tf.keras.backend.cast(
-        tf.keras.backend.random_uniform(self.noise_shape, seed=self.seed) <
-        (1 - self.rate), tf.float32)
+        tf.keras.backend.random_uniform(self.noise_shape, seed=self.seed)
+        < (1 - self.rate),
+        tf.float32,
+    )

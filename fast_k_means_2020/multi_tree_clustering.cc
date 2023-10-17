@@ -18,6 +18,7 @@
 #include <iostream>
 #include <limits>
 
+#include "absl/container/btree_map.h"
 #include "random_handler.h"
 #include "single_tree_clustering.h"
 
@@ -43,7 +44,7 @@ void MultiTreeClustering::InitializeTree(const vector<vector<double>>& input,
 
 uint64_t MultiTreeClustering::ComputeCostAndOpen(int center, bool open_center) {
   // To keep the previous costs in case open_center is false.
-  map<int, uint64_t> old_costs;
+  absl::btree_map<int, uint64_t> old_costs;
   // The amount of the improment that opening this center gives.
   uint64_t improvement = 0;
   // This the first time so there is in previous cost so improvement is not

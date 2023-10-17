@@ -42,13 +42,11 @@ bool SupportsLowLevelBatching(const TypedDataset<T>& queries,
 template <typename Mutator>
 void AddLeafResultsToTopN(ConstSpan<DatapointIndex> local_to_global_index,
                           const float distance_to_center_adjustment,
-                          const float cluster_stdev_adjustment,
                           ConstSpan<pair<DatapointIndex, float>> leaf_results,
                           Mutator* mutator) {
   float epsilon = mutator->epsilon();
   for (const auto& result : leaf_results) {
-    float dist = result.second * cluster_stdev_adjustment +
-                 distance_to_center_adjustment;
+    float dist = result.second + distance_to_center_adjustment;
     if (dist <= epsilon) {
       if (ABSL_PREDICT_FALSE(
               mutator->Push(local_to_global_index[result.first], dist))) {
@@ -83,7 +81,6 @@ inline float DistanceToCenterAdjustment(const QueryForResidualLeaf& q) {
 
 template <typename QueryForLeaf>
 vector<SearchParameters> CreateParamsSubsetForLeaf(
-    ConstSpan<SearchParameters> params,
     ConstSpan<FastTopNeighbors<float>::Mutator> mutators,
     ConstSpan<shared_ptr<const SearcherSpecificOptionalParameters>>
         leaf_optional_params,
@@ -94,7 +91,7 @@ vector<SearchParameters> CreateParamsSubsetForLeaf(
     const DatapointIndex query_index = QueryIndex(q);
     SearchParameters leaf_params;
     leaf_params.set_pre_reordering_num_neighbors(
-        params[query_index].pre_reordering_num_neighbors());
+        mutators[query_index].max_results());
     leaf_params.set_pre_reordering_epsilon(mutators[query_index].epsilon() -
                                            DistanceToCenterAdjustment(q));
     leaf_params.set_searcher_specific_optional_parameters(

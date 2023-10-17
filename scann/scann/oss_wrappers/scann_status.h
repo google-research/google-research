@@ -20,7 +20,9 @@
 
 #define SCANN_RET_CHECK(cond)         \
   while (ABSL_PREDICT_FALSE(!(cond))) \
-  return RetCheckFail("SCANN_RET_CHECK failure ")
+  return RetCheckFail(                \
+      "SCANN_RET_CHECK "              \
+      "failure ")
 
 #define SCANN_RET_CHECK_EQ(lhs, rhs)         \
   while (ABSL_PREDICT_FALSE((lhs) != (rhs))) \

@@ -19,6 +19,7 @@ import math
 
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+import jax
 from jax import random
 import jax.numpy as jnp
 from shapely import geometry

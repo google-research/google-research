@@ -47,7 +47,6 @@ touch "${TMPDIR}"/scann/scann_ops/py/__init__.py
 touch "${TMPDIR}"/scann/data_format/__init__.py
 touch "${TMPDIR}"/scann/partitioning/__init__.py
 touch "${TMPDIR}"/scann/proto/__init__.py
-touch "${TMPDIR}"/scann/coscann/__init__.py
 touch "${TMPDIR}"/scann/trees/__init__.py
 touch "${TMPDIR}"/scann/trees/kmeans_tree/__init__.py
 

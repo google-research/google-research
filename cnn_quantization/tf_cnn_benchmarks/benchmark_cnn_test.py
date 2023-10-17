@@ -886,7 +886,7 @@ class TfCnnBenchmarksTest(tf.test.TestCase):
                   fuse_decode_and_crop)
 
   def _test_learning_rate(self, params, global_step_to_expected_learning_rate):
-    self.longMessage = True  # pylint: disable=invalid-name
+    self.longMessage = True
     bench = benchmark_cnn.BenchmarkCNN(params)
     with tf.Graph().as_default() as graph:
       bench._build_model()

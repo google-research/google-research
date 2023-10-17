@@ -78,8 +78,9 @@ class ConceptPPOLearner(acme.Learner):
       logger = None,
   ):
 
-    def gae_advantages(rewards, discounts,
-                       values):
+    def gae_advantages(
+        rewards, discounts, values
+    ):
       """Uses truncated GAE to compute advantages (same as regular PPO)."""
 
       # Apply reward clipping.
@@ -103,7 +104,7 @@ class ConceptPPOLearner(acme.Learner):
         target_values,
         advantages,
         behavior_values,
-        categorical_values = 4
+        categorical_values = 4,
     ):
       """Surrogate loss using clipped probability ratios."""
 

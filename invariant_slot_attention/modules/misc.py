@@ -113,7 +113,8 @@ class GRU(nn.Module):
   def __call__(self, carry, inputs,
                train = False):
     del train  # Unused.
-    carry, _ = nn.GRUCell()(carry, inputs)
+    features = carry.shape[-1]
+    carry, _ = nn.GRUCell(features)(carry, inputs)
     return carry
 
 

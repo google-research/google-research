@@ -34,9 +34,7 @@ KMeansTreeTrainingOptions::KMeansTreeTrainingOptions(
       max_iterations(config.max_clustering_iterations()),
       convergence_epsilon(config.clustering_convergence_tolerance()),
       min_cluster_size(config.min_cluster_size()),
-      seed(config.clustering_seed()),
-      compute_residual_stdev(config.compute_residual_stdev()),
-      residual_stdev_min_value(config.residual_stdev_min_value()) {
+      seed(config.clustering_seed()) {
   switch (config.balancing_type()) {
     case PartitioningConfig::DEFAULT_UNBALANCED:
       balancing_type = GmmUtils::Options::UNBALANCED;

@@ -288,10 +288,11 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessDistancesImpl(
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
-    TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
+    FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
+                                  params.pre_reordering_epsilon());
     SCANN_RETURN_IF_ERROR(PostprocessTopNImpl(query, params, dot_products,
                                               distance_functor, &top_n));
-    *result = top_n.TakeUnsorted();
+    top_n.FinishUnsorted(result);
   }
   return OkStatus();
 }
@@ -302,19 +303,18 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
     ConstSpan<float> dot_products, DistanceFunctor distance_functor,
     TopN* top_n_ptr) const {
   DCHECK(!params.restricts_enabled());
-  TopN top_n = std::move(*top_n_ptr);
-  const float epsilon = params.pre_reordering_epsilon();
-  float min_keep_distance = epsilon;
+  typename TopN::Mutator mutator;
+  top_n_ptr->AcquireMutator(&mutator);
+  float min_keep_distance = mutator.epsilon();
   for (DatapointIndex i = 0; i < dot_products.size(); ++i) {
     const float distance = distance_functor(dot_products[i], i);
     if (distance <= min_keep_distance) {
-      top_n.push(std::make_pair(i, distance));
-      if (top_n.full()) {
-        min_keep_distance = top_n.approx_bottom().second;
+      if (mutator.Push(i, distance)) {
+        mutator.GarbageCollect();
+        min_keep_distance = mutator.epsilon();
       }
     }
   }
-  *top_n_ptr = std::move(top_n);
   return OkStatus();
 }
 
@@ -324,20 +324,19 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
     ConstSpan<pair<DatapointIndex, float>> dot_products,
     DistanceFunctor distance_functor, TopN* top_n_ptr) const {
   DCHECK(params.restricts_enabled());
-  TopN top_n = std::move(*top_n_ptr);
-  const float epsilon = params.pre_reordering_epsilon();
-  float min_keep_distance = epsilon;
+  typename TopN::Mutator mutator;
+  top_n_ptr->AcquireMutator(&mutator);
+  float min_keep_distance = mutator.epsilon();
   for (const auto& pair : dot_products) {
     const DatapointIndex dp_idx = pair.first;
     const float distance = distance_functor(pair.second, dp_idx);
     if (distance <= min_keep_distance) {
-      top_n.push(std::make_pair(dp_idx, distance));
-      if (top_n.full()) {
-        min_keep_distance = top_n.approx_bottom().second;
+      if (mutator.Push(dp_idx, distance)) {
+        mutator.GarbageCollect();
+        min_keep_distance = mutator.epsilon();
       }
     }
   }
-  *top_n_ptr = std::move(top_n);
   return OkStatus();
 }
 

@@ -25,10 +25,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from keras.utils import conv_utils
-from keras.utils import tf_utils
 import numpy as np
+import tensorflow as tf
 import tensorflow.compat.v1 as tf
+
+conv_utils = tf._keras_internal.utils.conv_utils  # pylint: disable=protected-access
+tf_utils = tf._keras_internal.utils.tf_utils  # pylint: disable=protected-access
 
 
 class InputDependentCombiningWeights(tf.keras.Model):
@@ -320,7 +322,7 @@ class LowRankLocallyConnected2D(tf.keras.layers.LocallyConnected2D):
       self.combining_weights_layer = InputDependentCombiningWeights(
           self.spatial_rank)
 
-  @tf_utils.shape_type_conversion
+  @tf._keras_internal.utils.tf_utils.shape_type_conversion  # pylint:disable=protected-access
   def build(self, input_shape):
     if self.data_format == 'channels_last':
       channel_axis = -1
@@ -360,10 +362,10 @@ class LowRankLocallyConnected2D(tf.keras.layers.LocallyConnected2D):
     dilations = self.dilations[0] if isinstance(
         self.dilations, list) else self.dilations
 
-    output_row = conv_utils.conv_output_length(
+    output_row = tf._keras_internal.utils.conv_utils.conv_output_length(  # pylint:disable=protected-access
         input_row, kernel_size[0], self.padding, self.strides[0],
         dilation=dilations)
-    output_col = conv_utils.conv_output_length(
+    output_col = tf._keras_internal.utils.conv_utils.conv_output_length(  # pylint:disable=protected-access
         input_col, kernel_size[1], self.padding, self.strides[1],
         dilation=dilations)
 
@@ -656,4 +658,3 @@ class LowRankLocallyConnected2D(tf.keras.layers.LocallyConnected2D):
     outputs = outputs + bias
     outputs = self.activation(outputs)
     return outputs
-

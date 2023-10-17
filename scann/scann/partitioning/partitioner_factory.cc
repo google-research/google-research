@@ -155,10 +155,6 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromKMeansTree(
         research_scann::KMeansTreePartitioner<T>::ASYMMETRIC_HASHING);
   }
 
-  if (config.compute_residual_stdev()) {
-    km->set_populate_residual_stdev(true);
-  }
-
   return StatusOr<unique_ptr<Partitioner<T>>>(std::move(km));
 }
 
