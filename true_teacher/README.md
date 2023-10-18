@@ -1,7 +1,8 @@
 # TrueTeacher
-Official repository for the paper - [TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models](https://arxiv.org/pdf/2305.11171v1.pdf)
 
-This is not an officially supported Google product.
+This repository contains a model and a dataset accompanying our [EMNLP 2023](https://2023.emnlp.org/) paper: "[TrueTeacher: Learning Factual Consistency Evaluation with Large Language Models](https://arxiv.org/pdf/2305.11171v1.pdf)".
+
+Note: This is not an officially supported Google product.
 
 
 ## Model
