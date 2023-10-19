@@ -14,8 +14,6 @@
 # limitations under the License.
 
 """Utilities used for approxNN project."""
-# pylint: skip-file
-
 import time
 import gc
 import itertools
@@ -39,12 +37,14 @@ from tensorflow.io import gfile
 import tensorflow_datasets as tfds
 from tqdm import tqdm
 
-from invariant_explanations import config
-from invariant_explanations import explanation_utils
-from invariant_explanations import other
-from invariant_explanations import plotting
+import config
+import explanation_utils
+import other
+import plotting
 
 logging.set_verbosity(logging.INFO)
+
+from debug import ipsh
 
 FLAGS = flags.FLAGS
 
