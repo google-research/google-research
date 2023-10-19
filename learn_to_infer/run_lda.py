@@ -25,7 +25,7 @@ from absl import app
 from absl import flags
 import jax
 from jax import vmap
-from jax.config import config
+from jax import config
 import jax.example_libraries.optimizers
 import jax.numpy as jnp
 

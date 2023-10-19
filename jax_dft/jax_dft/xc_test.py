@@ -18,7 +18,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 import jax
-from jax.config import config
+from jax import config
 import jax.numpy as jnp
 import numpy as np
 

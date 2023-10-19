@@ -20,7 +20,7 @@ from absl import flags
 from absl import logging
 
 import jax
-from jax.config import config
+from jax import config
 from jax_dft import scf
 from jax_dft import utils
 import numpy as np

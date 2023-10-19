@@ -26,7 +26,7 @@ from . import train
 from absl import app
 from absl import flags
 import jax
-from jax.config import config
+from jax import config
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
 

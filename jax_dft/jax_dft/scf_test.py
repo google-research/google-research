@@ -26,7 +26,7 @@ from absl.testing import parameterized
 import jax
 from jax import random
 from jax import tree_util
-from jax.config import config
+from jax import config
 from jax.example_libraries import stax
 import jax.numpy as jnp
 import numpy as np

@@ -16,7 +16,7 @@
 """Tests for jax_dft.losses."""
 
 from absl.testing import absltest
-from jax.config import config
+from jax import config
 import jax.numpy as jnp
 import numpy as np
 

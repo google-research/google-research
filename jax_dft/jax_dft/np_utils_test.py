@@ -16,7 +16,7 @@
 """Tests for jax_dft.np_utils."""
 
 from absl.testing import absltest
-from jax.config import config
+from jax import config
 import jax.numpy as jnp
 import numpy as np
 
