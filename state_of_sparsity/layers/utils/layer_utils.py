@@ -19,9 +19,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow.compat.v1 as tf
-from tensorflow.contrib.eager.python import tfe as contrib_eager
+#from tensorflow.contrib.eager.python import tfe as contrib_eager
 
-from tensorflow.contrib.layers.python.layers import utils as layer_utils
+from tensorflow.python.layers import utils as layer_utils
 from tensorflow.python.ops import control_flow_util  # pylint: disable=g-direct-tensorflow-import
 from tensorflow.python.ops import variables as tf_variables  # pylint: disable=g-direct-tensorflow-import
 
