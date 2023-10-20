@@ -72,18 +72,24 @@ class FewShotClassification(Task):
       episodes_list.append(episodes)
 
     def indi_worker(episode):
-      """Executes single epsiode for a particular k-shot task."""
-      train_embs = np.concatenate(np.take(train_dataset['embs'], episode))
-      train_labels = np.concatenate(np.take(train_dataset['labels'], episode))
+      """Executes single episode for a particular k-shot task."""
+      train_embs = []
+      train_labels = []
+      for e in episode:
+          train_embs.append(train_dataset['embs'][e])
+          train_labels.append(train_dataset['labels'][e])
+      train_embs = np.concatenate(train_embs)
+      train_labels = np.concatenate(train_labels)
       train_acc, val_acc = fit_linear_models(train_embs, train_labels,
                                              val_embs, val_labels)
       return train_acc, val_acc
 
     def worker(episodes):
-      """Executes all epsiodes for a particular k-shot task."""
+      """Executes all episodes for a particular k-shot task."""
       with cf.ThreadPoolExecutor() as executor:
         results = executor.map(indi_worker, episodes)
       results = list(zip(*results))
+
       train_accs = results[0]
       val_accs = results[1]
       return train_accs, val_accs
