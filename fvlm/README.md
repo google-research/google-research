@@ -1,6 +1,7 @@
 # F-VLM: Open-Vocabulary Object Detection upon Frozen Vision and Language Models
 
 This is a JAX/Flax demo of the ICLR-2023 paper ["F-VLM: Open-Vocabulary Object Detection upon Frozen Vision and Language Models"](https://arxiv.org/abs/2209.15639).
+The model is also supported on the Cloud Vertex API [here](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/109), where you can train and predict with this model on Google Cloud Vertex AI Training and Prediction service using the provided notebook at the top of the model card.
 
 
 ## Installation
