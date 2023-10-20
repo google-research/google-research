@@ -33,7 +33,7 @@ tensorflow-metadata==1.5.0
 termcolor==1.1.0
 tqdm==4.62.3
 typing-extensions==4.0.1
-urllib3==1.26.7
+urllib3==1.26.18
 Werkzeug==2.0.2
 wrapt==1.13.3
 zipp==3.6.0
