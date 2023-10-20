@@ -15,8 +15,8 @@
 #!/bin/bash
 set -ex
 
-wget https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/dito/vit-large.zip
-unzip vit-large.zip
+wget https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/dito/demo_dito_large.zip
+unzip demo_dito_large.zip
 
 wget https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/dito/pretrained_dito_large.zip
 unzip pretrained_dito_large.zip

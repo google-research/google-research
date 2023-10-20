@@ -51,6 +51,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 from tensorflow.io import gfile
+import tensorflow_text as tf_text
 import torch
 import tqdm
 
@@ -479,3 +480,28 @@ def get_clip_text_fn(model_name):
     mean_cls_feat = np.mean(cls_feat, axis=0)
     return mean_cls_feat
   return clip_fn
+
+
+def get_tokenizer(model_path, vocab_size=64000):
+  """Load a saved tokenizer."""
+  with open(model_path, 'rb') as f:
+    model = f.read()
+  tokenizer = tf_text.SentencepieceTokenizer(model=model)
+  tokenizer.add_bos = True
+  tokenizer.add_eos = False
+  tokenizer.vocab_size = vocab_size
+  return tokenizer
+
+
+def tokenize_pad_fn(tokenizer, text_model, cls_name, max_text_len=64):
+  """Get an input tokenize function."""
+  cls_feat = []
+  for t in _CLIP_TEMPLATES:
+    cls_str = t.format(cls_name)
+    cls_str = cls_str.lower()
+    ids = tokenizer.tokenize([cls_str])
+    ids, _ = tf_text.pad_model_inputs(ids, max_seq_length=max_text_len)
+    output = text_model({'text': ids})
+    cls_feat.append(output[0])
+  mean_cls_feat = np.mean(cls_feat, axis=0, keepdims=True)
+  return mean_cls_feat
