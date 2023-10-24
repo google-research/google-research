@@ -28,7 +28,7 @@ from clu import platform
 from dreamfields import helpers
 from dreamfields import lib
 import jax
-from jax.config import config as jax_config
+from jax import config as jax_config
 import ml_collections
 from ml_collections.config_flags import config_flags
 import numpy as onp

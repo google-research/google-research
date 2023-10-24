@@ -20,8 +20,8 @@ from typing import Any, Dict, Mapping, Optional, Sequence, TYPE_CHECKING, Tuple
 from absl import logging
 import cached_property
 import jax
+from jax import config
 from jax import numpy as jnp
-from jax.config import config
 from jax.experimental import maps
 from t5x import metrics as t5x_metrics
 from t5x import models

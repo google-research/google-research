@@ -22,7 +22,7 @@ from absl import flags
 from absl import logging
 from flax.metrics import tensorboard
 import jax
-from jax.config import config
+from jax import config
 from ml_collections import config_flags
 import tensorflow as tf
 from tensorflow.io import gfile

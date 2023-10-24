@@ -30,7 +30,7 @@ from acme.utils import counting
 
 import jax
 import chex
-from jax.config import config as jax_config
+from jax import config as jax_config
 import tensorflow as tf
 from tensorflow.compat.v1 import gfile
 

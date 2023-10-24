@@ -28,7 +28,7 @@ from absl import flags
 from absl import logging
 import haiku as hk
 import jax
-# from jax.config import config as jax_config
+# from jax import config as jax_config
 import jax.nn
 import jax.numpy as jnp
 import numpy as np

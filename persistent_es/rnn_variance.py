@@ -59,7 +59,7 @@ from typing import NamedTuple, Optional, Any, Union
 import numpy as onp
 
 import jax
-from jax.config import config
+from jax import config
 # config.update('jax_disable_jit', True)
 print(jax.devices())
 import jax.numpy as jnp

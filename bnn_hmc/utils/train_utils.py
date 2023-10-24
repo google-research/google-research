@@ -34,7 +34,7 @@ import jax.numpy as jnp
 import tensorflow.compat.v2 as tf
 import numpy as onp
 import functools
-from jax.config import config
+from jax import config
 
 from bnn_hmc.core import hmc
 from bnn_hmc.utils import data_utils
