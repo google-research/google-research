@@ -707,6 +707,51 @@ class Marot {
   }
 
   /**
+   * When the input data has the older "segment.references" data (rather than
+   * the newer "segment.reference_tokens" and
+   * "segment.reference_sentence_splits" data), convert it to the newer format.
+   * @param {!Object} segment
+   */
+  tokenizeLegacyReferences(segment) {
+    if (!segment.references || segment.reference_tokens) {
+      return;
+    }
+    segment.reference_tokens = {};
+    segment.reference_sentence_splits = {};
+    for (const refKey in segment.references) {
+      const text = segment.references[refKey];
+      const tokens = [];
+      const splits = [];
+      const paragraphs = text.split('\n\n');
+      for (let p = 0; p < paragraphs.length; p++) {
+        const para = paragraphs[p];
+        const lines = para.split('\n');
+        for (let l = 0; l < lines.length; l++) {
+          const line = lines[p];
+          const spacedTokens = line.split(' ');
+          let lineTokens = 0;
+          for (const t of spacedTokens) {
+            tokens.push(t);
+            tokens.push(' ');
+            lineTokens += 2;
+          }
+          const splitInfo = {
+            num_tokens: lineTokens
+          };
+          if (l < lines.length - 1) {
+            splitInfo.ends_with_line_break = true;
+          } else if (p < paragraphs.length - 1) {
+            splitInfo.ends_with_para_break = true;
+          }
+          splits.push(splitInfo);
+        }
+      }
+      segment.reference_tokens[refKey] = tokens;
+      segment.reference_sentence_splits[refKey] = splits;
+    }
+  }
+
+  /**
    * Aggregates this.data, collecting all data for a particular segment
    * translation (i.e., for a given (doc, docSegId) pair) into the aggrDocSeg
    * object in the metadata.segment field, adding to it the following
@@ -778,13 +823,25 @@ class Marot {
               aggrDocSegSys.hasOwnProperty('starts_paragraph')) {
             aggrDocSeg.starts_paragraph = aggrDocSegSys.starts_paragraph;
           }
-          if (aggrDocSegSys.hasOwnProperty('references')) {
-            if (!aggrDocSeg.hasOwnProperty('references')) {
-              aggrDocSeg.references = {};
+          if (!aggrDocSegSys.reference_tokens && aggrDocSegSys.references) {
+            this.tokenizeLegacyReferences(aggrDocSegSys);
+          }
+          if (aggrDocSegSys.hasOwnProperty('reference_tokens')) {
+            if (!aggrDocSeg.hasOwnProperty('reference_tokens')) {
+              aggrDocSeg.reference_tokens = {};
             }
-            aggrDocSeg.references = {
-              ...aggrDocSeg.references,
-              ...aggrDocSegSys.references
+            aggrDocSeg.reference_tokens = {
+              ...aggrDocSeg.reference_tokens,
+              ...aggrDocSegSys.reference_tokens
+            };
+          }
+          if (aggrDocSegSys.hasOwnProperty('reference_sentence_splits')) {
+            if (!aggrDocSeg.hasOwnProperty('reference_sentence_splits')) {
+              aggrDocSeg.reference_sentence_splits = {};
+            }
+            aggrDocSeg.reference_sentence_splits = {
+              ...aggrDocSeg.reference_sentence_splits,
+              ...aggrDocSegSys.reference_sentence_splits
             };
           }
           if (!aggrDocSeg.hasOwnProperty('primary_reference') &&
@@ -3077,25 +3134,6 @@ class Marot {
   }
 
   /**
-   * Returns HTML for reference translation text "ref". This simply involves
-   * wrapping it in a <p>..</p> tag, and creating:
-   * - a new paragraph at every '\n\n'
-   * - a line-break (<br>) at every \n'
-   * @param {string} ref
-   * @return {string}
-   */
-  htmlFromReference(ref) {
-    let html = '';
-    const paragraphs = ref.split('\n\n');
-    for (const para of paragraphs) {
-      html += '<p>\n';
-      html += para.split('\n').join(' <br>\n');
-      html += ' </p>\n';
-    }
-    return html;
-  }
-
-  /**
    * Returns HTML from tokens and sentence-splits. This involves wrapping
    * the joined text from the tokens within a <p>..</p> tag. In addition
    * at the end of each sentence, if the sentenceSplit object indicates
@@ -3431,8 +3469,9 @@ class Marot {
           }
           console.assert(firstRowId >= 0, firstRowId);
 
-          if (shownForDocSeg == 0 && aggrDocSeg && aggrDocSeg.references) {
-            for (const ref of Object.keys(aggrDocSeg.references)) {
+          if (shownForDocSeg == 0 && aggrDocSeg &&
+              aggrDocSeg.reference_tokens) {
+            for (const ref of Object.keys(aggrDocSeg.reference_tokens)) {
               let refRowHTML = '<tr class="marot-row marot-ref-row">';
               refRowHTML += '<td><div>' + doc + '</div></td>';
               refRowHTML += '<td><div>' + docSegId + '</div></td>';
@@ -3443,8 +3482,10 @@ class Marot {
                       sourceTokens,
                       segmentMetadata.source_sentence_splits ?? []) +
                   '</div></td>';
+              const refTokens = aggrDocSeg.reference_tokens[ref] ?? [];
+              const refSplits = aggrDocSeg.reference_sentence_splits[ref] ?? [];
               refRowHTML += '<td><div>' +
-                            this.htmlFromReference(aggrDocSeg.references[ref]) +
+                            this.htmlFromTokens(refTokens, refSplits) +
                             '</div></td>';
               refRowHTML += '<td></td></tr>\n';
               this.segmentsTable.insertAdjacentHTML('beforeend', refRowHTML);

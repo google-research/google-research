@@ -89,13 +89,6 @@ ten columns, one line per marked error:
     annotation/rater. This object may not necessarily be repeated across
     multiple ratings for the same segment. The segment object may contain the
     following fields:
-      - **references**: A mapping from names of references to the references
-        themselves (e.g., {"ref_A": "The reference", "ref_B": "..."}). This
-        field need not be repeated across different systems.
-      - **primary_reference**: The name of the primary reference, which is
-        a key in the "references" mapping (e.g., "ref_A"). This field is
-        required if "references" is present. This field too need not be repeated
-        across different systems.
       - **metrics**: A dictionary in which the keys are the names of metrics
         (such as "Bleurt-X") and values are the numbers for those metrics. The
         metric name "MQM" is used for the MQM score. Note that this MQM score
@@ -109,13 +102,31 @@ ten columns, one line per marked error:
            ends_with_para_break (boolean, optional)
       - **target_sentence_splits**: An array specifying sentence segmentation
         in the target segment. Same structure as source_sentence_splits.
+      - **reference_tokens**: An object keyed by reference name. Each value is
+        an array of reference text tokens. This field need not be repeated
+        across different systems.
+      - **reference_sentence_splits**: An object keyed by reference name. Each
+        value is an array specifying sentence segmentation in a reference
+        segment. Same structure as source_sentence_splits. This field need not
+        be repeated across different systems.
+      - **references**: *Deprecated: reference_tokens and
+        reference_sentence_splits are the preferred way.* A mapping from names
+        of references to the references themselves (e.g., {"ref_A":
+        "The reference", "ref_B": "..."}). This field need not be repeated
+        across different systems.
+      - **primary_reference**: The name of the primary reference (e.g.,
+        "ref_A"), which is a key in the "reference_tokens" and
+        "reference_sentence_splits" mappings (or the "references" mapping in
+        legacy data). This field is required if "references/reference_tokens"
+        is present. This field too need not be repeated across different
+        systems.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
       - **characteristics**: A dictionary of segment characteristics that may
         be useful for slicing and dicing scores, or creating automated analyses
         of what characteristics contribute the most to score differences between
         systems (or even raters). For example:
-        - `source_length_class`: `short_0_to_10_chars`,
+        - `source_length_class`: 'short_0_to_10_chars',
         - `embedding_vilar_2d`: [42.678, 901.23],
       - In addition, any text annotation fields present in the input data are
         copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html), this would be all the fields present in the optional last column.
