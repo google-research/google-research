@@ -1,6 +1,6 @@
 # Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection
 
-This is a JAX/Flax implementation of DITO [Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection](https://arxiv.org/abs/2310.00161).
+This is a JAX/Flax implementation of DITO [Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection](https://arxiv.org/abs/2310.00161). The model is also supported on the Cloud Vertex API [here](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/150), where you can predict with this model on Google Cloud Vertex AI Prediction service using the provided notebook at the top of the model card.
 
 ## Installation
 We use the Python built-in virtual env to set up the environment. Run the following commands:
