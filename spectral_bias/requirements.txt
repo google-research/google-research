@@ -19,7 +19,7 @@ Keras-Preprocessing==1.1.2
 Markdown==3.3.6
 numpy==1.21.4
 opt-einsum==3.3.0
-Pillow==8.4.0
+Pillow==9.0.1
 promise==2.3
 protobuf==3.19.1
 requests==2.26.0
