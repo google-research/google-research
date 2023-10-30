@@ -217,7 +217,9 @@ def py_ast_to_generic(tree):
   """
   fields = {}
   for field_name in tree._fields:
-    value = getattr(tree, field_name)
+    # Try to get this field name. (Some, such as type_comment on an Assign node,
+    # may be missing.)
+    value = getattr(tree, field_name, None)
     if isinstance(value, gast.AST):
       fields[field_name] = [py_ast_to_generic(value)]
     elif isinstance(value, list):
