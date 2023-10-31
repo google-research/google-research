@@ -103,7 +103,10 @@ class MarotSigtests {
           metric: metric,
           metricDone: true,
         };
-        /** We should have at least 2 comparables and 1 trial for signif. testing. */
+        /**
+         * We should have at least 2 comparables and 1 trial for significance
+         * testing.
+         */
         if (comparables.length < 2 || sigtestsData.numTrials < 1) {
           postMessage(metricDoneUpdate);
           continue;
@@ -121,9 +124,12 @@ class MarotSigtests {
           if (!parDiffs.hasOwnProperty(baseline)) {
             parDiffs[baseline] = {};
           }
-          for (const [colIdx, item] of comparables.entries()) {
-            if (rowIdx >= colIdx) {
-              /** We only fill in the upper triangle. */
+          const columns = (sysOrRater == 'rater' ?
+                           ['not:' + baseline] : []).concat(comparables);
+          for (const [itemIdx, item] of columns.entries()) {
+            const colIdx = itemIdx - (sysOrRater == 'rater' ? 1 : 0);
+            if (rowIdx >= colIdx && colIdx != -1) {
+              /** We only fill in the upper triangle and all-other-raters. */
               continue;
             }
             const numCommonSegs = commonPos[baseline][item].length;
@@ -135,11 +141,23 @@ class MarotSigtests {
               pValue: NaN,
               numCommonSegs: numCommonSegs,
             };
-            if (log2NumTrials > numCommonSegs) {
-              /** Not enough permutations possible, do not compute p-value. */
+
+            const realDiff = (signMultiplier *
+                (scores[item].score - scores[baseline].score));
+            /**
+             * Real score differences should be non-negative since we are
+             * filling in the upper triangle. When comparing a rater against
+             * their complement, this may not hold. We skip the significance
+             * test in that case.
+             *
+             * We also skip the test if there aren't enough permutations
+             * possible.
+             */
+            if (log2NumTrials > numCommonSegs || realDiff < 0) {
               postMessage(update);
               continue;
             }
+
             if (!parDiffs[baseline].hasOwnProperty(item)) {
               parDiffs[baseline][item] = [];
             }
@@ -149,14 +167,6 @@ class MarotSigtests {
               if (diff == null) break;
               parDiffs[baseline][item].push(diff);
             }
-
-            const realDiff = (signMultiplier *
-                (scores[item].score - scores[baseline].score));
-            /**
-             * Real score differences should be non-negative since we are
-             * filling in the upper triangle.
-             */
-            console.assert(realDiff >= 0.0, realDiff);
             let cnt = 0;
             for (const diff of parDiffs[baseline][item]) {
               /**

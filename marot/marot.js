@@ -107,9 +107,10 @@ class MarotSigtestsMetricData {
      * {!Array<string>} Sorted array ordered by degrading scores.
      */
     this.comparables = [];
+
      /**
       * {!Object} Scores by system/rater. Each score itself is an object
-      *     containing score and scoreDenominator.
+      *     containing score and numSegments.
       */
     this.scores = {};
     /**
@@ -125,7 +126,9 @@ class MarotSigtestsMetricData {
      *     positions in segScores.
      */
     this.commonPosByItemPair = {};
-    /** {!Array<!Array<number>>} Computed matrix of p-values. */
+    /**
+     * {!Array<!Array<number>>} Computed matrix of p-values.
+     */
     this.pValues = [];
   }
 }
@@ -171,7 +174,13 @@ class Marot {
       docSegs: {},
       docSys: {},
       docSegSys: {},
-      systems: [],  /** Convenient list of all systems in the data. */
+      systems: null,  /** Set of all systems in the data. */
+      /**
+       * Set of all raters in the data, including prior-raters (recorded here
+       * with a "prior_rater:" prefix), and faux, "all-raters-other-than"
+       * raters (recorded with an "not:" prefix).
+       */
+      raters: null,
     };
 
     /**
@@ -228,7 +237,7 @@ class Marot {
      *   statsByRater[rater][doc][docSegId]
      *      stats has a special system value ('MAROT_TOTAL') that aggregates
      *      ratings for all systems, by using faux "doc" keys that look like
-     *      "[doc]:[system]". The doc keys in statsByRater also look like
+     *      "[doc]:[system]". The "doc" keys in statsByRater also look like
      *      "[doc]:[system]".
      *
      * sevcatStats[severity][category][system] is the total count of
@@ -334,12 +343,6 @@ class Marot {
     this.mqmSliceFields = [];
 
     /**
-     * Scoring unit. If false, segments are used for scoring. If true, scores
-     * are computed per "100 source characters".
-     */
-    this.charScoring = false;
-
-    /**
      * The field to sort the score table rows by. By default, sort by
      * overall MQM score. `sortReverse` indicates whether it is sorted in
      * ascending order (false, default) or descending order (true).
@@ -377,6 +380,16 @@ class Marot {
      * Max number of rows to show in a rater's event timeline.
      */
     this.RATER_TIMELINE_LIMIT = 200;
+
+    /**
+     * Prefix attached to a rater id to identify the complement set of raters.
+     */
+    this.NOT_PREFIX = 'not:';
+
+    /**
+     * Prefix attached to a rater id to mark it as coming from a prior rater.
+     */
+    this.PRIOR_RATER_PREFIX = 'prior:';
 
     /**
      * Maximum number of lines of data that we'll consume. Human eval data is
@@ -462,17 +475,28 @@ class Marot {
       docSegs: {},
       docSys: {},
       docSegSys: {},
-      systems: [],
+      systems: new Set,
+      raters: new Set,
       evaluation: {},
     };
     let lastRow = null;
-    const systemsSet = new Set();
     for (let rowId = 0; rowId < this.data.length; rowId++) {
       const parts = this.data[rowId];
       const doc = parts[this.DATA_COL_DOC];
       const docSegId = parts[this.DATA_COL_DOC_SEG_ID];
       const system = parts[this.DATA_COL_SYSTEM];
-      systemsSet.add(system);
+      this.dataIter.systems.add(system);
+      const rater = parts[this.DATA_COL_RATER];
+      if (rater) {
+        this.dataIter.raters.add(rater);
+        this.dataIter.raters.add(this.NOT_PREFIX + rater);
+      }
+      const metadata = parts[this.DATA_COL_METADATA];
+      const priorRater = metadata.prior_rater ?? '';
+      if (priorRater) {
+        this.dataIter.raters.add(this.PRIOR_RATER_PREFIX + priorRater);
+      }
+
       const sameDoc = lastRow && (doc == lastRow[this.DATA_COL_DOC]);
       const sameDocSeg = sameDoc &&
                          (docSegId == lastRow[this.DATA_COL_DOC_SEG_ID]);
@@ -492,7 +516,6 @@ class Marot {
       }
       lastRow = parts;
     }
-    this.dataIter.systems = [...systemsSet];
     /**
      * Ensure that there are entries in docSegSys for each
      * docSegId x system.
@@ -799,6 +822,12 @@ class Marot {
               };
             }
             aggrDocSegSys = {...segment, ...aggrDocSegSys};
+            if (!aggrDocSegSys.hasOwnProperty('num_source_chars')) {
+              aggrDocSegSys.num_source_chars = parts.num_source_chars;
+            }
+            if (!aggrDocSegSys.hasOwnProperty('num_target_chars')) {
+              aggrDocSegSys.num_target_chars = parts.num_target_chars;
+            }
           }
           for (let metric in aggrDocSegSys.metrics) {
             if (!aggrDocSeg.metrics.hasOwnProperty(metric)) {
@@ -813,6 +842,10 @@ class Marot {
           if (!aggrDocSeg.hasOwnProperty('source_tokens') &&
               aggrDocSegSys.hasOwnProperty('source_tokens')) {
             aggrDocSeg.source_tokens = aggrDocSegSys.source_tokens;
+          }
+          if (!aggrDocSeg.hasOwnProperty('num_source_chars') &&
+              aggrDocSegSys.hasOwnProperty('num_source_chars')) {
+            aggrDocSeg.num_source_chars = aggrDocSegSys.num_source_chars;
           }
           if (!aggrDocSeg.hasOwnProperty('source_sentence_splits') &&
               aggrDocSegSys.hasOwnProperty('source_sentence_splits')) {
@@ -1040,6 +1073,8 @@ class Marot {
       const severity = arguments[marot.DATA_COL_SEVERITY];
       const metadata = arguments[marot.DATA_COL_METADATA];
       const segment = metadata.segment;
+      const reference = (
+          segment.reference_tokens[segment.primary_reference] ?? []).join('');
       const aggrDocSegSys = segment;
       const aggrDocSeg = aggrDocSegSys.aggrDocSeg;
       const aggrDoc = aggrDocSeg.aggrDoc;` +
@@ -1050,7 +1085,8 @@ class Marot {
           parts[this.DATA_COL_RATER], parts[this.DATA_COL_CATEGORY],
           parts[this.DATA_COL_SEVERITY], parts[this.DATA_COL_METADATA]);
     } catch (err) {
-      document.getElementById('marot-filter-expr-error').innerHTML = err;
+      document.getElementById('marot-filter-expr-error').innerHTML =
+          'Some rows were filtered out because of invalid fields: ' + err;
       return false;
     }
   }
@@ -1068,7 +1104,7 @@ class Marot {
       const numSystemsWithMetric =
           Object.keys(aggrDocSeg.metrics[metric]).length;
       if (numSystemsWithMetric > 0 &&
-          numSystemsWithMetric != this.dataIter.systems.length) {
+          numSystemsWithMetric != this.dataIter.systems.size) {
         return false;
       }
     }
@@ -1278,7 +1314,32 @@ class Marot {
   }
 
   /**
-   * Initializes and returns a rater stats object.
+   * Returns an HTML string for a '<td>' tag containing the score, including
+   * hover text for showing the number of segments and source characters.
+   * @param {!Object} s Score object containing the fields numSegments,
+   *     num_source_chars, score.
+   * @param {string=} cls Optional span class to place the score text within.
+   * @return {string}
+   */
+  tdForScore(s, cls='') {
+    const title =
+        `#Segments: ${s.numSegments}, #SrcChars: ${s.num_source_chars}`;
+    let td = `<td title="${title}">`;
+    if (cls) {
+      td += `<span class="${cls}">`;
+    }
+    td += this.metricDisplay(s.score, s.numSegments);
+    if (cls) {
+      td += '</span>';
+    }
+    td += '</td>';
+    return td;
+  }
+
+  /**
+   * Initializes and returns a rater stats object, which captures the score,
+   * score slices, total error counts, and some more stats from one rater on
+   * one specific segment (doc+sys+seg).
    * @param {string} rater
    * @return {!Object}
    */
@@ -1286,7 +1347,6 @@ class Marot {
     return {
       rater: rater,
       score: 0,
-      scoreDenominator: 0,
 
       errorSpans: 0,
       numWithErrors: 0,
@@ -1374,48 +1434,50 @@ class Marot {
   /**
    * Aggregates segment stats. This returns an object that has aggregate MQM
    * score in the "score" field and these additional properties:
-   *       scoreDenominator
    *       numSegments
-   *       numSrcChars
-   *       numRatings
-   *       metrics
+   *       num_source_chars
+   *       metrics['<metric-name>']:
+   *          score
+   *          numSegments
+   *          num_source_chars
    *       metric-[index in this.metrics]
    *           (repeated from metrics[...].score, as a convenient sorting key)
-   *       timeSpentMS
+   *       mqmStats:
+   *         numSegments # of segments with MQM ratings
+   *         num_source_chars # of src-chars with MQM ratings
+   *         numRatings: # segment X rater combinations for MQM
+   *         timeSpentMS
    * @param {!Array} segs
    * @return {!Object}
    */
   aggregateSegStats(segs) {
-    const aggregates = this.initRaterStats('');
-    aggregates.metrics = {};
+    const aggregates = {
+      numSegments: 0,
+      num_source_chars: 0,
+      metrics: {},
+    };
+    aggregates.mqmStats = {
+      numSegments: 0,
+      num_source_chars: 0,
+      numRatings: 0,
+      ...(this.initRaterStats('')),
+    };
     if (!segs || !segs.length) {
-      aggregates.score = 0;
-      aggregates.scoreDenominator = 0;
-      aggregates.numSegments = 0;
-      aggregates.numSrcChars = 0;
-      aggregates.numRatings = 0;
-      aggregates.timeSpentMS = 0;
       return aggregates;
     }
-    let totalSrcLen = 0;
-    /**
-     * numSegRatings counts each (seg, rater) combination, where the rater rated
-     *     that segment, once.
-     * numRatedSegs counts segments that have been rated by at least one rater.
-     */
-    let numSegRatings = 0;
-    let numRatedSegs = 0;
     for (const segStats of segs) {
+      aggregates.numSegments++;
+      aggregates.num_source_chars += segStats.num_source_chars;
       const allRaterStats = this.initRaterStats('');
       for (const r of segStats) {
         this.addRaterStats(allRaterStats, r);
       }
       if (segStats.length > 0) {
         this.avgRaterStats(allRaterStats, segStats.length);
-        numSegRatings += segStats.length;
-        numRatedSegs++;
-        totalSrcLen += segStats.srcLen;
-        this.addRaterStats(aggregates, allRaterStats);
+        aggregates.mqmStats.numSegments++;
+        aggregates.mqmStats.num_source_chars += segStats.num_source_chars;
+        aggregates.mqmStats.numRatings += segStats.length;
+        this.addRaterStats(aggregates.mqmStats, allRaterStats);
       }
       if (segStats.hasOwnProperty('metrics')) {
         for (let metric in segStats.metrics) {
@@ -1429,52 +1491,38 @@ class Marot {
           if (!aggregates.metrics.hasOwnProperty(metric)) {
             aggregates.metrics[metric] = {
               score: 0,
-              scoreDenominator: 0,
               numSegments: 0,
-              numSrcChars: 0,
+              num_source_chars: 0,
             };
           }
         }
       }
     }
 
-    aggregates.numSegments = numRatedSegs;
-    aggregates.numSrcChars = totalSrcLen;
-    aggregates.scoreDenominator =
-        this.charScoring ? (aggregates.numSrcChars / 100) :
-        aggregates.numSegments;
-    this.avgRaterStats(aggregates, aggregates.scoreDenominator);
-    aggregates.numRatings = numSegRatings;
+    this.avgRaterStats(aggregates.mqmStats, aggregates.mqmStats.numSegments);
 
     for (let metric in aggregates.metrics) {
       const metricStats = aggregates.metrics[metric];
-      metricStats.numSegments = 0;
-      metricStats.numSrcChars = 0;
-      metricStats.score = 0;
       for (const segStats of segs) {
         if (!segStats.hasOwnProperty('metrics') ||
             !segStats.metrics.hasOwnProperty(metric)) {
           continue;
         }
         metricStats.numSegments++;
-        metricStats.numSrcChars += segStats.srcLen;
+        metricStats.num_source_chars += segStats.num_source_chars;
         metricStats.score += segStats.metrics[metric];
       }
-      metricStats.scoreDenominator =
-          this.charScoring ? (metricStats.numSrcChars / 100) :
-          metricStats.numSegments;
-      if (metricStats.scoreDenominator > 0) {
-        metricStats.score /= metricStats.scoreDenominator;
+      if (metricStats.numSegments > 0) {
+        metricStats.score /= metricStats.numSegments;
       }
     }
-    /** Copy marot score into aggregate.metrics['MQM'] */
-    if (aggregates.numRatings > 0) {
+    /** Copy MQM score into aggregate.metrics['MQM'] */
+    if (aggregates.mqmStats.numRatings > 0) {
       aggregates.metrics['MQM'] = {
-        score: aggregates.score,
-        scoreDenominator: aggregates.scoreDenominator,
-        numSegments: aggregates.numSegments,
-        numSrcChars: aggregates.numSrcChars,
-        numRatings: aggregates.numRatings,
+        score: aggregates.mqmStats.score,
+        numSegments: aggregates.mqmStats.numSegments,
+        num_source_chars: aggregates.mqmStats.num_source_chars,
+        numRatings: aggregates.mqmStats.numRatings,
       };
     }
     for (let metric in aggregates.metrics) {
@@ -1490,12 +1538,6 @@ class Marot {
    * are not applicable, then this returns without creating a Worker.
    */
   startSigtests() {
-    if (this.charScoring) {
-      const na = 'Not available for 100-source-chars scoring';
-      this.sigtestsSysMsg.innerHTML = na;
-      this.sigtestsRaterMsg.innerHTML = na;
-      return;
-    }
     let noop = true;
     if (this.sigtestsData.data.hasOwnProperty('sys')) {
       noop = false;
@@ -1548,7 +1590,7 @@ class Marot {
     const commonPos = data.commonPosByItemPair[baseline][item];
 
     const n = commonPos.length ?? 0;
-    if (n <= 1 || this.charScoring) {
+    if (n <= 1) {
       return NaN;
     }
     let sumX = 0.0, sumY = 0.0;
@@ -1605,7 +1647,8 @@ class Marot {
     const sigtestsData = {
     };
 
-    const comparables = Object.keys(statsAggregates);
+    const comparables = this.excludeRaterComplements(
+        Object.keys(statsAggregates));
     const indexOfTotal = comparables.indexOf(this.TOTAL);
     if (indexOfTotal >= 0) {
       comparables.splice(indexOfTotal, 1);
@@ -1627,10 +1670,20 @@ class Marot {
       for (const item of data.comparables) {
         data.scores[item] =
             statsAggregates[item].metrics[metric] ??
-            {score: 0, scoreDenominator: 0};
+            {score: 0, numSegments: 0};
+      }
+      const augmentedItems = data.comparables.slice();
+      if (sysOrRater == 'rater') {
+        for (const rater of data.comparables) {
+          const notRater = this.NOT_PREFIX + rater;
+          augmentedItems.push(notRater);
+          data.scores[notRater] =
+              statsAggregates[notRater].metrics[metric] ??
+              {score: 0, numSegments: 0};
+        }
       }
       const segScores = data.segScores;
-      for (const item of data.comparables) {
+      for (const item of augmentedItems) {
         /**
          * For each item, we first compute the mapping from position to score.
          * Any missing key correponds to one missing segment for this item.
@@ -1643,7 +1696,7 @@ class Marot {
             /** Note the extra "[]". */
             const aggregate = this.aggregateSegStats([segs]);
             const metricStats = aggregate.metrics[metric] ?? null;
-            if (metricStats && metricStats.scoreDenominator > 0) {
+            if (metricStats && metricStats.numSegments > 0) {
               posToScore[pos] = metricStats.score;
             }
           }
@@ -1666,8 +1719,14 @@ class Marot {
         if (!commonPos.hasOwnProperty(baseline)) {
           commonPos[baseline] = {};
         }
-        /** We only need the upper triangle in the comparison table. */
-        for (const item of data.comparables.slice(idx + 1)) {
+        /**
+         * We only need the upper triangle in the comparison table, plus the
+         * complement in case of raters.
+         */
+        const columns = (sysOrRater == 'rater' ?
+                         [this.NOT_PREFIX + baseline] : []).concat(
+                             data.comparables.slice(idx + 1));
+        for (const item of columns) {
           if (!commonPos[baseline].hasOwnProperty(item)) {
             commonPos[baseline][item] = [];
           }
@@ -1786,7 +1845,8 @@ class Marot {
   }
 
   /**
-   * TODo
+   * Toggle system/rater comparison tables between p-value display and Pearson
+   * rho display.
    */
   switchCmpTable(sysOrRater) {
     const section = document.getElementById(`marot-${sysOrRater}-comparison`);
@@ -1831,11 +1891,10 @@ class Marot {
           <tr>
             <th>${sysOrRater == 'sys' ? 'System' : 'Rater'}</th>
             <th>${this.metrics[m]}</th>`;
+      if (sysOrRater == 'rater') {
+        html += '<th colspan="2">All other raters</th>';
+      }
       for (const item of comparables) {
-        const s = scores[item];
-        if (s.scoreDenominator == 0) {
-          continue;
-        }
         html += `<th>${item}</th>`;
       }
       html += `</tr></thead>\n<tbody>\n`;
@@ -1844,16 +1903,24 @@ class Marot {
       for (const [rowIdx, baseline] of comparables.entries()) {
         /** Show metric score in the second column. */
         const s = scores[baseline];
-        if (s.scoreDenominator == 0) {
-          continue;
-        }
-        const displayScore = this.metricDisplay(s.score, s.scoreDenominator);
         html += `
           <tr id="marot-${sysOrRater}-sigtests-${m}-row-${rowIdx}">
             <td>${baseline}</td>
-            <td>${displayScore}</td>`;
-        for (const [colIdx, item] of comparables.entries()) {
-          if (rowIdx >= colIdx) {
+            ${this.tdForScore(s)}`;
+        const othersColumn = [];
+        if (sysOrRater == 'rater') {
+          const notRater = this.NOT_PREFIX + baseline;
+          const otherRatersScore = scores[notRater];
+          html += this.tdForScore(otherRatersScore, 'marot-gray');
+          othersColumn.push(notRater);
+        }
+        const columns = othersColumn.concat(comparables);
+        for (const [itemIdx, item] of columns.entries()) {
+          const colIdx = itemIdx - othersColumn.length;
+          /**
+           * Note that p-value against "all other raters" is shown in colIdx = -1
+           */
+          if (rowIdx >= colIdx && colIdx != -1) {
             html += '<td></td>';
             continue;
           }
@@ -1861,7 +1928,7 @@ class Marot {
           const title = 'Based on ' + commonPos.length + ' common segments';
           html += '<td title="' + title + '">';
           const s2 = scores[item];
-          if (s2.scoreDenominator == 0) {
+          if (s2.numSegments == 0) {
             html += '</td>';
             continue;
           }
@@ -1906,23 +1973,20 @@ class Marot {
    */
   showScoresHeader(hasRatings) {
     const header = document.getElementById('marot-stats-thead');
-    const scoringUnit = this.charScoring ? '100 source chars' : 'segment';
     let html = `
         <tr>
-          <th>Scores are per
-              <span id="marot-scoring-unit-display">${scoringUnit}</span></th>`;
+          <th>Scores are per segment</th>`;
     const metricFields = [];
     for (const m of this.metricsVisible) {
       const metric = this.metrics[m];
       html +=  `<th id="marot-metric-${m}-th">${metric}</th>`;
       metricFields.push('metric-' + m);
     }
+    html += `
+            <th title="Number of segments"><b>#Segments</b></th>
+            <th title="Number of source characters"><b>#Source-chars</b></th>`;
     if (hasRatings) {
       html += `
-            <th title="Number of rated segments"><b>#Rated segments</b></th>
-            <th title="Number of rated source characters">
-              <b>#Rated source-chars</b>
-            </th>
             <th title="Number of segment ratings"><b>#Segment ratings</b></th>`;
     }
 
@@ -1944,8 +2008,8 @@ class Marot {
     }
     if (hasRatings) {
       html += `
-            <th title="Average time (seconds) per rater per
-  segment or 100-source-chars"><b>Time (s)</b></th>
+            <th title="Average time (seconds) per rater per segment">
+                <b>Time (s)</b></th>
             <th title="Average length of error span"><b>Err span</b></th>
             <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
           </tr>`;
@@ -1982,7 +2046,7 @@ class Marot {
    * @param {string=} title
    */
   showScoresSeparator(hasRatings, title='') {
-    const NUM_COLS = (hasRatings ? 7 : 1) + this.metricsVisible.length +
+    const NUM_COLS = (hasRatings ? 7 : 3) + this.metricsVisible.length +
                      this.mqmWeightedFields.length +
                      this.mqmSliceFields.length;
     this.statsTable.insertAdjacentHTML(
@@ -2013,24 +2077,24 @@ class Marot {
         continue;
       }
       const s = aggregates.metrics[metric];
-      const title = `#Segments: ${s.numSegments}, #SrcChars: ${s.numSrcChars}`;
-      rowHTML += `<td title="${title}">` +
-                 this.metricDisplay(s.score, s.scoreDenominator) +
-                 '</td>';
+      rowHTML += this.tdForScore(s);
     }
-    if (hasRatings) {
-      rowHTML +=
+    rowHTML +=
         `<td>${aggregates.numSegments}</td>` +
-        `<td>${aggregates.numSrcChars}</td>` +
-        `<td>${aggregates.numRatings}</td>`;
-      if (aggregates.scoreDenominator <= 0) {
+        `<td>${aggregates.num_source_chars}</td>`;
+    if (hasRatings) {
+      const mqmStats = aggregates.mqmStats;
+      console.assert(mqmStats.numRatings > 0, mqmStats);
+      rowHTML +=
+        `<td>${mqmStats.numRatings}</td>`;
+      if (mqmStats.numSegments <= 0) {
         for (let i = 0; i < scoreFields.length + 3; i++) {
           rowHTML += '<td>-</td>';
         }
       } else {
         for (const s of scoreFields) {
           let content =
-              aggregates.hasOwnProperty(s) ? aggregates[s].toFixed(3) : '-';
+              mqmStats.hasOwnProperty(s) ? mqmStats[s].toFixed(3) : '-';
           const nameParts = s.split('-', 2);
           const cls = (nameParts.length == 2) ?
             ' class="marot-stats-' + nameParts[0] + '"' :
@@ -2038,15 +2102,15 @@ class Marot {
           rowHTML += `<td${cls}>${content}</td>`;
         }
         let errorSpan = 0;
-        if (aggregates.numWithErrors > 0) {
-          errorSpan = aggregates.errorSpans / aggregates.numWithErrors;
+        if (mqmStats.numWithErrors > 0) {
+          errorSpan = mqmStats.errorSpans / mqmStats.numWithErrors;
         }
-        rowHTML += `<td>${(aggregates.timeSpentMS/1000.0).toFixed(1)}</td>`;
+        rowHTML += `<td>${(mqmStats.timeSpentMS/1000.0).toFixed(1)}</td>`;
         rowHTML += `<td>${(errorSpan).toFixed(1)}</td>`;
-        const hotw = aggregates.hotwFound + aggregates.hotwMissed;
+        const hotw = mqmStats.hotwFound + mqmStats.hotwMissed;
         if (hotw > 0) {
-          const perc = ((aggregates.hotwFound * 100.0) / hotw).toFixed(1);
-          rowHTML += `<td>${aggregates.hotwFound}/${hotw} (${perc}%)</td>`;
+          const perc = ((mqmStats.hotwFound * 100.0) / hotw).toFixed(1);
+          rowHTML += `<td>${mqmStats.hotwFound}/${hotw} (${perc}%)</td>`;
         } else {
           rowHTML += '<td>-</td>';
         }
@@ -2076,7 +2140,7 @@ class Marot {
             systemAggregates[sys1][SORT_FIELD] -
             systemAggregates[sys2][SORT_FIELD]);
 
-    const raters = Object.keys(this.statsByRater);
+    const raters = this.excludeRaterComplements(Object.keys(this.statsByRater));
     const raterAggregates = {};
     for (const rater of raters) {
       const segs = this.getSegStatsAsArray(this.statsByRater[rater]);
@@ -2114,36 +2178,31 @@ class Marot {
       if (sys == this.TOTAL) {
         continue;
       }
-      const allRatersScore = systemAggregates[sys].score;
-      const allRatersScoreDisplay = this.metricDisplay(
-          allRatersScore, systemAggregates[sys].numRatings);
+      const allRatersScore = systemAggregates[sys].mqmStats;
       html += `
-        <tr><td>${sys}</td><td>${allRatersScoreDisplay}</td>`;
+        <tr><td>${sys}</td>${this.tdForScore(allRatersScore)}`;
       for (const rater of raters) {
         const segs = this.getSegStatsAsArray(
             (this.statsByRaterSystem[rater] ?? {})[sys] ?? {});
         if (segs && segs.length > 0) {
           const aggregate = this.aggregateSegStats(segs);
-          const cls = ((aggregate.score < lastForRater[rater] &&
-                        allRatersScore > lastAllRaters) ||
-                       (aggregate.score > lastForRater[rater] &&
-                        allRatersScore < lastAllRaters)) ?
-              ' class="marot-out-of-order"' : '';
-          const scoreDisplay = this.metricDisplay(
-              aggregate.score, aggregate.numRatings);
-          html += `
-              <td><span${cls}>${scoreDisplay}</span></td>`;
-          lastForRater[rater] = aggregate.score;
+          const cls = ((aggregate.mqmStats.score < lastForRater[rater] &&
+                        allRatersScore.score > lastAllRaters) ||
+                       (aggregate.mqmStats.score > lastForRater[rater] &&
+                        allRatersScore.score < lastAllRaters)) ?
+              'marot-out-of-order' : '';
+          html += this.tdForScore(aggregate.mqmStats, cls);
+          lastForRater[rater] = aggregate.mqmStats.score;
         } else {
           html += '<td>-</td>';
           /**
            * Ensure that the next score for this rater is marked as out-of-order
            * or not in some reasonable manner:
            */
-          lastForRater[rater] = allRatersScore;
+          lastForRater[rater] = allRatersScore.score;
         }
       }
-      lastAllRaters = allRatersScore;
+      lastAllRaters = allRatersScore.score;
       html += `
         </tr>`;
     }
@@ -2199,6 +2258,22 @@ class Marot {
   }
 
   /**
+   * Returns a pruned copy of the input array, removing the faux 'raters' named
+   * with a 'not:' prefix.
+   * @param {!Array<string>} comparables
+   * @return {!Array<string>}
+   */
+  excludeRaterComplements(comparables) {
+    const pruned = [];
+    for (const item of comparables) {
+      if (!item.startsWith(this.NOT_PREFIX)) {
+        pruned.push(item);
+      }
+    }
+    return pruned;
+  }
+
+  /**
    * Creates the "system vs system" or "rater vs rater" plots comparing the
    * pairs for all available metrics. This sets up the menus for selecting the
    * systems/raters, creates skeletal tables, and then calls this.showCmp() to
@@ -2243,10 +2318,12 @@ class Marot {
 
     /** Populate menu choices. */
     const select1 = document.getElementById(`marot-${versus}-1`);
+    select1.innerHTML = '';
     const select2 = document.getElementById(`marot-${versus}-2`);
+    select2.innerHTML = '';
     const stats = sysOrRater == 'sys' ? this.statsBySystem : this.statsByRater;
 
-    const comparables = Object.keys(stats);
+    const comparables = this.excludeRaterComplements(Object.keys(stats));
     const indexOfTotal = comparables.indexOf(this.TOTAL);
     if (indexOfTotal >= 0) {
       comparables.splice(indexOfTotal, 1);
@@ -2261,7 +2338,8 @@ class Marot {
       this.comparisons[key1] = '';
     }
     if (this.comparisons[key2] &&
-        !stats.hasOwnProperty(this.comparisons[key2])) {
+        !stats.hasOwnProperty(this.comparisons[key2]) &&
+        (sysOrRater == 'sys' || this.comparisons[key2] != this.NOT_PREFIX)) {
       this.comparisons[key2] = '';
     }
     for (const [index, sr] of comparables.entries()) {
@@ -2287,6 +2365,15 @@ class Marot {
       }
       select2.insertAdjacentElement('beforeend', option2);
     }
+    if (sysOrRater == 'rater') {
+      const option2 = document.createElement('option');
+      option2.value = this.NOT_PREFIX;
+      option2.innerHTML = 'All other raters';
+      if (this.NOT_PREFIX == this.comparisons[key2]) {
+        option2.selected = true;
+      }
+      select2.insertAdjacentElement('beforeend', option2);
+    }
     this.showCmp(sysOrRater);
   }
 
@@ -2299,7 +2386,10 @@ class Marot {
     const select1 = document.getElementById(`marot-${versus}-1`);
     const select2 = document.getElementById(`marot-${versus}-2`);
     const sr1 = select1.value;
-    const sr2 = select2.value;
+    let sr2 = select2.value;
+    if (sysOrRater == 'rater' && sr2 == this.NOT_PREFIX) {
+      sr2 = this.NOT_PREFIX + sr1;
+    }
     const stats = sysOrRater == 'sys' ? this.statsBySystem : this.statsByRater;
     const docsegs1 = this.getDocSegs(stats[sr1] || {});
     const docsegs2 = this.getDocSegs(stats[sr2] || {});
@@ -2559,6 +2649,61 @@ class Marot {
   }
 
   /**
+   * This is called from show() after looping through the data. It creates
+   * "complementary raters" stats. I.e., for each rater R, for each segment, it
+   * creates stats for the "not:R" rater, that are the ratings from all other
+   * raters.
+   */
+  buildRaterComplementStats() {
+    const raters = Object.keys(this.statsByRater);
+    for (const rater of raters) {
+      const notRater = this.NOT_PREFIX + rater;
+      if (!this.statsByRater.hasOwnProperty(notRater)) {
+        this.statsByRater[notRater] = {};
+      }
+    }
+    for (const rater of raters) {
+      const raterStats = this.statsByRater[rater];
+      for (const docsys in raterStats) {
+        /**
+         * Note that this.statsByRater[rater] (raterStats) is keyed by docsys
+         * (which is like "doc:sys"). Each this.statsByRater[rater][docsys][seg]
+         * is an array consisting of exactly one element, which contains the
+         * aggregate score given by this rater to this particular segment in
+         * this doc:sys.
+         * 
+         * When we build the complement ratings ('not:<r>') for a rater '<r>',
+         * this.statsByRater['not:<r>'][docsys][seg] will be an array consisting
+         * of all existing this.statsByRater[rater][docsys][seg][0] such that
+         * rater != '<r>'.
+         */
+        const raterDocsysStats = raterStats[docsys];
+        for (const seg in raterDocsysStats) {
+          const raterDocsysSegStats = raterDocsysStats[seg];
+          console.assert(raterDocsysSegStats.length == 1, raterDocsysSegStats);
+          for (const otherRater of raters) {
+            if (rater == otherRater) {
+              continue;
+            }
+            const notOtherRater = this.NOT_PREFIX + otherRater;
+            if (!this.statsByRater[notOtherRater].hasOwnProperty(docsys)) {
+              this.statsByRater[notOtherRater][docsys] = {};
+            }
+            if (!this.statsByRater[notOtherRater][docsys].hasOwnProperty(seg)) {
+              this.statsByRater[notOtherRater][docsys][seg] = [];
+              this.statsByRater[notOtherRater][docsys][seg].num_source_chars =
+                  raterDocsysSegStats.num_source_chars;
+            }
+            this.statsByRater[notOtherRater][docsys][seg].push(
+                raterDocsysSegStats[0]);
+          }
+        }
+      }
+    }
+
+  }
+
+  /**
    * Shows all the stats.
    */
   showStats() {
@@ -2573,11 +2718,11 @@ class Marot {
       const segs = this.getSegStatsAsArray(this.statsBySystem[system]);
       statsBySysAggregates[system] = this.aggregateSegStats(segs);
     }
-    const overallStats = statsBySysAggregates[this.TOTAL] ?? {};
+    const overallMQMStats = statsBySysAggregates[this.TOTAL].mqmStats ?? {};
     this.mqmWeightedFields = [];
     this.mqmSliceFields = [];
-    for (let key in overallStats) {
-      if (!overallStats[key]) continue;
+    for (let key in overallMQMStats) {
+      if (!overallMQMStats[key]) continue;
       if (key.startsWith(this.MQM_WEIGHTED_PREFIX)) {
         this.mqmWeightedFields.push(this.mqmKeyToName(key));
       } else if (key.startsWith(this.MQM_SLICE_PREFIX)) {
@@ -2585,18 +2730,21 @@ class Marot {
       }
     }
     this.mqmWeightedFields.sort(
-        (k1, k2) => (overallStats[this.MQM_WEIGHTED_PREFIX + k2] ?? 0) -
-            (overallStats[this.MQM_WEIGHTED_PREFIX + k1] ?? 0));
+        (k1, k2) => (overallMQMStats[this.MQM_WEIGHTED_PREFIX + k2] ?? 0) -
+            (overallMQMStats[this.MQM_WEIGHTED_PREFIX + k1] ?? 0));
     this.mqmSliceFields.sort(
-        (k1, k2) => (overallStats[this.MQM_SLICE_PREFIX + k2] ?? 0) -
-            (overallStats[this.MQM_SLICE_PREFIX + k1] ?? 0));
+        (k1, k2) => (overallMQMStats[this.MQM_SLICE_PREFIX + k2] ?? 0) -
+            (overallMQMStats[this.MQM_SLICE_PREFIX + k1] ?? 0));
 
     const statsByRaterAggregates = {};
-    const raters = Object.keys(this.statsByRater);
-    for (const rater of raters) {
+    const ratersOrGroups = Object.keys(this.statsByRater);
+    for (const rater of ratersOrGroups) {
+      /** Build aggregates for all, including the 'not:' rater groups. */
       const segs = this.getSegStatsAsArray(this.statsByRater[rater]);
       statsByRaterAggregates[rater] = this.aggregateSegStats(segs);
     }
+
+    const raters = this.excludeRaterComplements(ratersOrGroups);
 
     const indexOfTotal = systems.indexOf(this.TOTAL);
     systems.splice(indexOfTotal, 1);
@@ -2750,7 +2898,6 @@ class Marot {
    */
   addErrorStats(stats, timeSpentMS, category, severity, span) {
     stats.timeSpentMS += timeSpentMS;
-    stats.scoreDenominator = 1;
 
     const lcat = category.toLowerCase().trim();
     if (lcat == 'no-error' || lcat == 'no_error') {
@@ -3102,21 +3249,21 @@ class Marot {
 
   /**
    * Returns the "metrics line" to display for the current segment, which
-   * includes marot score as well as any available automated metrics.
+   * includes MQM score as well as any available automated metrics.
    * @param {!Object} currSegStatsBySys
    * @return {string}
    */
   getSegScoresHTML(currSegStatsBySys) {
     const segScoresParts = [];
-    for (let metric in currSegStatsBySys.metrics) {
-      const s = currSegStatsBySys.metrics[metric];
-      segScoresParts.push([metric, this.metricDisplay(s, 1)]);
+    const metrics = currSegStatsBySys.metrics;
+    for (let metric in metrics) {
+      segScoresParts.push([metric, metrics[metric]]);
       if (metric == 'MQM') {
+        /** metrics.MQM is the unfiltered value; recompute with filtering */
         const aggregate = this.aggregateSegStats([currSegStatsBySys]);
-        if (aggregate.score != s) {
-          segScoresParts.push(
-              ['MQM-filtered',
-              this.metricDisplay(aggregate.score, aggregate.scoreDenominator)]);
+        const score = aggregate.mqmStats.score;
+        if (score != metrics[metric]) {
+          segScoresParts.push(['MQM-filtered', score]);
         }
       }
     }
@@ -3126,7 +3273,8 @@ class Marot {
     let scoresRows = '';
     for (const part of segScoresParts) {
       scoresRows += '<tr><td>' + part[0] + ':&nbsp;</td>' +
-      '<td><span class="marot-seg-score">' + part[1] + '</span></td></tr>';
+      `<td><span class="marot-seg-score">${this.metricDisplay(part[1], 1)}
+           </span></td></tr>`;
     }
     return '<tr><td><table class="marot-scores-table">' +
            scoresRows +
@@ -3201,12 +3349,15 @@ class Marot {
       for (const docSegId of this.dataIter.docSegs[doc]) {
         for (const system of this.dataIter.docSys[doc]) {
           let firstRowId = -1;
+          let numSrcChars = 0;
           let segmentMetadata = null;
           let lastRater = '';
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
           const docColonSys = doc + ':' + system;
+          const priorRaterStats = {};  /** prior_rater -> RaterStats */
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             const parts = this.data[rowId];
+            numSrcChars = parts.num_source_chars;
             let match = true;
             for (let id in allFilters.filterREs) {
               const col = this.filterColumns[id];
@@ -3233,7 +3384,6 @@ class Marot {
             const category = parts[this.DATA_COL_CATEGORY];
             const severity = parts[this.DATA_COL_SEVERITY];
 
-
             if (firstRowId < 0) {
               firstRowId = rowId;
 
@@ -3246,8 +3396,8 @@ class Marot {
               }
               currSegStatsBySys =
                   this.getSegStats(this.statsBySystem[system], doc, docSegId);
-              currSegStats.srcLen = parts.srcLen;
-              currSegStatsBySys.srcLen = parts.srcLen;
+              currSegStats.num_source_chars = numSrcChars;
+              currSegStatsBySys.num_source_chars = numSrcChars;
               if (segmentMetadata.hasOwnProperty('metrics')) {
                 currSegStatsBySys.metrics = segmentMetadata.metrics;
                 for (let metric in currSegStatsBySys.metrics) {
@@ -3268,7 +3418,7 @@ class Marot {
               currSegStatsByRater = this.getSegStats(
                   this.statsByRater[rater], docColonSys, docSegId);
               currSegStatsByRater.push(this.initRaterStats(rater));
-              currSegStatsByRater.srcLen = parts.srcLen;
+              currSegStatsByRater.num_source_chars = numSrcChars;
 
               if (!this.statsByRaterSystem.hasOwnProperty(rater)) {
                 this.statsByRaterSystem[rater] = {};
@@ -3279,7 +3429,7 @@ class Marot {
               currSegStatsByRaterSys = this.getSegStats(
                   this.statsByRaterSystem[rater][system], doc, docSegId);
               currSegStatsByRaterSys.push(this.initRaterStats(rater));
-              currSegStatsByRaterSys.srcLen = parts.srcLen;
+              currSegStatsByRaterSys.num_source_chars = numSrcChars;
             }
             if (rater) {
               /** An actual rater-annotation row, not just a metadata row */
@@ -3296,11 +3446,54 @@ class Marot {
               this.addSevCatStats(this.sevcatStats, system, category, severity);
               this.addEvents(this.events, metadata,
                              doc, docSegId, system, rater);
+              if (metadata.prior_rater) {
+                const priorRater = this.PRIOR_RATER_PREFIX +
+                                   metadata.prior_rater;
+                if (!priorRaterStats.hasOwnProperty(priorRater)) {
+                  priorRaterStats[priorRater] = this.initRaterStats(priorRater);
+                }
+                const priorErrors = [];
+                if (metadata.prior_error) {
+                  priorErrors.push(metadata.prior_error);
+                }
+                for (const e of (metadata.deleted_errors ?? [])) {
+                  if (e.metadata &&
+                      e.metadata.prior_rater == metadata.prior_rater) {
+                    priorErrors.push(e);
+                  }
+                }
+                for (const priorError of priorErrors) {
+                  let cat = priorError.type;
+                  if (priorError.subtype) {
+                    cat += '/' + priorError.subtype;
+                  }
+                  const span = (priorError.selected ?? '').length;
+                  this.addErrorStats(priorRaterStats[priorRater],
+                                     this.timeSpent(priorError.metadata),
+                                     cat, priorError.severity, span);
+                }
+              }
             }
+          }
+          for (const priorRater in priorRaterStats) {
+            /**
+             * Note that we accumulate prior-rater stats *only* in statsByRater,
+             * to compare against other raters. We do not add it to
+             * statsBySystem, as that would be double-counting.
+             */
+            if (!this.statsByRater.hasOwnProperty(priorRater)) {
+              this.statsByRater[priorRater] = {};
+            }
+            currSegStatsByRater = this.getSegStats(
+              this.statsByRater[priorRater], docColonSys, docSegId);
+            currSegStatsByRater.num_source_chars = numSrcChars;
+            currSegStatsByRater.push(priorRaterStats[priorRater]);
           }
         }
       }
     }
+    this.buildRaterComplementStats();
+
     /**
      * Update #unfiltered rows display.
      */
@@ -3603,7 +3796,7 @@ class Marot {
               }
               currSegStatsBySys =
                   this.getSegStats(statsBySystem[system], doc, docSegId);
-              currSegStatsBySys.srcLen = parts.srcLen;
+              currSegStatsBySys.num_source_chars = parts.num_source_chars;
             }
             const rater = parts[this.DATA_COL_RATER];
             if (!rater) {
@@ -3621,8 +3814,8 @@ class Marot {
           }
           if (aggrDocSegSys) {
             const aggrScores = this.aggregateSegStats([currSegStatsBySys]);
-            if (aggrScores.scoreDenominator > 0) {
-              aggrDocSegSys.metrics['MQM'] = aggrScores.score;
+            if (aggrScores.mqmStats.numSegments > 0) {
+              aggrDocSegSys.metrics['MQM'] = aggrScores.mqmStats.score;
             }
           }
         }
@@ -3938,8 +4131,10 @@ class Marot {
        * Count all characters, including spaces, in src/tgt length, excluding
        * the span-marking <v> and </v> tags.
        */
-      parts.srcLen = parts[this.DATA_COL_SOURCE].replace(/<\/?v>/g, '').length;
-      parts.tgtLen = parts[this.DATA_COL_TARGET].replace(/<\/?v>/g, '').length;
+      parts.num_source_chars =
+          parts[this.DATA_COL_SOURCE].replace(/<\/?v>/g, '').length;
+      parts.num_target_chars =
+          parts[this.DATA_COL_TARGET].replace(/<\/?v>/g, '').length;
       this.data.push(parts);
     }
     this.sortData(this.data);
@@ -4135,7 +4330,7 @@ class Marot {
         const aggregate = this.aggregateSegStats(segs);
         const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
         dataRow[this.DATA_COL_SYSTEM] = system;
-        dataRow[this.DATA_COL_METADATA] = aggregate.score;
+        dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
         data.push(dataRow);
       }
     } else if (aggregation == 'document') {
@@ -4151,7 +4346,7 @@ class Marot {
           const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
           dataRow[this.DATA_COL_SYSTEM] = system;
           dataRow[this.DATA_COL_DOC] = doc;
-          dataRow[this.DATA_COL_METADATA] = aggregate.score;
+          dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
           data.push(dataRow);
         }
       }
@@ -4171,7 +4366,7 @@ class Marot {
             dataRow[this.DATA_COL_SYSTEM] = system;
             dataRow[this.DATA_COL_DOC] = doc;
             dataRow[this.DATA_COL_DOC_SEG_ID] = seg;
-            dataRow[this.DATA_COL_METADATA] = aggregate.score;
+            dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
             data.push(dataRow);
           }
         }
@@ -4191,7 +4386,7 @@ class Marot {
               dataRow[this.DATA_COL_DOC] = doc;
               dataRow[this.DATA_COL_DOC_SEG_ID] = seg;
               dataRow[this.DATA_COL_RATER] = rater;
-              dataRow[this.DATA_COL_METADATA] = aggregate.score;
+              dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
               data.push(dataRow);
             }
           }
@@ -4271,12 +4466,6 @@ class Marot {
    * Applies updated settings for scoring.
    */
   updateSettings() {
-    const unit = document.getElementById('marot-scoring-unit').value;
-    this.charScoring = (unit == 'characters');
-    const unitDisplay = document.getElementById('marot-scoring-unit-display');
-    if (unitDisplay) {
-      unitDisplay.innerHTML = (this.charScoring ? '100 source chars' : 'segment');
-    }
     if (this.parseScoreSettings()) {
       this.setUpScoreSettings();
     }
@@ -4292,7 +4481,6 @@ class Marot {
    * Resets scoring settings to their default values.
    */
   resetSettings() {
-    document.getElementById('marot-scoring-unit').value = 'segments';
     this.mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
     this.mqmSlices = JSON.parse(JSON.stringify(mqmDefaultSlices));
     this.setUpScoreSettings();
@@ -4420,13 +4608,6 @@ class Marot {
           title="Change scoring weights, slices, units.">
         <summary>Settings</summary>
         <div class="marot-settings-panel">
-          <div class="marot-settings-row">
-            Scoring units:
-            <select id="marot-scoring-unit" onchange="marot.updateSettings()">
-              <option value="segments">Segments</option>
-              <option value="characters">100 source characters</option>
-            </select>
-          </div>
           <div>
             Number of trials for paired one-sided approximate randomization:
             <input size="6" maxlength="6" type="text"
@@ -4718,7 +4899,7 @@ class Marot {
                   variables: <b>system</b>, <b>doc</b>, <b>globalSegId</b>,
                   <b>docSegId</b>, <b>rater</b>, <b>category</b>,
                   <b>severity</b>, <b>source</b>, <b>target</b>,
-                  <b>metadata</b>.
+                  <b>reference</b>, <b>metadata</b>.
               </li>
               <li>
                 Filter expressions also have access to three aggregated objects

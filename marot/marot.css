@@ -84,7 +84,11 @@
   line-height: 1.5;
 }
 .marot-filter-expr-error {
-  color: red;
+  color: orange;
+  font-size: tiny;
+}
+.marot-gray {
+  color: gray;
 }
 .marot-header {
   margin: 8px;

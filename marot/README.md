@@ -23,6 +23,13 @@ a Google-hosted server).
 
 This is not an officially supported Google product.
 
+## Score computations
+
+MQM scores are computed for every segment by averaging over each rater's score
+for that segment. Each rater's score for a segment is computed using MQM
+weights for marked error severity/category combination. The weighing scheme
+can be modified in the Settings menu at the top.
+
 ## Data file format
 
 The data file should have tab-separated UTF-8-encoded data with the following
@@ -77,7 +84,7 @@ ten columns, one line per marked error:
     - **severity**
     - **type, subtype**
     - **prefix**: Text span leading up to the marked span.
-    - **selected**: The marked text span leading up to the marked span.
+    - **selected**: The marked text span.
     - **metadata**: The metadata object in the prior error.
   - **deleted_errors**: An array with a list of errors that the rater deleted.
     Each deleted error object also has the same format as a prior error
@@ -122,6 +129,7 @@ ten columns, one line per marked error:
         systems.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
+      - **num_source_chars**, **num_target_chars**
       - **characteristics**: A dictionary of segment characteristics that may
         be useful for slicing and dicing scores, or creating automated analyses
         of what characteristics contribute the most to score differences between
@@ -219,7 +227,8 @@ filters.
     involving the columns. It can use the following
     variables: **system**, **doc**, **docSegId**,
     **globalSegId**, **rater**, **category**, **severity**,
-    **source**, **target**, **metadata**.
+    **source**, **target**, **reference** (set to be the primary reference),
+    **metadata**.
   - Filter expressions also have access to three aggregated objects in
     variables named **aggrDoc**, **aggrDocSeg**, and **aggrDocSegSys**.
     The aggrDocSegSys dict also contains aggrDocSeg (with the key
@@ -234,9 +243,11 @@ filters.
       - **aggrDocSeg.sevcatsBySystem**,
       - **aggrDocSeg.sevcatsByRater**,
       - **aggrDocSeg.source_tokens**,
-      - **aggrDocSeg.source_sentence_tokens**,
+      - **aggrDocSeg.source_sentence_splits**,
       - **aggrDocSeg.starts_paragraph**,
-      - **aggrDocSeg.references** (if available),
+      - **aggrDocSeg.num_source_chars**,
+      - **aggrDocSeg.reference_tokens** (if available),
+      - **aggrDocSeg.reference_sentence_splits** (if available),
       - **aggrDocSeg.primary_reference** (if available),
       Each of these properties is an object keyed by system or rater, with the
       values being arrays of strings. The "sevcats\*" values look like
@@ -245,18 +256,26 @@ filters.
       to select specific segments rather than just specific error ratings.
     - **aggrDocSeg.metrics** is an object keyed by the metric name and then by
       system name. It provides the segment's metric scores (including MQM) for
-      all systems for which a metric is available for that segment.
+      all systems for which a metric is available for that segment. Note that
+      the metric scores in this are unfiltered.
     - **aggrDocSegSys** is just an alias for metadata.segment.
   - **Example**: docSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
   - **Example**: metadata.marked_text.length >= 10
   - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
+  - **Example**: aggrDocSeg.metrics['MQM']['System-42'] < 3. This only
+    includes segments on which System-42's MQM score is < 3.
   - **Example**: aggrDocSegSys.metrics['MQM'] > 4 &&
-    (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) < 0.1.
+    (aggrDocSegSys.metrics['BLEURT-X'] ?? 0) < 0.6. this selects doc+seg+sys
+    where MQM scor/nume is > 1 and Bleurt-X score is < 0.6, with a missing
+    Bleurt-X score being treated as 0.
   - **Example**: JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')
   - You can examine the metadata associated with any using the **Log metadata**
     interface shown in the **Filters** section. This can be useful for crafting
     filter expressions.
+  - If the filter expression throws an error an any data row (because of some
+    missing fields, for example), then that row is considered to be excluded by
+    the filter.
 
 ## Significance tests
 When there are multiple systems that have been evaluated on common document
