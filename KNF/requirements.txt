@@ -3,5 +3,5 @@ pytorch==1.13.1
 numpy==1.23.5
 absl-py==1.2.0
 cudatoolkit==12.0
-pip==22.3.1
+pip==23.3
 conda==23.1.0
