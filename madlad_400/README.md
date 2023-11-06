@@ -14,7 +14,7 @@ This repository contains the checkpoints and vocabularies from [MADLAD-400: A Mu
 
 ## Vocabulary
 
-The vocabularies used to train the models listed above are [here](https://console.cloud.google.com/storage/browser/madlad-400-checkpoints/vocabulary).
+The vocabularies used to train the models listed above are [here](https://console.cloud.google.com/storage/browser/madlad-400-checkpoints/vocabulary/256k_vocab).
 
 ## Contact
 
