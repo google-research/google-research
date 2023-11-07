@@ -2624,7 +2624,6 @@ class Marot {
         rowHTML += '<td>' + e.system + '</td>';
         rowHTML += '<td>' + e.docSegId + '</td>';
         rowHTML += '<td>' + (e.side == 0 ? 'Source' : 'Translation') + '</td>';
-        rowHTML += '<td>' + (e.sentence + 1) + '</td>';
         rowHTML += '<td>' +
                    (e.source_not_seen ? 'Translation' : 'Source, Translation') +
                    '</td>';
@@ -4014,13 +4013,14 @@ class Marot {
 
     this.resetData();
     const data = this.tsvData.split('\n');
-    for (const line of data) {
+    for (let line of data) {
       if (this.data.length >= this.MAX_DATA_LINES) {
         errors.insertAdjacentHTML('beforeend',
             'Skipping data lines beyond number ' + this.MAX_DATA_LINES);
         break;
       }
-      if (!line.trim()) {
+      line = line.trim();
+      if (!line) {
         continue;
       }
       if (line.toLowerCase().indexOf('system\tdoc\t') >= 0) {
@@ -4458,7 +4458,8 @@ class Marot {
                 'https://github.com/google-research/google-research/tree/m' +
                 'aster/MAROT_viewer\n' + tsvData;
     }
-    const prefix = document.getElementById('marot-saved-file-prefix').value.trim();
+    const prefix = document.getElementById(
+        'marot-saved-file-prefix').value.trim();
     this.saveDataInner(tsvData, prefix + fileName);
   }
 
@@ -4842,7 +4843,6 @@ class Marot {
                   <th><b>System</b></th>
                   <th><b>Segment</b></th>
                   <th><b>Side</b></th>
-                  <th><b>Sentence</b></th>
                   <th><b>Visible</b></th>
                 </tr>
               </thead>
