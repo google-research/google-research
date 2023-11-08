@@ -750,7 +750,7 @@ class Marot {
         const para = paragraphs[p];
         const lines = para.split('\n');
         for (let l = 0; l < lines.length; l++) {
-          const line = lines[p];
+          const line = lines[l];
           const spacedTokens = line.split(' ');
           let lineTokens = 0;
           for (const t of spacedTokens) {
