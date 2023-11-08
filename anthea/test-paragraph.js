@@ -14,7 +14,7 @@
 
 /**
  * To run this test, visit the URL:
- *     http://.../anthea.html?test=test-mqm.js
+ *     http://.../anthea.html?test=test-paragraph.js
  * and then click around through the rating process.
  */
 const testProjectTSVData = `{"source_language":"en","target_language":"en"}
@@ -36,4 +36,4 @@ try {
 }
 antheaManager.createActive(
     testTemplateName, testProjectName, testProjectTSVData,
-    50 /* High HOTW rate, for testing */);
+    4 /* HOTW rate */);

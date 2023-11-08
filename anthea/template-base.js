@@ -58,9 +58,9 @@ const antheaTemplateBase = {
         The content for annotation consists of documents that are broken down
         into parallel segments. A segment may be one sentence, multiple
         sentences, or an entire paragraph. You will be able to read and annotate
-        each segment in steps of sentences (on both the source side and the
-        translation side). Navigation through the document is explained in
-        detail in the "Navigation" subsection.
+        each segment in steps of groups of sentences (on both the source side
+        and the translation side). Navigation through the document is explained
+        in detail in the "Navigation" subsection.
       </p>
       `,
     'General Guidelines': `
@@ -157,14 +157,13 @@ const antheaTemplateBase = {
         will have 10-20 sentences.
         </li>
         <li>
-        You should read each source segment in its entirety, going
-        sentence-by-sentence. The right arrow keyboard key and the right
+        You should read each source segment in its entirety, going in steps of
+        groups of sentences. The right arrow keyboard key and the right
         arrow button in the Evaluation column will let you move to the next
-        sentence when you've finished reading and comprehending a sentence.
-        Once you finish going through a source segment, the right arrow
-        key/button will take the focus to the first sentence of the target
-        segment, which you will then proceed to read and annotate,
-        sentence-by-sentence.
+        sentence(s) when you've finished reading and comprehending a sentence
+        group. Once you finish going through a source segment, the right arrow
+        key/button will take the focus to the first sentence group of the target
+        segment, which you will then proceed to read and annotate.
         </li>
         <li>
         The ideal navigation flow is as described above, as it allows you to
@@ -211,6 +210,10 @@ const antheaTemplateBase = {
                 words that are not directly affected by the identified issue and
                 do not need to be modified in order for the issue to be
                 fixed.</li>
+            <li>You can only mark spans within sentences. In the rare case that
+                an error straddles multiple sentences (e.g., when there is an
+                incorrect sentence break), just mark the first part of the span
+                that lies within a sentence.</li>
             <li>The shorter the span, the more useful it is.</li>
             <li>When it comes to "Style/Unnatural or awkward" errors, please
                 pinpoint the error rather than extend the span to an entire
@@ -241,9 +244,9 @@ const antheaTemplateBase = {
         <li>Select the <b>category</b> (also called <b>type</b>) and
             <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
             found. For example: Accuracy &gt; Mistranslation.</li>
-        <li>After annotating all identified issues in a sentence, use the
+        <li>After annotating all identified issues in a sentence group, use the
             <b>right arrow key</b> (or the <b>button</b>) to go to the next
-            sentence.</li>
+            sentence group.</li>
       </ol>`,
     'Annotation Tips': `
       <details>
@@ -252,11 +255,11 @@ const antheaTemplateBase = {
         </summary>
         <ol>
           <li>
-            You can modify or delete any rating in the current sentence by using
-            the menu shown to the right of the rating. The menu is revealed
-            when you hover your mouse over the hamburger icon (&#9776;). If
-            deleted, the rating is shown with a strikethrough line. You can
-            undelete a deleted rating using the menu, if desired.
+            You can modify or delete any rating in the current sentence group
+            by using the menu shown to the right of the rating. The menu is
+            revealed when you hover your mouse over the hamburger icon
+            (&#9776;). If deleted, the rating is shown with a strikethrough
+            line. You can undelete a deleted rating using the menu, if desired.
           </li>
           <li>
             While editing a rating, its text will be shown with a
@@ -265,10 +268,10 @@ const antheaTemplateBase = {
             to abort an ongoing modification to a rating.
           </li>
           <li>
-              To modify or delete a rating for a previous sentence in the
-              current document, you can first click on it to navigate to it (or
-              use the arrow keys or "Previous" button) and then use the
-              hamburger menu.
+            To modify or delete a rating for a previous sentence in the
+            current document, you can first click on it to navigate to it (or
+            use the arrow keys or "Previous" button) and then use the
+            hamburger menu.
           </li>
           <li>
             Sometimes, you might be re-evaluating a document that was already
