@@ -125,7 +125,7 @@ class GenerateEmpiricalDistributionDfMainTest(parameterized.TestCase):
             partial_sequence_df, properties, num_production_rules, tail_length))
     levels = [level_name] + properties
     np.testing.assert_array_almost_equal(
-        empirical_distribution_df.xs(multi_index_to_check,
+        empirical_distribution_df.xs(tuple(multi_index_to_check),
                                      level=levels).values[0],
         expected_probabilities)
 
