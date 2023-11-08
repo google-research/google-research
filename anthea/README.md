@@ -30,6 +30,9 @@ web server:
   - [`marot-sigtests.js`](https://github.com/google-research/google-research/blob/master/marot/marot-sigtests.js)
   - [`marot-utils.js`](https://github.com/google-research/google-research/blob/master/marot/marot-utils.js)
 
+Alternatively, you can just use [`anthea-lite.html`](anthea-lite.html). It loads
+all the necessary scripts from https://gstatic.com/anthea/.
+
 ## User guide
 The user guide is in [anthea-help.html](anthea-help.html) and is available as a
 menu item in the tool itself.
