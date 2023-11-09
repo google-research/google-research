@@ -810,7 +810,7 @@ def residual_layer_norm_update(node_states,
     <float32[num_nodes, node_embedding_dim]> new state.
   """
   combined = node_states + messages
-  return model_util.ScaleAndShift(jax.nn.normalize(combined, axis=-1))
+  return model_util.ScaleAndShift(jax.nn.standardize(combined, axis=-1))
 
 
 @flax.deprecated.nn.module
