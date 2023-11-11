@@ -94,6 +94,8 @@ console.log(probs);
  * Check adaptive mode in which the model is updated as symbols are entered.
  * -------------------------------------------------------------------------
  */
+lm = new ppm.PPMLanguageModel(v, maxOrder);  // Re-create.
+
 // Enter "a" and update the model. At this point the frequency for "a" is
 // higher, so it's more probable.
 c = lm.createContext();
