@@ -131,7 +131,26 @@
     Bit1. Bit2. Bit3.
     PS:
 
-    This is a second paragraph already specified.`
+    This is a second paragraph already specified.`,
+    `A test for the case that used to create unnecessarily small 1-sentence paralets at the end.
+     When max sentences is 2 or more and max tokens is such that 3 sentences would be too many.
+     Something like 80 tokens would trigger the behavior.
+     #4: A short sentence.
+     #5: A short sentence.
+     #6: A short sentence.
+     #7: A short sentence.
+     #8: A short sentence.
+     #9: A short sentence.
+     #10: A short sentence.
+     #11: A short sentence.
+     #12: A short sentence.
+     #13: A m a n y t o k e n e d s e n t e n c e not combinable with the n e x t sent at 80 tokens.
+     #14: 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3.
+     #15: A short sentence.
+     #16: A short sentence.
+     #17: A short sentence.
+     `,
+
   ];
 
   /**
@@ -148,7 +167,7 @@
         </td></tr>
       `);
       for (let maxSentences = 8; maxSentences >= 1; maxSentences--) {
-        for (const maxTokens of [1, 5, 50, 200, 400]) {
+        for (const maxTokens of [1, 5, 80, 200, 400]) {
           table.insertAdjacentHTML('beforeend', `
             <tr>
               <td>maxSents = ${maxSentences}</td>

@@ -81,14 +81,52 @@ class MarotUtils {
               ((p.length > 1) && (tokenCount(p) > maxParaTokens)));
     };
 
+    /**
+     * At the end of some agressive splitting by splitAsNeeded(), it may be
+     * possible to combine some consecutive small paralets. A typical case is
+     * that of the first few paralets having 2 sentences each, followed by a
+     * string of 1-sentence paralets, amongst which some can be combined. We
+     * do the merging greedily, extending each paralet to subsume any
+     * following paralets without violating the constraints.
+     *
+     * @param {!Array<!Array<number>>} paralets
+     * @return {!Array<!Array<number>>}
+     */
+    const maybeCombineSome = (paralets) => {
+      const newParalets = [];
+      let start = 0;
+      while (start < paralets.length) {
+        let paralet = paralets[start];
+        let end = start;
+        while ((end + 1) < paralets.length) {
+          const combinedParalet = paralet.concat(paralets[end + 1]);
+          if (needsSplit(combinedParalet)) {
+            break;
+          }
+          paralet = combinedParalet;
+          end = end + 1;
+        }
+        newParalets.push(paralet);
+        start = end + 1;
+      }
+      return newParalets;
+    };
+
+    /**
+     * Try to split p (an array of sentence indices forming a para) into
+     * "paralets", roughly evenly.
+     *
+     * At the end, combine any unnecessarily small consecutive paralets
+     * greedily.
+     *
+     * @param {!Array<number>} p
+     * @return {!Array<!Array<number>>}
+     */
     const splitAsNeeded = (p) => {
       console.assert(p.length > 0, p);
       /**
-       * Try to split p (an array of sentence indices forming a para) into
-       * numParts "paralets", roughly evenly.
-       *
        * Use the smallest value of numParts at which each split passes
-       * constraints.  If numParts reaches p.length, then the constraints
+       * constraints. If numParts reaches p.length, then the constraints
        * will be trivially met as each paralet will have just one sentence.
        */
       for (let numParts = 1; numParts <= p.length; numParts++) {
@@ -113,7 +151,7 @@ class MarotUtils {
           start += len;
         }
         if (passesConstraints) {
-          return splits;
+          return maybeCombineSome(splits);
         }
       }
       console.log('Error: code should never have reached here!');
