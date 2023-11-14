@@ -25,8 +25,9 @@ import numpy as np
 import scipy.sparse
 import tensorflow as tf
 import tensorflow_gnn as tfgnn
-import tensorflow_gnn.experimental.in_memory.datasets as tfgnn_datasets
 import tensorflow_hub as tfhub
+
+from ugsl import tfgnn_datasets
 
 
 class GSLGraphData:
