@@ -17,7 +17,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from instructability_eval import instructions_util
+from instruction_following_eval import instructions_util
 
 
 class InstructionsUtilTest(parameterized.TestCase):

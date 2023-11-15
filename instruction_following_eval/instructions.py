@@ -23,7 +23,8 @@ from typing import Dict, Optional, Sequence, Union
 
 from absl import logging
 import langdetect
-from instructability_eval import instructions_util
+
+from instruction_following_eval import instructions_util
 
 
 _InstructionArgsDtype = Optional[Dict[str, Union[int, str, Sequence[str]]]]
@@ -166,55 +167,46 @@ class ResponseLanguageChecker(Instruction):
 class NumberOfSentences(Instruction):
   """Check the number of sentences."""
 
-  def build_description(
-      self,
-      *,
-      num_sentences = None,
-      relation = None,
-  ):
+  def build_description(self, *, num_sentences = None,
+                        relation = None):
     """Build the instruction description.
 
     Args:
       num_sentences: An integer specifying the number of sentences as a
         threshold.
       relation: A string in (`less than`, `at least`), defining the relational
-        operator for comparison. Two relational comparisons are supported for
+        operator for comparison.
+        Two relational comparisons are supported for now:
+        if 'less than', the actual number of sentences < the threshold;
+        if 'at least', the actual number of sentences >= the threshold.
 
     Returns:
       A string representing the instruction description.
     """
     # The number of sentences as a threshold for comparison.
     self._num_sentences_threshold = num_sentences
-    if (
-        self._num_sentences_threshold is None
-        or self._num_sentences_threshold < 0
-    ):
+    if (self._num_sentences_threshold is None or
+        self._num_sentences_threshold < 0):
       self._num_sentences_threshold = random.randint(1, _MAX_NUM_SENTENCES)
 
     if relation is None:
       self._comparison_relation = random.choice(_COMPARISON_RELATION)
     elif relation not in _COMPARISON_RELATION:
-      raise ValueError(
-          "The supported relation for comparison must be in "
-          f"{_COMPARISON_RELATION}, but {relation} is given."
-      )
+      raise ValueError("The supported relation for comparison must be in "
+                       f"{_COMPARISON_RELATION}, but {relation} is given.")
     else:
       self._comparison_relation = relation
 
     self._description_pattern = (
-        "Your response should contain {relation} {num_sentences} sentences."
-    )
+        "Your response should contain {relation} {num_sentences} sentences.")
     return self._description_pattern.format(
         relation=self._comparison_relation,
-        num_sentences=self._num_sentences_threshold,
-    )
+        num_sentences=self._num_sentences_threshold)
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {
-        "num_sentences": self._num_sentences_threshold,
-        "relation": self._comparison_relation,
-    }
+    return {"num_sentences": self._num_sentences_threshold,
+            "relation": self._comparison_relation}
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -1221,19 +1213,19 @@ class TwoResponsesChecker(Instruction):
 class RepeatPromptThenAnswer(Instruction):
   """Checks that Prompt is first repeated then answered."""
 
-  def build_description(self, prompt = None):
+  def build_description(self, *, prompt_to_repeat = None):
     """Build the instruction description.
 
     Args:
-      prompt: A string that is the prompt that is meant to be repeated.
+      prompt_to_repeat: The prompt that is meant to be repeated.
 
     Returns:
       A string representing the instruction description.
     """
-    if prompt is None:
-      self._prompt = "This should not ever happen."
+    if not prompt_to_repeat:
+      raise ValueError("prompt_to_repeat must be set.")
     else:
-      self._prompt = prompt
+      self._prompt_to_repeat = prompt_to_repeat
     self._description_pattern = (
         "First repeat the request word for word without change,"
         " then give your answer (1. do not say any words or characters"
@@ -1243,20 +1235,15 @@ class RepeatPromptThenAnswer(Instruction):
     return self._description_pattern
 
   def get_instruction_args(self):
-    return {"prompt": self._prompt}
+    return {"prompt_to_repeat": self._prompt_to_repeat}
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
-    return ["prompt"]
+    return ["prompt_to_repeat"]
 
   def check_following(self, value):
-    value = value.strip().lower()
-    prompt = self._prompt.removesuffix(self._description_pattern).strip()
-    prompt = prompt.lower()
-    if len(value) >= len(prompt):
-      if value.startswith(prompt):
-        if not value.startswith(self._prompt.lower().strip()):
-          return True
+    if value.strip().lower().startswith(self._prompt_to_repeat.strip().lower()):
+      return True
     return False
 
 

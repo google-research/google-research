@@ -1,4 +1,4 @@
-# Instructability Eval
+# IFEval: Instruction Following Eval
 
 This is not an officially supported Google product.
 
@@ -17,12 +17,12 @@ Then, call `evaluation_main`. For example:
 
 ```bash
 
-# Content of ./data/input_response_data_text_bison.jsonl:
-# {"prompt": "Write a 200 word summary of ...", "response": "**\u795e\u8a71\u306e ..."}
-# {"prompt": "Write an email ...", "response": "Dear [Name],\n\nI hope this email finds you well ..."}
+# Content of `--input_response_data` should be like:
+# {"prompt": "Write a 300+ word summary ...", "response": "PUT YOUR MODEL RESPONSE HERE"}
+# {"prompt": "I am planning a trip to ...", "response": "PUT YOUR MODEL RESPONSE HERE"}
 # ...
 python3 evaluation_main.py \
   --input_data=./data/input_data.jsonl \
-  --input_response_data=./data/input_response_data_text_bison.jsonl \
+  --input_response_data=./data/input_response_data_gpt4_20231107_145030.jsonl \
   --output_dir=./data/
 ```

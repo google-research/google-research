@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Registry of all instructions."""
-from instructability_eval import instructions
+from instruction_following_eval import instructions
 
 _KEYWORD = "keywords:"
 

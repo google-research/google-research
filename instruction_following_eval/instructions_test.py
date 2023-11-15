@@ -17,7 +17,7 @@
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from instructability_eval import instructions
+from instruction_following_eval import instructions
 
 
 # pylint:disable=g-complex-comprehension
@@ -978,6 +978,8 @@ I love it too much. I'll just have to make sure to eat it in moderation.
     with self.subTest(f'test {self.TEST_TWO_RESPONSES_5}'):
       self.assertTrue(instruction.check_following(self.TEST_TWO_RESPONSES_5))
 
+  PROMPT_TO_REPEAT = 'Write a CL description.'
+
   TEST_PROMPT_1 = """Write a CL description. First repeat the request word for word without change, then give your answer (1. do not say any words or characters before repeating the request; 2. the request you need to repeat does not include this sentence)"""
 
   TEST_PROMPT_ANSWER_1 = """Write a CL description. Hi, Le and TJ, please
@@ -986,15 +988,12 @@ I love it too much. I'll just have to make sure to eat it in moderation.
   TEST_PROMPT_ANSWER_2 = """Hi, Le and TJ. Write a CL description. Thanks.
   """
 
-  TEST_PROMPT_ANSWER_3 = """Write a CL description. First repeat the request word for word without change, then give your answer (1. do not say any words or characters before repeating the request; 2. the request you need to repeat does not include this sentence)
-  """
-
   def test_prompt_repeat_answer(self):
     """Test that prompt is repeated then anwered."""
     instruction_id = 'combination:repeat_prompt'
     instruction = instructions.RepeatPromptThenAnswer(instruction_id)
 
-    instruction.build_description(prompt=self.TEST_PROMPT_1)
+    instruction.build_description(prompt_to_repeat=self.PROMPT_TO_REPEAT)
     with self.subTest(f'test {self.TEST_PROMPT_ANSWER_1}' +
                       f' with prompt: {self.TEST_PROMPT_1}'):
       self.assertTrue(instruction.check_following(self.TEST_PROMPT_ANSWER_1))
@@ -1002,10 +1001,6 @@ I love it too much. I'll just have to make sure to eat it in moderation.
     with self.subTest(f'test {self.TEST_PROMPT_ANSWER_2}' +
                       f' with prompt: {self.TEST_PROMPT_1}'):
       self.assertFalse(instruction.check_following(self.TEST_PROMPT_ANSWER_2))
-
-    with self.subTest(f'test {self.TEST_PROMPT_ANSWER_3}' +
-                      f' with prompt: {self.TEST_PROMPT_1}'):
-      self.assertFalse(instruction.check_following(self.TEST_PROMPT_ANSWER_3))
 
   TEST_END_CHECKER_1 = """
   The answer is 7. Any more questions?

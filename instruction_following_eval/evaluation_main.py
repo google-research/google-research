@@ -15,6 +15,7 @@
 
 """Binary of evaluating instruction following. See README.md."""
 
+import collections
 import dataclasses
 import json
 import os
@@ -23,7 +24,8 @@ from typing import Dict, Optional, Sequence, Union
 from absl import app
 from absl import flags
 from absl import logging
-from instructability_eval import instructions_registry
+
+from instruction_following_eval import instructions_registry
 
 
 _INPUT_DATA = flags.DEFINE_string(
@@ -91,8 +93,9 @@ def write_outputs(output_jsonl_filename, outputs):
       f.write("\n")
 
 
-def test_instruction_following(
-    inp, prompt_to_response,
+def test_instruction_following_strict(
+    inp,
+    prompt_to_response,
 ):
   """Tests response to see if instrutions are followed."""
   response = prompt_to_response[inp.prompt]
@@ -122,8 +125,9 @@ def test_instruction_following(
   )
 
 
-def test_instruction_following_upper_bound(
-    inp, prompt_to_response,
+def test_instruction_following_loose(
+    inp,
+    prompt_to_response,
 ):
   """Tests response for an upper bound for following instructions."""
   response = prompt_to_response[inp.prompt]
@@ -184,6 +188,58 @@ def read_prompt_to_response_dict(input_jsonl_filename):
   return return_dict
 
 
+def print_report(outputs):
+  """Prints a report on accuracy scores."""
+
+  prompt_total = 0
+  prompt_correct = 0
+  instruction_total = 0
+  instruction_correct = 0
+
+  tier0_total = collections.defaultdict(int)
+  tier0_correct = collections.defaultdict(int)
+
+  tier1_total = collections.defaultdict(int)
+  tier1_correct = collections.defaultdict(int)
+
+  for example in outputs:
+    follow_instruction_list = example.follow_instruction_list
+    instruction_id_list = example.instruction_id_list
+
+    prompt_total += 1
+    if all(follow_instruction_list):
+      prompt_correct += 1
+
+    instruction_total += len(instruction_id_list)
+    instruction_correct += sum(follow_instruction_list)
+
+    for instruction_id, followed_or_not in zip(
+        instruction_id_list, follow_instruction_list
+    ):
+      instruction_id = instruction_id.split(":")[0]
+      tier0_total[instruction_id] += 1
+      if followed_or_not:
+        tier0_correct[instruction_id] += 1
+
+    for instruction_id, followed_or_not in zip(
+        instruction_id_list, follow_instruction_list
+    ):
+      tier1_total[instruction_id] += 1
+      if followed_or_not:
+        tier1_correct[instruction_id] += 1
+
+  print(f"prompt-level: {prompt_correct / prompt_total}")
+  print(f"instruction-level: {instruction_correct / instruction_total}")
+  print()
+  for instruction_id in sorted(tier0_total.keys()):
+    accuracy = tier0_correct[instruction_id] / tier0_total[instruction_id]
+    print(f"{instruction_id} {accuracy}")
+  print()
+  for instruction_id in sorted(tier1_total.keys()):
+    accuracy = tier1_correct[instruction_id] / tier1_total[instruction_id]
+    print(f"{instruction_id} {accuracy}")
+
+
 def main(argv):
   if len(argv) > 1:
     raise app.UsageError("Too many command-line arguments.")
@@ -194,8 +250,8 @@ def main(argv):
 
   # get instruction following results
   for func, output_file_name in [
-      (test_instruction_following, "eval_results"),
-      (test_instruction_following_upper_bound, "eval_results_upper_bound")
+      (test_instruction_following_strict, "eval_results_strict"),
+      (test_instruction_following_loose, "eval_results_loose"),
   ]:
     logging.info("Generating %s...", output_file_name)
     outputs = []
@@ -206,10 +262,15 @@ def main(argv):
     logging.info("Accuracy: %f", accuracy)
 
     output_file_name = os.path.join(
-        _OUTPUT_DIR.value, output_file_name + "_" + str(accuracy) + ".jsonl"
+        _OUTPUT_DIR.value, output_file_name + ".jsonl"
     )
     write_outputs(output_file_name, outputs)
     logging.info("Generated: %s", output_file_name)
+
+    # Prints instruction following accuracy report.
+    print("=" * 64)
+    print(f"{output_file_name} Accuracy Scores:")
+    print_report(outputs)
 
 
 if __name__ == "__main__":
