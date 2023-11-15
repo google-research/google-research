@@ -123,7 +123,7 @@ def compute_alive_voxels(
   grid_size = [grid_config['resolution_to_use']] * 3
 
   alive_voxels = np.zeros(grid_size, dtype=bool)
-  cpu = jax.devices('cpu')[0]
+  cpu = jax.local_devices(backend='cpu')[0]
   to_cpu = lambda x: jax.device_put(x, cpu)
 
   _, _, render_eval_pfn, _, _ = train_utils.setup_model(

@@ -80,7 +80,9 @@ def map_quantize(*l):
   def sigmoid_and_quantize_float_to_byte(x):
     if x is None:
       return None
-    cpu = jax.devices('cpu')[0]  # Prevents JAX from moving array to GPU.
+    cpu = jax.local_devices(backend="cpu")[
+        0
+    ]  # Prevents JAX from moving array to GPU.
     x = jax.device_put(x, cpu)
     x = jax.nn.sigmoid(x)
     return quantize_float_to_byte(x)

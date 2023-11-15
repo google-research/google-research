@@ -203,7 +203,7 @@ def main(unused_argv):
           config,
           verbose=False,
       )
-      cpu = jax.devices('cpu')[0]
+      cpu = jax.local_devices(backend='cpu')[0]
       metric = metric_harness(
           jax.device_put(rendering['rgb'], cpu),
           jax.device_put(rendered_dataset.images[img_idx], cpu),
@@ -505,7 +505,7 @@ def main(unused_argv):
     img_dir = path.join(baked_render_dir, f'rgb.test.{render_index:03d}.png')
     utils.save_img_u8(rendering['rgb'], img_dir)
 
-    cpu = jax.devices('cpu')[0]
+    cpu = jax.local_devices(backend='cpu')[0]
     metric = metric_harness(
         jax.device_put(rendering['rgb'], cpu),
         jax.device_put(test_dataset.images[render_index], cpu),
