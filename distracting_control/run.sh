@@ -19,7 +19,6 @@ set -x
 virtualenv -p python3 .
 source ./bin/activate
 
-pip install tensorflow
 pip install -r distracting_control/requirements.txt
 python -m distracting_control.suite_test
 python -m distracting_control.camera_test
