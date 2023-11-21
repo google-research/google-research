@@ -7,4 +7,3 @@ torch >= 1.6.0+cu101
 torchcontrib >= 0.0.2
 torchvision >= 0.7.0+cu101
 tqdm >= 4.61.1
-submodlib >= 1.0.8
