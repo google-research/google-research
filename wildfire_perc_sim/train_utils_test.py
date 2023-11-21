@@ -24,7 +24,7 @@ from wildfire_perc_sim import config
 from wildfire_perc_sim import train_utils
 
 
-def _get_model_dummy(_, prng):
+def _get_test_model(_, prng):
   model = nn.Conv(16, (5, 5))
   x = jnp.ones((4, 128, 128, 3))
 
@@ -37,7 +37,7 @@ class TrainUtilsTest(absltest.TestCase):
   def test_TrainEvalSetup(self):
     cfg = config.ExperimentConfig()
 
-    setup = train_utils.TrainEvalSetup.create(cfg, _get_model_dummy, True)
+    setup = train_utils.TrainEvalSetup.create(cfg, _get_test_model, True)
 
     # Test that initialization happens without any error
     self.assertIsInstance(setup, train_utils.TrainEvalSetup)
