@@ -14,14 +14,32 @@
 # limitations under the License.
 
 """Unsupervised models to be used in the gsl framework."""
+from typing import Callable
 
 from ml_collections import config_dict
 import tensorflow as tf
 import tensorflow_gnn as tfgnn
-from tensorflow_gnn.experimental.in_memory import models
 from tensorflow_gnn.models import gcn
 
 from ugsl import datasets
+
+
+def make_map_node_features_layer(
+    layer,
+    node_set = tfgnn.NODES,
+    feature_name = tfgnn.HIDDEN_STATE):
+  """Copied from tfgnn/experimental/in_memory/models.py."""
+
+  target_node_set = node_set
+  target_feature = feature_name
+  def _map_node_features(node_set, *, node_set_name):
+    """Map feature `target_feature` of `target_node_set` but copy others."""
+    if target_node_set != node_set_name:
+      return node_set
+    return {feat_name: layer(tensor) if feat_name == target_feature else tensor
+            for feat_name, tensor in node_set.features.items()}
+
+  return tfgnn.keras.layers.MapFeatures(node_sets_fn=_map_node_features)
 
 
 @tf.keras.utils.register_keras_serializable(package="GSL")
@@ -90,7 +108,7 @@ class DenoisingModel(tf.keras.layers.Layer):
       )
       if i < self._depth - 1:
         layers.append(
-            models.make_map_node_features_layer(
+            make_map_node_features_layer(
                 tf.keras.layers.Dropout(self._dropout_rate)
             )
         )
