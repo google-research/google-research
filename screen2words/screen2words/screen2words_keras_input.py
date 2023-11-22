@@ -94,24 +94,24 @@ def _extract_image(dense_features, num_ui_objects, target_node=None):
 def parse_tf_example(serialized_example):
   """Parses a single tf example."""
   keys_to_features = {
-      'developer_token_id': tf.VarLenFeature(tf.int64),
-      'resource_token_id': tf.VarLenFeature(tf.int64),
-      'screen_caption_token_ids': tf.VarLenFeature(tf.int64),
-      'appdesc_token_id': tf.VarLenFeature(tf.int64),
-      'clickable_seq': tf.VarLenFeature(tf.int64),
-      'type_id_seq': tf.VarLenFeature(tf.int64),
-      'cord_x_seq': tf.VarLenFeature(tf.float32),
-      'cord_y_seq': tf.VarLenFeature(tf.float32),
-      'visibility_to_user_seq': tf.VarLenFeature(tf.int64),
-      'visibility_seq': tf.VarLenFeature(tf.int64),
-      'attended_objects': tf.VarLenFeature(tf.int64),
-      'label_flag': tf.VarLenFeature(tf.int64),  # 0: padding 1: node
-      'obj_img_mat': tf.VarLenFeature(tf.int64),
-      'obj_dom_pos': tf.VarLenFeature(tf.int64),
-      'attention_boxes': tf.VarLenFeature(tf.float32),
-      'gold_caption': tf.VarLenFeature(tf.string)
+      'developer_token_id': tf.io.VarLenFeature(tf.int64),
+      'resource_token_id': tf.io.VarLenFeature(tf.int64),
+      'screen_caption_token_ids': tf.io.VarLenFeature(tf.int64),
+      'appdesc_token_id': tf.io.VarLenFeature(tf.int64),
+      'clickable_seq': tf.io.VarLenFeature(tf.int64),
+      'type_id_seq': tf.io.VarLenFeature(tf.int64),
+      'cord_x_seq': tf.io.VarLenFeature(tf.float32),
+      'cord_y_seq': tf.io.VarLenFeature(tf.float32),
+      'visibility_to_user_seq': tf.io.VarLenFeature(tf.int64),
+      'visibility_seq': tf.io.VarLenFeature(tf.int64),
+      'attended_objects': tf.io.VarLenFeature(tf.int64),
+      'label_flag': tf.io.VarLenFeature(tf.int64),  # 0: padding 1: node
+      'obj_img_mat': tf.io.VarLenFeature(tf.int64),
+      'obj_dom_pos': tf.io.VarLenFeature(tf.int64),
+      'attention_boxes': tf.io.VarLenFeature(tf.float32),
+      'gold_caption': tf.io.VarLenFeature(tf.string)
   }
-  parsed = tf.parse_single_example(serialized_example, keys_to_features)
+  parsed = tf.io.parse_single_example(serialized_example, keys_to_features)
   dense_features = {}
   for key in keys_to_features:
     if key in ['gold_caption']:
