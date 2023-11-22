@@ -14,6 +14,8 @@ setup(
     author="Bryan Wang",
     author_email="bryanw@dgp.toronto.edu",
     install_requires=[
+        "absl"
+        "apache_beam>=2.52.0"
         "rouge-score>=0.1.2",
         "nltk>=3.8.1",
         "keras>=2.12.0",

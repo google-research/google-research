@@ -50,7 +50,7 @@ BBOX_MAX_H = 640
 
 def _generate_screen_id_and_captions_pair(json_file_path):
   """Generates pair of screen id and MTurk labels for each screen."""
-  with tf.gfile.GFile(json_file_path) as f:
+  with tf.io.gfile.GFile(json_file_path) as f:
     screens = json.load(f)
   return list(screens.items())
 
@@ -199,7 +199,7 @@ class CreateTFExampleFn(beam.DoFn):
     self._word_vocab = {}
 
     # Initialize word/phrase vocab and phrase type mapping.
-    with tf.gfile.GFile(self._word_vocab_path) as f:
+    with tf.io.gfile.GFile(self._word_vocab_path) as f:
       for index, word in enumerate(f):
         word = word.strip()
         self._word_vocab[word] = index
