@@ -17,6 +17,7 @@
 
 // NOLINTBEGIN
 
+#include <queue>
 #include <thread>
 #include <vector>
 
