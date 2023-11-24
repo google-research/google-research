@@ -15,6 +15,7 @@
 
 """Create tf.Example and vocab for screen2words model."""
 import json
+import csv
 import re
 from typing import Callable, List, Generator, Sequence
 
@@ -22,8 +23,8 @@ from absl import app
 from absl import flags
 import apache_beam as beam
 from apache_beam import runners
+from apache_beam.options.pipeline_options import PipelineOptions
 import nltk
-import six
 import tensorflow as tf
 
 from screen2words import create_tf_example_fn
@@ -48,10 +49,15 @@ BBOX_MAX_W = 360
 BBOX_MAX_H = 640
 
 
-def _generate_screen_id_and_captions_pair(json_file_path):
+def _generate_screen_id_and_captions_pair(file_path):
   """Generates pair of screen id and MTurk labels for each screen."""
-  with tf.io.gfile.GFile(json_file_path) as f:
-    screens = json.load(f)
+  with tf.io.gfile.GFile(file_path) as f:
+    if file_path.endswith('.csv'):
+      csv_content = csv.reader(f, delimiter=',')
+      header = next(csv_content) # remove header
+      screens = {row[0]:row[1] for row in csv_content}
+    else:
+      screens = json.load(f)
   return list(screens.items())
 
 
@@ -110,7 +116,7 @@ class Tokenizer(object):
     self._remove_nonascii_character = remove_nonascii_character
 
   def tokenize(self, text):
-    """Toeknize text into a list of tokens.
+    """Tokenize text into a list of tokens.
 
     Args:
       text: Input text.
@@ -214,7 +220,7 @@ class CreateTFExampleFn(beam.DoFn):
         labeller-annotated attention bbx.
 
     Yields:
-      A serizlied tf.Example.
+      A serialized tf.Example.
     """
     self._screen_counter.inc(1)
 
@@ -242,20 +248,20 @@ def create_pipeline(task, dataset_path, json_file_path,
   # Get file prefix and MTurk labels for each screen.
   merged = _generate_screen_id_and_captions_pair(json_file_path)
 
-  def vocab_pipeline(root):
+  with beam.Pipeline() as p:
     """Pipeline for vocab generation ."""
-    _ = (
-        root | 'CreateCollection' >> beam.Create(merged)
+    vocab_pipeline = (
+      p | 'CreateCollection' >> beam.Create(merged)
         | 'CreateToken' >> beam.ParDo(CreateTokenFn(dataset_path))
         | 'CountTokens' >> beam.combiners.Count.PerElement()
         | 'FormatCount' >>
         beam.Map(lambda kv: '{}\t{}'.format(kv[0].decode(), kv[1]))
         | 'WriteToFile' >> beam.io.WriteToText(output_vocab_path))
 
-  def tf_example_pipeline(root):
+  with beam.Pipeline() as p:
     """Pipeline for tf.Example generation."""
-    _ = (
-        root | 'CreateCollection' >> beam.Create(merged)
+    tf_example_pipeline = (
+      p | 'CreateCollection' >> beam.Create(merged)
         | 'GenerateTFExample' >> beam.ParDo(
             CreateTFExampleFn(dataset_path, word_vocab_path,
                               max_token_per_label, max_label_per_screen))
@@ -282,7 +288,7 @@ def main(argv):
                              FLAGS.output_vocab_path,
                              FLAGS.output_tfexample_path)
 
-  runners.DataflowRunner().run_pipeline(pipeline)
+  runners.DataflowRunner().run_pipeline(pipeline, PipelineOptions())
 
 
 if __name__ == '__main__':
