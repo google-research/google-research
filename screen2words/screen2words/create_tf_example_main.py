@@ -21,6 +21,7 @@ from typing import Callable, List, Generator, Sequence
 
 from absl import app
 from absl import flags
+from absl import logging
 import apache_beam as beam
 from apache_beam import runners
 from apache_beam.options.pipeline_options import PipelineOptions
@@ -35,7 +36,7 @@ flags.DEFINE_string('task', 'CREATE_VOCAB',
                     'Task name, could be CREATE_VOCAB or CREATE_TF_EXAMPLE.')
 flags.DEFINE_string('dataset_paths', None,
                     'List of dataset paths, separated by comma.')
-flags.DEFINE_string('json_file_path', None, 'json label file path.')
+flags.DEFINE_string('json_file_path', None, 'Label file path with ScreenId to MTurk mappings.')
 flags.DEFINE_string('word_vocab_path', None, 'Word vocab file path.')
 flags.DEFINE_integer('max_token_per_label', 10,
                      'Max amount of tokens each label could have.')
@@ -172,6 +173,8 @@ class CreateTokenFn(beam.DoFn):
     """
     self._screen_counter.inc(1)
     screen_id, mtruk_labels = labels
+    logging.debug(
+      f"Processing screen {screen_id} with label '{f'{mtruk_labels[:10]}...' if len(mtruk_labels) > 10 else mtruk_labels}'")
     json_path = self.dataset_path + screen_id + '.json'
     for text in create_tf_example_fn.extract_token(json_path, screen_id,
                                                    mtruk_labels,

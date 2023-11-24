@@ -14,6 +14,8 @@ Download following datasets:
 - RICO's UI Screenshots and View Hierarchies from http://www.interactionmining.org/rico.html
 - screen2words dataset from https://github.com/google-research-datasets/screen2words
 
+Download a pre-trained GloVe model (e.g. Common Crawl) from https://github.com/stanfordnlp/GloVe#download-pre-trained-word-vectors
+
 Prepare nltk
 ```bash
 python3

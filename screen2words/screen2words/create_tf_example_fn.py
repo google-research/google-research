@@ -175,7 +175,7 @@ def _tokenize_resource_id_text(node):
 
 def _tokenize_screen_caption(captions, tokenizer):
   """Tokenizes screen caption."""
-  logging.info(' '.join(captions[0][0]))
+  logging.debug(' '.join(captions[0][0]))
   all_tokens = [tokenizer.tokenize(c[0].lower()) for c in captions]
   final_tokens = []
   for t in all_tokens:
