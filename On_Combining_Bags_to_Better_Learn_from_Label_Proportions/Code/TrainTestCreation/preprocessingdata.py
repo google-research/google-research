@@ -80,7 +80,7 @@ def label_map(x):
 # pylint: disable=unnecessary-lambda
 df[last_col] = df[last_col].map(lambda x: label_map(x))
 
-# insert dummy bag column
+# insert placeholder bag column
 df.insert(loc=0, column="bag", value=1)
 
 # insert label column
@@ -133,7 +133,7 @@ def label_map(x):  # pylint: disable=function-redefined
 # pylint: disable=unnecessary-lambda
 df[last_col] = df[last_col].map(lambda x: label_map(x))
 
-# insert dummy bag column
+# insert placeholder bag column
 df.insert(loc=0, column="bag", value=1)
 
 # insert label column
@@ -186,7 +186,7 @@ def label_map(x):  # pylint: disable=function-redefined
 # pylint: disable=unnecessary-lambda
 df[last_col] = df[last_col].map(lambda x: label_map(x))
 
-# insert dummy bag column
+# insert placeholder bag column
 df.insert(loc=0, column="bag", value=1)
 
 # insert label column

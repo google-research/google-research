@@ -22,13 +22,13 @@ library(digest)
 library(pROC)
 library(R.utils)
 
-almostnolabel_master <- "./almostnolabel-master/"
+almostnolabel_main <- "./almostnolabel-main/"
 
-source(file = paste(almostnolabel_master, "auc.R", sep = ""))
-source(file = paste(almostnolabel_master, "mean.map.R", sep = ""))
-source(file = paste(almostnolabel_master, "laplacian.mean.map.R", sep = ""))
-source(file = paste(almostnolabel_master, "alternating.mean.map.R", sep = ""))
-source(file = paste(almostnolabel_master, "logistic.regression.R", sep = ""))
+source(file = paste(almostnolabel_main, "auc.R", sep = ""))
+source(file = paste(almostnolabel_main, "mean.map.R", sep = ""))
+source(file = paste(almostnolabel_main, "laplacian.mean.map.R", sep = ""))
+source(file = paste(almostnolabel_main, "alternating.mean.map.R", sep = ""))
+source(file = paste(almostnolabel_main, "logistic.regression.R", sep = ""))
 
 root_for_experiments <- "./Data/"
 
