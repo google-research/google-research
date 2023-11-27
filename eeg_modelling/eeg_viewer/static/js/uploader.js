@@ -21,8 +21,8 @@ goog.module('eeg_modelling.eeg_viewer.Uploader');
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Downloader = goog.require('eeg_modelling.eeg_viewer.Downloader');
 const HtmlSanitizer = goog.require('goog.html.sanitizer.HtmlSanitizer');
-const SafeHtml = goog.require('goog.html.SafeHtml');
 const utils = goog.require('eeg_modelling.eeg_viewer.utils');
+const {unwrapHtml} = goog.require('safevalues');
 
 
 class Uploader {
@@ -73,7 +73,7 @@ class Uploader {
 
         let fileData;
         const text = /** @type {string} */ (reader.result);
-        const safeText = SafeHtml.unwrap(sanitizer.sanitize(text));
+        const safeText = unwrapHtml(sanitizer.sanitize(text)).toString();
 
         try {
           fileData = JSON.parse(safeText);
