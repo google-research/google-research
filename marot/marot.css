@@ -136,6 +136,9 @@
 .marot-out-of-order {
   background: lavender;
 }
+.marot-para {
+  cursor: pointer;
+}
 .marot-prior-error {
   background: gainsboro;
   margin-left: 6px;

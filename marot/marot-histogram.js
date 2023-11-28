@@ -142,11 +142,11 @@ class MarotHistogram {
     const numericBin = (bin == 'zero') ? 0 : parseFloat(bin);
     if (numericBin < this.minBin) this.minBin = numericBin;
     if (numericBin > this.maxBin) this.maxBin = numericBin;
-    const docsegKey = marot.docsegKey(doc, docSegId);
+    const docColonSeg = marot.docColonSeg(doc, docSegId);
     if (!this.segsInBin.hasOwnProperty(bin)) {
       this.segsInBin[bin] = [];
     }
-    this.segsInBin[bin].push(docsegKey);
+    this.segsInBin[bin].push(docColonSeg);
     if (this.segsInBin[bin].length > this.maxCount) {
       this.maxCount = this.segsInBin[bin].length;
     }

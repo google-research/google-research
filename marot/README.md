@@ -6,10 +6,11 @@ data from a human evaluation of translation quality. The web app can also
 display metrics computed by automated evaluations, such as BLEURT.
 
 To use the web app, download the files `marot.html`, `marot.js`,
-`marot-histogram.js`, `marot-sigtests.js`, and `marot.css` to your computer:
+`marot-histogram.js`, `marot-sigtests.js`, `marot-utils.js`, and
+`marot.css` to your computer:
 
 ```
-wget https://raw.githubusercontent.com/google-research/google-research/master/marot/marot{-sigtests.js,-histogram.js,.html,.js,.css}
+wget https://raw.githubusercontent.com/google-research/google-research/master/marot/marot{-sigtests.js,-histogram.js,-utils.js,.html,.js,.css}
 ```
 
 Then, simply open the `marot.html` file in a web browser, and use
@@ -277,7 +278,31 @@ filters.
     missing fields, for example), then that row is considered to be excluded by
     the filter.
 
+## Examples table
+
+The interface shows the first few examples of translated segments with the
+any filtering applied. The number if rows shown is controlled by a parameter
+that can be set withing the Filtering section. It is 2000 by default (it's
+usually unnecessary to make this too big as that might slow the interface down).
+You can click on column entries within the exampes table to create filters
+that look for specific values (of document, system, rater, etc.).
+
+The text segments in the examples table are broken up into sub-paragraphs
+and any hovered-upon sub-paragraph is highlighted for ease of navigation
+(this is especially useful when there are long segments). The interface also
+shows *approximate* alignment: when you hover over a sub-paragraph in a source
+segment, then approximately aligned sub-paragraphs in all translations of that
+segment (as well as references) are also highlighted. Similarly, hovering over a
+sub-paragraph in a translation segment or reference segment will also highlight
+approximately aligned sub-paragraphs on the source side. You can click on a
+sub-paragraph to "pin" such an alignment, allowing you to move away the mouse
+and/or scroll through the examples table while keeping the approximate alignment
+highlighted. Clicking on arrow keys will move any such alignment
+forward/backward (and clicking on any segment while there is a pinned
+sub-paragraph will "unpin" it).
+
 ## Significance tests
+
 When there are multiple systems that have been evaluated on common document
 segments, significance tests are run for each pair of systems and the resulting
 p-values are displayed in a table. The testing is done via paired one-sided
@@ -289,6 +314,7 @@ computations are run in a background Worker thread. The tests include any
 available automated metrics in addition to MQM.
 
 ## Data Notes
+
 There are some nuances to the data format which are useful to be aware of:
 
   - Marked spans are noted in the source/target text using `<v>...</v>` tags
@@ -302,5 +328,4 @@ There are some nuances to the data format which are useful to be aware of:
   - Error spans may include leading/trailing whitespace if the annotation tool
     allows for this, which may or may not be part of the actual errors.
     For example, `The error is<v> here</v>.`
-    The error spans themselves can also be entirely whitespace.
-
+  - The error spans themselves can also be entirely whitespace.

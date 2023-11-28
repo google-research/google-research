@@ -190,6 +190,33 @@ class Marot {
     this.selectedRows = new Set();
 
     /**
+     * Structures used for showing aligned paralets in the examples table.
+     */
+    this.paraNav = {
+      /**
+       * Keyed by hash(doc + ":" + seg), and then by
+       * "src" / "sys-" + hash(system_name) / "ref-" + hash(reference_name).
+       */
+      alignmentStructs: {},
+      /**
+       * classMap[cls] is the Set of all other span classes that should be
+       * highlighted when looking for alignment with the span in class "cls".
+       */
+      classMap: {},
+      /**
+       * Class of the "pinned" span of text (if any) when viewing alignments.
+       * Clicking pins a span, and then arrow keys move the pinning up or down
+       * within the segment.
+       */
+      pinnedParaletCls: '',
+    };
+
+    this.DEFAULT_PARALET_SENTENCES = 3;
+    this.DEFAULT_PARALET_TOKENS = 100;
+    this.paraletSentences = this.DEFAULT_PARALET_SENTENCES;
+    this.paraletTokens = this.DEFAULT_PARALET_TOKENS;
+
+    /**
      * If there are "viewing constraints" currently in place (because of a
      * drill-down click on a histogram bar), then the selected histogram rect
      * is recorded here (so that its styling can be cleared when the constraint)
@@ -576,29 +603,6 @@ class Marot {
     obj[key].push(val);
   }
 
-
-  /**
-   * Returns the location of elt in sorted array arr using binary search. if
-   * elt is not present in arr, then returns the slot where it belongs in sorted
-   * order.
-   * @param {!Array<number>} arr Sorted array of numbers.
-   * @param {number} elt
-   * @return {number}
-   */
-  binSearch(arr, elt) {
-    let l = 0;
-    let r = arr.length;
-    while (l < r) {
-      const m = Math.floor((l + r) / 2);
-      if (arr[m] < elt) {
-        l = m + 1;
-      } else {
-        r = m;
-      }
-    }
-    return l;
-  }
-
   /**
    * Given an array of all instances of annotated text for a segment (where
    * annotations have been marked using <v>..</v> spans), generates a
@@ -608,13 +612,14 @@ class Marot {
    * [start, end] token indices (both inclusive).
    *
    * The structure of the returned object is: {
-   *   tokens: !Array<string>,
+   *   tokens: !Array<string>
    *   spans: !Array<Pair<number, number>>
+   *   sentence_splits: !Array<!Object>
    * }
    * @param {!Array<string>} annotations
    * @return {!Object}
    */
-  tokenizeLegacyText(annotations) {
+  tokenizeLegacyAnnotations(annotations) {
     let cleanText = '';
     for (const text of annotations) {
       const noMarkers = text.replace(/<\/?v>/g, '');
@@ -622,19 +627,21 @@ class Marot {
         cleanText = noMarkers;
       }
     }
-    const spacedTokens = cleanText.split(' ');
-    const tokens = [];
-    for (let i = 0; i < spacedTokens.length; i++) {
-      tokens.push(spacedTokens[i]);
-      tokens.push(' ');
-    }
+    const tokenization = MarotUtils.tokenizeText(cleanText);
+    const tokens = tokenization.tokens;
+    const sents = tokenization.sentence_splits;
     const tokenOffsets = [];
     let tokenOffset = 0;
     for (const token of tokens) {
       tokenOffsets.push(tokenOffset);
       tokenOffset += token.length;
     }
-
+    const sentTokenOffsets = [];
+    let sentTokenOffset = 0;
+    for (const sent of sents) {
+      sentTokenOffset += sent.num_tokens;
+      sentTokenOffsets.push(sentTokenOffset);
+    }
     const MARKERS = ['<v>', '</v>'];
     const markerOffsets = [];
     for (const text of annotations) {
@@ -648,8 +655,8 @@ class Marot {
         modText = modText.substr(0, x) + modText.substr(x + marker.length);
         markerIdx = 1 - markerIdx;
 
-        const loc = this.binSearch(tokenOffsets, x);
-        if (tokenOffsets.length > loc && tokenOffsets[loc] == x) {
+        const loc = MarotUtils.binSearch(tokenOffsets, x);
+        if (loc == tokenOffsets.length || tokenOffsets[loc] == x) {
           continue;
         }
         /**
@@ -670,6 +677,13 @@ class Marot {
         tokens[toSplit] = oldToken.substr(0, newLen);
         tokens.splice(loc, 0, oldToken.substr(newLen));
         tokenOffsets.splice(loc, 0, x);
+        const sentIndex = MarotUtils.binSearch(sentTokenOffsets, toSplit + 1);
+        console.assert(sentIndex >= 0);
+        console.assert(sentIndex < sents.length);
+        sents[sentIndex].num_tokens++;
+        for (let si = sentIndex; si < sents.length; si++) {
+          sentTokenOffsets[si]++;
+        }
       }
       markerOffsets.push(offsets);
     }
@@ -678,14 +692,15 @@ class Marot {
       const spans = [];
       for (let i = 0; i < offsets.length; i+= 2) {
         if (i + 1 >= offsets.length) break;
-        spans.push([this.binSearch(tokenOffsets, offsets[i]),
-                    this.binSearch(tokenOffsets, offsets[i + 1]) - 1]);
+        spans.push([MarotUtils.binSearch(tokenOffsets, offsets[i]),
+                    MarotUtils.binSearch(tokenOffsets, offsets[i + 1]) - 1]);
       }
       spansList.push(spans);
     }
     return {
       tokens: tokens,
       spans: spansList,
+      sentence_splits: sents,
     };
   }
 
@@ -695,6 +710,7 @@ class Marot {
    * make each <v> and </v> fall on a token boundary. Sets
    * segment.{source,target}_tokens as well as
    *     this.data[row][this.DATA_COL_METADATA].{source,target}_spans.
+   * Sets segment.{source,target}_sentence_splits naively as well.
    *
    * If segment.source/target_tokens is already present in the data (as
    * will be the case with newer data), this function is a no-op.
@@ -715,10 +731,12 @@ class Marot {
       sources.push(parts[this.DATA_COL_SOURCE]);
       targets.push(parts[this.DATA_COL_TARGET]);
     }
-    const sourceTokenization = this.tokenizeLegacyText(sources);
+    const sourceTokenization = this.tokenizeLegacyAnnotations(sources);
     segment.source_tokens = sourceTokenization.tokens;
-    const targetTokenization = this.tokenizeLegacyText(targets);
+    segment.source_sentence_splits = sourceTokenization.sentence_splits;
+    const targetTokenization = this.tokenizeLegacyAnnotations(targets);
     segment.target_tokens = targetTokenization.tokens;
+    segment.target_sentence_splits = targetTokenization.sentence_splits;
     for (let row = rowRange[0]; row < rowRange[1]; row++) {
       const parts = this.data[row];
       const idx = row - rowRange[0];
@@ -743,34 +761,9 @@ class Marot {
     segment.reference_sentence_splits = {};
     for (const refKey in segment.references) {
       const text = segment.references[refKey];
-      const tokens = [];
-      const splits = [];
-      const paragraphs = text.split('\n\n');
-      for (let p = 0; p < paragraphs.length; p++) {
-        const para = paragraphs[p];
-        const lines = para.split('\n');
-        for (let l = 0; l < lines.length; l++) {
-          const line = lines[l];
-          const spacedTokens = line.split(' ');
-          let lineTokens = 0;
-          for (const t of spacedTokens) {
-            tokens.push(t);
-            tokens.push(' ');
-            lineTokens += 2;
-          }
-          const splitInfo = {
-            num_tokens: lineTokens
-          };
-          if (l < lines.length - 1) {
-            splitInfo.ends_with_line_break = true;
-          } else if (p < paragraphs.length - 1) {
-            splitInfo.ends_with_para_break = true;
-          }
-          splits.push(splitInfo);
-        }
-      }
-      segment.reference_tokens[refKey] = tokens;
-      segment.reference_sentence_splits[refKey] = splits;
+      const tokenization = MarotUtils.tokenizeText(text);
+      segment.reference_tokens[refKey] = tokenization.tokens;
+      segment.reference_sentence_splits[refKey] = tokenization.sentence_splits;
     }
   }
 
@@ -2253,7 +2246,7 @@ class Marot {
    * @param {string|number} seg
    * @return {string}
    */
-  docsegKey(doc, seg) {
+  docColonSeg(doc, seg) {
     return doc + ':' + seg;
   }
 
@@ -2670,7 +2663,7 @@ class Marot {
          * is an array consisting of exactly one element, which contains the
          * aggregate score given by this rater to this particular segment in
          * this doc:sys.
-         * 
+         *
          * When we build the complement ratings ('not:<r>') for a rater '<r>',
          * this.statsByRater['not:<r>'][docsys][seg] will be an array consisting
          * of all existing this.statsByRater[rater][docsys][seg][0] such that
@@ -3281,30 +3274,77 @@ class Marot {
   }
 
   /**
-   * Returns HTML from tokens and sentence-splits. This involves wrapping
-   * the joined text from the tokens within a <p>..</p> tag. In addition
-   * at the end of each sentence, if the sentenceSplit object indicates
-   * that there is a paragraph break, then a new paragraph is initiated, while
-   * if it indicates that there is a line break, then a <br> is inserted.
+   * For the segment identified by docsegHashKey and typeHashKey, given its
+   * sentence splits, either return the previously created paralet alignment
+   * structure, or create and return it.
+   *
+   * @param {string} docsegHashKey
+   * @param {string} typeHashKey
+   * @param {!Array<!Object>} sentences
+   * @return {!Object}
+   */
+  getAlignmentStruct(docsegHashKey, typeHashKey, sentences) {
+    if (!this.paraNav.alignmentStructs.hasOwnProperty(docsegHashKey)) {
+      this.paraNav.alignmentStructs[docsegHashKey] = {};
+    }
+    if (!this.paraNav.alignmentStructs[docsegHashKey].hasOwnProperty(
+            typeHashKey)) {
+      const paralets = MarotUtils.makeParalets(
+          sentences, this.paraletSentences, this.paraletTokens);
+      this.paraNav.alignmentStructs[docsegHashKey][typeHashKey] =
+          MarotAligner.getAlignmentStructure(sentences, paralets);
+    }
+    return this.paraNav.alignmentStructs[docsegHashKey][typeHashKey];
+  }
+
+  /**
+   * Return HTML from tokens and text alignment structure. This involves
+   * wrapping the joined text from the tokens within a <p>..</p> tag. In
+   * addition, at the end of each sentence, if the sentence ends in a paragraph
+   * break, then a new paragraph is initiated, while if it ends in a line break,
+   * then a <br> tag is inserted.
+   *
+   * Paralet renderings and sentence renderings are wrapped in spans with
+   * distinctive IDs.
+   *
    * @param {!Array<string>} tokens
-   * @param {!Array<!Object>} sentenceSplits
+   * @param {!Array<!Object>} alignmentStruct
+   * @param {string} docsegHashKey
+   * @param {string} typeHashKey
    * @return {string}
    */
-  htmlFromTokens(tokens, sentenceSplits) {
+  htmlFromTokens(tokens, alignmentStruct, docsegHashKey, typeHashKey) {
     let html = '<p>\n';
-    let nextToken = 0;
-    for (const split of sentenceSplits) {
-      const end = nextToken + split.num_tokens;
-      html += tokens.slice(nextToken, end).join('');
-      nextToken = end;
-      if (split.ends_with_para_break) {
-        html += '</p>\n<p>\n';
-      } else if (split.ends_with_line_break) {
-        html += '<br>\n';
+    for (let p = 0; p < alignmentStruct.paralets.length; p++) {
+      const paralet = alignmentStruct.paralets[p];
+      const paraletClass =
+          'marot-para-' + docsegHashKey + '-' + typeHashKey + '-' + p;
+      html += '<span class="marot-para ' + paraletClass +
+              '" title="Alignments shown are only approximate. ' +
+              'Click to pin/unpin a sub-para. ' +
+              'Use arrow keys to move pinnned sub-para.">';
+      for (let s = 0; s < paralet.sentences.length; s++) {
+        const sentence = paralet.sentences[s];
+        const sentClass =
+            'marot-sent-' + docsegHashKey + '-' + typeHashKey +
+            '-' + p + '-' + sentence.index;
+        html += '<span class="' + sentClass + '">';
+        html += tokens.slice(
+            sentence.offset, sentence.offset + sentence.num_tokens).join('');
+        if (sentence.ends_with_line_break) {
+          html += '<br>\n';
+        }
+        html += '</span>';
+      }
+      html += '</span>';
+      if (paralet.ends_with_para_break ||
+          p == (alignmentStruct.paralets.length - 1)) {
+        html += '</p>\n';
+        if (p < alignmentStruct.paralets.length - 1) {
+          html += '<p>\n';
+        }
       }
     }
-    html += tokens.slice(nextToken).join('');
-    html += '</p>\n';
     return html;
   }
 
@@ -3342,6 +3382,12 @@ class Marot {
     let currSegStatsBySys = [];
     let currSegStatsByRater = [];
     let currSegStatsByRaterSys = [];
+
+    /**
+     * Reset paralet navigation/alignment in the examples table.
+     */
+    this.paraNav.alignmentStructs = {};
+    this.paraNav.classMap = {};
 
     document.body.style.cursor = 'wait';
     for (const doc of this.dataIter.docs) {
@@ -3569,11 +3615,19 @@ class Marot {
 
     let shownCount = 0;
     const shownRows = [];
+    /**
+     * Reset the index of shown paralets, and reset to make sure no paralet
+     * is pinned for arrow-key-based navigation.
+     */
+    const shownParalets = {};
+    this.paraNav.pinnedParaletCls = '';
 
     for (const doc of this.dataIter.docs) {
       for (const docSegId of this.dataIter.docSegs[doc]) {
         let shownForDocSeg = 0;
         let aggrDocSeg = null;
+        const docColonSeg = this.docColonSeg(doc, docSegId);
+        const docsegHashKey = MarotUtils.javaHashKey(docColonSeg);
         for (const system of this.dataIter.docSys[doc]) {
           let shownForDocSegSys = 0;
           let aggrDocSegSys = null;
@@ -3581,7 +3635,9 @@ class Marot {
           let ratingRowsHTML = '';
           let segmentMetadata = null;
           let sourceTokens = null;
+          let sourceSents = null;
           let targetTokens = null;
+          let targetSents = null;
           let lastRater = '';
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
           const docColonSys = doc + ':' + system;
@@ -3601,15 +3657,15 @@ class Marot {
             if (!aggrDocSegSys) {
               aggrDocSegSys = metadata.segment;
             }
-
             if (firstRowId < 0) {
               firstRowId = rowId;
-
               segmentMetadata = metadata.segment;
+              /** Copy source/target tokens as we'll wrap them in spans. */
               sourceTokens = (segmentMetadata.source_tokens || []).slice();
               targetTokens = (segmentMetadata.target_tokens || []).slice();
+              sourceSents = segmentMetadata.source_sentence_splits || [];
+              targetSents = segmentMetadata.target_sentence_splits || [];
             }
-
             if (rater && (rater != lastRater)) {
               lastRater = rater;
             }
@@ -3625,8 +3681,8 @@ class Marot {
             }
 
             if (viewingConstraints &&
-                !viewingConstraints[this.docsegKey(doc, docSegId)] &&
-                !viewingConstraints[this.docsegKey(docColonSys, docSegId)]) {
+                !viewingConstraints[docColonSeg] &&
+                !viewingConstraints[this.docColonSeg(docColonSys, docSegId)]) {
               continue;
             }
             if (shownCount >= this.rowLimit) {
@@ -3659,8 +3715,16 @@ class Marot {
           if (shownForDocSegSys == 0) {
             continue;
           }
-          console.assert(firstRowId >= 0, firstRowId);
+          console.assert(firstRowId >= 0 &&
+                         sourceTokens && targetTokens &&
+                         sourceSents && targetSents, firstRowId);
 
+          if (!shownParalets.hasOwnProperty(docsegHashKey)) {
+            shownParalets[docsegHashKey] = {
+              ref: new Set,
+              sys: new Set,
+            };
+          }
           if (shownForDocSeg == 0 && aggrDocSeg &&
               aggrDocSeg.reference_tokens) {
             for (const ref of Object.keys(aggrDocSeg.reference_tokens)) {
@@ -3668,19 +3732,27 @@ class Marot {
               refRowHTML += '<td><div>' + doc + '</div></td>';
               refRowHTML += '<td><div>' + docSegId + '</div></td>';
               refRowHTML += '<td><div><b>Ref</b>: ' + ref + '</div></td>';
-              const sourceTokens = aggrDocSeg.source_tokens || [];
+              const sourceTokensForRef = aggrDocSeg.source_tokens || [];
+              const sourceHashKey = 'src';
+              const sourceAlignmentStruct = this.getAlignmentStruct(
+                  docsegHashKey, sourceHashKey, sourceSents);
               refRowHTML += '<td><div>' +
                   this.htmlFromTokens(
-                      sourceTokens,
-                      segmentMetadata.source_sentence_splits ?? []) +
+                      sourceTokensForRef, sourceAlignmentStruct,
+                      docsegHashKey, sourceHashKey) +
                   '</div></td>';
               const refTokens = aggrDocSeg.reference_tokens[ref] ?? [];
-              const refSplits = aggrDocSeg.reference_sentence_splits[ref] ?? [];
+              const refSents = aggrDocSeg.reference_sentence_splits[ref] ?? [];
+              const refHashKey = 'ref-' + MarotUtils.javaHashKey(ref);
+              const refAlignmentStruct = this.getAlignmentStruct(
+                  docsegHashKey, refHashKey, refSents);
               refRowHTML += '<td><div>' +
-                            this.htmlFromTokens(refTokens, refSplits) +
-                            '</div></td>';
+                  this.htmlFromTokens(refTokens, refAlignmentStruct,
+                                      docsegHashKey, refHashKey) +
+                  '</div></td>';
               refRowHTML += '<td></td></tr>\n';
               this.segmentsTable.insertAdjacentHTML('beforeend', refRowHTML);
+              shownParalets[docsegHashKey].ref.add(refHashKey);
             }
           }
           let rowHTML = '';
@@ -3695,16 +3767,19 @@ class Marot {
           rowHTML += `id="marot-val-${firstRowId}-${this.DATA_COL_SYSTEM}">` +
                      system + '</div></td>';
 
-          const source = sourceTokens.length > 0 ?
-              this.htmlFromTokens(
-                  sourceTokens, segmentMetadata.source_sentence_splits ?? []) :
-              this.data[firstRowId][this.DATA_COL_SOURCE].replace(
-                  /<\/?v>/g, '');
-          const target = targetTokens.length > 0 ?
-              this.htmlFromTokens(
-                  targetTokens, segmentMetadata.target_sentence_splits ?? []) :
-              this.data[firstRowId][this.DATA_COL_TARGET].replace(
-                  /<\/?v>/g, '');
+          const sourceHashKey = 'src';
+          const sourceAlignmentStruct = this.getAlignmentStruct(
+              docsegHashKey, sourceHashKey, sourceSents);
+          const source =
+              this.htmlFromTokens(sourceTokens, sourceAlignmentStruct,
+                                  docsegHashKey, sourceHashKey);
+
+          const targetHashKey = 'sys-' + MarotUtils.javaHashKey(system);
+          const targetAlignmentStruct = this.getAlignmentStruct(
+              docsegHashKey, targetHashKey, targetSents);
+          const target =
+              this.htmlFromTokens(targetTokens, targetAlignmentStruct,
+                                  docsegHashKey, targetHashKey);
 
           rowHTML += '<td><div>' + source + '</div></td>';
           rowHTML += '<td><div>' + target + '</div></td>';
@@ -3718,15 +3793,25 @@ class Marot {
           this.segmentsTable.insertAdjacentHTML(
               'beforeend', `<tr class="marot-row">${rowHTML}</tr>\n`);
           shownForDocSeg += shownForDocSegSys;
+
+          shownParalets[docsegHashKey].sys.add(targetHashKey);
         }
         if (shownForDocSeg > 0) {
           shownCount += shownForDocSeg;
         }
       }
     }
-    /**
-     * Add cross-highlighting listeners.
-     */
+    this.addAlignmentHighlighters(shownParalets);
+    this.addAnnotationHighlighters(shownRows);
+    this.addFilterListeners(shownRows);
+  }
+
+  /**
+   * Add cross-highlighting listeners for error spans.
+   *
+   * @param {!Array<number>} shownRows The array of visible row indices.
+   */
+  addAnnotationHighlighters(shownRows) {
     const annoHighlighter = (a, shouldShow) => {
       const elts = document.getElementsByClassName('marot-anno-' + a);
       const fontWeight = shouldShow ? 'bold' : 'inherit';
@@ -3752,10 +3837,15 @@ class Marot {
         elts[i].addEventListener('mouseout', onNonHover);
       }
     }
+  }
 
-    /**
-     * Add filter listeners.
-     */
+  /**
+   * Add filter listeners (when the user clicks on a rater/system/etc. to create
+   * a filter) in the examples table.
+   *
+   * @param {!Array<number>} shownRows The array of visible row indices.
+   */
+  addFilterListeners(shownRows) {
     const filters = document.getElementsByClassName('marot-filter-re');
     for (const rowId of shownRows) {
       const parts = this.data[rowId];
@@ -3770,6 +3860,206 @@ class Marot {
         });
       }
     }
+  }
+
+  /**
+   * Set up the display of approximately aligned paralets in the examples table.
+   *
+   * @param {!Array<!Object>} shownParalets The array of visible paralets. This
+   *     is indexed by docsegHashKey, and then 'ref'/'sys', mapping to the
+   *     target paralets Set (each target paralet is represented in the Set
+   *     by its hash-key).
+   */
+  addAlignmentHighlighters(shownParalets) {
+    const initMap = (map, from) => {
+      if (!map.hasOwnProperty(from)) {
+        map[from] = new Set;
+      }
+    };
+    const docsegHashKeys = Object.keys(shownParalets);
+    for (const docsegHashKey of docsegHashKeys) {
+      const alignmentStructs = this.paraNav.alignmentStructs[docsegHashKey];
+      const srcAlignmentStruct = alignmentStructs['src'];
+      const shownPara = shownParalets[docsegHashKey];
+      const srcParaClassPrefix = 'marot-para-' + docsegHashKey + '-src-';
+      for (let sp = 0; sp < srcAlignmentStruct.paralets.length; sp++) {
+        const srcParaClass = srcParaClassPrefix + sp;
+        initMap(this.paraNav.classMap, srcParaClass);
+      }
+      for (const refsys of ['ref', 'sys']) {
+        for (const tgtHashKey of shownPara[refsys]) {
+          const tgtParaClassPrefix = 'marot-para-' + docsegHashKey + '-' +
+                                     tgtHashKey + '-';
+          const tgtAlignmentStruct = alignmentStructs[tgtHashKey];
+          const aligner = new MarotAligner(
+              srcAlignmentStruct, tgtAlignmentStruct);
+          for (let tp = 0; tp < tgtAlignmentStruct.paralets.length; tp++) {
+            const tgtParaClass = tgtParaClassPrefix + tp;
+            initMap(this.paraNav.classMap, tgtParaClass);
+            const range = aligner.tgtParaletToSrcParaletRange(tp);
+            for (let sp = range[0]; sp <= range[1]; sp++) {
+              const srcParaClass = srcParaClassPrefix + sp;
+              this.paraNav.classMap[srcParaClass].add(tgtParaClass);
+              this.paraNav.classMap[tgtParaClass].add(srcParaClass);
+            }
+          }
+        }
+      }
+      for (let p = 0; p < srcAlignmentStruct.paralets.length; p++) {
+        const cls = 'marot-para-' + docsegHashKey + '-src-' + p;
+        const elts = document.getElementsByClassName(cls);
+        for (let i = 0; i < elts.length; i++) {
+          const elt = elts[i];
+          elt.addEventListener('mouseover', this.paraNavHover.bind(this, cls));
+          elt.addEventListener(
+              'mouseout', this.paraNavNonHover.bind(this, cls));
+          elt.addEventListener(
+              'click',
+              this.paraNavClick.bind(this, cls, docsegHashKey, 'src', p));
+        }
+      }
+      for (const refsys of ['ref', 'sys']) {
+        for (const tgtHashKey of shownPara[refsys]) {
+          const tgtAlignmentStruct = alignmentStructs[tgtHashKey];
+          for (let p = 0; p < tgtAlignmentStruct.paralets.length; p++) {
+            const cls = 'marot-para-' + docsegHashKey + '-' +
+                        tgtHashKey + '-' + p;
+            const elts = document.getElementsByClassName(cls);
+            for (let i = 0; i < elts.length; i++) {
+              const elt = elts[i];
+              elt.addEventListener(
+                  'mouseover', this.paraNavHover.bind(this, cls));
+              elt.addEventListener(
+                  'mouseout', this.paraNavNonHover.bind(this, cls));
+              elt.addEventListener(
+                  'click',
+                  this.paraNavClick.bind(
+                      this, cls, docsegHashKey, tgtHashKey, p));
+            }
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Handler for when the user hovers over or out of the paralet with class cls.
+   * The shouldShow parameter is true for showing and false for hiding the
+   * highlighted alignment.
+   *
+   * @param {string} cls
+   * @param {boolean} shouldShow
+   */
+  paraNavHighlighter(cls, shouldShow) {
+    const classFonter = (c, fontWeight, color) => {
+      const elts = document.getElementsByClassName(c);
+      for (let i = 0; i < elts.length; i++) {
+        elts[i].style.fontWeight = fontWeight;
+        elts[i].style.color = color;
+      }
+    };
+    let fontWeight = shouldShow ? '600' : 'inherit';
+    let color = shouldShow ? '#00008B' : 'inherit';
+    classFonter(cls, fontWeight, color);
+    fontWeight = 'inherit';
+    color = shouldShow ? 'blue' : 'inherit';
+    for (const mappedCls of this.paraNav.classMap[cls]) {
+      classFonter(mappedCls, fontWeight, color);
+    }
+  }
+
+  /**
+   * Handler for when the user hovers over the paralet with class cls.
+   *
+   * @param {string} cls
+   */
+  paraNavHover(cls) {
+    if (this.paraNav.pinnedParaletCls) {
+      return;
+    }
+    this.paraNavHighlighter(cls, true);
+  }
+
+  /**
+   * Handler for when the user hovers away from the paralet with class cls.
+   *
+   * @param {string} cls
+   */
+  paraNavNonHover(cls) {
+    if (this.paraNav.pinnedParaletCls) {
+      return;
+    }
+    this.paraNavHighlighter(cls, false);
+  }
+
+  /**
+   * Handler for when the user clicks on a paralet. If a paralet is already
+   * pinned, then this unpins it. If no paralet is already pinned, then this
+   * paralet gets pinned. The class must end in a "-<paralet-index>"
+   *
+   * @param {string} cls
+   */
+  paraNavClick(cls) {
+    if (this.paraNav.pinnedParaletCls) {
+      this.paraNavHighlighter(this.paraNav.pinnedParaletCls, false);
+      this.paraNav.pinnedParaletCls = '';
+      return;
+    }
+    this.paraNav.pinnedParaletCls = cls;
+    this.paraNavHighlighter(cls, true);
+  }
+
+  /**
+   * Move the pinned paralet (if it exists) up (dir=-1) or down (dir=1).
+   *
+   * @param {number} dir
+   */
+  paraNavMove(dir) {
+    if (!this.paraNav.pinnedParaletCls) {
+      return;
+    }
+    const lastDash = this.paraNav.pinnedParaletCls.lastIndexOf('-');
+    const paralet = parseInt(
+        this.paraNav.pinnedParaletCls.substr(lastDash + 1));
+    const p = paralet + dir;
+    const newCls = this.paraNav.pinnedParaletCls.substr(0, lastDash) + '-' + p;
+    if (!this.paraNav.classMap.hasOwnProperty(newCls)) {
+      return;
+    }
+    this.paraNavHighlighter(this.paraNav.pinnedParaletCls, false);
+    this.paraNav.pinnedParaletCls = newCls;
+    this.paraNavHighlighter(newCls, true);
+  }
+
+  /**
+   * Handler for key-down to grab kep presses on Escape or arrow keys, to
+   * unpin or move the pinned paralet.
+   *
+   * @param {!Event} e
+   */
+  paraNavKeyDown(e) {
+    if (!e.key) {
+      return;
+    }
+    if (e.key != 'Escape' &&
+        e.key != 'ArrowLeft' && e.key != 'ArrowRight' &&
+        e.key != 'ArrowUp' && e.key != 'ArrowDown') {
+      return;
+    }
+    e.preventDefault();
+    if (!this.paraNav.pinnedParaletCls) {
+      return;
+    }
+    if (e.key === 'Escape') {
+      this.paraNavHighlighter(this.paraNav.pinnedParaletCls, false);
+      this.paraNav.pinnedParaletCls = '';
+      return;
+    }
+    let dir = 1;
+    if (e.key == 'ArrowLeft' || e.key == 'ArrowUp') {
+      dir = -1;
+    }
+    this.paraNavMove(dir);
   }
 
   /**
@@ -4464,9 +4754,29 @@ class Marot {
   }
 
   /**
+   * Helper to get a positive integer from an input (or reset the input to
+   * the given current value).
+   * @param {!Element} input
+   * @param {number} current
+   * @return {number}
+   */
+  getPosIntSetting(input, current) {
+    let val = parseInt(input.value);
+    if (isNaN(val) || val <= 0) {
+      val = current;
+    }
+    input.value = val;
+    return val;
+  }
+
+  /**
    * Applies updated settings for scoring.
    */
   updateSettings() {
+    this.paraletSentences = this.getPosIntSetting(
+        this.paraletSentencesInput, this.paraletSentences);
+    this.paraletTokens = this.getPosIntSetting(
+        this.paraletTokensInput, this.paraletTokens);
     if (this.parseScoreSettings()) {
       this.setUpScoreSettings();
     }
@@ -4484,6 +4794,8 @@ class Marot {
   resetSettings() {
     this.mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
     this.mqmSlices = JSON.parse(JSON.stringify(mqmDefaultSlices));
+    this.paraletSentencesInput.value = this.DEFAULT_PARALET_SENTENCES;
+    this.paraletTokensInput.value = this.DEFAULT_PARALET_TOKENS;
     this.setUpScoreSettings();
     this.updateSettings();
   }
@@ -4614,6 +4926,19 @@ class Marot {
             <input size="6" maxlength="6" type="text"
                 id="marot-sigtests-num-trials"
                 value="10000" onchange="marot.setSigtestsNumTrials()"/>
+          </div>
+          <div class="marot-settings-row">
+            Sub-paragraph segmentation max limits:
+            sentences:
+            <input size="4" maxlength="4" type="text"
+                id="marot-paralet-max-sentences"
+                value="${this.paraletSentences}"
+                onchange="marot.updateSettings()"/>
+            tokens:
+            <input size="6" maxlength="6" type="text"
+                id="marot-paralet-max-tokens"
+                value="${this.paraletTokens}"
+                onchange="marot.updateSettings()"/>
           </div>
           <div class="marot-settings-row">
              Note: Changes to the following tables of MQM weights and slices
@@ -5125,9 +5450,15 @@ class Marot {
     this.raterRelatedSections = document.getElementById(
         'marot-rater-related-sections');
 
+    this.paraletSentencesInput = document.getElementById(
+        'marot-paralet-max-sentences');
+    this.paraletTokensInput = document.getElementById(
+        'marot-paralet-max-tokens');
     this.resetSettings();
 
     this.hideViewer();
+
+    document.addEventListener('keydown', this.paraNavKeyDown.bind(this));
 
     if (tsvDataOrCsvURLs) {
       if (tsvDataOrCsvURLs.indexOf('\t') >= 0) {
