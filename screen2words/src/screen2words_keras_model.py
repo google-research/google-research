@@ -23,9 +23,9 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 
-from screen2words import screen2words_eval
-from screen2words import screen2words_experiment_config
-from screen2words import screen2words_keras_input as input_utils
+from src import screen2words_eval
+from src import screen2words_experiment_config
+from src import screen2words_keras_input as input_utils
 from official.legacy.transformer import model_params
 from official.legacy.transformer import model_utils
 from official.legacy.transformer import optimizer

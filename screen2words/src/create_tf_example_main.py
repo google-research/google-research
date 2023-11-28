@@ -28,7 +28,7 @@ from apache_beam.options.pipeline_options import PipelineOptions
 import nltk
 import tensorflow as tf
 
-from screen2words import create_tf_example_fn
+from src import create_tf_example_fn
 
 FLAGS = flags.FLAGS
 
