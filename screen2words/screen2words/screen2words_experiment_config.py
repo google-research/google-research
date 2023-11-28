@@ -70,10 +70,10 @@ _BASE_CONFIG = {
         2000,
     'eval_buffer_size':
         100,
-    'embedding_file': 'TO_BE_ADDED',
-    'word_vocab_path': 'TO_BE_ADDED',
-    'eval_files': 'TO_BE_ADDED',
-    'train_files': 'TO_BE_ADDED',
+    'embedding_file': '/mnt/d/Tmp/Coding/datasets/models/glove.42B.300d/glove.42B.300d.txt',
+    'word_vocab_path': '/tmp/word_vocab.txt-00000-of-00001',
+    'eval_files': '/mnt/d/Tmp/Coding/datasets/screen2words/split/test_screens.txt',
+    'train_files': '/mnt/d/Tmp/Coding/datasets/screen2words/split/train_screens.txt',
     'screen_embedding_feature': ['text', 'type', 'pos', 'click', 'dom'],
     'use_app_description':
         True,
@@ -134,10 +134,10 @@ _DEBUG_CONFIG = {
         1000,
     'phrase_vocab_size':
         1000,
-    'embedding_file': 'TO_BE_ADDED',
-    'word_vocab_path': 'TO_BE_ADDED',
-    'eval_files': 'TO_BE_ADDED',
-    'train_files': 'TO_BE_ADDED',
+    'embedding_file': '/mnt/d/Tmp/Coding/datasets/models/glove.42B.300d/glove.42B.300d.txt',
+    'word_vocab_path': '/tmp/word_vocab.txt-00000-of-00001',
+    'eval_files': '/mnt/d/Tmp/Coding/datasets/screen2words/split/test_screens.txt',
+    'train_files': '/mnt/d/Tmp/Coding/datasets/screen2words/split/train_screens.txt',
     'use_app_description':
         True,
 }
