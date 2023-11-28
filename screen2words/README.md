@@ -26,7 +26,7 @@ python3
 
 Pre-process RICO Data with:
 ```bash
-screen2words/create_tf_example_main.py \
+src/create_tf_example_main.py \
 --task=CREATE_VOCAB \
 --dataset_paths=/.../RICO/unique_uis/combined/ \
 --json_file_path=/.../screen2words/screen_summaries.csv \
