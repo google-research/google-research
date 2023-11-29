@@ -24,6 +24,11 @@ from utils import trainer_utils
 
 
 _CONFIG_PATH = flags.DEFINE_string('config_path', None, 'paths to gin config.')
+_CONFIG_OVERRIDES = flags.DEFINE_multi_string(
+    'config_overrides',
+    None,
+    'Gin bindings to override the config given in config_path flag.',
+)
 _OUTPUT_DIR = flags.DEFINE_string('output_dir', None,
                                   'Path to model checkpoints and summaries.')
 _DEFAULT_PRECISION = flags.DEFINE_string(
@@ -41,7 +46,9 @@ def main(_):
   tf.enable_v2_behavior()
   # make sure tf does not allocate gpu memory
   tf.config.experimental.set_visible_devices([], 'GPU')
-  gin.parse_config_files_and_bindings([_CONFIG_PATH.value], [])
+  gin.parse_config_files_and_bindings(
+      [_CONFIG_PATH.value], _CONFIG_OVERRIDES.value
+  )
   if _MODE.value == 'train' or _MODE.value == 'train_and_eval':
     trainer_utils.train(_OUTPUT_DIR.value)
   if _MODE.value == 'eval' or _MODE.value == 'train_and_eval':
