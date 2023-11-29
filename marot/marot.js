@@ -4309,8 +4309,7 @@ class Marot {
             'Skipping data lines beyond number ' + this.MAX_DATA_LINES);
         break;
       }
-      line = line.trim();
-      if (!line) {
+      if (!line.trim()) {
         continue;
       }
       if (line.toLowerCase().indexOf('system\tdoc\t') >= 0) {
@@ -4417,6 +4416,15 @@ class Marot {
       /** Make severity start with an uppercase letter. */
       parts[this.DATA_COL_SEVERITY] =
           this.casedSeverity(parts[this.DATA_COL_SEVERITY]);
+      /** If the system name is blank, call it "blank". */
+      if (!parts[this.DATA_COL_SYSTEM].trim()) {
+        parts[this.DATA_COL_SYSTEM] = 'blank';
+      }
+      /** If the document name is blank, name it with the fp of source text. */
+      if (!parts[this.DATA_COL_DOC].trim()) {
+        parts[this.DATA_COL_DOC] = 'source-fp-' +
+            MarotUtils.javaHashKey(parts[this.DATA_COL_SOURCE]);
+      }
       /**
        * Count all characters, including spaces, in src/tgt length, excluding
        * the span-marking <v> and </v> tags.
