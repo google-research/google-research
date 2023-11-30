@@ -15,15 +15,16 @@
 
 """Common preprocessing utilites for datasets.
 
-The code in this file is taken from
-https://github.com/google-research/simclr/blob/master/tf2/data_util.py.
+The code in this file is taken from data_util.py file of
+https://github.com/google-research/simclr repository.
 """
 
 import tensorflow.compat.v2 as tf
 
 
 def _compute_crop_shape(
-    image_height, image_width, aspect_ratio, crop_proportion):
+    image_height, image_width, aspect_ratio, crop_proportion
+):
   """Compute aspect ratio-preserving shape for central crop.
 
   The resulting shape retains `crop_proportion` along one side and a proportion
