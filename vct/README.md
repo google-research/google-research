@@ -43,10 +43,9 @@ scratch, see App. A.2 in the [PDF](https://arxiv.org/abs/2206.07307).
 #### Using the code
 
 ```sh
-python -m venv vct_env
-source ./vct_env/bin/activate
-pip install requirements.txt
-python -m vct.src.models_test
+python3 -m venv vct_env && source ./vct_env/bin/activate
+pip install -r requirements.txt
+python3 -m vct.src.models_test
 ```
 
 This should not throw any errors (but might print some warnings from the
@@ -69,14 +68,49 @@ restore ops).
 - `video_tensors.py`: Video tensor types.
 
 
-## Checkpoint
-
-**Checkpoint coming soon!**
-
 ## Synthetic Dataset
 
-**Code to generate our synthetic datasets coming soon!**
+We release the code to compare on the synthetic datasets we used in the paper
+in `synth/`.
 
+#### Prepare
+
+To use the synthetic data (see Sec. 4.1), you first have to download CLIC and
+prepare it:
+
+```bash
+source ./vct_env/bin/activate  # See above
+python3 synth/synthetic_data.py --clic_png_dir /path/to/some/folder --create
+```
+
+#### Use the data to eval your model
+
+Assuming you stored the data at `/path/to/some/folder` as shown above, you can
+then use it as follows:
+
+```python
+import synthetic_data
+
+fade_ds = synthetic_data.FadeDataset(x=0.1, clic_png_dir="/path/to/some/folder")
+
+model = ... # Load your model
+for video in fade_ds.iter_videos():
+  metrics = model.evaluate(video)
+  ...
+
+# We also export the values we used for Fig. 5 in VCT_DATASETS, see
+# synthetic_data.py
+for synth_ds in synthetic_data.all_vct_datasets():
+  for video in synth_ds.iter_videos():
+    ...
+```
+
+To visualize, you can also just run the script from the terminal using `--show`, for example:
+
+```bash
+source ./vct_env/bin/activate  # See above
+python3 synth/synthetic_data.py --show FadeDataset -x 0.2 --video_idx 10
+```
 
 ## Data from Fig. 4
 
