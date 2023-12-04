@@ -43,9 +43,9 @@ def run_experiment(train_df, eval_df,
   Returns:
     A dictionary storing the error of the optimized algorithm and each baseline
     for each total privacy budget. The keys of the dictionary are strings such
-    as 'Optimization', 'Baseline (95%)' or 'Baseline (99%)', and the values are
-    lists consisting of the error achieved by that algorithm for each privacy
-    budget.
+    as 'Optimization', '95' or '99' (where the second and third keys correspond
+    to baselines), and the values are lists consisting of the error achieved by
+    that algorithm for each privacy budget.
   """
   result = {}
   train_dataset = dataset_evaluation.ARADataset(train_df, slice_columns,
