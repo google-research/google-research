@@ -403,7 +403,7 @@ class DatasetHolder(object):
     df_reset_index = df.reset_index(category_level)
 
     ## convert non-embedding values to one-hot encoding
-    df_with_one_hot = pd.get_dummies(df_reset_index)
+    df_with_one_hot = pd.get_dummies(df_reset_index, dtype="uint8")
 
     ## restore indices
     df_with_one_hot = pd.DataFrame(data=df_with_one_hot.values, index=df.index)
