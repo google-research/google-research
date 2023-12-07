@@ -14,19 +14,18 @@
 # limitations under the License.
 
 """Create tf.Example and vocab for screen2words model."""
-import json
 import csv
+import json
 import re
-from typing import Callable, List, Generator, Sequence
 
+import apache_beam as beam
+import nltk
+import tensorflow as tf
 from absl import app
 from absl import flags
 from absl import logging
-import apache_beam as beam
 from apache_beam import runners
 from apache_beam.options.pipeline_options import PipelineOptions
-import nltk
-import tensorflow as tf
 
 from src import create_tf_example_fn
 
@@ -45,6 +44,7 @@ flags.DEFINE_integer('max_label_per_screen', 5,
 flags.DEFINE_string('output_vocab_path', '/tmp/word_vocab.txt',
                     'Output vocab file path.')
 flags.DEFINE_string('output_tfexample_path', None, 'Path to output tf.Example.')
+flags.DEFINE_bool('is_local', False, 'Use local DirectRunner to execute pipeline.')
 
 BBOX_MAX_W = 360
 BBOX_MAX_H = 640
@@ -264,26 +264,29 @@ def create_pipeline(task, dataset_path, screen_summaries_path,
   # Get file prefix and MTurk labels for each screen.
   merged = _generate_screen_id_and_captions_pair(screen_summaries_path)
 
-  with beam.Pipeline() as p:
-    """Pipeline for vocab generation ."""
-    vocab_pipeline = (
-      p | 'CreateCollection' >> beam.Create(merged)
-        | 'CreateToken' >> beam.ParDo(CreateTokenFn(dataset_path))
-        | 'CountTokens' >> beam.combiners.Count.PerElement()
-        | 'FormatCount' >>
-        beam.Map(lambda kv: '{}\t{}'.format(kv[0].decode(), kv[1]))
-        | 'WriteToFile' >> beam.io.WriteToText(output_vocab_path))
+  """Pipeline for vocab generation ."""
+  vocab_pipeline = beam.Pipeline()
+  # No return value expected: "_"
+  _ = (
+      vocab_pipeline
+      | 'CreateCollection' >> beam.Create(merged)
+      | 'CreateToken' >> beam.ParDo(CreateTokenFn(dataset_path))
+      | 'CountTokens' >> beam.combiners.Count.PerElement()
+      | 'FormatCount' >> beam.Map(lambda kv: '{}\t{}'.format(kv[0].decode(), kv[1]))
+      | 'WriteToFile' >> beam.io.WriteToText(output_vocab_path)
+  )
 
-  with beam.Pipeline() as p:
-    """Pipeline for tf.Example generation."""
-    tf_example_pipeline = (
-      p | 'CreateCollection' >> beam.Create(merged)
-        | 'GenerateTFExample' >> beam.ParDo(
-            CreateTFExampleFn(dataset_path, word_vocab_path,
-                              max_token_per_label, max_label_per_screen))
-        | 'WriteToFile' >> beam.io.WriteToTFRecord(
-            output_tfexample_path,
-            coder=beam.coders.ProtoCoder(tf.train.Example)))
+  """Pipeline for tf.Example generation."""
+  tf_example_pipeline = beam.Pipeline()
+  # No return value expected: "_"
+  _ = (
+      tf_example_pipeline
+      | 'CreateCollection' >> beam.Create(merged)
+      | 'GenerateTFExample' >> beam.ParDo(
+    CreateTFExampleFn(dataset_path, word_vocab_path, max_token_per_label, max_label_per_screen))
+      | 'WriteToFile' >> beam.io.WriteToTFRecord(
+    output_tfexample_path, coder=beam.coders.ProtoCoder(tf.train.Example))
+  )
 
   if task == 'CREATE_VOCAB':
     return vocab_pipeline
@@ -304,7 +307,11 @@ def main(argv):
                              FLAGS.output_vocab_path,
                              FLAGS.output_tfexample_path)
 
-  runners.DataflowRunner().run_pipeline(pipeline, PipelineOptions())
+  if FLAGS.is_local:
+    result = pipeline.run()
+    result.wait_until_finish()
+  else:
+    runners.DataflowRunner().run(pipeline)
 
 
 if __name__ == '__main__':

@@ -45,5 +45,6 @@ src/create_tf_example_main.py \
 --screen_summaries_path=/.../screen2words/screen_summaries.csv \
 --output_vocab_path=/tmp/word_vocab.txt \
 --word_vocab_path=/tmp/word_vocab.txt-00000-of-00001 \
---output_tfexample_path=/tmp/tf_example
+--output_tfexample_path=/tmp/tf_example \
+--is_local=True
 ```
