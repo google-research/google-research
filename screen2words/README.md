@@ -42,7 +42,7 @@ Pre-process RICO Data with:
 src/create_tf_example_main.py \
 --task=CREATE_VOCAB \
 --dataset_paths=/.../RICO/unique_uis/combined/ \
---json_file_path=/.../screen2words/screen_summaries.csv \
+--screen_summaries_path=/.../screen2words/screen_summaries.csv \
 --output_vocab_path=/tmp/word_vocab.txt \
 --word_vocab_path=/tmp/word_vocab.txt-00000-of-00001 \
 --output_tfexample_path=/tmp/tf_example

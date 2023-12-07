@@ -36,7 +36,7 @@ flags.DEFINE_string('task', 'CREATE_VOCAB',
                     'Task name, could be CREATE_VOCAB or CREATE_TF_EXAMPLE.')
 flags.DEFINE_string('dataset_paths', None,
                     'List of dataset paths, separated by comma.')
-flags.DEFINE_string('json_file_path', None, 'Label file path with ScreenId to MTurk mappings.')
+flags.DEFINE_string('screen_summaries_path', None, 'Label file path with ScreenId to MTurk mappings.')
 flags.DEFINE_string('word_vocab_path', None, 'Word vocab file path.')
 flags.DEFINE_integer('max_token_per_label', 10,
                      'Max amount of tokens each label could have.')
@@ -242,14 +242,27 @@ class CreateTFExampleFn(beam.DoFn):
     yield example
 
 
-def create_pipeline(task, dataset_path, json_file_path,
+def create_pipeline(task, dataset_path, screen_summaries_path,
                     word_vocab_path, max_token_per_label,
                     max_label_per_screen, output_vocab_path,
                     output_tfexample_path):
+
+  if not tf.io.gfile.isdir(dataset_path):
+    raise Exception(f'Folder for dataset_path="{dataset_path}" does not exist!')
+
+  if not tf.io.gfile.exists(screen_summaries_path):
+    raise Exception(f'File for screen_summaries_path="{screen_summaries_path}" does not exist!')
+
+  if word_vocab_path is None:
+    raise Exception(f'Path for word_vocab_path="{word_vocab_path}" is not set!')
+
+  if output_tfexample_path is None:
+    raise Exception(f'Path for output_tfexample_path="{output_tfexample_path}" is not set!')
+
   """Runs the end-to-end beam pipeline."""
 
   # Get file prefix and MTurk labels for each screen.
-  merged = _generate_screen_id_and_captions_pair(json_file_path)
+  merged = _generate_screen_id_and_captions_pair(screen_summaries_path)
 
   with beam.Pipeline() as p:
     """Pipeline for vocab generation ."""
@@ -285,7 +298,7 @@ def main(argv):
     raise app.UsageError('Too many command-line arguments.')
 
   pipeline = create_pipeline(FLAGS.task, FLAGS.dataset_paths,
-                             FLAGS.json_file_path, FLAGS.word_vocab_path,
+                             FLAGS.screen_summaries_path, FLAGS.word_vocab_path,
                              FLAGS.max_token_per_label,
                              FLAGS.max_label_per_screen,
                              FLAGS.output_vocab_path,
