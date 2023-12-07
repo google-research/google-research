@@ -1,5 +1,5 @@
 <component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="create_tf_example_main" type="PythonConfigurationType" factoryName="Python" nameIsGenerated="true">
+  <configuration default="false" name="TF Example CREATE_TF_EXAMPLE" type="PythonConfigurationType" factoryName="Python">
     <module name="screen2words" />
     <option name="INTERPRETER_OPTIONS" value="" />
     <option name="PARENT_ENVS" value="true" />
@@ -13,7 +13,7 @@
     <option name="ADD_SOURCE_ROOTS" value="true" />
     <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
     <option name="SCRIPT_NAME" value="$PROJECT_DIR$/src/create_tf_example_main.py" />
-    <option name="PARAMETERS" value="--dataset_paths=sources/datasets/RICO/unique_uis/combined/ --screen_summaries_path=sources/datasets/screen2words/screen_summaries.csv --output_vocab_path=build/preprocessing/word_vocab.txt --word_vocab_path=build/preprocessing/word_vocab.txt-00000-of-00001 --output_tfexample_path=build/preprocessing/tf_example --is_local=True" />
+    <option name="PARAMETERS" value="--task=CREATE_TF_EXAMPLE --dataset_paths=sources/datasets/RICO/unique_uis/combined/ --screen_summaries_path=sources/datasets/screen2words/screen_summaries.csv --output_vocab_path=build/preprocessing/word_vocab.txt --word_vocab_path=build/preprocessing/word_vocab.txt-00000-of-00001 --output_tfexample_path=build/preprocessing/tf_example --is_local=True" />
     <option name="SHOW_COMMAND_LINE" value="false" />
     <option name="EMULATE_TERMINAL" value="false" />
     <option name="MODULE_MODE" value="false" />
