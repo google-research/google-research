@@ -442,6 +442,24 @@ def bc_resnet_params():
   return params
 
 
+def bc_resnet_causal_params():
+  """Parameters for bc_resnet model."""
+  params = Params()
+  params.model_name = 'bc_resnet'
+  params.dropouts = '0.5, 0.5'
+  params.filters = '2, 2'
+  params.blocks_n = '1, 1'
+  params.strides = '(1,1), (1,1)'
+  params.dilations = '(1,1), (1,1)'
+  params.paddings = 'causal'
+  params.first_filters = 2
+  params.last_filters = 2
+  params.sub_groups = 1
+  params.max_pool = 0
+  params.pools = '1, 1'
+  return params
+
+
 # these are toy hotword model parameters
 # with reduced dims for unit test only
 HOTWORD_MODEL_PARAMS = {
@@ -464,4 +482,5 @@ HOTWORD_MODEL_PARAMS = {
     'inception_resnet': inception_resnet_params(),
     'ds_tc_resnet': ds_tc_resnet_params(),
     'bc_resnet': bc_resnet_params(),
+    'bc_resnet_causal': bc_resnet_causal_params(),
 }

@@ -261,7 +261,7 @@ class NormalBlock(tf.keras.layers.Layer):
         kernel_size=(1, 3),
         strides=self.stride,
         dilation_rate=self.dilation,
-        padding=self.padding,
+        padding='same',
         use_bias=False)
     if self.padding == 'same':
       self.temporal_dw_conv = tf.keras.layers.DepthwiseConv2D(
@@ -286,7 +286,7 @@ class NormalBlock(tf.keras.layers.Layer):
         filters=self.filters,
         kernel_size=1,
         strides=1,
-        padding=self.padding,
+        padding='same',
         use_bias=False)
     self.spatial_drop = tf.keras.layers.SpatialDropout2D(rate=self.dropout)
     self.spectral_norm = sub_spectral_normalization.SubSpectralNormalization(
