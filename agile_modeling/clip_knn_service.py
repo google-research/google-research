@@ -578,7 +578,7 @@ def load_clip_indices(
     indices_paths,
     clip_options,
 ):
-  """This load clips indices from disk."""
+  """This load CLIP indices from disk."""
   LOGGER.info("loading clip...")
 
   with open(indices_paths, "r", encoding="utf-8") as f:
@@ -597,7 +597,6 @@ def load_clip_indices(
     else:
       raise ValueError("Unknown type for indice_folder")
     clip_resources[name] = load_clip_index(clip_options)
-
   return clip_resources
 
 

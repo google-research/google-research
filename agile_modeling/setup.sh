@@ -19,16 +19,16 @@ mkdir laion400m/eval/metadata laion400m/eval/npy
 mkdir laion400m/al/metadata laion400m/al/npy
 
 for i in $(seq 0 99); do
-  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/metadata/metadata_${i}.parquet train/metadata/
-  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/img_emb/img_emb_${i}.npy train/npy
+  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/metadata/metadata_${i}.parquet laion400m/train/metadata/
+  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/img_emb/img_emb_${i}.npy laion400m/train/npy
 done
 for i in $(seq 100 199); do
-  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/metadata/metadata_${i}.parquet eval/metadata/
-  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/img_emb/img_emb_${i}.npy eval/npy
+  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/metadata/metadata_${i}.parquet laion400m/eval/metadata/
+  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/img_emb/img_emb_${i}.npy laion400m/eval/npy
 done
 for i in $(seq 200 299); do
-  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/metadata/metadata_${i}.parquet al/metadata/
-  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/img_emb/img_emb_${i}.npy al/npy
+  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/metadata/metadata_${i}.parquet laion400m/al/metadata/
+  wget https://deploy.laion.ai/8f83b608504d46bb81708ec86e912220/embeddings/img_emb/img_emb_${i}.npy laion400m/al/npy
 done
 
 # Build FAISS index.

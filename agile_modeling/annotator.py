@@ -234,7 +234,7 @@ class Annotator:
     for i, label in enumerate(self.options):
       btn = Button(description=label)
 
-      def on_click(label):
+      def on_click(label, btn):
         self.add_annotation(label)
 
       btn.on_click(functools.partial(on_click, label))

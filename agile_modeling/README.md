@@ -26,16 +26,20 @@ While the Agile process requires no labeled data to begin with, we have to
 prepare the unlabeled pool of images from which the system selects a few images
 for the user to label.
 
-In our experiments we used the ["LAION-400-MILLION open dataset"](https://laion.ai/blog/laion-400-open-dataset),
+In our experiments we used the ["LAION-400M open dataset"](https://laion.ai/blog/laion-400-open-dataset),
 but the Agile framework is not restricted to this. Any unlabeled data works as
 long as it is converted to the right format. We further describe how to download
 and preprocess the LAION dataset, but feel free to follow similar steps with
 your dataset of choice.
 
-TODO: Add instructions on how to download and preprocess his data.
+Please see Demo.ipynb for instructions on how to download and process the
+LAION-400M dataset use in our experiments.
 
 ### Part 2: Running the Colab
-We will be releasing our code shortly.
+Demo.ipynb contains an end-to-end implementation of our prototype. Please
+follow the instructions at the top to process the data, then run Demo.ipynb
+using ["Jupyter notebook"](https://docs.jupyter.org/en/latest/running.html) or,
+for a nice interface, ["Google Colab"](https://colab.google/).
 
 ## Data collected during our user study
 We will be releasing data shortly.
