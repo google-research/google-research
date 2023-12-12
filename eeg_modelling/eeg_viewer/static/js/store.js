@@ -799,14 +799,16 @@ class Store {
     newStoreData.patientId = waveformMeta.getPatientId();
     newStoreData.sstableKey = waveformMeta.getSstableKey() || null;
     if (data.hasPredictionChunk() &&
-        data.getPredictionChunk().getChunkStart() != null &&
-        data.getPredictionChunk().getChunkDuration() != null) {
+        data.getPredictionChunk().getChunkStart_asLegacyNumberOrString() !=
+            null &&
+        data.getPredictionChunk().getChunkDuration_asLegacyNumberOrString() !=
+            null) {
       const predictionChunk = data.getPredictionChunk();
       newStoreData.attributionMaps = predictionChunk.getAttributionDataMap();
       newStoreData.predictionChunkSize = assertNumber(
-          predictionChunk.getChunkDuration());
-      newStoreData.predictionChunkStart = assertNumber(
-          predictionChunk.getChunkStart());
+          predictionChunk.getChunkDuration_asLegacyNumberOrString());
+      newStoreData.predictionChunkStart =
+          assertNumber(predictionChunk.getChunkStart_asLegacyNumberOrString());
     } else {
       newStoreData.attributionMaps = null;
       newStoreData.predictionChunkSize = null;
@@ -1431,11 +1433,17 @@ class Store {
    */
   convertChannelDataIdToIndexStr(channelDataId) {
     if (channelDataId.hasSingleChannel()) {
-      return channelDataId.getSingleChannel().getIndex().toString();
+      return channelDataId.getSingleChannel()
+          .getIndex_asLegacyNumberOrString()
+          .toString();
     } else if (channelDataId.hasBipolarChannel()) {
       return [
-        channelDataId.getBipolarChannel().getIndex().toString(),
-        channelDataId.getBipolarChannel().getReferentialIndex().toString()
+        channelDataId.getBipolarChannel()
+            .getIndex_asLegacyNumberOrString()
+            .toString(),
+        channelDataId.getBipolarChannel()
+            .getReferentialIndex_asLegacyNumberOrString()
+            .toString()
       ].join('-');
     } else {
       log.error(this.logger_, 'Empty ChannelDataId');
