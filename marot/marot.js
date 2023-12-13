@@ -3483,7 +3483,7 @@ class Marot {
     }
     if (!this.subparas.alignmentStructs[docsegHashKey].hasOwnProperty(
             typeHashKey)) {
-      const subparas = MarotUtils.makeParalets(
+      const subparas = MarotUtils.makeSubparas(
           sentences, this.subparaSents, this.subparaTokens);
       this.subparas.alignmentStructs[docsegHashKey][typeHashKey] =
           MarotAligner.getAlignmentStructure(sentences, subparas);
@@ -3516,13 +3516,13 @@ class Marot {
           docsegHashKey, 'sys-' + MarotUtils.javaHashKey(system),
           segmentMetadata.target_sentence_splits);
       units.aligner = new MarotAligner(sourceStructure, targetStructure);
-      for (let p = 0; p < sourceStructure.paralets.length; p++) {
+      for (let p = 0; p < sourceStructure.subparas.length; p++) {
         const unit = this.subparaUnitId(docSegId, p);
         units.push({
           unit: unit,
-          srcChars: sourceStructure.paralets[p].num_chars,
+          srcChars: sourceStructure.subparas[p].num_chars,
           subpara: p,
-          numSubparas: sourceStructure.paralets.length,
+          numSubparas: sourceStructure.subparas.length,
         });
       }
     } else {
@@ -3561,18 +3561,18 @@ class Marot {
     let sourceSubpara = -1;
     if (tokenIndex >= 0) {
       if (isTarget) {
-        sourceSubpara = aligner.tgtTokenToSrcParalet(tokenIndex);
+        sourceSubpara = aligner.tgtTokenToSrcSubpara(tokenIndex);
       } else {
         const srcTokenNumber = tokenIndex + 1;
         sourceSubpara = MarotUtils.binSearch(
-            aligner.srcStructure.paraletTokens, srcTokenNumber);
+            aligner.srcStructure.subparaTokens, srcTokenNumber);
       }
     } else {
       /* No error, doesn't matter which subpara we attribute it to. */
       sourceSubpara = 0;
     }
     console.assert(sourceSubpara >= 0 &&
-                   sourceSubpara < aligner.srcStructure.paralets.length);
+                   sourceSubpara < aligner.srcStructure.subparas.length);
     return this.subparaUnitId(docSegId, sourceSubpara);
   }
 
@@ -3606,8 +3606,8 @@ class Marot {
    */
   htmlFromTokens(tokens, alignmentStruct, docsegHashKey, typeHashKey) {
     let html = '<p>\n';
-    for (let p = 0; p < alignmentStruct.paralets.length; p++) {
-      const subpara = alignmentStruct.paralets[p];
+    for (let p = 0; p < alignmentStruct.subparas.length; p++) {
+      const subpara = alignmentStruct.subparas[p];
       const subparaClass = this.subparaClass(docsegHashKey, typeHashKey, p);
       html += '<span class="marot-subpara ' + subparaClass +
               '" title="Alignments shown are only approximate. ' +
@@ -3628,9 +3628,9 @@ class Marot {
       }
       html += '</span>';
       if (subpara.ends_with_para_break ||
-          p == (alignmentStruct.paralets.length - 1)) {
+          p == (alignmentStruct.subparas.length - 1)) {
         html += '</p>\n';
-        if (p < alignmentStruct.paralets.length - 1) {
+        if (p < alignmentStruct.subparas.length - 1) {
           html += '<p>\n';
         }
       }
@@ -4240,7 +4240,7 @@ class Marot {
       const alignmentStructs = this.subparas.alignmentStructs[docsegHashKey];
       const srcAlignmentStruct = alignmentStructs['src'];
       const shownPara = shownSubparas[docsegHashKey];
-      for (let sp = 0; sp < srcAlignmentStruct.paralets.length; sp++) {
+      for (let sp = 0; sp < srcAlignmentStruct.subparas.length; sp++) {
         const srcParaClass = this.subparaClass(docsegHashKey, 'src', sp);
         initMap(this.subparas.classMap, srcParaClass);
       }
@@ -4249,16 +4249,16 @@ class Marot {
           const tgtAlignmentStruct = alignmentStructs[tgtHashKey];
           const aligner = new MarotAligner(
               srcAlignmentStruct, tgtAlignmentStruct);
-          for (let tp = 0; tp < tgtAlignmentStruct.paralets.length; tp++) {
-            const tgtParalet = tgtAlignmentStruct.paralets[tp];
-            if (!tgtParalet || tgtParalet.num_tokens == 0 ||
-                tgtParalet.sentences.length == 0) {
+          for (let tp = 0; tp < tgtAlignmentStruct.subparas.length; tp++) {
+            const tgtSubpara = tgtAlignmentStruct.subparas[tp];
+            if (!tgtSubpara || tgtSubpara.num_tokens == 0 ||
+                tgtSubpara.sentences.length == 0) {
               continue;
             }
             const tgtParaClass = this.subparaClass(
                 docsegHashKey, tgtHashKey, tp);
             initMap(this.subparas.classMap, tgtParaClass);
-            const range = aligner.tgtParaletToSrcParaletRange(tp);
+            const range = aligner.tgtSubparaToSrcSubparaRange(tp);
             for (let sp = range[0]; sp <= range[1]; sp++) {
               const srcParaClass = this.subparaClass(docsegHashKey, 'src', sp);
               this.subparas.classMap[srcParaClass].add(tgtParaClass);
@@ -4267,7 +4267,7 @@ class Marot {
           }
         }
       }
-      for (let p = 0; p < srcAlignmentStruct.paralets.length; p++) {
+      for (let p = 0; p < srcAlignmentStruct.subparas.length; p++) {
         const srcParaClass = this.subparaClass(docsegHashKey, 'src', p);
         const elts = document.getElementsByClassName(srcParaClass);
         for (let i = 0; i < elts.length; i++) {
@@ -4285,7 +4285,7 @@ class Marot {
       for (const refsys of ['ref', 'sys']) {
         for (const tgtHashKey of shownPara[refsys]) {
           const tgtAlignmentStruct = alignmentStructs[tgtHashKey];
-          for (let p = 0; p < tgtAlignmentStruct.paralets.length; p++) {
+          for (let p = 0; p < tgtAlignmentStruct.subparas.length; p++) {
             const tgtParaClass = this.subparaClass(
                 docsegHashKey, tgtHashKey, p);
             const elts = document.getElementsByClassName(tgtParaClass);

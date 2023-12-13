@@ -42,24 +42,24 @@
     width: 100%;
     height: 300px;
   }
-  .paralet-0 {
+  .subpara-0 {
     outline: 1px solid lightblue;
   }
-  .paralet-0:hover {
+  .subpara-0:hover {
     background: whitesmoke;
     outline: 1px solid blue;
   }
-  .paralet-1 {
+  .subpara-1 {
     outline: 1px solid lightgreen;
   }
-  .paralet-1:hover {
+  .subpara-1:hover {
     background: whitesmoke;
     outline: 1px solid green;
   }
-  .src-paralet-highlighted {
+  .src-subpara-highlighted {
     background: lavender;
   }
-  .tgt-paralet-highlighted {
+  .tgt-subpara-highlighted {
     background: lavender;
   }
   .tgt-sentence-highlighted {
@@ -72,26 +72,26 @@
 
 <script>
   /**
-   * Returns HTML for a segment, with each paragraph, each paralet, each sentence, each token
+   * Returns HTML for a segment, with each paragraph, each subpara, each sentence, each token
    * getting its own id.
    * @param {string} idPrefix
    * @param {!Array<string>} tokens
    * @param {!Array<!Object>} sentences
-   * @param {!Array<number>} paralets
+   * @param {!Array<number>} subparas
    * @return {string}
    */
-  function renderText(idPrefix, tokens, sentences, paralets) {
+  function renderText(idPrefix, tokens, sentences, subparas) {
     let rendered = '';
     let paragraphIndex = 0;
     rendered += `<p class="${idPrefix}-paragraph" id="${idPrefix}-paragraph-${paragraphIndex}">`;
-    for (let p = 0; p < paralets.length; p++) {
-      const paralet = paralets[p];
+    for (let p = 0; p < subparas.length; p++) {
+      const subpara = subparas[p];
       rendered +=
-        `<span id="${idPrefix}-paralet-${p}" class="${idPrefix}-paralet paralet-${p % 2}">`;
-      let paraletSpanClosed = false;
-      for (let si = 0; si < paralet.length; si++) {
-        const s = paralet[si];
-        const isLast = (si == paralet.length - 1);
+        `<span id="${idPrefix}-subpara-${p}" class="${idPrefix}-subpara subpara-${p % 2}">`;
+      let subparaSpanClosed = false;
+      for (let si = 0; si < subpara.length; si++) {
+        const s = subpara[si];
+        const isLast = (si == subpara.length - 1);
         const sentence = sentences[s];
         rendered += `<span class="${idPrefix}-sentence" id="${idPrefix}-sentence-${s}">`;
         const spannedTokens = tokens.slice(sentence.offset, sentence.offset + sentence.num_tokens);
@@ -109,10 +109,10 @@
           rendered += '</span></p>';
           rendered += `<p class="${idPrefix}-paragraph-${paragraphIndex}"
               id="${idPrefix}-paragraph-${paragraphIndex}">`;
-          paraletSpanClosed = true;
+          subparaSpanClosed = true;
         }
       }
-      if (!paraletSpanClosed) {
+      if (!subparaSpanClosed) {
         rendered += '</span>'
       }
     }
@@ -121,17 +121,17 @@
   }
 
   /**
-   * Runs Marot.makeParalets with the given parameters and settings. Also tests self-alignment for
-   * the paralets created.
+   * Runs Marot.makeSubparas with the given parameters and settings. Also tests self-alignment for
+   * the subparas created.
    * @param {!Array<string>} tokens
    * @param {!Array<!Object>} sentences
    * @param {number} maxSentences
    * @param {number} maxTokens
    */
-  function testMakeParalets(id, tokens, sentences, maxSentences, maxTokens) {
-    const paralets = MarotUtils.makeParalets(sentences, maxSentences, maxTokens);
+  function testMakeSubparas(id, tokens, sentences, maxSentences, maxTokens) {
+    const subparas = MarotUtils.makeSubparas(sentences, maxSentences, maxTokens);
     let expectedS = 0;
-    for (const p of paralets) {
+    for (const p of subparas) {
       console.assert(p.length > 0, p);
       console.assert(p.length <= maxSentences, p.length, id);
       console.assert(p[0] == expectedS, p[0], expectedS, id);
@@ -149,12 +149,12 @@
     /**
      * Test that auto-alignment is the identity function.
      */
-    const structure = MarotAligner.getAlignmentStructure(sentences, paralets);
+    const structure = MarotAligner.getAlignmentStructure(sentences, subparas);
     const alignment = new MarotAligner(structure, structure);
     for (let t = 0; t < structure.num_tokens; t++) {
-      const p = MarotUtils.binSearch(structure.paraletTokens, t + 1);
-      console.assert(p >= 0 && p < paralets.length, t, p, paralets, id);
-      const alignedP = alignment.tgtTokenToSrcParalet(t);
+      const p = MarotUtils.binSearch(structure.subparaTokens, t + 1);
+      console.assert(p >= 0 && p < subparas.length, t, p, subparas, id);
+      const alignedP = alignment.tgtTokenToSrcSubpara(t);
       console.assert(p == alignedP, p, alignedP, id);
     }
   }
@@ -187,7 +187,7 @@
     PS:
 
     This is a second paragraph already specified.`,
-    `A test for the case that used to create unnecessarily small 1-sentence paralets at the end.
+    `A test for the case that used to create unnecessarily small 1-sentence subparas at the end.
      When max sentences is 2 or more and max tokens is such that 3 sentences would be too many.
      Something like 80 tokens would trigger the behavior.
      #4: A short sentence.
@@ -235,11 +235,11 @@
       const tokenization = MarotUtils.tokenizeText(text);
       const tokens = tokenization.tokens;
       const sentences = tokenization.sentence_splits;
-      testMakeParalets(idPrefix + 'MAX', tokens, sentences,
+      testMakeSubparas(idPrefix + 'MAX', tokens, sentences,
                        Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER);
       for (let maxSentences = 8; maxSentences >= 1; maxSentences--) {
         for (const maxTokens of [1, 5, 80, 200, 400]) {
-          testMakeParalets(idPrefix + maxSentences + '-' + maxTokens,
+          testMakeSubparas(idPrefix + maxSentences + '-' + maxTokens,
                            tokens, sentences, maxSentences, maxTokens);
         }
       }
@@ -275,12 +275,12 @@
       const tokenization = MarotUtils.tokenizeText(text);
       const tokens = tokenization.tokens;
       const sentences = tokenization.sentence_splits;
-      const paralets = MarotUtils.makeParalets(sentences, maxSentences, maxTokens);
+      const subparas = MarotUtils.makeSubparas(sentences, maxSentences, maxTokens);
       html += `
         <td>
-          ${renderText(idPrefix, tokens, sentences, paralets)}
+          ${renderText(idPrefix, tokens, sentences, subparas)}
         </td>`;
-      const structure = MarotAligner.getAlignmentStructure(sentences, paralets);
+      const structure = MarotAligner.getAlignmentStructure(sentences, subparas);
       structure.tokens = tokens;
       structures.push(structure);
     }
@@ -320,34 +320,34 @@
       elt.addEventListener('mouseover', e => mapHighlighter(id, true));
       elt.addEventListener('mouseout', e => mapHighlighter(id, false));
     }
-    for (let tp = 0; tp < structures[1].paralets.length; tp++) {
-      const range = aligner.tgtParaletToSrcParaletRange(tp);
-      const tgtId = 'tgt-paralet-' + tp;
+    for (let tp = 0; tp < structures[1].subparas.length; tp++) {
+      const range = aligner.tgtSubparaToSrcSubparaRange(tp);
+      const tgtId = 'tgt-subpara-' + tp;
       for (let sp = range[0]; sp <= range[1]; sp++) {
-        const srcId = 'src-paralet-' + sp;
+        const srcId = 'src-subpara-' + sp;
         addToMap(idMap, srcId, tgtId);
       }
       activateId(tgtId);
     }
     for (let ts = 0; ts < structures[1].sentences.length; ts++) {
-      const range = aligner.tgtSentenceToSrcParaletRange(ts);
+      const range = aligner.tgtSentenceToSrcSubparaRange(ts);
       const tgtId = 'tgt-sentence-' + ts;
       for (let sp = range[0]; sp <= range[1]; sp++) {
-        const srcId = 'src-paralet-' + sp;
+        const srcId = 'src-subpara-' + sp;
         addToMap(idMap, srcId, tgtId);
       }
       activateId(tgtId);
     }
     for (let tt = 0; tt < structures[1].tokens.length; tt++) {
-      const sp = aligner.tgtTokenToSrcParalet(tt);
+      const sp = aligner.tgtTokenToSrcSubpara(tt);
       const tgtId = 'tgt-token-' + tt;
-      const srcId = 'src-paralet-' + sp;
+      const srcId = 'src-subpara-' + sp;
       addToMap(idMap, srcId, tgtId);
       addToMap(idMap, tgtId, srcId);
       activateId(tgtId);
     }
-    for (let sp = 0; sp < structures[0].paralets.length; sp++) {
-      const srcId = 'src-paralet-' + sp;
+    for (let sp = 0; sp < structures[0].subparas.length; sp++) {
+      const srcId = 'src-subpara-' + sp;
       activateId(srcId);
     }
   }
@@ -375,10 +375,10 @@
     <b style="color:red">Running automated tests...</b>
   </div>
 
-  <h2>Paralet-splitting and alignment testing</h2>
+  <h2>Subpara-splitting and alignment testing</h2>
 
   <p>
-    <b>Paralets max limits:</b>
+    <b>Subparas max limits:</b>
     Sentences:
       <input onchange="showManualTests()"
           type="text" size="4" id="marot-test-max-sentences" value="3"/>
@@ -389,7 +389,7 @@
 
   <p>
     <i>
-      Split both text segments into tokens, sentences, paralets, and align them.
+      Split both text segments into tokens, sentences, subparas, and align them.
       You can manually edit/replace the text.
     </i>
   </p>
@@ -440,13 +440,13 @@
   </table>
 
   <p>
-    Note that alignments are built upon a base of "target-token-to-source-paralet"
+    Note that alignments are built upon a base of "target-token-to-source-subpara"
     alignment. If you hover over a source paralat, then:
     <i>
       <ul>
         <li>Each target token that aligns to it gets underlined.</li>
         <li>Each target sentence that aligns to it gets bolded.</li>
-        <li>Each target paralet that aligns to it gets highlighted.</li>
+        <li>Each target subpara that aligns to it gets highlighted.</li>
       </ul>
     </i>
     If you hover over a target token, then:
@@ -454,8 +454,8 @@
       <ul>
         <li>The target token gets underlined.</li>
         <li>The enclosing target sentence gets bolded.</li>
-        <li>The enclosing target paralet gets highlighted.</li>
-        <li>The aligned source paralet for only the target token gets highlighted.</li>
+        <li>The enclosing target subpara gets highlighted.</li>
+        <li>The aligned source subpara for only the target token gets highlighted.</li>
       </ul>
     </i>
   </p>

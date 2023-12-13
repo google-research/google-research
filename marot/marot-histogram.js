@@ -15,7 +15,7 @@
 /**
  * This file contains the JavaScript code for MarotHistogram, a component of
  * Marot that can show a scoring-unit-wise histogram of scores or score
- * differences. Scoring units can be segments or paralets (sub-paragraphs).
+ * differences. Scoring units can be segments or subparas.
  */
 
 /**

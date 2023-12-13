@@ -19,29 +19,30 @@
 class MarotUtils {
   /**
    * Splits a segment consisting of a sequence of sentences (with some possibly
-   * ending in line-breaks/para-breaks) into paragraph-like subsequences called
-   * "paralets." Each paralet is either a paragraph or a sub-paragraph. It
-   * has no more sentences than maxParaSentences and no more tokens than
-   * maxParaTokens (the tokens constraint may not be met for paralets that only
-   * have one sentence).
+   * ending in line-breaks/para-breaks) into subparas. Each subpara is either a
+   * paragraph or a contiguous part of one, consisisting of full sentences. It
+   * has no more sentences than maxSubparaSentences and no more tokens than
+   * maxSubparaTokens (the tokens constraint may not be met for subparas that
+   * only have one sentence).
    *
    * @param {!Array<!Object>} sentenceSplits Each object has num_tokens and
    *   possibly ends_with_para_break/ends_with_line_break. Such an object
    *   can be created using MarotUtils.tokenizeText().
-   * @param {number=} maxParaSentences
-   * @param {number=} maxParaTokens
-   * @return {!Array<!Array<number>>} Each paralet is a sequence of
+   * @param {number=} maxSubparaSentences
+   * @param {number=} maxSubparaTokens
+   * @return {!Array<!Array<number>>} Each subpara is a sequence of
    *   sentence indices.
    */
-  static makeParalets(sentenceSplits, maxParaSentences=4, maxParaTokens=400) {
-    console.assert(maxParaSentences > 0, maxParaSentences);
-    console.assert(maxParaTokens > 0, maxParaTokens);
+  static makeSubparas(
+      sentenceSplits, maxSubparaSentences=4, maxSubparaTokens=400) {
+    console.assert(maxSubparaSentences > 0, maxSubparaSentences);
+    console.assert(maxSubparaTokens > 0, maxSubparaTokens);
     /**
-     * We start with breaking paralets after every sentence that already has
-     * ends_with_para_break set. We also create paralets out of evey
+     * We start with breaking subparas after every sentence that already has
+     * ends_with_para_break set. We also create subparas out of evey
      * sequence of consecutive sentences that all have ends_with_line_break set.
      * If such a sequence does not follow a paragraph break, the the first
-     * sentence in the sequence is left at the end of the preceding paralet.
+     * sentence in the sequence is left at the end of the preceding subpara.
      */
     const preSplitParas = [];
     let currPara = [];
@@ -60,7 +61,7 @@ class MarotUtils {
         if (hasLineBreak) {
           /**
            * Make the first sentence in the sequence be a part of the
-           * preceding paralet.
+           * preceding subpara.
            */
           currPara.push(s);
           currSentAlreadyPlaced = true;
@@ -94,49 +95,49 @@ class MarotUtils {
 
     const needsSplit = (p) => {
       /**
-       * Note that the maxParaTokens constraint is only checked if there is
+       * Note that the maxSubparaTokens constraint is only checked if there is
        * more than one sentence.
        */
-      return ((p.length > maxParaSentences) ||
-              ((p.length > 1) && (tokenCount(p) > maxParaTokens)));
+      return ((p.length > maxSubparaSentences) ||
+              ((p.length > 1) && (tokenCount(p) > maxSubparaTokens)));
     };
 
     /**
      * At the end of some agressive splitting by splitAsNeeded(), it may be
-     * possible to combine some consecutive small paralets. A typical case is
-     * that of the first few paralets having 2 sentences each, followed by a
-     * string of 1-sentence paralets, amongst which some can be combined. We
-     * do the merging greedily, extending each paralet to subsume any
-     * following paralets without violating the constraints.
+     * possible to combine some consecutive small subparas. A typical case is
+     * that of the first few subparas having 2 sentences each, followed by a
+     * string of 1-sentence subparas, amongst which some can be combined. We
+     * do the merging greedily, extending each subpara to subsume any
+     * following subparas without violating the constraints.
      *
-     * @param {!Array<!Array<number>>} paralets
+     * @param {!Array<!Array<number>>} subparas
      * @return {!Array<!Array<number>>}
      */
-    const maybeCombineSome = (paralets) => {
-      const newParalets = [];
+    const maybeCombineSome = (subparas) => {
+      const newSubparas = [];
       let start = 0;
-      while (start < paralets.length) {
-        let paralet = paralets[start];
+      while (start < subparas.length) {
+        let subpara = subparas[start];
         let end = start;
-        while ((end + 1) < paralets.length) {
-          const combinedParalet = paralet.concat(paralets[end + 1]);
-          if (needsSplit(combinedParalet)) {
+        while ((end + 1) < subparas.length) {
+          const combinedSubpara = subpara.concat(subparas[end + 1]);
+          if (needsSplit(combinedSubpara)) {
             break;
           }
-          paralet = combinedParalet;
+          subpara = combinedSubpara;
           end = end + 1;
         }
-        newParalets.push(paralet);
+        newSubparas.push(subpara);
         start = end + 1;
       }
-      return newParalets;
+      return newSubparas;
     };
 
     /**
      * Try to split p (an array of sentence indices forming a para) into
-     * "paralets", roughly evenly.
+     * "subparas", roughly evenly.
      *
-     * At the end, combine any unnecessarily small consecutive paralets
+     * At the end, combine any unnecessarily small consecutive subparas
      * greedily.
      *
      * @param {!Array<number>} p
@@ -147,7 +148,7 @@ class MarotUtils {
       /**
        * Use the smallest value of numParts at which each split passes
        * constraints. If numParts reaches p.length, then the constraints
-       * will be trivially met as each paralet will have just one sentence.
+       * will be trivially met as each subpara will have just one sentence.
        */
       for (let numParts = 1; numParts <= p.length; numParts++) {
         const partLen = Math.floor(p.length / numParts);
@@ -161,7 +162,7 @@ class MarotUtils {
           if (needsSplit(paraSlice)) {
             /**
              * Note that when numParts == p.length, each para will have
-             * length 1 and needsSplit() will fail (as maxParaSentences is at
+             * length 1 and needsSplit() will fail (as maxSubparaSentences is at
              * least 1).
              */
             passesConstraints = false;
@@ -178,14 +179,14 @@ class MarotUtils {
       return [];
     };
 
-    const paralets = [];
+    const subparas = [];
     for (const para of preSplitParas) {
       const splits = splitAsNeeded(para);
       for (const p of splits) {
-        paralets.push(p);
+        subparas.push(p);
       }
     }
-    return paralets;
+    return subparas;
   }
 
   /**
@@ -391,21 +392,21 @@ class MarotUtils {
 
 /**
  * Class for doing a simple token-offset-based alignment between a source text
- * segment and a target text segment, both made up of paralets. To use it,
+ * segment and a target text segment, both made up of subparas. To use it,
  * construct a MarotAligner object, passing it the detailed strutures of
  * source/target. The structures should be created using the static function
  * MarotAligner.getAlignmentStructure(), and can be reused (for example, to
  * align a common source segment with multiple translation segments).
  *
  * If the source and target sides have an equal number of "natural paragraphs"
- * (paralets ending in line-break/para-break), then the token-offset-based
+ * (subparas ending in line-break/para-break), then the token-offset-based
  * alignment is done *within* this natural alignment.
  *
  * The token-offset-based alignment algorithms simply maps each target token,
- * using its fractional relative position, to a source paralet that covers the
+ * using its fractional relative position, to a source subpara that covers the
  * same fractional relative token position on the source side. A target sentence
- * or paralet is mapped to the range of source paralets defined by mapping the
- * first and last target tokens in the target sentence or paralet.
+ * or subpara is mapped to the range of source subparas defined by mapping the
+ * first and last target tokens in the target sentence or subpara.
  */
 class MarotAligner {
   /**
@@ -424,23 +425,23 @@ class MarotAligner {
   }
 
   /**
-   * The basis of the alignment: return the mapped source paralet index for a
+   * The basis of the alignment: return the mapped source subpara index for a
    * 0-based target token index. In the rare/degenrate case that a target token
-   * is not mapped to any source paralet (for example, if the source segment is
+   * is not mapped to any source subpara (for example, if the source segment is
    * empty), return -1.
    *
    * @param {number} tgtToken Must be >= 0 and < the number of target tokens.
    * @return {number}
    */
-  tgtTokenToSrcParalet(tgtToken) {
+  tgtTokenToSrcSubpara(tgtToken) {
     console.assert(tgtToken >= 0 && tgtToken < this.tgtStructure.num_tokens,
                    tgtToken);
-    if (this.srcStructure.paralets.length == 0) {
+    if (this.srcStructure.subparas.length == 0) {
       return -1;
     }
-    let srcRange = [0, this.srcStructure.paralets.length - 1];
-    let tgtRange = [0, this.tgtStructure.paralets.length - 1];
-    console.assert(this.tgtStructure.paralets.length >= 1);
+    let srcRange = [0, this.srcStructure.subparas.length - 1];
+    let tgtRange = [0, this.tgtStructure.subparas.length - 1];
+    console.assert(this.tgtStructure.subparas.length >= 1);
     const tgtTokenNumber = tgtToken + 1;
     if (this.hasAlignedParagraphs) {
       const naturalParaIndex = MarotUtils.binSearch(
@@ -449,14 +450,14 @@ class MarotAligner {
       srcRange = this.srcStructure.naturalParas[naturalParaIndex].range;
       tgtRange = this.tgtStructure.naturalParas[naturalParaIndex].range;
     }
-    const srcOffset = this.srcStructure.paralets[srcRange[0]].offset;
-    const srcCount = this.srcStructure.paralets[srcRange[1]].offset -
+    const srcOffset = this.srcStructure.subparas[srcRange[0]].offset;
+    const srcCount = this.srcStructure.subparas[srcRange[1]].offset -
                      srcOffset +
-                     this.srcStructure.paralets[srcRange[1]].num_tokens;
-    const tgtOffset = this.tgtStructure.paralets[tgtRange[0]].offset;
-    const tgtCount = this.tgtStructure.paralets[tgtRange[1]].offset -
+                     this.srcStructure.subparas[srcRange[1]].num_tokens;
+    const tgtOffset = this.tgtStructure.subparas[tgtRange[0]].offset;
+    const tgtCount = this.tgtStructure.subparas[tgtRange[1]].offset -
                      tgtOffset +
-                     this.tgtStructure.paralets[tgtRange[1]].num_tokens;
+                     this.tgtStructure.subparas[tgtRange[1]].num_tokens;
     console.assert(srcCount > 0, srcCount);
     console.assert(tgtCount > 0, tgtCount);
     const srcTokenNumber = srcOffset +
@@ -464,11 +465,11 @@ class MarotAligner {
     console.assert(srcTokenNumber >= 0 &&
                    srcTokenNumber <= srcOffset + srcCount, srcTokenNumber);
     return MarotUtils.binSearch(
-        this.srcStructure.paraletTokens, srcTokenNumber);
+        this.srcStructure.subparaTokens, srcTokenNumber);
   }
 
   /**
-   * Return the mapped source paralet index range [first, last] for a 0-based
+   * Return the mapped source subpara index range [first, last] for a 0-based
    * target token index range. If either side maps to -1 (because of degenerate
    * cases), then trim from that end. The only degenerate return value is
    * [-1, -1], when such trimming eats up the whole range.
@@ -477,14 +478,14 @@ class MarotAligner {
    * @param {number} tgtTokenLast Must be >= 0, < the number of target tokens.
    * @return {!Array<number>}
    */
-  tgtTokenRangeToSrcParaletRange(tgtTokenFirst, tgtTokenLast) {
+  tgtTokenRangeToSrcSubparaRange(tgtTokenFirst, tgtTokenLast) {
     console.assert(tgtTokenFirst <= tgtTokenLast);
     let rangeStart, rangeEnd;
-    while ((rangeStart = this.tgtTokenToSrcParalet(tgtTokenFirst)) < 0 &&
+    while ((rangeStart = this.tgtTokenToSrcSubpara(tgtTokenFirst)) < 0 &&
            tgtTokenFirst < tgtTokenLast) {
       tgtTokenFirst++;
     }
-    while ((rangeEnd = this.tgtTokenToSrcParalet(tgtTokenLast)) < 0 &&
+    while ((rangeEnd = this.tgtTokenToSrcSubpara(tgtTokenLast)) < 0 &&
            tgtTokenFirst < tgtTokenLast) {
       tgtTokenLast--;
     }
@@ -492,80 +493,80 @@ class MarotAligner {
   }
 
   /**
-   * Return the mapped source paralet index range (both ends included) for a
+   * Return the mapped source subpara index range (both ends included) for a
    * 0-based target sentence index. Returns [-1, -1] in the degenerate case when
-   * no target token in the sentence maps to any source paralet.
+   * no target token in the sentence maps to any source subpara.
    *
    * @param {number} tgtSentence
    * @return {!Array<number>} The returned value is a pair,
-   *    [firstParaletIndex, lastParaletIndex]
+   *    [firstSubparaIndex, lastSubparaIndex]
    */
-  tgtSentenceToSrcParaletRange(tgtSentence) {
+  tgtSentenceToSrcSubparaRange(tgtSentence) {
     console.assert(tgtSentence >= 0 &&
                    tgtSentence < this.tgtStructure.sentences.length,
                    tgtSentence);
     const tgtSentInfo = this.tgtStructure.sentences[tgtSentence];
     const firstToken = tgtSentInfo.offset;
     const lastToken = tgtSentInfo.offset + tgtSentInfo.num_tokens - 1;
-    return this.tgtTokenRangeToSrcParaletRange(firstToken, lastToken);
+    return this.tgtTokenRangeToSrcSubparaRange(firstToken, lastToken);
   }
 
   /**
-   * Return the mapped source paralet index range (both ends included) for a
-   * 0-based target paralet index. Returns [-1, -1] in the degenerate case when
-   * no target token in the paralet maps to any source paralet.
+   * Return the mapped source subpara index range (both ends included) for a
+   * 0-based target subpara index. Returns [-1, -1] in the degenerate case when
+   * no target token in the subpara maps to any source subpara.
    *
-   * @param {number} tgtParalet
+   * @param {number} tgtSubpara
    * @return {!Array<number>} The returned value is a pair,
-   *    [firstParaletIndex, lastParaletIndex]
+   *    [firstSubparaIndex, lastSubparaIndex]
    */
-  tgtParaletToSrcParaletRange(tgtParalet) {
-    console.assert(tgtParalet >= 0 &&
-                   tgtParalet < this.tgtStructure.paralets.length, tgtParalet);
-    const tgtParaletInfo = this.tgtStructure.paralets[tgtParalet];
-    const firstToken = tgtParaletInfo.offset;
-    const lastToken = tgtParaletInfo.offset + tgtParaletInfo.num_tokens - 1;
-    return this.tgtTokenRangeToSrcParaletRange(firstToken, lastToken);
+  tgtSubparaToSrcSubparaRange(tgtSubpara) {
+    console.assert(tgtSubpara >= 0 &&
+                   tgtSubpara < this.tgtStructure.subparas.length, tgtSubpara);
+    const tgtSubparaInfo = this.tgtStructure.subparas[tgtSubpara];
+    const firstToken = tgtSubparaInfo.offset;
+    const lastToken = tgtSubparaInfo.offset + tgtSubparaInfo.num_tokens - 1;
+    return this.tgtTokenRangeToSrcSubparaRange(firstToken, lastToken);
   }
 
   /**
    * Create a structure containing natural paragraph splits as well as
-   * cumulative token offsets for sentences, paralets, and natural paragraphs.
+   * cumulative token offsets for sentences, subparas, and natural paragraphs.
    * This structure is passed to construct MarotAligner objects for aligning
    * a source segment with a target segment.
    *
    * If sentence structures include num_chars, then it is aggregated into
-   * the returned structure's paralets members too.
+   * the retured structure's subparas members too.
    *
    * @param {!Array<!Object>} sentences Array of objects, each containing
    *     num_tokens and optional booleans starts_with_line/para_break
-   * @param {!Array<number>} paralets Array of sentence indices comprising
-   *     paralets, as returned by MarotUtils.makeParalets()
+   * @param {!Array<number>} subparas Array of sentence indices comprising
+   *     subparas, as returned by MarotUtils.makeSubparas()
    * @return {!Object} The structure needed to construct a MarotAligner
    */
-  static getAlignmentStructure(sentences, paralets) {
+  static getAlignmentStructure(sentences, subparas) {
     let offset = 0;
     let sIndex = 0;
     const structure = {
       sentences: sentences,
       naturalParas: [],
-      paralets: [],
+      subparas: [],
       naturalParaTokens: [],
-      paraletTokens: [],
+      subparaTokens: [],
       sentenceTokens: [],
       num_tokens: 0,
     };
-    for (let pi = 0; pi < paralets.length; pi++) {
-      const p = paralets[pi];
+    for (let pi = 0; pi < subparas.length; pi++) {
+      const p = subparas[pi];
       console.assert(p.length > 0);
-      const paralet = {
+      const subpara = {
         index: pi,
         offset: offset,
         start_sentence: sIndex,
         sentences: [],
         num_tokens: 0,
       };
-      structure.paralets.push(paralet);
+      structure.subparas.push(subpara);
       let num_chars = 0;
       let sentences_with_num_chars = 0;
       for (const s of p) {
@@ -573,10 +574,10 @@ class MarotAligner {
         sIndex++;
         const sentence = sentences[s];
         sentence.index = s;
-        sentence.paralet = pi;
+        sentence.subpara = pi;
         sentence.offset = offset;
-        paralet.sentences.push(sentence);
-        paralet.num_tokens += sentence.num_tokens;
+        subpara.sentences.push(sentence);
+        subpara.num_tokens += sentence.num_tokens;
         offset += sentence.num_tokens;
         structure.sentenceTokens.push(offset);
         if (sentence.hasOwnProperty('num_chars')) {
@@ -585,37 +586,37 @@ class MarotAligner {
         }
       }
       if (sentences_with_num_chars == p.length) {
-        paralet.num_chars = num_chars;
+        subpara.num_chars = num_chars;
       }
-      structure.paraletTokens.push(offset);
+      structure.subparaTokens.push(offset);
       const lastSent = sentences[p[p.length - 1]];
-      paralet.ends_with_line_break = lastSent.ends_with_line_break ?? false;
-      paralet.ends_with_para_break = lastSent.ends_with_para_break ?? false;
+      subpara.ends_with_line_break = lastSent.ends_with_line_break ?? false;
+      subpara.ends_with_para_break = lastSent.ends_with_para_break ?? false;
     }
     structure.num_tokens = offset;
     /**
-     * Now find the "natural" paragraph, i.e., sequences of paralets with the
+     * Now find the "natural" paragraph, i.e., sequences of subparas with the
      * last one ending in a line/para break. When we align source and
      * translation, we'll align the natural paragraphs first, but only if there
      * are an equal number of them on both sides.
      */
     structure.naturalParas = [];
     structure.naturalParaTokens = [];
-    let startParaletIndex = 0;
-    for (let pi = 0; pi < paralets.length; pi++) {
-      const paralet = structure.paralets[pi];
-      if ((pi == paralets.length - 1) ||
-          paralet.ends_with_line_break || paralet.ends_with_para_break) {
+    let startSubparaIndex = 0;
+    for (let pi = 0; pi < subparas.length; pi++) {
+      const subpara = structure.subparas[pi];
+      if ((pi == subparas.length - 1) ||
+          subpara.ends_with_line_break || subpara.ends_with_para_break) {
         const naturalPara = {
-          offset: structure.paralets[startParaletIndex].offset,
+          offset: structure.subparas[startSubparaIndex].offset,
           num_tokens: 0,
         };
         structure.naturalParas.push(naturalPara);
-        for (let pj = startParaletIndex; pj <= pi; pj++) {
-          naturalPara.num_tokens += structure.paralets[pj].num_tokens;
+        for (let pj = startSubparaIndex; pj <= pi; pj++) {
+          naturalPara.num_tokens += structure.subparas[pj].num_tokens;
         }
-        naturalPara.range = [startParaletIndex, pi];
-        startParaletIndex = pi + 1;
+        naturalPara.range = [startSubparaIndex, pi];
+        startSubparaIndex = pi + 1;
         structure.naturalParaTokens.push(
             naturalPara.offset + naturalPara.num_tokens);
       }

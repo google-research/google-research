@@ -262,7 +262,7 @@ class AntheaDocSys {
  * The AntheaCursor class keeps track of the current location (the "cursor")
  * during an eval. There is a location on the source side and one on the
  * target side. Each location consists of a segment index and a para index
- * within the segment. The para index points to a "paralet", which is a group of
+ * within the segment. The para index points to a "subpara", which is a group of
  * sentences that forms the navigation unit for the rater. It is typically a
  * paragraph or a part of a paragraph that is not too big. The cursor further
  * remembers the max para index shown within each segment on each side.
@@ -270,7 +270,7 @@ class AntheaDocSys {
 class AntheaCursor {
   /**
    * @param {!Array<!Object>} segments Each segment object should contain a
-   *     "doc" field and arrays "srcParalets" and "tgtParalets".
+   *     "doc" field and arrays "srcSubparas" and "tgtSubparas".
    * @param {boolean} tgtOnly Set to true for monolingual evals.
    * @param {boolean} tgtFirst Set to true for target-first evals.
    * @param {function(number)} segmentDone Called with seg id for each segment.
@@ -281,17 +281,17 @@ class AntheaCursor {
     this.tgtOnly = tgtOnly;
     this.tgtFirst = tgtFirst;
     this.segmentDone_ = segmentDone;
-    this.numParalets = [[], []];
-    this.numParaletsShown = [[], []];
+    this.numSubparas = [[], []];
+    this.numSubparasShown = [[], []];
     /** Array<number> identifying the starting seg for each doc. */
     this.docSegStarts = [];
     let doc = -1;
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      this.numParalets[0].push(segment.srcParalets.length);
-      this.numParalets[1].push(segment.tgtParalets.length);
-      this.numParaletsShown[0].push(0);
-      this.numParaletsShown[1].push(0);
+      this.numSubparas[0].push(segment.srcSubparas.length);
+      this.numSubparas[1].push(segment.tgtSubparas.length);
+      this.numSubparasShown[0].push(0);
+      this.numSubparasShown[1].push(0);
       if (this.docSegStarts.length == 0 || segment.doc != doc) {
         this.docSegStarts.push(i);
         doc = segment.doc;
@@ -302,7 +302,7 @@ class AntheaCursor {
     this.seg = 0;
     /** number that is 0 when the current side is src, and 1 when tgt. */
     this.side = 0;
-    /** number that is the index of the current paralet. */
+    /** number that is the index of the current subpara. */
     this.para = 0;
     this.startAtTgt = this.tgtOnly || this.tgtFirst;
     this.goto(0, this.startAtTgt ? 1 : 0, 0);
@@ -329,13 +329,13 @@ class AntheaCursor {
    * @return {boolean}
    */
   segFullySeen(seg) {
-    if (this.numParaletsShown[1][seg] < this.numParalets[1][seg]) {
+    if (this.numSubparasShown[1][seg] < this.numSubparas[1][seg]) {
       return false;
     }
     if (this.tgtOnly) {
       return true;
     }
-    if (this.numParaletsShown[0][seg] < this.numParalets[0][seg]) {
+    if (this.numSubparasShown[0][seg] < this.numSubparas[0][seg]) {
       return false;
     }
     return true;
@@ -350,7 +350,7 @@ class AntheaCursor {
     if (this.side != endSide) {
       return false;
     }
-    if (this.para + 1 != this.numParalets[endSide][this.seg]) {
+    if (this.para + 1 != this.numSubparas[endSide][this.seg]) {
       return false;
     }
     if (!this.segFullySeen(this.seg)) {
@@ -375,35 +375,35 @@ class AntheaCursor {
   }
 
   /**
-   * Moves the cursor to the next paralet. Which paralet that next one is
+   * Moves the cursor to the next subpara. Which subpara that next one is
    * depends on tgtOnly/tgtFirst.
    */
   next() {
     if (this.atDocEnd()) {
       return;
     }
-    if (this.para + 1 < this.numParalets[this.side][this.seg]) {
-      /** Goto: next paralet, same side. */
+    if (this.para + 1 < this.numSubparas[this.side][this.seg]) {
+      /** Goto: next subpara, same side. */
       this.goto(this.seg, this.side, this.para + 1);
     } else {
       if (this.tgtFirst) {
         if (this.side == 1) {
-          /** Goto: last-read paralet, src side. */
-          const srcParalet = Math.max(
-              0, this.numParaletsShown[0][this.seg] - 1);
-          this.goto(this.seg, 0, srcParalet);
+          /** Goto: last-read subpara, src side. */
+          const srcSubpara = Math.max(
+              0, this.numSubparasShown[0][this.seg] - 1);
+          this.goto(this.seg, 0, srcSubpara);
         } else {
           if (this.seg + 1 < this.segments.length) {
-            /** Goto: start paralet of next seg, tgt side. */
+            /** Goto: start subpara of next seg, tgt side. */
             this.goto(this.seg + 1, 1, 0);
           }
         }
       } else {
         if (this.side == 0) {
-          /** Goto: last-read paralet, tgt side. */
-          const tgtParalet = Math.max(
-              0, this.numParaletsShown[1][this.seg] - 1);
-          this.goto(this.seg, 1, tgtParalet);
+          /** Goto: last-read subpara, tgt side. */
+          const tgtSubpara = Math.max(
+              0, this.numSubparasShown[1][this.seg] - 1);
+          this.goto(this.seg, 1, tgtSubpara);
         } else {
           /**
            * By using Tab to switch sides, it's possible that you
@@ -412,7 +412,7 @@ class AntheaCursor {
           if (!this.segFullySeen(this.seg)) {
             this.switchSides();
           } else if (this.seg + 1 < this.segments.length) {
-            /** Goto: start paralet of next seg, src side (tgt for tgtOnly). */
+            /** Goto: start subpara of next seg, src side (tgt for tgtOnly). */
             this.goto(this.seg + 1, this.tgtOnly ? 1 : 0, 0);
           }
         }
@@ -421,7 +421,7 @@ class AntheaCursor {
   }
 
   /**
-   * Moves the cursor to the previous paralet. Which paralet that previous
+   * Moves the cursor to the previous subpara. Which subpara that previous
    * one is depends on tgtOnly/tgtFirst.
    */
   prev() {
@@ -433,18 +433,18 @@ class AntheaCursor {
     } else {
       if (this.tgtFirst) {
         if (this.side == 0) {
-          this.goto(this.seg, 1, this.numParalets[1][this.seg] - 1);
+          this.goto(this.seg, 1, this.numSubparas[1][this.seg] - 1);
         } else {
           if (this.seg > 0) {
-            this.goto(this.seg - 1, 0, this.numParalets[0][this.seg - 1] - 1);
+            this.goto(this.seg - 1, 0, this.numSubparas[0][this.seg - 1] - 1);
           }
         }
       } else {
         if (this.side == 1 && !this.tgtOnly) {
-          this.goto(this.seg, 0, this.numParalets[0][this.seg] - 1);
+          this.goto(this.seg, 0, this.numSubparas[0][this.seg] - 1);
         } else {
           if (this.seg > 0) {
-            this.goto(this.seg - 1, 1, this.numParalets[1][this.seg - 1] - 1);
+            this.goto(this.seg - 1, 1, this.numSubparas[1][this.seg - 1] - 1);
           }
         }
       }
@@ -461,7 +461,7 @@ class AntheaCursor {
    * @return {boolean}
    */
   srcVisible(seg) {
-    return this.numParaletsShown[0][seg] > 0;
+    return this.numSubparasShown[0][seg] > 0;
   }
 
   /**
@@ -475,10 +475,10 @@ class AntheaCursor {
       return;
     }
     const otherSide = 1 - this.side;
-    const otherParalet = Math.min(
-        this.numParaletsShown[otherSide][this.seg] - 1,
+    const otherSubpara = Math.min(
+        this.numSubparasShown[otherSide][this.seg] - 1,
         this.para);
-    this.goto(this.seg, otherSide, otherParalet);
+    this.goto(this.seg, otherSide, otherSubpara);
   }
 
   /**
@@ -494,25 +494,25 @@ class AntheaCursor {
     console.assert(side == 0 || side == 1, side);
     console.assert(!this.tgtOnly || side == 1);
     this.side = side;
-    console.assert(para >= 0 && para < this.numParalets[side][seg], para);
+    console.assert(para >= 0 && para < this.numSubparas[side][seg], para);
     this.para = para;
     for (let s = 0; s < seg; s++) {
-      this.numParaletsShown[0][s] = this.numParalets[0][s];
-      this.numParaletsShown[1][s] = this.numParalets[1][s];
+      this.numSubparasShown[0][s] = this.numSubparas[0][s];
+      this.numSubparasShown[1][s] = this.numSubparas[1][s];
     }
-    this.numParaletsShown[side][seg] = Math.max(
-        this.numParaletsShown[side][seg], para + 1);
+    this.numSubparasShown[side][seg] = Math.max(
+        this.numSubparasShown[side][seg], para + 1);
     if (!this.tgtFirst || side == 0) {
       /**
-       * At least 1 paralet is made visible on the other side, if there is one.
+       * At least 1 subpara is made visible on the other side, if there is one.
        */
       const otherSide = 1 - side;
-      this.numParaletsShown[otherSide][seg] = Math.max(
-          this.numParaletsShown[otherSide][seg], 1);
+      this.numSubparasShown[otherSide][seg] = Math.max(
+          this.numSubparasShown[otherSide][seg], 1);
     }
-    if (this.numParaletsShown[1][seg] == this.numParalets[1][seg] &&
+    if (this.numSubparasShown[1][seg] == this.numSubparas[1][seg] &&
         (this.tgtOnly ||
-         (this.numParaletsShown[0][seg] == this.numParalets[0][seg]))) {
+         (this.numSubparasShown[0][seg] == this.numSubparas[0][seg]))) {
       this.segmentDone_(seg);
     }
   }
@@ -527,7 +527,7 @@ class AntheaCursor {
    */
   hasBeenRead(seg, side, para) {
     return this.segments[seg].doc == this.doc &&
-           this.numParaletsShown[side][seg] > para;
+           this.numSubparasShown[side][seg] > para;
   }
 
   /**
@@ -723,7 +723,7 @@ class AntheaEval {
     this.scriptUrlPrefix_ = scriptUrlPrefix;
 
 
-    /** ?AntheaCursor Which doc/segment/side/paralet we are at. */
+    /** ?AntheaCursor Which doc/segment/side/subpara we are at. */
     this.cursor = null;
 
     /** ?Object */
@@ -892,14 +892,14 @@ class AntheaEval {
       }
       if (this.READ_ONLY || result.visited) {
         /** Clear any new HOTW injections in this segment */
-        for (let p = 0; p < segment.tgtParalets.length; p++) {
-          const paralet = this.getParalet(seg, 1, p);
-          delete paralet.hotw;
+        for (let p = 0; p < segment.tgtSubparas.length; p++) {
+          const subpara = this.getSubpara(seg, 1, p);
+          delete subpara.hotw;
         }
         const result = this.evalResults_[seg];
         for (let hotw of result.hotw_list || []) {
-          const paralet = this.getParalet(seg, 1, hotw.para);
-          paralet.hotw = hotw;
+          const subpara = this.getSubpara(seg, 1, hotw.para);
+          subpara.hotw = hotw;
         }
         this.cursor.goto(seg, this.config.TARGET_SIDE_ONLY ? 1 : 0, 0);
       } else {
@@ -938,7 +938,7 @@ class AntheaEval {
     this.showPageContextIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
-    this.refreshCurrParalet();
+    this.refreshCurrSubpara();
 
     this.manager_.log(this.manager_.INFO,
                       'Restored previous evaluation results');
@@ -980,12 +980,12 @@ class AntheaEval {
       }
       if (result.errors.length > 0) {
         /** Clear any HOTW injections in this segment */
-        for (let p = 0; p < segment.tgtParalets.length; p++) {
-          const paralet = this.getParalet(seg, 1, p);
-          delete paralet.hotw;
-          paralet.hotwSpanHTML = '';
-          paralet.hotwError = '';
-          paralet.hotwType = '';
+        for (let p = 0; p < segment.tgtSubparas.length; p++) {
+          const subpara = this.getSubpara(seg, 1, p);
+          delete subpara.hotw;
+          subpara.hotwSpanHTML = '';
+          subpara.hotwError = '';
+          subpara.hotwType = '';
         }
         result.hotw_list = [];
       }
@@ -1057,17 +1057,17 @@ class AntheaEval {
   }
 
   /**
-   * Redraws the current paralet.
+   * Redraws the current subpara.
    */
-  redrawCurrParalet() {
-    this.redrawParalet(this.cursor.seg, this.cursor.side, this.cursor.para);
+  redrawCurrSubpara() {
+    this.redrawSubpara(this.cursor.seg, this.cursor.side, this.cursor.para);
   }
 
   /**
-   * Redraws the current paralet and refreshes buttons.
+   * Redraws the current subpara and refreshes buttons.
    */
-  refreshCurrParalet() {
-    this.redrawCurrParalet();
+  refreshCurrSubpara() {
+    this.redrawCurrSubpara();
     this.setEvalButtonsAvailability();
   }
 
@@ -1099,38 +1099,38 @@ class AntheaEval {
   }
 
   /**
-   * Returns the paralet object for the specified segment, side, para.
+   * Returns the subpara object for the specified segment, side, para.
    * @param {number} seg
    * @param {number} side
    * @param {number} para
    * @return {!Object}
    */
-  getParalet(seg, side, para) {
+  getSubpara(seg, side, para) {
     const segment = this.segments_[seg];
     return side == 0 ?
-        segment.srcParalets[para] : segment.tgtParalets[para];
+        segment.srcSubparas[para] : segment.tgtSubparas[para];
   }
 
   /**
-   * Returns the paralet object for the current paralet where the cursor is.
+   * Returns the subpara object for the current subpara where the cursor is.
    * @return {!Object}
    */
-  getCurrParalet() {
-    return this.getParalet(
+  getCurrSubpara() {
+    return this.getSubpara(
         this.cursor.seg, this.cursor.side, this.cursor.para);
   }
 
   /**
-   * Returns the SPAN elements for the current paralet.
+   * Returns the SPAN elements for the current subpara.
    * @return {!HTMLCollection}
    */
   getCurrTokenSpans() {
-    const paralet = this.getCurrParalet();
-    return paralet.paraletSpan.getElementsByTagName('span');
+    const subpara = this.getCurrSubpara();
+    return subpara.subparaSpan.getElementsByTagName('span');
   }
 
   /**
-   * Returns the sentence index within the paralet identified by
+   * Returns the sentence index within the subpara identified by
    * (seg, side, para) of the token whose index (within all source/target tokens
    * for the segment) * is tokenIndex.
    *
@@ -1139,16 +1139,16 @@ class AntheaEval {
    * @param {number} para
    * @param {number} tokenIndex The tokenIndex within the whole segment on the
    *     appropriate side (source/target).
-   * @return {number} The sentence index for the token, in the paralet.
+   * @return {number} The sentence index for the token, in the subpara.
    */
   sentenceForToken(seg, side, para, tokenIndex) {
-    const paralet = this.getParalet(seg, side, para);
-    console.assert(tokenIndex >= paralet.token_offset &&
-                   tokenIndex < paralet.token_offset + paralet.num_tokens,
+    const subpara = this.getSubpara(seg, side, para);
+    console.assert(tokenIndex >= subpara.token_offset &&
+                   tokenIndex < subpara.token_offset + subpara.num_tokens,
                    tokenIndex);
-    let offset = paralet.token_offset;
-    for (let s = 0; s < paralet.sentInfos.length; s++) {
-      const sentInfo = paralet.sentInfos[s];
+    let offset = subpara.token_offset;
+    for (let s = 0; s < subpara.sentInfos.length; s++) {
+      const sentInfo = subpara.sentInfos[s];
       if (tokenIndex < offset + sentInfo.num_tokens) {
         return s;
       }
@@ -1158,7 +1158,7 @@ class AntheaEval {
   }
 
   /**
-   * Returns a set of all sentence indices within the current paralet that
+   * Returns a set of all sentence indices within the current subpara that
    * are markable. A sentence is not markable if it already has an error
    * marked with the property override_all_errors (typical example: a
    * non-translation error).
@@ -1170,20 +1170,20 @@ class AntheaEval {
    * @param {number=} startSpanIndex optional index of the starting span of
    *     an already begun marking.
    * @return {!Set} of 0-based indices into the sentInfos in the the current
-   *     paralet.
+   *     subpara.
    */
   getMarkableSentences(startSpanIndex=-1) {
-    const paralet = this.getCurrParalet();
+    const subpara = this.getCurrSubpara();
     const evalResult = this.currSegmentEval();
     const markableSentences = new Set;
-    const numSents = paralet.sentInfos.length;
+    const numSents = subpara.sentInfos.length;
     for (let i = 0; i < numSents; i++) {
       markableSentences.add(i);
     }
-    const paraletErrorIndices = this.getParaletErrorIndices(
+    const subparaErrorIndices = this.getSubparaErrorIndices(
         evalResult.errors, this.cursor.seg, this.cursor.side, this.cursor.para);
     for (let e = 0; e < evalResult.errors.length; e++) {
-      if (!paraletErrorIndices.has(e)) continue;
+      if (!subparaErrorIndices.has(e)) continue;
       const error = evalResult.errors[e];
       if (error.marked_deleted) {
         continue;
@@ -1199,7 +1199,7 @@ class AntheaEval {
     if (startSpanIndex >= 0) {
       const startSent = this.sentenceForToken(
           this.cursor.seg, this.cursor.side, this.cursor.para,
-          paralet.token_offset + startSpanIndex);
+          subpara.token_offset + startSpanIndex);
       console.assert(startSent >= 0 && startSent < numSents);
       const hasSent = markableSentences.has(startSent);
       markableSentences.clear();
@@ -1211,7 +1211,7 @@ class AntheaEval {
   }
 
   /**
-   * Returns a set of all token span indices within the current paralet that
+   * Returns a set of all token span indices within the current subpara that
    * are markable. See the documentation of getMarkableSentences() above for
    * a description of which tokens are not markable.
    *
@@ -1221,15 +1221,15 @@ class AntheaEval {
    * @param {number=} startSpanIndex optional index of the starting span of
    *     an already begun marking.
    * @return {!Set} of 0-based indices into the token spans in the the current
-   *     paralet.
+   *     subpara.
    */
   getMarkableSpanIndices(startSpanIndex=-1) {
-    const paralet = this.getCurrParalet();
+    const subpara = this.getCurrSubpara();
     const markableSentences = this.getMarkableSentences(startSpanIndex);
     const markableSpans = new Set;
     let offset = 0;
-    for (let s = 0; s < paralet.sentInfos.length; s++) {
-      const sentInfo = paralet.sentInfos[s];
+    for (let s = 0; s < subpara.sentInfos.length; s++) {
+      const sentInfo = subpara.sentInfos[s];
       if (markableSentences.has(s)) {
         for (let i = 0; i < sentInfo.num_tokens; i++) {
           markableSpans.add(offset + i);
@@ -1251,12 +1251,12 @@ class AntheaEval {
    *     tokenIndex falls.
    */
   sentenceTokensRange(seg, side, para, tokenIndex) {
-    const paralet = this.getParalet(seg, side, para);
-    console.assert(tokenIndex >= paralet.token_offset &&
-                   tokenIndex < paralet.token_offset + paralet.num_tokens,
-                   tokenIndex, paralet);
-    let offset = paralet.token_offset;
-    for (const sentInfo of paralet.sentInfos) {
+    const subpara = this.getSubpara(seg, side, para);
+    console.assert(tokenIndex >= subpara.token_offset &&
+                   tokenIndex < subpara.token_offset + subpara.num_tokens,
+                   tokenIndex, subpara);
+    let offset = subpara.token_offset;
+    for (const sentInfo of subpara.sentInfos) {
       if (tokenIndex < offset + sentInfo.num_tokens) {
         return [offset, offset + sentInfo.num_tokens - 1];
       }
@@ -1269,7 +1269,7 @@ class AntheaEval {
    * Returns indices into the errors array that contain errors for the given
    * seg, side, para, and optionally sentence containing a tokenIndex.
    * If tokenIndex is negative, then error indices for all sentences in the
-   * paralet are returned.
+   * subpara are returned.
    * The indices are returned as a Set.
    *
    * @param {!Array<!AntheaError>} errors
@@ -1279,14 +1279,14 @@ class AntheaEval {
    * @param {number=} tokenIndex
    * @return {!Set<number>}
    */
-  getParaletErrorIndices(errors, seg, side, para, tokenIndex=-1) {
+  getSubparaErrorIndices(errors, seg, side, para, tokenIndex=-1) {
     const ret = new Set;
-    const paralet = this.getParalet(seg, side, para);
-    const tokenRangeInSeg = [paralet.token_offset,
-                             paralet.token_offset + paralet.num_tokens - 1];
+    const subpara = this.getSubpara(seg, side, para);
+    const tokenRangeInSeg = [subpara.token_offset,
+                             subpara.token_offset + subpara.num_tokens - 1];
     if (tokenIndex >= 0) {
-      let offset = paralet.token_offset;
-      for (const sentInfo of paralet.sentInfos) {
+      let offset = subpara.token_offset;
+      for (const sentInfo of subpara.sentInfos) {
         if (tokenIndex < offset + sentInfo.num_tokens) {
           tokenRangeInSeg[0] = offset;
           tokenRangeInSeg[1] = offset + sentInfo.num_tokens - 1;
@@ -1308,57 +1308,57 @@ class AntheaEval {
   }
 
   /**
-   * Shows the paralet at index (seg, side, para). How the paralet gets shown
+   * Shows the subpara at index (seg, side, para). How the subpara gets shown
    *     depends on whether it is before, at, or after this.cursor.
    * @param {number} seg
    * @param {number} side
    * @param {number} para
    */
-  redrawParalet(seg, side, para) {
+  redrawSubpara(seg, side, para) {
     if (!this.inCurrDoc(seg)) {
       return;
     }
 
-    const paralet = this.getParalet(seg, side, para);
+    const subpara = this.getSubpara(seg, side, para);
 
     /* Get rid of any old highlighting or listeners */
-    if (paralet.clickListener) {
-      paralet.paraletSpan.removeEventListener('click', paralet.clickListener);
+    if (subpara.clickListener) {
+      subpara.subparaSpan.removeEventListener('click', subpara.clickListener);
     }
-    paralet.clickListener = null;
+    subpara.clickListener = null;
 
     const evalResult = this.evalResults_[seg];
 
-    let spanHTML = paralet.spanHTML;
-    if (!this.READ_ONLY && paralet.hotw && !paralet.hotw.done) {
-      spanHTML = paralet.hotwSpanHTML;
+    let spanHTML = subpara.spanHTML;
+    if (!this.READ_ONLY && subpara.hotw && !subpara.hotw.done) {
+      spanHTML = subpara.hotwSpanHTML;
     }
-    googdom.setInnerHtml(paralet.paraletSpan, spanHTML);
-    paralet.paraletSpan.classList.remove('anthea-paralet-nav');
+    googdom.setInnerHtml(subpara.subparaSpan, spanHTML);
+    subpara.subparaSpan.classList.remove('anthea-subpara-nav');
 
     const isCurr = this.cursor.equals(seg, side, para);
 
-    /* Highlight errors in paralet */
-    const tokenSpans = paralet.paraletSpan.getElementsByTagName('span');
-    console.assert(tokenSpans.length == paralet.num_tokens);
-    const paraletErrorIndices = this.getParaletErrorIndices(evalResult.errors,
+    /* Highlight errors in subpara */
+    const tokenSpans = subpara.subparaSpan.getElementsByTagName('span');
+    console.assert(tokenSpans.length == subpara.num_tokens);
+    const subparaErrorIndices = this.getSubparaErrorIndices(evalResult.errors,
                                                             seg, side, para);
-    const tokenRangeInSeg = [paralet.token_offset,
-                             paralet.token_offset + paralet.num_tokens - 1];
+    const tokenRangeInSeg = [subpara.token_offset,
+                             subpara.token_offset + subpara.num_tokens - 1];
     for (let e = 0; e < evalResult.errors.length; e++) {
-      if (!paraletErrorIndices.has(e)) continue;
+      if (!subparaErrorIndices.has(e)) continue;
       const error = evalResult.errors[e];
       if (error.marked_deleted) {
         continue;
       }
-      /** Code to highlight the span in the paralet: */
+      /** Code to highlight the span in the subpara: */
       const range = this.intersectRanges(
         [error.start, error.end], tokenRangeInSeg);
       const isBeingEdited = isCurr && this.error_ && (this.errorIndex_ == e);
       const severity = this.config.severities[error.severity];
       const color = severity.color;
       for (let x = range[0]; x <= range[1]; x++) {
-        const tokenSpan = tokenSpans[x - paralet.token_offset];
+        const tokenSpan = tokenSpans[x - subpara.token_offset];
         tokenSpan.style.backgroundColor = color;
         if (isBeingEdited) {
           tokenSpan.classList.add('anthea-being-edited');
@@ -1367,15 +1367,15 @@ class AntheaEval {
     }
 
     if (isCurr) {
-      paralet.paraletSpan.classList.remove('anthea-fading-text');
-      this.evalPanel_.style.top = paralet.top;
+      subpara.subparaSpan.classList.remove('anthea-fading-text');
+      this.evalPanel_.style.top = subpara.top;
       this.evalPanelErrors_.innerHTML = '';
-      if (paralet.hotw && paralet.hotw.done) {
-        this.displayHOTWMessage(paralet.hotw.found,
-                                paralet.hotw.injected_error);
+      if (subpara.hotw && subpara.hotw.done) {
+        this.displayHOTWMessage(subpara.hotw.found,
+                                subpara.hotw.injected_error);
       }
       for (let e = 0; e < evalResult.errors.length; e++) {
-        if (paraletErrorIndices.has(e)) {
+        if (subparaErrorIndices.has(e)) {
           if (!this.cursor.srcVisible(this.cursor.seg) &&
               !evalResult.errors[e].metadata.source_not_seen) {
             /* This error will be shown only after the source is shown */
@@ -1392,7 +1392,7 @@ class AntheaEval {
           color = severity.color;
         }
         for (let x = this.error_.start; x <= this.error_.end; x++) {
-          tokenSpans[x - paralet.token_offset].style.backgroundColor = color;
+          tokenSpans[x - subpara.token_offset].style.backgroundColor = color;
         }
       }
     }
@@ -1400,20 +1400,20 @@ class AntheaEval {
     const hasBeenRead = this.cursor.hasBeenRead(seg, side, para);
 
     if (!isCurr && hasBeenRead && !this.error_)  {
-      /* anthea-paralet-nav class makes the mouse a pointer on hover. */
-      paralet.paraletSpan.classList.add('anthea-paralet-nav');
-      paralet.clickListener = () => {
-        this.revisitParalet(seg, side, para);
+      /* anthea-subpara-nav class makes the mouse a pointer on hover. */
+      subpara.subparaSpan.classList.add('anthea-subpara-nav');
+      subpara.clickListener = () => {
+        this.revisitSubpara(seg, side, para);
       };
-      paralet.paraletSpan.addEventListener('click', paralet.clickListener);
+      subpara.subparaSpan.addEventListener('click', subpara.clickListener);
     }
 
     const afterColor = (side == 0 && this.cursor.tgtFirst &&
                         !this.cursor.srcVisible(seg)) ?
                        'transparent' : this.afterColor_;
-    paralet.paraletSpan.style.color = isCurr ? this.currColor_ :
+    subpara.subparaSpan.style.color = isCurr ? this.currColor_ :
         (hasBeenRead ? this.beforeColor_ : afterColor);
-    paralet.paraletSpan.style.fontWeight = isCurr ? 'bold' : 'normal';
+    subpara.subparaSpan.style.fontWeight = isCurr ? 'bold' : 'normal';
   }
 
   /**
@@ -1422,11 +1422,11 @@ class AntheaEval {
   redrawAllSegments() {
     for (let n = 0; n < this.segments_.length; n++) {
       const segment = this.segments_[n];
-      for (let s = 0; s < segment.srcParalets.length; s++) {
-        this.redrawParalet(n, 0, s);
+      for (let s = 0; s < segment.srcSubparas.length; s++) {
+        this.redrawSubpara(n, 0, s);
       }
-      for (let t = 0; t < segment.tgtParalets.length; t++) {
-        this.redrawParalet(n, 1, t);
+      for (let t = 0; t < segment.tgtSubparas.length; t++) {
+        this.redrawSubpara(n, 1, t);
       }
     }
     this.setEvalButtonsAvailability();
@@ -1579,7 +1579,7 @@ class AntheaEval {
    */
   setEvalButtonsAvailability() {
     const evalResult = this.currSegmentEval();
-    const paraletErrorIndices = this.getParaletErrorIndices(
+    const subparaErrorIndices = this.getSubparaErrorIndices(
         evalResult.errors, this.cursor.seg, this.cursor.side, this.cursor.para);
     const markableSentences = this.getMarkableSentences();
     const noNewErrors =
@@ -1657,7 +1657,7 @@ class AntheaEval {
     }
 
     for (let e = 0; e < evalResult.errors.length; e++) {
-      if (!paraletErrorIndices.has(e)) continue;
+      if (!subparaErrorIndices.has(e)) continue;
       const modButtonParent = this.modButtonParents_[e];
       if (!modButtonParent) continue;
       const modButton = modButtonParent.firstElementChild ?? null;
@@ -1742,20 +1742,20 @@ class AntheaEval {
   }
 
   /**
-   * Called after a paralet should be done with. Returns false in
-   *     the (rare) case that the paralet was a HOTW paralet with
+   * Called after a subpara should be done with. Returns false in
+   *     the (rare) case that the subpara was a HOTW subpara with
    *     injected errors shown, which leads to the end of the HOTW check
-   *     but makes the rater continue to rate the paralet.
+   *     but makes the rater continue to rate the subpara.
    * @return {boolean}
    */
-  finishCurrParalet() {
-    const paralet = this.getCurrParalet();
-    if (!this.READ_ONLY && paralet.hotw && !paralet.hotw.done) {
+  finishCurrSubpara() {
+    const subpara = this.getCurrSubpara();
+    if (!this.READ_ONLY && subpara.hotw && !subpara.hotw.done) {
       const evalResult = this.currSegmentEval();
       this.noteTiming('missed-hands-on-the-wheel-error');
-      paralet.hotw.done = true;
-      paralet.hotw.timestamp = evalResult.timestamp;
-      paralet.hotw.timing = evalResult.timing;
+      subpara.hotw.done = true;
+      subpara.hotw.timestamp = evalResult.timestamp;
+      subpara.hotw.timing = evalResult.timing;
       evalResult.timing = {};
       this.redrawAllSegments();
       return false;
@@ -1764,15 +1764,15 @@ class AntheaEval {
   }
 
   /**
-   * Moves the current paralet into view, if off-screen.
+   * Moves the current subpara into view, if off-screen.
    */
-  ensureCurrParaletVisible() {
-    const paraletSpan = this.getCurrParalet().paraletSpan;
-    const paraletRect = paraletSpan.getBoundingClientRect();
-    if (paraletRect.top >= 0 && paraletRect.bottom < this.viewportHeight_) {
+  ensureCurrSubparaVisible() {
+    const subparaSpan = this.getCurrSubpara().subparaSpan;
+    const subparaRect = subparaSpan.getBoundingClientRect();
+    if (subparaRect.top >= 0 && subparaRect.bottom < this.viewportHeight_) {
       return;
     }
-    paraletSpan.scrollIntoView({block: "center"});
+    subparaSpan.scrollIntoView({block: "center"});
   }
 
   /**
@@ -1785,30 +1785,30 @@ class AntheaEval {
     this.noteTiming('switch-sides');
     this.cursor.switchSides();
     this.redrawAllSegments();
-    this.ensureCurrParaletVisible();
+    this.ensureCurrSubparaVisible();
   }
 
   /**
-   * Navigates to the previous paralet.
+   * Navigates to the previous subpara.
    */
   handlePrev() {
     this.noteTiming('back-arrow');
     this.cursor.prev();
     this.redrawAllSegments();
-    this.ensureCurrParaletVisible();
+    this.ensureCurrSubparaVisible();
   }
 
   /**
-   * Navigates to the next paralet.
+   * Navigates to the next subpara.
    */
   handleNext() {
     this.noteTiming('next-arrow');
-    if (!this.finishCurrParalet()) {
+    if (!this.finishCurrSubpara()) {
       return;
     }
     this.cursor.next();
     this.redrawAllSegments();
-    this.ensureCurrParaletVisible();
+    this.ensureCurrSubparaVisible();
   }
 
   /**
@@ -1845,14 +1845,14 @@ class AntheaEval {
       this.noteTiming('confirmed-override-all-errors');
       this.error_.location = 'translation';
       this.error_.prefix = '';
-      const paralet = this.getCurrParalet();
+      const subpara = this.getCurrSubpara();
       const range = this.sentenceTokensRange(
           this.cursor.seg, this.cursor.side, this.cursor.para,
           this.error_.start);
       const spanArray = this.getCurrTokenSpans();
       this.error_.selected = '';
       for (let x = range[0]; x <= range[1]; x++) {
-        this.error_.selected += spanArray[x - paralet.token_offset].innerText;
+        this.error_.selected += spanArray[x - subpara.token_offset].innerText;
       }
       this.error_.start = range[0];
       this.error_.end = range[1];
@@ -1875,7 +1875,7 @@ class AntheaEval {
 
   /**
    * Calling this marks the end of an error-marking or editing in the current
-   *     paralet.
+   *     subpara.
    * @param {boolean=} cancel
    */
   concludeError(cancel = false) {
@@ -1884,11 +1884,11 @@ class AntheaEval {
       const evalResult = this.currSegmentEval();
       const errorInfo = this.config.errors[this.error_.type];
       if (errorInfo.override_all_errors) {
-        const paraletErrorIndices = this.getParaletErrorIndices(
+        const subparaErrorIndices = this.getSubparaErrorIndices(
             evalResult.errors, this.cursor.seg, this.cursor.side,
             this.cursor.para, this.error_.start);
         for (let x = 0; x < evalResult.errors.length; x++) {
-          if (!paraletErrorIndices.has(x) || x == this.errorIndex_) {
+          if (!subparaErrorIndices.has(x) || x == this.errorIndex_) {
             continue;
           }
           evalResult.errors[x].marked_deleted = true;
@@ -2039,7 +2039,7 @@ class AntheaEval {
    */
   maybeConcludeError() {
     if (!this.error_ || !this.error_.isComplete()) {
-      this.refreshCurrParalet();
+      this.refreshCurrSubpara();
       return;
     }
     if (!this.error_.marked_deleted && !this.maybeAugmentError()) {
@@ -2082,21 +2082,21 @@ class AntheaEval {
    * @param {string} selected
    */
   setMQMSpan(start, end, prefix, selected) {
-    const paralet = this.getCurrParalet();
-    if (paralet.hotw && !paralet.hotw.done) {
+    const subpara = this.getCurrSubpara();
+    if (subpara.hotw && !subpara.hotw.done) {
       const evalResult = this.currSegmentEval();
       this.noteTiming('found-hands-on-the-wheel-error');
-      paralet.hotw.done = true;
-      paralet.hotw.found = true;
-      paralet.hotw.timestamp = evalResult.timestamp;
-      paralet.hotw.timing = evalResult.timing;
+      subpara.hotw.done = true;
+      subpara.hotw.found = true;
+      subpara.hotw.timestamp = evalResult.timestamp;
+      subpara.hotw.timing = evalResult.timing;
       evalResult.timing = {};
       this.errorAction_ = '';  /** concludeError() need not call noteTiming() */
       this.concludeError(true);
       return;
     }
-    this.error_.start = start + paralet.token_offset;
-    this.error_.end = end + paralet.token_offset;
+    this.error_.start = start + subpara.token_offset;
+    this.error_.end = end + subpara.token_offset;
     this.error_.location = this.cursor.side == 0 ? 'source' : 'translation';
     this.error_.prefix = prefix;
     this.error_.selected = selected;
@@ -2155,18 +2155,18 @@ class AntheaEval {
    * @param {number} side
    * @param {number} s
    */
-  revisitParalet(n, side, s) {
+  revisitSubpara(n, side, s) {
     if (!this.inCurrDoc(n) ||
         !this.cursor.hasBeenRead(n, side, s) ||
         this.cursor.equals(n, side, s) ||
         this.error_)  {
       return;
     }
-    const currParalet = this.getCurrParalet();
+    const currSubpara = this.getCurrSubpara();
     this.noteTiming('revisited');
     this.cursor.goto(n, side, s);
     this.redrawAllSegments();
-    this.fadeTextSpan(currParalet.paraletSpan);
+    this.fadeTextSpan(currSubpara.subparaSpan);
   }
 
   /**
@@ -2184,18 +2184,18 @@ class AntheaEval {
    * sub-phrase, within a sentence. See return format in injectHotw()
    * documentation.
    * @param {!Array<string>} tokens
-   * @param {!Object} paraletInfo
+   * @param {!Object} subparaInfo
    * @return {?Object}
    */
-  static injectHotwWordsFlipped(tokens, paraletInfo) {
+  static injectHotwWordsFlipped(tokens, subparaInfo) {
     /**
      * Error injection is done by reversing a sequence from tokens that starts
      * and ends within spaces/punctuation (or any single-char tokens) and is
      * within a sentence.
      */
-    const sent = this.getRandomInt(paraletInfo.sentInfos.length);
-    const sentInfo = paraletInfo.sentInfos[sent];
-    const tokenStart = sentInfo.token_offset - paraletInfo.token_offset;
+    const sent = this.getRandomInt(subparaInfo.sentInfos.length);
+    const sentInfo = subparaInfo.sentInfos[sent];
+    const tokenStart = sentInfo.token_offset - subparaInfo.token_offset;
     const tokenLimit = tokenStart + sentInfo.num_tokens;
     const seps = [];
     for (let t = tokenStart; t < tokenLimit; t++) {
@@ -2229,10 +2229,10 @@ class AntheaEval {
    * long-enough sub-string in a word. See return format in injectHotw()
    * documentation.
    * @param {!Array<string>} tokens
-   * @param {!Object} paraletInfo
+   * @param {!Object} subparaInfo
    * @return {?Object}
    */
-  static injectHotwLettersFlipped(tokens, paraletInfo) {
+  static injectHotwLettersFlipped(tokens, subparaInfo) {
     /**
      * Error injection is done by reversing a long word.
      */
@@ -2281,10 +2281,10 @@ class AntheaEval {
    * Pretend to inject an HOTW error, but don't actually do it. Only used
    * for training demos. See return format in injectHotw() documentation.
    * @param {!Array<string>} tokens
-   * @param {!Object} paraletInfo
+   * @param {!Object} subparaInfo
    * @return {?Object}
    */
-  static injectHotwPretend(tokens, paraletInfo) {
+  static injectHotwPretend(tokens, subparaInfo) {
     return {
       tokens: tokens.slice(),
       hotwError: '[Not a real injected error: only a training demo]',
@@ -2300,23 +2300,23 @@ class AntheaEval {
    * that shows the modification clearly) and "hotwType".
    *
    * @param {!Array<string>} tokens
-   * @param {!Object} paraletInfo
+   * @param {!Object} subparaInfo
    * @param {boolean} hotwPretend Only pretend to insert error, for training.
    * @return {?Object}
    */
-  static injectHotw(tokens, paraletInfo, hotwPretend) {
+  static injectHotw(tokens, subparaInfo, hotwPretend) {
     if (hotwPretend) {
-      return AntheaEval.injectHotwPretend(tokens, paraletInfo);
+      return AntheaEval.injectHotwPretend(tokens, subparaInfo);
     }
     /* 60% chance for words-flipped, 40% for letter-flipped */
     const tryWordsFlipped = this.getRandomInt(100) < 60;
     if (tryWordsFlipped) {
-      const ret = AntheaEval.injectHotwWordsFlipped(tokens, paraletInfo);
+      const ret = AntheaEval.injectHotwWordsFlipped(tokens, subparaInfo);
       if (ret) {
         return ret;
       }
     }
-    return AntheaEval.injectHotwLettersFlipped(tokens, paraletInfo);
+    return AntheaEval.injectHotwLettersFlipped(tokens, subparaInfo);
   }
 
   /**
@@ -2375,11 +2375,11 @@ class AntheaEval {
 
   /**
    * Splits text into sentences (marked by two zero-width spaces) and tokens
-   * (marked by spaces and zero-width spaces), groups them into "paralets",
+   * (marked by spaces and zero-width spaces), groups them into "subparas",
    * and creates display-ready HTML (including possibly adding HOTW errors).
-   * Returns an array of paralet-wise objects. Each object includes the
+   * Returns an array of subpara-wise objects. Each object includes the
    * following fields:
-   *   spanHTML: The HTML version of the paralet, with tokens wrapped in spans.
+   *   spanHTML: The HTML version of the subpara, with tokens wrapped in spans.
    *   hotwSpanHTML: Empty, or spanHTML variant with HOTW error-injected.
    *   hotwType: Empty, or a description of the injected HOTW error.
    *   hotwError: Empty, or the HOTW error.
@@ -2395,20 +2395,20 @@ class AntheaEval {
    *       token_offset
    * In the HTML, each inter-word space is wrapped in a SPAN of class
    * "anthea-space" and each word is wrapped in a SPAN of class "anthea-word".
-   * Adds a trailing space token to the last paralet unless addEndSpaces
+   * Adds a trailing space token to the last subpara unless addEndSpaces
    * is false or there already is a space there. Sentence endings in line-breaks
    * get a <br> tag inserted into the HTML.
    *
    * @param {string} text
    * @param {boolean} addEndSpaces
-   * @param {number} paraletSentences,
-   * @param {number} paraletTokens,
+   * @param {number} subparaSentences,
+   * @param {number} subparaTokens,
    * @param {number} hotwPercent
    * @param {boolean=} hotwPretend
    * @return {!Array<!Object>}
    */
   static splitAndSpannify(text, addEndSpaces,
-                          paraletSentences, paraletTokens,
+                          subparaSentences, subparaTokens,
                           hotwPercent, hotwPretend=false) {
     const sentences = text.split('\u200b\u200b');
     const spacesNormalizer = (s) => s.replace(/[\s]+/g, ' ');
@@ -2441,16 +2441,16 @@ class AntheaEval {
       totalNumTokens += tokens.length;
       sentInfos.push(sentInfo);
     }
-    const paralets = MarotUtils.makeParalets(
-        sentInfos, paraletSentences, paraletTokens);
-    const paraletInfos = [];
-    for (const paralet of paralets) {
-      console.assert(paralet.length > 0, paralets);
-      const paraletInfo = {
+    const subparas = MarotUtils.makeSubparas(
+        sentInfos, subparaSentences, subparaTokens);
+    const subparaInfos = [];
+    for (const subpara of subparas) {
+      console.assert(subpara.length > 0, subparas);
+      const subparaInfo = {
         sentInfos: [],
         ends_with_para_break:
-            sentInfos[paralet[paralet.length - 1]].ends_with_para_break,
-        token_offset: sentInfos[paralet[0]].token_offset,
+            sentInfos[subpara[subpara.length - 1]].ends_with_para_break,
+        token_offset: sentInfos[subpara[0]].token_offset,
         hotwSpanHTML: '',
         hotwType: '',
         hotwError: '',
@@ -2458,31 +2458,31 @@ class AntheaEval {
         num_tokens: 0,
       };
       let tokens = [];
-      for (const s of paralet) {
+      for (const s of subpara) {
         const sentInfo = sentInfos[s];
         tokens = tokens.concat(sentInfo.tokens);
-        paraletInfo.sentInfos.push(sentInfo);
-        paraletInfo.num_words += sentInfo.num_words;
+        subparaInfo.sentInfos.push(sentInfo);
+        subparaInfo.num_words += sentInfo.num_words;
       }
-      paraletInfo.num_tokens = tokens.length;
-      paraletInfo.spanHTML = AntheaEval.spannifyTokens(
-          tokens, paraletInfo.sentInfos);
+      subparaInfo.num_tokens = tokens.length;
+      subparaInfo.spanHTML = AntheaEval.spannifyTokens(
+          tokens, subparaInfo.sentInfos);
       if (hotwPercent > 0 && (100 * Math.random()) < hotwPercent) {
-        const hotw = AntheaEval.injectHotw(tokens, paraletInfo, hotwPretend);
+        const hotw = AntheaEval.injectHotw(tokens, subparaInfo, hotwPretend);
         if (hotw) {
-          paraletInfo.hotwSpanHTML = AntheaEval.spannifyTokens(
-              hotw.tokens, paraletInfo.sentInfos);
-          paraletInfo.hotwType = hotw.hotwType;
-          paraletInfo.hotwError = hotw.hotwError;
+          subparaInfo.hotwSpanHTML = AntheaEval.spannifyTokens(
+              hotw.tokens, subparaInfo.sentInfos);
+          subparaInfo.hotwType = hotw.hotwType;
+          subparaInfo.hotwError = hotw.hotwError;
         }
       }
-      paraletInfos.push(paraletInfo);
+      subparaInfos.push(subparaInfo);
     }
-    return paraletInfos;
+    return subparaInfos;
   }
 
   /**
-   * Computes the height of the viewport, useful for making paralets visible.
+   * Computes the height of the viewport, useful for making subparas visible.
    */
   setViewportHeight() {
     /** From an iframe do not rely on document.documentElement.clientHeight */
@@ -2495,7 +2495,7 @@ class AntheaEval {
   }
 
   /**
-   * This function recomputes the tops of paralets in the current doc.
+   * This function recomputes the tops of subparas in the current doc.
    */
   recomputeTops() {
     this.setViewportHeight();
@@ -2505,16 +2505,16 @@ class AntheaEval {
     let maxTopPos = 0;
     for (let s = start; s < start + num; s++) {
       const segment = this.segments_[s];
-      const allParalets = segment.srcParalets.concat(segment.tgtParalets);
-      for (let paralet of allParalets) {
-        const paraletRect = paralet.paraletSpan.getBoundingClientRect();
-        paralet.topPos = paraletRect.top - docRowRect.top;
-        paralet.top = '' + paralet.topPos + 'px';
-        maxTopPos = Math.max(paralet.topPos, maxTopPos);
+      const allSubparas = segment.srcSubparas.concat(segment.tgtSubparas);
+      for (let subpara of allSubparas) {
+        const subparaRect = subpara.subparaSpan.getBoundingClientRect();
+        subpara.topPos = subparaRect.top - docRowRect.top;
+        subpara.top = '' + subpara.topPos + 'px';
+        maxTopPos = Math.max(subpara.topPos, maxTopPos);
       }
     }
     if (this.evalPanel_) {
-      this.evalPanel_.style.top = this.getCurrParalet().top;
+      this.evalPanel_.style.top = this.getCurrSubpara().top;
     }
     // Make sure the table height is sufficient.
     const docEvalCell = this.docs_[this.cursor.doc].eval;
@@ -2529,7 +2529,7 @@ class AntheaEval {
       return;
     }
     this.noteTiming('prev-document');
-    if (!this.finishCurrParalet()) {
+    if (!this.finishCurrSubpara()) {
       return;
     }
     this.docs_[this.cursor.doc].row.style.display = 'none';
@@ -2541,7 +2541,7 @@ class AntheaEval {
     this.showPageContextIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
-    this.refreshCurrParalet();
+    this.refreshCurrSubpara();
   }
 
   /**
@@ -2554,7 +2554,7 @@ class AntheaEval {
       return;
     }
     this.noteTiming('next-document');
-    if (!this.finishCurrParalet()) {
+    if (!this.finishCurrSubpara()) {
       return;
     }
     this.docs_[this.cursor.doc].row.style.display = 'none';
@@ -2566,7 +2566,7 @@ class AntheaEval {
     this.showPageContextIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
-    this.refreshCurrParalet();
+    this.refreshCurrSubpara();
   }
 
   /**
@@ -2879,7 +2879,7 @@ class AntheaEval {
     }
     this.error_.severity = '';
     this.initiateErrorAction('editing-severity');
-    this.refreshCurrParalet();
+    this.refreshCurrSubpara();
   }
 
   /**
@@ -2894,7 +2894,7 @@ class AntheaEval {
     this.error_.type = '';
     this.error_.subtype = '';
     this.initiateErrorAction('editing-category');
-    this.refreshCurrParalet();
+    this.refreshCurrSubpara();
   }
 
   /**
@@ -2909,7 +2909,7 @@ class AntheaEval {
     this.error_.start = -1;
     this.error_.end = -1;
     this.initiateErrorAction('editing-span');
-    this.refreshCurrParalet();
+    this.refreshCurrSubpara();
   }
 
   /**
@@ -3541,11 +3541,14 @@ class AntheaEval {
     const tgtLang = parameters.target_language || '';
 
     /**
-     * By default, raters navigate in units of sentences. If paralet_*
+     * By default, raters navigate in units of sentences. If subpara_*
      * parameters have been passed in, they control the unit size.
+     * Also support the old names of these parameters (paralet_*)
      */
-    const paraletSentences = parameters.paralet_sentences ?? 1;
-    const paraletTokens = parameters.paralet_tokens ?? 1;
+    const subparaSentences = parameters.subpara_sentences ?? (
+        parameters.paralet_sentences ?? 1);
+    const subparaTokens = parameters.subpara_tokens ?? (
+        parameters.paralet_tokens ?? 1);
 
     if (parameters.hasOwnProperty('hotw_percent')) {
       /* Override the passed value */
@@ -3657,48 +3660,48 @@ class AntheaEval {
           srcText: srcSegments[i],
           tgtText: tgtSegments[i],
           numTgtWords: 0,
-          srcParalets: AntheaEval.splitAndSpannify(
+          srcSubparas: AntheaEval.splitAndSpannify(
               srcSegments[i], addEndSpacesSrc,
-              paraletSentences, paraletTokens, 0),
-          tgtParalets: AntheaEval.splitAndSpannify(
+              subparaSentences, subparaTokens, 0),
+          tgtSubparas: AntheaEval.splitAndSpannify(
               tgtSegments[i], addEndSpacesTgt,
-              paraletSentences, paraletTokens,
+              subparaSentences, subparaTokens,
               this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
         };
         const segIndex = this.segments_.length;
         this.segments_.push(segment);
 
         const srcSegmentClass = 'anthea-source-segment-' + segIndex;
-        for (let srcParalet of segment.srcParalets) {
-          srcSpannified += '<span class="anthea-source-paralet ' +
+        for (let srcSubpara of segment.srcSubparas) {
+          srcSpannified += '<span class="anthea-source-subpara ' +
                            srcSegmentClass + '">' +
-                           srcParalet.spanHTML + '</span>';
-          if (srcParalet.ends_with_para_break) {
+                           srcSubpara.spanHTML + '</span>';
+          if (srcSubpara.ends_with_para_break) {
             srcSpannified += srcParaBreak;
           }
         }
 
         const tgtSegmentClass = 'anthea-target-segment-' + segIndex;
-        for (let t = 0; t < segment.tgtParalets.length; t++) {
-          const tgtParalet = segment.tgtParalets[t];
-          tgtSpannified += '<span class="anthea-target-paralet ' +
+        for (let t = 0; t < segment.tgtSubparas.length; t++) {
+          const tgtSubpara = segment.tgtSubparas[t];
+          tgtSpannified += '<span class="anthea-target-subpara ' +
                            tgtSegmentClass + '">' +
-                           (tgtParalet.hotwSpanHTML || tgtParalet.spanHTML) +
+                           (tgtSubpara.hotwSpanHTML || tgtSubpara.spanHTML) +
                            '</span>';
-          if (tgtParalet.ends_with_para_break) {
+          if (tgtSubpara.ends_with_para_break) {
             tgtSpannified += tgtParaBreak;
           }
-          segment.numTgtWords += tgtParalet.num_words;
-          if (tgtParalet.hotwError) {
-            tgtParalet.hotw = {
+          segment.numTgtWords += tgtSubpara.num_words;
+          if (tgtSubpara.hotwError) {
+            tgtSubpara.hotw = {
               timestamp: this.lastTimestampMS_,
-              injected_error: tgtParalet.hotwError,
-              hotw_type: tgtParalet.hotwType,
+              injected_error: tgtSubpara.hotwError,
+              hotw_type: tgtSubpara.hotwType,
               para: t,
               done: false,
               found: false,
             };
-            evalResult['hotw_list'].push(tgtParalet.hotw);
+            evalResult['hotw_list'].push(tgtSubpara.hotw);
           }
         }
         this.numTgtWordsTotal_ += segment.numTgtWords;
@@ -3710,20 +3713,20 @@ class AntheaEval {
       this.adjustHeight(docTextSrcRow, docTextTgtRow);
     }
 
-    /* Grab paralet span elements */
+    /* Grab subpara span elements */
     for (let i = 0; i < this.segments_.length; i++) {
       const segment = this.segments_[i];
-      const srcParaletSpans = document.getElementsByClassName(
+      const srcSubparaSpans = document.getElementsByClassName(
           'anthea-source-segment-' + i);
-      const tgtParaletSpans = document.getElementsByClassName(
+      const tgtSubparaSpans = document.getElementsByClassName(
         'anthea-target-segment-' + i);
-      console.assert(srcParaletSpans.length == segment.srcParalets.length);
-      console.assert(tgtParaletSpans.length == segment.tgtParalets.length);
-      for (let s = 0; s < segment.srcParalets.length; s++) {
-        segment.srcParalets[s].paraletSpan = srcParaletSpans[s];
+      console.assert(srcSubparaSpans.length == segment.srcSubparas.length);
+      console.assert(tgtSubparaSpans.length == segment.tgtSubparas.length);
+      for (let s = 0; s < segment.srcSubparas.length; s++) {
+        segment.srcSubparas[s].subparaSpan = srcSubparaSpans[s];
       }
-      for (let t = 0; t < segment.tgtParalets.length; t++) {
-        segment.tgtParalets[t].paraletSpan = tgtParaletSpans[t];
+      for (let t = 0; t < segment.tgtSubparas.length; t++) {
+        segment.tgtSubparas[t].subparaSpan = tgtSubparaSpans[t];
       }
     }
 
@@ -3792,7 +3795,7 @@ class AntheaEval {
 
 /**
  * The AntheaPhraseMarker class is used to collect highlighted phrases for the
- *     current paralet.
+ *     current subpara.
  * @final
  */
 class AntheaPhraseMarker {
@@ -3829,14 +3832,14 @@ class AntheaPhraseMarker {
   }
 
   /**
-   * Resets the word spans in the current paralet, getting rid of any
+   * Resets the word spans in the current subpara, getting rid of any
    *     event listeners from spannification done in the previous state. Sets
    *     element class to 'anthea-word-active' or 'anthea-word-active-begin' or
    *     'anthea-space-active' or 'anthea-space-active-begin'.
    */
   resetWordSpans() {
     const ce = this.contextedEval_;
-    ce.redrawCurrParalet();
+    ce.redrawCurrSubpara();
 
     this.tokenSpans_ = ce.getCurrTokenSpans();
 
@@ -3945,7 +3948,7 @@ class AntheaPhraseMarker {
 
   /**
    * The public entrypoint in the AntheaPhraseMarker object. Sets up the UI to
-   * collect a highlighted phrase from the current paralet. When phrase-marking
+   * collect a highlighted phrase from the current subpara. When phrase-marking
    * is done, the contextedEval_ object's setMQMSpan() function will get called.
    */
   getMarkedPhrase() {
