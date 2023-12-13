@@ -34,7 +34,7 @@
   opacity: 100%;
   color: black;
 }
-.marot-bottomed-tr {
+.marot-bottomed {
   border-bottom: 1px solid dimgray;
 }
 .marot-ci {
@@ -58,7 +58,7 @@
   padding: 0 4px;
   vertical-align: top;
 }
-.marot-dotted-bottomed-tr {
+.marot-dotted-bottomed {
   border-bottom: 1px dashed darkgray;
 }
 #marot-errors {
@@ -122,6 +122,9 @@
   cursor: pointer;
   color: blue;
 }
+.marot-metric {
+  font-size: 11px;
+}
 .marot-note {
   font-style: italic;
   cursor: default;
@@ -136,7 +139,7 @@
 .marot-out-of-order {
   background: lavender;
 }
-.marot-para {
+.marot-subpara {
   cursor: pointer;
 }
 .marot-prior-error {
@@ -188,7 +191,10 @@
 .marot-score-th {
   min-width: 10ch;
 }
-.marot-scores-table .marot-seg-score {
+.marot-scores-table {
+  width: 100%;
+}
+.marot-scores-table .marot-unit-score {
   padding-left: 4px;
   text-align: right;
 }
@@ -256,6 +262,7 @@
 }
 .marot-table-ratings {
   border-collapse: collapse;
+  width: 100%;
 }
 #marot-segments-tbody td {
   padding: 0;
@@ -299,10 +306,8 @@
   font-size: x-large;
 }
 .marot-val {
-  word-break: break-all;
-}
-.marot-val:hover {
   cursor: pointer;
+  word-break: break-all;
 }
 .marot-val-col {
   max-width: 150px;

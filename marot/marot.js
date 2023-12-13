@@ -110,22 +110,23 @@ class MarotSigtestsMetricData {
 
      /**
       * {!Object} Scores by system/rater. Each score itself is an object
-      *     containing score and numSegments.
+      *     containing score and numScoringUnits.
       */
     this.scores = {};
     /**
-     * {!Object} Segment scores by system/rater. Each value is an array of
-     *     scores that are aligned such that elements at the n-th position of
-     *     all arrays correspond to the same segment. Note that some scores
+     * {!Object} Scoring units' scores by system/rater. Each value is an array
+     *     of scores that are aligned such that elements at the n-th position of
+     *     all arrays correspond to the same scoring unit. Note that some scores
      *     might be null since some systems/raters might be missing scores for
-     *     some segments.
+     *     some scoring units.
      */
-    this.segScores = {};
+    this.unitScores = {};
     /**
-     * {!Object} Common segments shared by a pair of systems/raters. This stores
-     *     positions in segScores.
+     * {!Object} Common scoring unit indices shared by a pair of systems/raters.
+     *     This stores positions in unitScores.
      */
     this.commonPosByItemPair = {};
+
     /**
      * {!Array<!Array<number>>} Computed matrix of p-values.
      */
@@ -190,9 +191,10 @@ class Marot {
     this.selectedRows = new Set();
 
     /**
-     * Structures used for showing aligned paralets in the examples table.
+     * Structures used for using aligned subparas for navigation in the examples
+     * table and for creating smaller scoring units.
      */
-    this.paraNav = {
+    this.subparas = {
       /**
        * Keyed by hash(doc + ":" + seg), and then by
        * "src" / "sys-" + hash(system_name) / "ref-" + hash(reference_name).
@@ -208,13 +210,14 @@ class Marot {
        * Clicking pins a span, and then arrow keys move the pinning up or down
        * within the segment.
        */
-      pinnedParaletCls: '',
+      pinnedSubparaCls: '',
     };
 
-    this.DEFAULT_PARALET_SENTENCES = 3;
-    this.DEFAULT_PARALET_TOKENS = 100;
-    this.paraletSentences = this.DEFAULT_PARALET_SENTENCES;
-    this.paraletTokens = this.DEFAULT_PARALET_TOKENS;
+    this.subparaScoring = false;
+    this.DEFAULT_SUBPARA_SENTS = 1;
+    this.DEFAULT_SUBPARA_TOKENS = 100;
+    this.subparaSents = this.DEFAULT_SUBPARA_SENTS;
+    this.subparaTokens = this.DEFAULT_SUBPARA_TOKENS;
 
     /**
      * If there are "viewing constraints" currently in place (because of a
@@ -257,11 +260,11 @@ class Marot {
 
     /**
      * The following are all arrays of per-rater stats (scores, score slices,
-     * error counts) for one segment.
+     * error counts) for one scoring unit.
      *
-     *   statsBySystem[system][doc][docSegId]
-     *   statsByRaterSystem[rater][system][doc][docSegId]
-     *   statsByRater[rater][doc][docSegId]
+     *   statsBySystem[system][doc][unit]
+     *   statsByRaterSystem[rater][system][doc][unit]
+     *   statsByRater[rater][doc][unit]
      *      stats has a special system value ('MAROT_TOTAL') that aggregates
      *      ratings for all systems, by using faux "doc" keys that look like
      *      "[doc]:[system]". The "doc" keys in statsByRater also look like
@@ -443,14 +446,18 @@ class Marot {
   }
 
   /**
-   * This function returns a "comparable" version of docSegId by padding it
-   * with leading zeros. When docSegId is a non-negative integer (reasonably
-   * bounded), then this ensures numeric ordering.
+   * This function returns a "comparable" version of unit by padding it
+   * with leading zeros. When unit is a non-negative "docSegId" integer
+   * (reasonably bounded), then this ensures numeric ordering. For subparas as
+   * scoring units, unit looks like <docSegId>.<p>, where <p> is the 4-digit
+   * representation of the source subpara index. For such subpara units too,
+   * padding to a fixed with leading zeros ensures the right ordering.
+   *
    * @param {string} s
    * @return {string}
    */
-  cmpDocSegId(s) {
-    return ('' + s).padStart(10, '0');
+  cmpDocUnitId(s) {
+    return ('' + s).padStart(12, '0');
   }
 
   /**
@@ -461,8 +468,8 @@ class Marot {
   sortData(data) {
     data.sort((e1, e2) => {
       let diff = 0;
-      const docSegId1 = this.cmpDocSegId(e1[this.DATA_COL_DOC_SEG_ID]);
-      const docSegId2 = this.cmpDocSegId(e2[this.DATA_COL_DOC_SEG_ID]);
+      const docSegId1 = this.cmpDocUnitId(e1[this.DATA_COL_DOC_SEG_ID]);
+      const docSegId2 = this.cmpDocUnitId(e2[this.DATA_COL_DOC_SEG_ID]);
       if (e1[this.DATA_COL_DOC] < e2[this.DATA_COL_DOC]) {
         diff = -1;
       } else if (e1[this.DATA_COL_DOC] > e2[this.DATA_COL_DOC]) {
@@ -768,6 +775,25 @@ class Marot {
   }
 
   /**
+   * Count the total number of source characters on each sentence and set the
+   * "num_chars" property in each sentence to that value.
+   * @param {!Array<string>} tokens
+   * @param {!Array<!Object>} sentence_splits
+   */
+  setNumChars(tokens, sentence_splits) {
+    let tokenOffset = 0;
+    for (const split of sentence_splits) {
+      const firstToken = tokenOffset;
+      tokenOffset += split.num_tokens;
+      split.num_chars = 0;
+      for (let t = firstToken; t < tokenOffset; t++) {
+        console.assert(t >= 0 && t < tokens.length, t, tokens);
+        split.num_chars += tokens[t].length;
+      }
+    }
+  }
+
+  /**
    * Aggregates this.data, collecting all data for a particular segment
    * translation (i.e., for a given (doc, docSegId) pair) into the aggrDocSeg
    * object in the metadata.segment field, adding to it the following
@@ -790,6 +816,8 @@ class Marot {
       };
       for (const docSegId of this.dataIter.docSegs[doc]) {
         const aggrDocSeg = {
+          doc: doc,
+          docSegId: docSegId,
           catsBySystem: {},
           catsByRater: {},
           sevsBySystem: {},
@@ -802,6 +830,9 @@ class Marot {
         for (const system of this.dataIter.docSys[doc]) {
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
           let aggrDocSegSys = {
+            doc: doc,
+            docSegId: docSegId,
+            system: system,
             aggrDocSeg: aggrDocSeg,
             metrics: {},
           };
@@ -832,6 +863,8 @@ class Marot {
               aggrDocSegSys.source_tokens.length == 0) {
             this.tokenizeLegacySegment(range, aggrDocSegSys);
           }
+          this.setNumChars(aggrDocSegSys.target_tokens,
+                           aggrDocSegSys.target_sentence_splits);
           if (!aggrDocSeg.hasOwnProperty('source_tokens') &&
               aggrDocSegSys.hasOwnProperty('source_tokens')) {
             aggrDocSeg.source_tokens = aggrDocSegSys.source_tokens;
@@ -910,6 +943,24 @@ class Marot {
                                       metadata.feedback.notes;
             }
           }
+        }
+        console.assert(aggrDocSeg.hasOwnProperty('num_source_chars'),
+                       aggrDocSeg);
+        if (aggrDocSeg.num_source_chars == 0) {
+          /**
+           * Degenerate case of an empty source segment. Replace with a single
+           * space to avoid degenerate cases in subpara-splitting.
+           */
+          aggrDocSeg.num_source_chars = 1;
+          aggrDocSeg.source_tokens = [' '];
+          aggrDocSeg.source_sentence_splits = [{num_tokens: 1}];
+        }
+        this.setNumChars(aggrDocSeg.source_tokens,
+                         aggrDocSeg.source_sentence_splits);
+        for (const ref in (aggrDocSeg.reference_sentence_splits ?? {})) {
+          this.setNumChars(aggrDocSeg.reference_tokens[ref],
+                           aggrDocSeg.reference_sentence_splits[ref]);
+
         }
       }
     }
@@ -1307,23 +1358,46 @@ class Marot {
   }
 
   /**
-   * Returns an HTML string for a '<td>' tag containing the score, including
-   * hover text for showing the number of segments and source characters.
-   * @param {!Object} s Score object containing the fields numSegments,
-   *     num_source_chars, score.
-   * @param {string=} cls Optional span class to place the score text within.
+   * Return the name of the scoring unit, based upon the current settings, for
+   * the given metric.
+   * @param {string} metric
    * @return {string}
    */
-  tdForScore(s, cls='') {
+  scoringUnitName(metric) {
+    if (metric != 'MQM' || !this.subparaScoring) {
+      return 'segment';
+    }
+    if (this.subparaSents == 1) {
+      return 'sentence';
+    }
+    return 'subpara';
+  }
+
+  /**
+   * Returns an HTML string for a '<td>' tag containing the score, including
+   * hover text for showing the number of segments and source characters.
+   * @param {!Object} s Score object containing the fields numScoringUnits,
+   *     num_source_chars, score.
+   * @param {string} metric
+   * @param {string=} cls Optional span class to place the score text within.
+   * @param {string=} ciSpanId Optional span id to show confidence interval.
+   * @return {string}
+   */
+  tdForScore(s, metric, cls='', ciSpanId='') {
     const title =
-        `#Segments: ${s.numSegments}, #SrcChars: ${s.num_source_chars}`;
+        `# ${this.scoringUnitName(metric)}s: ${s.numScoringUnits}, ` +
+        `# source chars: ${s.num_source_chars}`;
     let td = `<td title="${title}">`;
     if (cls) {
       td += `<span class="${cls}">`;
     }
-    td += this.metricDisplay(s.score, s.numSegments);
+    td += this.metricDisplay(s.score, s.numScoringUnits);
     if (cls) {
       td += '</span>';
+    }
+    if (ciSpanId) {
+      td += ' <span class="marot-gray" id="' + ciSpanId +
+            '">[-.---,-.---]</span>';
     }
     td += '</td>';
     return td;
@@ -1425,97 +1499,115 @@ class Marot {
   }
 
   /**
-   * Aggregates segment stats. This returns an object that has aggregate MQM
+   * Aggregates scoring stats. This returns an object that has aggregate MQM
    * score in the "score" field and these additional properties:
    *       numSegments
    *       num_source_chars
    *       metrics['<metric-name>']:
    *          score
-   *          numSegments
+   *          numScoringUnits
    *          num_source_chars
    *       metric-[index in this.metrics]
    *           (repeated from metrics[...].score, as a convenient sorting key)
    *       mqmStats:
-   *         numSegments # of segments with MQM ratings
+   *         numScoringUnits # of scoring units with MQM ratings
    *         num_source_chars # of src-chars with MQM ratings
-   *         numRatings: # segment X rater combinations for MQM
+   *         numSegRatings: # segment X rater combinations for MQM
    *         timeSpentMS
-   * @param {!Array} segs
+   * @param {!Array} units
    * @return {!Object}
    */
-  aggregateSegStats(segs) {
+  aggregateUnitStats(units) {
     const aggregates = {
       numSegments: 0,
       num_source_chars: 0,
       metrics: {},
     };
     aggregates.mqmStats = {
-      numSegments: 0,
+      numScoringUnits: 0,
       num_source_chars: 0,
-      numRatings: 0,
+      numSegRatings: 0,
       ...(this.initRaterStats('')),
     };
-    if (!segs || !segs.length) {
+    if (!units || !units.length) {
       return aggregates;
     }
-    for (const segStats of segs) {
-      aggregates.numSegments++;
-      aggregates.num_source_chars += segStats.num_source_chars;
+    /**
+     * First compute MQM aggregates into aggregates.mqmStats, and initialize
+     * aggregates.metric[metricName] for any non-MQM metricName found in
+     * unitStats.
+     */
+    const docAndDocSegs = new Set;
+    for (const unitStats of units) {
+      aggregates.num_source_chars += unitStats.num_source_chars;
       const allRaterStats = this.initRaterStats('');
-      for (const r of segStats) {
+      for (const r of unitStats) {
         this.addRaterStats(allRaterStats, r);
       }
-      if (segStats.length > 0) {
-        this.avgRaterStats(allRaterStats, segStats.length);
-        aggregates.mqmStats.numSegments++;
-        aggregates.mqmStats.num_source_chars += segStats.num_source_chars;
-        aggregates.mqmStats.numRatings += segStats.length;
+      const docAndDocSeg = this.aColonB(
+          unitStats.doc, this.unitIdToDocSegId(unitStats.unit));
+      if (unitStats.length > 0) {
+        this.avgRaterStats(allRaterStats, unitStats.length);
+        aggregates.mqmStats.numScoringUnits++;
+        aggregates.mqmStats.num_source_chars += unitStats.num_source_chars;
+        if (!docAndDocSegs.has(docAndDocSeg)) {
+          /** Count segment ratings only from the first subpara */
+          aggregates.mqmStats.numSegRatings += unitStats.length;
+        }
         this.addRaterStats(aggregates.mqmStats, allRaterStats);
       }
-      if (segStats.hasOwnProperty('metrics')) {
-        for (let metric in segStats.metrics) {
+      docAndDocSegs.add(docAndDocSeg);
+      if (unitStats.hasOwnProperty('metrics')) {
+        for (let metric in unitStats.metrics) {
           if (metric == 'MQM') {
-            /**
-             * Ignore any MQM values that may be present in the segment metadata
-             * as we compute them from the annotations.
-             */
             continue;
           }
           if (!aggregates.metrics.hasOwnProperty(metric)) {
             aggregates.metrics[metric] = {
               score: 0,
-              numSegments: 0,
+              /**
+               * For non-MQM metrics, this will be the number of segments
+               * for which that metric is available, regardless of whether
+               * the scoring units are subparas for MQM.
+               */
+              numScoringUnits: 0,
               num_source_chars: 0,
             };
           }
         }
       }
     }
+    aggregates.numSegments = docAndDocSegs.size;
 
-    this.avgRaterStats(aggregates.mqmStats, aggregates.mqmStats.numSegments);
+    this.avgRaterStats(
+        aggregates.mqmStats, aggregates.mqmStats.numScoringUnits);
 
+    /** Aggregate non-MQM metrics. */
     for (let metric in aggregates.metrics) {
       const metricStats = aggregates.metrics[metric];
-      for (const segStats of segs) {
-        if (!segStats.hasOwnProperty('metrics') ||
-            !segStats.metrics.hasOwnProperty(metric)) {
+      const metricDocAndDocSegs = new Set;
+      for (const unitStats of units) {
+        if (!unitStats.hasOwnProperty('metrics') ||
+            !unitStats.metrics.hasOwnProperty(metric)) {
           continue;
         }
-        metricStats.numSegments++;
-        metricStats.num_source_chars += segStats.num_source_chars;
-        metricStats.score += segStats.metrics[metric];
+        metricDocAndDocSegs.add(
+            unitStats.doc, this.unitIdToDocSegId(unitStats.unit));
+        metricStats.num_source_chars += unitStats.num_source_chars;
+        metricStats.score += unitStats.metrics[metric];
       }
-      if (metricStats.numSegments > 0) {
-        metricStats.score /= metricStats.numSegments;
+      metricStats.numScoringUnits = metricDocAndDocSegs.size;
+      if (metricStats.numScoringUnits > 0) {
+        metricStats.score /= metricStats.numScoringUnits;
       }
     }
     /** Copy MQM score into aggregate.metrics['MQM'] */
-    if (aggregates.mqmStats.numRatings > 0) {
+    if (aggregates.mqmStats.numSegRatings > 0) {
       aggregates.metrics['MQM'] = {
         score: aggregates.mqmStats.score,
-        numSegments: aggregates.mqmStats.numSegments,
+        numScoringUnits: aggregates.mqmStats.numScoringUnits,
         num_source_chars: aggregates.mqmStats.num_source_chars,
-        numRatings: aggregates.mqmStats.numRatings,
+        numSegRatings: aggregates.mqmStats.numSegRatings,
       };
     }
     for (let metric in aggregates.metrics) {
@@ -1532,13 +1624,14 @@ class Marot {
    */
   startSigtests() {
     let noop = true;
+    const waitingMsg = 'Computing confidence intervals and p-values...';
     if (this.sigtestsData.data.hasOwnProperty('sys')) {
       noop = false;
-      this.sigtestsSysMsg.innerHTML = 'Computing p-values...';
+      this.sigtestsSysMsg.innerHTML = waitingMsg;
     }
     if (this.sigtestsData.data.hasOwnProperty('rater')) {
       noop = false;
-      this.sigtestsRaterMsg.innerHTML = 'Computing p-values...';
+      this.sigtestsRaterMsg.innerHTML = waitingMsg;
     }
     if (noop) {
       return;
@@ -1578,8 +1671,8 @@ class Marot {
    * @return {number}
    */
   pearson(data, baseline, item) {
-    const baselineScores = data.segScores[baseline];
-    const itemScores = data.segScores[item];
+    const baselineScores = data.unitScores[baseline];
+    const itemScores = data.unitScores[item];
     const commonPos = data.commonPosByItemPair[baseline][item];
 
     const n = commonPos.length ?? 0;
@@ -1609,16 +1702,16 @@ class Marot {
    * @param {string} sysOrRater
    * @param {!Object} stats Stats object keyed by system/rater.
    * @param {!Object} statsAggregates Aggregation (also keyed by system/rater)
-   *     of stats over segments.
+   *     of stats over scoring units.
    * @param {!Array<number>} metricIds
    * @return {!Object} Returns an object keyed by metric name, where each
    *     value is a MarotSigtestsMetricData object.
    */
   prepareSigtests(sysOrRater, stats, statsAggregates, metricIds) {
     /**
-     * Each segment is uniquely determined by the (doc, docSegId) pair. We use
-     * `pairToPos` to track which pair goes to which position in the aligned
-     * segScores[] array.
+     * Each scoring unit is uniquely determined by the (doc, unit) pair. We
+     * use `pairToPos` to track which pair goes to which position in the aligned
+     * unitScores[] array.
      */
     const pairToPos = {};
     let maxPos = 0;
@@ -1627,12 +1720,12 @@ class Marot {
         if (!pairToPos.hasOwnProperty(doc)) {
           pairToPos[doc] = {};
         }
-        const docsegs = stats[key][doc];
-        for (const docSegId in docsegs) {
-          if (pairToPos[doc].hasOwnProperty(docSegId)) {
+        const unitStats = stats[key][doc];
+        for (const unit in unitStats) {
+          if (pairToPos[doc].hasOwnProperty(unit)) {
             continue;
           }
-          pairToPos[doc][docSegId] = maxPos;
+          pairToPos[doc][unit] = maxPos;
           maxPos += 1;
         }
       }
@@ -1663,7 +1756,7 @@ class Marot {
       for (const item of data.comparables) {
         data.scores[item] =
             statsAggregates[item].metrics[metric] ??
-            {score: 0, numSegments: 0};
+            {score: 0, numScoringUnits: 0};
       }
       const augmentedItems = data.comparables.slice();
       if (sysOrRater == 'rater') {
@@ -1672,36 +1765,43 @@ class Marot {
           augmentedItems.push(notRater);
           data.scores[notRater] =
               statsAggregates[notRater].metrics[metric] ??
-              {score: 0, numSegments: 0};
+              {score: 0, numScoringUnits: 0};
         }
       }
-      const segScores = data.segScores;
+      const unitScores = data.unitScores;
       for (const item of augmentedItems) {
         /**
          * For each item, we first compute the mapping from position to score.
-         * Any missing key correponds to one missing segment for this item.
+         * Any missing key correponds to one missing scoring unit for this item.
          */
         const posToScore = {};
         for (const doc of Object.keys(stats[item])) {
-          for (const docSegId of Object.keys(stats[item][doc])) {
-            const pos = pairToPos[doc][docSegId];
-            const segs = stats[item][doc][docSegId];
+          for (const unit of Object.keys(stats[item][doc])) {
+            const unitStats = stats[item][doc][unit];
+            const pos = pairToPos[doc][unit];
             /** Note the extra "[]". */
-            const aggregate = this.aggregateSegStats([segs]);
+            const aggregate = this.aggregateUnitStats([unitStats]);
             const metricStats = aggregate.metrics[metric] ?? null;
-            if (metricStats && metricStats.numSegments > 0) {
-              posToScore[pos] = metricStats.score;
+            if (metricStats && metricStats.numScoringUnits > 0 &&
+                (metric == 'MQM' ||
+                 !this.subparaScoring || unitStats.subpara == 0)) {
+              let score = metricStats.score;
+              if (metric != 'MQM' && this.subparaScoring) {
+                /** Adjust score back to segment-level score */
+                score *= unitStats.numSubparas;
+              }
+              posToScore[pos] = score;
             }
           }
         }
-        /** Now we can compute "segScores". */
-        segScores[item] = [];
+        /** Now we can compute "unitScores". */
+        unitScores[item] = [];
         for (let pos = 0; pos < maxPos; pos++) {
           if (posToScore.hasOwnProperty(pos)) {
-            segScores[item].push(posToScore[pos]);
+            unitScores[item].push(posToScore[pos]);
           } else {
-            /** This item is missing this specific segment. */
-            segScores[item].push(null);
+            /** This item is missing this specific unit. */
+            unitScores[item].push(null);
           }
         }
       }
@@ -1724,8 +1824,8 @@ class Marot {
             commonPos[baseline][item] = [];
           }
           for (let pos = 0; pos < maxPos; pos++) {
-            if ((segScores[item][pos] != null) &&
-                (segScores[baseline][pos] != null)) {
+            if ((unitScores[item][pos] != null) &&
+                (unitScores[baseline][pos] != null)) {
               commonPos[baseline][item].push(pos);
             }
           }
@@ -1778,7 +1878,7 @@ class Marot {
       maxBetterThanAllAfter = Math.max(maxBetterThanAllAfter,
                                        itemBetterThanAllAfter[row]);
       if (maxBetterThanAllAfter == row) {
-        tr.className = 'marot-bottomed-tr';
+        tr.className = 'marot-bottomed';
         dottedClusterStart = row + 1;
         continue;
       }
@@ -1793,7 +1893,7 @@ class Marot {
         }
       }
       if (!noneSigBetter) {
-        tr.className = 'marot-dotted-bottomed-tr';
+        tr.className = 'marot-dotted-bottomed';
         dottedClusterStart = row + 1;
       }
     }
@@ -1824,11 +1924,23 @@ class Marot {
       this.clusterSigtests(update.sysOrRater, metric);
       return;
     }
+    const m = this.metricsInfo[metric].index;
+    if (update.ci) {
+      /** update contains a confidence-interval */
+      const row = update.row;
+      const ci = update.ci;
+      if (!isNaN(ci[0])) {
+        const spanId = `marot-${update.sysOrRater}-ci-${m}-${row}`;
+        const span = document.getElementById(spanId);
+        span.innerHTML = '[' + ci[0].toFixed(3) + ',' + ci[1].toFixed(3) + ']';
+      }
+      return;
+    }
+    /** update contains a p-value */
     const pValues = this.sigtestsData.data[update.sysOrRater][metric].pValues;
     const row = update.row;
     const col = update.col;
     pValues[row][col] = update.pValue;
-    const m = this.metricsInfo[metric].index;
     const spanId = `marot-${update.sysOrRater}-sigtest-${m}-${row}-${col}`;
     const span = document.getElementById(spanId).firstElementChild;
     span.innerHTML = isNaN(update.pValue) ? '-' : update.pValue.toFixed(3);
@@ -1896,15 +2008,16 @@ class Marot {
       for (const [rowIdx, baseline] of comparables.entries()) {
         /** Show metric score in the second column. */
         const s = scores[baseline];
+        const ciSpanId = `marot-${sysOrRater}-ci-${m}-${rowIdx}`;
         html += `
           <tr id="marot-${sysOrRater}-sigtests-${m}-row-${rowIdx}">
             <td>${baseline}</td>
-            ${this.tdForScore(s)}`;
+            ${this.tdForScore(s, metric, '', ciSpanId)}`;
         const othersColumn = [];
         if (sysOrRater == 'rater') {
           const notRater = this.NOT_PREFIX + baseline;
           const otherRatersScore = scores[notRater];
-          html += this.tdForScore(otherRatersScore, 'marot-gray');
+          html += this.tdForScore(otherRatersScore, metric, 'marot-gray');
           othersColumn.push(notRater);
         }
         const columns = othersColumn.concat(comparables);
@@ -1918,10 +2031,11 @@ class Marot {
             continue;
           }
           const commonPos = data.commonPosByItemPair[baseline][item] ?? [];
-          const title = 'Based on ' + commonPos.length + ' common segments';
+          const title = 'Based on ' + commonPos.length +
+                        ' common ' + this.scoringUnitName(metric) + 's';
           html += '<td title="' + title + '">';
           const s2 = scores[item];
-          if (s2.numSegments == 0) {
+          if (s2.numScoringUnits == 0) {
             html += '</td>';
             continue;
           }
@@ -1967,20 +2081,20 @@ class Marot {
   showScoresHeader(hasRatings) {
     const header = document.getElementById('marot-stats-thead');
     let html = `
-        <tr>
-          <th>Scores are per segment</th>`;
+        <tr><th></th>`;
     const metricFields = [];
     for (const m of this.metricsVisible) {
       const metric = this.metrics[m];
-      html +=  `<th id="marot-metric-${m}-th">${metric}</th>`;
+      html +=  `<th id="marot-metric-${m}-th">${metric}
+                   per ${this.scoringUnitName(metric)}</th>`;
       metricFields.push('metric-' + m);
     }
     html += `
-            <th title="Number of segments"><b>#Segments</b></th>
-            <th title="Number of source characters"><b>#Source-chars</b></th>`;
+        <th title="Number of segments"><b>#Segments</b></th>
+        <th title="Number of source characters"><b>#Source-chars</b></th>`;
     if (hasRatings) {
       html += `
-            <th title="Number of segment ratings"><b>#Segment ratings</b></th>`;
+        <th title="Number of segment ratings"><b>#Segment MQM ratings</b></th>`;
     }
 
     const mqmPartFields =
@@ -2070,17 +2184,17 @@ class Marot {
         continue;
       }
       const s = aggregates.metrics[metric];
-      rowHTML += this.tdForScore(s);
+      rowHTML += this.tdForScore(s, metric);
     }
     rowHTML +=
         `<td>${aggregates.numSegments}</td>` +
         `<td>${aggregates.num_source_chars}</td>`;
     if (hasRatings) {
       const mqmStats = aggregates.mqmStats;
-      console.assert(mqmStats.numRatings > 0, mqmStats);
+      console.assert(mqmStats.numSegRatings > 0, mqmStats);
       rowHTML +=
-        `<td>${mqmStats.numRatings}</td>`;
-      if (mqmStats.numSegments <= 0) {
+        `<td>${mqmStats.numSegRatings}</td>`;
+      if (mqmStats.numScoringUnits <= 0) {
         for (let i = 0; i < scoreFields.length + 3; i++) {
           rowHTML += '<td>-</td>';
         }
@@ -2123,8 +2237,8 @@ class Marot {
     const systems = Object.keys(this.statsBySystem);
     const systemAggregates = {};
     for (const sys of systems) {
-      const segs = this.getSegStatsAsArray(this.statsBySystem[sys]);
-      systemAggregates[sys] = this.aggregateSegStats(segs);
+      const unitStats = this.getUnitStatsAsArray(this.statsBySystem[sys]);
+      systemAggregates[sys] = this.aggregateUnitStats(unitStats);
     }
 
     const SORT_FIELD = 'metric-0';
@@ -2136,8 +2250,8 @@ class Marot {
     const raters = this.excludeRaterComplements(Object.keys(this.statsByRater));
     const raterAggregates = {};
     for (const rater of raters) {
-      const segs = this.getSegStatsAsArray(this.statsByRater[rater]);
-      raterAggregates[rater] = this.aggregateSegStats(segs);
+      const unitStats = this.getUnitStatsAsArray(this.statsByRater[rater]);
+      raterAggregates[rater] = this.aggregateUnitStats(unitStats);
     }
     raters.sort(
         (rater1, rater2) =>
@@ -2173,18 +2287,18 @@ class Marot {
       }
       const allRatersScore = systemAggregates[sys].mqmStats;
       html += `
-        <tr><td>${sys}</td>${this.tdForScore(allRatersScore)}`;
+        <tr><td>${sys}</td>${this.tdForScore(allRatersScore, 'MQM')}`;
       for (const rater of raters) {
-        const segs = this.getSegStatsAsArray(
+        const unitStats = this.getUnitStatsAsArray(
             (this.statsByRaterSystem[rater] ?? {})[sys] ?? {});
-        if (segs && segs.length > 0) {
-          const aggregate = this.aggregateSegStats(segs);
+        if (unitStats && unitStats.length > 0) {
+          const aggregate = this.aggregateUnitStats(unitStats);
           const cls = ((aggregate.mqmStats.score < lastForRater[rater] &&
                         allRatersScore.score > lastAllRaters) ||
                        (aggregate.mqmStats.score > lastForRater[rater] &&
                         allRatersScore.score < lastAllRaters)) ?
               'marot-out-of-order' : '';
-          html += this.tdForScore(aggregate.mqmStats, cls);
+          html += this.tdForScore(aggregate.mqmStats, 'MQM', cls);
           lastForRater[rater] = aggregate.mqmStats.score;
         } else {
           html += '<td>-</td>';
@@ -2205,49 +2319,74 @@ class Marot {
   }
 
   /**
-   * Sorter function where a & b are both a [doc, seg] pair. The seg part can
-   * be a number (0,1,2,3,etc.) or a string, so we have to be careful to ensure
-   * transitivity. We do that by assuming that the numbers are not too big, so
-   * padding them with up to 10 zeros should be good enough.
+   * Sorter function where a & b are both a [doc, unit] pair. The unit part can
+   * be numeric.
    * @param {!Array<string>} a
    * @param {!Array<string>} b
    * @return {number} Comparison for sorting a & b.
    */
-  docsegsSorter(a, b) {
+  docUnitsSorter(a, b) {
     if (a[0] < b[0]) return -1;
     if (a[0] > b[0]) return 1;
-    const seg1 = this.cmpDocSegId(a[1]);
-    const seg2 = this.cmpDocSegId(b[1]);
-    if (seg1 < seg2) return -1;
-    if (seg1 > seg2) return 1;
+    const unit1 = this.cmpDocUnitId(a[1]);
+    const unit2 = this.cmpDocUnitId(b[1]);
+    if (unit1 < unit2) return -1;
+    if (unit1 > unit2) return 1;
     return 0;
   }
 
   /**
-   * From a stats object that's keyed on doc and then on segs, extracts all
-   * [doc, seg] pairs into an array, sorts the array, and returns it.
+   * From a stats object that's keyed on doc and then on scoring units, extracts
+   * all [doc, unit] pairs into an array, sorts the array, and returns it.
    * @param {!Object} stats
    * @return {!Array}
    */
-  getDocSegs(stats) {
-    const segs = [];
+  getDocUnits(stats) {
+    const docUnits = [];
     for (let doc in stats) {
       const docstats = stats[doc];
-      for (let docSeg in docstats) {
-        segs.push([doc, docSeg]);
+      for (let unit in docstats) {
+        docUnits.push([doc, unit]);
       }
     }
-    return segs.sort(this.docsegsSorter.bind(this));
+    return docUnits.sort(this.docUnitsSorter.bind(this));
   }
 
   /**
-   * Makes a convenient key that captures a doc name and a docSegId.
-   * @param {string} doc
-   * @param {string|number} seg
+   * Makes a convenient key that captures two values, separated by a colon.
+   * @param {string} a
+   * @param {string|number} b
    * @return {string}
    */
-  docColonSeg(doc, seg) {
-    return doc + ':' + seg;
+  aColonB(a, b) {
+    return a + ':' + b;
+  }
+
+  /**
+   * Create a scoring unit id for a subpara in a segment. The subpara index
+   * is appended with a decimal point and leading zeros.
+   * @param {string|number} docSegId
+   * @param {string|number} subpara
+   * @return {string}
+   */
+  subparaUnitId(docSegId, subpara) {
+    return docSegId + '.' + ('' + subpara).padStart(4, '0');
+  }
+
+  /**
+   * Retrieve the segment id from a a scoring unit id, which could be just a
+   * segment id or it could be a segment id with a subpara index after a decimal
+   * point.
+   * @param {string|number} unit
+   * @return {string}
+   */
+  unitIdToDocSegId(unit) {
+    let docSegId = '' + unit;
+    const lastDot = docSegId.lastIndexOf('.');
+    if (lastDot >= 0) {
+      docSegId = docSegId.substr(0, lastDot);
+    }
+    return docSegId;
   }
 
   /**
@@ -2371,7 +2510,7 @@ class Marot {
   }
 
   /**
-   * Shows the system v system histograms of segment score differences.
+   * Shows the system v system histograms of scoring unit differences.
    * @param {string} sysOrRater 'sys' or 'rater'
    */
   showCmp(sysOrRater) {
@@ -2384,47 +2523,48 @@ class Marot {
       sr2 = this.NOT_PREFIX + sr1;
     }
     const stats = sysOrRater == 'sys' ? this.statsBySystem : this.statsByRater;
-    const docsegs1 = this.getDocSegs(stats[sr1] || {});
-    const docsegs2 = this.getDocSegs(stats[sr2] || {});
+    const docUnits1 = this.getDocUnits(stats[sr1] || {});
+    const docUnits2 = this.getDocUnits(stats[sr2] || {});
     /**
-     * Find common segments.
+     * Find common scoring units.
      */
     let i1 = 0;
     let i2 = 0;
-    const docsegs12 = [];
-    while (i1 < docsegs1.length && i2 < docsegs2.length) {
-      const ds1 = docsegs1[i1];
-      const ds2 = docsegs2[i2];
-      const sort = this.docsegsSorter(ds1, ds2);
+    const docUnits12 = [];
+    while (i1 < docUnits1.length && i2 < docUnits2.length) {
+      const du1 = docUnits1[i1];
+      const du2 = docUnits2[i2];
+      const sort = this.docUnitsSorter(du1, du2);
       if (sort < 0) {
         i1++;
       } else if (sort > 0) {
         i2++;
       } else {
-        docsegs12.push(ds1);
+        docUnits12.push(du1);
         i1++;
         i2++;
       }
     }
-    document.getElementById(`marot-${versus}-xsegs`).innerHTML =
-        docsegs12.length;
-    document.getElementById(`marot-${versus}-1-segs`).innerHTML =
-        docsegs1.length;
-    document.getElementById(`marot-${versus}-2-segs`).innerHTML =
-        docsegs2.length;
+    document.getElementById(`marot-${versus}-xunits`).innerHTML =
+        docUnits12.length;
+    document.getElementById(`marot-${versus}-1-units`).innerHTML =
+        docUnits1.length;
+    document.getElementById(`marot-${versus}-2-units`).innerHTML =
+        docUnits2.length;
 
     const sameSR = sr1 == sr2;
 
     const metricIds = (sysOrRater == 'sys') ? this.metricsVisible : [0];
 
     for (const m of metricIds) {
+      const metric = this.metrics[m];
       const metricKey = 'metric-' + m;
       /**
        * We draw up to 3 plots for a metric: sr-1, sr-2, and their diff.
        */
       const hists = [
         {
-          docsegs: docsegs1,
+          docUnits: docUnits1,
           hide: !sr1,
           sr: sr1,
           color: 'lightgreen',
@@ -2433,7 +2573,7 @@ class Marot {
           id: `marot-${sysOrRater}1-plot-` + m,
         },
         {
-          docsegs: docsegs2,
+          docUnits: docUnits2,
           hide: sameSR,
           sr: sr2,
           color: 'lightblue',
@@ -2442,7 +2582,7 @@ class Marot {
           id: `marot-${sysOrRater}2-plot-` + m,
         },
         {
-          docsegs: docsegs12,
+          docUnits: docUnits12,
           hide: sameSR,
           sr: sr1,
           color: 'lightgreen',
@@ -2457,27 +2597,41 @@ class Marot {
         if (hist.hide) {
           continue;
         }
-        const histBuilder = new MarotHistogram(sysOrRater,
-                                               m, hist.sr, hist.color,
+        const histBuilder = new MarotHistogram(sysOrRater, m,
+                                               this.scoringUnitName(metric),
+                                               hist.sr, hist.color,
                                                hist.srCmp, hist.colorCmp);
-        for (let i = 0; i < hist.docsegs.length; i++) {
-          const doc = hist.docsegs[i][0];
-          const docSegId = hist.docsegs[i][1];
-          const aggregate1 = this.aggregateSegStats(
-              [stats[hist.sr][doc][docSegId]]);
+        const docSegsSet = new Set;
+        for (let i = 0; i < hist.docUnits.length; i++) {
+          const doc = hist.docUnits[i][0];
+          const unit = hist.docUnits[i][1];
+          const unitStats = stats[hist.sr][doc][unit];
+          const aggregate1 = this.aggregateUnitStats([unitStats]);
           if (!aggregate1.hasOwnProperty(metricKey)) {
             continue;
           }
           let score = aggregate1[metricKey];
           if (hist.srCmp) {
-            const aggregate2 = this.aggregateSegStats(
-                [stats[hist.srCmp][doc][docSegId]]);
+            const aggregate2 = this.aggregateUnitStats(
+                [stats[hist.srCmp][doc][unit]]);
             if (!aggregate2.hasOwnProperty(metricKey)) {
               continue;
             }
             score -= aggregate2[metricKey];
           }
-          histBuilder.addSegment(doc, docSegId, score);
+          if (metric != 'MQM') {
+            /** Non-MQM units are scored only at segment level */
+            const docAndDocSeg = this.aColonB(doc, this.unitIdToDocSegId(unit));
+            if (!docSegsSet.has(docAndDocSeg)) {
+              docSegsSet.add(docAndDocSeg);
+              if (this.subparaScoring) {
+                score *= unitStats.numSubparas;
+              }
+            } else {
+              continue;
+            }
+          }
+          histBuilder.addScoringUnit(doc, unit, score);
         }
         histBuilder.display(histElt);
       }
@@ -2642,9 +2796,9 @@ class Marot {
 
   /**
    * This is called from show() after looping through the data. It creates
-   * "complementary raters" stats. I.e., for each rater R, for each segment, it
-   * creates stats for the "not:R" rater, that are the ratings from all other
-   * raters.
+   * "complementary raters" stats. I.e., for each rater R, for each scoring
+   * unit, it creates stats for the "not:R" rater, that are the ratings from all
+   * other raters.
    */
   buildRaterComplementStats() {
     const raters = Object.keys(this.statsByRater);
@@ -2659,35 +2813,37 @@ class Marot {
       for (const docsys in raterStats) {
         /**
          * Note that this.statsByRater[rater] (raterStats) is keyed by docsys
-         * (which is like "doc:sys"). Each this.statsByRater[rater][docsys][seg]
-         * is an array consisting of exactly one element, which contains the
-         * aggregate score given by this rater to this particular segment in
-         * this doc:sys.
+         * (which is like "doc:sys"). Each
+         * this.statsByRater[rater][docsys][unit] is an array consisting of
+         * exactly one element, which contains the aggregate score given by this
+         * rater to this particular scoring unit in this doc:sys.
          *
          * When we build the complement ratings ('not:<r>') for a rater '<r>',
-         * this.statsByRater['not:<r>'][docsys][seg] will be an array consisting
-         * of all existing this.statsByRater[rater][docsys][seg][0] such that
-         * rater != '<r>'.
+         * this.statsByRater['not:<r>'][docsys][unit] will be an array
+         * consisting of all existing this.statsByRater[rater][docsys][unit][0]
+         * such that rater != '<r>'.
          */
         const raterDocsysStats = raterStats[docsys];
-        for (const seg in raterDocsysStats) {
-          const raterDocsysSegStats = raterDocsysStats[seg];
-          console.assert(raterDocsysSegStats.length == 1, raterDocsysSegStats);
+        for (const unit in raterDocsysStats) {
+          const raterDocsysUnitStats = raterDocsysStats[unit];
+          console.assert(raterDocsysUnitStats.length == 1,
+                         raterDocsysUnitStats);
           for (const otherRater of raters) {
             if (rater == otherRater) {
               continue;
             }
             const notOtherRater = this.NOT_PREFIX + otherRater;
-            if (!this.statsByRater[notOtherRater].hasOwnProperty(docsys)) {
-              this.statsByRater[notOtherRater][docsys] = {};
+            const notOtherRaterStats = this.statsByRater[notOtherRater];
+            if (!notOtherRaterStats.hasOwnProperty(docsys)) {
+              notOtherRaterStats[docsys] = {};
             }
-            if (!this.statsByRater[notOtherRater][docsys].hasOwnProperty(seg)) {
-              this.statsByRater[notOtherRater][docsys][seg] = [];
-              this.statsByRater[notOtherRater][docsys][seg].num_source_chars =
-                  raterDocsysSegStats.num_source_chars;
+            if (!notOtherRaterStats[docsys].hasOwnProperty(unit)) {
+              notOtherRaterStats[docsys][unit] = [];
+              notOtherRaterStats[docsys][unit].num_source_chars =
+                  raterDocsysUnitStats.num_source_chars;
             }
-            this.statsByRater[notOtherRater][docsys][seg].push(
-                raterDocsysSegStats[0]);
+            notOtherRaterStats[docsys][unit].push(
+                raterDocsysUnitStats[0]);
           }
         }
       }
@@ -2707,8 +2863,8 @@ class Marot {
     const systems = Object.keys(this.statsBySystem);
     const statsBySysAggregates = {};
     for (const system of systems) {
-      const segs = this.getSegStatsAsArray(this.statsBySystem[system]);
-      statsBySysAggregates[system] = this.aggregateSegStats(segs);
+      const unitStats = this.getUnitStatsAsArray(this.statsBySystem[system]);
+      statsBySysAggregates[system] = this.aggregateUnitStats(unitStats);
     }
     const overallMQMStats = statsBySysAggregates[this.TOTAL].mqmStats ?? {};
     this.mqmWeightedFields = [];
@@ -2732,8 +2888,8 @@ class Marot {
     const ratersOrGroups = Object.keys(this.statsByRater);
     for (const rater of ratersOrGroups) {
       /** Build aggregates for all, including the 'not:' rater groups. */
-      const segs = this.getSegStatsAsArray(this.statsByRater[rater]);
-      statsByRaterAggregates[rater] = this.aggregateSegStats(segs);
+      const unitStats = this.getUnitStatsAsArray(this.statsByRater[rater]);
+      statsByRaterAggregates[rater] = this.aggregateUnitStats(unitStats);
     }
 
     const raters = this.excludeRaterComplements(ratersOrGroups);
@@ -2877,10 +3033,10 @@ class Marot {
   }
 
   /**
-   * Updates stats with an error of (category, severity). The weighted score
-   * component to use is the first matching one in this.mqmWeights[]. Similarly,
-   * the slice to attribute the score to is the first matching one in
-   * this.mqmSlices[].
+   * Updates the last entry in stats with an error of (category, severity). The
+   * weighted score component to use is the first matching one in
+   * this.mqmWeights[]. Similarly, the slice to attribute the score to is the
+   * first matching one in this.mqmSlices[].
    *
    * @param {!Object} stats
    * @param {number} timeSpentMS
@@ -2889,7 +3045,8 @@ class Marot {
    * @param {number} span
    */
   addErrorStats(stats, timeSpentMS, category, severity, span) {
-    stats.timeSpentMS += timeSpentMS;
+    const statsToModify = this.arrayLast(stats);
+    statsToModify.timeSpentMS += timeSpentMS;
 
     const lcat = category.toLowerCase().trim();
     if (lcat == 'no-error' || lcat == 'no_error') {
@@ -2899,14 +3056,14 @@ class Marot {
     const lsev = severity.toLowerCase().trim();
     if (lsev == 'hotw-test' || lsev == 'hotw_test') {
       if (lcat == 'found') {
-        stats.hotwFound++;
+        statsToModify.hotwFound++;
       } else if (lcat == 'missed') {
-        stats.hotwMissed++;
+        statsToModify.hotwMissed++;
       }
       return;
     }
     if (lsev == 'unrateable') {
-      stats.unrateable++;
+      statsToModify.unrateable++;
       return;
     }
     if (lsev == 'neutral') {
@@ -2915,17 +3072,17 @@ class Marot {
 
     if (span > 0) {
       /* There is a scoreable error span.  */
-      stats.numWithErrors++;
-      stats.errorSpans += span;
+      statsToModify.numWithErrors++;
+      statsToModify.errorSpans += span;
     }
 
     let score = 0;
     for (const sc of this.mqmWeights) {
       if (this.matchesMQMSplit(sc, lsev, lcat)) {
         score = sc.weight;
-        stats.score += score;
+        statsToModify.score += score;
         const key = this.mqmKey(sc.name);
-        stats[key] = (stats[key] ?? 0) + score;
+        statsToModify[key] = (statsToModify[key] ?? 0) + score;
         break;
       }
     }
@@ -2933,7 +3090,7 @@ class Marot {
       for (const sc of this.mqmSlices) {
         if (this.matchesMQMSplit(sc, lsev, lcat)) {
           const key = this.mqmKey(sc.name, true);
-          stats[key] = (stats[key] ?? 0) + score;
+          statsToModify[key] = (statsToModify[key] ?? 0) + score;
           break;
         }
       }
@@ -2951,34 +3108,48 @@ class Marot {
   }
 
   /**
-   * Returns the segment stats keyed by doc and docSegId. This will
-   * create an empty array if the associated segment stats array doesn't exist.
-   * @param {!Object} statsByDocAndDocSegId
+   * Create the scoring unit stats keyed by doc and unit, setting some
+   * properties, if it does not exist, and return it.
+   * @param {!Object} statsByDocUnit
    * @param {string} doc
-   * @param {string} docSegId
-   * @return {!Array}
+   * @param {string} unit
+   * @param {number} srcChars
+   * @param {number} subpara
+   * @param {number} numSubparas
+   * @return {!Array<!Object>}
    */
-  getSegStats(statsByDocAndDocSegId, doc, docSegId) {
-    if (!statsByDocAndDocSegId.hasOwnProperty(doc)) {
-      statsByDocAndDocSegId[doc] = {};
+  createOrGetUnitStats(statsByDocUnit, doc, unit,
+                       srcChars, subpara, numSubparas) {
+    if (!statsByDocUnit.hasOwnProperty(doc)) {
+      statsByDocUnit[doc] = {};
     }
-    if (!statsByDocAndDocSegId[doc].hasOwnProperty(docSegId)) {
-      statsByDocAndDocSegId[doc][docSegId] = [];
+    if (!statsByDocUnit[doc].hasOwnProperty(unit)) {
+      statsByDocUnit[doc][unit] = [];
+      /**
+       * Attach the ids of the unit itself as properties, so that we can use
+       * them when aggregating.
+       */
+      const stats = statsByDocUnit[doc][unit];
+      stats.doc = doc;
+      stats.unit = unit;
+      stats.num_source_chars = srcChars;
+      stats.subpara = subpara;
+      stats.numSubparas = numSubparas;
     }
-    return statsByDocAndDocSegId[doc][docSegId];
+    return statsByDocUnit[doc][unit];
   }
 
   /**
    * Flattens the nested stats object into an array of segment stats.
-   * @param {!Object} statsByDocAndDocSegId
+   * @param {!Object} statsByDocAndUnit
    * @return {!Array}
    */
-  getSegStatsAsArray(statsByDocAndDocSegId) {
-    let arr = [];
-    for (const doc of Object.keys(statsByDocAndDocSegId)) {
-      let statsByDocSegId = statsByDocAndDocSegId[doc];
-      for (const docSegId of Object.keys(statsByDocSegId)) {
-        arr.push(statsByDocSegId[docSegId]);
+  getUnitStatsAsArray(statsByDocAndUnit) {
+    const arr = [];
+    for (const doc of Object.keys(statsByDocAndUnit)) {
+      const statsByUnit = statsByDocAndUnit[doc];
+      for (const unit of Object.keys(statsByUnit)) {
+        arr.push(statsByUnit[unit]);
       }
     }
     return arr;
@@ -3240,42 +3411,65 @@ class Marot {
   }
 
   /**
-   * Returns the "metrics line" to display for the current segment, which
-   * includes MQM score as well as any available automated metrics.
-   * @param {!Object} currSegStatsBySys
+   * If name is longer than maxlen characters, then trim it, appending "..."
+   * and wrapping it in an HTML span that shows the full name upon hovering.
+   * Otherwise just return name.
+   * @param {string} name
+   * @param {number} maxlen
    * @return {string}
    */
-  getSegScoresHTML(currSegStatsBySys) {
-    const segScoresParts = [];
-    const metrics = currSegStatsBySys.metrics;
-    for (let metric in metrics) {
-      segScoresParts.push([metric, metrics[metric]]);
-      if (metric == 'MQM') {
-        /** metrics.MQM is the unfiltered value; recompute with filtering */
-        const aggregate = this.aggregateSegStats([currSegStatsBySys]);
-        const score = aggregate.mqmStats.score;
-        if (score != metrics[metric]) {
-          segScoresParts.push(['MQM-filtered', score]);
-        }
+  getShortNameHTML(name, maxlen) {
+    if (name.length <= maxlen) {
+      return name;
+    }
+    const shortName = name.substr(0, maxlen);
+    return `<span title="${name}">${shortName}...</span>`;
+  }
+
+  /**
+   * Returns the "metrics line" to display for the current scoring unit, which
+   * includes MQM score as well as any available automated metrics.
+   * @param {!Object} currUnitStatsBySys
+   * @param {string} metric
+   * @param {string} cls class name
+   * @param {boolean} isLastUnit
+   * @return {string}
+   */
+  getSegScoresHTML(currUnitStatsBySys, metric, cls, isLastUnit) {
+    const unitScoresParts = [];
+    const metrics = currUnitStatsBySys.metrics;
+    let metricValue = metrics[metric];
+    if (metric != 'MQM') {
+      metricValue *= currUnitStatsBySys.numSubparas;
+    }
+    unitScoresParts.push([metric, metricValue]);
+    if (metric == 'MQM') {
+      /** metrics.MQM is the unfiltered value; recompute with filtering */
+      const aggregate = this.aggregateUnitStats([currUnitStatsBySys]);
+      const score = aggregate.mqmStats.score;
+      if (score != metrics[metric]) {
+        unitScoresParts.push(['MQM-filtered', score]);
       }
     }
-    if (segScoresParts.length == 0) {
-      return '';
-    }
     let scoresRows = '';
-    for (const part of segScoresParts) {
-      scoresRows += '<tr><td>' + part[0] + ':&nbsp;</td>' +
-      `<td><span class="marot-seg-score">${this.metricDisplay(part[1], 1)}
-           </span></td></tr>`;
+    const addSep = (metric == 'MQM') && this.subparaScoring && !isLastUnit;
+    for (let i = 0; i < unitScoresParts.length; i++) {
+      const part = unitScoresParts[i];
+      const scoreCls = 'marot-unit-score' +
+          ((addSep && i == unitScoresParts.length - 1) ?
+           ' marot-dotted-bottomed' : '');
+      scoresRows += '<tr' +
+          (cls ? ' class="' + cls + '"' : '') +
+          '><td>' + this.getShortNameHTML(part[0], 12) +
+          ': </td><td class="' + scoreCls + '">' +
+          this.metricDisplay(part[1], 1) + '</td></tr>';
     }
-    return '<tr><td><table class="marot-scores-table">' +
-           scoresRows +
-           '</table></td></tr>\n';
+    return scoresRows;
   }
 
   /**
    * For the segment identified by docsegHashKey and typeHashKey, given its
-   * sentence splits, either return the previously created paralet alignment
+   * sentence splits, either return the previously created subpara alignment
    * structure, or create and return it.
    *
    * @param {string} docsegHashKey
@@ -3284,17 +3478,114 @@ class Marot {
    * @return {!Object}
    */
   getAlignmentStruct(docsegHashKey, typeHashKey, sentences) {
-    if (!this.paraNav.alignmentStructs.hasOwnProperty(docsegHashKey)) {
-      this.paraNav.alignmentStructs[docsegHashKey] = {};
+    if (!this.subparas.alignmentStructs.hasOwnProperty(docsegHashKey)) {
+      this.subparas.alignmentStructs[docsegHashKey] = {};
     }
-    if (!this.paraNav.alignmentStructs[docsegHashKey].hasOwnProperty(
+    if (!this.subparas.alignmentStructs[docsegHashKey].hasOwnProperty(
             typeHashKey)) {
-      const paralets = MarotUtils.makeParalets(
-          sentences, this.paraletSentences, this.paraletTokens);
-      this.paraNav.alignmentStructs[docsegHashKey][typeHashKey] =
-          MarotAligner.getAlignmentStructure(sentences, paralets);
+      const subparas = MarotUtils.makeParalets(
+          sentences, this.subparaSents, this.subparaTokens);
+      this.subparas.alignmentStructs[docsegHashKey][typeHashKey] =
+          MarotAligner.getAlignmentStructure(sentences, subparas);
     }
-    return this.paraNav.alignmentStructs[docsegHashKey][typeHashKey];
+    return this.subparas.alignmentStructs[docsegHashKey][typeHashKey];
+  }
+
+  /**
+   * For the given segment, based upon the current settings, return the scoring
+   * units. If subparaScoring is set, then the units are the subparas (and an
+   * aligner object is also attached as a property of the returned array),
+   * otherwise there is just one scoring unit for the segment. Each returned
+   * unit is an object that includes the unit id, the number of source
+   * characters, the subpara index, and the total number of subparas.
+   * @param {!Object} segmentMetadata
+   * @return {!Array<!Object>}
+   */
+  getScoringUnits(segmentMetadata) {
+    const doc = segmentMetadata.doc;
+    const docSegId = segmentMetadata.docSegId;
+    const system = segmentMetadata.system;
+    const docColonSeg = this.aColonB(doc, docSegId);
+    const docsegHashKey = MarotUtils.javaHashKey(docColonSeg);
+    const units = [];
+    if (this.subparaScoring) {
+      const sourceStructure = this.getAlignmentStruct(
+          docsegHashKey, 'src',
+          segmentMetadata.source_sentence_splits);
+      const targetStructure = this.getAlignmentStruct(
+          docsegHashKey, 'sys-' + MarotUtils.javaHashKey(system),
+          segmentMetadata.target_sentence_splits);
+      units.aligner = new MarotAligner(sourceStructure, targetStructure);
+      for (let p = 0; p < sourceStructure.paralets.length; p++) {
+        const unit = this.subparaUnitId(docSegId, p);
+        units.push({
+          unit: unit,
+          srcChars: sourceStructure.paralets[p].num_chars,
+          subpara: p,
+          numSubparas: sourceStructure.paralets.length,
+        });
+      }
+    } else {
+      units.push({
+        unit: docSegId,
+        srcChars: segmentMetadata.num_source_chars,
+        subpara: 0,
+        numSubparas: 1,
+      });
+    }
+    return units;
+  }
+
+  /**
+   * If subparaScoring is on, then using the span location of the first token in
+   * the marked error, return the scoring unit that it belongs to. Otherwuse
+   * just return docSegId.
+   * @param {!Object} aligner
+   * @param {string} docSegId
+   * @param {!Object} metadata
+   * @return {string}
+   */
+  getScoringUnitForError(aligner, docSegId, metadata) {
+    if (!this.subparaScoring) {
+      return docSegId;
+    }
+    let spansArray = [[-1, -1]];
+    let isTarget = true;
+    if (metadata.target_spans && metadata.target_spans.length > 0) {
+      spansArray = metadata.target_spans;
+    } else if (metadata.source_spans && metadata.source_spans.length > 0) {
+      spansArray = metadata.source_spans;
+      isTarget = false;
+    }
+    const tokenIndex = spansArray[0][0];
+    let sourceSubpara = -1;
+    if (tokenIndex >= 0) {
+      if (isTarget) {
+        sourceSubpara = aligner.tgtTokenToSrcParalet(tokenIndex);
+      } else {
+        const srcTokenNumber = tokenIndex + 1;
+        sourceSubpara = MarotUtils.binSearch(
+            aligner.srcStructure.paraletTokens, srcTokenNumber);
+      }
+    } else {
+      /* No error, doesn't matter which subpara we attribute it to. */
+      sourceSubpara = 0;
+    }
+    console.assert(sourceSubpara >= 0 &&
+                   sourceSubpara < aligner.srcStructure.paralets.length);
+    return this.subparaUnitId(docSegId, sourceSubpara);
+  }
+
+  /**
+   * Return a class name to use for wrapping a subpara's text, so that it gets
+   * highlighted when navigating through the examples table.
+   * @param {string} docsegHashKey
+   * @param {string} typeHashKey
+   * @param {number} subpara
+   * @return {string}
+   */
+  subparaClass(docsegHashKey, typeHashKey, subpara) {
+    return 'marot-subpara-' + docsegHashKey + '-' + typeHashKey + '-' + subpara;
   }
 
   /**
@@ -3304,7 +3595,7 @@ class Marot {
    * break, then a new paragraph is initiated, while if it ends in a line break,
    * then a <br> tag is inserted.
    *
-   * Paralet renderings and sentence renderings are wrapped in spans with
+   * Subpara renderings and sentence renderings are wrapped in spans with
    * distinctive IDs.
    *
    * @param {!Array<string>} tokens
@@ -3316,15 +3607,14 @@ class Marot {
   htmlFromTokens(tokens, alignmentStruct, docsegHashKey, typeHashKey) {
     let html = '<p>\n';
     for (let p = 0; p < alignmentStruct.paralets.length; p++) {
-      const paralet = alignmentStruct.paralets[p];
-      const paraletClass =
-          'marot-para-' + docsegHashKey + '-' + typeHashKey + '-' + p;
-      html += '<span class="marot-para ' + paraletClass +
+      const subpara = alignmentStruct.paralets[p];
+      const subparaClass = this.subparaClass(docsegHashKey, typeHashKey, p);
+      html += '<span class="marot-subpara ' + subparaClass +
               '" title="Alignments shown are only approximate. ' +
               'Click to pin/unpin a sub-para. ' +
               'Use arrow keys to move pinnned sub-para.">';
-      for (let s = 0; s < paralet.sentences.length; s++) {
-        const sentence = paralet.sentences[s];
+      for (let s = 0; s < subpara.sentences.length; s++) {
+        const sentence = subpara.sentences[s];
         const sentClass =
             'marot-sent-' + docsegHashKey + '-' + typeHashKey +
             '-' + p + '-' + sentence.index;
@@ -3337,7 +3627,7 @@ class Marot {
         html += '</span>';
       }
       html += '</span>';
-      if (paralet.ends_with_para_break ||
+      if (subpara.ends_with_para_break ||
           p == (alignmentStruct.paralets.length - 1)) {
         html += '</p>\n';
         if (p < alignmentStruct.paralets.length - 1) {
@@ -3353,7 +3643,9 @@ class Marot {
    * current filters.
    */
   show() {
-    // Cancel existing Sigtest computation when a new `this.show` is called.
+    /**
+     * Cancel existing Sigtest computation when a new `this.show()` is called.
+     */
     this.resetSigtests();
 
     this.statsTable.innerHTML = '';
@@ -3378,31 +3670,25 @@ class Marot {
     document.getElementById('marot-filter-expr-error').innerHTML = '';
     const allFilters = this.getAllFilters();
 
-    let currSegStats = [];
-    let currSegStatsBySys = [];
-    let currSegStatsByRater = [];
-    let currSegStatsByRaterSys = [];
-
     /**
-     * Reset paralet navigation/alignment in the examples table.
+     * Reset subpara navigation/alignment in the examples table.
      */
-    this.paraNav.alignmentStructs = {};
-    this.paraNav.classMap = {};
+    this.subparas.alignmentStructs = {};
+    this.subparas.classMap = {};
 
     document.body.style.cursor = 'wait';
     for (const doc of this.dataIter.docs) {
       for (const docSegId of this.dataIter.docSegs[doc]) {
         for (const system of this.dataIter.docSys[doc]) {
           let firstRowId = -1;
-          let numSrcChars = 0;
           let segmentMetadata = null;
           let lastRater = '';
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
-          const docColonSys = doc + ':' + system;
-          const priorRaterStats = {};  /** prior_rater -> RaterStats */
+          const docColonSys = this.aColonB(doc, system);
+          let scoringUnits = null;
+
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             const parts = this.data[rowId];
-            numSrcChars = parts.num_source_chars;
             let match = true;
             for (let id in allFilters.filterREs) {
               const col = this.filterColumns[id];
@@ -3433,20 +3719,26 @@ class Marot {
               firstRowId = rowId;
 
               segmentMetadata = metadata.segment;
+              scoringUnits = this.getScoringUnits(segmentMetadata);
 
-              currSegStats = this.getSegStats(
-                  this.statsBySystem[this.TOTAL], docColonSys, docSegId);
               if (!this.statsBySystem.hasOwnProperty(system)) {
                 this.statsBySystem[system] = {};
               }
-              currSegStatsBySys =
-                  this.getSegStats(this.statsBySystem[system], doc, docSegId);
-              currSegStats.num_source_chars = numSrcChars;
-              currSegStatsBySys.num_source_chars = numSrcChars;
-              if (segmentMetadata.hasOwnProperty('metrics')) {
-                currSegStatsBySys.metrics = segmentMetadata.metrics;
-                for (let metric in currSegStatsBySys.metrics) {
-                  visibleMetrics[metric] = true;
+              for (const scoringUnit of scoringUnits) {
+                const unit = scoringUnit.unit;
+                const currUnitStatsBySys = this.createOrGetUnitStats(
+                    this.statsBySystem[system], doc, unit, scoringUnit.srcChars,
+                    scoringUnit.subpara, scoringUnit.numSubparas);
+                this.createOrGetUnitStats(
+                    this.statsBySystem[this.TOTAL], doc, unit,
+                    scoringUnit.srcChars,
+                    scoringUnit.subpara, scoringUnit.numSubparas);
+                if (segmentMetadata.hasOwnProperty('metrics')) {
+                  currUnitStatsBySys.metrics =
+                      segmentMetadata.metricsByUnit[unit];
+                  for (let metric in currUnitStatsBySys.metrics) {
+                    visibleMetrics[metric] = true;
+                  }
                 }
               }
             }
@@ -3455,48 +3747,92 @@ class Marot {
               lastRater = rater;
               visibleMetrics['MQM'] = true;  /** We do have some MQM scores. */
 
-              currSegStats.push(this.initRaterStats(rater));
-              currSegStatsBySys.push(this.initRaterStats(rater));
               if (!this.statsByRater.hasOwnProperty(rater)) {
                 this.statsByRater[rater] = {};
               }
-              currSegStatsByRater = this.getSegStats(
-                  this.statsByRater[rater], docColonSys, docSegId);
-              currSegStatsByRater.push(this.initRaterStats(rater));
-              currSegStatsByRater.num_source_chars = numSrcChars;
-
               if (!this.statsByRaterSystem.hasOwnProperty(rater)) {
                 this.statsByRaterSystem[rater] = {};
               }
               if (!this.statsByRaterSystem[rater].hasOwnProperty(system)) {
                 this.statsByRaterSystem[rater][system] = {};
               }
-              currSegStatsByRaterSys = this.getSegStats(
-                  this.statsByRaterSystem[rater][system], doc, docSegId);
-              currSegStatsByRaterSys.push(this.initRaterStats(rater));
-              currSegStatsByRaterSys.num_source_chars = numSrcChars;
+              for (const scoringUnit of scoringUnits) {
+                const unit = scoringUnit.unit;
+                const currUnitStats = this.createOrGetUnitStats(
+                    this.statsBySystem[this.TOTAL], docColonSys, unit,
+                    scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                currUnitStats.push(this.initRaterStats(rater));
+                const currUnitStatsBySys = this.createOrGetUnitStats(
+                    this.statsBySystem[system], doc, unit,
+                    scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                currUnitStatsBySys.push(this.initRaterStats(rater));
+                const currUnitStatsByRater = this.createOrGetUnitStats(
+                    this.statsByRater[rater], docColonSys, unit,
+                    scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                currUnitStatsByRater.push(this.initRaterStats(rater));
+                const currUnitStatsByRaterSys = this.createOrGetUnitStats(
+                    this.statsByRaterSystem[rater][system], doc, unit,
+                    scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                currUnitStatsByRaterSys.push(this.initRaterStats(rater));
+              }
+            }
+            if (rater && metadata.prior_rater) {
+              const priorRater = this.PRIOR_RATER_PREFIX + metadata.prior_rater;
+              if (!this.statsByRater.hasOwnProperty(priorRater)) {
+                this.statsByRater[priorRater] = {};
+              }
+              if (!this.statsByRaterSystem.hasOwnProperty(priorRater)) {
+                this.statsByRaterSystem[priorRater] = {};
+              }
+              if (!this.statsByRaterSystem[priorRater].hasOwnProperty(system)) {
+                this.statsByRaterSystem[priorRater][system] = {};
+              }
+              for (const scoringUnit of scoringUnits) {
+                const unit = scoringUnit.unit;
+                const raterStats = this.createOrGetUnitStats(
+                    this.statsByRater[priorRater], docColonSys, unit,
+                    scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                if (raterStats.length == 0) {
+                  raterStats.push(this.initRaterStats(priorRater));
+                }
+                const raterSysStats = this.createOrGetUnitStats(
+                    this.statsByRaterSystem[priorRater][system], docColonSys,
+                    unit, scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                if (raterSysStats.length == 0) {
+                  raterSysStats.push(this.initRaterStats(priorRater));
+                }
+              }
             }
             if (rater) {
               /** An actual rater-annotation row, not just a metadata row */
               const span = metadata.marked_text.length;
               const timeSpentMS = this.timeSpent(metadata);
-              this.addErrorStats(this.arrayLast(currSegStats),
-                                 timeSpentMS, category, severity, span);
-              this.addErrorStats(this.arrayLast(currSegStatsBySys),
-                                 timeSpentMS, category, severity, span);
-              this.addErrorStats(this.arrayLast(currSegStatsByRater),
-                                 timeSpentMS, category, severity, span);
-              this.addErrorStats(this.arrayLast(currSegStatsByRaterSys),
-                                 timeSpentMS, category, severity, span);
+              const unit = this.getScoringUnitForError(
+                  scoringUnits.aligner, docSegId, metadata);
+              this.addErrorStats(
+                  this.statsBySystem[this.TOTAL][docColonSys][unit],
+                  timeSpentMS, category, severity, span);
+              this.addErrorStats(
+                  this.statsBySystem[system][doc][unit],
+                  timeSpentMS, category, severity, span);
+              this.addErrorStats(
+                  this.statsByRater[rater][docColonSys][unit],
+                  timeSpentMS, category, severity, span);
+              this.addErrorStats(
+                  this.statsByRaterSystem[rater][system][doc][unit],
+                  timeSpentMS, category, severity, span);
               this.addSevCatStats(this.sevcatStats, system, category, severity);
               this.addEvents(this.events, metadata,
                              doc, docSegId, system, rater);
               if (metadata.prior_rater) {
                 const priorRater = this.PRIOR_RATER_PREFIX +
                                    metadata.prior_rater;
-                if (!priorRaterStats.hasOwnProperty(priorRater)) {
-                  priorRaterStats[priorRater] = this.initRaterStats(priorRater);
-                }
                 const priorErrors = [];
                 if (metadata.prior_error) {
                   priorErrors.push(metadata.prior_error);
@@ -3513,26 +3849,19 @@ class Marot {
                     cat += '/' + priorError.subtype;
                   }
                   const span = (priorError.selected ?? '').length;
-                  this.addErrorStats(priorRaterStats[priorRater],
-                                     this.timeSpent(priorError.metadata),
-                                     cat, priorError.severity, span);
+                  const errorUnit = this.getScoringUnitForError(
+                      scoringUnits.aligner, docSegId, priorError.metadata);
+                  const timeSpentMS = this.timeSpent(priorError.metadata);
+                  this.addErrorStats(
+                      this.statsByRater[priorRater][docColonSys][errorUnit],
+                      timeSpentMS, cat, priorError.severity, span);
+                  this.addErrorStats(
+                      this.statsByRaterSystem[priorRater][
+                          system][docColonSys][errorUnit],
+                      timeSpentMS, cat, priorError.severity, span);
                 }
               }
             }
-          }
-          for (const priorRater in priorRaterStats) {
-            /**
-             * Note that we accumulate prior-rater stats *only* in statsByRater,
-             * to compare against other raters. We do not add it to
-             * statsBySystem, as that would be double-counting.
-             */
-            if (!this.statsByRater.hasOwnProperty(priorRater)) {
-              this.statsByRater[priorRater] = {};
-            }
-            currSegStatsByRater = this.getSegStats(
-              this.statsByRater[priorRater], docColonSys, docSegId);
-            currSegStatsByRater.num_source_chars = numSrcChars;
-            currSegStatsByRater.push(priorRaterStats[priorRater]);
           }
         }
       }
@@ -3601,7 +3930,7 @@ class Marot {
       this.histRectSelected = null;
     }
     if (viewingConstraints) {
-      viewingConstraintsDesc.innerHTML = 'View limited to ' +
+      viewingConstraintsDesc.innerHTML = 'View showing the ' +
           viewingConstraints.description +
           ' Click on this text to remove this constraint.';
       viewingConstraintsDesc.style.backgroundColor = viewingConstraints.color;
@@ -3616,17 +3945,17 @@ class Marot {
     let shownCount = 0;
     const shownRows = [];
     /**
-     * Reset the index of shown paralets, and reset to make sure no paralet
+     * Reset the index of shown subparas, and reset to make sure no subpara
      * is pinned for arrow-key-based navigation.
      */
-    const shownParalets = {};
-    this.paraNav.pinnedParaletCls = '';
+    const shownSubparas = {};
+    this.subparas.pinnedSubparaCls = '';
 
     for (const doc of this.dataIter.docs) {
       for (const docSegId of this.dataIter.docSegs[doc]) {
         let shownForDocSeg = 0;
         let aggrDocSeg = null;
-        const docColonSeg = this.docColonSeg(doc, docSegId);
+        const docColonSeg = this.aColonB(doc, docSegId);
         const docsegHashKey = MarotUtils.javaHashKey(docColonSeg);
         for (const system of this.dataIter.docSys[doc]) {
           let shownForDocSegSys = 0;
@@ -3634,13 +3963,14 @@ class Marot {
           let firstRowId = -1;
           let ratingRowsHTML = '';
           let segmentMetadata = null;
+          let scoringUnits = null;
           let sourceTokens = null;
           let sourceSents = null;
           let targetTokens = null;
           let targetSents = null;
           let lastRater = '';
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
-          const docColonSys = doc + ':' + system;
+          const docColonSys = this.aColonB(doc, system);
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             if (!this.selectedRows.has(rowId)) {
               continue;
@@ -3660,11 +3990,12 @@ class Marot {
             if (firstRowId < 0) {
               firstRowId = rowId;
               segmentMetadata = metadata.segment;
+              scoringUnits = this.getScoringUnits(segmentMetadata);
               /** Copy source/target tokens as we'll wrap them in spans. */
-              sourceTokens = (segmentMetadata.source_tokens || []).slice();
-              targetTokens = (segmentMetadata.target_tokens || []).slice();
-              sourceSents = segmentMetadata.source_sentence_splits || [];
-              targetSents = segmentMetadata.target_sentence_splits || [];
+              sourceTokens = segmentMetadata.source_tokens.slice();
+              targetTokens = segmentMetadata.target_tokens.slice();
+              sourceSents = segmentMetadata.source_sentence_splits;
+              targetSents = segmentMetadata.target_sentence_splits;
             }
             if (rater && (rater != lastRater)) {
               lastRater = rater;
@@ -3682,7 +4013,7 @@ class Marot {
 
             if (viewingConstraints &&
                 !viewingConstraints[docColonSeg] &&
-                !viewingConstraints[this.docColonSeg(docColonSys, docSegId)]) {
+                !viewingConstraints[this.aColonB(docColonSys, docSegId)]) {
               continue;
             }
             if (shownCount >= this.rowLimit) {
@@ -3719,8 +4050,8 @@ class Marot {
                          sourceTokens && targetTokens &&
                          sourceSents && targetSents, firstRowId);
 
-          if (!shownParalets.hasOwnProperty(docsegHashKey)) {
-            shownParalets[docsegHashKey] = {
+          if (!shownSubparas.hasOwnProperty(docsegHashKey)) {
+            shownSubparas[docsegHashKey] = {
               ref: new Set,
               sys: new Set,
             };
@@ -3752,7 +4083,7 @@ class Marot {
                   '</div></td>';
               refRowHTML += '<td></td></tr>\n';
               this.segmentsTable.insertAdjacentHTML('beforeend', refRowHTML);
-              shownParalets[docsegHashKey].ref.add(refHashKey);
+              shownSubparas[docsegHashKey].ref.add(refHashKey);
             }
           }
           let rowHTML = '';
@@ -3763,9 +4094,6 @@ class Marot {
           rowHTML +=
               `id="marot-val-${firstRowId}-${this.DATA_COL_DOC_SEG_ID}">` +
               docSegId + '</div></td>';
-          rowHTML += '<td><div class="marot-val" ';
-          rowHTML += `id="marot-val-${firstRowId}-${this.DATA_COL_SYSTEM}">` +
-                     system + '</div></td>';
 
           const sourceHashKey = 'src';
           const sourceAlignmentStruct = this.getAlignmentStruct(
@@ -3781,27 +4109,58 @@ class Marot {
               this.htmlFromTokens(targetTokens, targetAlignmentStruct,
                                   docsegHashKey, targetHashKey);
 
+          rowHTML += '<td><table class="marot-table-ratings">';
+          rowHTML += '<tr><td><span class="marot-val" ';
+          rowHTML += `id="marot-val-${firstRowId}-${this.DATA_COL_SYSTEM}">` +
+                     this.getShortNameHTML(system, 14) +
+                     '</span><br>&nbsp;</td></tr>\n';
+          const metricWiseRows = {};
+          for (const scoringUnit of scoringUnits) {
+            const unit = scoringUnit.unit;
+            const subpara = scoringUnit.subpara;
+            const isLastUnit = (subpara == scoringUnit.numSubparas - 1);
+            const currUnitStatsBySys = this.statsBySystem[system][doc][unit];
+            for (const metric in currUnitStatsBySys.metrics) {
+              if (metric != 'MQM' && subpara > 0) {
+                continue;
+              }
+              let cls = 'marot-metric';
+              if (this.subparaScoring && metric == 'MQM') {
+                cls += ' marot-subpara ' +
+                    this.subparaClass(docsegHashKey, 'src', subpara);
+              }
+              if (!metricWiseRows[metric]) {
+                metricWiseRows[metric] = '';
+              }
+              metricWiseRows[metric] += this.getSegScoresHTML(
+                  currUnitStatsBySys, metric, cls, isLastUnit);
+            }
+          }
+          for (const metric in metricWiseRows) {
+            rowHTML += '<tr><td><table class="marot-scores-table">';
+            rowHTML += metricWiseRows[metric];
+            rowHTML += '</table></td></tr>';
+          }
+          rowHTML += '</table></td>';
+
           rowHTML += '<td><div>' + source + '</div></td>';
           rowHTML += '<td><div>' + target + '</div></td>';
 
-          const currSegStatsBySys =
-              this.getSegStats(this.statsBySystem[system], doc, docSegId);
           rowHTML += '<td><table class="marot-table-ratings">' +
-                     ratingRowsHTML + this.getSegScoresHTML(currSegStatsBySys) +
-                     '</table></td>';
+                     ratingRowsHTML + '</table></td>';
 
           this.segmentsTable.insertAdjacentHTML(
               'beforeend', `<tr class="marot-row">${rowHTML}</tr>\n`);
           shownForDocSeg += shownForDocSegSys;
 
-          shownParalets[docsegHashKey].sys.add(targetHashKey);
+          shownSubparas[docsegHashKey].sys.add(targetHashKey);
         }
         if (shownForDocSeg > 0) {
           shownCount += shownForDocSeg;
         }
       }
     }
-    this.addAlignmentHighlighters(shownParalets);
+    this.addAlignmentHighlighters(shownSubparas);
     this.addAnnotationHighlighters(shownRows);
     this.addFilterListeners(shownRows);
   }
@@ -3863,78 +4222,83 @@ class Marot {
   }
 
   /**
-   * Set up the display of approximately aligned paralets in the examples table.
+   * Set up the display of approximately aligned subparas in the examples table.
    *
-   * @param {!Array<!Object>} shownParalets The array of visible paralets. This
+   * @param {!Array<!Object>} shownSubparas The array of visible subparas. This
    *     is indexed by docsegHashKey, and then 'ref'/'sys', mapping to the
-   *     target paralets Set (each target paralet is represented in the Set
+   *     target subparas Set (each target subpara is represented in the Set
    *     by its hash-key).
    */
-  addAlignmentHighlighters(shownParalets) {
+  addAlignmentHighlighters(shownSubparas) {
     const initMap = (map, from) => {
       if (!map.hasOwnProperty(from)) {
         map[from] = new Set;
       }
     };
-    const docsegHashKeys = Object.keys(shownParalets);
+    const docsegHashKeys = Object.keys(shownSubparas);
     for (const docsegHashKey of docsegHashKeys) {
-      const alignmentStructs = this.paraNav.alignmentStructs[docsegHashKey];
+      const alignmentStructs = this.subparas.alignmentStructs[docsegHashKey];
       const srcAlignmentStruct = alignmentStructs['src'];
-      const shownPara = shownParalets[docsegHashKey];
-      const srcParaClassPrefix = 'marot-para-' + docsegHashKey + '-src-';
+      const shownPara = shownSubparas[docsegHashKey];
       for (let sp = 0; sp < srcAlignmentStruct.paralets.length; sp++) {
-        const srcParaClass = srcParaClassPrefix + sp;
-        initMap(this.paraNav.classMap, srcParaClass);
+        const srcParaClass = this.subparaClass(docsegHashKey, 'src', sp);
+        initMap(this.subparas.classMap, srcParaClass);
       }
       for (const refsys of ['ref', 'sys']) {
         for (const tgtHashKey of shownPara[refsys]) {
-          const tgtParaClassPrefix = 'marot-para-' + docsegHashKey + '-' +
-                                     tgtHashKey + '-';
           const tgtAlignmentStruct = alignmentStructs[tgtHashKey];
           const aligner = new MarotAligner(
               srcAlignmentStruct, tgtAlignmentStruct);
           for (let tp = 0; tp < tgtAlignmentStruct.paralets.length; tp++) {
-            const tgtParaClass = tgtParaClassPrefix + tp;
-            initMap(this.paraNav.classMap, tgtParaClass);
+            const tgtParalet = tgtAlignmentStruct.paralets[tp];
+            if (!tgtParalet || tgtParalet.num_tokens == 0 ||
+                tgtParalet.sentences.length == 0) {
+              continue;
+            }
+            const tgtParaClass = this.subparaClass(
+                docsegHashKey, tgtHashKey, tp);
+            initMap(this.subparas.classMap, tgtParaClass);
             const range = aligner.tgtParaletToSrcParaletRange(tp);
             for (let sp = range[0]; sp <= range[1]; sp++) {
-              const srcParaClass = srcParaClassPrefix + sp;
-              this.paraNav.classMap[srcParaClass].add(tgtParaClass);
-              this.paraNav.classMap[tgtParaClass].add(srcParaClass);
+              const srcParaClass = this.subparaClass(docsegHashKey, 'src', sp);
+              this.subparas.classMap[srcParaClass].add(tgtParaClass);
+              this.subparas.classMap[tgtParaClass].add(srcParaClass);
             }
           }
         }
       }
       for (let p = 0; p < srcAlignmentStruct.paralets.length; p++) {
-        const cls = 'marot-para-' + docsegHashKey + '-src-' + p;
-        const elts = document.getElementsByClassName(cls);
+        const srcParaClass = this.subparaClass(docsegHashKey, 'src', p);
+        const elts = document.getElementsByClassName(srcParaClass);
         for (let i = 0; i < elts.length; i++) {
           const elt = elts[i];
-          elt.addEventListener('mouseover', this.paraNavHover.bind(this, cls));
           elt.addEventListener(
-              'mouseout', this.paraNavNonHover.bind(this, cls));
+              'mouseover', this.subparaNavHover.bind(this, srcParaClass));
+          elt.addEventListener(
+              'mouseout', this.subparaNavNonHover.bind(this, srcParaClass));
           elt.addEventListener(
               'click',
-              this.paraNavClick.bind(this, cls, docsegHashKey, 'src', p));
+              this.subparaNavClick.bind(
+                  this, srcParaClass, docsegHashKey, 'src', p));
         }
       }
       for (const refsys of ['ref', 'sys']) {
         for (const tgtHashKey of shownPara[refsys]) {
           const tgtAlignmentStruct = alignmentStructs[tgtHashKey];
           for (let p = 0; p < tgtAlignmentStruct.paralets.length; p++) {
-            const cls = 'marot-para-' + docsegHashKey + '-' +
-                        tgtHashKey + '-' + p;
-            const elts = document.getElementsByClassName(cls);
+            const tgtParaClass = this.subparaClass(
+                docsegHashKey, tgtHashKey, p);
+            const elts = document.getElementsByClassName(tgtParaClass);
             for (let i = 0; i < elts.length; i++) {
               const elt = elts[i];
               elt.addEventListener(
-                  'mouseover', this.paraNavHover.bind(this, cls));
+                  'mouseover', this.subparaNavHover.bind(this, tgtParaClass));
               elt.addEventListener(
-                  'mouseout', this.paraNavNonHover.bind(this, cls));
+                  'mouseout', this.subparaNavNonHover.bind(this, tgtParaClass));
               elt.addEventListener(
                   'click',
-                  this.paraNavClick.bind(
-                      this, cls, docsegHashKey, tgtHashKey, p));
+                  this.subparaNavClick.bind(
+                      this, tgtParaClass, docsegHashKey, tgtHashKey, p));
             }
           }
         }
@@ -3943,14 +4307,14 @@ class Marot {
   }
 
   /**
-   * Handler for when the user hovers over or out of the paralet with class cls.
+   * Handler for when the user hovers over or out of the subpara with class cls.
    * The shouldShow parameter is true for showing and false for hiding the
    * highlighted alignment.
    *
    * @param {string} cls
    * @param {boolean} shouldShow
    */
-  paraNavHighlighter(cls, shouldShow) {
+  subparaNavHighlighter(cls, shouldShow) {
     const classFonter = (c, fontWeight, color) => {
       const elts = document.getElementsByClassName(c);
       for (let i = 0; i < elts.length; i++) {
@@ -3963,81 +4327,82 @@ class Marot {
     classFonter(cls, fontWeight, color);
     fontWeight = 'inherit';
     color = shouldShow ? 'blue' : 'inherit';
-    for (const mappedCls of this.paraNav.classMap[cls]) {
+    for (const mappedCls of this.subparas.classMap[cls]) {
       classFonter(mappedCls, fontWeight, color);
     }
   }
 
   /**
-   * Handler for when the user hovers over the paralet with class cls.
+   * Handler for when the user hovers over the subpara with class cls.
    *
    * @param {string} cls
    */
-  paraNavHover(cls) {
-    if (this.paraNav.pinnedParaletCls) {
+  subparaNavHover(cls) {
+    if (this.subparas.pinnedSubparaCls) {
       return;
     }
-    this.paraNavHighlighter(cls, true);
+    this.subparaNavHighlighter(cls, true);
   }
 
   /**
-   * Handler for when the user hovers away from the paralet with class cls.
+   * Handler for when the user hovers away from the subpara with class cls.
    *
    * @param {string} cls
    */
-  paraNavNonHover(cls) {
-    if (this.paraNav.pinnedParaletCls) {
+  subparaNavNonHover(cls) {
+    if (this.subparas.pinnedSubparaCls) {
       return;
     }
-    this.paraNavHighlighter(cls, false);
+    this.subparaNavHighlighter(cls, false);
   }
 
   /**
-   * Handler for when the user clicks on a paralet. If a paralet is already
-   * pinned, then this unpins it. If no paralet is already pinned, then this
-   * paralet gets pinned. The class must end in a "-<paralet-index>"
+   * Handler for when the user clicks on a subpara. If a subpara is already
+   * pinned, then this unpins it. If no subpara is already pinned, then this
+   * subpara gets pinned. The class must end in a "-<subpara-index>"
    *
    * @param {string} cls
    */
-  paraNavClick(cls) {
-    if (this.paraNav.pinnedParaletCls) {
-      this.paraNavHighlighter(this.paraNav.pinnedParaletCls, false);
-      this.paraNav.pinnedParaletCls = '';
+  subparaNavClick(cls) {
+    if (this.subparas.pinnedSubparaCls) {
+      this.subparaNavHighlighter(this.subparas.pinnedSubparaCls, false);
+      this.subparas.pinnedSubparaCls = '';
       return;
     }
-    this.paraNav.pinnedParaletCls = cls;
-    this.paraNavHighlighter(cls, true);
+    this.subparas.pinnedSubparaCls = cls;
+    this.subparaNavHighlighter(cls, true);
   }
 
   /**
-   * Move the pinned paralet (if it exists) up (dir=-1) or down (dir=1).
+   * Move the pinned subpara (if it exists) up (dir=-1) or down (dir=1).
    *
    * @param {number} dir
    */
-  paraNavMove(dir) {
-    if (!this.paraNav.pinnedParaletCls) {
+  subparaNavMove(dir) {
+    if (!this.subparas.pinnedSubparaCls) {
       return;
     }
-    const lastDash = this.paraNav.pinnedParaletCls.lastIndexOf('-');
-    const paralet = parseInt(
-        this.paraNav.pinnedParaletCls.substr(lastDash + 1));
-    const p = paralet + dir;
-    const newCls = this.paraNav.pinnedParaletCls.substr(0, lastDash) + '-' + p;
-    if (!this.paraNav.classMap.hasOwnProperty(newCls)) {
+    const lastDash = this.subparas.pinnedSubparaCls.lastIndexOf('-');
+    const subpara = parseInt(
+        this.subparas.pinnedSubparaCls.substr(lastDash + 1));
+    const p = subpara + dir;
+    const newCls = this.subparas.pinnedSubparaCls.substr(0, lastDash) +
+                   '-' + p;
+    if (!this.subparas.classMap.hasOwnProperty(newCls)) {
       return;
     }
-    this.paraNavHighlighter(this.paraNav.pinnedParaletCls, false);
-    this.paraNav.pinnedParaletCls = newCls;
-    this.paraNavHighlighter(newCls, true);
+    this.subparaNavHighlighter(this.subparas.pinnedSubparaCls, false);
+    this.subparas.pinnedSubparaCls = newCls;
+    this.subparaNavHighlighter(newCls, true);
   }
 
   /**
    * Handler for key-down to grab kep presses on Escape or arrow keys, to
-   * unpin or move the pinned paralet.
+   * unpin or move the pinned subpara.
    *
    * @param {!Event} e
    */
-  paraNavKeyDown(e) {
+  subparaNavKeyDown(e) {
     if (!e.key) {
       return;
     }
@@ -4047,45 +4412,61 @@ class Marot {
       return;
     }
     e.preventDefault();
-    if (!this.paraNav.pinnedParaletCls) {
+    if (!this.subparas.pinnedSubparaCls) {
       return;
     }
     if (e.key === 'Escape') {
-      this.paraNavHighlighter(this.paraNav.pinnedParaletCls, false);
-      this.paraNav.pinnedParaletCls = '';
+      this.subparaNavHighlighter(this.subparas.pinnedSubparaCls, false);
+      this.subparas.pinnedSubparaCls = '';
       return;
     }
     let dir = 1;
     if (e.key == 'ArrowLeft' || e.key == 'ArrowUp') {
       dir = -1;
     }
-    this.paraNavMove(dir);
+    this.subparaNavMove(dir);
   }
 
   /**
    * Recomputes MQM score for each segment (using current weight settings) and
-   * sets it in segment.metrics['MQM'].
+   * sets it in segment.metrics['MQM'] and segment.metricsByUnit[unit]['MQM'].
    */
   recomputeMQM() {
     const statsBySystem = {};
-    let currSegStatsBySys = [];
     for (const doc of this.dataIter.docs) {
       for (const docSegId of this.dataIter.docSegs[doc]) {
         for (const system of this.dataIter.docSys[doc]) {
           let lastRater = '';
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
           let aggrDocSegSys = null;
+          let scoringUnits = null;
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             const parts = this.data[rowId];
             const metadata = parts[this.DATA_COL_METADATA];
             if (!aggrDocSegSys) {
               aggrDocSegSys = metadata.segment;
+              scoringUnits = this.getScoringUnits(aggrDocSegSys);
+              aggrDocSegSys.metricsByUnit = {};
               if (!statsBySystem.hasOwnProperty(system)) {
                 statsBySystem[system] = {};
               }
-              currSegStatsBySys =
-                  this.getSegStats(statsBySystem[system], doc, docSegId);
-              currSegStatsBySys.num_source_chars = parts.num_source_chars;
+              const nonMQMMetrics = {
+                ...aggrDocSegSys.metrics,
+              };
+              delete nonMQMMetrics.MQM;
+              for (const metric in nonMQMMetrics) {
+                nonMQMMetrics[metric] /= scoringUnits.length;
+              }
+              for (const scoringUnit of scoringUnits) {
+                const unit = scoringUnit.unit;
+                this.createOrGetUnitStats(
+                    statsBySystem[system], doc, unit,
+                    scoringUnit.srcChars, scoringUnit.subpara,
+                    scoringUnit.numSubparas);
+                aggrDocSegSys.metricsByUnit[unit] = {
+                  ...nonMQMMetrics,
+                };
+              }
             }
             const rater = parts[this.DATA_COL_RATER];
             if (!rater) {
@@ -4093,18 +4474,36 @@ class Marot {
             }
             if (rater != lastRater) {
               lastRater = rater;
-              currSegStatsBySys.push(this.initRaterStats(rater));
+              for (const scoringUnit of scoringUnits) {
+                const unit = scoringUnit.unit;
+                statsBySystem[system][doc][unit].push(
+                    this.initRaterStats(rater));
+              }
             }
             const category = parts[this.DATA_COL_CATEGORY];
             const severity = parts[this.DATA_COL_SEVERITY];
+            const unit = this.getScoringUnitForError(
+                scoringUnits.aligner, docSegId, metadata);
             /** We don't care about computing avg span/time here, pass as 0. */
-            this.addErrorStats(this.arrayLast(currSegStatsBySys),
-                               0, category, severity, 0);
+            this.addErrorStats(
+                statsBySystem[system][doc][unit], 0, category, severity, 0);
           }
           if (aggrDocSegSys) {
-            const aggrScores = this.aggregateSegStats([currSegStatsBySys]);
-            if (aggrScores.mqmStats.numSegments > 0) {
+            const allUnitStats = this.getUnitStatsAsArray(
+                statsBySystem[system]);
+            const aggrScores = this.aggregateUnitStats(allUnitStats);
+            if (aggrScores.mqmStats.numScoringUnits > 0) {
               aggrDocSegSys.metrics['MQM'] = aggrScores.mqmStats.score;
+              for (const scoringUnit of scoringUnits) {
+                const unit = scoringUnit.unit;
+                const currUnitStatsBySys = statsBySystem[system][doc][unit];
+                const aggrUnitScores = this.aggregateUnitStats(
+                    [currUnitStatsBySys]);
+                aggrDocSegSys.metricsByUnit[unit] = {
+                  ...aggrDocSegSys.metricsByUnit[unit],
+                  'MQM': aggrUnitScores.mqmStats.score,
+                };
+              }
             }
           }
         }
@@ -4437,9 +4836,9 @@ class Marot {
     }
     this.sortData(this.data);
     this.createDataIter(this.data);
-    this.recomputeMQM();
     this.addSegmentAggregations();
     this.setSelectOptions();
+    this.recomputeMQM();
     this.show();
   }
 
@@ -4613,6 +5012,8 @@ class Marot {
    * @return {string}
    */
   getScoresTSVData(aggregation) {
+    /** This should not be called when subpara-scoring is enabled. */
+    console.assert(!this.subparaScoring);
     /**
      * We use a fake 10-column marot-data array (with score kept in the last
      * column) to sort the data in the right order using this.sortData().
@@ -4624,8 +5025,8 @@ class Marot {
         if (system == this.TOTAL) {
           continue;
         }
-        const segs = this.getSegStatsAsArray(this.statsBySystem[system]);
-        const aggregate = this.aggregateSegStats(segs);
+        const unitStats = this.getUnitStatsAsArray(this.statsBySystem[system]);
+        const aggregate = this.aggregateUnitStats(unitStats);
         const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
         dataRow[this.DATA_COL_SYSTEM] = system;
         dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
@@ -4639,8 +5040,8 @@ class Marot {
         const stats = this.statsBySystem[system];
         for (let doc in stats) {
           const docStats = stats[doc];
-          const segs = this.getSegStatsAsArray({doc: docStats});
-          const aggregate = this.aggregateSegStats(segs);
+          const unitStats = this.getUnitStatsAsArray({doc: docStats});
+          const aggregate = this.aggregateUnitStats(unitStats);
           const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
           dataRow[this.DATA_COL_SYSTEM] = system;
           dataRow[this.DATA_COL_DOC] = doc;
@@ -4658,8 +5059,9 @@ class Marot {
           const docStats = stats[doc];
           for (let seg in docStats) {
             const docSegStats = docStats[seg];
-            const segs = this.getSegStatsAsArray({doc: {seg: docSegStats}});
-            const aggregate = this.aggregateSegStats(segs);
+            const unitStats = this.getUnitStatsAsArray(
+                {doc: {seg: docSegStats}});
+            const aggregate = this.aggregateUnitStats(unitStats);
             const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
             dataRow[this.DATA_COL_SYSTEM] = system;
             dataRow[this.DATA_COL_DOC] = doc;
@@ -4675,10 +5077,10 @@ class Marot {
           const stats = this.statsByRaterSystem[rater][system];
           for (let doc in stats) {
             const docStats = stats[doc];
-            for (let seg in docStats) {
-              const docSegStats = docStats[seg];
-              const segs = this.getSegStatsAsArray({doc: {seg: docSegStats}});
-              const aggregate = this.aggregateSegStats(segs);
+            for (let unit in docStats) {
+              const unitStats = this.getUnitStatsAsArray(
+                  {doc: {seg: docSegStats}});
+              const aggregate = this.aggregateUnitStats(unitStats);
               const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
               dataRow[this.DATA_COL_SYSTEM] = system;
               dataRow[this.DATA_COL_DOC] = doc;
@@ -4727,8 +5129,8 @@ class Marot {
 
   /**
    * Saves this.tsvData or filtered or filtered+aggregated data to the file
-   *     marot-data.tsv. Adds a header line when saving non-aggregated marot data,
-   *     if it's not already there.
+   *     marot-data.tsv. Adds a header line when saving non-aggregated marot
+   *     data, if it's not already there.
    * @param {string} saveType One of 'all', 'filtered', 'system', 'document',
    *     'segment', 'rater'
    * @param {string} fileName This is appened to any prefix entered in the
@@ -4742,6 +5144,10 @@ class Marot {
     } else if (saveType == 'filtered') {
       tsvData = this.getFilteredTSVData();
     } else {
+      if (this.subparaScoring) {
+        alert('Cannot save aggregated data when subpara-scoring is enabled.');
+        return;
+      }
       tsvData = this.getScoresTSVData(saveType);
       addHeader = false;
     }
@@ -4781,10 +5187,11 @@ class Marot {
    * Applies updated settings for scoring.
    */
   updateSettings() {
-    this.paraletSentences = this.getPosIntSetting(
-        this.paraletSentencesInput, this.paraletSentences);
-    this.paraletTokens = this.getPosIntSetting(
-        this.paraletTokensInput, this.paraletTokens);
+    this.subparaScoring = this.subparaScoringInput.checked;
+    this.subparaSents = this.getPosIntSetting(
+        this.subparaSentsInput, this.subparaSents);
+    this.subparaTokens = this.getPosIntSetting(
+        this.subparaTokensInput, this.subparaTokens);
     if (this.parseScoreSettings()) {
       this.setUpScoreSettings();
     }
@@ -4802,8 +5209,9 @@ class Marot {
   resetSettings() {
     this.mqmWeights = JSON.parse(JSON.stringify(mqmDefaultWeights));
     this.mqmSlices = JSON.parse(JSON.stringify(mqmDefaultSlices));
-    this.paraletSentencesInput.value = this.DEFAULT_PARALET_SENTENCES;
-    this.paraletTokensInput.value = this.DEFAULT_PARALET_TOKENS;
+    this.subparaScoringInput.checked = false;
+    this.subparaSentsInput.value = this.DEFAULT_SUBPARA_SENTS;
+    this.subparaTokensInput.value = this.DEFAULT_SUBPARA_TOKENS;
     this.setUpScoreSettings();
     this.updateSettings();
   }
@@ -4853,12 +5261,12 @@ class Marot {
     return `
       <details>
         <summary
-            title="Click to see pairwise ${sysOrRater} difference significance tests, correlations, and segment histograms">
+            title="Click to see pairwise ${sysOrRater} difference significance tests, correlations, and scoring unit histograms">
           <span class="marot-section">
-            ${fullName} score comparisons and histograms
+            ${fullName} score confidences, comparisons, and histograms
           </span>
         </summary>
-        <p><b>${fullName} score
+        <p><b>${fullName} score confidence intervals and
           <select id="marot-${versus}-tables-type"
               onchange="marot.switchCmpTable('${sysOrRater}')">
             <option value="pValue"
@@ -4875,19 +5283,18 @@ class Marot {
             difference.
           </p>
           <p>
-            Missing values indicate a lack of enough common segments.
+            Missing values indicate a lack of enough common scoring units.
             ${fullName}s above any solid line
             ${sysOrRater == 'sys' ? ' are significantly better than' :
                             ' give MQM scores signinificantly lower than'}
             those below. Dotted lines identify clusters within which no
-            ${fullNameLC}'s score is significantly different from any other
+            ${fullNameLC}'s score is significantly better than any other
             ${fullNameLC}.
             <span class="marot-warning"
                 id="marot-${sysOrRater}-sigtests-msg"></span>
           </p>
         </div>
-        <p><b>${fullName} and ${fullNameLC}-pair segment
-            score histograms</b></p>
+        <p><b>${fullName} and ${fullNameLC}-pair scoring unit histograms</b></p>
         <div class="marot-comparison-histograms">
           <div class="marot-${versus}-header">
             <label>
@@ -4895,14 +5302,14 @@ class Marot {
               <select id="marot-${versus}-1"
                  onchange="marot.showCmp('${sysOrRater}')"></select>
             </label>
-            <span id="marot-${versus}-1-segs"></span> segment(s).
+            <span id="marot-${versus}-1-units"></span> scoring unit(s).
             <label>
               <b>${fullName} 2:</b>
               <select id="marot-${versus}-2"
                  onchange="marot.showCmp('${sysOrRater}')"></select>
             </label>
-            <span id="marot-${versus}-2-segs"></span> segment(s)
-            (<span id="marot-${versus}-xsegs"></span> common).
+            <span id="marot-${versus}-2-units"></span> scoring unit(s)
+            (<span id="marot-${versus}-xunits"></span> common).
             The Y-axis uses a log scale.
           </div>
           <div id="marot-${versus}-plots">
@@ -4929,24 +5336,29 @@ class Marot {
           title="Change scoring weights, slices, units.">
         <summary>Settings</summary>
         <div class="marot-settings-panel">
+          <div class="marot-settings-row">
+            <input type="checkbox" id="marot-subpara-scoring"
+                onchange="marot.updateSettings()"/>
+            For MQM, use sub-para scoring units instead of segments
+          </div>
+          <div class="marot-settings-row">
+            Sub-para limits:
+            sentences:
+            <input size="3" type="text"
+                id="marot-subpara-sents"
+                value="${this.subparaSents}"
+                onchange="marot.updateSettings()"/>
+            tokens:
+            <input size="4" type="text"
+                id="marot-subpara-tokens"
+                value="${this.subparaTokens}"
+                onchange="marot.updateSettings()"/>
+          </div>
           <div>
             Number of trials for paired one-sided approximate randomization:
             <input size="6" maxlength="6" type="text"
                 id="marot-sigtests-num-trials"
                 value="10000" onchange="marot.setSigtestsNumTrials()"/>
-          </div>
-          <div class="marot-settings-row">
-            Sub-paragraph segmentation max limits:
-            sentences:
-            <input size="4" maxlength="4" type="text"
-                id="marot-paralet-max-sentences"
-                value="${this.paraletSentences}"
-                onchange="marot.updateSettings()"/>
-            tokens:
-            <input size="6" maxlength="6" type="text"
-                id="marot-paralet-max-tokens"
-                value="${this.paraletTokens}"
-                onchange="marot.updateSettings()"/>
           </div>
           <div class="marot-settings-row">
              Note: Changes to the following tables of MQM weights and slices
@@ -5458,15 +5870,18 @@ class Marot {
     this.raterRelatedSections = document.getElementById(
         'marot-rater-related-sections');
 
-    this.paraletSentencesInput = document.getElementById(
-        'marot-paralet-max-sentences');
-    this.paraletTokensInput = document.getElementById(
-        'marot-paralet-max-tokens');
+    this.subparaScoringInput = document.getElementById(
+        'marot-subpara-scoring');
+
+    this.subparaSentsInput = document.getElementById(
+        'marot-subpara-sents');
+    this.subparaTokensInput = document.getElementById(
+        'marot-subpara-tokens');
     this.resetSettings();
 
     this.hideViewer();
 
-    document.addEventListener('keydown', this.paraNavKeyDown.bind(this));
+    document.addEventListener('keydown', this.subparaNavKeyDown.bind(this));
 
     if (tsvDataOrCsvURLs) {
       if (tsvDataOrCsvURLs.indexOf('\t') >= 0) {

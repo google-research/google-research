@@ -534,6 +534,9 @@ class MarotAligner {
    * This structure is passed to construct MarotAligner objects for aligning
    * a source segment with a target segment.
    *
+   * If sentence structures include num_chars, then it is aggregated into
+   * the returned structure's paralets members too.
+   *
    * @param {!Array<!Object>} sentences Array of objects, each containing
    *     num_tokens and optional booleans starts_with_line/para_break
    * @param {!Array<number>} paralets Array of sentence indices comprising
@@ -563,6 +566,8 @@ class MarotAligner {
         num_tokens: 0,
       };
       structure.paralets.push(paralet);
+      let num_chars = 0;
+      let sentences_with_num_chars = 0;
       for (const s of p) {
         console.assert(sIndex == s, sIndex, s);
         sIndex++;
@@ -574,6 +579,13 @@ class MarotAligner {
         paralet.num_tokens += sentence.num_tokens;
         offset += sentence.num_tokens;
         structure.sentenceTokens.push(offset);
+        if (sentence.hasOwnProperty('num_chars')) {
+          sentences_with_num_chars++;
+          num_chars += sentence.num_chars;
+        }
+      }
+      if (sentences_with_num_chars == p.length) {
+        paralet.num_chars = num_chars;
       }
       structure.paraletTokens.push(offset);
       const lastSent = sentences[p[p.length - 1]];

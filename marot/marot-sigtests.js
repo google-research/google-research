@@ -25,8 +25,8 @@
  */
 
 /**
- * An object that encapsulates the significance test computations done in a
- * Worker thread.
+ * An object that encapsulates the significance test and confidence interval
+ * computations done in a Worker thread.
  */
 class MarotSigtests {
   /**
@@ -44,17 +44,51 @@ class MarotSigtests {
   }
 
   /**
+   * For the non-null values in the samples array, use bootstrap resampling to
+   * find the 95% confidence interval for the mean.
+   * @param {!Array<number|null>} samples
+   * @param {number} numTrials
+   * @return {!Array<number>}
+   */
+  getConfidenceInterval(samples, numTrials) {
+    const nonNullSamples = [];
+    for (const sample of samples) {
+      if (sample === null) continue;
+      nonNullSamples.push(sample);
+    }
+    const n = nonNullSamples.length;
+    if (n < 10) {
+      /** Too few samples */
+      return [NaN, NaN];
+    }
+    const bootstrapSums = [];
+    for (let i = 0; i < numTrials; i++) {
+      const bootstrapIndices = this.getRandomInt(n, n);
+      let sum = 0.0;
+      for (const index of bootstrapIndices) {
+        sum += nonNullSamples[index];
+      }
+      bootstrapSums.push(sum);
+    }
+    bootstrapSums.sort((a, b) => a - b);
+    const maxLoc = numTrials - 1;
+    const loc02_5 = Math.min(maxLoc, Math.round(numTrials * 0.025));
+    const loc97_5 = Math.min(maxLoc, Math.round(numTrials * 0.975));
+    return [bootstrapSums[loc02_5] / n, bootstrapSums[loc97_5] / n];
+  }
+
+  /**
    * Performs one trial of paired approximate randomization (PAR) for a given
    * baseline and a candidate item and returns the score difference. Returns
-   * null if no common segments are found.
+   * null if no common scoring units are found.
    * @param {!MarotSigtestsMetricData} data
    * @param {string} baseline
    * @param {string} item
    * @return {number}
    */
   runPAROneTrial(data, baseline, item) {
-    const baselineScores = data.segScores[baseline];
-    const itemScores = data.segScores[item];
+    const baselineScores = data.unitScores[baseline];
+    const itemScores = data.unitScores[item];
     const commonPos = data.commonPosByItemPair[baseline][item];
 
     if (!commonPos) {
@@ -84,12 +118,17 @@ class MarotSigtests {
   }
 
   /**
-   * Implements the core logic to perform paired one-sided approximate
-   * randomization by incrementally conducting trials.
+   * For each system/rater, computes the confidence interval for its mean
+   * score over all scoring units, for all metrics, using bootstrap resampling.
+   *
+   * For each system/rater-pair, computes the significance test p-value
+   * of the score difference being significant for each metric, using paired
+   * one-sided approximate randomization.
+   *
    * @param {!Object} sigtestsData is the object that contains various pieces
-   *     of data needed for significance testing.
+   *     of data needed.
    */
-  runPAR(sigtestsData) {
+  runTests(sigtestsData) {
     for (const sysOrRater of ['sys', 'rater']) {
       if (!sigtestsData.data.hasOwnProperty(sysOrRater)) {
         continue;
@@ -103,6 +142,17 @@ class MarotSigtests {
           metric: metric,
           metricDone: true,
         };
+        /** First compute confidence intervals. */
+        for (const [rowIdx, comparable] of comparables.entries()) {
+          const update = {
+            sysOrRater: sysOrRater,
+            metric: metric,
+            row: rowIdx,
+            ci: this.getConfidenceInterval(
+                data.unitScores[comparable], sigtestsData.numTrials),
+          };
+          postMessage(update);
+        }
         /**
          * We should have at least 2 comparables and 1 trial for significance
          * testing.
@@ -132,14 +182,14 @@ class MarotSigtests {
               /** We only fill in the upper triangle and all-other-raters. */
               continue;
             }
-            const numCommonSegs = commonPos[baseline][item].length;
+            const numCommonUnits = commonPos[baseline][item].length;
             const update = {
               sysOrRater: sysOrRater,
               metric: metric,
               row: rowIdx,
               col: colIdx,
               pValue: NaN,
-              numCommonSegs: numCommonSegs,
+              numCommonUnits: numCommonUnits,
             };
 
             const realDiff = (signMultiplier *
@@ -153,7 +203,7 @@ class MarotSigtests {
              * We also skip the test if there aren't enough permutations
              * possible.
              */
-            if (log2NumTrials > numCommonSegs || realDiff < 0) {
+            if (log2NumTrials > numCommonUnits || realDiff < 0) {
               postMessage(update);
               continue;
             }
@@ -163,7 +213,7 @@ class MarotSigtests {
             }
             for (let i = 0; i < sigtestsData.numTrials; i++) {
               const diff = this.runPAROneTrial(data, baseline, item);
-              /** This means no common segments are found. */
+              /** This means no common scoring units are found. */
               if (diff == null) break;
               parDiffs[baseline][item].push(diff);
             }
@@ -199,13 +249,14 @@ class MarotSigtests {
   }
 
   /**
-   * Handles the message (to carry out sigtest computations) from the parent.
+   * Handles the message (to carry out sigtest and confidence interval
+   * computations) from the parent.
    * @param {!Event} e is the message event received from the parent thread.
    *     The e.data field is the object that contains various pieces of data
    *     needed.
    */
   messageHandler(e) {
-    this.runPAR(e.data);
+    this.runTests(e.data);
   }
 }
 
