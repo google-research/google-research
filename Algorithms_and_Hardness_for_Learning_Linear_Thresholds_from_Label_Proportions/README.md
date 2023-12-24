@@ -17,3 +17,4 @@ In the folder bag_size_q run:
 python large_margin_q-sized_LLP_LTF.py , python small_margin_q-sized_LLP_LTF.py , python processing_results_q_sized.py
 
 Results available in tex files in the same folder.
+hiii ...first fork !! 
