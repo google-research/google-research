@@ -22,9 +22,9 @@ import jraph
 import ml_collections
 import numpy as np
 
-from differentially_private_gnns import dataset_readers
-from differentially_private_gnns import normalizations
-from differentially_private_gnns import sampler
+import dataset_readers
+import normalizations
+import sampler
 
 
 def add_reverse_edges(

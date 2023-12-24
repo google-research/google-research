@@ -23,8 +23,8 @@ import jax
 import jraph
 import numpy as np
 
-from differentially_private_gnns import models
-from differentially_private_gnns import normalizations
+import models
+import normalizations
 
 
 def get_dummy_graph(

@@ -66,9 +66,11 @@ def dp_aggregate(
   Returns:
     A `GradientTransformation`.
   """
-  noise_stds = jax.tree_map(
-      lambda l2_norm_clip: l2_norm_clip * base_sensitivity * noise_multiplier,
-      l2_norms_threshold)
+
+  # Compute sqrt(sum of squares of clipping norms)
+  # Set the noise std to be proportional to this quantity.
+  total_l2_norms_threshold = jnp.sqrt(sum(jax.tree_leaves(jax.tree_map(jnp.square, l2_norms_threshold))))
+  noise_std = total_l2_norms_threshold * base_sensitivity * noise_multiplier
 
   def init_fn(params):
     del params
@@ -94,8 +96,8 @@ def dp_aggregate(
         lambda g: jnp.sum(g, axis=0),
         clipped_updates)
     noise = jax.tree_map(
-        lambda g, std, rng: (std * jax.random.normal(rng, g.shape, g.dtype)),
-        summed_updates, noise_stds, rng_tree)
+        lambda g, rng: (noise_std * jax.random.normal(rng, g.shape, g.dtype)),
+        summed_updates, rng_tree)
     noisy_updates = jax.tree_map(lambda g, noise: (g + noise), summed_updates,
                                  noise)
     return (noisy_updates,

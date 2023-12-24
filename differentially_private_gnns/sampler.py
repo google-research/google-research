@@ -21,7 +21,7 @@ import chex
 import jax
 import numpy as np
 
-from differentially_private_gnns import dataset_readers
+import dataset_readers
 
 
 Node = Union[int, str]
@@ -95,7 +95,6 @@ def sample_adjacency_lists(edges, train_nodes,
     else:
       dropped_count += 1
 
-  print('dropped count', dropped_count)
   sampled_edges = reverse_edges(sampled_reversed_edges)
 
   # For non-train nodes, we can sample the entire edgelist.
