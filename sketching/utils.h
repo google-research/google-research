@@ -15,6 +15,7 @@
 #ifndef SKETCHING_UTILS_H_
 #define SKETCHING_UTILS_H_
 
+#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -24,7 +25,7 @@
 namespace sketch {
 
 typedef unsigned int uint;
-typedef uint64 ULONG;
+typedef uint64_t ULONG;
 typedef std::pair<uint, float> IntFloatPair;
 
 inline constexpr int HL = 31;
