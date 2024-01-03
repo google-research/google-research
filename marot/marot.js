@@ -270,6 +270,10 @@ class Marot {
      *      "[doc]:[system]". The "doc" keys in statsByRater also look like
      *      "[doc]:[system]".
      *
+     * statsByRaterSystem and statsByRater treat AutoMQM metrics as the MQM
+     * metric (so that we can do sigtest comparisons, ordering differences,
+     * etc.)
+     *
      * sevcatStats[severity][category][system] is the total count of
      * annotations of a specific severity+category in a specific system.
      *
@@ -378,8 +382,9 @@ class Marot {
      * ascending order (false, default) or descending order (true).
      *
      * The value of this is something like 'metric-<k>' (where k is an index
-     * into this.metrics[]), or a name from this.mqmWeightedFields[] or
-     * this.mqmSliceFields[].
+     * into this.metrics[]), or 'metric-<k>-' + a name from
+     * this.mqmWeightedFields[] or this.mqmSliceFields[] (for MQM and AutoMQM
+     * metrics).
      */
     this.sortByField = 'metric-0';
     this.sortReverse = false;
@@ -405,6 +410,14 @@ class Marot {
      * {!Array<number>} Indices into this.metrics.
      */
     this.metricsVisible = [];
+    /**
+     * Subset of metricsVisible that are the MQM and AutoMQM metrics.
+     */
+    this.mqmMetricsVisible = [];
+    /**
+     * Set of MQM metric indices for which the details are toggled visible.
+     */
+    this.mqmDetailsShown = null;
 
     /**
      * Max number of rows to show in a rater's event timeline.
@@ -422,12 +435,48 @@ class Marot {
     this.PRIOR_RATER_PREFIX = 'prior:';
 
     /**
-     * Maximum number of lines of data that we'll consume. Human eval data is
+     * Maximum number of segments of data that we'll consume. Human eval data is
      * generally of modest size, but automated metrics data can be arbitrary
-     * large. Users should limit and curate such data.
-     * 1000 docs * 100 lines * 10 systems * 10 raters = 10,000,000
+     * large. Users should limit and curate such data. The way this limit is
+     * implemented is that the first MAX_SEGMENTS distinct {doc, seg} are
+     * loaded. Data for these segments continues to be loaded even from file
+     * lines read after the limit is hit.
      */
-    this.MAX_DATA_LINES = 10000000;
+    this.MAX_SEGMENTS = 10000;
+    this.docsegs = new Set;
+    this.tooManySegsErrorShown = false;
+  }
+
+  /**
+   * Return true only for MQM-like metric names: i.e., if the metric name is MQM
+   * or starts with AutoMQM.
+   * @param {string} metric
+   * @return {boolean}
+   */
+  isMQMOrAutoMQM(metric) {
+    const lm = metric.toLowerCase();
+    return lm.startsWith('mqm') || lm.startsWith('automqm');
+  }
+
+  /**
+   * Convert a rater name to its MQM-like metric name. If the rater name begins
+   * with 'automqm' (case-insensitively) and treatAutoMQMAsMQM is false, then
+   * the rater name itself is returned as the metric name. Otherwise 'MQM' is
+   * returned.
+   * @param {string} rater
+   * @param {boolean=} treatAutoMQMAsMQM Set to true if AutoMQM is to be
+   *     conflated with MQM (set only for comparing per-rater scores, including
+   *     AutoMQM).
+   * @return {string}
+   */
+  mqmMetricName(rater, treatAutoMQMAsMQM=false) {
+    if (!treatAutoMQMAsMQM) {
+      const lr = rater.toLowerCase();
+      if (lr.startsWith('automqm')) {
+        return 'AutoMQM' + rater.substr(7);
+      }
+    }
+    return 'MQM';
   }
 
   /**
@@ -511,6 +560,7 @@ class Marot {
       docSegSys: {},
       systems: new Set,
       raters: new Set,
+      raterDetails: {},
       evaluation: {},
     };
     let lastRow = null;
@@ -595,6 +645,20 @@ class Marot {
       }
       this.dataIter.docSegSys[doc][docSegId][system].segment = segment;
       lastRow = parts;
+    }
+    /** Assign each rater a distinctive color and HTML-safe key */
+    for (const rater of this.dataIter.raters) {
+      const raterKey = MarotUtils.javaHashKey(rater);
+      const raterIntHash = parseInt(raterKey, 36);
+      /** Make a random dark color using 8 hash bits each for R,G,B */
+      const r = ((raterIntHash & 0xFF) >> 0);
+      const g = ((raterIntHash & 0xFF00) >> 8);
+      const b = ((raterIntHash & 0xFF0000) >> 16);
+      const raterColor = `rgb(${r},${g},${b})`;
+      this.dataIter.raterDetails[rater] = {
+        key: raterKey,
+        color: raterColor,
+      };
     }
   }
 
@@ -863,8 +927,13 @@ class Marot {
               aggrDocSegSys.source_tokens.length == 0) {
             this.tokenizeLegacySegment(range, aggrDocSegSys);
           }
-          this.setNumChars(aggrDocSegSys.target_tokens,
-                           aggrDocSegSys.target_sentence_splits);
+          if (aggrDocSegSys.hasOwnProperty('target_tokens')) {
+            console.assert(
+                aggrDocSegSys.hasOwnProperty('target_sentence_splits'),
+                aggrDocSegSys);
+            this.setNumChars(aggrDocSegSys.target_tokens,
+                             aggrDocSegSys.target_sentence_splits);
+          }
           if (!aggrDocSeg.hasOwnProperty('source_tokens') &&
               aggrDocSegSys.hasOwnProperty('source_tokens')) {
             aggrDocSeg.source_tokens = aggrDocSegSys.source_tokens;
@@ -1307,9 +1376,8 @@ class Marot {
       names[parsedRow.name] = true;
       parsed.push(parsedRow);
     }
-    const errorsElt = document.getElementById('marot-errors');
     for (const error of errorsFound) {
-      errorsElt.insertAdjacentHTML('beforeend', `<div>${error}</div>\n`);
+      this.errors.insertAdjacentHTML('beforeend', `<div>${error}</div>\n`);
     }
     return (errorsFound.length == 0) ? parsed : null;
   }
@@ -1320,8 +1388,7 @@ class Marot {
    * @return {boolean} True if the parsing was successful.
    */
   parseScoreSettings() {
-    const errors = document.getElementById('marot-errors');
-    errors.innerHTML = '';
+    this.errors.innerHTML = '';
     const newWeights = this.parseScoreSettingsInner(
         'marot-settings-weights', true);
     const newSlices = this.parseScoreSettingsInner(
@@ -1364,7 +1431,7 @@ class Marot {
    * @return {string}
    */
   scoringUnitName(metric) {
-    if (metric != 'MQM' || !this.subparaScoring) {
+    if (!this.isMQMOrAutoMQM(metric) || !this.subparaScoring) {
       return 'segment';
     }
     if (this.subparaSents == 1) {
@@ -1509,57 +1576,81 @@ class Marot {
    *          num_source_chars
    *       metric-[index in this.metrics]
    *           (repeated from metrics[...].score, as a convenient sorting key)
-   *       mqmStats:
+   *       mqmStats['<mqm-metric-name>']:
+   *         * Note that this has entries for 'MQM' and 'AutoMQM*' metrics.
    *         numScoringUnits # of scoring units with MQM ratings
    *         num_source_chars # of src-chars with MQM ratings
    *         numSegRatings: # segment X rater combinations for MQM
    *         timeSpentMS
    * @param {!Array} units
+   * @param {boolean=} treatAutoMQMAsMQM Set to true if AutoMQM scores should
+   *     be aggregated as 'MQM' (used only for comparing a rater's scoring to
+   *     an AutoMQM scoring).
    * @return {!Object}
    */
-  aggregateUnitStats(units) {
+  aggregateUnitStats(units, treatAutoMQMAsMQM=false) {
     const aggregates = {
       numSegments: 0,
       num_source_chars: 0,
       metrics: {},
     };
-    aggregates.mqmStats = {
-      numScoringUnits: 0,
-      num_source_chars: 0,
-      numSegRatings: 0,
-      ...(this.initRaterStats('')),
-    };
+    aggregates.mqmStats = {};
     if (!units || !units.length) {
       return aggregates;
     }
+    const mqmMetrics = new Set;
+    for (const unitStats of units) {
+      for (const r of unitStats) {
+        if (!r.rater) continue;
+        mqmMetrics.add(this.mqmMetricName(r.rater, treatAutoMQMAsMQM));
+      }
+    }
+    for (const mqm of mqmMetrics) {
+      aggregates.mqmStats[mqm] = {
+        numScoringUnits: 0,
+        num_source_chars: 0,
+        numSegRatings: 0,
+        ...(this.initRaterStats(mqm)),
+      };
+    }
     /**
-     * First compute MQM aggregates into aggregates.mqmStats, and initialize
+     * First compute MQM aggregates into aggregates.mqmStats[], and initialize
      * aggregates.metric[metricName] for any non-MQM metricName found in
      * unitStats.
      */
     const docAndDocSegs = new Set;
     for (const unitStats of units) {
       aggregates.num_source_chars += unitStats.num_source_chars;
-      const allRaterStats = this.initRaterStats('');
-      for (const r of unitStats) {
-        this.addRaterStats(allRaterStats, r);
-      }
       const docAndDocSeg = this.aColonB(
           unitStats.doc, this.unitIdToDocSegId(unitStats.unit));
-      if (unitStats.length > 0) {
-        this.avgRaterStats(allRaterStats, unitStats.length);
-        aggregates.mqmStats.numScoringUnits++;
-        aggregates.mqmStats.num_source_chars += unitStats.num_source_chars;
-        if (!docAndDocSegs.has(docAndDocSeg)) {
-          /** Count segment ratings only from the first subpara */
-          aggregates.mqmStats.numSegRatings += unitStats.length;
-        }
-        this.addRaterStats(aggregates.mqmStats, allRaterStats);
-      }
+      const isFirstSubpara = !docAndDocSegs.has(docAndDocSeg);
       docAndDocSegs.add(docAndDocSeg);
+
+      for (const mqm of mqmMetrics) {
+        const allRaterStats = this.initRaterStats(mqm);
+        let numRaters = 0;
+        for (const r of unitStats) {
+          if (!r.rater) continue;
+          if (this.mqmMetricName(r.rater, treatAutoMQMAsMQM) == mqm) {
+            numRaters++;
+            this.addRaterStats(allRaterStats, r);
+          }
+        }
+        if (numRaters > 0) {
+          const mqmStats = aggregates.mqmStats[mqm];
+          this.avgRaterStats(allRaterStats, numRaters);
+          mqmStats.numScoringUnits++;
+          mqmStats.num_source_chars += unitStats.num_source_chars;
+          if (isFirstSubpara) {
+            /** Count segment ratings only from the first subpara */
+            mqmStats.numSegRatings += numRaters;
+          }
+          this.addRaterStats(mqmStats, allRaterStats);
+        }
+      }
       if (unitStats.hasOwnProperty('metrics')) {
         for (let metric in unitStats.metrics) {
-          if (metric == 'MQM') {
+          if (this.isMQMOrAutoMQM(metric)) {
             continue;
           }
           if (!aggregates.metrics.hasOwnProperty(metric)) {
@@ -1579,8 +1670,10 @@ class Marot {
     }
     aggregates.numSegments = docAndDocSegs.size;
 
-    this.avgRaterStats(
-        aggregates.mqmStats, aggregates.mqmStats.numScoringUnits);
+    for (const mqm of mqmMetrics) {
+      const mqmStats = aggregates.mqmStats[mqm];
+      this.avgRaterStats(mqmStats, mqmStats.numScoringUnits);
+    }
 
     /** Aggregate non-MQM metrics. */
     for (let metric in aggregates.metrics) {
@@ -1601,19 +1694,33 @@ class Marot {
         metricStats.score /= metricStats.numScoringUnits;
       }
     }
-    /** Copy MQM score into aggregate.metrics['MQM'] */
-    if (aggregates.mqmStats.numSegRatings > 0) {
-      aggregates.metrics['MQM'] = {
-        score: aggregates.mqmStats.score,
-        numScoringUnits: aggregates.mqmStats.numScoringUnits,
-        num_source_chars: aggregates.mqmStats.num_source_chars,
-        numSegRatings: aggregates.mqmStats.numSegRatings,
+    /** Copy MQM score into aggregate.metrics[] */
+    for (const mqm of mqmMetrics) {
+      const mqmStats = aggregates.mqmStats[mqm];
+      if (mqmStats.numSegRatings == 0) {
+        continue;
+      }
+      aggregates.metrics[mqm] = {
+        score: mqmStats.score,
+        numScoringUnits: mqmStats.numScoringUnits,
+        num_source_chars: mqmStats.num_source_chars,
+        numSegRatings: mqmStats.numSegRatings,
       };
     }
+    /** The metric-m* keys are used to enable sorting the top table. */
     for (let metric in aggregates.metrics) {
       const metricStats = aggregates.metrics[metric];
       const metricIndex = this.metricsInfo[metric].index;
       aggregates['metric-' + metricIndex] = metricStats.score;
+      if (this.isMQMOrAutoMQM(metric)) {
+        const mqmStats = aggregates.mqmStats[metric];
+        for (const key in mqmStats) {
+          if (key.startsWith(this.MQM_WEIGHTED_PREFIX) ||
+              key.startsWith(this.MQM_SLICE_PREFIX)) {
+            aggregates['metric-' + metricIndex + '-' + key] = mqmStats[key];
+          }
+        }
+      }
     }
     return aggregates;
   }
@@ -1643,8 +1750,8 @@ class Marot {
     const blob = new Blob([this.sigtestsWorkerJS],
                           {type: "text/javascript" });
     this.sigtestsWorker = new Worker(window.URL.createObjectURL(blob));
-    this.sigtestsWorker.postMessage(this.sigtestsData);
     this.sigtestsWorker.onmessage = this.sigtestsUpdate.bind(this);
+    this.sigtestsWorker.postMessage(this.sigtestsData);
   }
 
   /**
@@ -1703,16 +1810,16 @@ class Marot {
    * @param {!Object} stats Stats object keyed by system/rater.
    * @param {!Object} statsAggregates Aggregation (also keyed by system/rater)
    *     of stats over scoring units.
-   * @param {!Array<number>} metricIds
    * @return {!Object} Returns an object keyed by metric name, where each
    *     value is a MarotSigtestsMetricData object.
    */
-  prepareSigtests(sysOrRater, stats, statsAggregates, metricIds) {
+  prepareSigtests(sysOrRater, stats, statsAggregates) {
     /**
      * Each scoring unit is uniquely determined by the (doc, unit) pair. We
      * use `pairToPos` to track which pair goes to which position in the aligned
      * unitScores[] array.
      */
+    const forRater = sysOrRater == 'rater';
     const pairToPos = {};
     let maxPos = 0;
     for (const key in stats) {
@@ -1740,6 +1847,7 @@ class Marot {
       comparables.splice(indexOfTotal, 1);
     }
 
+    const metricIds = forRater ? [0] : this.metricsVisible;
     for (const m of metricIds) {
       const metricKey = 'metric-' + m;
       const metric = this.metrics[m];
@@ -1759,7 +1867,7 @@ class Marot {
             {score: 0, numScoringUnits: 0};
       }
       const augmentedItems = data.comparables.slice();
-      if (sysOrRater == 'rater') {
+      if (forRater) {
         for (const rater of data.comparables) {
           const notRater = this.NOT_PREFIX + rater;
           augmentedItems.push(notRater);
@@ -1780,10 +1888,11 @@ class Marot {
             const unitStats = stats[item][doc][unit];
             const pos = pairToPos[doc][unit];
             /** Note the extra "[]". */
-            const aggregate = this.aggregateUnitStats([unitStats]);
+            const aggregate = this.aggregateUnitStats(
+                [unitStats], forRater);
             const metricStats = aggregate.metrics[metric] ?? null;
             if (metricStats && metricStats.numScoringUnits > 0 &&
-                (metric == 'MQM' ||
+                (this.isMQMOrAutoMQM(metric) ||
                  !this.subparaScoring || unitStats.subpara == 0)) {
               let score = metricStats.score;
               if (metric != 'MQM' && this.subparaScoring) {
@@ -1816,7 +1925,7 @@ class Marot {
          * We only need the upper triangle in the comparison table, plus the
          * complement in case of raters.
          */
-        const columns = (sysOrRater == 'rater' ?
+        const columns = (forRater ?
                          [this.NOT_PREFIX + baseline] : []).concat(
                              data.comparables.slice(idx + 1));
         for (const item of columns) {
@@ -1969,14 +2078,14 @@ class Marot {
    * @param {string} sysOrRater
    * @param {!Object} stats
    * @param {!Object} statsAggregates
-   * @param {!Array<number>} metricIds
    */
-  showSigtests(sysOrRater, stats, statsAggregates, metricIds) {
+  showSigtests(sysOrRater, stats, statsAggregates) {
+    const metricIds = (sysOrRater == 'sys') ? this.metricsVisible : [0];
     const div = document.getElementById(
         `marot-${sysOrRater}-v-${sysOrRater}-tables`);
     div.innerHTML = '';
     const sigtestsData = this.prepareSigtests(
-        sysOrRater, stats, statsAggregates, metricIds);
+        sysOrRater, stats, statsAggregates);
     let firstTable = true;
     for (const m of metricIds) {
       const metric = this.metrics[m];
@@ -1997,7 +2106,7 @@ class Marot {
             <th>${sysOrRater == 'sys' ? 'System' : 'Rater'}</th>
             <th>${this.metrics[m]}</th>`;
       if (sysOrRater == 'rater') {
-        html += '<th colspan="2">All other raters</th>';
+        html += '<th colspan="2">All other human raters</th>';
       }
       for (const item of comparables) {
         html += `<th>${item}</th>`;
@@ -2024,7 +2133,7 @@ class Marot {
         for (const [itemIdx, item] of columns.entries()) {
           const colIdx = itemIdx - othersColumn.length;
           /**
-           * Note that p-value against "all other raters" is shown in colIdx = -1
+           * Note: p-value against "all other raters" is shown in colIdx = -1
            */
           if (rowIdx >= colIdx && colIdx != -1) {
             html += '<td></td>';
@@ -2073,64 +2182,146 @@ class Marot {
   }
 
   /**
+   * For an MQM-like metric, show detail columns in the scores table at the top
+   * (Accuracy/Fluency splits, etc.).
+   * @param {!Element} th The TH element for the metric in the scores table.
+   * @param {number} m Metric index (0 for MQM, > 0 for AutoMQM).
+   */
+  showMQMDetails(th, m) {
+    th.colSpan = this.mqmWeightedFields.length + this.mqmSliceFields.length +
+                 (m == 0 ? 2 : 0) + 2;
+    th.firstElementChild.innerHTML = '[-]';
+    th.title = 'Click to show fewer details';
+    const elts = document.getElementsByClassName('marot-mqm-detail-' + m);
+    for (let i = 0; i < elts.length; i++) {
+      elts[i].style.display = '';
+    }
+    this.mqmDetailsShown.add(m);
+  }
+
+  /**
+   * For an MQM-like metric, hide detail columns in the scores table at the top
+   * (Accuracy/Fluency splits, etc.).
+   * @param {!Element} th The TH element for the metric in the scores table.
+   * @param {number} m Metric index (0 for MQM, > 0 for AutoMQM).
+   */
+  hideMQMDetails(th, m) {
+    th.colSpan = 2;
+    th.firstElementChild.innerHTML = '[+]';
+    th.title = 'Click to show more details';
+    const elts = document.getElementsByClassName('marot-mqm-detail-' + m);
+    for (let i = 0; i < elts.length; i++) {
+      elts[i].style.display = 'none';
+    }
+    this.mqmDetailsShown.delete(m);
+  }
+
+  /**
+   * For an MQM-like metric, toggle showing/hiding of detail columns in the
+   * scores table at the top (Accuracy/Fluency splits, etc.).
+   * @param {number} m Metric index (0 for MQM, > 0 for AutoMQM).
+   */
+  toggleMQMDetails(m) {
+    const th = document.getElementById('marot-mqm-details-th-' + m);
+    if (this.mqmDetailsShown.has(m)) {
+      this.hideMQMDetails(th, m);
+    } else {
+      this.showMQMDetails(th, m);
+    }
+  }
+
+  /**
    * Shows the table header for the marot scores table. The score weighted
    * components and slices to display should be available in
    * mqmWeightedFields and mqmSliceFields.
-   * @param {boolean} hasRatings set to true if there are some MQM annotations.
    */
-  showScoresHeader(hasRatings) {
+  showScoresHeader() {
     const header = document.getElementById('marot-stats-thead');
     let html = `
         <tr><th></th>`;
-    const metricFields = [];
     for (const m of this.metricsVisible) {
       const metric = this.metrics[m];
       html +=  `<th id="marot-metric-${m}-th">${metric}
                    per ${this.scoringUnitName(metric)}</th>`;
-      metricFields.push('metric-' + m);
     }
     html += `
         <th title="Number of segments"><b>#Segments</b></th>
         <th title="Number of source characters"><b>#Source-chars</b></th>`;
-    if (hasRatings) {
-      html += `
-        <th title="Number of segment ratings"><b>#Segment MQM ratings</b></th>`;
-    }
 
     const mqmPartFields =
         this.mqmWeightedFields.map(x => this.MQM_WEIGHTED_PREFIX + x)
             .concat(this.mqmSliceFields.map(x => this.MQM_SLICE_PREFIX + x));
-    for (let i = 0; i < mqmPartFields.length; i++) {
-      const scoreKey = mqmPartFields[i];
-      const scoreName = this.mqmKeyToName(scoreKey);
-      const partType = (i < this.mqmWeightedFields.length) ? 'weighted' :
-          'slice';
-      const cls = 'marot-stats-' + partType;
-      const tooltip = 'Score part: ' + scoreName + '-' + partType;
+    for (const m of this.mqmMetricsVisible) {
+      const metric = this.metrics[m];
       html += `
-          <th id="marot-${scoreKey}-th" class="marot-score-th ${cls}"
-              title="${tooltip}">
-            <b>${scoreName}</b>
-          </th>`;
-    }
-    if (hasRatings) {
-      html += `
-            <th title="Average time (seconds) per rater per segment">
+        <th title="Number of segment ratings"><b>#Segment ratings</b></th>
+        <th title="Average length of error span"><b>Avg error span</b></th>`;
+      for (let i = 0; i < mqmPartFields.length; i++) {
+        const scoreKey = mqmPartFields[i];
+        const scoreName = this.mqmKeyToName(scoreKey);
+        const partType = (i < this.mqmWeightedFields.length) ? 'weighted' :
+            'slice';
+        const cls = 'marot-mqm-detail-' + m + ' marot-stats-' + partType;
+        const tooltip = 'Score part: ' + scoreName + '-' + partType;
+        html += `
+            <th id="marot-metric-${m}-${scoreKey}-th"
+                class="marot-score-th ${cls}" title="${tooltip}">
+              <b>${scoreName}</b>
+            </th>`;
+      }
+      if (metric == 'MQM') {
+        html += `
+            <th class="marot-mqm-detail-0"
+                title="Average time (seconds) per rater per segment">
                 <b>Time (s)</b></th>
-            <th title="Average length of error span"><b>Err span</b></th>
-            <th title="Hands-on-the-wheel test"><b>HOTW Test</b></th>
-          </tr>`;
+            <th class="marot-mqm-detail-0"
+                title="Hands-on-the-wheel test"><b>HOTW Test</b></th>`;
+      }
     }
-    header.innerHTML = html;
+    html += '</tr>\n';
+    let mqmHeader = '';
+    if (this.mqmMetricsVisible.length > 0) {
+      if (!this.mqmDetailsShown) {
+        this.mqmDetailsShown = new Set;
+        if (this.mqmMetricsVisible.length == 1) {
+          this.mqmDetailsShown.add(this.mqmMetricsVisible[0]);
+        }
+      }
+      const colsBefore = this.metricsVisible.length + 3;
+      mqmHeader = `<tr><th colspan="${colsBefore}"></th>`;
+      for (const m of this.mqmMetricsVisible) {
+        const metric = this.metrics[m];
+        mqmHeader += '<th class="marot-mqm-details-th"' +
+            ` id="marot-mqm-details-th-${m}">${metric} details` +
+            ' <span class="marot-details-toggle"></span></th>';
+      }
+      mqmHeader += '</tr>\n';
+    }
+    header.innerHTML = mqmHeader + html;
+
+    for (const m of this.mqmMetricsVisible) {
+      const th = document.getElementById('marot-mqm-details-th-' + m);
+      th.addEventListener('click', this.toggleMQMDetails.bind(this, m));
+    }
 
     /** Make columns clickable for sorting purposes. */
-
+    const sortFields = [];
+    for (const m of this.metricsVisible) {
+      const metricField = 'metric-' + m;
+      sortFields.push(metricField);
+      if (this.isMQMOrAutoMQM(this.metrics[m])) {
+        for (const partField of mqmPartFields) {
+          sortFields.push(metricField + '-' + partField);
+        }
+      }
+    }
     const upArrow = '<span class="marot-arrow marot-arrow-up">&#129041;</span>';
     const downArrow =
         '<span class="marot-arrow marot-arrow-down">&#129043;</span>';
-    for (const field of metricFields.concat(mqmPartFields)) {
+    for (const field of sortFields) {
       const headerId = `marot-${field}-th`;
       const th = document.getElementById(headerId);
+      console.assert(th, headerId);
       th.insertAdjacentHTML('beforeend', ` ${upArrow}${downArrow}`);
       th.addEventListener('click', (e) => {
         // Click again for reversing order. Otherwise sort in ascending order.
@@ -2149,13 +2340,21 @@ class Marot {
   /**
    * In the stats table, display a separator line, optionally followed by a row
    * that displays a title (if non-empty).
-   * @param {boolean} hasRatings set to true if there are some marot annotations.
    * @param {string=} title
    */
-  showScoresSeparator(hasRatings, title='') {
-    const NUM_COLS = (hasRatings ? 7 : 3) + this.metricsVisible.length +
-                     this.mqmWeightedFields.length +
-                     this.mqmSliceFields.length;
+  showScoresSeparator(title='') {
+    let haveHumanRaters = false;
+    for (const m of this.mqmMetricsVisible) {
+      if (m == 0) {
+        haveHumanRaters = true;
+        break;
+      }
+    }
+    const MQM_COLS =
+        (haveHumanRaters ? 2 : 0) +
+        (this.mqmWeightedFields.length + this.mqmSliceFields.length + 2) *
+        this.mqmMetricsVisible.length;
+    const NUM_COLS = 3 + MQM_COLS + this.metricsVisible.length;
     this.statsTable.insertAdjacentHTML(
         'beforeend',
         `<tr><td colspan="${NUM_COLS}"><hr></td></tr>` +
@@ -2168,11 +2367,10 @@ class Marot {
    * Appends a row with score details for "label" (shown in the first column)
    * from the stats object to this.statsTable.
    * @param {string} label
-   * @param {boolean} hasRatings set to true if there are some MQM annotations.
    * @param {!Object} stats
    * @param {!Object} aggregates
    */
-  showScores(label, hasRatings, stats, aggregates) {
+  showScores(label, stats, aggregates) {
     const scoreFields =
         this.mqmWeightedFields.map(x => this.MQM_WEIGHTED_PREFIX + x).concat(
             this.mqmSliceFields.map(x => this.MQM_SLICE_PREFIX + x));
@@ -2189,37 +2387,45 @@ class Marot {
     rowHTML +=
         `<td>${aggregates.numSegments}</td>` +
         `<td>${aggregates.num_source_chars}</td>`;
-    if (hasRatings) {
-      const mqmStats = aggregates.mqmStats;
+    for (const m of this.mqmMetricsVisible) {
+      const metric = this.metrics[m];
+      const mqmStats = aggregates.mqmStats[metric];
+      if (!mqmStats || mqmStats.numScoringUnits <= 0) {
+        const blanks = scoreFields.length + (metric == 'MQM' ? 2 : 0);
+        rowHTML += '<td>-</td><td>-</td>';
+        for (let i = 0; i < blanks; i++) {
+          rowHTML += `<td class="marot-mqm-detail-${m}">-</td>`;
+        }
+        continue;
+      }
       console.assert(mqmStats.numSegRatings > 0, mqmStats);
       rowHTML +=
         `<td>${mqmStats.numSegRatings}</td>`;
-      if (mqmStats.numScoringUnits <= 0) {
-        for (let i = 0; i < scoreFields.length + 3; i++) {
-          rowHTML += '<td>-</td>';
+      let errorSpan = 0;
+      if (mqmStats.numWithErrors > 0) {
+        errorSpan = mqmStats.errorSpans / mqmStats.numWithErrors;
+      }
+      rowHTML += `<td>${(errorSpan).toFixed(1)}</td>`;
+      for (const s of scoreFields) {
+        let content =
+            mqmStats.hasOwnProperty(s) ? mqmStats[s].toFixed(3) : '-';
+        let cls = `marot-mqm-detail-${m}`;
+        const nameParts = s.split('-', 2);
+        if (nameParts.length == 2) {
+          cls += ' marot-stats-' + nameParts[1];
         }
-      } else {
-        for (const s of scoreFields) {
-          let content =
-              mqmStats.hasOwnProperty(s) ? mqmStats[s].toFixed(3) : '-';
-          const nameParts = s.split('-', 2);
-          const cls = (nameParts.length == 2) ?
-            ' class="marot-stats-' + nameParts[0] + '"' :
-            '';
-          rowHTML += `<td${cls}>${content}</td>`;
-        }
-        let errorSpan = 0;
-        if (mqmStats.numWithErrors > 0) {
-          errorSpan = mqmStats.errorSpans / mqmStats.numWithErrors;
-        }
-        rowHTML += `<td>${(mqmStats.timeSpentMS/1000.0).toFixed(1)}</td>`;
-        rowHTML += `<td>${(errorSpan).toFixed(1)}</td>`;
+        rowHTML += `<td class="${cls}">${content}</td>`;
+      }
+      if (metric == 'MQM') {
+        rowHTML += '<td class="marot-mqm-detail-0">' +
+            `${(mqmStats.timeSpentMS/1000.0).toFixed(1)}</td>`;
         const hotw = mqmStats.hotwFound + mqmStats.hotwMissed;
         if (hotw > 0) {
           const perc = ((mqmStats.hotwFound * 100.0) / hotw).toFixed(1);
-          rowHTML += `<td>${mqmStats.hotwFound}/${hotw} (${perc}%)</td>`;
+          rowHTML += '<td class="marot-mqm-detail-0">' +
+              `${mqmStats.hotwFound}/${hotw} (${perc}%)</td>`;
         } else {
-          rowHTML += '<td>-</td>';
+          rowHTML += '<td class="marot-mqm-detail-0">-</td>';
         }
       }
     }
@@ -2229,7 +2435,7 @@ class Marot {
 
   /**
    * Shows the system x rater matrix of scores. The rows and columns are
-   * ordered by total marot score.
+   * ordered by total (human) MQM score if available.
    */
   showSystemRaterStats() {
     const table = document.getElementById('marot-system-x-rater');
@@ -2241,28 +2447,28 @@ class Marot {
       systemAggregates[sys] = this.aggregateUnitStats(unitStats);
     }
 
-    const SORT_FIELD = 'metric-0';
-    systems.sort(
-        (sys1, sys2) =>
-            systemAggregates[sys1][SORT_FIELD] -
-            systemAggregates[sys2][SORT_FIELD]);
-
     const raters = this.excludeRaterComplements(Object.keys(this.statsByRater));
     const raterAggregates = {};
     for (const rater of raters) {
       const unitStats = this.getUnitStatsAsArray(this.statsByRater[rater]);
-      raterAggregates[rater] = this.aggregateUnitStats(unitStats);
+      raterAggregates[rater] = this.aggregateUnitStats(unitStats, true);
     }
+
+    const SORT_FIELD = 'metric-0';
+    systems.sort(
+        (sys1, sys2) =>
+            (systemAggregates[sys1][SORT_FIELD] ?? 0) -
+            (systemAggregates[sys2][SORT_FIELD] ?? 0));
     raters.sort(
         (rater1, rater2) =>
-            raterAggregates[rater1][SORT_FIELD] -
-            raterAggregates[rater2][SORT_FIELD]);
+            (raterAggregates[rater1][SORT_FIELD] ?? 0) -
+            (raterAggregates[rater2][SORT_FIELD] ?? 0));
 
     let html = `
       <thead>
         <tr>
           <th>System</th>
-          <th>All raters</th>`;
+          <th>All human raters</th>`;
     for (const rater of raters) {
       html += `
           <th>${rater}</th>`;
@@ -2274,7 +2480,7 @@ class Marot {
     /**
      * State for detecting "out-of-order" raters. We say a rater is out-of-order
      * if their rating for a system is oppositely related to the previous
-     * system's rating, when compared with the aggregate over all raters.
+     * system's rating, when compared with the aggregate over all human raters.
      */
     let lastAllRaters = 0;
     const lastForRater = {};
@@ -2285,31 +2491,36 @@ class Marot {
       if (sys == this.TOTAL) {
         continue;
       }
-      const allRatersScore = systemAggregates[sys].mqmStats;
+      const sysMQMStats = systemAggregates[sys].mqmStats['MQM'] ?? {};
+      const allRatersScore = sysMQMStats.score ?? NaN;
       html += `
-        <tr><td>${sys}</td>${this.tdForScore(allRatersScore, 'MQM')}`;
+        <tr><td>${sys}</td>${this.tdForScore(sysMQMStats, 'MQM')}`;
       for (const rater of raters) {
         const unitStats = this.getUnitStatsAsArray(
             (this.statsByRaterSystem[rater] ?? {})[sys] ?? {});
         if (unitStats && unitStats.length > 0) {
-          const aggregate = this.aggregateUnitStats(unitStats);
-          const cls = ((aggregate.mqmStats.score < lastForRater[rater] &&
-                        allRatersScore.score > lastAllRaters) ||
-                       (aggregate.mqmStats.score > lastForRater[rater] &&
-                        allRatersScore.score < lastAllRaters)) ?
+          const aggregate = this.aggregateUnitStats(unitStats, true);
+          const raterSysMQMStats = aggregate.mqmStats['MQM'];
+          const raterSysScore = raterSysMQMStats.score;
+          console.assert(raterSysMQMStats, rater, sys);
+          /** Note that if any quantity is NaN, cls will be ''. */
+          const cls = ((raterSysScore < lastForRater[rater] &&
+                        allRatersScore > lastAllRaters) ||
+                       (raterSysScore > lastForRater[rater] &&
+                        allRatersScore < lastAllRaters)) ?
               'marot-out-of-order' : '';
-          html += this.tdForScore(aggregate.mqmStats, 'MQM', cls);
-          lastForRater[rater] = aggregate.mqmStats.score;
+          html += this.tdForScore(raterSysMQMStats, 'MQM', cls);
+          lastForRater[rater] = raterSysScore;
         } else {
           html += '<td>-</td>';
           /**
            * Ensure that the next score for this rater is marked as out-of-order
            * or not in some reasonable manner:
            */
-          lastForRater[rater] = allRatersScore.score;
+          lastForRater[rater] = allRatersScore;
         }
       }
-      lastAllRaters = allRatersScore.score;
+      lastAllRaters = allRatersScore;
       html += `
         </tr>`;
     }
@@ -2514,15 +2725,16 @@ class Marot {
    * @param {string} sysOrRater 'sys' or 'rater'
    */
   showCmp(sysOrRater) {
+    const forRater = sysOrRater == 'rater';
     const versus = `${sysOrRater}-v-${sysOrRater}`;
     const select1 = document.getElementById(`marot-${versus}-1`);
     const select2 = document.getElementById(`marot-${versus}-2`);
     const sr1 = select1.value;
     let sr2 = select2.value;
-    if (sysOrRater == 'rater' && sr2 == this.NOT_PREFIX) {
+    if (forRater && sr2 == this.NOT_PREFIX) {
       sr2 = this.NOT_PREFIX + sr1;
     }
-    const stats = sysOrRater == 'sys' ? this.statsBySystem : this.statsByRater;
+    const stats = forRater ? this.statsByRater : this.statsBySystem;
     const docUnits1 = this.getDocUnits(stats[sr1] || {});
     const docUnits2 = this.getDocUnits(stats[sr2] || {});
     /**
@@ -2554,7 +2766,7 @@ class Marot {
 
     const sameSR = sr1 == sr2;
 
-    const metricIds = (sysOrRater == 'sys') ? this.metricsVisible : [0];
+    const metricIds = forRater ? [0] : this.metricsVisible;
 
     for (const m of metricIds) {
       const metric = this.metrics[m];
@@ -2606,21 +2818,21 @@ class Marot {
           const doc = hist.docUnits[i][0];
           const unit = hist.docUnits[i][1];
           const unitStats = stats[hist.sr][doc][unit];
-          const aggregate1 = this.aggregateUnitStats([unitStats]);
+          const aggregate1 = this.aggregateUnitStats([unitStats], forRater);
           if (!aggregate1.hasOwnProperty(metricKey)) {
             continue;
           }
           let score = aggregate1[metricKey];
           if (hist.srCmp) {
             const aggregate2 = this.aggregateUnitStats(
-                [stats[hist.srCmp][doc][unit]]);
+                [stats[hist.srCmp][doc][unit]], forRater);
             if (!aggregate2.hasOwnProperty(metricKey)) {
               continue;
             }
             score -= aggregate2[metricKey];
           }
-          if (metric != 'MQM') {
-            /** Non-MQM units are scored only at segment level */
+          if (!this.isMQMOrAutoMQM(metric)) {
+            /** For non-MQM metrics, units are scored only at segment level */
             const docAndDocSeg = this.aColonB(doc, this.unitIdToDocSegId(unit));
             if (!docSegsSet.has(docAndDocSeg)) {
               docSegsSet.add(docAndDocSeg);
@@ -2798,7 +3010,8 @@ class Marot {
    * This is called from show() after looping through the data. It creates
    * "complementary raters" stats. I.e., for each rater R, for each scoring
    * unit, it creates stats for the "not:R" rater, that are the ratings from all
-   * other raters.
+   * other human raters (AI raters, beginning with "AutoMQM", are not included
+   * in any complementary set of raters).
    */
   buildRaterComplementStats() {
     const raters = Object.keys(this.statsByRater);
@@ -2809,6 +3022,10 @@ class Marot {
       }
     }
     for (const rater of raters) {
+      if (this.mqmMetricName(rater) != 'MQM') {
+        /* We use only human raters in the "rater-complement" sets for raters */
+        continue;
+      }
       const raterStats = this.statsByRater[rater];
       for (const docsys in raterStats) {
         /**
@@ -2848,7 +3065,6 @@ class Marot {
         }
       }
     }
-
   }
 
   /**
@@ -2861,15 +3077,25 @@ class Marot {
      * non-zero values and we show score columns for only those splits).
      */
     const systems = Object.keys(this.statsBySystem);
-    const statsBySysAggregates = {};
+    const statsBySysAggr = {};
     for (const system of systems) {
       const unitStats = this.getUnitStatsAsArray(this.statsBySystem[system]);
-      statsBySysAggregates[system] = this.aggregateUnitStats(unitStats);
+      statsBySysAggr[system] = this.aggregateUnitStats(unitStats);
     }
-    const overallMQMStats = statsBySysAggregates[this.TOTAL].mqmStats ?? {};
+    const overallMQMStats = this.initRaterStats('');
+    const allMQMStats = statsBySysAggr[this.TOTAL].mqmStats ?? {};
+    for (const mqm in allMQMStats) {
+      const mqmStats = allMQMStats[mqm];
+      for (const key in mqmStats) {
+        if (key.startsWith(this.MQM_WEIGHTED_PREFIX) ||
+            key.startsWith(this.MQM_SLICE_PREFIX)) {
+          overallMQMStats[key] = (overallMQMStats[key] ?? 0) + mqmStats[key];
+        }
+      }
+    }
     this.mqmWeightedFields = [];
     this.mqmSliceFields = [];
-    for (let key in overallMQMStats) {
+    for (const key in overallMQMStats) {
       if (!overallMQMStats[key]) continue;
       if (key.startsWith(this.MQM_WEIGHTED_PREFIX)) {
         this.mqmWeightedFields.push(this.mqmKeyToName(key));
@@ -2884,12 +3110,14 @@ class Marot {
         (k1, k2) => (overallMQMStats[this.MQM_SLICE_PREFIX + k2] ?? 0) -
             (overallMQMStats[this.MQM_SLICE_PREFIX + k1] ?? 0));
 
-    const statsByRaterAggregates = {};
+    const statsByRaterAggr = {};
+    const statsByRaterAutoMQMAggr = {};
     const ratersOrGroups = Object.keys(this.statsByRater);
     for (const rater of ratersOrGroups) {
       /** Build aggregates for all, including the 'not:' rater groups. */
       const unitStats = this.getUnitStatsAsArray(this.statsByRater[rater]);
-      statsByRaterAggregates[rater] = this.aggregateUnitStats(unitStats);
+      statsByRaterAggr[rater] = this.aggregateUnitStats(unitStats);
+      statsByRaterAutoMQMAggr[rater] = this.aggregateUnitStats(unitStats, true);
     }
 
     const raters = this.excludeRaterComplements(ratersOrGroups);
@@ -2898,11 +3126,11 @@ class Marot {
     systems.splice(indexOfTotal, 1);
 
     systems.sort(
-        (k1, k2) => (statsBySysAggregates[k1][this.sortByField] ?? 0) -
-                    (statsBySysAggregates[k2][this.sortByField] ?? 0));
+        (k1, k2) => (statsBySysAggr[k1][this.sortByField] ?? 0) -
+                    (statsBySysAggr[k2][this.sortByField] ?? 0));
     raters.sort(
-        (k1, k2) => (statsByRaterAggregates[k1][this.sortByField] ?? 0) -
-                    (statsByRaterAggregates[k2][this.sortByField] ?? 0));
+        (k1, k2) => (statsByRaterAggr[k1][this.sortByField] ?? 0) -
+                    (statsByRaterAggr[k2][this.sortByField] ?? 0));
     if (this.sortReverse) {
       systems.reverse();
       raters.reverse();
@@ -2913,35 +3141,43 @@ class Marot {
      * this.mqmWeightedFields and this.mqmSliceFields. Then add scores rows to
      * the table: by system, and then by rater.
      */
-    const haveRaters = raters.length > 0;
-    this.showScoresHeader(haveRaters);
+    this.showScoresHeader();
     if (systems.length > 0) {
-      this.showScoresSeparator(haveRaters, 'By system');
+      this.showScoresSeparator('By system');
       for (const system of systems) {
-        this.showScores(system, haveRaters, this.statsBySystem[system],
-                        statsBySysAggregates[system]);
+        this.showScores(system, this.statsBySystem[system],
+                        statsBySysAggr[system]);
       }
     }
-    if (haveRaters) {
-      this.showScoresSeparator(haveRaters, 'By rater');
+    if (raters.length > 0) {
+      this.showScoresSeparator('By rater');
       for (const rater of raters) {
-        this.showScores(rater, haveRaters, this.statsByRater[rater],
-                        statsByRaterAggregates[rater]);
+        this.showScores(rater, this.statsByRater[rater],
+                        statsByRaterAggr[rater]);
       }
       this.raterRelatedSections.style.display = '';
     } else {
       this.raterRelatedSections.style.display = 'none';
     }
-    this.showScoresSeparator(haveRaters);
+    this.showScoresSeparator();
+
+    /** Restore toggled state of MQM details */
+    for (const m of this.mqmMetricsVisible) {
+      const th = document.getElementById('marot-mqm-details-th-' + m);
+      if (this.mqmDetailsShown.has(m)) {
+        this.showMQMDetails(th, m);
+      } else {
+        this.hideMQMDetails(th, m);
+      }
+    }
 
     this.showSystemRaterStats();
     this.createCmpPlots('sys');
     this.createCmpPlots('rater');
     this.showSevCatStats();
     this.showEvents();
-    this.showSigtests('sys', this.statsBySystem, statsBySysAggregates,
-                      this.metricsVisible);
-    this.showSigtests('rater', this.statsByRater, statsByRaterAggregates, [0]);
+    this.showSigtests('sys', this.statsBySystem, statsBySysAggr);
+    this.showSigtests('rater', this.statsByRater, statsByRaterAutoMQMAggr);
     this.startSigtests();
   }
 
@@ -3258,10 +3494,13 @@ class Marot {
    * Wrap a marked span in an HTML span with the given class.
    * @param {string} spanText
    * @param {string} cls
+   * @param {string} rater
    * @return {string}
    */
-  spanHTML(spanText, cls) {
+  spanHTML(spanText, cls, rater) {
     const s = spanText.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const raterKey = this.dataIter.raterDetails[rater].key;
+    cls += ' marot-rater-' + raterKey;
     return '<span class="' + cls + '">[' + s + ']</span>';
   }
 
@@ -3298,6 +3537,19 @@ class Marot {
   }
 
   /**
+   * For a given rater, return HTML that shows a flag with a rater-specific
+   * color.
+   * @param {string} rater
+   * @return {string}
+   */
+  raterFlagHTML(rater) {
+    const raterDetails = this.dataIter.raterDetails[rater];
+    return `<span class="marot-rater-flag marot-rater-${raterDetails.key}" ` +
+           `style="color:${raterDetails.color}">` +
+           '&#x2691;</span>';
+  }
+
+  /**
    * For the given rater name/id, return an HTML string suitable for displaying
    * it, including an identifier that includes rowId (for creating a filter upon
    * clicking).
@@ -3306,9 +3558,12 @@ class Marot {
    * @return {string}
    */
   raterHTML(rowId, rater) {
-    return `<span class="marot-val"
-               id="marot-val-${rowId}-${this.DATA_COL_RATER}">` +
-            rater + '</span>';
+    const flag = this.raterFlagHTML(rater);
+    const raterDetails = this.dataIter.raterDetails[rater];
+    return `<span class="marot-rater marot-rater-${raterDetails.key}">` +
+           '<span class="marot-val" ' +
+           `id="marot-val-${rowId}-${this.DATA_COL_RATER}">` +
+            rater + '</span>' + flag + '</span>';
   }
 
   /**
@@ -3316,9 +3571,10 @@ class Marot {
    * deleted errors and prior-rater's original errors in Marot metadata.
    * This format uses fields named "selected", "severity", "type", "subtype".
    * @param {!Object} e
+   * @param {string} rater
    * @return {string}
    */
-  rawErrorHTML(e) {
+  rawErrorHTML(e, rater) {
     let cat = e.type;
     let subcat = e.subtype;
     if (this.dataIter.evaluation && this.dataIter.evaluation.config) {
@@ -3332,10 +3588,11 @@ class Marot {
         }
       }
     }
-    let html = this.spanHTML(e.selected, this.mqmSeverityClass(e.severity));
+    let html = this.spanHTML(
+        e.selected, this.mqmSeverityClass(e.severity), rater);
     html += '<br>' + this.casedSeverity(e.severity) +
             '&nbsp;' + cat + (subcat ? '/' + subcat : '');
-    html += this.metadataHTML(e.metadata);
+    html += this.metadataHTML(e.metadata, rater);
     return html;
   }
 
@@ -3343,9 +3600,10 @@ class Marot {
    * Render the metadata (timestamp, note, feedback, prior_rater, etc.)
    * associated with a rating.
    * @param {!Object} metadata
+   * @param {string} rater
    * @return {string}
    */
-  metadataHTML(metadata) {
+  metadataHTML(metadata, rater) {
     let html = '';
     if (metadata.hotw_error) {
       html += '<br>HOTW error: <span class="marot-note">' +
@@ -3388,10 +3646,11 @@ class Marot {
     if (metadata.prior_rater) {
       html += '<br><span">Prior rater: ' + metadata.prior_rater + '</span>\n';
     }
+    const prior_or_this_rater = metadata.prior_rater ?? rater;
     if (metadata.prior_error) {
       html += '<br><details><summary>Annotation from prior rater:</summary>' +
               '<div class="marot-prior-error">' +
-                this.rawErrorHTML(metadata.prior_error) +
+                this.rawErrorHTML(metadata.prior_error, prior_or_this_rater) +
               '</div></details>\n';
     }
     if (metadata.deleted_errors && metadata.deleted_errors.length > 0) {
@@ -3402,7 +3661,8 @@ class Marot {
         const de = metadata.deleted_errors[x];
         html += '<tr><td><span class="marot-deleted-index">' +
                 (x + 1) + '.</span></td><td>';
-        html += this.rawErrorHTML(de);
+        html += this.rawErrorHTML(
+            de, de.metadata.prior_rater ?? prior_or_this_rater);
         html += '</td></tr>';
       }
       html += '</table></details>\n';
@@ -3430,29 +3690,37 @@ class Marot {
    * Returns the "metrics line" to display for the current scoring unit, which
    * includes MQM score as well as any available automated metrics.
    * @param {!Object} currUnitStatsBySys
-   * @param {string} metric
+   * @param {!Array<string>} metrics
    * @param {string} cls class name
    * @param {boolean} isLastUnit
    * @return {string}
    */
-  getSegScoresHTML(currUnitStatsBySys, metric, cls, isLastUnit) {
+  getSegScoresHTML(currUnitStatsBySys, metrics, cls, isLastUnit) {
     const unitScoresParts = [];
-    const metrics = currUnitStatsBySys.metrics;
-    let metricValue = metrics[metric];
-    if (metric != 'MQM') {
-      metricValue *= currUnitStatsBySys.numSubparas;
-    }
-    unitScoresParts.push([metric, metricValue]);
-    if (metric == 'MQM') {
-      /** metrics.MQM is the unfiltered value; recompute with filtering */
-      const aggregate = this.aggregateUnitStats([currUnitStatsBySys]);
-      const score = aggregate.mqmStats.score;
-      if (score != metrics[metric]) {
-        unitScoresParts.push(['MQM-filtered', score]);
+    const segMetrics = currUnitStatsBySys.metrics;
+    let haveMQM = false;
+    for (const metric of metrics) {
+      let metricValue = segMetrics[metric];
+      const isMQM = this.isMQMOrAutoMQM(metric);
+      if (!isMQM) {
+        metricValue *= currUnitStatsBySys.numSubparas;
+      }
+      unitScoresParts.push([metric, metricValue]);
+      if (isMQM) {
+        haveMQM = true;
+        /** segMetrics[metric] is unfiltered; recompute with filtering */
+        const aggregate = this.aggregateUnitStats([currUnitStatsBySys]);
+        if (aggregate.mqmStats.hasOwnProperty(metric)) {
+          /** metrics is still visible with current filtering */
+          const score = aggregate.mqmStats[metric].score;
+          if (score != segMetrics[metric]) {
+            unitScoresParts.push([metric + '-filtered', score]);
+          }
+        }
       }
     }
     let scoresRows = '';
-    const addSep = (metric == 'MQM') && this.subparaScoring && !isLastUnit;
+    const addSep = haveMQM && this.subparaScoring && !isLastUnit;
     for (let i = 0; i < unitScoresParts.length; i++) {
       const part = unitScoresParts[i];
       const scoreCls = 'marot-unit-score' +
@@ -3666,6 +3934,7 @@ class Marot {
     };
     const visibleMetrics = {};
     this.metricsVisible = [];
+    this.mqmMetricsVisible = [];
 
     document.getElementById('marot-filter-expr-error').innerHTML = '';
     const allFilters = this.getAllFilters();
@@ -3737,6 +4006,10 @@ class Marot {
                   currUnitStatsBySys.metrics =
                       segmentMetadata.metricsByUnit[unit];
                   for (let metric in currUnitStatsBySys.metrics) {
+                    if (this.isMQMOrAutoMQM(metric)) {
+                      /** Visibility might depend on filtering */
+                      continue;
+                    }
                     visibleMetrics[metric] = true;
                   }
                 }
@@ -3745,7 +4018,7 @@ class Marot {
 
             if (rater && (rater != lastRater)) {
               lastRater = rater;
-              visibleMetrics['MQM'] = true;  /** We do have some MQM scores. */
+              visibleMetrics[this.mqmMetricName(rater)] = true;
 
               if (!this.statsByRater.hasOwnProperty(rater)) {
                 this.statsByRater[rater] = {};
@@ -3879,30 +4152,31 @@ class Marot {
       const metric = this.metrics[m];
       if (visibleMetrics[metric]) {
         this.metricsVisible.push(m);
+        if (this.isMQMOrAutoMQM(metric)) {
+          this.mqmMetricsVisible.push(m);
+        }
       }
     }
-    if (this.sortByField.startsWith('metric-')) {
-      /**
-       * If the currently chosen sort-by field is a metric that is not visible,
-       * then change it to be the first metric that *is* visible (if any,
-       * defaulting to metric-0, which is marot). Set the default direction
-       * based upon whether lower numbers are better for the chosen metric.
-       */
-      let sortingMetric = parseInt(this.sortByField.substr(7));
-      if (!this.metricsVisible.includes(sortingMetric)) {
-        sortingMetric = 0;
-        for (let m = 0; m < this.metrics.length; m++) {
-          const metric = this.metrics[m];
-          if (visibleMetrics[metric]) {
-            sortingMetric = m;
-            break;
-          }
+    /**
+     * If the currently chosen sort-by field is a metric that is not visible,
+     * then change it to be the first metric that *is* visible (if any,
+     * defaulting to metric-0, which is MQM). Set the default direction
+     * based upon whether lower numbers are better for the chosen metric.
+     */
+    let sortingMetric = parseInt(this.sortByField.substr(7));
+    if (!this.metricsVisible.includes(sortingMetric)) {
+      sortingMetric = 0;
+      for (let m = 0; m < this.metrics.length; m++) {
+        const metric = this.metrics[m];
+        if (visibleMetrics[metric]) {
+          sortingMetric = m;
+          break;
         }
-        this.sortByField = 'metric-' + sortingMetric;
-        this.sortReverse =
-            this.metricsInfo[this.metrics[sortingMetric]].lowerBetter ?
-            false : true;
       }
+      this.sortByField = 'metric-' + sortingMetric;
+      this.sortReverse =
+          this.metricsInfo[this.metrics[sortingMetric]].lowerBetter ?
+          false : true;
     }
     this.showStats();
     this.showSegments();
@@ -3950,6 +4224,12 @@ class Marot {
      */
     const shownSubparas = {};
     this.subparas.pinnedSubparaCls = '';
+
+    let allRaterFlagsHTML = '<span class="marot-all-rater-flags">';
+    for (const rater of this.dataIter.raters ?? []) {
+      allRaterFlagsHTML += this.raterFlagHTML(rater);
+    }
+    allRaterFlagsHTML += '</span>';
 
     for (const doc of this.dataIter.docs) {
       for (const docSegId of this.dataIter.docSegs[doc]) {
@@ -4003,8 +4283,10 @@ class Marot {
             let spanClass = '';
             if (rater) {
               /** An actual rater-annotation row, not just a metadata row */
+              const raterKey = this.dataIter.raterDetails[rater].key;
               spanClass = this.mqmSeverityClass(severity) +
-                          ` marot-anno-${shownRows.length}`;
+                          ` marot-anno marot-anno-${rowId}` +
+                          ` marot-rater-${raterKey}`;
               this.markSpans(
                   sourceTokens, metadata.source_spans || [], spanClass);
               this.markSpans(
@@ -4032,15 +4314,16 @@ class Marot {
             }
             ratingRowsHTML += '<tr><td><div>';
             if (metadata.marked_text) {
-              ratingRowsHTML += this.spanHTML(metadata.marked_text, spanClass) +
-                                '<br>';
+              ratingRowsHTML +=
+                  this.spanHTML(metadata.marked_text, spanClass, rater) +
+                  '<br>';
             }
             ratingRowsHTML += this.severityHTML(rowId, severity) +
                               '&nbsp;';
             ratingRowsHTML += this.categoryHTML(rowId, category) +
                               '<br>';
             ratingRowsHTML += this.raterHTML(rowId, rater);
-            ratingRowsHTML += this.metadataHTML(metadata);
+            ratingRowsHTML += this.metadataHTML(metadata, rater);
             ratingRowsHTML += '</div></td></tr>\n';
           }
           if (shownForDocSegSys == 0) {
@@ -4115,26 +4398,43 @@ class Marot {
                      this.getShortNameHTML(system, 14) +
                      '</span><br>&nbsp;</td></tr>\n';
           const metricWiseRows = {};
+          let mqmRows = '';
           for (const scoringUnit of scoringUnits) {
             const unit = scoringUnit.unit;
             const subpara = scoringUnit.subpara;
             const isLastUnit = (subpara == scoringUnit.numSubparas - 1);
             const currUnitStatsBySys = this.statsBySystem[system][doc][unit];
+            const mqmMetrics = [];
+            const otherMetrics = [];
             for (const metric in currUnitStatsBySys.metrics) {
-              if (metric != 'MQM' && subpara > 0) {
-                continue;
+              if (this.isMQMOrAutoMQM(metric)) {
+                mqmMetrics.push(metric);
+              } else {
+                otherMetrics.push(metric);
               }
+            }
+            if (mqmMetrics.length > 0) {
               let cls = 'marot-metric';
-              if (this.subparaScoring && metric == 'MQM') {
+              if (this.subparaScoring) {
                 cls += ' marot-subpara ' +
                     this.subparaClass(docsegHashKey, 'src', subpara);
               }
-              if (!metricWiseRows[metric]) {
-                metricWiseRows[metric] = '';
-              }
-              metricWiseRows[metric] += this.getSegScoresHTML(
-                  currUnitStatsBySys, metric, cls, isLastUnit);
+              mqmRows += this.getSegScoresHTML(
+                  currUnitStatsBySys, mqmMetrics, cls, isLastUnit);
             }
+            if (subpara == 0) {
+              /** Non-MQM metrics */
+              for (const metric of otherMetrics) {
+                if (!metricWiseRows[metric]) {
+                  metricWiseRows[metric] = '';
+                }
+                metricWiseRows[metric] += this.getSegScoresHTML(
+                    currUnitStatsBySys, [metric], 'marot-metric', isLastUnit);
+              }
+            }
+          }
+          if (mqmRows) {
+            metricWiseRows['MQM'] = mqmRows;
           }
           for (const metric in metricWiseRows) {
             rowHTML += '<tr><td><table class="marot-scores-table">';
@@ -4143,8 +4443,10 @@ class Marot {
           }
           rowHTML += '</table></td>';
 
-          rowHTML += '<td><div>' + source + '</div></td>';
-          rowHTML += '<td><div>' + target + '</div></td>';
+          rowHTML += '<td><div>' + source + '</div>' + allRaterFlagsHTML +
+                     '</td>';
+          rowHTML += '<td><div>' + target + '</div>' + allRaterFlagsHTML +
+                     '</td>';
 
           rowHTML += '<td><table class="marot-table-ratings">' +
                      ratingRowsHTML + '</table></td>';
@@ -4162,7 +4464,68 @@ class Marot {
     }
     this.addAlignmentHighlighters(shownSubparas);
     this.addAnnotationHighlighters(shownRows);
+    this.addRaterSpecificViews();
     this.addFilterListeners(shownRows);
+  }
+
+  /**
+   * When the user hovers over any particular rater, we let the user see just
+   * the ratings done by that rater (hiding other raters' annotations). This
+   * is done in this function by adding a rater-specific CSS class to the whole
+   * example segments table, and some custom CSS rules that make only that
+   * rater's marked spans visible.
+   */
+  addRaterSpecificViews() {
+    if (!this.dataIter.raters) {
+      return;
+    }
+    const raterHighlighter = (rater, raterKey, shouldShow) => {
+      const raterClass = 'marot-rater-' + raterKey;
+      if (shouldShow) {
+        this.segmentsTable.classList.add('marot-single-rater-view');
+        this.segmentsTable.classList.add(raterClass);
+        const selector = '.marot-single-rater-view.' + raterClass;
+        this.customStyles.innerHTML = `
+          ${selector} .marot-rater-flag.${raterClass} {
+            visibility: visible;
+          }
+          ${selector} .marot-rater.${raterClass} {
+            font-weight: bold;
+          }
+          ${selector} .mqm-critical.${raterClass} {
+            background: rgba(127, 0, 255, 0.7);
+          }
+          ${selector} .mqm-major.${raterClass} {
+            background: rgba(255, 192, 203, 0.7);
+          }
+          ${selector} .mqm-minor.${raterClass} {
+            background: rgba(251, 236, 93, 0.7);
+          }
+          ${selector} .mqm-neutral.${raterClass} {
+            background: rgba(211, 211, 211, 0.7);
+          }`;
+      } else {
+        this.segmentsTable.classList.remove('marot-single-rater-view');
+        this.segmentsTable.classList.remove(raterClass);
+        this.customStyles.innerHTML = '';
+      }
+    };
+    for (const rater of this.dataIter.raters) {
+      const raterDetails = this.dataIter.raterDetails[rater];
+      const elts = document.getElementsByClassName(
+          'marot-rater marot-rater-' + raterDetails.key);
+      if (elts.length == 0) continue;
+      const onHover = (e) => {
+        raterHighlighter(rater, raterDetails.key, true);
+      };
+      const onNonHover = (e) => {
+        raterHighlighter(rater, raterDetails.key, false);
+      };
+      for (let i = 0; i < elts.length; i++) {
+        elts[i].addEventListener('mouseover', onHover);
+        elts[i].addEventListener('mouseout', onNonHover);
+      }
+    }
   }
 
   /**
@@ -4171,8 +4534,8 @@ class Marot {
    * @param {!Array<number>} shownRows The array of visible row indices.
    */
   addAnnotationHighlighters(shownRows) {
-    const annoHighlighter = (a, shouldShow) => {
-      const elts = document.getElementsByClassName('marot-anno-' + a);
+    const annoHighlighter = (rowId, shouldShow) => {
+      const elts = document.getElementsByClassName('marot-anno-' + rowId);
       const fontWeight = shouldShow ? 'bold' : 'inherit';
       const border = shouldShow ? '1px solid blue' : 'none';
       for (let i = 0; i < elts.length; i++) {
@@ -4182,14 +4545,14 @@ class Marot {
         style.borderBottom = border;
       }
     };
-    for (let a = 0; a < shownRows.length; a++) {
-      const elts = document.getElementsByClassName('marot-anno-' + a);
+    for (const rowId of shownRows) {
+      const elts = document.getElementsByClassName('marot-anno-' + rowId);
       if (elts.length == 0) continue;
       const onHover = (e) => {
-        annoHighlighter(a, true);
+        annoHighlighter(rowId, true);
       };
       const onNonHover = (e) => {
-        annoHighlighter(a, false);
+        annoHighlighter(rowId, false);
       };
       for (let i = 0; i < elts.length; i++) {
         elts[i].addEventListener('mouseover', onHover);
@@ -4428,8 +4791,9 @@ class Marot {
   }
 
   /**
-   * Recomputes MQM score for each segment (using current weight settings) and
-   * sets it in segment.metrics['MQM'] and segment.metricsByUnit[unit]['MQM'].
+   * Recomputes MQM/AutoMQM* scores for each segment (using current weight
+   * settings) and sets them in segment.metrics[] and
+   * segment.metricsByUnit[unit][].
    */
   recomputeMQM() {
     const statsBySystem = {};
@@ -4492,17 +4856,22 @@ class Marot {
             const allUnitStats = this.getUnitStatsAsArray(
                 statsBySystem[system]);
             const aggrScores = this.aggregateUnitStats(allUnitStats);
-            if (aggrScores.mqmStats.numScoringUnits > 0) {
-              aggrDocSegSys.metrics['MQM'] = aggrScores.mqmStats.score;
+            for (const mqm in aggrScores.mqmStats) {
+              const mqmStats = aggrScores.mqmStats[mqm];
+              if (mqmStats.numScoringUnits == 0) {
+                continue;
+              }
+              aggrDocSegSys.metrics[mqm] = mqmStats.score;
               for (const scoringUnit of scoringUnits) {
                 const unit = scoringUnit.unit;
                 const currUnitStatsBySys = statsBySystem[system][doc][unit];
                 const aggrUnitScores = this.aggregateUnitStats(
                     [currUnitStatsBySys]);
+                const aggrUnitMQMStats = aggrUnitScores.mqmStats[mqm];
                 aggrDocSegSys.metricsByUnit[unit] = {
                   ...aggrDocSegSys.metricsByUnit[unit],
-                  'MQM': aggrUnitScores.mqmStats.score,
                 };
+                aggrDocSegSys.metricsByUnit[unit][mqm] = aggrUnitMQMStats.score;
               }
             }
           }
@@ -4639,25 +5008,6 @@ class Marot {
   }
 
   /**
-   * This resets information derived from or associated with the current data
-   * (if any), preparing for new data.
-   */
-  resetData() {
-    this.clearFilters();
-    this.data = [];
-    this.metrics = ['MQM'];
-    for (let key in this.metricsInfo) {
-      /** Only retain the entry for 'MQM'. */
-      if (key == 'MQM') continue;
-      delete this.metricsInfo[key];
-    }
-    this.metricsVisible = [];
-    this.sortByField = 'metric-0';
-    this.sortReverse = false;
-    this.closeMenuEntries('');
-  }
-
-  /**
    * Make the first letter of a severity level uppercase.
    * @param {string} sev
    * @return {string}
@@ -4667,47 +5017,91 @@ class Marot {
   }
 
   /**
-   * Sets this.tsvData from the passed TSV data string or array of strings, and
-   * parses it into this.data. If the UI option marot-load-file-append is
-   * checked, then the new data is appended to the existing data, else it
-   * replaces it.
-   * @param {string|!Array<string>} tsvData
+   * Sets sets the passed TSV data as the new data and parses it into this.data.
+   * @param {string} tsvData
    */
   setData(tsvData) {
-    const errors = document.getElementById('marot-errors');
-    errors.innerHTML = '';
-    if (Array.isArray(tsvData)) {
-      let allTsvData = '';
-      for (const tsvDataItem of tsvData) {
-        if (!tsvDataItem) continue;
-        if (allTsvData && !allTsvData.endsWith('\n')) {
-          allTsvData += '\n';
-        }
-        allTsvData += tsvDataItem;
-      }
-      tsvData = allTsvData;
-    }
-    if (!tsvData) {
-      errors.innerHTML = 'Empty data passed to this.setData()';
+    this.startAddingData(1, 'inline data');
+    this.addData(tsvData);
+  }
+
+  /**
+   * This clears filters, closes open menus, to prepare for new data to be
+   * added. If the UI setting for appending new data to existing data is not
+   * set, then it resets all information derived from or associated with the
+   * current data (if any).
+   * @param {number} n The number of expected addData() calls (the number of
+   *     files or URLs).
+   * @param {string} name A name for each data item (such as 'file' or 'URL').
+   */
+  startAddingData(n, name) {
+    this.clearFilters();
+    this.closeMenuEntries('');
+    this.tooManySegsErrorShown = false;
+    this.addDataName = name;
+    this.addDataCallsNeeded = n;
+    this.addDataCallsDone = 0;
+    this.status.innerHTML = 'Loading ' + name + ' 1 of ' + n;
+    this.mqmDetailsShown = null;
+    if (document.getElementById('marot-load-file-append').checked) {
       return;
     }
-    if (document.getElementById('marot-load-file-append').checked) {
-      if (this.tsvData && !this.tsvData.endsWith('\n')) {
-        this.tsvData += '\n';
-      }
-    } else {
-      this.tsvData = '';
+    this.docsegs.clear();
+    this.data = [];
+    this.tsvData = '';
+    this.metrics = ['MQM'];
+    this.metricsVisible = [];
+    this.mqmMetricsVisible = [];
+    for (let key in this.metricsInfo) {
+      /** Only retain the entry for 'MQM'. */
+      if (key == 'MQM') continue;
+      delete this.metricsInfo[key];
     }
-    this.tsvData += tsvData;
+    this.sortByField = 'metric-0';
+    this.sortReverse = false;
+  }
 
-    this.resetData();
-    const data = this.tsvData.split('\n');
-    for (let line of data) {
-      if (this.data.length >= this.MAX_DATA_LINES) {
-        errors.insertAdjacentHTML('beforeend',
-            'Skipping data lines beyond number ' + this.MAX_DATA_LINES);
-        break;
+  /**
+   * Note a specific doc-seg combination. We use this to avoid loading too
+   * much data: after MAX_SEGMENTS distinct doc-segs, future addData() calls
+   * only add the data for previously seen doc-segs.
+   * @param {string} doc
+   * @param {string|number} seg
+   * @return {boolean} Returns true only if this doc-seg is used.
+   */
+  noteDocSeg(doc, seg) {
+    const docseg = this.aColonB(doc, seg);
+    if (this.docsegs.size == this.MAX_SEGMENTS &&
+        !this.docsegs.has(docseg)) {
+      if (!this.tooManySegsErrorShown) {
+        this.errors.insertAdjacentHTML(
+            'beforeend',
+            'Skipped data for segments after number ' + this.MAX_SEGMENTS);
+        this.tooManySegsErrorShown = true;
       }
+      return false;
+    }
+    this.docsegs.add(docseg);
+    return true;
+  }
+
+  /**
+   * Appends the passed data to this.tsvData and parses it into this.data.
+   * @param {string|!Array<string>} tsvData
+   */
+  addData(tsvData) {
+    this.addDataCallsDone++;
+    this.status.innerHTML = 'Loading ' + this.addDataName + ' ' +
+                            (this.addDataCallsDone  + 1) + ' of ' +
+                            this.addDataCallsNeeded;
+    if (!tsvData) {
+      this.errors.insertAdjacentHTML(
+          'beforeend',
+          'Got empty data from ' + this.addDataName + ' ' +
+          this.addDataCallsDone + ' of ' + this.addDataCallsNeeded + '<br>');
+    }
+    const data = tsvData.split('\n');
+    for (let line of data) {
       if (!line.trim()) {
         continue;
       }
@@ -4722,7 +5116,7 @@ class Marot {
 
       let metadata = {};
       if (parts.length < this.DATA_COL_METADATA) {
-        errors.insertAdjacentHTML('beforeend',
+        this.errors.insertAdjacentHTML('beforeend',
             `Could not parse: ${line.substr(0, 80)}...<br>`);
         continue;
       } else if (parts.length == this.DATA_COL_METADATA) {
@@ -4748,6 +5142,7 @@ class Marot {
         }
         parts[this.DATA_COL_METADATA] = metadata;
       }
+
       /**
        * Make sure metadata has the keys for object members, so that they
        * can be used in filter expressions freely.
@@ -4798,20 +5193,12 @@ class Marot {
           metadata.note = '';
         }
       }
-      /** Note any metrics that might be in the data. */
-      const metrics = metadata.segment.metrics;
-      for (let metric in metrics) {
-        if (this.metricsInfo.hasOwnProperty(metric)) continue;
-        this.metricsInfo[metric] = {
-          index: this.metrics.length,
-        };
-        this.metrics.push(metric);
-      }
       /** Move "Rater" down from its position in the TSV data. */
-      const temp = parts[4];
+      const rater = parts[4];
       parts[this.DATA_COL_SOURCE] = parts[5];
       parts[this.DATA_COL_TARGET] = parts[6];
-      parts[this.DATA_COL_RATER] = temp;
+      parts[this.DATA_COL_RATER] = rater;
+
       /** Make severity start with an uppercase letter. */
       parts[this.DATA_COL_SEVERITY] =
           this.casedSeverity(parts[this.DATA_COL_SEVERITY]);
@@ -4824,6 +5211,25 @@ class Marot {
         parts[this.DATA_COL_DOC] = 'source-fp-' +
             MarotUtils.javaHashKey(parts[this.DATA_COL_SOURCE]);
       }
+
+      if (!this.noteDocSeg(this.aColonB(parts[this.DATA_COL_DOC],
+                                        this.DATA_COL_DOC_SEG_ID))) {
+        continue;
+      }
+
+      /** Note any metrics that might be in the data. */
+      const metricNames = Object.keys(metadata.segment.metrics);
+      if (rater) {
+        metricNames.push(this.mqmMetricName(rater));
+      }
+      for (let metric of metricNames) {
+        if (this.metricsInfo.hasOwnProperty(metric)) continue;
+        this.metricsInfo[metric] = {
+          index: this.metrics.length,
+          lowerBetter: this.isMQMOrAutoMQM(metric),
+        };
+        this.metrics.push(metric);
+      }
       /**
        * Count all characters, including spaces, in src/tgt length, excluding
        * the span-marking <v> and </v> tags.
@@ -4833,53 +5239,43 @@ class Marot {
       parts.num_target_chars =
           parts[this.DATA_COL_TARGET].replace(/<\/?v>/g, '').length;
       this.data.push(parts);
+      this.tsvData += line + '\n';
     }
-    this.sortData(this.data);
-    this.createDataIter(this.data);
-    this.addSegmentAggregations();
-    this.setSelectOptions();
-    this.recomputeMQM();
-    this.show();
+    if (this.addDataCallsDone == this.addDataCallsNeeded) {
+      this.status.innerHTML = '';
+      this.sortData(this.data);
+      this.createDataIter(this.data);
+      this.addSegmentAggregations();
+      this.setSelectOptions();
+      this.recomputeMQM();
+      this.show();
+    }
   }
 
   /**
-   * Opens and reads the data file(s) picked by the user and calls setData().
+   * Opens and reads the data file(s) picked by the user and calls addData().
    */
   openFiles() {
-    this.hideViewer();
-    this.clearFilters();
-    const errors = document.getElementById('marot-errors');
-    errors.innerHTML = '';
     const filesElt = document.getElementById('marot-file');
     const numFiles = filesElt.files.length;
     if (numFiles <= 0) {
       document.body.style.cursor = 'auto';
-      errors.innerHTML = 'No files were selected';
+      this.errors.innerHTML = 'No files were selected';
       return;
     }
+    this.hideViewer();
+    this.startAddingData(numFiles, 'file');
     let erroneousFile = '';
     try {
-      const filesData = [];
-      const fileNames = [];
-      let filesRead = 0;
       for (let i = 0; i < numFiles; i++) {
-        filesData.push('');
         const f = filesElt.files[i];
-        fileNames.push(f.name);
         erroneousFile = f.name;
         const fr = new FileReader();
         fr.onload = (evt) => {
           erroneousFile = f.name;
-          filesData[i] = fr.result;
-          filesRead++;
-          if (filesRead == numFiles) {
-            if (typeof marotDataConverter == 'function') {
-              for (let i = 0; i < filesData.length; i++) {
-                filesData[i] = marotDataConverter(fileNames[i], filesData[i]);
-              }
-            }
-            this.setData(filesData);
-          }
+          const fileData = (typeof marotDataConverter == 'function') ?
+              marotDataConverter(f.name, fr.result) : fr.result;
+          this.addData(fileData);
         };
         fr.readAsText(f);
       }
@@ -4891,64 +5287,52 @@ class Marot {
     } catch (err) {
       let errString = err +
           (errnoeousFile ? ' (file with error: ' + erroneousFile + ')' : '');
-      errors.innerHTML = errString;
+      this.errors.innerHTML = errString;
       filesElt.value = '';
     }
   }
 
   /**
-   * Fetches marot data from the given URLs and calls this.setData().
+   * Fetches marot data from the given URLs and calls this.addData().
    * If the marotURLMaker() function exists, then it is applied to each URL
    * first, to get a possibly modified URL.
    * @param {!Array<string>} urls
    */
   fetchURLs(urls) {
-    const errors = document.getElementById('marot-errors');
-    errors.innerHTML = 'Loading metrics data from ' + urls.length +
-                       ' URL(s)...';
-    this.hideViewer();
     const cleanURLs = [];
     for (let url of urls) {
       if (typeof marotURLMaker == 'function') {
         url = marotURLMaker(url);
       }
-      const trimmedUrl = url.trim();
-      if (trimmedUrl) cleanURLs.push(trimmedUrl);
+      const splitUrl = url.split(',');
+      for (const subUrl of splitUrl) {
+        const trimmedSubUrl = subUrl.trim();
+        if (trimmedSubUrl) {
+          cleanURLs.push(trimmedSubUrl);
+        }
+      }
     }
     if (cleanURLs.length == 0) {
       errors.innerHTML = 'No non-empty URLs found';
       return;
     }
-    let numResponses = 0;
-    const tsvData = new Array(cleanURLs.length);
-    const finisher = () => {
-      if (numResponses == cleanURLs.length) {
-        if (typeof marotDataConverter == 'function') {
-          for (let i = 0; i < tsvData.length; i++) {
-            tsvData[i] = marotDataConverter(cleanURLs[i], tsvData[i]);
-          }
-        }
-        this.setData(tsvData);
-      }
-    };
-    for (let i = 0; i < cleanURLs.length; i++) {
-      const url = cleanURLs[i];
+    this.hideViewer();
+    this.startAddingData(cleanURLs.length, 'URL');
+    for (const url of cleanURLs) {
       fetch(url, {
         mode: 'cors',
         credentials: 'include',
       })
-          .then(response => response.text())
-          .then(result => {
-            tsvData[i] = result;
-            numResponses++;
-            finisher();
-          })
-          .catch(error => {
-            errors.insertAdjacentHTML('beforeend', error);
-            console.log(error);
-            numResponses++;
-            finisher();
-          });
+      .then(response => response.text())
+      .then(result => {
+        const urlData = (typeof marotDataConverter == 'function') ?
+            marotDataConverter(url, result) : result;
+        this.addData(urlData);
+      })
+      .catch(error => {
+        console.log(error);
+        this.addData('');
+      });
     }
   }
 
@@ -5080,7 +5464,7 @@ class Marot {
             for (let unit in docStats) {
               const unitStats = this.getUnitStatsAsArray(
                   {doc: {seg: docSegStats}});
-              const aggregate = this.aggregateUnitStats(unitStats);
+              const aggregate = this.aggregateUnitStats(unitStats, true);
               const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
               dataRow[this.DATA_COL_SYSTEM] = system;
               dataRow[this.DATA_COL_DOC] = doc;
@@ -5468,6 +5852,8 @@ class Marot {
       </details>`;
 
     elt.innerHTML = `
+    <style id="marot-custom-styles">
+    </style>
     <div class="marot-header">
       <span target="_blank" class="marot-title"><a class="marot-link"
         href="https://github.com/google-research/google-research/tree/master/marot">Marot</a></span>
@@ -5479,7 +5865,7 @@ class Marot {
       </table>
     </div>
     <div id="marot-errors"></div>
-    <hr>
+    <div id="marot-status"></div>
 
     <div id="marot-quote">
       <p>
@@ -5861,6 +6247,9 @@ class Marot {
     this.sigtestsSysMsg = document.getElementById('marot-sys-sigtests-msg');
     this.sigtestsRaterMsg = document.getElementById('marot-rater-sigtests-msg');
 
+    this.customStyles = document.getElementById('marot-custom-styles');
+    this.errors = document.getElementById('marot-errors');
+    this.status = document.getElementById('marot-status');
     this.quote = document.getElementById('marot-quote');
     this.viewer = document.getElementById('marot-viewer');
     this.segmentsTable = document.getElementById('marot-segments-tbody');

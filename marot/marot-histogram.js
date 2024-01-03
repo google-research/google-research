@@ -73,8 +73,8 @@ class MarotHistogram {
     this.hasZeroBin = this.hasDiffs ? true : (this.lowerBetter ? true : false);
 
     /** @const {number} Width of a histogram bin, in score units */
-    this.BIN_WIDTH = (this.metric == 'MQM') ? 0.5 : 0.05;
-    this.BIN_PRECISION = (this.metric == 'MQM') ? 1 : 2;
+    this.BIN_WIDTH = marot.isMQMOrAutoMQM(this.metric) ? 0.5 : 0.05;
+    this.BIN_PRECISION = marot.isMQMOrAutoMQM(this.metric) ? 1 : 2;
 
     /** @const {number} Width of a histogram bin, in pixels */
     this.BIN_WIDTH_PIXELS = 10 + (this.BIN_PRECISION * 3);

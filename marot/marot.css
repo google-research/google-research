@@ -25,6 +25,9 @@
 #marot-uncategorized-th {
   color: blue;
 }
+.marot-all-rater-flags .marot-rater-flag {
+  visibility: hidden;
+}
 .marot-arrow {
   opacity: 50%;
   color: gray;
@@ -58,12 +61,19 @@
   padding: 0 4px;
   vertical-align: top;
 }
+.marot-details-toggle {
+  color: gray;
+}
+th:hover .marot-details-toggle {
+  color: black;
+}
 .marot-dotted-bottomed {
   border-bottom: 1px dashed darkgray;
 }
 #marot-errors {
   color: red;
   max-height: 100px;
+  margin-left: 8px;
   overflow-y: auto;
 }
 .marot-file-menu tr {
@@ -125,6 +135,9 @@
 .marot-metric {
   font-size: 11px;
 }
+.marot-mqm-details-th {
+  cursor: pointer;
+}
 .marot-note {
   font-style: italic;
   cursor: default;
@@ -155,6 +168,9 @@
   font-size: 14px;
   font-family: monospace;
 }
+.marot-rater {
+  cursor: pointer;
+}
 .marot-rater-details {
   font-size: xx-small;
   font-style: italic;
@@ -163,6 +179,16 @@
 }
 .marot-rater-details:hover {
   color: black;
+}
+.marot-rater-flag {
+  background-color: white;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 1px 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 2;
 }
 .marot-ref-row {
   background-color: #e9ffdb;
@@ -319,7 +345,6 @@
 .marot-warning {
   color: red;
 }
-
 .mqm-critical {
   background: rgba(127, 0, 255, 0.7);
   cursor: crosshair;
@@ -335,6 +360,21 @@
 .mqm-neutral {
   background: rgba(211, 211, 211, 0.7);
   cursor: crosshair;
+}
+.marot-single-rater-view .mqm-critical,
+.marot-single-rater-view .mqm-major,
+.marot-single-rater-view .mqm-minor,
+.marot-single-rater-view .mqm-neutral {
+  background: transparent;
+}
+.marot-single-rater-view .marot-rater-flag {
+  visibility: hidden;
+}
+#marot-status {
+  color: blue;
+  max-height: 100px;
+  margin-left: 8px;
+  overflow-y: auto;
 }
 .mqm-trivial {
   background: rgba(245, 245, 220, 0.7);

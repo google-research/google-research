@@ -45,8 +45,11 @@ ten columns, one line per marked error:
 - **globalSegId**: Id of segment across all documents. If you do not have
   such numbering available, set this to a constant value, say 0.
 - **rater**: Rater who evaluated segment. If this row only carries metadata
-  such as automated metrics and/or references, then `rater` should be the empty
-  string (as should be `category` and `severity`).
+  such as automated scalar metrics and/or references, then `rater` should be the
+  empty string (as should be `category` and `severity`). If `rater` has the
+  prefix *AutoMQM* (case-insensitive), then the rater is treated as an AI
+  and its scores are treated as a distinct "Auto MQM" metric (not to be combined
+  with human raters or other AI raters).
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
@@ -201,7 +204,8 @@ JavaScript function with the following name and behavior:
 /**
  * Transform a data name (that may be in some custom format) to a URL.
  * @param {string} dataName The name or identifier for the data.
- * @return {string} The URL from which the data can be loaded.
+ * @return {string} The URL (or comma-separated URLs) from which the data can be
+ * loaded.
  */
 function marotURLMaker(dataName) {
   /** Code to convert dataName into url */
@@ -300,6 +304,13 @@ and/or scroll through the examples table while keeping the approximate alignment
 highlighted. Clicking on arrow keys will move any such alignment
 forward/backward (and clicking on any segment while there is a pinned
 sub-paragraph will "unpin" it).
+
+You can narrow the annotations shown in the Examples table temporarily to those
+made by any specific rater (including an AutoMQM rater if applicable) by
+hovering the mouse over the rater's ID in the last column. Each rater has a
+unique flag color associated with them, and this temporary narrowing is
+indicated in the UI by showing the rater's flag next to the text. You can also
+hover over a rater's flag to activate this narrowing.
 
 ## Significance tests
 
