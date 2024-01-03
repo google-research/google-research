@@ -13,9 +13,10 @@
 # limitations under the License.
 
 #!/bin/bash
-pip install -r requirements.txt
 
-python3 evaluation_main.py \
-  --input_data=./data/input_data.jsonl \
-  --input_response_data=./data/input_response_data_gpt4_20231107_145030.jsonl \
-  --output_dir=./data/
+python3 -m instruction_following_eval.evaluation_main \
+  --input_data=./instruction_following_eval/data/input_data.jsonl \
+  --input_response_data=./instruction_following_eval/data/input_response_data_gpt4_20231107_145030.jsonl \
+  --output_dir=./instruction_following_eval/data/
+
+exit 0
