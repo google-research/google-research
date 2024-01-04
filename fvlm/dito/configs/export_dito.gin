@@ -26,10 +26,19 @@ ANCHOR_SIZE = 8
 INCLUDE_MASK = True
 TRAIN_FILE_PATTERN = ''
 EVAL_FILE_PATTERN = ''
+ATTENTION_SHIFT_SIZE = 8
+ROI_SCALE_FACTOR = 0.7
 
 
 set_remap:
   MultitaskModel___call__ = {'images': 'image', 'texts': 'text'}
+
+get_clip_vision_model.window_attention_shift_size = %ATTENTION_SHIFT_SIZE
+get_clip_vision_model.model_name = %CLIP_NAME
+get_clip_frozen_vision_model.model_name = %CLIP_NAME
+MultitaskModel.frozen_vision_model_fn = @get_clip_frozen_vision_model()
+ClipFasterRCNNHead.use_frozen_vlm = True
+ClipFasterRCNNHead.roi_scale_factor = %ROI_SCALE_FACTOR
 
 maskrcnn_map_fn.normalize_image_values = @clip_image_normalization_values()
 maskrcnn_map_fn.denormalize_image = True
@@ -40,7 +49,7 @@ get_input.repeat = False
 get_input.cache = False
 
 process_and_generate_detections.nms_threshold = 0.5
-process_and_generate_detections.score_threshold = 0.0
+process_and_generate_detections.score_threshold = 0.00
 process_and_generate_detections.class_is_logit = False
 process_and_generate_detections.use_vmap = True
 
