@@ -26,6 +26,14 @@ we recommend making a shallow clone (without history).
 git clone git@github.com:google-research/google-research.git --depth=1
 ```
 
+And please add the commit changes using:
+```
+git commit -m "your messge"
+```
+and then make a pull through editor
+```
+git pull
+```
 ---
 
 *Disclaimer: This is not an official Google product.*
