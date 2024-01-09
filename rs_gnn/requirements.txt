@@ -4,7 +4,7 @@ cycler==0.11.0
 dm-tree==0.1.7
 flatbuffers==2.0
 flax==0.4.1
-fonttools==4.33.3
+fonttools==4.43.0
 jax==0.3.7
 jaxlib==0.3.7
 kiwisolver==1.4.2
