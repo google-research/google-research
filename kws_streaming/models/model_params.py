@@ -89,6 +89,7 @@ class Params(object):
     self.use_one_step = True
     self.data_stride = 1
     self.cond_shape = ()
+    self.cond_audio_shape = ()
 
     # will be updated by update_flags()
     self.window_stride_samples = None

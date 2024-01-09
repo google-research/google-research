@@ -299,16 +299,28 @@ def to_streaming_inference(model_non_stream, flags, mode):
 
   if (isinstance(model_non_stream.input, (tuple, list)) and
       len(model_non_stream.input) > 1):
-    if len(model_non_stream.input) > 2:
-      raise ValueError(
-          'Maximum number of inputs supported is 2 (input_audio and '
-          'cond_features), but got %d inputs' % len(model_non_stream.input))
     input_tensors.append(
         tf.keras.layers.Input(
             shape=flags.cond_shape,
             batch_size=1,
             dtype=model_non_stream.input[1].dtype,
             name='cond_features'))
+    if len(model_non_stream.input) > 2:
+      # Optionally allows a third input called cond_audio, the shape of which is
+      # recorded in flags.cond_audio_shape.
+      input_tensors.append(
+          tf.keras.layers.Input(
+              shape=flags.cond_audio_shape,
+              batch_size=1,
+              dtype=model_non_stream.input[2].dtype,
+              name='cond_audio',
+          )
+      )
+    if len(model_non_stream.input) > 3:
+      raise ValueError(
+          'Maximum number of inputs supported is 3 (input_audio, cond_features,'
+          ' and cond_audio), but got %d inputs' % len(model_non_stream.input)
+      )
 
   quantize_stream_scope = quantize.quantize_scope()
   with quantize_stream_scope:
