@@ -1,0 +1,426 @@
+{
+    "300": {
+        "file_id": 23,
+        "content": "    # Online knowledge distillation\n    elif _ONLINE_DISTILLATION.value:\n      teacher_log_score, teacher_cluster_h, teacher_video_h = teacher_model(\n          data_batch)\n      teacher_log_score = teacher_log_score.view(-1, _MAX_NUM_CLUSTER.value)\n      if _FEATURE_DISTILLATION.value:\n        distillation_cluster_loss = torch.norm(\n            teacher_cluster_h - cluster_intermediate_h, dim=-1).sum()\n        distillation_video_loss = torch.norm(\n            teacher_video_h[~data_batch['video_padding_mask']] -\n            video_intermediate_h[~data_batch['video_padding_mask']],\n            dim=-1).sum()\n        distillation_loss = distillation_cluster_loss + distillation_video_loss\n      else:\n        distillation_loss = F.kl_div(\n            log_score[video_non_padding_mask],\n            teacher_log_score[video_non_padding_mask],\n            reduction='sum',\n            log_target=True)\n      teacher_model_loss = F.nll_loss(\n          teacher_log_score[video_non_padding_mask],\n          video_cluster_label[video_non_padding_mask],",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:292-313"
+    },
+    "301": {
+        "file_id": 23,
+        "content": "This code performs online knowledge distillation in a video timeline modeling framework. It compares teacher and student model outputs, calculates cluster and video loss components, and combines them to generate the final distillation loss. If feature distillation is enabled, it calculates the distance between teacher and student cluster and video features, otherwise it uses Kullback-Leibler (KL) divergence to measure the difference between log scores from both models. The teacher model's loss is also calculated using negative log likelihood (NLL) loss.",
+        "type": "comment"
+    },
+    "302": {
+        "file_id": 23,
+        "content": "          reduction='sum')\n      loss_sum = (loss + _DISTILLATION_LOSS_WEIGHT.value * distillation_loss\n                  + _TEACHER_LOSS_WEIGHT.value * teacher_model_loss)\n      loss_sum.backward()\n      optimizer.step()\n      if step % _LOG_STEPSIZE.value == 0:\n        logging.info('[%s/%s] Loss: %s',\n                     step * len(data_batch['video_features']),\n                     len(train_loader.dataset),\n                     loss.item() / video_non_padding_mask.sum().item())\n        logging.info(\n            '[%s/%s] Teacher Model Loss: %s',\n            step * len(data_batch['video_features']), len(train_loader.dataset),\n            teacher_model_loss.item() / video_non_padding_mask.sum().item())\n        logging.info(\n            '[%s/%s] Distillation Loss: %s',\n            step * len(data_batch['video_features']), len(train_loader.dataset),\n            distillation_loss.item() /\n            (video_non_padding_mask.sum().item() +\n             torch.numel(data_batch['cluster_non_padding_mask'])))\n      train_distillation_loss += distillation_loss.item()",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:314-334"
+    },
+    "303": {
+        "file_id": 23,
+        "content": "The code calculates the total loss, performs backward propagation, updates model weights using an optimizer, and logs the current loss, teacher model loss, and distillation loss for each iteration. It also accumulates the distillation loss in the training process.",
+        "type": "comment"
+    },
+    "304": {
+        "file_id": 23,
+        "content": "      train_loss += loss.item()\n      train_teacher_model_loss += teacher_model_loss.item()\n      total_video += video_non_padding_mask.sum().item()\n      total_clusters += data_batch['cluster_non_padding_mask'].sum().item()\n    else:\n      loss.backward()\n      optimizer.step()\n      if step % _LOG_STEPSIZE.value == 0:\n        logging.info('[%s/%s] Loss: %s',\n                     step * len(data_batch['video_features']),\n                     len(train_loader.dataset),\n                     loss.item() / video_non_padding_mask.sum().item())\n      train_loss += loss.item()\n      total_video += video_non_padding_mask.sum().item()\n  if _SEMANTICS_AWARE_HEAD.value:\n    return train_loss / total_video, train_semantics_loss / total_clusters, None\n  elif _OFFLINE_DISTILLATION.value:\n    return train_loss / total_video, train_distillation_loss / (\n        total_video + total_clusters), None\n  elif _ONLINE_DISTILLATION.value:\n    return train_loss / total_video, train_distillation_loss / (\n        total_video + total_clusters), train_teacher_model_loss / total_video,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:335-358"
+    },
+    "305": {
+        "file_id": 23,
+        "content": "This code calculates the loss for a video timeline modeling task. It tracks the total training loss, teacher model loss, and counts the number of videos and clusters seen so far. Depending on the selected option (_SEMANTICS_AWARE_HEAD, _OFFLINE_DISTILLATION, or _ONLINE_DISTILLATION), it returns different metrics for evaluation. The metrics are calculated by dividing the respective losses by the total number of videos and clusters seen during training.",
+        "type": "comment"
+    },
+    "306": {
+        "file_id": 23,
+        "content": "  else:\n    return train_loss / total_video, None, None\ndef evaluate(timeline_model, device,\n             loader):\n  \"\"\"Evaluation pipeline for measuring video to cluster accuracy (float).\"\"\"\n  timeline_model.eval()\n  video_to_cluster_correct = 0\n  total_video = 0\n  with torch.no_grad():\n    for data_batch in loader:\n      for key in [\n          'video_features', 'video_padding_mask', 'video_cluster_label'\n      ]:\n        data_batch[key] = data_batch[key].to(device)\n      log_score, _, _ = timeline_model(data_batch)\n      log_score = log_score.view(-1, _MAX_NUM_CLUSTER.value)\n      prediction = log_score.argmax(dim=1, keepdim=False)\n      video_cluster_label = data_batch['video_cluster_label'].view(-1)\n      video_non_padding_mask = ~data_batch['video_padding_mask'].view(-1)\n      video_to_cluster_correct += prediction[video_non_padding_mask].eq(\n          video_cluster_label[video_non_padding_mask]).sum().item()\n      total_video += video_non_padding_mask.sum().item()\n  video_to_cluster_accuracy = video_to_cluster_correct / total_video",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:359-383"
+    },
+    "307": {
+        "file_id": 23,
+        "content": "This code is a part of an evaluation function for the Video Timeline Modeling task. It measures the video to cluster accuracy by iterating through the data loader, computing log scores and predictions using the timeline model. It then calculates the accuracy by comparing the predicted cluster labels with the ground truth labels and divides the total correct predictions by the total videos processed. The function returns the video-to-cluster accuracy.",
+        "type": "comment"
+    },
+    "308": {
+        "file_id": 23,
+        "content": "  return video_to_cluster_accuracy\ndef inference(timeline_model, device,\n              dataset):\n  \"\"\"Inference with one-by-one processing.\"\"\"\n  timeline_model.eval()\n  video_to_cluster_correct = 0\n  total_video = 0\n  final_predictions = []\n  loader = DataLoader(\n      dataset, batch_size=1, shuffle=False, collate_fn=collate_topics)\n  with torch.no_grad():\n    for i, data_batch in enumerate(loader):\n      data_prediction = {}\n      for key in [\n          'video_features', 'video_padding_mask', 'video_cluster_label'\n      ]:\n        data_batch[key] = data_batch[key].to(device)\n      log_score, _, _ = timeline_model(data_batch)\n      log_score = log_score.view(-1, _MAX_NUM_CLUSTER.value)\n      prediction = log_score.argmax(dim=1, keepdim=False)\n      video_cluster_label = data_batch['video_cluster_label'].view(-1)\n      video_non_padding_mask = ~data_batch['video_padding_mask'].view(-1)\n      video_to_cluster_correct += prediction[video_non_padding_mask].eq(\n          video_cluster_label[video_non_padding_mask]).sum().item()",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:384-409"
+    },
+    "309": {
+        "file_id": 23,
+        "content": "The function performs video classification inference using a pre-trained timeline model. It iterates through the dataset, one batch at a time, calculating log scores and predictions for each video. The correct cluster labels are compared to predicted labels for non-padding parts of videos, incrementing the accuracy count accordingly.",
+        "type": "comment"
+    },
+    "310": {
+        "file_id": 23,
+        "content": "      total_video += video_non_padding_mask.sum().item()\n      data_prediction['timeline_url'] = dataset[i]['timeline_url']\n      data_prediction['pred'] = prediction.tolist()\n      data_prediction['label'] = video_cluster_label.tolist()\n      final_predictions.append(data_prediction)\n  video_to_cluster_accuracy = video_to_cluster_correct / total_video\n  return final_predictions, video_to_cluster_accuracy\ndef save_model(model, optimizer, output_dir):\n  \"\"\"Save model to GCS.\"\"\"\n  os.makedirs(output_dir, exist_ok=True)\n  # Will overwrite existing previously saved model.\n  torch.save(model.state_dict(), os.path.join(output_dir, 'model.pt'))\n  torch.save(\n      {\n          'model_state_dict': model.state_dict(),\n          'optimizer_state_dict': optimizer.state_dict(),\n      }, os.path.join(output_dir, 'checkpoint.tar'))\ndef main(_):\n  logging.info('Job started')\n  device = torch.device(check_gpu())\n  torch.cuda.empty_cache()\n  logging.info('FLAGS.epochs: %s', _EPOCHS.value)\n  logging.info('FLAGS.batch_size: %s', _BATCH_SIZE.value)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:410-438"
+    },
+    "311": {
+        "file_id": 23,
+        "content": "This code snippet contains functions related to model saving and prediction. The `main` function starts the job, sets device for GPU usage, and logs important parameters. The `save_model` function saves model and optimizer states as checkpoints. The code also includes a logic to calculate video-to-cluster accuracy in prediction.",
+        "type": "comment"
+    },
+    "312": {
+        "file_id": 23,
+        "content": "  logging.info('FLAGS.learning_rate: %s', _LEARNING_RATE.value)\n  logging.info('FLAGS.weight_decay: %s', _WEIGHT_DECAY.value)\n  if _RUN_BASELINE.value:\n    logging.info('Running baseline model.')\n    model = ClassifierModel(_MAX_NUM_CLUSTER.value, _MAX_NUM_VIDEO.value,\n                            _NUM_EMB.value, _NUM_INPUT_HIDDEN_VIDEO.value,\n                            _NUM_HIDDEN.value, _NUM_HEAD.value,\n                            _NUM_LAYERS.value, _VIDEO_PE.value, _DROPOUT.value)\n  else:\n    if _SEMANTICS_AWARE_HEAD.value:\n      logging.info('Running our complete model.')\n    else:\n      if _REMOVE_VIDEO_AND_CLUSTER_ENCODERS.value:\n        logging.info('Running our model without the semantics-aware head.')\n        logging.info('and the video and cluster encoders.')\n      else:\n        logging.info('Running our model without the semantics-aware head.')\n    model = TimelineModel(_MAX_NUM_CLUSTER.value, _MAX_NUM_VIDEO.value,\n                          _NUM_EMB.value, _NUM_INPUT_HIDDEN_VIDEO.value,\n                          _NUM_HIDDEN.value, _NUM_HEAD.value, _NUM_LAYERS.value,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:439-459"
+    },
+    "313": {
+        "file_id": 23,
+        "content": "The code checks the FLAGS and determines which model to run. If running a baseline model, it initializes the ClassifierModel with specific values. Otherwise, if semantics-aware head is not enabled, it initializes TimelineModel without semantics-aware head and possibly video/cluster encoders as well. This code manages the model initialization based on different FLAGS settings.",
+        "type": "comment"
+    },
+    "314": {
+        "file_id": 23,
+        "content": "                          _VIDEO_PE.value, _DROPOUT.value,\n                          _SEMANTICS_AWARE_HEAD.value,\n                          _SEMANTICS_AWARE_HEAD_POS.value,\n                          _REMOVE_VIDEO_AND_CLUSTER_ENCODERS.value,\n                          _TEXT_EMBEDDING_AS_INPUT.value)\n    if _OFFLINE_DISTILLATION.value or _ONLINE_DISTILLATION.value:\n      assert not _SEMANTICS_AWARE_HEAD.value\n      assert not _REMOVE_VIDEO_AND_CLUSTER_ENCODERS.value\n      teacher_model = TimelineModel(\n          _MAX_NUM_CLUSTER.value, _MAX_NUM_VIDEO.value, _NUM_EMB.value,\n          _NUM_INPUT_HIDDEN_VIDEO.value, _NUM_HIDDEN.value, _NUM_HEAD.value,\n          _NUM_LAYERS.value, _VIDEO_PE.value, _DROPOUT.value,\n          _SEMANTICS_AWARE_HEAD.value, _SEMANTICS_AWARE_HEAD_POS.value,\n          _REMOVE_VIDEO_AND_CLUSTER_ENCODERS.value, True)\n      teacher_model = nn.DataParallel(teacher_model).to(device)\n      if _OFFLINE_DISTILLATION.value:\n        logging.info('Performing offline knowledge distillation.')\n        teacher_model.load_state_dict(",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:460-477"
+    },
+    "315": {
+        "file_id": 23,
+        "content": "This code is creating a teacher model for knowledge distillation using the TimelineModel class. It checks and asserts certain conditions before instantiating the model with specified parameters. If offline distillation is enabled, it loads the state dictionary of the teacher model. The model is then placed on a device (GPU) using DataParallel.",
+        "type": "comment"
+    },
+    "316": {
+        "file_id": 23,
+        "content": "            torch.load(\n                os.path.join(_TRAINED_TEACHER_MODEL_PATH.value, 'model.pt')))\n        logging.info('Loaded pretrained teacher model.')\n      elif _ONLINE_DISTILLATION.value:\n        logging.info('Performing online knowledge distillation.')\n  train_dataset, valid_dataset, test_dataset = get_dataset()\n  trained_model_path = _TRAINED_MODEL_PATH.value\n  if trained_model_path is not None:\n    logging.info('Run inference only.')\n    timeline_model = nn.DataParallel(model).to(device)\n    timeline_model.load_state_dict(\n        torch.load(os.path.join(trained_model_path, 'model.pt')))\n    valid_predictions, final_valid_v2c_acc = inference(timeline_model, device,\n                                                       valid_dataset)\n    test_predictions, final_test_v2c_acc = inference(timeline_model, device,\n                                                     test_dataset)\n    logging.info('Final Valid Acc %s', final_valid_v2c_acc)\n    logging.info('Final Test Acc %s', final_test_v2c_acc)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:478-495"
+    },
+    "317": {
+        "file_id": 23,
+        "content": "Code snippet checks the value of `_TRAINED_TEACHER_MODEL_PATH` and `_ONLINE_DISTILLATION`. If a trained teacher model is present, it loads the model for inference on validation and test datasets. If no model is found or online distillation is enabled, the code proceeds to train the timeline model using specified parameters. The final accuracy of both validation and test sets are logged after either training or loading a pre-trained model.",
+        "type": "comment"
+    },
+    "318": {
+        "file_id": 23,
+        "content": "    with open(os.path.join(trained_model_path, 'valid_prediction.json'),\n              'w') as f:\n      json.dump(valid_predictions, f)\n    with open(os.path.join(trained_model_path, 'test_prediction.json'),\n              'w') as f:\n      json.dump(test_predictions, f)\n  else:\n    timeline_model = nn.DataParallel(model).to(device)\n    if _OFFLINE_DISTILLATION.value or _ONLINE_DISTILLATION.value:\n      optimizer = optim.Adam(\n          list(timeline_model.parameters()) + list(teacher_model.parameters()),\n          lr=_LEARNING_RATE.value,\n          weight_decay=_WEIGHT_DECAY.value)\n    else:\n      optimizer = optim.Adam(\n          timeline_model.parameters(),\n          lr=_LEARNING_RATE.value,\n          weight_decay=_WEIGHT_DECAY.value)\n    if _TENSORBOARD_DIR.value:\n      writer = tensorboard.SummaryWriter(_TENSORBOARD_DIR.value)\n    train_loader = DataLoader(\n        train_dataset,\n        batch_size=_BATCH_SIZE.value,\n        shuffle=True,\n        collate_fn=collate_topics)\n    valid_loader = DataLoader(\n        valid_dataset,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:496-525"
+    },
+    "319": {
+        "file_id": 23,
+        "content": "This code section saves valid and test predictions as JSON files, initializes the timeline model on a specific device, defines an optimizer based on distillation settings, possibly adds a TensorBoard writer for visualization, and creates train and valid loaders.",
+        "type": "comment"
+    },
+    "320": {
+        "file_id": 23,
+        "content": "        batch_size=_BATCH_SIZE.value,\n        shuffle=False,\n        collate_fn=collate_topics)\n    test_loader = DataLoader(\n        test_dataset,\n        batch_size=_BATCH_SIZE.value,\n        shuffle=False,\n        collate_fn=collate_topics)\n    best_valid_v2c_acc = 0\n    for epoch in range(1, _EPOCHS.value + 1):\n      logging.info('Epoch %s of %s', epoch, _EPOCHS.value)\n      if _SEMANTICS_AWARE_HEAD.value:\n        train_loss, semantics_loss, _ = train_epoch(timeline_model, device,\n                                                    train_loader, optimizer)\n        logging.info('Loss %s', train_loss)\n        logging.info('Semantics loss %s', semantics_loss)\n      elif _OFFLINE_DISTILLATION.value:\n        train_loss, distillation_loss, _ = train_epoch(timeline_model, device,\n                                                       train_loader, optimizer,\n                                                       teacher_model)\n        logging.info('Loss %s', train_loss)\n        logging.info('Distillation loss %s', distillation_loss)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:526-548"
+    },
+    "321": {
+        "file_id": 23,
+        "content": "This code is initializing training and testing datasets, setting the best validation accuracy, and iterating through each epoch of the model's training. If semantics-aware mode is enabled, it calculates training and semantics losses; if offline distillation mode is enabled, it also calculates distillation loss. Logging information about losses for each iteration.",
+        "type": "comment"
+    },
+    "322": {
+        "file_id": 23,
+        "content": "      elif _ONLINE_DISTILLATION.value:\n        train_loss, distillation_loss, train_teacher_model_loss = train_epoch(\n            timeline_model, device, train_loader, optimizer, teacher_model)\n        logging.info('Loss %s', train_loss)\n        logging.info('Teacher Model Loss %s', train_teacher_model_loss)\n        logging.info('Distillation loss %s', distillation_loss)\n      else:\n        train_loss, _, _ = train_epoch(timeline_model, device, train_loader,\n                                       optimizer)\n        logging.info('Loss %s', train_loss)\n      train_v2c_acc = evaluate(timeline_model, device, train_loader)\n      valid_v2c_acc = evaluate(timeline_model, device, valid_loader)\n      test_v2c_acc = evaluate(timeline_model, device, test_loader)\n      if valid_v2c_acc > best_valid_v2c_acc:\n        best_valid_v2c_acc = valid_v2c_acc\n        final_test_v2c_acc = test_v2c_acc\n        if _CHECKPOINT_DIR.value:\n          save_model(timeline_model, optimizer, _CHECKPOINT_DIR.value)\n      logging.info('Training Acc %s', train_v2c_acc)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:549-567"
+    },
+    "323": {
+        "file_id": 23,
+        "content": "This code checks the value of _ONLINE_DISTILLATION and then either trains the model with distillation loss or without. After training, it evaluates the accuracy on train, validation, and test datasets. If the validation accuracy is higher than the previous best, it saves the current state of the model and optimizer. The logging outputs various loss values and training accuracy.",
+        "type": "comment"
+    },
+    "324": {
+        "file_id": 23,
+        "content": "      logging.info('Valid Acc %s', valid_v2c_acc)\n      logging.info('Test Acc %s', test_v2c_acc)\n      logging.info('Best Valid Acc So Far %s', best_valid_v2c_acc)\n      logging.info('Final Test Acc So Far %s', final_test_v2c_acc)\n      if _TENSORBOARD_DIR.value:\n        if _SEMANTICS_AWARE_HEAD.value:\n          writer.add_scalar('Semantics Loss/train', semantics_loss, epoch)\n        if _OFFLINE_DISTILLATION.value:\n          writer.add_scalar('Distillation Loss/train', distillation_loss, epoch)\n        if _ONLINE_DISTILLATION.value:\n          writer.add_scalar('Distillation Loss/train', distillation_loss, epoch)\n          writer.add_scalar('Teacher Model Loss/train',\n                            train_teacher_model_loss, epoch)\n        writer.add_scalar('Loss/train', train_loss, epoch)\n        writer.add_scalar('Accuracy/train', train_v2c_acc, epoch)\n        writer.add_scalar('Accuracy/valid', valid_v2c_acc, epoch)\n        writer.add_scalar('Accuracy/test', test_v2c_acc, epoch)\n        logging.info('Flushing TensorBoard writer')",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:568-586"
+    },
+    "325": {
+        "file_id": 23,
+        "content": "The code logs validation and test accuracy, and adds scalar values for various losses and accuracy metrics during training to TensorBoard. It flushes the TensorBoard writer after adding all the scalars.",
+        "type": "comment"
+    },
+    "326": {
+        "file_id": 23,
+        "content": "        writer.flush()\n    if _TENSORBOARD_DIR.value:\n      writer.close()\n  logging.info('Job finished')\nif __name__ == '__main__':\n  app.run(main)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:587-596"
+    },
+    "327": {
+        "file_id": 23,
+        "content": "Flushing the writer and closing it if a tensorboard directory is specified, logging information that the job has finished. The code seems to be part of a TensorFlow or similar program's main execution loop in a Python script.",
+        "type": "comment"
+    },
+    "328": {
+        "file_id": 24,
+        "content": "/video_timeline_modeling/vtm/model/__init__.py",
+        "type": "filepath"
+    },
+    "329": {
+        "file_id": 24,
+        "content": "This code snippet imports various components from the \"vtm.model\" module, including the AttentionHead, Encoder, and PositionalEncoding classes, for use in the Video Timeline Modeling framework.",
+        "type": "summary"
+    },
+    "330": {
+        "file_id": 24,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Provide the model API.\"\"\"\nfrom vtm.model.attention_head import AttentionHead\nfrom vtm.model.encoder import Encoder\nfrom vtm.model.encoder import PositionalEncoding",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/__init__.py:1-20"
+    },
+    "331": {
+        "file_id": 24,
+        "content": "This code snippet imports various components from the \"vtm.model\" module, including the AttentionHead, Encoder, and PositionalEncoding classes, for use in the Video Timeline Modeling framework.",
+        "type": "comment"
+    },
+    "332": {
+        "file_id": 25,
+        "content": "/video_timeline_modeling/vtm/model/attention_head.py",
+        "type": "filepath"
+    },
+    "333": {
+        "file_id": 25,
+        "content": "The AttentionHead class in the code is for video timeline modeling, initializes linear layers, calculates attention scores with dot products, and applies log softmax activation.",
+        "type": "summary"
+    },
+    "334": {
+        "file_id": 25,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"The Attention based head module to attend each video representations to all cluster representations.\n\"\"\"\nimport torch\nfrom torch import nn\nimport torch.nn.functional as F\nclass AttentionHead(nn.Module):\n  \"\"\"Attention head.\n  The detailed attention operation follows the one used in \"Neural Machine\n  Translation by Jointly Learning to Align and Translate\"\n  (https://arxiv.org/abs/1409.0473) and \"Pointer Networks\"",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/attention_head.py:1-29"
+    },
+    "335": {
+        "file_id": 25,
+        "content": "This code defines an AttentionHead class for a video timeline modeling task. It imports necessary libraries, and is derived from the nn.Module class. The attention operation follows the method used in specific papers, namely \"Neural Machine Translation by Jointly Learning to Align and Translate\" and \"Pointer Networks\". The code is licensed under Apache License, Version 2.0.",
+        "type": "comment"
+    },
+    "336": {
+        "file_id": 25,
+        "content": "  (https://arxiv.org/abs/1506.03134)\n  \"\"\"\n  def __init__(self, num_hidden):\n    super().__init__()\n    self.num_hidden = num_hidden\n    self.w1 = nn.Linear(num_hidden, num_hidden, bias=False)\n    self.w2 = nn.Linear(num_hidden, num_hidden, bias=False)\n    self.v = nn.Linear(num_hidden, 1, bias=False)  # working as dot product\n  def forward(self, x_query, x_key):\n    \"\"\"Forward pass.\n    Args:\n      x_query: Query vectors (video representations).\n      x_key: Key vectors (cluster representations).\n    Shape:\n      x_query: (B, N_q, num_hidden)\n      x_key: (B, N_k, num_hidden)\n    Returns:\n      The normalized attention scores (log_softmax) with shape (B, N_q, N_k).\n    \"\"\"\n    # (B, N_q, N_k, C) <- (B, N_k, C)\n    key_transform = self.w1(x_key).unsqueeze(1).expand(-1, x_query.shape[1], -1,\n                                                       -1)\n    # (B, N_q, 1, C) <- (B, N_q, C)\n    query_transform = self.w2(x_query).unsqueeze(2)\n    # (B, N_q, N_k) <- (B, N_q, N_k, C), (B, N_q, 1, C)\n    prod = self.v(torch.tanh(key_transform + query_transform)).squeeze(-1)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/attention_head.py:30-59"
+    },
+    "337": {
+        "file_id": 25,
+        "content": "This code defines an attention head class that takes in a number of hidden layers as input. It initializes linear layers (`w1`, `w2`, and `v`) for transforming query and key vectors, and calculates the attention scores using a dot product between transformed queries and keys. The forward pass returns the normalized attention scores using log softmax.",
+        "type": "comment"
+    },
+    "338": {
+        "file_id": 25,
+        "content": "    return F.log_softmax(prod, dim=-1)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/attention_head.py:60-60"
+    },
+    "339": {
+        "file_id": 25,
+        "content": "Applies log softmax activation to the product of query, key, and value matrices in an attention head.",
+        "type": "comment"
+    },
+    "340": {
+        "file_id": 26,
+        "content": "/video_timeline_modeling/vtm/model/encoder.py",
+        "type": "filepath"
+    },
+    "341": {
+        "file_id": 26,
+        "content": "This code defines an encoder class with positional encoding for transformer-based models in PyTorch, based on the \"Attention Is All You Need\" paper. The Transformer Encoder initializes encoder layers and performs forward pass, taking embedding matrix as input and producing encoded embeddings as output.",
+        "type": "summary"
+    },
+    "342": {
+        "file_id": 26,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"The Transformer based encoder, proposed in the following paper.\nAshish Vaswani, Noam Shazeer, Niki Parmar, Jakob Uszkoreit, Llion Jones, Aidan\nN. Gomez, Lukasz Kaiser, and Illia Polosukhin.\n\"Attention Is All You Need.\"\nAdvances in neural information processing systems 31 (2017).\n\"\"\"\nimport torch\nfrom torch import nn\nfrom torch.autograd import Variable\nclass PositionalEncoding(nn.Module):\n  \"\"\"Positional Encoding module.\"\"\"",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/encoder.py:1-30"
+    },
+    "343": {
+        "file_id": 26,
+        "content": "The code imports necessary libraries, defines the PositionalEncoding module that is used in transformer-based encoder models. The transformer model architecture is proposed in the paper \"Attention Is All You Need\".",
+        "type": "comment"
+    },
+    "344": {
+        "file_id": 26,
+        "content": "  def __init__(self, d_model, max_len=24):\n    super().__init__()\n    pe = torch.zeros(max_len, d_model)\n    position = torch.arange(0, max_len, dtype=torch.float).unsqueeze(1)\n    div_term = 1.0 / (10000 ** (torch.arange(0, d_model, 2).float() / d_model))\n    pe[:, 0::2] = torch.sin(position * div_term)\n    pe[:, 1::2] = torch.cos(position * div_term)\n    self.register_buffer('pe', pe)\n  def forward(self, x):\n    \"\"\"Forward pass.\n    Args:\n      x: input embeddings.\n    Shape:\n      x: (B, N, num_input_hidden)\n    Returns:\n      The embeddings with added positional encodings with shape (B, N,\n      num_input_hidden)\n    \"\"\"\n    # Do not use += since the right side is a Variable with require_grad args\n    x = x + Variable(\n        self.pe.expand(x.shape[0], -1, -1)[:, :x.shape[1], :],\n        requires_grad=False)\n    return x\nclass Encoder(nn.Module):\n  \"\"\"Transformer based encoder.\"\"\"\n  def __init__(self, num_input_hidden, num_hidden, num_head, num_layers,\n               dropout):\n    super().__init__()\n    self.num_input_hidden = num_input_hidden",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/encoder.py:32-66"
+    },
+    "345": {
+        "file_id": 26,
+        "content": "This code defines an encoder class with a positional encoding method. The __init__ function initializes the positional encoding (pe) by combining sine and cosine values based on position and d_model. In forward, the input embeddings x are added to the expanded pe with requires_grad set to False.",
+        "type": "comment"
+    },
+    "346": {
+        "file_id": 26,
+        "content": "    self.num_hidden = num_hidden\n    self.num_head = num_head\n    self.num_layers = num_layers\n    encoder_layers = nn.TransformerEncoderLayer(num_input_hidden, num_head,\n                                                num_hidden, dropout)\n    self.encoder = nn.TransformerEncoder(encoder_layers, num_layers)\n  def forward(self, batch_x, src_key_padding_mask=None):\n    \"\"\"Forward pass.\n    Args:\n      batch_x: input embeddings.\n      src_key_padding_mask: mask for padding tokens.\n    Shape:\n      batch_x: (B, N, num_input_hidden)\n      src_key_padding_mask: (B, N)\n    Returns:\n      The encoded embeddings with shape (B, N, num_input_hidden)\n    \"\"\"\n    x_encoder = self.encoder(\n        batch_x.permute(1, 0, 2), src_key_padding_mask=src_key_padding_mask)\n    return x_encoder.permute(1, 0, 2)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/encoder.py:67-89"
+    },
+    "347": {
+        "file_id": 26,
+        "content": "This code defines a Transformer Encoder in PyTorch. It initializes the encoder layers and sets up the forward pass. The input is an embedding matrix, and the output is the encoded embeddings.",
+        "type": "comment"
+    },
+    "348": {
+        "file_id": 27,
+        "content": "/video_timeline_modeling/vtm/model/model.py",
+        "type": "filepath"
+    },
+    "349": {
+        "file_id": 27,
+        "content": "This code introduces a video timeline model class with forward pass functionality, computing cluster and video encodings using attention-based computations and adjustable classifiers.",
+        "type": "summary"
+    },
+    "350": {
+        "file_id": 27,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"The main model for video timeline modeling.\"\"\"\nfrom typing import Optional, Dict, Tuple\nimport torch\nfrom torch import nn\nimport torch.nn.functional as F\nfrom vtm.model.attention_head import AttentionHead\nfrom vtm.model.encoder import Encoder\nfrom vtm.model.encoder import PositionalEncoding\nclass TimelineModel(nn.Module):\n  \"\"\"Timeline model.\"\"\"\n  def __init__(self,\n               max_num_cluster,\n               max_num_video,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:1-32"
+    },
+    "351": {
+        "file_id": 27,
+        "content": "This code defines the main model for video timeline modeling, using a TimelineModel class. The class inherits from nn.Module and has an __init__ method with parameters for maximum number of clusters and videos. It also includes methods for AttentionHead and Encoder, and utilizes PositionalEncoding.",
+        "type": "comment"
+    },
+    "352": {
+        "file_id": 27,
+        "content": "               num_emb,\n               num_input_hidden_video,\n               num_hidden,\n               num_head,\n               num_layers,\n               video_pe=False,\n               dropout=0.1,\n               semantics_aware_head=False,\n               semantics_aware_head_pos='pos1',\n               remove_video_and_cluster_encoders=False,\n               text_embedding_as_input=False,\n               semantics_num_emb=256):\n    super().__init__()\n    self.max_num_cluster = max_num_cluster\n    self.video_pe = video_pe\n    self.semantics_aware_head = semantics_aware_head\n    self.semantics_aware_head_pos = semantics_aware_head_pos\n    self.remove_video_and_cluster_encoders = remove_video_and_cluster_encoders\n    self.text_embedding_as_input = text_embedding_as_input\n    self.cluster_emb = nn.Parameter(\n        nn.init.xavier_uniform_(torch.empty(max_num_cluster, num_emb)))\n    self.video_transform = nn.Linear(num_input_hidden_video, num_emb)\n    self.cluster_video_encoder = Encoder(num_emb, num_hidden, num_head,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:33-56"
+    },
+    "353": {
+        "file_id": 27,
+        "content": "This function initializes the model with various parameters. It sets `max_num_cluster`, `video_pe`, `semantics_aware_head`, `semantics_aware_head_pos`, `remove_video_and_cluster_encoders`, and `text_embedding_as_input`. The function initializes the cluster embedding matrix, video transform layer, and creates a video encoder.",
+        "type": "comment"
+    },
+    "354": {
+        "file_id": 27,
+        "content": "                                         num_layers, dropout)\n    if not self.remove_video_and_cluster_encoders:\n      self.cluster_encoder = Encoder(num_emb, num_hidden, num_head, num_layers,\n                                     dropout)\n      self.video_encoder = Encoder(num_emb, num_hidden, num_head, num_layers,\n                                   dropout)\n    if self.video_pe:\n      self.pe_video = PositionalEncoding(num_emb, max_num_video)\n    self.pe_cluster = PositionalEncoding(num_emb, max_num_cluster)\n    self.attention_head = AttentionHead(num_emb)\n  def forward(\n      self, data_batch\n  ):\n    \"\"\"Forward pass.\n    Args:\n      data_batch: input batched data, which is a dict with keys\n        'video_features', 'cluster_text_features', 'video_cluster_label',\n        'video_padding_mask', and 'cluster_non_padding_mask'. Each value is a\n        tensor. The first dimension of each value is batch_size.\n        'video_features': (batch_size, max_num_video_in_the_batch, feature_dim)\n        'video_padding_mask': (batch_size, max_num_video_in_the_batch)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:57-79"
+    },
+    "355": {
+        "file_id": 27,
+        "content": "This code defines a model for video timeline modeling. It initializes Encoder and PositionalEncoding objects, and includes a forward pass function for the model. The model takes in batched data with keys like 'video_features', 'cluster_text_features', 'video_padding_mask'. This model is used to process video features and cluster text features, while also encoding positional information using positional encodings.",
+        "type": "comment"
+    },
+    "356": {
+        "file_id": 27,
+        "content": "        'cluster_text_features': (batch_size, max_num_clusters). Note that\n        max_num_clusters is 24, not the maximum number of clusters in the batch.\n        'cluster_non_padding_mask': (batch_size, max_num_clusters)\n        'video_cluster_label': (batch_size, max_num_video_in_the_batch)\n    Returns:\n      (1) The normalized attention scores (log_softmax) with shape (B,\n      max_num_video_in_batch, max_num_cluster).\n      (2) The intermediate cluster representations.\n      (3) The intermediate video representations, if applicable. Otherwise,\n      None.\n    \"\"\"\n    batch_video_x = data_batch['video_features']\n    batch_video_padding_mask = data_batch['video_padding_mask']\n    video_x = self.video_transform(batch_video_x)\n    if self.video_pe:\n      video_x = self.pe_video(video_x)\n    if self.text_embedding_as_input:\n      cluster_x = self.cluster_emb + data_batch['cluster_text_features']\n    else:\n      cluster_x = self.cluster_emb\n    # (B, max_num_cluster+max_num_video_in_batch, num_emb)\n    cluster_video_x = torch.cat(",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:80-102"
+    },
+    "357": {
+        "file_id": 27,
+        "content": "This function takes in batch video features, video padding mask, and cluster text features to produce normalized attention scores, intermediate cluster representations, and intermediate video representations if applicable. It applies transformations, optional positional encoding, and concatenates cluster and video inputs before producing the outputs.",
+        "type": "comment"
+    },
+    "358": {
+        "file_id": 27,
+        "content": "        (self.pe_cluster(cluster_x.expand(video_x.shape[0], -1, -1)), video_x),\n        dim=1)\n    # (B, max_num_cluster+max_num_video_in_batch, num_emb)\n    cluster_video_h = self.cluster_video_encoder(\n        cluster_video_x,\n        torch.cat((torch.zeros(\n            (video_x.shape[0], self.max_num_cluster),\n            dtype=batch_video_padding_mask.dtype).to(\n                batch_video_padding_mask.device), batch_video_padding_mask),\n                  dim=-1))\n    if self.remove_video_and_cluster_encoders:\n      log_score = self.attention_head(\n          cluster_video_h[:, self.max_num_cluster:, :],\n          cluster_video_h[:, 0:self.max_num_cluster, :])\n    else:\n      # (B, max_num_cluster, num_emb)\n      cluster_h = self.cluster_encoder(\n          cluster_video_h[:, 0:self.max_num_cluster, :])\n      # (B, max_num_video_in_batch, num_emb)\n      video_h = self.video_encoder(cluster_video_h[:, self.max_num_cluster:, :],\n                                   batch_video_padding_mask)\n      # (B, max_num_video_in_batch, max_num_cluster)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:103-125"
+    },
+    "359": {
+        "file_id": 27,
+        "content": "This code is part of a video timeline modeling model. It calculates cluster and video encodings, and then performs attention-based computations to derive log_score based on the cluster and video encodings. The remove_video_and_cluster_encoders flag determines whether to use just cluster encodings or both cluster and video encodings for these calculations.",
+        "type": "comment"
+    },
+    "360": {
+        "file_id": 27,
+        "content": "      log_score = self.attention_head(video_h, cluster_h)\n    # Semantics-aware head at pos 1 or 2\n    if self.semantics_aware_head:\n      if self.semantics_aware_head_pos == 'pos1':\n        cluster_semantics_h = cluster_video_h[:, 0:self.max_num_cluster, :]\n      elif self.semantics_aware_head_pos == 'pos2':\n        cluster_semantics_h = cluster_h\n      return log_score, cluster_semantics_h, None\n    else:\n      cluster_intermediate_h = cluster_video_h[:, 0:self.max_num_cluster, :]\n      video_intermediate_h = cluster_video_h[:, self.max_num_cluster:, :]\n      return log_score, cluster_intermediate_h, video_intermediate_h\nclass ClassifierModel(nn.Module):\n  \"\"\"The baseline classifier model.\"\"\"\n  def __init__(self,\n               max_num_cluster,\n               max_num_video,\n               num_emb,\n               num_input_hidden_video,\n               num_hidden,\n               num_head,\n               num_layers,\n               video_pe=False,\n               dropout=0.1):\n    super().__init__()\n    self.max_num_cluster = max_num_cluster",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:126-154"
+    },
+    "361": {
+        "file_id": 27,
+        "content": "The code defines a classifier model that takes in parameters like max_num_cluster, max_num_video, num_emb, etc. It has an attention head and an optional semantics-aware head at pos 1 or 2. The function returns log score, cluster_semantics_h or cluster_intermediate_h, and video_intermediate_h depending on whether the model is semantics aware or not.",
+        "type": "comment"
+    },
+    "362": {
+        "file_id": 27,
+        "content": "    self.video_pe = video_pe\n    self.video_transform = nn.Linear(num_input_hidden_video, num_emb)\n    self.video_encoder = Encoder(num_emb, num_hidden, num_head, num_layers,\n                                 dropout)\n    if self.video_pe:\n      self.pe_video = PositionalEncoding(num_emb, max_num_video)\n    self.head = nn.Linear(num_emb, max_num_cluster)\n  def forward(\n      self, data_batch\n  ):\n    \"\"\"Forward pass.\n    Args:\n      data_batch: input batched data, which is a dict with keys\n        'video_features', 'cluster_text_features', 'video_cluster_label',\n        'video_padding_mask', and 'cluster_non_padding_mask'. Each value is a\n        tensor. The first dimension of each value is batch_size.\n        'video_features': (batch_size, max_num_video_in_the_batch, feature_dim)\n        'video_padding_mask': (batch_size, max_num_video_in_the_batch)\n        'cluster_text_features': (batch_size, max_num_clusters). Note that\n        max_num_clusters is 24, not the maximum number of clusters in the batch.\n        'cluster_non_padding_mask': (batch_size, max_num_clusters)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:155-178"
+    },
+    "363": {
+        "file_id": 27,
+        "content": "This code initializes the video module of a model, including a positional encoding if specified. It also defines a forward pass that takes in batched data and performs operations on 'video_features', 'cluster_text_features', 'video_padding_mask', and 'cluster_non_padding_mask'. The output of the forward pass is not explicitly mentioned, but it likely involves processing these inputs using linear layers, an encoder, and positional encoding if specified.",
+        "type": "comment"
+    },
+    "364": {
+        "file_id": 27,
+        "content": "        'video_cluster_label': (batch_size, max_num_video_in_the_batch) In the\n        classifier model, we do not use 'cluster_text_features' and\n        'cluster_non_padding_mask'.\n    Returns:\n      The normalized attention scores (log_softmax) with shape (B,\n      max_num_video_in_batch, max_num_cluster).\n    \"\"\"\n    batch_video_x = data_batch['video_features']\n    batch_video_padding_mask = data_batch['video_padding_mask']\n    video_x = self.video_transform(batch_video_x)\n    if self.video_pe:\n      video_x = self.pe_video(video_x)\n    # (B, max_num_video_in_batch, num_emb)\n    video_h = self.video_encoder(video_x, batch_video_padding_mask)\n    # (B, max_num_video_in_batch, max_num_cluster)\n    scores = self.head(video_h)\n    return F.log_softmax(scores, dim=-1), None, None",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/model/model.py:179-196"
+    },
+    "365": {
+        "file_id": 27,
+        "content": "This function returns the normalized attention scores using log_softmax, and takes in video features, video padding mask, a transform for video features (if enabled), an encoder to process video features, and a head to generate attention scores. It also includes possible positional encoding if enabled. The output is a tuple containing the log softmax scores, and None for the other two variables.",
+        "type": "comment"
+    },
+    "366": {
+        "file_id": 28,
+        "content": "/video_timeline_modeling/vtm/test.py",
+        "type": "filepath"
+    },
+    "367": {
+        "file_id": 28,
+        "content": "The Python module tests video timeline modeling functions using TimelineDataset and Transformer-based models, verifying dataset correctness and testing encoder and attention head models with specific parameters and data inputs.",
+        "type": "summary"
+    },
+    "368": {
+        "file_id": 28,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Test functions for debugging.\nTo run these test functions:\n1. Add 'python3 vtm/test.py' to command list in xm_launch.py\n2. Launch the job.\n\"\"\"\nfrom absl import app\nfrom absl import flags\nfrom absl import logging\nimport torch\nfrom torch.utils.data import DataLoader\nfrom vtm.dataset import collate_topics\nfrom vtm.dataset import TimelineDataset\nfrom vtm.dataset import TimelineDatasetTest\nfrom vtm.model.attention_head import AttentionHead",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/test.py:1-31"
+    },
+    "369": {
+        "file_id": 28,
+        "content": "This code is a Python module for testing functions related to video timeline modeling. It imports necessary packages, defines test cases using the TimelineDataset and TimelineDatasetTest classes, and provides instructions on how to run these tests. The code is part of the \"video_timeline_modeling\" project and requires specific launch parameters in xm_launch.py.",
+        "type": "comment"
+    },
+    "370": {
+        "file_id": 28,
+        "content": "from vtm.model.attention_head import Encoder\nfrom vtm.model.attention_head import TimelineModel\n_DATA_PATH = flags.DEFINE_string('data_path', None, 'The dataset path.')\ndef test_encoder():\n  \"\"\"Test the Transformer based encoder.\"\"\"\n  logging.info('========================================')\n  logging.info('===Test the Transformer based encoder')\n  model = Encoder(16, 128, 2, 8, 0.1)\n  x_input = torch.randn(32, 20, 16)\n  logging.info('Initialized the model')\n  x_encoder = model(x_input)\n  logging.info('3rd dimension of x_encoder: %d', x_encoder.shape[-1])\n  assert x_encoder.shape[-1] == 16\n  logging.info('========================================')\ndef test_attn_head():\n  \"\"\"Test the attention head model.\"\"\"\n  logging.info('========================================')\n  logging.info('===Test the Attention Head model')\n  model = AttentionHead(128)\n  x_key = torch.randn(16, 20, 128)\n  x_query = torch.randn(16, 30, 128)\n  logging.info('Initialized the model')\n  log_score = model(x_query, x_key)\n  logging.info('2nd dimension of attention score: %d', log_score.shape[1])",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/test.py:32-62"
+    },
+    "371": {
+        "file_id": 28,
+        "content": "This code tests the Transformer-based encoder and attention head model. It initializes an instance of the Encoder class with specific parameters, generates input data, and asserts that the output shape matches the expected value. Additionally, it tests the AttentionHead class by passing in randomly generated input keys and queries, then checks if the resulting attention scores match the correct dimensions.",
+        "type": "comment"
+    },
+    "372": {
+        "file_id": 28,
+        "content": "  logging.info('3rd dimension of attention score: %d', log_score.shape[2])\n  assert log_score.shape[1] == 30\n  assert log_score.shape[2] == 20\n  logging.info('========================================')\ndef test_timeline_mode():\n  \"\"\"Test the whole Timeline model.\"\"\"\n  logging.info('========================================')\n  logging.info('===Test the whole Timeline model.')\n  model = TimelineModel(24, 30, 128, 60, 256, 8, 4)\n  batch_video_x = torch.randn(16, 30, 60)\n  batch_video_padding_mask = torch.randint(0, 2, (16, 30), dtype=torch.bool)\n  logging.info('Initialized the model')\n  log_score = model(batch_video_x, batch_video_padding_mask)\n  logging.info('2nd dimension of attention score: %d', log_score.shape[1])\n  logging.info('3rd dimension of attention score: %d', log_score.shape[2])\n  assert log_score.shape[1] == 30\n  assert log_score.shape[2] == 24\n  logging.info('========================================')\ndef test_timeline_dataset():\n  \"\"\"Test the Timeline dataset (especially the padding collate function `collate_topics`).\"\"\"",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/test.py:63-87"
+    },
+    "373": {
+        "file_id": 28,
+        "content": "Testing the Timeline model, initializing it and applying input data batch_video_x and batch_video_padding_mask to get log_score. The 2nd dimension of attention score is checked against expected value of 30 and the 3rd dimension against 24.",
+        "type": "comment"
+    },
+    "374": {
+        "file_id": 28,
+        "content": "  logging.info('========================================')\n  logging.info('===Test the collate function.')\n  dataset = TimelineDatasetTest()\n  loader = DataLoader(\n      dataset, batch_size=4, shuffle=False, collate_fn=collate_topics)\n  for batch_data in loader:\n    logging.info('2nd dimension of the first batch_data (video_features): %d',\n                 batch_data['video_features'].shape[1])\n    assert batch_data['video_features'].shape[1] == 4\n    assert batch_data['video_cluster_label'].shape[1] == 4\n    assert batch_data['video_padding_mask'].shape[1] == 4\n    assert torch.equal(batch_data['video_features'][2, -1, :],\n                       torch.Tensor([0, 0, 0, 0]))\n    assert torch.equal(batch_data['video_cluster_label'][0, 1:],\n                       torch.Tensor([-1, -1, -1]).to(torch.long))\n    assert torch.equal(batch_data['video_padding_mask'][0],\n                       torch.Tensor([0, 1, 1, 1]).to(torch.bool))\n    break\n  logging.info('========================================')\n  logging.info('===Test the Timeline dataset.')",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/test.py:89-108"
+    },
+    "375": {
+        "file_id": 28,
+        "content": "This code tests the collate function by creating a TimelineDatasetTest instance, initializing a DataLoader with batch_size=4 and shuffle=False, and checking the shapes and values of different elements in each batch_data. It asserts the size and equality of video_features, video_cluster_label, and video_padding_mask for specific indexes before exiting the loop. The code then proceeds to test the Timeline dataset.",
+        "type": "comment"
+    },
+    "376": {
+        "file_id": 28,
+        "content": "  train_dataset = TimelineDataset(partition='train', data_path=_DATA_PATH.value)\n  ## We are trying to split the collected dataset into 80%/10%/10% roughly.\n  ## The numbers are not exact due to some failure samples\n  assert train_dataset[0]['cluster_text_features'].shape[0] == 23\n  assert train_dataset[0]['video_features'].shape[0] == 106\n  assert train_dataset[0]['video_features'].shape[-1] == 256\n  logging.info('========================================')\ndef main(_):\n  test_encoder()\n  test_attn_head()\n  test_timeline_mode()\n  test_timeline_dataset()\nif __name__ == '__main__':\n  app.run(main)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/test.py:109-126"
+    },
+    "377": {
+        "file_id": 28,
+        "content": "The code is initializing the train_dataset from TimelineDataset class for training partition. The dataset is split roughly into 80%/10%/10%. It asserts that some features have expected shapes and sizes, then logs information before running main functions.",
+        "type": "comment"
+    }
+}
