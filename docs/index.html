@@ -993,24 +993,30 @@
                         toggleDrawerAndJumpToElement(file_title_elem_id);
                     };
                     drawer_content.appendChild(overview_file_title_elem);
-                    // const location_p = document.createElement('p');
-                    // location_p.className = "monospace-text codelink";
-                    file_title_elem.className = "codelink";
+                    const location_p = document.createElement('p');
+                    // location_p.className = "monospace-text";
+                    location_p.className = "monospace-text codelink";
+                    // file_title_elem.className = "codelink";
                     const file_title_span = document.createElement("span")
                     file_title_span.textContent = title_data["/" + mylocation]
                     file_title_span.setAttribute("title", mylocation)
                     file_title_elem.appendChild(file_title_span);
-                    // location_p.innerHTML = (mylocation);
+                    location_p.innerHTML = (mylocation);
 
                     if (isFileSearch) {
-                        file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
+                        location_p.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
                     } else {
-                        file_title_span.onclick = () => { window.location.href = "?q=/" + encodeURIComponent(mylocation) }
+                        location_p.onclick = () => { window.location.href = "?q=/" + encodeURIComponent(mylocation) }
                     }
+                    // if (isFileSearch) {
+                    //     file_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms) }
+                    // } else {
+                    //     file_title_span.onclick = () => { window.location.href = "?q=/" + encodeURIComponent(mylocation) }
+                    // }
 
                     // file_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},${JSON.stringify(project_id)})`)
                     // location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)}, ${JSON.stringify(project_id)})`)
-                    // search_header.appendChild(location_p);
+                    search_header.appendChild(location_p);
                     search_header.appendChild(file_title_elem);
 
                     var skip_summary = false;
@@ -1060,15 +1066,16 @@
                         }
                         pair_title.appendChild(code_title_span);
                         pair_left.className = "left-half";
-                        // const code_location_p = document.createElement('p');
-                        pair_title.className = "codelink";
-                        // code_location_p.className = "monospace-text codelink";
-                        // code_location_p.innerHTML = (pair_location_text);
+                        const code_location_p = document.createElement('p');
+                        // pair_title.className = "codelink";
+                        // code_location_p.className = "monospace-text";
+                        code_location_p.className = "monospace-text codelink";
+                        code_location_p.innerHTML = (pair_location_text);
                         code_title_span.setAttribute("title", pair_location_text)
-                        code_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms, pair.location) }
+                        // code_title_span.onclick = () => { navigateToPage(it.header.filepath, it.language_id, project_id, searchHighlightTerms, pair.location) }
                         // code_title_span.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
-                        // code_location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
-                        // pair_left.appendChild(code_location_p);
+                        code_location_p.setAttribute('onclick', `navigateToPage(${JSON.stringify(it.header.filepath)}, ${JSON.stringify(it.language_id)},  ${JSON.stringify(project_id)}, ${JSON.stringify(pair.location)})`)
+                        pair_left.appendChild(code_location_p);
                         if (pair_title_text != undefined) {
                             pair_left.appendChild(pair_title);
                             drawer_content.appendChild(overview_pair_title);
