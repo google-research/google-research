@@ -30,7 +30,7 @@ MAX_TOKEN_PER_LABEL = 10
 
 def _produce_target_phrase(phrases):
   """Randomly selects one phrase as the target phrase for training."""
-  with tf.variable_scope('produce_output'):
+  with tf.compat.v1.variable_scope('produce_output'):
     # Find indices for valid phrases with meaningful tokens.
     valid_phrase_indices = tf.reshape(
         tf.where(tf.reduce_any(tf.greater(phrases, EOS), -1)), [-1])
@@ -56,7 +56,7 @@ def _produce_target_phrase(phrases):
 
 def _select_phrases(dense_features):
   """Selects phrases from the workers."""
-  with tf.variable_scope('select_phrases'):
+  with tf.compat.v1.variable_scope('select_phrases'):
     # Sample one phrase for each node.
     output_phrase, ind = tf.map_fn(
         _produce_target_phrase,
@@ -69,7 +69,7 @@ def _select_phrases(dense_features):
 
 def _extract_image(dense_features, num_ui_objects, target_node=None):
   """Extracts image features."""
-  with tf.variable_scope('extract_image'):
+  with tf.compat.v1.variable_scope('extract_image'):
     visible = dense_features['visibility_seq'] * dense_features[
         'visibility_to_user_seq']
     obj_pixels = tf.reshape(dense_features['obj_img_mat'],
@@ -94,24 +94,24 @@ def _extract_image(dense_features, num_ui_objects, target_node=None):
 def parse_tf_example(serialized_example):
   """Parses a single tf example."""
   keys_to_features = {
-      'developer_token_id': tf.VarLenFeature(tf.int64),
-      'resource_token_id': tf.VarLenFeature(tf.int64),
-      'screen_caption_token_ids': tf.VarLenFeature(tf.int64),
-      'appdesc_token_id': tf.VarLenFeature(tf.int64),
-      'clickable_seq': tf.VarLenFeature(tf.int64),
-      'type_id_seq': tf.VarLenFeature(tf.int64),
-      'cord_x_seq': tf.VarLenFeature(tf.float32),
-      'cord_y_seq': tf.VarLenFeature(tf.float32),
-      'visibility_to_user_seq': tf.VarLenFeature(tf.int64),
-      'visibility_seq': tf.VarLenFeature(tf.int64),
-      'attended_objects': tf.VarLenFeature(tf.int64),
-      'label_flag': tf.VarLenFeature(tf.int64),  # 0: padding 1: node
-      'obj_img_mat': tf.VarLenFeature(tf.int64),
-      'obj_dom_pos': tf.VarLenFeature(tf.int64),
-      'attention_boxes': tf.VarLenFeature(tf.float32),
-      'gold_caption': tf.VarLenFeature(tf.string)
+      'developer_token_id': tf.io.VarLenFeature(tf.int64),
+      'resource_token_id': tf.io.VarLenFeature(tf.int64),
+      'screen_caption_token_ids': tf.io.VarLenFeature(tf.int64),
+      'appdesc_token_id': tf.io.VarLenFeature(tf.int64),
+      'clickable_seq': tf.io.VarLenFeature(tf.int64),
+      'type_id_seq': tf.io.VarLenFeature(tf.int64),
+      'cord_x_seq': tf.io.VarLenFeature(tf.float32),
+      'cord_y_seq': tf.io.VarLenFeature(tf.float32),
+      'visibility_to_user_seq': tf.io.VarLenFeature(tf.int64),
+      'visibility_seq': tf.io.VarLenFeature(tf.int64),
+      'attended_objects': tf.io.VarLenFeature(tf.int64),
+      'label_flag': tf.io.VarLenFeature(tf.int64),  # 0: padding 1: node
+      'obj_img_mat': tf.io.VarLenFeature(tf.int64),
+      'obj_dom_pos': tf.io.VarLenFeature(tf.int64),
+      'attention_boxes': tf.io.VarLenFeature(tf.float32),
+      'gold_caption': tf.io.VarLenFeature(tf.string)
   }
-  parsed = tf.parse_single_example(serialized_example, keys_to_features)
+  parsed = tf.io.parse_single_example(serialized_example, keys_to_features)
   dense_features = {}
   for key in keys_to_features:
     if key in ['gold_caption']:
@@ -119,7 +119,7 @@ def parse_tf_example(serialized_example):
     else:
       default_value = 0
     # Here we turn the features from id to one-hot vec.
-    dense_features[key] = tf.sparse_tensor_to_dense(
+    dense_features[key] = tf.sparse.to_dense(
         parsed[key], default_value=default_value)
 
   return dense_features
@@ -206,7 +206,7 @@ def create_parser(word_vocab_size,
     feature_dict['obj_visible'] = obj_visible
     feature_dict['obj_screen_pos'] = tf.concat(
         [dense_features['cord_x_seq'], dense_features['cord_y_seq']], -1)
-    feature_dict['obj_screen_pos'] = tf.to_int32(
+    feature_dict['obj_screen_pos'] = tf.compat.v1.to_int32(
         feature_dict['obj_screen_pos'] * (max_pixel_pos - 1))
     feature_dict['obj_clickable'] = dense_features['clickable_seq']
     feature_dict['obj_type'] = dense_features['type_id_seq']

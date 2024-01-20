@@ -23,9 +23,9 @@ from absl import logging
 import numpy as np
 import tensorflow as tf
 
-from screen2words import screen2words_eval
-from screen2words import screen2words_experiment_config
-from screen2words import screen2words_keras_input as input_utils
+from src import screen2words_eval
+from src import screen2words_experiment_config
+from src import screen2words_keras_input as input_utils
 from official.legacy.transformer import model_params
 from official.legacy.transformer import model_utils
 from official.legacy.transformer import optimizer
@@ -72,6 +72,8 @@ def create_hparams(experiment):
   hparams['train_pixel_encoder'] = True
   hparams['debug'] = False
   hparams['distribution_strategy'] = 'mirrored'
+
+  hparams['use_decoding_for_classification'] = False
 
   # Embedding parameters.
   hparams['embedding_file'] = ''
@@ -124,7 +126,7 @@ def load_embed(file_name, vocab_size):
     ValueError: embeddings have different depths.
   """
 
-  with tf.io.gfile.Open(file_name, 'r') as embed_file:
+  with tf.io.gfile.GFile(file_name, 'r') as embed_file:
     vocab = []
     embeds = []
     depth = -1
@@ -698,7 +700,7 @@ class ScreenCaptionModel(tf.keras.Model):
           name=scoped_name)
 
     self._word_vocab = []
-    with tf.io.gfile.Open(self._hparams['word_vocab_path']) as f:
+    with tf.io.gfile.GFile(self._hparams['word_vocab_path']) as f:
       for index, line in enumerate(f):
         if index >= self._hparams['vocab_size']:
           break
