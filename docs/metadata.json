@@ -7,7 +7,7 @@
         "0": {
             "filepath": "/video_structure/README.md",
             "entry_id": 0,
-            "language_id": "markdown"
+            "language_id": "plain-text"
         },
         "1": {
             "filepath": "/video_structure/__init__.py",
