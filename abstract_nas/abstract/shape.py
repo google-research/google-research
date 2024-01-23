@@ -180,10 +180,12 @@ class ShapeProperty(base.AbstractProperty):
 
   @property
   def input_shapes(self):
+    assert self._graph_shapes is not None
     return self._graph_shapes.input_shapes
 
   @property
   def output_shapes(self):
+    assert self._graph_shapes is not None
     return self._graph_shapes.output_shapes
 
   @classmethod
@@ -354,4 +356,3 @@ class ShapeProperty(base.AbstractProperty):
 
     if self.safety_only: return 0
     return dist / len(self.output_shapes)
-

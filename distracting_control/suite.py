@@ -101,6 +101,7 @@ def load(domain_name,
   if "camera_id" not in render_kwargs:
     render_kwargs["camera_id"] = 2 if domain_name == "quadruped" else 0
 
+  assert suite is not None
   env = suite.load(
       domain_name,
       task_name,
