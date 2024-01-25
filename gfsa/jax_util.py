@@ -261,7 +261,7 @@ def _force_physical_layout_impl(operand):
   # implemented as bitcasts, which implies that the order of the dimensions is
   # in major-to-minor order (i.e. the physical layout matches the logical one).
   flat = jax.lax.cond(
-      jax.lax.rng_uniform(jax.lax.tie_in(operand, 0), 1, ()) < 2, flat,
+      jax.lax.rng_uniform(0, 1, ()) < 2, flat,
       lambda f: f, flat, lambda f: f[::-1])
   # Restore the operand.
   return jnp.reshape(flat, operand.shape)

@@ -977,7 +977,7 @@ def dot_product_attention(query,
     # GRADSAFE
     if dropout_rng is None:
       dropout_rng = make_rng()
-    keep_prob = jax.lax.tie_in(attn_weights, 1.0 - dropout_rate)
+    keep_prob = 1.0 - dropout_rate
     if broadcast_dropout:
       # dropout is broadcast across the batch+head+non-attention dimension
       dropout_dims = attn_weights.shape[-(2 * len(axis)):]

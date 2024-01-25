@@ -106,10 +106,8 @@ class AutomatonLayerTest(parameterized.TestCase):
     class TestModel(flax.deprecated.nn.Module):
 
       def apply(self, dummy_ignored):
-        abstract_encoded_graph = jax.tree_map(
-            lambda y: jax.lax.tie_in(dummy_ignored, y), encoded_graph)
-        abstract_variant_weights = jax.tree_map(
-            lambda y: jax.lax.tie_in(dummy_ignored, y), variant_weights())
+        abstract_encoded_graph = encoded_graph
+        abstract_variant_weights = variant_weights()
         return automaton_layer.FiniteStateGraphAutomaton(
             encoded_graph=abstract_encoded_graph,
             variant_weights=abstract_variant_weights,
