@@ -7,7 +7,7 @@
         "0": {
             "filepath": "/video_structure/README.md",
             "entry_id": 0,
-            "language_id": "plain-text"
+            "language_id": "markdown"
         },
         "1": {
             "filepath": "/video_structure/__init__.py",
@@ -87,7 +87,7 @@
         "16": {
             "filepath": "/video_timeline_modeling/README.md",
             "entry_id": 208,
-            "language_id": "markdown"
+            "language_id": "plain-text"
         },
         "17": {
             "filepath": "/video_timeline_modeling/requirements.txt",
