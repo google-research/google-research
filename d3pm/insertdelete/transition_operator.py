@@ -283,8 +283,10 @@ class RerollOperator(TransitionOperator):
       ) * self.transition.observe(after, is_distn=is_distn, log=False)
 
 
+# pytype: disable=invalid-function-definition
 @flax.struct.dataclass
-class UniformDiffusionOperator(TransitionOperator):  # pytype: disable=invalid-function-definition
+class UniformDiffusionOperator(TransitionOperator):
+# pytype: enable=invalid-function-definition
   """Operator with simple diagonal/off-diagonal pairing.
 
   Attributes:
@@ -365,8 +367,10 @@ class UniformDiffusionOperator(TransitionOperator):  # pytype: disable=invalid-f
     return UniformDiffusionOperator(self.dim, 0.0)
 
 
+# pytype: disable=invalid-function-definition
 @flax.struct.dataclass
-class MaskDiffusionOperator(TransitionOperator):  # pytype: disable=invalid-function-definition
+class MaskDiffusionOperator(TransitionOperator):
+# pytype: enable=invalid-function-definition
   """Operator that transitions to a mask.
 
   Attributes:

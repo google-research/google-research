@@ -26,7 +26,7 @@ import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
 
-def simple_generator(z,
+def simple_generator(z,  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
                      image_size,
                      num_interpolate = 2,
                      channels = None,
@@ -112,7 +112,7 @@ def simple_generator(z,
       return x
 
 
-def conditioned_generator(z,
+def conditioned_generator(z,  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
                           one_hot_label,
                           image_size,
                           num_interpolate = 2,
@@ -141,7 +141,7 @@ def conditioned_generator(z,
 # This is the function we would typically use in generator training and
 # distillation script. We wrap the `conditioned_generator` and name it as
 # `generator` for compatibility.
-def generator(z,
+def generator(z,  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
               label,
               image_size,
               n_classes,

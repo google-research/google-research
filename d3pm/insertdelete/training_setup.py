@@ -544,7 +544,7 @@ def state_init_fn(
     max_len=None,
 ):
   """Initialization helper for training logic."""
-  dim = len(dataset_info.vocab)
+  dim = len(dataset_info.vocab)  # pytype: disable=wrong-arg-types  # dataclasses-replace
 
   if transition_type == "text8_nn":
     assert dim == 27

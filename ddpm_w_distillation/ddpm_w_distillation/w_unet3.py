@@ -182,9 +182,9 @@ class UNet(nn.Module):
   w_input_type: str
   extra_class: bool
 
-  logsnr_scale_range: Tuple[float] = (-10., 10.)
+  logsnr_scale_range: Tuple[float] = (-10., 10.)  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
   # added
-  w_scale_range: Tuple[float] = (-10., 10.)
+  w_scale_range: Tuple[float] = (-10., 10.)  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
 
   resblock_resample: bool = True
   head_dim: Optional[int] = None  # alternative to num_heads

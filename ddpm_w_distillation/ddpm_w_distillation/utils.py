@@ -130,7 +130,7 @@ def save_tiled_imgs(filename, imgs, pad_pixels=1, pad_val=255, num_col=0):
 @functools.partial(jax.pmap, axis_name='batch')
 def _check_synced(pytree):
   mins = jax.lax.pmin(pytree, axis_name='batch')
-  equals = jax.tree_multimap(jnp.array_equal, pytree, mins)
+  equals = jax.tree_multimap(jnp.array_equal, pytree, mins)  # pytype: disable=module-attr  # dataclasses-replace
   return jnp.all(jnp.asarray(jax.tree_leaves(equals)))
 
 
@@ -169,7 +169,7 @@ def allgather_and_reshape(x, axis_name='batch'):
 
 
 def np_treecat(xs):
-  return jax.tree_multimap(lambda *zs: onp.concatenate(zs, axis=0), *xs)
+  return jax.tree_multimap(lambda *zs: onp.concatenate(zs, axis=0), *xs)  # pytype: disable=module-attr  # dataclasses-replace
 
 
 def dist(fn, accumulate, axis_name='batch'):
@@ -300,7 +300,7 @@ def clip_by_global_norm(pytree, clip_norm, use_norm=None):
 
 
 def apply_ema(decay, avg, new):
-  return jax.tree_multimap(lambda a, b: decay * a + (1. - decay) * b, avg, new)
+  return jax.tree_multimap(lambda a, b: decay * a + (1. - decay) * b, avg, new)  # pytype: disable=module-attr  # dataclasses-replace
 
 
 def scale_init(scale, init_fn, dtype=jnp.float32):

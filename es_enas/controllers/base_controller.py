@@ -46,7 +46,7 @@ class BaseController(abc.ABC):
     Returns:
       dna: A proposed dna.
     """
-    return self._controller.propose()
+    return self._controller.propose()  # pytype: disable=attribute-error  # dataclasses-replace
 
   def collect_rewards_and_train(self, reward_vector,
                                 dna_list):
@@ -62,4 +62,4 @@ class BaseController(abc.ABC):
 
     for i, dna in enumerate(dna_list):
       dna.reward = reward_vector[i]
-      self._controller.feedback(dna, dna.reward)
+      self._controller.feedback(dna, dna.reward)  # pytype: disable=attribute-error  # dataclasses-replace
