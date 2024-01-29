@@ -67,10 +67,12 @@ settings.
 The selection of distortions is based on selecting the pair of distortions which
 would provide the most informative update to the rankings.
 
-The algorithm is executed until the confidence intervals of the estimated
-probabilities is considered acceptable.
+The algorithm is executed until the credible intervals of the estimated
+probabilities are considered acceptable.
 
 ## Results
+
+![GitHub Image](jpegli_study_elo_plots.png)
 
 The results of the evaluations can be found in [answers.csv](answers.csv), and
 the computed [Elo](https://en.wikipedia.org/wiki/Elo_rating_system) scores
@@ -82,6 +84,8 @@ distortions `/mucped23/[methodA]/[originalName].png` and
 `/mucped23/[methodB]/[originalName].png` are compared to the original
 `/mucped23/originals/[originalName].png` inside
 [mucped23.zip](https://cloudinary.com/labs/cid22/mucped23.zip).
+
+
 
 ## Computing the Elo scores
 
