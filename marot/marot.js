@@ -4867,6 +4867,11 @@ class Marot {
                 const currUnitStatsBySys = statsBySystem[system][doc][unit];
                 const aggrUnitScores = this.aggregateUnitStats(
                     [currUnitStatsBySys]);
+                if (!aggrUnitScores.mqmStats.hasOwnProperty(mqm)) {
+                  // This generally means that we have an AutoMQM rating but no
+                  // human rating.
+                  continue;
+                }
                 const aggrUnitMQMStats = aggrUnitScores.mqmStats[mqm];
                 aggrDocSegSys.metricsByUnit[unit] = {
                   ...aggrDocSegSys.metricsByUnit[unit],
