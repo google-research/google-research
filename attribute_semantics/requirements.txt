@@ -1,0 +1,7 @@
+absl-py
+attr
+numpy
+pandas
+scikit-learn
+six
+tensorflow
