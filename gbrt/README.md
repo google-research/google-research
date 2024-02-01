@@ -1,5 +1,5 @@
 # About
-This is code for "Gradient-Based Language Model Red Teaming," N. Wichers et al. (EACL 2024) accessible [here](https://openreview.net/pdf?id=SL3ZqaKwkE)
+This is code for "Gradient-Based Language Model Red Teaming," N. Wichers et al. (EACL 2024) accessible [here](https://arxiv.org/abs/2401.16656)
 
 ## Implementation
 
