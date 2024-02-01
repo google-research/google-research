@@ -118,6 +118,21 @@ class InverseSTFT(tf.keras.layers.Layer):
     })
     return config
 
+  def call(self, inputs):
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
+      return self._streaming_internal_state(inputs)
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+      # in streaming inference mode with external state
+      # in addition to the output we return the output state.
+      output, self.output_state = self._streaming_external_state(
+          inputs, self.input_state)
+      return output
+    elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
+      # run non streamable training or non streamable inference
+      return self._non_streaming(inputs)
+    else:
+      raise ValueError(f'Encountered unexpected mode `{self.mode}`.')
+
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
     if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
@@ -135,6 +150,9 @@ class InverseSTFT(tf.keras.layers.Layer):
                        f'not `{self.mode}`.')
 
   def _streaming_internal_state(self, inputs):
+    if not hasattr(self, 'states'):
+      raise ValueError(f'States are not created for mode {self.mode}.')
+
     inversed_frames, new_states = self._streaming_external_state(
         inputs, self.states)
     assign_states = self.states.assign(new_states)
