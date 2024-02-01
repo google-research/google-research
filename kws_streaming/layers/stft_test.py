@@ -51,8 +51,9 @@ class STFTTest(tf.test.TestCase, parameterized.TestCase):
     self.input_signal = np.random.rand(1, 120)
 
     # prepare default tf stft
+    frame_overlap = max(0, stft_layer.frame_size - stft_layer.frame_step)
     padding_layer = temporal_padding.TemporalPadding(
-        padding_size=stft_layer.frame_size - 1, padding=stft_layer.padding)
+        padding_size=frame_overlap, padding=stft_layer.padding)
     # pylint: disable=g-long-lambda
     stft_default_layer = tf.keras.layers.Lambda(
         lambda x: tf.signal.stft(
