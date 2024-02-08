@@ -1,5 +1,5 @@
 # Library to run the indidually-fair clustering algorithms of the paper
-# Scalable Individually-Fair Clustering, AISTATS 2024
+# Scalable Individually-Fair K-Means Clustering, AISTATS 2024
 
 # Usage
 
