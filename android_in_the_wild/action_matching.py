@@ -236,6 +236,7 @@ def check_actions_match(
   )
   drags_match = jnp.where(is_tap, False, drags_match)
 
+  # pytype: disable=bad-return-type
   return jnp.where(
       has_non_dual_point_action,
       jnp.equal(action_1_action_type, action_2_action_type),
