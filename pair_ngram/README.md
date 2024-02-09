@@ -43,7 +43,7 @@ of these loanwords are multi-word expressions in English.
         "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fb0e66d31e021fca7adec4c2104ffea0e879f2e4/pairs.tsv"
     curl \
         --silent \
-        --output "${TEMPDATA}/lexicon.txt"
+        --output "${TEMPDATA}/lexicon.txt" \
         "http://cvsweb.netbsd.org/bsdweb.cgi/src/share/dict/web2?rev=1.54"
     ```
 
@@ -66,10 +66,10 @@ of these loanwords are multi-word expressions in English.
     ```bash
     python -m train \
         --seed 10037 \
-        --batch-size 128
-        --max-iters 10 \
+        --batch_size 128 \
+        --max_iters 10 \
         --order 6 \
-        --size 100000
+        --size 100000 \
         --tsv "${TEMPDATA}/train.tsv" \
         --fst "${TEMPDATA}/plm.fst"
     ```
@@ -112,11 +112,11 @@ of these loanwords are multi-word expressions in English.
     ```
 
 With the random seeds used in the [demo](run.sh), we obtain an error rate of
-35.71 on the development set.
+36.01 on the development set.
 
 A better model can be had by constraining the output to consist of known English
 words. For this, see [`predict_lexicon`](predict_lexicon.py). With
-the random seeds used in the [demo](run.sh), we obtain an error rate of 31.77 on
+the random seeds used in the [demo](run.sh), we obtain an error rate of 31.50 on
 the development set.
 
 Naturally, we would normally use the development set to tune hyperparameters,
