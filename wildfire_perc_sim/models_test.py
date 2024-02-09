@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,7 +19,9 @@ from typing import Any, Callable
 
 from absl.testing import absltest
 
+import flax
 from flax import linen as nn
+import jax
 from jax import numpy as jnp
 from jax import random
 
@@ -31,7 +33,7 @@ def _create_model(prng, model_fn,
   prng, key = random.split(prng)
   model = model_fn()
   variables = model.init(key, *inputs)
-  states, params = variables.pop('params')
+  states, params = flax.core.pop(variables, 'params')
 
   def apply_fn(params, *x, **kwargs):
     return model.apply({'params': params, **states}, *x, **kwargs)

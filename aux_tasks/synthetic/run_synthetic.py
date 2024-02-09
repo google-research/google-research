@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,7 +81,8 @@ _config.phi_hidden_layer_width = 100
 _config.use_center_states_only = False
 
 _WORKDIR = flags.DEFINE_string(
-    'workdir', None, 'Base directory to store stats.', required=True)
+    'workdir', None, 'Base directory to store stats.', required=True
+)
 _CONFIG = config_flags.DEFINE_config_dict('config', _config, lock_config=True)
 
 Parameters = dict[str, Union[flax.core.FrozenDict, jnp.ndarray]]
@@ -105,17 +106,20 @@ def compute_cosine_similarity(Y1, Y2):
     return jnp.linalg.norm(projection)
   except np.linalg.LinAlgError:
     pass
-  return jnp.nan
+  return jnp.nan  # pytype: disable=bad-return-type  # jnp-type
 
 
-def compute_normalized_dot_product(Y1,
-                                   Y2):
+def compute_normalized_dot_product(
+    Y1, Y2
+):
   return jnp.abs(
-      jnp.squeeze(Y1.T @ Y2 / (jnp.linalg.norm(Y1) * jnp.linalg.norm(Y2))))
+      jnp.squeeze(Y1.T @ Y2 / (jnp.linalg.norm(Y1) * jnp.linalg.norm(Y2)))
+  )
 
 
-def eigengame_subspace_distance(Phi,
-                                optimal_subspace):
+def eigengame_subspace_distance(
+    Phi, optimal_subspace
+):
   """Compute subspace distance as per the eigengame paper."""
   try:
     d = Phi.shape[1]
@@ -127,11 +131,12 @@ def eigengame_subspace_distance(Phi,
 
     return 1 - 1 / d * jnp.trace(U_star @ P_star)
   except np.linalg.LinAlgError:
-    return jnp.nan
+    return jnp.nan  # pytype: disable=bad-return-type  # jnp-type
 
 
-def compute_metrics(Phi,
-                    optimal_subspace):
+def compute_metrics(
+    Phi, optimal_subspace
+):
   """Computes a variety of learning curve-type metrics for the given run.
 
   Args:
@@ -151,12 +156,11 @@ def compute_metrics(Phi,
   cosine_similarity = compute_cosine_similarity(Phi, optimal_subspace)
 
   metrics = {
-      'cosine_similarity':
-          cosine_similarity,
-      'feature_norm':
-          feature_norm,
-      'eigengame_subspace_distance':
-          eigengame_subspace_distance(Phi, optimal_subspace)
+      'cosine_similarity': cosine_similarity,
+      'feature_norm': feature_norm,
+      'eigengame_subspace_distance': eigengame_subspace_distance(
+          Phi, optimal_subspace
+      ),
   }
 
   _, d = Phi.shape
@@ -175,25 +179,23 @@ def compute_metrics(Phi,
     static_argnames=(
         'compute_phi',
         'compute_psi',
-        'optimizer',
         'method',
-        'covariance_batch_size',
         'main_batch_size',
         'covariance_batch_size',
         'weight_batch_size',
         'd',
-        'num_tasks',
         'compute_feature_norm_on_oracle_states',
         'sample_states',
         'use_tabular_gradient',
-    ))
-def _train_step(
+    ),
+)
+def compute_gradient(
     *,
+    source_states,
+    task,
     compute_phi,
     compute_psi,
     params,
-    optimizer,
-    optimizer_state,
     key,
     method,
     oracle_states,
@@ -202,60 +204,17 @@ def _train_step(
     covariance_batch_size,
     weight_batch_size,
     d,
-    num_tasks,
     compute_feature_norm_on_oracle_states,
     sample_states,
     use_tabular_gradient = True,
 ):
-  """Computes one training step.
-
-  Args:
-    compute_phi: A function that takes params and states and returns
-      a matrix of phis.
-    compute_psi: A function implementing a mapping from (state, task) pairs
-      to real values. In the finite case, this can be implemented
-      as a function that indexes into a matrix. Note: the code does
-      not currently support an infinite number of tasks.
-    params: Parameters used as the first argument for compute_phi.
-    optimizer: An optax optimizer to use.
-    optimizer_state: The current state of the optimizer.
-    key: The jax prng key.
-    method: 'naive', 'lissa', or 'oracle'.
-    oracle_states: The set of states to use for the oracle method.
-    lissa_kappa: The parameter of the lissa method, if used.
-    main_batch_size: How many states to update at once.
-    covariance_batch_size: the 'J' parameter. For the naive method, this is how
-      many states we sample to construct the inverse. For the lissa method,
-      ditto -- these are also "iterations".
-    weight_batch_size: How many states to construct the weight vector.
-    d: The dimension of the representation.
-    num_tasks: The total number of tasks.
-    compute_feature_norm_on_oracle_states: If True, computes the feature norm
-      using the oracle states (all the states in synthetic experiments).
-      Otherwise, computes the norm using the sampled batch.
-      Only applies to LISSA.
-    sample_states: A function that takes an rng key and a number of states
-      to sample, and returns a tuple containing
-      (a vector of sampled states, an updated rng key).
-    use_tabular_gradient: If true, the train step will calculate the
-      gradient using the tabular calculation. Otherwise, it will use a
-      jax.vjp to backpropagate the gradient.
-
-  Returns:
-    A dict containing updated values for Phi, key,
-      and optimizer_state, as well as the the computed gradient.
-  """
-  task_key, key = jax.random.split(key)
-  task = jax.random.choice(task_key, num_tasks, (1,))
-
-  # Draw source states to update.
-  source_states, key = sample_states(key, main_batch_size)
-
+  """Computes the gradient under a specific method."""
   # The argument passed to vjp should be a function of parameters
   # to Phi.
   phi_params = params['phi_params']
   source_phi, phi_vjp = jax.vjp(
-      lambda params: compute_phi(params, source_states), phi_params)
+      lambda params: compute_phi(params, source_states), phi_params
+  )
 
   # We needed compute_phi to take params as an argument to work out
   # gradients w.r.t the parameters in the vjp above. However,
@@ -264,13 +223,12 @@ def _train_step(
   compute_phi_no_params = functools.partial(compute_phi, phi_params)
 
   if method == 'lissa' and compute_feature_norm_on_oracle_states:
-    oracle_phis = compute_phi(phi_params, oracle_states)
+    oracle_phis = compute_phi(phi_params, oracle_states)  # pytype: disable=wrong-arg-types  # jax-ndarray
     feature_norm = utils.compute_max_feature_norm(oracle_phis)
   else:
     feature_norm = None
 
-  ### This determines the weight vectors to be used to perform the gradient
-  ### step.
+  # This determines the weight vectors to be used to perform the gradient step.
   if method == 'explicit':
     # With the explicit method we maintain a running weight vector.
     explicit_weight_matrix = params['explicit_weight_matrix']
@@ -280,7 +238,7 @@ def _train_step(
     if method == 'oracle':
       # This exactly determines the covariance in the tabular case,
       # i.e. when oracle_states = S.
-      Phi = compute_phi(params, oracle_states)
+      Phi = compute_phi_no_params(oracle_states)
       num_states = oracle_states.shape[0]
 
       covariance_1 = jnp.linalg.pinv(Phi.T @ Phi) * num_states
@@ -292,11 +250,8 @@ def _train_step(
     if method == 'naive':
       # The naive method uses one covariance matrix for both weight vectors.
       covariance_1, key = estimates.naive_inverse_covariance_matrix(
-          compute_phi_no_params,
-          sample_states,
-          key,
-          d,
-          covariance_batch_size)
+          compute_phi_no_params, sample_states, key, d, covariance_batch_size
+      )
       covariance_2 = covariance_1
 
       weight_states_1, key = sample_states(key, weight_batch_size)
@@ -304,17 +259,11 @@ def _train_step(
     elif method == 'naive++':
       # The naive method uses one covariance matrix for both weight vectors.
       covariance_1, key = estimates.naive_inverse_covariance_matrix(
-          compute_phi_no_params,
-          sample_states,
-          key,
-          d,
-          covariance_batch_size)
+          compute_phi_no_params, sample_states, key, d, covariance_batch_size
+      )
       covariance_2, key = estimates.naive_inverse_covariance_matrix(
-          compute_phi_no_params,
-          sample_states,
-          key,
-          d,
-          covariance_batch_size)
+          compute_phi_no_params, sample_states, key, d, covariance_batch_size
+      )
 
       weight_states_1, key = sample_states(key, weight_batch_size)
       weight_states_2, key = sample_states(key, weight_batch_size)
@@ -327,7 +276,8 @@ def _train_step(
           d,
           covariance_batch_size,
           lissa_kappa,
-          feature_norm=feature_norm)
+          feature_norm=feature_norm,
+      )
       covariance_2, key = estimates.lissa_inverse_covariance_matrix(
           compute_phi_no_params,
           sample_states,
@@ -335,7 +285,8 @@ def _train_step(
           d,
           covariance_batch_size,
           lissa_kappa,
-          feature_norm=feature_norm)
+          feature_norm=feature_norm,
+      )
 
       # Draw two separate sets of states for the weight vectors (important!)
       weight_states_1, key = sample_states(key, weight_batch_size)
@@ -343,10 +294,16 @@ def _train_step(
 
     # Compute the weight estimates by combining the inverse covariance
     # estimate and the sampled Phi & Psi's.
-    weight_1 = (covariance_1 @ compute_phi(phi_params, weight_states_1).T
-                @ compute_psi(weight_states_1, task)) / len(weight_states_1)
-    weight_2 = (covariance_2 @ compute_phi(phi_params, weight_states_2).T
-                @ compute_psi(weight_states_2, task)) / len(weight_states_2)
+    weight_1 = (
+        covariance_1
+        @ compute_phi(phi_params, weight_states_1).T  # pytype: disable=wrong-arg-types  # jax-ndarray
+        @ compute_psi(weight_states_1, task)
+    ) / len(weight_states_1)
+    weight_2 = (
+        covariance_2
+        @ compute_phi(phi_params, weight_states_2).T  # pytype: disable=wrong-arg-types  # jax-ndarray
+        @ compute_psi(weight_states_2, task)
+    ) / len(weight_states_2)
 
   prediction = jnp.dot(source_phi, weight_1)
   estimated_error = prediction - compute_psi(source_states, task)
@@ -355,7 +312,8 @@ def _train_step(
     # We use the same weight vector to move all elements of our batch, but
     # they have different errors.
     partial_gradient = jnp.reshape(
-        jnp.tile(weight_2, main_batch_size), (main_batch_size, d))
+        jnp.tile(weight_2, main_batch_size), (main_batch_size, d)
+    )
 
     # Line up the shapes of error and weight vectors so we can construct the
     # gradient.
@@ -383,13 +341,116 @@ def _train_step(
     explicit_weight_matrix = params['explicit_weight_matrix']
     explicit_weight_gradient = jnp.zeros_like(explicit_weight_matrix)
     explicit_weight_gradient = explicit_weight_gradient.at[:, task].set(
-        expanded_gradient)
+        expanded_gradient
+    )
     gradient['explicit_weight_matrix'] = explicit_weight_gradient
+
+  return gradient, key
+
+
+@functools.partial(
+    jax.jit,
+    static_argnames=(
+        'compute_phi',
+        'compute_psi',
+        'optimizer',
+        'method',
+        'covariance_batch_size',
+        'main_batch_size',
+        'covariance_batch_size',
+        'weight_batch_size',
+        'd',
+        'num_tasks',
+        'compute_feature_norm_on_oracle_states',
+        'sample_states',
+        'use_tabular_gradient',
+    ),
+)
+def _train_step(
+    *,
+    compute_phi,
+    compute_psi,
+    params,
+    optimizer,
+    optimizer_state,
+    key,
+    method,
+    oracle_states,
+    lissa_kappa,
+    main_batch_size,
+    covariance_batch_size,
+    weight_batch_size,
+    d,
+    num_tasks,
+    compute_feature_norm_on_oracle_states,
+    sample_states,
+    use_tabular_gradient = True,
+):
+  """Computes one training step.
+
+  Args:
+    compute_phi: A function that takes params and states and returns a matrix of
+      phis.
+    compute_psi: A function implementing a mapping from (state, task) pairs to
+      real values. In the finite case, this can be implemented as a function
+      that indexes into a matrix. Note: the code does not currently support an
+      infinite number of tasks.
+    params: Parameters used as the first argument for compute_phi.
+    optimizer: An optax optimizer to use.
+    optimizer_state: The current state of the optimizer.
+    key: The jax prng key.
+    method: 'naive', 'lissa', or 'oracle'.
+    oracle_states: The set of states to use for the oracle method.
+    lissa_kappa: The parameter of the lissa method, if used.
+    main_batch_size: How many states to update at once.
+    covariance_batch_size: the 'J' parameter. For the naive method, this is how
+      many states we sample to construct the inverse. For the lissa method,
+      ditto -- these are also "iterations".
+    weight_batch_size: How many states to construct the weight vector.
+    d: The dimension of the representation.
+    num_tasks: The total number of tasks.
+    compute_feature_norm_on_oracle_states: If True, computes the feature norm
+      using the oracle states (all the states in synthetic experiments).
+      Otherwise, computes the norm using the sampled batch. Only applies to
+      LISSA.
+    sample_states: A function that takes an rng key and a number of states to
+      sample, and returns a tuple containing (a vector of sampled states, an
+      updated rng key).
+    use_tabular_gradient: If true, the train step will calculate the gradient
+      using the tabular calculation. Otherwise, it will use a jax.vjp to
+      backpropagate the gradient.
+
+  Returns:
+    A dict containing updated values for Phi, key,
+      and optimizer_state, as well as the the computed gradient.
+  """
+  source_states_key, task_key, key = jax.random.split(key, num=3)
+  source_states, key = sample_states(source_states_key, main_batch_size)
+  task = jax.random.choice(task_key, num_tasks, (1,))
+
+  gradient, key = compute_gradient(
+      source_states=source_states,
+      task=task,
+      compute_phi=compute_phi,
+      compute_psi=compute_psi,
+      params=params,
+      key=key,
+      method=method,
+      oracle_states=oracle_states,
+      lissa_kappa=lissa_kappa,
+      main_batch_size=main_batch_size,
+      covariance_batch_size=covariance_batch_size,
+      weight_batch_size=weight_batch_size,
+      d=d,
+      compute_feature_norm_on_oracle_states=compute_feature_norm_on_oracle_states,
+      sample_states=sample_states,
+      use_tabular_gradient=use_tabular_gradient,
+  )
 
   updates, optimizer_state = optimizer.update(gradient, optimizer_state)
   params = optax.apply_updates(params, updates)
 
-  return {
+  return {  # pytype: disable=bad-return-type  # numpy-scalars
       'params': params,
       'key': key,
       'optimizer_state': optimizer_state,
@@ -417,7 +478,8 @@ def train(
     compute_feature_norm_on_oracle_states,
     sample_states,
     eval_states,
-    use_tabular_gradient = True):
+    use_tabular_gradient = True,
+):
   """Training function.
 
   For lissa, the total number of samples is
@@ -425,10 +487,10 @@ def train(
 
   Args:
     workdir: Work directory, where we'll save logs.
-    compute_phi: A function that takes params and states and returns
-      a matrix of phis.
-    compute_psi: A function that takes an array of states and an array
-      of tasks and returns Psi[states, tasks].
+    compute_phi: A function that takes params and states and returns a matrix of
+      phis.
+    compute_psi: A function that takes an array of states and an array of tasks
+      and returns Psi[states, tasks].
     params: Parameters used as the first argument for compute_phi.
     optimal_subspace: Top-d left singular vectors of Psi.
     num_epochs: How many gradient steps to perform. (Not really epochs)
@@ -446,22 +508,23 @@ def train(
     num_tasks: The total number of tasks.
     compute_feature_norm_on_oracle_states: If True, computes the feature norm
       using the oracle states (all the states in synthetic experiments).
-      Otherwise, computes the norm using the sampled batch.
-      Only applies to LISSA.
-    sample_states: A function that takes an rng key and a number of states
-      to sample, and returns a tuple containing
-      (a vector of sampled states, an updated rng key).
-    eval_states: An array of states to use to compute metrics on.
-      This will be used to compute Phi = compute_phi(params, eval_states).
-    use_tabular_gradient: If true, the train step will calculate the
-      gradient using the tabular calculation. Otherwise, it will use a
-      jax.vjp to backpropagate the gradient.
+      Otherwise, computes the norm using the sampled batch. Only applies to
+      LISSA.
+    sample_states: A function that takes an rng key and a number of states to
+      sample, and returns a tuple containing (a vector of sampled states, an
+      updated rng key).
+    eval_states: An array of states to use to compute metrics on. This will be
+      used to compute Phi = compute_phi(params, eval_states).
+    use_tabular_gradient: If true, the train step will calculate the gradient
+      using the tabular calculation. Otherwise, it will use a jax.vjp to
+      backpropagate the gradient.
   """
   # Create an explicit weight vector (needed for explicit method only).
   if method == 'explicit':
     key, weight_key = jax.random.split(key)
     explicit_weight_matrix = jax.random.normal(
-        weight_key, (d, num_tasks), dtype=jnp.float32)
+        weight_key, (d, num_tasks), dtype=jnp.float32
+    )
     params['explicit_weight_matrix'] = explicit_weight_matrix
 
   if optimizer == 'sgd':
@@ -474,7 +537,8 @@ def train(
 
   chkpt_manager = checkpoint.Checkpoint(base_directory=_WORKDIR.value)
   initial_step, params, optimizer_state = chkpt_manager.restore_or_initialize(
-      (0, params, optimizer_state))
+      (0, params, optimizer_state)
+  )
 
   writer = metric_writers.create_default_writer(
       logdir=str(workdir),
@@ -492,8 +556,8 @@ def train(
 
   hooks = [
       periodic_actions.PeriodicCallback(
-          every_steps=checkpoint_period,
-          callback_fn=_checkpoint_callback)
+          every_steps=checkpoint_period, callback_fn=_checkpoint_callback
+      )
   ]
 
   fixed_train_kwargs = {
@@ -510,7 +574,8 @@ def train(
       'd': d,
       'num_tasks': num_tasks,
       'compute_feature_norm_on_oracle_states': (
-          compute_feature_norm_on_oracle_states),
+          compute_feature_norm_on_oracle_states
+      ),
       'sample_states': sample_states,
       'use_tabular_gradient': use_tabular_gradient,
   }
@@ -521,8 +586,7 @@ def train(
   }
 
   @jax.jit
-  def _eval_step(
-      phi_params):
+  def _eval_step(phi_params):
     eval_phi = compute_phi(phi_params, eval_states)
     eval_psi = compute_psi(eval_states)  # pytype: disable=wrong-arg-count
 
@@ -535,8 +599,8 @@ def train(
     for step in etqdm.tqdm(
         range(initial_step + 1, num_epochs + 1),
         initial=initial_step,
-        total=num_epochs):
-
+        total=num_epochs,
+    ):
       variable_kwargs = _train_step(**fixed_train_kwargs, **variable_kwargs)
 
       if step % log_period == 0:
@@ -544,9 +608,11 @@ def train(
         writer.write_scalars(step, metrics)
 
       for hook in hooks:
-        hook(step,
-             params=variable_kwargs['params'],
-             optimizer_state=variable_kwargs['optimizer_state'])
+        hook(
+            step,
+            params=variable_kwargs['params'],
+            optimizer_state=variable_kwargs['optimizer_state'],
+        )
 
   writer.flush()
 
@@ -567,7 +633,7 @@ def main(_):
   workdir = epath.Path(_WORKDIR.value)
   workdir.mkdir(exist_ok=True)
 
-  train(
+  train(  # pytype: disable=wrong-arg-types  # jax-ndarray
       workdir=workdir,
       compute_phi=experiment.compute_phi,
       compute_psi=experiment.compute_psi,
@@ -585,10 +651,12 @@ def main(_):
       d=config.d,
       num_tasks=config.T,
       compute_feature_norm_on_oracle_states=(
-          compute_feature_norm_on_oracle_states),
+          compute_feature_norm_on_oracle_states
+      ),
       sample_states=experiment.sample_states,
       eval_states=experiment.eval_states,
-      use_tabular_gradient=config.use_tabular_gradient)
+      use_tabular_gradient=config.use_tabular_gradient,
+  )
 
 
 if __name__ == '__main__':

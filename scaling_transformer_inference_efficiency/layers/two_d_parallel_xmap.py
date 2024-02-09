@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -197,7 +197,8 @@ def unembed_manual(
 # pylint: disable = g-doc-return-or-yield
 # pylint: disable = g-doc-args
 # TODO(sholto): Update to new, tested parsing collectives.
-# @partial(jax.jit, static_argnums=(0, 10, 11, 12, 13, 14))
+
+
 def transformer_layer_weight_stationary(
     hparams,
     layer,
@@ -209,6 +210,40 @@ def transformer_layer_weight_stationary(
     x_axis,
     y_axis,
     z_axis,
+    *,
+    attn_all_to_all,
+    latency_collectives,
+    shard_seqlen_vs_batch = False,
+    batch_unsharded = False,
+    intermediate_dtype = jnp.bfloat16,
+):
+  """Wraps _fn so that we can use remat while bug is fixed."""
+  return jax.checkpoint(
+      partial(
+          _transformer_layer_weight_stationary,
+          attn_all_to_all=attn_all_to_all,
+          latency_collectives=latency_collectives,
+          shard_seqlen_vs_batch=shard_seqlen_vs_batch,
+          batch_unsharded=batch_unsharded,
+          intermediate_dtype=intermediate_dtype,
+      ),
+      static_argnums=(0, 7, 8, 9),
+      prevent_cse=True,
+  )(hparams, layer, params, sin, cos, kv_caches, x, x_axis, y_axis, z_axis)
+
+
+def _transformer_layer_weight_stationary(
+    hparams,
+    layer,
+    params,
+    sin,
+    cos,
+    kv_caches,
+    x,
+    x_axis,
+    y_axis,
+    z_axis,
+    *,
     attn_all_to_all,
     latency_collectives,
     shard_seqlen_vs_batch = False,
@@ -224,6 +259,7 @@ def transformer_layer_weight_stationary(
   * kv_cache is sharded by batch.YZx (or batch.YZ or batch.Y as necessary)
   * x: [batch.Z, maxlen, embed.XY]
   """
+  intermediate_dtype = jax.core.concrete_or_error(None, intermediate_dtype)
   if latency_collectives:
     matmul_reducescatter = partial(
         collectives.matmul_reducescatter_latency, subsplit_axis=2)
@@ -233,16 +269,9 @@ def transformer_layer_weight_stationary(
     matmul_allgather = partial(
         collectives.allgather_matmul_latency, subsplit_axis=2)
   else:
-    if len(jax.local_devices()) <= 32:
-      matmul_reducescatter = collectives.matmul_reducescatter_oneway
-      # reducescatter = collectives.reducescatter_oneway
-      matmul_allgather = collectives.allgather_matmul_one_way
-    else:
-      matmul_reducescatter = partial(
-          collectives.matmul_reducescatter_throughput, subsplit_axis=0)
-      # reducescatter = collectives.reducescatter_throughput
-      matmul_allgather = partial(
-          collectives.allgather_matmul_throughput, subsplit_axis=2)
+    matmul_reducescatter = collectives.matmul_reducescatter_oneway
+    # reducescatter = collectives.reducescatter_oneway
+    matmul_allgather = collectives.allgather_matmul_one_way
 
   def my_layer(t, axis=0):
     """Gets the parameters corresponding to a given layer."""
@@ -300,8 +329,8 @@ def transformer_layer_weight_stationary(
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
-    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
-    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
+    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads))]  # pylint: disable = line-too-long
+    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads)):]  # pylint: disable = line-too-long
 
   # einsum(xnorm, kv):
   #
@@ -515,8 +544,8 @@ def transformer_layer_weight_gathered(
 
     # unlike in https://arxiv.org/pdf/2002.05202.pdf, PaLM implements
     # swiGLU with full d_ff dimension, rather than 2/3 scaled
-    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // hparams.heads)]
-    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // hparams.heads):]
+    wi0 = q_wi[:, :, :, hparams.qkv:hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads))]  # pylint: disable = line-too-long
+    wi1 = q_wi[:, :, :, hparams.qkv + (hparams.ff // (hparams.heads - hparams.padded_heads)):]  # pylint: disable = line-too-long
 
     # kv is only batch sharded
     with jax.named_scope('kv'):

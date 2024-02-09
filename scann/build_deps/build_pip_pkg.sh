@@ -1,4 +1,4 @@
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,7 +47,6 @@ touch "${TMPDIR}"/scann/scann_ops/py/__init__.py
 touch "${TMPDIR}"/scann/data_format/__init__.py
 touch "${TMPDIR}"/scann/partitioning/__init__.py
 touch "${TMPDIR}"/scann/proto/__init__.py
-touch "${TMPDIR}"/scann/coscann/__init__.py
 touch "${TMPDIR}"/scann/trees/__init__.py
 touch "${TMPDIR}"/scann/trees/kmeans_tree/__init__.py
 

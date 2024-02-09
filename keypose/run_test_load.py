@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,17 +15,13 @@
 
 """Simple test to see if all the modules load."""
 
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage as ski
 import tensorflow as tf
 
 from keypose import utils
-
-try:
-  import cv2  # pylint: disable=g-import-not-at-top
-except ImportError as e:
-  print(e)
 
 print(cv2)
 print(plt)

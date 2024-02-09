@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -43,8 +43,6 @@ from latent_programmer.spec_decomposition import input_pipeline
 from latent_programmer.tasks.deepcoder import deepcoder_dsl
 from latent_programmer.tasks.robust_fill import dsl as robust_fill_dsl
 from latent_programmer.tasks.robust_fill import tokens as dsl_tokens
-from latent_programmer.tasks.scan import scan_vocab
-from latent_programmer.tasks.scan import translate_scan  # pylint: disable=unused-import
 
 sys.path.append('../../')
 gfile = tf.io.gfile
@@ -80,34 +78,22 @@ flags.DEFINE_integer('max_target_length', 200,
                      'Maximum number of characters in the target.')
 
 flags.DEFINE_string('save_dir', None, 'Directory to save results to.')
-flags.DEFINE_integer('num_train_steps', 2000000, 'Number of training steps.')
+flags.DEFINE_integer('num_train_steps', 1000000, 'Number of training steps.')
 flags.DEFINE_integer('num_eval_steps', 10, 'Number of evaluation steps.')
 flags.DEFINE_integer('num_quick_test_steps', 10,
                      'Number of test steps during training.')
 flags.DEFINE_integer('num_final_test_steps', 100,
                      'Number of test steps after training is finished.')
-flags.DEFINE_integer('train_set_batches', -1,
-                     'Number of batches for a smaller training set, or -1 to '
-                     'use the original training set size.')
 flags.DEFINE_integer('log_freq', 2000, 'Number of steps between training logs.')
 flags.DEFINE_integer('eval_freq', 10000, 'Number of steps between eval.')
 flags.DEFINE_integer('predict_freq', 50000,
                      'Number of steps between prediction (beam search).')
 flags.DEFINE_integer('checkpoint_freq', 50000,
                      'Number of steps between checkpoint saves.')
-flags.DEFINE_integer('finetune_start_step', -1,
-                     'Step the initial checkpoint should start at for '
-                     'finetuning, or -1 if not finetuning.')
 flags.DEFINE_bool('restore_checkpoints', True,
                   'Whether to restore from existing model checkpoints.')
 
-flags.DEFINE_bool('final_output_encoding', False,
-                  'Whether to use both next and final outputs in synthesizer.')
-flags.DEFINE_float('final_output_dropout_rate', 0.1,
-                   'Dropout rate for final outputs encoder.')
-flags.DEFINE_float('final_output_attention_dropout_rate', 0.1,
-                   'Attention dropout rate for final outputs encoder.')
-flags.DEFINE_float('synthesizer_corrupted_next_part_rate', 0.1,
+flags.DEFINE_float('synthesizer_corrupted_next_part_rate', 0.2,
                    'The fraction of examples that use the corrupted next part.')
 
 flags.DEFINE_bool('use_relative_attention', True,
@@ -118,19 +104,20 @@ flags.DEFINE_integer('max_distance', 128,
                      'Max distance for relative attention positions.')
 flags.DEFINE_integer('max_program_cross_embed_distance', 128,
                      'Max distance for relative attention positions.')
-flags.DEFINE_bool('flat_encoded_self_attention', False,
-                  'Whether to apply self-attention to flat encoded examples.')
 flags.DEFINE_bool('aligned_relative_attention', True,
                   'Whether to align relative attention positions between '
                   'targets and encoded I/O examples.')
 
-flags.DEFINE_enum('dataset_type', 'robust_fill',
-                  ['robust_fill', 'robust_fill_base', 'deepcoder', 'scan'],
+flags.DEFINE_enum('dataset_type', 'deepcoder',
+                  ['robustfill', 'deepcoder'],
                   'The kind of dataset to use.')
 flags.DEFINE_enum('model_type', 'spec_decomposer_model',
-                  ['spec_decomposer_model', 'synthesizer_model', 'joint_model'],
+                  ['spec_decomposer_model', 'synthesizer_model', 'joint_model',
+                   'baseline_model'],
                   'Which model to train.')
 
+flags.DEFINE_bool('predict_only', False,
+                  'Whether to only do beam search prediction, no training.')
 
 _internal = False
 if not _internal:
@@ -263,7 +250,6 @@ def compute_metrics(logits, targets, weights):
 def train_step(optimizer,
                inputs,
                outputs,
-               final_outputs,
                targets,
                learning_rate_fn,
                config,
@@ -282,7 +268,6 @@ def train_step(optimizer,
         {'params': params},
         inputs,
         outputs,
-        final_outputs,
         targets,
         rngs={'dropout': dropout_rng})
     loss, weight_sum = compute_weighted_cross_entropy(logits, targets, weights)
@@ -302,8 +287,7 @@ def train_step(optimizer,
   return new_optimizer, metrics, new_dropout_rng
 
 
-def eval_step(params, inputs, outputs, final_outputs, targets, eos_token,
-              config):
+def eval_step(params, inputs, outputs, targets, eos_token, config):
   """Collect metrics for evaluation during training."""
   weights = jnp.where(
       jnp.logical_and(targets > 0,
@@ -311,25 +295,18 @@ def eval_step(params, inputs, outputs, final_outputs, targets, eos_token,
                                       targets != eos_token)),
       1, 0).astype(jnp.float32)
   logits = models.DecomposeAttentionTransformer(config).apply(
-      {'params': params}, inputs, outputs, final_outputs, targets)
+      {'params': params}, inputs, outputs, targets)
 
   return compute_metrics(logits, targets, weights)
 
 
-def initialize_cache(inputs, outputs, final_outputs, targets, max_decode_len,
-                     config):
+def initialize_cache(inputs, outputs, targets, max_decode_len, config):
   """Initializes a cache for a given input shape and max decode length."""
-  # If `final_outputs` is not None, it should have the same shape as `outputs`.
-  # If `final_outputs` is None, then the model must be using
-  # final_output_encoding=False, which causes the jnp.ones(...) to be ignored.
-  del final_outputs
-
   target_shape = (targets.shape[0], max_decode_len)
   dtype = config.base_config.dtype
   initial_variables = models.DecomposeAttentionTransformer(config).init(
       jax.random.PRNGKey(0),
       jnp.ones(inputs.shape, dtype),
-      jnp.ones(outputs.shape, dtype),
       jnp.ones(outputs.shape, dtype),
       jnp.ones(target_shape, dtype))
   return initial_variables['cache']
@@ -338,7 +315,6 @@ def initialize_cache(inputs, outputs, final_outputs, targets, max_decode_len,
 def predict_step(params,
                  inputs,
                  outputs,
-                 final_outputs,
                  cache,
                  beam_size,
                  eos_token,
@@ -355,7 +331,6 @@ def predict_step(params,
           {'params': params},
           inputs,
           outputs,
-          final_outputs,
           method=models.DecomposeAttentionTransformer.encode),
       beam_size)
 
@@ -399,7 +374,7 @@ def predict_step(params,
       cache,
       tokens_ids_to_logits,
       beam_size=beam_size,
-      alpha=0.6,
+      alpha=0.0,
       bos_token=config.base_config.bos_token,
       eos_token=eos_token,
       max_decode_len=max_decode_len,
@@ -421,21 +396,21 @@ def run_program(program, inputs):
     program: A program returned from `decode_program()`.
     inputs: A list of inputs as returned by `decode_io`.
   """
-  if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+  if FLAGS.dataset_type == 'robustfill':
     return [program(i) for i in inputs]
   elif FLAGS.dataset_type == 'deepcoder':
-    # `program` is a deepcoder_dsl.Statement.
-    statement = program
-    if statement is None:
+    # `program` is a deepcoder_dsl.Statement or deepcoder_dsl.Program.
+    if program is None:
       return [None] * len(inputs)
     initial_states = [deepcoder_dsl.ProgramState.from_str(i) for i in inputs]
-    result_states = [statement.run(state) for state in initial_states]
+    if FLAGS.model_type == 'baseline_model':
+      result_states = [program.run(state.state) for state in initial_states]
+    else:
+      result_states = [program.run(state) for state in initial_states]
     outputs = [deepcoder_dsl.result_to_str(result_state.get_output())
                if result_state else None
                for result_state in result_states]
     return outputs
-  elif FLAGS.dataset_type == 'scan':
-    raise NotImplementedError()
   else:
     raise ValueError('Unhandled dataset_type {}'.format(FLAGS.dataset_type))
 
@@ -457,7 +432,7 @@ def eval_predicted_synthesizer_model(predicted, inputs, outputs,
 
   # predicted shape [beam_size, length]
   for beam in predicted[::-1]:
-    if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+    if FLAGS.dataset_type == 'robustfill':
       program = decode_program(beam)
       try:
         p_outs = run_program(program, inputs)
@@ -482,17 +457,6 @@ def eval_predicted_synthesizer_model(predicted, inputs, outputs,
         except deepcoder_dsl.RunError:
           score = -0.5
           program_str = 'encountered RunError'
-
-    elif FLAGS.dataset_type == 'scan':
-      assert len(inputs) == 1, 'inputs should have length 1: {}'.format(inputs)
-      assert len(outputs) == 1
-      program = decode_program(beam)
-      input_tokens = inputs[0].split()
-      expected_tokens = translate_scan.translate(input_tokens,
-                                                 add_separators=False)
-      expected_str = ' '.join(expected_tokens)
-      score = int(program == expected_str)
-      program_str = program
 
     else:
       raise ValueError('Unhandled dataset_type {}'.format(FLAGS.dataset_type))
@@ -558,7 +522,6 @@ def load_data(batches, rng):
 
   return (data_dict['inputs'],
           outputs,
-          data_dict.get('final_outputs', None),
           data_dict['target'],
           new_rng)
 
@@ -574,8 +537,10 @@ def main(_):
   xm_client = xmanager_api.XManagerApi(xm_deployment_env='alphabet')
   work_unit = xm_client.get_current_work_unit()
   hparam_dict = work_unit.parameters['args']
-  hparam_str = ','.join(['%s=%s' % (shorten(k), str(v))
-                         for k, v in hparam_dict.items()])
+  hparam_str = ','.join(sorted(['%s=%s' % (shorten(k), str(v))
+                                for k, v in hparam_dict.items()]))
+  if hparam_str.startswith('s=') or hparam_str.startswith('r='):
+    hparam_str = 'hparams-' + hparam_str
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -583,6 +548,9 @@ def main(_):
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(
         os.path.join(FLAGS.save_dir, 'tb', hparam_str))
+  else:
+    # Only to appease pytype.
+    summary_writer = tensorboard.SummaryWriter('')
 
   batch_size = FLAGS.per_device_batch_size * n_devices
   io_shape = (FLAGS.per_device_batch_size,
@@ -597,7 +565,7 @@ def main(_):
   # ---------------------------------------------------------------------------
 
   # Build token tables.
-  if FLAGS.dataset_type in ['robust_fill', 'robust_fill_base']:
+  if FLAGS.dataset_type == 'robustfill':
     spec_vocab = robust_fill_dsl.CHARACTER + input_pipeline.SEPARATOR_TOKEN
     spec_id_token_table = {i+3: token
                            for i, token in enumerate(spec_vocab)}
@@ -622,16 +590,13 @@ def main(_):
     spec_token_id_table = token_to_id
     sep_id = deepcoder_dsl.SEP_ID
 
-  elif FLAGS.dataset_type == 'scan':
-    # TODO(jxihong): Scan is not handled yet.
-    raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   # Parse io and program token sequences (for eval).
   def decode_io(inputs, outputs):
     """Converts from int tensors to strings."""
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       def decode_str(s):
         """Decode string tokens."""
         return ''.join([spec_id_token_table[t_id] for t_id in s if t_id > 0])
@@ -649,15 +614,6 @@ def main(_):
       outs = [decode_str(out) for out in outputs]
       return inps, outs
 
-    elif FLAGS.dataset_type == 'scan':
-      def decode_str(s):
-        """Decode string tokens."""
-        return ' '.join([spec_id_token_table[t_id] for t_id in s if t_id > 0])
-
-      inps = [decode_str(inp) for inp in inputs]
-      dummy_outs = [''] * len(inps)
-      return inps, dummy_outs
-
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
@@ -665,24 +621,21 @@ def main(_):
     """Converts from int tensor to a string."""
     target = target[:np.argmax(target == eos_id)].astype(np.int32)
 
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       target = target[target != bos_id].tolist()
       return ''.join([spec_id_token_table[t_id] for t_id in target if t_id > 0])
     elif FLAGS.dataset_type == 'deepcoder':
       target = target[target != bos_id].tolist()
       return ' '.join([spec_id_token_table[t_id]
                        for t_id in target if t_id > 0])
-    elif FLAGS.dataset_type == 'scan':
-      # TODO(jxihong): Scan is not handled yet.
-      raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   def decode_program(program):
-    """Decode program tokens into a program (program object or string)."""
+    """Decode program tokens into a program object."""
     program = program[:np.argmax(program == eos_id) + 1].astype(np.int32)
 
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       # Returns either a Concat program object, or None.
       program = program[program != bos_id].tolist()
       try:
@@ -693,28 +646,27 @@ def main(_):
     if FLAGS.dataset_type == 'deepcoder':
       tokens = [program_id_token_table[t_id] for t_id in program.tolist()
                 if t_id > 0 and t_id != eos_id and t_id != bos_id]
-      # For DeepCoder, the model only predicts the RHS of the next statement.
-      # Note that `output` is not a valid variable name token. That should not
-      # matter if we only run this statement on a program state, without
-      # constructing a full Program using this statement.
-      statement_str = 'output = ' + ' '.join(tokens)
       try:
-        return deepcoder_dsl.Statement.from_str(statement_str,
-                                                check_variable_name=False)
-      except deepcoder_dsl.ParseError:
+        if FLAGS.model_type == 'baseline_model':
+          # Parse the entire program.
+          return deepcoder_dsl.Program.from_tokens(tokens)
+        else:
+          # For DeepCoder, the model only predicts the RHS of the next
+          # statement. Note that `output` is not a valid variable name token.
+          # That should not matter if we only run this statement on a program
+          # state, without constructing a full Program using this statement.
+          statement_str = 'output = ' + ' '.join(tokens)
+          return deepcoder_dsl.Statement.from_str(statement_str,
+                                                  check_variable_name=False)
+      except (deepcoder_dsl.ParseError, deepcoder_dsl.RunError):
         return None  # Program does not compile.
 
-    elif FLAGS.dataset_type == 'scan':
-      # Returns a string.
-      program = program[jnp.logical_and(program != bos_id,
-                                        program != eos_id)].tolist()
-      return ' '.join(scan_vocab.decode(program, program_id_token_table))
     else:
       raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
   def decode_program_str(program):  # pylint: disable=unused-variable
     """Decode program tokens into a string."""
-    if FLAGS.dataset_type == 'robust_fill':
+    if FLAGS.dataset_type == 'robustfill':
       try:
         return decode_program(program).to_string()  # pytype: disable=attribute-error
       except:  # pylint: disable=bare-except
@@ -723,10 +675,6 @@ def main(_):
       # This does not check if the program actually compiles.
       return ' '.join([spec_id_token_table[t_id] for t_id in program.tolist()
                        if t_id > 0 and t_id != eos_id and t_id != bos_id])
-    elif FLAGS.dataset_type == 'scan':
-      decoded = decode_program(program)
-      assert isinstance(decoded, str), '{} should be string'.format(decoded)
-      return decoded
     else:
       raise ValueError(f'Unhandled dataset_type: {FLAGS.dataset_type}')
 
@@ -735,12 +683,15 @@ def main(_):
   logging.info('Initializing dataset.')
   if not FLAGS.dataset_dir:
     raise ValueError('Must specify dataset_dir.')
+  decomposition_or_entire_programs = (
+      'entire_programs' if FLAGS.model_type == 'baseline_model'
+      else 'decomposition_data')
   train_dataset_path = os.path.join(
       FLAGS.dataset_dir, f'{FLAGS.experiment}_data',
-      'decomposition_data_train.tf_records-*')
+      f'{decomposition_or_entire_programs}_train.tf_records-*')
   test_dataset_path = os.path.join(
       FLAGS.dataset_dir, f'{FLAGS.experiment}_data',
-      'decomposition_data_test.tf_records-*')
+      f'{decomposition_or_entire_programs}_test.tf_records-*')
 
   # Training dataset.
   logging.info('Loading dataset from %s', train_dataset_path)
@@ -751,8 +702,8 @@ def main(_):
   }
   logging.info('padded_shapes: %s', padded_shapes)
 
-  if FLAGS.dataset_type in ['robust_fill', 'deepcoder']:
-    if FLAGS.dataset_type == 'robust_fill':
+  if FLAGS.dataset_type in ['robustfill', 'deepcoder']:
+    if FLAGS.dataset_type == 'robustfill':
       input_pipeline_fn = input_pipeline.create_robust_fill_dataset
       program_part_key = 'program_part'
     else:
@@ -769,24 +720,15 @@ def main(_):
               'target': 'joined_next_part',
           })
     elif FLAGS.model_type == 'synthesizer_model':
-      # TODO(kshi): RobustFill doesn't have `corrupted_next_part` in the dataset
-      # yet, so trying to load it will break.
       create_dataset_fn = functools.partial(
           input_pipeline_fn,
           renaming_dict={
               'inputs': 'inputs',
               'outputs': 'next_part',
               'corrupted_outputs': 'corrupted_next_part',
-              'final_outputs': 'outputs',
               'target': program_part_key,
           })
-      padded_shapes = {
-          'inputs': io_shape[1:],
-          'outputs': io_shape[1:],
-          'corrupted_outputs': io_shape[1:],
-          'final_outputs': io_shape[1:],
-          'target': target_shape[1:],
-      }
+      padded_shapes['corrupted_outputs'] = io_shape[1:]
     elif FLAGS.model_type == 'joint_model':
       create_dataset_fn = functools.partial(
           input_pipeline_fn,
@@ -795,17 +737,23 @@ def main(_):
               'outputs': 'outputs',
               'target': program_part_key,
           })
+    elif FLAGS.model_type == 'baseline_model':
+      create_dataset_fn = functools.partial(
+          input_pipeline_fn,
+          renaming_dict={
+              'inputs': 'inputs',
+              'outputs': 'outputs',
+              'target': 'program',
+          })
     else:
       raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
 
-  elif FLAGS.dataset_type == 'scan':
-    raise NotImplementedError()  # TODO(kshi): Implement.
-    # create_dataset_fn = input_pipeline.create_scan_dataset_from_tf_record
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  dataset = create_dataset_fn(train_dataset_path, spec_token_id_table,
-                              FLAGS.num_examples)
+  dataset = create_dataset_fn(
+      train_dataset_path, spec_token_id_table, FLAGS.num_examples,
+      entire_programs=(FLAGS.model_type == 'baseline_model'))
   dataset = dataset.padded_batch(
       batch_size,
       padded_shapes=padded_shapes,
@@ -814,45 +762,61 @@ def main(_):
   eval_ds = dataset.take(FLAGS.num_eval_steps)
   # Decrease batch of predict dataset to handle beam search.
   predict_padded_shapes = padded_shapes.copy()
-  # TODO(kshi): for RobustFill, maybe we need to update `final_output`.
   predict_padded_shapes['inputs'] = predict_io_shape[1:]
   predict_padded_shapes['outputs'] = predict_io_shape[1:]
   if FLAGS.model_type == 'synthesizer':
     predict_padded_shapes['corrupted_outputs'] = predict_io_shape[1:]
-    predict_padded_shapes['final_outputs'] = predict_io_shape[1:]
 
   logging.info('predict_padded_shapes: %s', predict_padded_shapes)
   predict_ds = eval_ds.unbatch().padded_batch(
       int(np.ceil(batch_size / 10)),
       padded_shapes=predict_padded_shapes)
   train_ds = dataset.skip(FLAGS.num_eval_steps)
-  if FLAGS.train_set_batches > 0:
-    train_ds = train_ds.take(FLAGS.train_set_batches)
   train_ds = train_ds.repeat()
 
   test_dataset = create_dataset_fn(
-      test_dataset_path, spec_token_id_table,
-      FLAGS.num_examples)
-  test_dataset = test_dataset.padded_batch(
-      batch_size,
-      padded_shapes=predict_padded_shapes,
-      drop_remainder=False)
-  quick_test_dataset = (test_dataset
-                        .take(FLAGS.num_quick_test_steps)
-                        .unbatch()
-                        .padded_batch(int(np.ceil(batch_size / 10)),
-                                      padded_shapes=predict_padded_shapes))
-  final_test_dataset = (test_dataset
-                        .take(FLAGS.num_final_test_steps)
-                        .unbatch()
-                        .padded_batch(int(np.ceil(batch_size / 10)),
-                                      padded_shapes=predict_padded_shapes))
+      test_dataset_path, spec_token_id_table, FLAGS.num_examples,
+      entire_programs=(FLAGS.model_type == 'baseline_model'))
+  if FLAGS.model_type == 'baseline_model':
+    test_dataset = test_dataset.padded_batch(
+        1,
+        padded_shapes=predict_padded_shapes,
+        drop_remainder=False)
+    test_batch_size = 8
+    if test_batch_size % n_devices:
+      raise ValueError(f'Test batch size {test_batch_size} should be divisible '
+                       f'by n_devices {n_devices}')
+    quick_test_dataset = (test_dataset
+                          # In end-to-end predict, we used 1000 programs
+                          # (not batches!).
+                          .take(1000)
+                          .unbatch()
+                          .padded_batch(test_batch_size,
+                                        padded_shapes=predict_padded_shapes,
+                                        drop_remainder=False))
+    final_test_dataset = quick_test_dataset
+  else:
+    test_dataset = test_dataset.padded_batch(
+        batch_size,
+        padded_shapes=predict_padded_shapes,
+        drop_remainder=False)
+    quick_test_dataset = (test_dataset
+                          .take(FLAGS.num_quick_test_steps)
+                          .unbatch()
+                          .padded_batch(int(np.ceil(batch_size / 10)),
+                                        padded_shapes=predict_padded_shapes))
+    final_test_dataset = (test_dataset
+                          .take(FLAGS.num_final_test_steps)
+                          .unbatch()
+                          .padded_batch(int(np.ceil(batch_size / 10)),
+                                        padded_shapes=predict_padded_shapes))
 
   # Build Model and Optimizer
   # ---------------------------------------------------------------------------
   if FLAGS.model_type == 'spec_decomposer_model':
     output_vocab_size = spec_vocab_size
-  elif FLAGS.model_type in ['synthesizer_model', 'joint_model']:
+  elif FLAGS.model_type in ['synthesizer_model', 'joint_model',
+                            'baseline_model']:
     output_vocab_size = program_vocab_size
   else:
     raise ValueError(f'Unhandled model_type: {FLAGS.model_type}')
@@ -884,20 +848,12 @@ def main(_):
       max_program_distance=FLAGS.max_distance,
       num_program_cross_embed_relative_position_buckets=(
           FLAGS.num_position_buckets),
-      max_program_cross_embed_distance=FLAGS.max_program_cross_embed_distance,
-      num_flat_encoding_relative_position_buckets=(
-          FLAGS.num_position_buckets),
-      max_flat_encoding_distance=FLAGS.max_distance)
+      max_program_cross_embed_distance=FLAGS.max_program_cross_embed_distance)
   separator_token_id = (sep_id if FLAGS.model_type == 'spec_decomposer_model'
                         else -1)
   train_config = models.DecomposeAttentionTransformerConfig(
       base_config=base_config,
       dataset_type=FLAGS.dataset_type,
-      final_output_encoding=FLAGS.final_output_encoding,
-      final_output_dropout_rate=FLAGS.final_output_dropout_rate,
-      final_output_attention_dropout_rate=(
-          FLAGS.final_output_attention_dropout_rate),
-      flat_encoded_self_attention=FLAGS.flat_encoded_self_attention,
       aligned_relative_attention=FLAGS.aligned_relative_attention,
       separator_token_id=separator_token_id)
   eval_config = train_config.replace(
@@ -919,8 +875,13 @@ def main(_):
       init_rng,
       jnp.ones(io_shape, jnp.float32),
       jnp.ones(io_shape, jnp.float32),
-      jnp.ones(io_shape, jnp.float32),
       jnp.ones(target_shape, jnp.float32))
+
+  num_params = sum(x.size for x in jax.tree_leaves(initial_variables['params']))
+  logging.info('Model has %d parameters (embedding_dim=%d, hidden_dim=%d, '
+               'num_layers=%d, num_heads=%d).',
+               num_params, FLAGS.embedding_dim, FLAGS.hidden_dim,
+               FLAGS.num_layers, FLAGS.num_heads)
 
   optimizer_def = optim.Adam(
       FLAGS.lr,
@@ -940,25 +901,19 @@ def main(_):
     # Grab last step.
     start_step = int(optimizer.state.step)
     logging.info('Found model checkpointed at step %d.', start_step)
-    if FLAGS.finetune_start_step > 0:
-      logging.info('Checking that start_step (%s) == finetune_start_step (%s)',
-                   start_step, FLAGS.finetune_start_step)
-      assert start_step >= FLAGS.finetune_start_step
-      steps_to_skip = start_step - FLAGS.finetune_start_step
-    else:
-      steps_to_skip = start_step
 
-    # TODO(kshi): It is likely that this code can lead to the job stalling for
-    # 10+ hours when restarting from a checkpoint that had been trained a long
-    # time, possibly because dataset skipping is slow.
-    logging.info('Skipping %s steps...', steps_to_skip)
-    train_ds = train_ds.skip(steps_to_skip)
-    dummy_p_train_step = jax.pmap(
-        lambda dropout_rng: jax.random.split(dropout_rng)[1])
-    for _ in range(steps_to_skip):
-      dropout_rng = dummy_p_train_step(dropout_rng)
-    logging.info('Finished skipping steps')
-    logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
+    if not FLAGS.predict_only:
+      # TODO(kshi): It is likely that this code can lead to the job stalling for
+      # 10+ hours when restarting from a checkpoint that had been trained a long
+      # time, possibly because dataset skipping is slow.
+      logging.info('Skipping %s steps...', start_step)
+      train_ds = train_ds.skip(start_step)
+      dummy_p_train_step = jax.pmap(
+          lambda dropout_rng: jax.random.split(dropout_rng)[1])
+      for _ in range(start_step):
+        dropout_rng = dummy_p_train_step(dropout_rng)
+      logging.info('Finished skipping steps')
+      logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
 
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
@@ -966,14 +921,8 @@ def main(_):
   # TODO(jxihong): Implement fast decoding.
   assert FLAGS.slow_decode, 'Fast decoding is not implemented yet.'
 
-  if FLAGS.finetune_start_step <= 0:
-    learning_rate_fn = create_learning_rate_scheduler(
-        base_learning_rate=FLAGS.lr)
-  else:
-    # Constant LR for finetuning.
-    learning_rate_fn = create_learning_rate_scheduler(
-        base_learning_rate=FLAGS.lr,
-        factors='constant')
+  learning_rate_fn = create_learning_rate_scheduler(
+      base_learning_rate=FLAGS.lr)
   p_train_step = jax.pmap(
       functools.partial(
           train_step,
@@ -999,7 +948,7 @@ def main(_):
           config=predict_config,
           slow_decode=FLAGS.slow_decode),
       axis_name='batch',
-      static_broadcasted_argnums=(5,))
+      static_broadcasted_argnums=(4,))
 
   # Main Train Loop
   # ---------------------------------------------------------------------------
@@ -1008,69 +957,72 @@ def main(_):
   metrics_all = []
   tick = time.time()
   train_iter = train_ds.as_numpy_iterator()
+  if FLAGS.predict_only and start_step == FLAGS.num_train_steps:
+    start_step -= 1
   for step in range(start_step, FLAGS.num_train_steps):
-    inputs, outputs, final_outputs, targets, rng = load_data(next(train_iter),
-                                                             rng)
-
-    optimizer, metrics, dropout_rng = p_train_step(
-        optimizer, inputs, outputs, final_outputs, targets,
-        dropout_rng=dropout_rng)
-    metrics_all.append(metrics)
     is_last_step = step == FLAGS.num_train_steps - 1
 
-    # Periodic metric handling.
+    if not FLAGS.predict_only:
+      inputs, outputs, targets, rng = load_data(next(train_iter), rng)
 
-    # Training Metrics
-    if (step and step % FLAGS.log_freq == 0) or is_last_step:
-      logging.info('Gathering training metrics.')
-      metrics_all = common_utils.get_metrics(metrics_all)
-      lr = metrics_all.pop('learning_rate').mean()
-      metrics_sums = jax.tree_map(jnp.sum, metrics_all)
-      denominator = metrics_sums.pop('denominator')
-      summary = jax.tree_map(
-          lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
-          metrics_sums)
-      summary['learning_rate'] = lr
-      # Calculate (clipped) perplexity after averaging log-perplexities:
-      summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+      optimizer, metrics, dropout_rng = p_train_step(
+          optimizer, inputs, outputs, targets,
+          dropout_rng=dropout_rng)
+      metrics_all.append(metrics)
 
-      if jax.host_id() == 0:
-        logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
-        tock = time.time()
-        steps_per_sec = FLAGS.log_freq / (tock - tick)
-        tick = tock
-        summary_writer.scalar('train/steps per second', steps_per_sec, step)
-        for key, val in summary.items():
-          summary_writer.scalar('train/' + key, val, step)
-        summary_writer.flush()
-      # Reset metric accumulation for next evaluation cycle.
-      metrics_all = []
+      # Periodic metric handling.
 
-    # Evaluation Metrics
-    if (step and step % FLAGS.eval_freq == 0) or is_last_step:
-      logging.info('Gathering evaluation metrics.')
-      t_evaluation_start = time.time()
-      eval_metrics = []
-      for batches in eval_ds.as_numpy_iterator():
-        inputs, outputs, final_outputs, targets, rng = load_data(batches, rng)
+      # Training Metrics
+      if (step and step % FLAGS.log_freq == 0) or is_last_step:
+        logging.info('Gathering training metrics.')
+        metrics_all = common_utils.get_metrics(metrics_all)
+        lr = metrics_all.pop('learning_rate').mean()
+        metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+        denominator = metrics_sums.pop('denominator')
+        summary = jax.tree_map(
+            lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
+            metrics_sums)
+        summary['learning_rate'] = lr
+        # Calculate (clipped) perplexity after averaging log-perplexities:
+        summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
 
-        metrics = p_eval_step(optimizer.target, inputs, outputs, final_outputs,
-                              targets)
-        eval_metrics.append(metrics)
+        if jax.host_id() == 0:
+          logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
+          tock = time.time()
+          steps_per_sec = FLAGS.log_freq / (tock - tick)
+          tick = tock
+          summary_writer.scalar('train/steps per second', steps_per_sec, step)
+          for key, val in summary.items():
+            summary_writer.scalar('train/' + key, val, step)
+          summary_writer.flush()
+        # Reset metric accumulation for next evaluation cycle.
+        metrics_all = []
 
-      eval_metrics = common_utils.get_metrics(eval_metrics)
-      eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
-      eval_denominator = eval_metrics_sums.pop('denominator')
-      eval_summary = jax.tree_map(
-          lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
-          eval_metrics_sums)
+      # Evaluation Metrics
+      if (step and step % FLAGS.eval_freq == 0) or is_last_step:
+        logging.info('Gathering evaluation metrics.')
+        t_evaluation_start = time.time()
+        eval_metrics = []
+        for batches in eval_ds.as_numpy_iterator():
+          inputs, outputs, targets, rng = load_data(batches, rng)
 
-      if jax.host_id() == 0:
-        logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
-                     time.time()-t_evaluation_start, step, eval_summary['loss'])
-        for key, val in eval_summary.items():
-          summary_writer.scalar('eval/' + key, val, step)
-        summary_writer.flush()
+          metrics = p_eval_step(optimizer.target, inputs, outputs, targets)
+          eval_metrics.append(metrics)
+
+        eval_metrics = common_utils.get_metrics(eval_metrics)
+        eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+        eval_denominator = eval_metrics_sums.pop('denominator')
+        eval_summary = jax.tree_map(
+            lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
+            eval_metrics_sums)
+
+        if jax.host_id() == 0:
+          logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
+                       time.time()-t_evaluation_start, step,
+                       eval_summary['loss'])
+          for key, val in eval_summary.items():
+            summary_writer.scalar('eval/' + key, val, step)
+          summary_writer.flush()
 
     # Beam search metrics.
     if (step and step % FLAGS.predict_freq == 0) or is_last_step:
@@ -1097,13 +1049,12 @@ def main(_):
               # pylint: disable=cell-var-from-loop
               pred_batch = jax.tree_map(
                   lambda x: pad_examples(x, padded_size), pred_batch)
-            inputs, outputs, final_outputs, targets, rng = load_data(pred_batch,
-                                                                     rng)
+            inputs, outputs, targets, rng = load_data(pred_batch, rng)
 
             cache = (p_init_cache(inputs, outputs, targets)
                      if not FLAGS.slow_decode else None)
-            predicted = p_pred_step(optimizer.target, inputs, outputs,
-                                    final_outputs, cache, beam_size)
+            predicted = p_pred_step(optimizer.target, inputs, outputs, cache,
+                                    beam_size)
             predicted = tohost(predicted)
             inputs, outputs, targets = map(tohost, (inputs, outputs, targets))
 
@@ -1120,7 +1071,7 @@ def main(_):
                 best_prediction, score = eval_predicted_synthesizer_model(
                     beams, inps, outs, decode_program)
                 decode_to_str_fn = decode_program_str
-              elif FLAGS.model_type == 'joint_model':
+              elif FLAGS.model_type in ['joint_model', 'baseline_model']:
                 ground_truth = decode_program_str(targets[i])
                 ground_truth_program = decode_program(targets[i])
                 ground_truth_outs = run_program(ground_truth_program, inps)
@@ -1130,7 +1081,7 @@ def main(_):
               else:
                 raise ValueError(f'Unknown model type {FLAGS.model_type}')
 
-              if score > 0:
+              if score == 1:
                 total_successes += 1
               total_denominator += 1
 
@@ -1161,6 +1112,12 @@ def main(_):
           all_total_successes, all_total_denominator = per_host_sum_pmap(
               jax.tree_map(np.array, (total_successes, total_denominator)))
 
+          logging.info('host %d %s: total_success=%d, total_denominator=%d. '
+                       'all_total_successes=%d, all_total_denominator=%d.',
+                       jax.host_id(), predict_or_test,
+                       total_successes, total_denominator,
+                       all_total_successes, all_total_denominator)
+
           # Record beam search results as text summaries.
           message = []
           for n in np.random.choice(np.arange(len(predictions)), 8):
@@ -1178,25 +1135,34 @@ def main(_):
                 predict_or_test, step, beam_size,
                 all_total_successes, all_total_denominator, accuracy,
                 time.time() - t_inference_start)
+            predict_only_label = '_predict-only' if FLAGS.predict_only else ''
             summary_writer.scalar(
-                '{}/beam-size-{}'.format(predict_or_test, beam_size),
+                '{}/beam-size-{}{}'.format(predict_or_test,
+                                           beam_size,
+                                           predict_only_label),
                 accuracy, step)
 
-            summary_writer.text('{}-samples-beam-{}'.format(predict_or_test,
-                                                            beam_size),
-                                '\n------\n'.join(message), step)
+            summary_writer.text(
+                '{}-samples-beam-{}{}'.format(predict_or_test, beam_size,
+                                              predict_only_label),
+                '\n------\n'.join(message), step)
             summary_writer.flush()
+
+      if FLAGS.predict_only:
+        # If only prediction, then don't do it multiple times.
+        break
 
     # Save a Checkpoint. Do this at the end of the training loop, so that if a
     # worker is descheduled during a round of prediction (which takes a while),
     # we will redo prediction upon restarting (to avoid losing data).
-    if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
-      if jax.host_id() == 0:
-        # Save unreplicated optimizer + model state.
-        checkpoints.save_checkpoint(
-            os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
-            jax_utils.unreplicate(optimizer),
-            step)
+    if not FLAGS.predict_only and (
+        (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step):
+      # Save unreplicated optimizer + model state.
+      checkpoints.save_checkpoint_multiprocess(
+          os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
+          jax_utils.unreplicate(optimizer),
+          step,
+          keep_every_n_steps=100_000)
 
 if __name__ == '__main__':
   app.run(main)

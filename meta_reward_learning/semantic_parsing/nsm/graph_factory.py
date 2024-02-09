@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -303,7 +303,7 @@ class Graph(object):
       n_params = 0
       tf.logging.info('trainable parameters:')
       for tv in params:
-        n_tv_params = np.product(tv.get_shape().as_list())
+        n_tv_params = np.prod(tv.get_shape().as_list())
         n_params += n_tv_params
         tf.logging.info('{}: {}'.format(tv.name, n_tv_params))
         if 'weights' in tv.name or 'kernel' in tv.name:

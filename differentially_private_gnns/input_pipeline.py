@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ def compute_masks_for_splits(
 def convert_to_graphstuple(
     graph):
   """Converts a dataset to one entire jraph.GraphsTuple, extracting labels."""
-  return jraph.GraphsTuple(
+  return jraph.GraphsTuple(  # pytype: disable=wrong-arg-types  # jax-ndarray
       nodes=np.asarray(graph.node_features),
       edges=np.ones_like(graph.senders),
       senders=np.asarray(graph.senders),

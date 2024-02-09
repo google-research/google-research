@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -322,7 +322,7 @@ def train_and_evaluate(config, workdir,
       decay_steps=config.num_train_steps - config.num_warmup_steps,
   )
 
-  tx = optax.adamw(
+  tx = optax.adamw(  # pytype: disable=wrong-arg-types  # numpy-scalars
       learning_rate_fn, b1=0.9, b2=0.999, eps=1e-6, weight_decay=0.01)
   if config.clipped_grad_norm:
     tx = optax.chain(optax.clip_by_global_norm(config.clipped_grad_norm), tx)

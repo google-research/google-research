@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ def _two_dim_matmul(x, matrix_dim_one,
                     matrix_dim_two,
                     precision):
   """Applies 2D matrix multiplication to 2D input arrays."""
-  return jnp.einsum(
+  return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
       "ij,jk,ni->nk",
       x,
       matrix_dim_two,

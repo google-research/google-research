@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,16 +15,16 @@
 
 """Utility functions for Melting Pot experiments."""
 
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 
 from acme import wrappers as acme_wrappers
+from meltingpot.utils.substrates import builder as meltingpot_builder
 
 from concept_marl.experiments.meltingpot.substrates import substrate_configs
 from concept_marl.experiments.meltingpot.wrappers import ma_concept_extraction_wrapper
 from concept_marl.experiments.meltingpot.wrappers import meltingpot_cooking_dense_rewards_wrapper as dense_rewards_wrapper
 from concept_marl.experiments.meltingpot.wrappers import meltingpot_pixels_wrapper
 from concept_marl.experiments.meltingpot.wrappers import meltingpot_wrapper
-from meltingpot.python.utils.substrates import builder as meltingpot_builder
 
 
 ENV_OBS_TYPES = {

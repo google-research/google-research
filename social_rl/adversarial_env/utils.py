@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -103,7 +103,7 @@ def save_best_work_units_csv(experiments, csv_path=None, metrics=None,
           'work_units_tested': len(metrics_df['work_unit'].unique()),
           'max_steps': metrics_df['step'].max()
       }
-      best_seeds_df = best_seeds_df.append(m_dict, ignore_index=True)
+      best_seeds_df = pd.concat([best_seeds_df, m_dict], ignore_index=True)
 
       if metric == 'SolvedPathLength':
         single_best = metrics_df.loc[metrics_df[metric].idxmax()]
@@ -122,7 +122,7 @@ def save_best_work_units_csv(experiments, csv_path=None, metrics=None,
             'work_units_tested': len(metrics_df['work_unit'].unique()),
             'max_steps': metrics_df['step'].max()
         }
-        best_seeds_df = best_seeds_df.append(m_dict, ignore_index=True)
+        best_seeds_df = pd.concat([best_seeds_df, m_dict], ignore_index=True)
 
   if csv_path is not None:
     with tf.io.gfile.GFile(csv_path, 'wb') as f:

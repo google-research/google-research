@@ -1,4 +1,4 @@
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,14 +18,28 @@
 
 set -eux
 
+pip install --upgrade pip  # Ensures that pip is current.
+
+# If you run into installation errors upon repeat runs of this script, try
+# removing `frmt_env` and `bleurt`.
+pip install virtualenv
 virtualenv -p python3 frmt_env
 source frmt_env/bin/activate
 
 pip install -r frmt/requirements.txt
-python -m frmt.placeholder_test
-python -m frmt.lexical_accuracy_test
 
-HAS_ERROR=0
+git clone https://github.com/google-research/bleurt.git
+cd bleurt
+pip install .
+cd ..
+
+python -m frmt.lexical_accuracy_test
+python -m frmt.evaluation_test
+
+# ==============================================================================
+# Run integration test for evaluate.
+bash frmt/evaluate_itest.sh
+HAS_ERROR="$?"
 
 # ==============================================================================
 # Simple integration test for lexical_accuracy_eval using the gold test set.
@@ -51,7 +65,16 @@ fi
 
 # ==============================================================================
 if [[ $HAS_ERROR -eq 1 ]]; then
+  echo "Failure."
   exit 1
 fi
 
+set +x
+
 echo "Success!"
+echo
+echo 'The Python virtual environment `frmt_env` has all the necessary '
+echo 'requirements to run evaluation installed. You can enter the environment '
+echo 'later by running the command `source frmt_env/bin/activate` in the '
+echo 'current directory and leave the environment with the command '
+echo '`deactivate`.'

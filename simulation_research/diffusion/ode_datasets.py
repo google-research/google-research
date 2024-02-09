@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ class ODEDataset(object):
     T = np.asarray(jnp.arange(0, integration_time, dt))  # pylint: disable=invalid-name
     self.T = self.T_long = T[T >= self.burnin_time]  # pylint: disable=invalid-name
     if chunk_len is not None:
-      self.Zs = np.asarray(self.chunk_training_data(self.Zs, chunk_len))
+      self.Zs = np.asarray(self.chunk_training_data(self.Zs, chunk_len))  # pytype: disable=wrong-arg-types  # jax-ndarray
       self.T = np.asarray(jnp.arange(0, chunk_len * dt, dt))
 
   def __len__(self):
@@ -87,7 +87,7 @@ class ODEDataset(object):
 
   def __getitem__(self,
                   i):
-    return (self.Zs[i, 0], self.T), self.Zs[i]
+    return (self.Zs[i, 0], self.T), self.Zs[i]  # pytype: disable=bad-return-type  # jax-ndarray
 
   def integrate(self,
                 z0s,
@@ -287,7 +287,7 @@ class HamiltonianDataset(ODEDataset):
     """Mass matrix used for Kinetic energy T=vTM(q)v/2."""
     raise NotImplementedError
 
-  def animate(self, zt = None):
+  def animate(self, zt = None):  # type: ignore  # jax-ndarray
     if zt is None:
       zt = np.asarray(
           self.integrate(self.sample_initial_conditions(10)[0], self.T_long))
@@ -311,7 +311,7 @@ class SHO(HamiltonianDataset):
   def mass(self, q):
     return jnp.eye(1)
 
-  def sample_initial_conditions(self, bs):
+  def sample_initial_conditions(self, bs):  # pytype: disable=signature-mismatch  # jax-ndarray
     return np.random.randn(bs, 2)
 
 
@@ -355,7 +355,7 @@ class NPendulum(HamiltonianDataset):
     potential = -jnp.sum(jnp.cumsum(jnp.cos(q)))  # height of bobs
     return kinetic + potential
 
-  def sample_initial_conditions(self, bs):
+  def sample_initial_conditions(self, bs):  # pytype: disable=signature-mismatch  # jax-ndarray
     z0 = np.random.randn(bs, 2 * self.n)
     z0[:, self.n:] *= .2
     z0[:, -1] *= 1.5

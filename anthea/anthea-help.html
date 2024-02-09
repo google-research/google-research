@@ -1,5 +1,5 @@
 <!--
-   Copyright 2022 The Google Research Authors.
+   Copyright 2024 The Google Research Authors.
   
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -29,10 +29,11 @@
   <ul>
     <li>Projects are created by opening "Project TSV files" that have
       four fields: source and target segments, document name, system name.</li>
-    <li>MQM and SQM templates (with a few variants) are supported.</li>
+    <li>Several variants of MQM templates are supported.</li>
     <li>State is automatically saved in the browser's local storage.</li>
     <li>After evaluating, projects can be saved as "Evaluation JSON files".</li>
-    <li>Evaluation JSON files can be opened for review. MQM-Viewer-based
+    <li>Evaluation JSON files can be opened for review.
+      <a href="https://github.com/google-research/google-research/tree/master/marot">Marot</a>-based
       analysis gets shown in a tab if there are any MQM evaluations
       in the opened files.</li>
   </ul>
@@ -61,15 +62,15 @@
 
   <p>
     The TSV file must have a header line. The header line should be the JSON encoding of an
-    object that identifies the "source-language" and "target-language". It may include other
+    object that identifies the "source_language" and "target_language". It may include other
     metadata fields as needed. Example:
     <blockquote>
       <code>
-      {"source-language": "[language-code-BCP47]", "target-language": "[language-code-BCP47]"}
+      {"source_language": "[language-code-BCP47]", "target_language": "[language-code-BCP47]"}
       </code>
     </blockquote>
   </p>
-  
+
   <p>
     After the header line, the TSV file must contain these four fields in the following order, on
     every subsequent line:
@@ -96,20 +97,24 @@
   </p>
   <ul>
     <li>
-      Blank lines indicate paragraph breaks. Lines containing blank source text are also treated
-      as paragraph breaks (these should not contain any target text, but if they do, such
-      target text is ignored and is not displayed during the evaluation). Lines containing
-      just two fields (presumably document name and system name) are also treated the same
-      as having empty source text (i.e., as paragraph breaks).
+      Blank lines indicate paragraph breaks between segments. Lines containing just
+      two fields (presumably document name and system name) are also treated the same
+      as blank lines.
     </li>
     <li>
-      Lines whose first character is "#" are ignored as comments. Source text that actually starts
-      with "#" should be prepended with a space.
+      The text in "source_segment" and "target_segment" is unescaped, to replace any
+      "\\n" with "\n" and any "\\t" with "\t".
+    </li>
+    <li>
+      Within a segment (source or target), two (or more) consecutive newlines at the
+      end of a sentence (see below for how sentence boundaries are marked) get rendered
+      as a paragraph break. A single newline at the end of a sentence gets rendered as a
+      line-break.
     </li>
   </ul>
 
   <h5>
-    Word boundaries
+    Word and sentence boundaries
   </h5>
   <p>
     Anthea does word segmentation by using two splitting characters: space and
@@ -117,6 +122,10 @@
     segmentation alone. For CJK languages, and for segmenting out punctuation, etc.,
     you should use some external tool to do the segmentation, and insert zero-width
     space characters in the TSV files provided to Anthea.
+  </p>
+  <p>
+    Two consecutive zero-width spaces ('\u200b\u200b') can be used to indicate sentence
+    boundaries in text.
   </p>
 
   <h4>

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ import jax.numpy as jnp
 import jax.scipy
 from jax.sharding import Mesh
 import numpy as np
-import seqio
+from seqio.vocabularies import Vocabulary
 
 from scaling_transformer_inference_efficiency import attention
 from scaling_transformer_inference_efficiency import checkpoint
@@ -151,7 +151,7 @@ class StreamClient:
   stream_callback: Callable = lambda x: print(x, end='')
   stream_done_callback: Callable = lambda: None
 
-  def find_new_chars(self, vocab: seqio.Vocabulary, next_token: np.ndarray):
+  def find_new_chars(self, vocab: Vocabulary, next_token: np.ndarray):
     """We decode pairs because the tokenizer strips whitespace."""
     prefix = self.prev_token_decoded
     whole = (
@@ -163,7 +163,7 @@ class StreamClient:
     return new_text
 
   def stream_result(
-      self, logits: jax.Array, vocab: seqio.Vocabulary, x: int, y: int, z: int
+      self, logits: jax.Array, vocab: Vocabulary, x: int, y: int, z: int
   ):
     """Steam result back to std. For the moment only stream first element."""
 
@@ -176,7 +176,7 @@ class StreamClient:
         new_chars = self.find_new_chars(vocab, current_token)
 
       self.stream_callback(new_chars)
-      self.prev_token = current_token
+      self.prev_token = current_token  # pytype: disable=annotation-type-mismatch  # jax-ndarray
       self.prev_token_decoded = new_chars.lstrip(' ').rstrip(' ')
 
   def clear_prev_token(self):
@@ -184,10 +184,10 @@ class StreamClient:
     self.stream_done_callback()
 
 
-def _bos_logits(vocab_size: int) -> jnp.ndarray:
+def _bos_logits(vocab_size: int, bos_id: int = 0) -> jnp.ndarray:
   """Logits that put assign probability 1.0 to on _BOS_ID."""
   logits = jnp.full((vocab_size,), -1e10)
-  return logits.at[0].set(0.0)
+  return logits.at[bos_id].set(0.0)
 
 
 class InferenceModel:
@@ -201,7 +201,8 @@ class InferenceModel:
       sample_fn: SampleFn,
       mesh: Mesh,
       rules: Sequence[Tuple[str, Any]],
-      vocab: Optional[seqio.Vocabulary] = None,
+      vocab: Optional[Vocabulary] = None,
+      bos_id: Optional[int] = None,  # Allow to overwrite the default value.
   ):
     self._hparams = hparams
     self._eos_id = eos_id
@@ -220,6 +221,12 @@ class InferenceModel:
           partitioning.logical_to_physical, self.embeddings_logical
       )
     self.vocab = vocab
+    if bos_id is None:
+      if vocab is not None:
+        bos_id = vocab.bos_id
+      else:
+        bos_id = 0
+    self.bos_id = bos_id
     # _prefill_p: maps num_prefixes -> jitted _prefill_impl function
     self._prefill_p = {}
     # _score_p: maps num_prefixes -> jitted _generate_impl function
@@ -300,14 +307,18 @@ class InferenceModel:
       )
     else:
       full_chunk_result = model._infer(params, cache, chunk)
-    return (
-        full_chunk_result
-        if return_full_chunk
-        else full_chunk_result.to_chunk_result(prev_logits, chunk))
+    if return_full_chunk:
+      return full_chunk_result
+    else:
+      return full_chunk_result.to_chunk_result(
+          prev_logits, chunk, bos_id=model.bos_id
+      )
 
   def instantiate_prefill_fn(self, return_full_chunk: bool = False):
     return partial(
-        self._prefill_impl, self, return_full_chunk=return_full_chunk
+        self._prefill_impl,
+        self,
+        return_full_chunk=return_full_chunk,
     )
 
   def prefill(
@@ -350,12 +361,13 @@ class InferenceModel:
       length: int,
       prev_chunk_next_token_logits: Optional[jnp.ndarray] = None,
       circular: bool = False,
+      bos_id: int = 0,
   ):
     """Create everything we need to deterministically write output samples."""
     # Seeding of the RNG itself is deterministic.
     # To generate different samples, users can provide sample_number_offset.
     (batch,) = sample_ids.shape
-    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(
+    sample_rngs = jax.vmap(jax.random.fold_in, in_axes=(None, 0))(  # pytype: disable=wrong-arg-types  # jax-ndarray
         jax.random.PRNGKey(0), sample_ids
     )
     token_indexes_start = attention.prefix_lengths(prefix)
@@ -364,7 +376,7 @@ class InferenceModel:
     # Generation loop.
     last_logits = prev_chunk_next_token_logits
     if last_logits is None:
-      last_logits = _bos_logits(hparams.vocab)[np.newaxis, :]
+      last_logits = _bos_logits(hparams.vocab, bos_id)[np.newaxis, :]
     last_logits = attention.flat_broadcast(last_logits, batch)
     chunk = Chunk.zeros(batch, length)
     chunk_result = ChunkResult.zeros(hparams, batch, length, circular=circular)
@@ -416,7 +428,7 @@ class InferenceModel:
     """
     batch, _ = sample_rngs.shape
     chunk, chunk_result = state
-    step_rngs = jax.vmap(jax.random.fold_in)(
+    step_rngs = jax.vmap(jax.random.fold_in)(  # pytype: disable=wrong-arg-types  # jax-ndarray
         sample_rngs, token_indexes_start + chunk.lengths
     )
     next_token = model._sample(
@@ -434,7 +446,10 @@ class InferenceModel:
     )
     chunk = chunk.update(write_index, token_chunk)
     chunk_result = chunk_result.update(
-        write_index, token_chunk, token_full_chunk_result
+        write_index,
+        token_chunk,
+        token_full_chunk_result,
+        bos_id=model.bos_id,
     )
     return chunk, chunk_result
 
@@ -443,7 +458,7 @@ class InferenceModel:
   # pylint: disable = unnecessary-lambda
   # pytype: disable=attribute-error
   # pytype: disable=bad-unpacking
-  @partial(jax.jit, static_argnums=(0, 6, 7, 8))
+  @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8))
   def _generate_impl(
       self,
       params: Weights,
@@ -468,6 +483,7 @@ class InferenceModel:
             steps,
             prev_chunk_next_token_logits,
             circular=False,
+            bos_id=self.bos_id,
         )
     )
 
@@ -528,7 +544,7 @@ class InferenceModel:
     by:
 
     ```
-    def rng_for_token(sample_id: int, token_index: int) -> jax.random.KeyArray:
+    def rng_for_token(sample_id: int, token_index: int) -> jax.Array:
       rng = jax.random.PRNGKey(0)
       rng = jax.random.fold_in(rng, sample_id)
       rng = jax.random.fold_in(rng, token_index)

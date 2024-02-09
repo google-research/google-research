@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -471,7 +471,6 @@ def run_weight_stationary_layer(
             z_axis,
             attn_all_to_all,
             latency_collectives,
-            shard_seqlen_vs_batch,
         )
       else:
         x, layer_k, layer_v = impl(
@@ -487,7 +486,6 @@ def run_weight_stationary_layer(
             z_axis,
             attn_all_to_all,
             latency_collectives,
-            shard_seqlen_vs_batch,
         )
       k = lax.dynamic_update_index_in_dim(
           k, jnp.swapaxes(layer_k, 0, 1), layer, 0
@@ -838,7 +836,7 @@ def run_embed_unembed_topp(
         (div_up(h.embed, x_axis), div_up(h.vocab, y_axis * z_axis)),
         jnp.bfloat16,
     )
-    rng = jax.random.rbg_key(0)
+    rng = jax.random.PRNGKey(0, impl='rbg')
     return x, embed, rng
 
   @functools.partial(
@@ -930,8 +928,8 @@ def init_model(hparams):
 
     params = pjit.pjit(
         init_weights,
-        in_axis_resources=(),
-        out_axis_resources=weights.Weights.physical_axes(),
+        in_shardings=(),
+        out_shardings=weights.Weights.physical_axes(),
     )()
   return model, params
 
@@ -969,8 +967,8 @@ def benchmark_generate_with_model(
   with model.mesh:
     context = pjit.pjit(
         ChunkResult.zeros,
-        in_axis_resources=(),
-        out_axis_resources=jax.tree_map(
+        in_shardings=(),
+        out_shardings=jax.tree_map(
             partitioning.logical_to_physical, ChunkResult.logical_axes()
         ),
         static_argnums=(0, 1, 2),

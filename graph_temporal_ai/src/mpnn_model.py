@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ sys.path.insert(0, '../src/')
 
 from src.mpnn_cell import MPNNCell  # pylint: disable=g-import-not-at-top
 from src.mpnn_cell import Seq2SeqAttrs
+from src.utils import MAPELoss
 
 from pytorch_lightning import LightningModule  # pylint: disable=g-bad-import-order
 import torch
@@ -195,7 +196,10 @@ class MPNN(LightningModule, Seq2SeqAttrs):
     self.decoder = Decoder(self.edge_index, self.edge_attr, args)
 
     # define loss function
-    self.loss = nn.L1Loss()
+    if self.loss_func == 'MAE':
+      self.loss = nn.L1Loss()
+    elif self.loss_func == 'MAPE':
+      self.loss = MAPELoss()
 
   def _compute_sampling_threshold(self, batches_seen):
     return self.cl_decay_steps / (
@@ -226,7 +230,7 @@ class MPNN(LightningModule, Seq2SeqAttrs):
     encoder_hidden_state = None
     for t in range(self.input_len):
       # print('encoder time step', t)
-      encoder_output, encoder_hidden_state = self.encoder(
+      _, encoder_hidden_state = self.encoder(
           inputs[t], encoder_hidden_state)
 
     go_symbol = torch.zeros(
@@ -234,7 +238,7 @@ class MPNN(LightningModule, Seq2SeqAttrs):
         device=device)
     decoder_hidden_state = encoder_hidden_state
 
-    decoder_input = go_symbol if labels is not None else encoder_output[-1]
+    decoder_input = go_symbol  # if labels is not None else encoder_output[-1]
 
     outputs = []
     for t in range(self.output_len):

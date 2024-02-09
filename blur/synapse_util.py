@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@ import tensorflow.compat.v1 as tf
 from blur import blur_env
 
 TensorShape = tf.TensorShape
-Tensor = Union[tf.Tensor, np.ndarray, jp.array]
+Tensor = Union[tf.Tensor, np.ndarray, jp.ndarray]
 
 
 @dc.dataclass
@@ -230,7 +230,7 @@ def sync_all_synapses(synapses, layers, env):
 
 def sync_in_and_out_synapse(synapse, in_channels, env):
   """Copies forward synapse to backward one."""
-  in_out_synapse = synapse_submatrix(
+  in_out_synapse = synapse_submatrix(  # pytype: disable=wrong-arg-types  # use-enum-overlay
       synapse,
       in_channels=in_channels,
       update_type=UpdateType.FORWARD,

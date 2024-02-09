@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -886,7 +886,7 @@ class TfCnnBenchmarksTest(tf.test.TestCase):
                   fuse_decode_and_crop)
 
   def _test_learning_rate(self, params, global_step_to_expected_learning_rate):
-    self.longMessage = True  # pylint: disable=invalid-name
+    self.longMessage = True
     bench = benchmark_cnn.BenchmarkCNN(params)
     with tf.Graph().as_default() as graph:
       bench._build_model()

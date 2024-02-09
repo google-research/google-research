@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ class CamVid(mseg_base.MSegBase):
       self._label_defs = self.load_label_defs()
     return self._label_defs
 
-  def convert_segmentation(self, segmentation):
+  def convert_segmentation(self, segmentation):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     # CamVid needs to be converted from rgb color coding to class ids
     segmentation = utils.convert_segmentation_rgb_to_class_id(
         segmentation, self.label_defs)

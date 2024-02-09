@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,8 +32,9 @@ import tensorflow as tf
 
 
 
-def get_first_datapoint_of_class(dataset,
-                                 label):
+def get_first_datapoint_of_class(
+    dataset, label
+):
   """Returns the first datapoint in dataset with given label.
 
   Args:
@@ -57,8 +58,8 @@ def get_first_datapoint_of_class(dataset,
 
 
 def get_first_class_representatives(
-    dataset,
-    num_classes = 10):
+    dataset, num_classes = 10
+):
   """Returns the first representative of each class in a dataset."""
   representatives = [
       get_first_datapoint_of_class(dataset, label)
@@ -67,8 +68,12 @@ def get_first_class_representatives(
   return representatives
 
 
-def plot_subgraph(img, q, label,
-                  start_node_coords):
+def plot_subgraph(
+    img,
+    q,
+    label,
+    start_node_coords,
+):
   """Returns a figure with an image with overlaid selected pixels.
 
   The figure will have img in the background. We plot q pixel by pixel over img,
@@ -111,9 +116,13 @@ def plot_subgraph(img, q, label,
 
 
 # TODO(gnegiar): Refactor to use above function
-def plot_subgraph_classes(imgs, qs, labels,
-                          start_nodes_coords,
-                          num_classes):
+def plot_subgraph_classes(
+    imgs,
+    qs,
+    labels,
+    start_nodes_coords,
+    num_classes,
+):
   """Plots examples of each class, with subgraphs."""
   fig, axs = plt.subplots(2, num_classes // 2, figsize=(num_classes, 4))
   qs = [

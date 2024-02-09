@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,7 +116,7 @@ def load_pathfinder(
 
 # TODO(gnegiar): Map this on the dataset, and cache it.
 def make_graph_mnist(
-    image, patch_size, bins = (0., .3, 1.)
+    image, patch_size, bins = (0.0, 0.3, 1.0)
 ):
   """Makes a graph object to hold an MNIST sample.
 
@@ -132,7 +132,7 @@ def make_graph_mnist(
   return image_graph.ImageGraph.create(
       # The threshold value .3 was selected to keep information
       # while not introducing noise
-      jnp.digitize(image, bins).squeeze(),
+      jnp.digitize(image, bins).squeeze(),  # pytype: disable=wrong-arg-types  # jnp-type
       get_start_pixel_fn=lambda _: (14, 14),  # start in the center
       num_colors=len(bins),  # number of bins + 'out of bounds' pixel
       patch_size=patch_size)
@@ -160,7 +160,8 @@ def make_graph_pathfinder(
   # The threshold value .3 was selected to keep information
   # while not introducing noise
   def _get_start_pixel_fn(
-      image, thresh = .5 * len(bins)):
+      image, thresh = 0.5 * len(bins)
+  ):
     """Detects a probable start point in a Pathfinder image example."""
     thresh_image = np.where(image > thresh, 1, 0)
     distance = ndi.distance_transform_edt(thresh_image)
@@ -170,7 +171,7 @@ def make_graph_pathfinder(
 
   # TODO(gnegiar): Allow continuous features in models.
   return image_graph.ImageGraph.create(
-      jnp.digitize(image, bins).squeeze(),
+      jnp.digitize(image, bins).squeeze(),  # pytype: disable=wrong-arg-types  # jnp-type
       # Set thresh to .5 by leveraging the image discretization.
       get_start_pixel_fn=functools.partial(
           _get_start_pixel_fn, thresh=.5 * len(bins)),

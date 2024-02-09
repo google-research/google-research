@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -98,7 +98,7 @@ class WindowCalculator : public mediapipe::CalculatorBase {
           " != ", cc->Inputs().NumEntries()));
     }
     if (!absl::c_all_of(options.enforce_input_dims(),
-                        [](int64 x) { return x >= 1; })) {
+                        [](int64_t x) { return x >= 1; })) {
       return absl::InvalidArgumentError("enforce_input_dims[i] must be >= 1.");
     }
     if (options.window_stride() <= 0) {

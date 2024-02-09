@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -92,10 +92,6 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
              PartitioningConfig::FIXED_POINT_INT8) {
     result->SetDatabaseTokenizationType(
         KMeansTreePartitioner<T>::FIXED_POINT_INT8);
-  }
-
-  if (config.compute_residual_stdev()) {
-    result->set_populate_residual_stdev(true);
   }
 
   const absl::Time stop = absl::Now();

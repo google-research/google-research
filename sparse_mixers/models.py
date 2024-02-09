@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -134,7 +134,7 @@ class EncoderModel(nn.Module):
     encoder_blocks = []  # Attributes are immutable so use temporary list
     for layer in range(self.config.num_layers):
       if self._is_attention_layer(layer):
-        attention_sublayer = layers.AttentionLayer(
+        attention_sublayer = layers.AttentionLayer(  # pytype: disable=wrong-arg-types  # jax-types
             num_heads=self.config.num_heads,
             d_model=self.config.d_model,
             dtype=self.config.dtype,
@@ -369,7 +369,7 @@ class PreTrainingModel(nn.Module):
         kernel=self._get_embedding_table(), name="predictions_output")(
             masked_lm_output)
 
-    next_sentence_logits = layers.OutputProjection(
+    next_sentence_logits = layers.OutputProjection(  # pytype: disable=wrong-arg-types  # jax-types
         n_out=2, kernel_init=default_kernel_init, name="classification")(
             encoder_output.pooled_output)
 
@@ -422,7 +422,7 @@ def _compute_pretraining_metrics(
     if weights is not None:
       loss = loss * weights
       normalizing_factor = weights.sum()
-    return loss.sum(), normalizing_factor
+    return loss.sum(), normalizing_factor  # pytype: disable=bad-return-type  # jax-ndarray
 
   masked_lm_correct = jnp.sum(
       (masked_lm_logits.argmax(-1) == masked_lm_labels.ravel()) *
@@ -438,7 +438,7 @@ def _compute_pretraining_metrics(
   next_sentence_correct = jnp.sum(
       next_sentence_logits.argmax(-1) == next_sentence_labels.ravel())
 
-  return PretrainingStats(masked_lm_loss, next_sentence_loss, masked_lm_correct,
+  return PretrainingStats(masked_lm_loss, next_sentence_loss, masked_lm_correct,  # pytype: disable=wrong-arg-types  # jax-ndarray
                           masked_lm_normalization, masked_lm_total,
                           next_sentence_correct, num_next_sentence_labels)
 
@@ -487,7 +487,7 @@ class SequenceClassificationModel(nn.Module):
     #  (https://arxiv.org/abs/1905.00537) concatenates the "CLS" and "word"
     #  output representations. We only use the pooled output.
 
-    logits = layers.OutputProjection(
+    logits = layers.OutputProjection(  # pytype: disable=wrong-arg-types  # jax-types
         n_out=self.n_classes,
         kernel_init=default_kernel_init,
         name="classification")(
@@ -505,7 +505,7 @@ class SequenceClassificationModel(nn.Module):
       # Logits have shape: [BATCH_SIZE, 1].
       per_example_loss = jnp.sum((logits[Ellipsis, 0] - labels)**2, axis=-1)
       batch_loss = jnp.mean(per_example_loss)
-      return ClassificationStats(batch_loss=batch_loss, num_labels=labels.size)
+      return ClassificationStats(batch_loss=batch_loss, num_labels=labels.size)  # pytype: disable=wrong-arg-types  # jnp-type
 
     else:  # Classification task
       # Logits have shape: [BATCH_SIZE, self.n_classes].
@@ -514,7 +514,7 @@ class SequenceClassificationModel(nn.Module):
           onehot(labels, logits.shape[-1]) * logits, axis=-1)
       batch_loss = jnp.mean(per_example_loss)
       correct_predictions = jnp.sum(logits.argmax(-1) == labels)
-      return ClassificationStats(
+      return ClassificationStats(  # pytype: disable=wrong-arg-types  # jnp-type
           batch_loss=batch_loss,
           num_labels=labels.size,
           correct_predictions=correct_predictions)

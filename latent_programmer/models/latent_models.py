@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -142,7 +142,7 @@ class LatentProgramTransformer(nn.Module):
              latents_padding_mask,
              encoded_padding_mask):
     """Applies decoder on programs and encoded specification."""
-    cfg = self.config
+    cfg = self.config.base_cfg
 
     assert programs.ndim == 2, ('Number of program dimensions should be 2,'
                                 ' but it is: %d' % programs.ndim)

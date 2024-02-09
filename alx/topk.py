@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,7 +61,7 @@ def top_k_approx(scores, k=100):
   scores = jnp.pad(
       scores, ((0, 0), (0, padded_num_items - num_items)),
       mode="constant",
-      constant_values=jnp.NINF)
+      constant_values=-jnp.inf)
   scores = jnp.reshape(
       scores, (num_queries, k * num_windows_multiplier, window_lengths))
   approx_top_local_scores = jnp.max(scores, axis=2)

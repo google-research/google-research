@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,11 +29,11 @@ import numpy as np
 class State:
   """Holds decoding state data."""
   # The position of the decoding loop in the length dimension.
-  cur_index: jnp.DeviceArray  # scalar int32: current decoded length index
+  cur_index: jax.Array  # scalar int32: current decoded length index
   # The active sequence log probabilities and finished sequence scores.
-  cur_seqs: jnp.DeviceArray  # int32: [batch_size, beam_size, max_decode_len]
-  rng: jnp.DeviceArray  # Sampling random state.
-  final_seqs: jnp.DeviceArray
+  cur_seqs: jax.Array  # int32: [batch_size, beam_size, max_decode_len]
+  rng: jax.Array  # Sampling random state.
+  final_seqs: jax.Array
 
 
 def state_init(masked_batch, rng, total_iteration_num):

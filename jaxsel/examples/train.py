@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -276,7 +276,7 @@ def training_loop(
       test_dataset, num_classes)
   test_rep_images, _ = zip(*test_representatives)
   test_representatives_graphs = tree_utils.tree_stack([
-      make_graph(image, patch_size, bins)
+      make_graph(image, patch_size, bins)  # pytype: disable=wrong-arg-types  # jnp-type
       for image, label in test_representatives
   ])
   rep_labels = np.arange(num_classes)
@@ -324,7 +324,7 @@ def training_loop(
       # TODO(gnegiar): build the graphs once before hand, in the dataloading
       # Make graphs from the batch of images
       graphs = tree_utils.tree_stack(
-          [make_graph(image, patch_size, bins) for image in data])
+          [make_graph(image, patch_size, bins) for image in data])  # pytype: disable=wrong-arg-types  # jnp-type
 
       # Use the results inside a JAX implicit differentiation construction.
       rng_it, rng = jax.random.split(rng)
@@ -409,7 +409,7 @@ def training_loop(
         data_test, labels_test = batch_test
         # TODO(gnegiar): build the graphs once before hand, in the dataloading
         graphs_test = tree_utils.tree_stack(
-            [make_graph(image, patch_size, bins) for image in data_test])
+            [make_graph(image, patch_size, bins) for image in data_test])  # pytype: disable=wrong-arg-types  # jnp-type
 
         loss_test, (preds, logits,
                     q) = forward(model_state, graphs_test,

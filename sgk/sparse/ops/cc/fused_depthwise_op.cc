@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -124,12 +124,12 @@ class DepthwiseConvOp : public tensorflow::OpKernel {
 
     int64 out_rows = 0, out_cols = 0;
     OP_REQUIRES_OK(
-        context, tensorflow::GetWindowedOutputSizeVerboseV2(
+        context, tensorflow::GetWindowedOutputSizeVerbose(
                      input_rows, filter_rows, /* dilation_rate = */ 1, stride_,
                      /* padding_type = */ tensorflow::EXPLICIT, &out_rows,
                      &pad_rows, &pad_rows));
     OP_REQUIRES_OK(
-        context, tensorflow::GetWindowedOutputSizeVerboseV2(
+        context, tensorflow::GetWindowedOutputSizeVerbose(
                      input_cols, filter_cols, /* dilation_rate = */ 1, stride_,
                      /* padding_type = */ tensorflow::EXPLICIT, &out_cols,
                      &pad_cols, &pad_cols));

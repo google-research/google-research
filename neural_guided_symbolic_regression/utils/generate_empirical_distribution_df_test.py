@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -125,7 +125,7 @@ class GenerateEmpiricalDistributionDfMainTest(parameterized.TestCase):
             partial_sequence_df, properties, num_production_rules, tail_length))
     levels = [level_name] + properties
     np.testing.assert_array_almost_equal(
-        empirical_distribution_df.xs(multi_index_to_check,
+        empirical_distribution_df.xs(tuple(multi_index_to_check),
                                      level=levels).values[0],
         expected_probabilities)
 

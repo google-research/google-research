@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import os
 from typing import Tuple
 
 from absl.testing import absltest
-import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -32,8 +31,6 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import sampling
 from scaling_transformer_inference_efficiency import weights
 from scaling_transformer_inference_efficiency.layers import layers_pjit
-
-jax.config.update('jax_array', True)  # required for jax < 0.4.0
 
 # pylint: disable = line-too-long
 # PaLM correctness test relies on internal checkpoints, return None in external code

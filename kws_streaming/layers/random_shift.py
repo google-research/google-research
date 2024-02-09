@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 """Augment audio data with random shifts."""
 
-from keras.utils import control_flow_util
+import tensorflow as tf
 
 from kws_streaming.layers.compat import tf
 from tensorflow.python.ops import array_ops  # pylint: disable=g-direct-tensorflow-import
@@ -112,7 +112,7 @@ class RandomShift(tf.keras.layers.Layer):
     if training is None:
       training = tf.keras.backend.learning_phase()
     # pylint: disable=g-long-lambda
-    return control_flow_util.smart_cond(
+    return tf._keras_internal.utils.control_flow_util.smart_cond(  # pylint:disable=protected-access
         training, lambda: random_shift(
             inputs,
             self.time_shift,

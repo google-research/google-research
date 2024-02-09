@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -602,12 +602,12 @@ def _values_to_distribution_summary(
 ):
   pandas_summary = pd.Series(values).describe()
   return mgpb.SimpleMoleculeFeatures.DistributionSummary(
-      min=pandas_summary['min'],
-      max=pandas_summary['max'],
-      mean=pandas_summary['mean'],
-      median=pandas_summary['50%'],
-      count=pandas_summary['count'],
-      std=pandas_summary['std'])
+      min=pandas_summary.get('min', np.nan),
+      max=pandas_summary.get('max', np.nan),
+      mean=pandas_summary.get('mean', np.nan),
+      median=pandas_summary.get('50%', np.nan),
+      count=pandas_summary.get('count', np.nan),
+      std=pandas_summary.get('std', np.nan),)
 
 
 def proto_to_simple_features(mol_pb):

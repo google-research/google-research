@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ variation obtained via
 The currently implemented variant is the explicit one.
 """
 
-from typing import Any, Callable, Iterable, Optional
+from typing import Any, Callable, Optional, Sequence
 from absl import logging
 
 import flax
@@ -47,7 +47,7 @@ import scipy
 
 from topological_transformer.images import attention as ta
 
-Initializer = Callable[[jnp.ndarray, Iterable[int], jnp.dtype], jnp.ndarray]
+Initializer = Callable[[jnp.ndarray, Sequence[int], jnp.dtype], jnp.ndarray]
 
 
 class AddPositionEmbs(nn.Module):

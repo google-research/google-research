@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,13 +35,13 @@ class Vector:
     self.arr = jnp.array([x, y, z], dtype=dtype)
 
   def x(self):
-    return self.arr[0]
+    return self.arr[0]  # pytype: disable=bad-return-type  # jnp-type
 
   def y(self):
-    return self.arr[1]
+    return self.arr[1]  # pytype: disable=bad-return-type  # jnp-type
 
   def z(self):
-    return self.arr[2]
+    return self.arr[2]  # pytype: disable=bad-return-type  # jnp-type
 
   def array(self):
     return self.arr
@@ -68,10 +68,10 @@ class Vector:
     return Vector(*jnp.cross(self.arr, other.arr))
 
   def dot(self, other):
-    return jnp.dot(self.arr, other.arr)
+    return jnp.dot(self.arr, other.arr)  # pytype: disable=bad-return-type  # jnp-type
 
   def length(self):
-    return jnp.sqrt(jnp.sum(jnp.square(self.arr)))
+    return jnp.sqrt(jnp.sum(jnp.square(self.arr)))  # pytype: disable=bad-return-type  # jax-types
 
   def unit(self):
     return self / self.length()

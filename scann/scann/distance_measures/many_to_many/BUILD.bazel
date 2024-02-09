@@ -38,6 +38,8 @@ cc_library(
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
+        "//scann/utils/intrinsics:attributes",
+        "//scann/utils/intrinsics:fma",
         "//scann/utils/intrinsics:horizontal_sum",
         "//scann/utils/intrinsics:simd",
         "@com_google_absl//absl/base",

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,13 +21,14 @@ from functools import partial  # pylint: disable=g-importing-member
 import logging
 from typing import Any, Callable, Mapping, Optional, Sequence, Tuple, Union
 
+from flax import struct
 from flax.training import common_utils
 import jax
 import jax.numpy as jnp
 import numpy as np
-import seqio
-import t5x
+from seqio.vocabularies import Vocabulary
 from t5x import losses
+from t5x.models import DecoderOnlyModel
 
 from scaling_transformer_inference_efficiency import checkpoint
 from scaling_transformer_inference_efficiency import chunk
@@ -40,7 +41,22 @@ from scaling_transformer_inference_efficiency.layers import one_d_parallel_xmap
 from scaling_transformer_inference_efficiency.layers import two_d_parallel_xmap
 
 
-PyTreeDef = type(jax.tree_util.tree_structure(None))
+PyTree = Any
+
+
+@struct.dataclass
+class TestVocab:
+  eos_id = 0
+  bos_id = 0
+  pad_id = 0
+
+  def encode_tf(self, text):
+    chars = np.array([ord(c) for c in text]).astype(np.int32)
+    return chars
+
+  def decode_tf(self, tokens):
+    results = np.split(tokens, tokens.shape[0])
+    return np.array([[chr(r) for r in list(line[0])] for line in results])
 
 
 class Layout(Enum):
@@ -57,7 +73,6 @@ class ModelConfig:
   size: 8, 62, 540
   quantized:
   generate_steps: Amount of steps to do generation with
-  temperature: sampling temperature
   kv_cache_sharding: the degree of kv cache sharding (0: None, 1: Z, 2: YZ, 3:
     YZX)
   latency_collectives: whether to use latency optimised forms (double compute
@@ -67,6 +82,7 @@ class ModelConfig:
   stream: An object to facilitate streaming back to X (you defined the
     callbacks).
   transpose_scan_axis: transpose if layers was not saved as the leading axis
+  bos_id: Optionally overwrite bos_id to the model.
   """
 
   ckpt_path: str
@@ -80,6 +96,7 @@ class ModelConfig:
   stream: Optional[incremental.StreamClient] = None
   transpose_scan_axis: bool = True
   layout: Layout = Layout.TWO_D
+  bos_id: Optional[int] = None
 
 
 def return_minimal_palm(
@@ -111,6 +128,7 @@ def return_minimal_palm(
         "Either shard seqlen instead of batch or don't shard batch."
     )
 
+  del remat  # for the moment, always remat
   # We have preset sizes
   if cfg.size == 0:
     hparams = checkpoint.HParams.TOY
@@ -163,8 +181,6 @@ def return_minimal_palm(
     # sample_fn = partial(sampling.sample_manual,
     # batch_unsharded=cfg.batch_unsharded)
     sample_fn = sampling.sample
-    if remat is not None:
-      layer_fn = jax.checkpoint(layer_fn, policy=remat, prevent_cse=False)
 
   elif cfg.layout == Layout.ONE_D:
     rules = partitioning.make_rules_one_d()
@@ -180,7 +196,10 @@ def return_minimal_palm(
   else:
     raise NotImplementedError
 
-  the_vocab = checkpoint.load_vocab()
+  if cfg.size == 0:
+    the_vocab = TestVocab()
+  else:
+    the_vocab = checkpoint.load_vocab()
 
   mesh = partitioning.make_mesh(one_d=one_d, devices=devices)
   sharding_config = partitioning.ShardingConfig(
@@ -228,6 +247,7 @@ def return_minimal_palm(
       mesh,
       rules,
       the_vocab,
+      bos_id=cfg.bos_id,
   )
 
   generate_fn = model.instantiate_generating_fn(cfg.generate_steps)
@@ -287,7 +307,7 @@ def ce_loss(
 # pylint: disable = g-bare-generic
 # pylint: disable = invalid-name
 @dataclasses.dataclass
-class InferenceT5X(t5x.models.DecoderOnlyModel):
+class InferenceT5X(DecoderOnlyModel):
   """Creates an API that fits T5X."""
 
   model: incremental.InferenceModel
@@ -295,8 +315,8 @@ class InferenceT5X(t5x.models.DecoderOnlyModel):
   prefill_fn: Callable
   generate_fn: Callable
   _batch_size: int
-  _input_vocabulary: seqio.Vocabulary
-  _output_vocabulary: seqio.Vocabulary
+  _input_vocabulary: Vocabulary
+  _output_vocabulary: Vocabulary
   sample_ids: jax.Array
   max_input_length: int
   max_generate_length: int

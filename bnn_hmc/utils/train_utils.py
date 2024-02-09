@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,7 +34,7 @@ import jax.numpy as jnp
 import tensorflow.compat.v2 as tf
 import numpy as onp
 import functools
-from jax.config import config
+from jax import config
 
 from bnn_hmc.core import hmc
 from bnn_hmc.utils import data_utils
@@ -46,8 +46,8 @@ from bnn_hmc.utils import metrics
 
 def set_up_jax(tpu_ip, use_float64):
   if tpu_ip is not None:
-    config.FLAGS.jax_xla_backend = "tpu_driver"
-    config.FLAGS.jax_backend_target = "grpc://{}:8470".format(tpu_ip)
+    config.update("jax_xla_backend", "tpu_driver")
+    config.update("jax_backend_target", "grpc://{}:8470".format(tpu_ip))
   if use_float64:
     config.update("jax_enable_x64", True)
   tf.config.set_visible_devices([], "GPU")

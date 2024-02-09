@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,10 +65,6 @@ struct KMeansTreeTrainingOptions {
   int32_t min_cluster_size = 1;
 
   int32_t seed = 0;
-
-  bool compute_residual_stdev = false;
-
-  double residual_stdev_min_value = 1e-5;
 };
 
 }  // namespace research_scann

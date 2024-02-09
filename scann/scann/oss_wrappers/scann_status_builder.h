@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -70,7 +70,7 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
 
   template <typename Enum>
   StatusBuilder& SetErrorCode(Enum code) & {
-    status_ = Status(code, status_.error_message());
+    status_ = Status(static_cast<absl::StatusCode>(code), status_.message());
     return *this;
   }
 

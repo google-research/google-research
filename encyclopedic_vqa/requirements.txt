@@ -1,0 +1,10 @@
+# Note that more modern versions of each library will likely work as well.
+# To create a virtual environment with these specific versions, use:
+# $ conda create --name fids python=3.11.2 
+# $ conda activate fids
+# $ pip install -r requirements.txt
+numpy==1.23
+scipy==1.11.1
+tensorflow==2.12.0
+tensorflow_hub==0.13.0
+tensorflow_text==2.12.0

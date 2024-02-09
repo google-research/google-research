@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -184,7 +184,7 @@ Status Searcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
   } else if (opts_.quantization_scheme() ==
              AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     asymmetric_hashing_internal::AddBiasFunctor functor(
-        bias_, query.values_slice().back());
+        bias_, query.values_span().back());
     return FindNeighborsTopNDispatcher<
         asymmetric_hashing_internal::AddBiasFunctor>(query, params, functor,
                                                      result);

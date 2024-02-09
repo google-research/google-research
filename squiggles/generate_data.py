@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ import math
 
 from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
+import jax
 from jax import random
 import jax.numpy as jnp
 from shapely import geometry

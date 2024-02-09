@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -198,7 +198,7 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
   def testNextPowerOfTwo(self):
     self.assertEqual(utils.next_power_of_two(11), 16)
 
-  @parameterized.parameters('att_mh_rnn', 'att_rnn', 'dnn', 'ds_cnn', 'cnn',
+  @parameterized.parameters('dnn', 'ds_cnn', 'cnn',
                             'tc_resnet', 'crnn', 'gru', 'lstm', 'svdf',
                             'mobilenet', 'mobilenet_v2', 'xception',
                             'inception', 'inception_resnet', 'ds_tc_resnet')
@@ -216,7 +216,8 @@ class UtilsTest(tf.test.TestCase, parameterized.TestCase):
       'gru',
       'lstm',
       'svdf',
-      'bc_resnet'
+      'bc_resnet',
+      'bc_resnet_causal',
   )
   def test_external_streaming_shapes(self, model_name):
     model = utils.get_model_with_default_params(

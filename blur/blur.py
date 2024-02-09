@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ class OjasSpec:
   use_synapse_weights: bool = False
 
 Protocol = typing_extensions.Protocol
-Tensor = Union[tf.Tensor, np.ndarray, jp.array]
+Tensor = Union[tf.Tensor, np.ndarray, jp.ndarray]
 ActivationFn = Callable[[Tensor], Tensor]
 
 # Incorporates synaptic update for fully connected layers
@@ -543,7 +543,7 @@ def single_synaptic_update(
     # Input channels are +1 to include "1" channel to simulate bias.
     input_layer = env.concat_row(input_layer)
     include_bias = True
-  subsynapse = synapse_util.synapse_submatrix(
+  subsynapse = synapse_util.synapse_submatrix(  # pytype: disable=wrong-arg-types  # use-enum-overlay
       synapse,
       in_channels=in_channels,
       update_type=update_type,

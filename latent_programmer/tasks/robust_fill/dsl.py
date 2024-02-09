@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -60,6 +60,19 @@ class Case(enum.Enum):
 class Boundary(enum.Enum):
   START = 1
   END = 2
+
+
+def to_python(obj):
+  if isinstance(obj, (Type, Case, Boundary)):
+    return f'dsl.{obj.__class__.__name__}.{obj.name}'
+  elif isinstance(obj, (int, str)):
+    return repr(obj)
+  else:
+    raise ValueError(f'Unhandled object: {obj}')
+
+
+def to_python_args(*objs):
+  return ', '.join(to_python(obj) for obj in objs)
 
 
 Regex = TypeVar('Regex', Type, str)
@@ -143,9 +156,24 @@ class Concat(Program):
     return (functools.reduce(lambda a, b: a + b, sub_token_ids)
             + [token_id_table[EOS]])
 
+  def to_python_program(self, name = 'program', version = 1):
+    if version == 1:
+      code_lines = []
+      code_lines.append(f'def {name}(x):')
+      code_lines.append('  parts = [')
+      for e in self.expressions:
+        code_lines.append(f'      {e.to_python_expression()},')
+      code_lines.append('  ]')
+      code_lines.append("  return ''.join(parts)")
+      return '\n'.join(code_lines)
+    else:
+      raise ValueError(f'Unhandled version: {version}')
+
 
 class Expression(Base):
-  pass
+
+  def to_python_expression(self):
+    raise NotImplementedError()
 
 
 class Substring(Expression):
@@ -176,6 +204,12 @@ class Compose(Expression):
             + self.modification.encode(token_id_table)
             + self.modification_or_substring.encode(token_id_table))
 
+  def to_python_expression(self):
+    # Every operation's expression has x as the first argument, except ConstStr
+    # which is not allowed in Compose.
+    return self.modification.to_python_expression().replace(
+        '(x', '(' + self.modification_or_substring.to_python_expression())
+
 
 class ConstStr(Expression):
   """Fixed character."""
@@ -191,6 +225,9 @@ class ConstStr(Expression):
 
   def encode(self, token_id_table):
     return [token_id_table[self.__class__], token_id_table[self.char]]
+
+  def to_python_expression(self):
+    return f'dsl.Const({to_python_args(self.char)})'
 
 
 class SubStr(Substring):
@@ -221,6 +258,10 @@ class SubStr(Substring):
         token_id_table[self.pos2],
     ]
 
+  def to_python_expression(self):
+    args = to_python_args(self.pos1, self.pos2)
+    return f'dsl.SubStr(x, {args})'
+
 
 class GetSpan(Substring):
   """Return substring given indices of regex matches."""
@@ -234,8 +275,7 @@ class GetSpan(Substring):
     self.index2 = index2
     self.bound2 = bound2
 
-  @staticmethod
-  def _index(r, index, bound,
+  def _index(self, r, index, bound,
              value):
     """Get index in string of regex match."""
     matches = match_regex_span(r, value)
@@ -253,8 +293,8 @@ class GetSpan(Substring):
     return span[0] if bound == Boundary.START else span[1]
 
   def __call__(self, value):
-    p1 = GetSpan._index(self.regex1, self.index1, self.bound1, value)
-    p2 = GetSpan._index(self.regex2, self.index2, self.bound2, value)
+    p1 = self._index(self.regex1, self.index1, self.bound1, value)
+    p2 = self._index(self.regex2, self.index2, self.bound2, value)
 
     if min(p1, p2) < 0:  # pytype: disable=unsupported-operands
       return ''
@@ -279,6 +319,11 @@ class GetSpan(Substring):
                      self.regex2,
                      self.index2,
                      self.bound2]))
+
+  def to_python_expression(self):
+    args = to_python_args(self.regex1, self.index1, self.bound1,
+                          self.regex2, self.index2, self.bound2)
+    return f'dsl.GetSpan(x, {args})'
 
 
 class GetToken(Substring):
@@ -309,6 +354,10 @@ class GetToken(Substring):
         token_id_table[self.index],
     ]
 
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type, self.index)
+    return f'dsl.GetToken(x, {args})'
+
 
 class ToCase(Modification):
   """Convert to case."""
@@ -332,6 +381,10 @@ class ToCase(Modification):
   def encode(self, token_id_table):
     return [token_id_table[self.__class__], token_id_table[self.case]]
 
+  def to_python_expression(self):
+    args = to_python_args(self.case)
+    return f'dsl.ToCase(x, {args})'
+
 
 class Replace(Modification):
   """Replace delimitors."""
@@ -353,6 +406,10 @@ class Replace(Modification):
         token_id_table[self.delim2],
     ]
 
+  def to_python_expression(self):
+    args = to_python_args(self.delim1, self.delim2)
+    return f'dsl.Replace(x, {args})'
+
 
 class Trim(Modification):
   """Trim whitspace."""
@@ -368,6 +425,9 @@ class Trim(Modification):
 
   def encode(self, token_id_table):
     return [token_id_table[self.__class__]]
+
+  def to_python_expression(self):
+    return 'dsl.Trim(x)'
 
 
 class GetUpto(Substring):
@@ -390,6 +450,10 @@ class GetUpto(Substring):
   def encode(self, token_id_table):
     return [token_id_table[self.__class__], token_id_table[self.regex]]
 
+  def to_python_expression(self):
+    args = to_python_args(self.regex)
+    return f'dsl.GetUpto(x, {args})'
+
 
 class GetFrom(Substring):
   """Get substring from regex match."""
@@ -410,6 +474,10 @@ class GetFrom(Substring):
 
   def encode(self, token_id_table):
     return [token_id_table[self.__class__], token_id_table[self.regex]]
+
+  def to_python_expression(self):
+    args = to_python_args(self.regex)
+    return f'dsl.GetFrom(x, {args})'
 
 
 class GetFirst(Modification):
@@ -437,6 +505,10 @@ class GetFirst(Modification):
         token_id_table[self.index],
     ]
 
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type, self.index)
+    return f'dsl.GetFirst(x, {args})'
+
 
 class GetAll(Modification):
   """Get all occurrences of regex match."""
@@ -452,6 +524,10 @@ class GetAll(Modification):
 
   def encode(self, token_id_table):
     return [token_id_table[self.__class__], token_id_table[self.regex_type]]
+
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type)
+    return f'dsl.GetAll(x, {args})'
 
 
 # New Functions
@@ -489,6 +565,10 @@ class Substitute(Modification):
         token_id_table[self.char],
     ]
 
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type, self.index, self.char)
+    return f'dsl.Substitute(x, {args})'
+
 
 class SubstituteAll(Modification):
   """Replace all occurences of regex match with constant."""
@@ -513,6 +593,10 @@ class SubstituteAll(Modification):
         token_id_table[self.regex_type],
         token_id_table[self.char],
     ]
+
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type, self.char)
+    return f'dsl.SubstituteAll(x, {args})'
 
 
 class Remove(Modification):
@@ -543,6 +627,10 @@ class Remove(Modification):
         token_id_table[self.index],
     ]
 
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type, self.index)
+    return f'dsl.Remove(x, {args})'
+
 
 class RemoveAll(Modification):
   """Remove all occurences of regex match."""
@@ -565,6 +653,10 @@ class RemoveAll(Modification):
         token_id_table[self.__class__],
         token_id_table[self.regex_type],
     ]
+
+  def to_python_expression(self):
+    args = to_python_args(self.regex_type)
+    return f'dsl.RemoveAll(x, {args})'
 
 
 def decode_expression(encoding,

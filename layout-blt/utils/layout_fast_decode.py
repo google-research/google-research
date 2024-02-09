@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,14 +32,14 @@ EOS_ID = 2
 class State:
   """Holds decoding state data."""
   # The position of the decoding loop in the length dimension.
-  cur_index: jnp.DeviceArray  # scalar int32: current decoded length index
+  cur_index: jax.Array  # scalar int32: current decoded length index
   # The active sequence log probabilities and finished sequence scores.
-  cur_seqs: jnp.DeviceArray  # int32: [batch_size, max_decode_len]
+  cur_seqs: jax.Array  # int32: [batch_size, max_decode_len]
   # Records which of the 'finished_seqs' is occupied and not a filler slot.
-  finished_flags: jnp.DeviceArray  # bool: [batch_size]
+  finished_flags: jax.Array  # bool: [batch_size]
   # The current state of the autoregressive decoding caches.
   cache: Any  # Any pytree of arrays, e.g. flax attention Cache object.
-  rng: jnp.DeviceArray  # Sampling random state.
+  rng: jax.Array  # Sampling random state.
 
 
 def state_init(batch_size, max_decode_len, cache, rng):

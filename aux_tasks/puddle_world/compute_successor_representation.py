@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,7 +39,7 @@ from aux_tasks.puddle_world import puddle_world
 from aux_tasks.puddle_world import utils as pw_utils
 
 _ARENA_NAME = flags.DEFINE_enum(
-    'arena_name', 'hydrogen', arenas.ARENA_NAMES,
+    'arena_name', 'sutton', arenas.ARENA_NAMES,
     'The name of the arena to load.')
 _NUM_BINS = flags.DEFINE_integer(
     'num_bins', 10,

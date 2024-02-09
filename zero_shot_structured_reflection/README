@@ -1,0 +1,15 @@
+
+---
+
+Implementation of our EMNLP Findings 2023 paper: A Zero-Shot Language Agent for Computer Controlwith Structured Reflection
+```
+@inproceedings{li2023zeroshotstructuredreflection,
+      author    = {Li, Tao and Li, Gang and Deng, Zhiwei and Wang, Bryan and Li, Yang},
+      title     = {A Zero-Shot Language Agent for Computer Controlwith Structured Reflection},
+      booktitle = {Findings of EMNLP},
+      year      = {2023}
+  }
+```
+---
+
+# Code and notebook will be released soon! Thank you for your interest!

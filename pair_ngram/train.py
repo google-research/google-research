@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -182,11 +182,13 @@ class RandomStart:
     logging.debug("Subprocess call:\t%s", " ".join(cmd))
     with subprocess.Popen(cmd, stderr=subprocess.PIPE, text=True) as proc:
       for line in proc.stderr:  # type: ignore
-        match = re.match(
-            r"INFO:\s+Iteration\s+(\d+):\s+(-?\d*(\.\d*)?)",
+        match = re.fullmatch(
+            r"INFO: Iteration (\d+) total likelihood:\s+(-?\d*(\.\d*)?)",
             line.rstrip(),
         )
-        assert match, line
+        if not match:
+          # Usually a log of the step's likelihood.
+          continue
         iteration = int(match.group(1))
         likelihood = float(match.group(2))
         logging.debug(
@@ -347,8 +349,10 @@ def _train_aligner(
   return best_aligner_path
 
 
-def _align(ifar_path: str, ofar_path: str, afst_path: str) -> str:
-  """Computes the alignments FAR.
+def _align_encode(
+    ifar_path: str, ofar_path: str, afst_path: str
+) -> Tuple[str, str]:
+  """Computes the unweighted alignments FAR.
 
   Args:
     ifar_path: path to the input FAR.
@@ -356,30 +360,32 @@ def _align(ifar_path: str, ofar_path: str, afst_path: str) -> str:
     afst_path: path to the aligner FST.
 
   Returns:
-    The path to the alignments FAR.
+     A (path to the encoded FAR, path to the encoder) tuple.
   """
   afar_path = _mktemp("a.far")
   _log_check_call(
       ["baumwelchdecode", ifar_path, ofar_path, afst_path, afar_path])
   _rmtemp(ifar_path)
   _rmtemp(ofar_path)
-  return afar_path
-
-
-def _encode(afar_path: str) -> Tuple[str, str]:
-  """Encodes the alignments FAR.
-
-  Args:
-    afar_path: path to the alignments FAR.
-
-  Returns:
-     A (path to the encoded FAR, path to the encoder) tuple.
-  """
   efar_path = _mktemp("e.far")
-  encoder_path = _mktemp("encoder")
-  _log_check_call(
-      ["farencode", "--encode_labels", afar_path, encoder_path, efar_path])
+  reader = pywrapfst.FarReader.open(afar_path)
+  writer = pywrapfst.FarWriter.create(efar_path)
+  mapper = pywrapfst.EncodeMapper(reader.arc_type(), encode_labels=True)
+  while not reader.done():
+    # Removes weights, encodes labels, and compacts. One can convert to the
+    # most compact representation possible by doing this all at once.
+    fst = pywrapfst.arcmap(reader.get_fst(), map_type="rmweight")
+    fst.encode(mapper)
+    fst = pywrapfst.convert(fst, "compact_string")
+    writer.add(reader.get_key(), fst)
+    reader.next()
+  assert not reader.error()
+  del reader
+  assert not writer.error()
+  del writer
   _rmtemp(afar_path)
+  encoder_path = _mktemp("encoder")
+  mapper.write(encoder_path)
   return efar_path, encoder_path
 
 
@@ -447,10 +453,8 @@ def main(args: argparse.Namespace) -> None:
       args.alpha,
       args.max_iters,
   )
-  logging.info("Aligning data")
-  afar_path = _align(ifar_path, ofar_path, aligner_path)
-  logging.info("Encoding alignments")
-  efar_path, encoder_path = _encode(afar_path)
+  logging.info("Aligning and encoding data")
+  efar_path, encoder_path = _align_encode(ifar_path, ofar_path, aligner_path)
   logging.info("Compiling pair n-gram model")
   _compile_pair_ngram(efar_path, encoder_path, args.fst, args.order, args.size)
 

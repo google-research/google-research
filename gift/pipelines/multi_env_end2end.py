@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -155,9 +155,9 @@ class MultiEnvReps2RepsWithHungarianMatching(MultiEnvReps2Reps):
     """Computes alignments between all environment pairs.
 
     Args:
-      env_reps: jnp array; Reps for different environments (sharded).
+      env_reps: jnp.ndarray; Reps for different environments (sharded).
       env_batches: list of dict; Batches of different environments (sharded).
-      env_ids: jnp array; Environment ids.
+      env_ids: jnp.ndarray; Environment ids.
 
     Returns:
       alignment between batches of environment pairs (sharded).

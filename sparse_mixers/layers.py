@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,7 +17,7 @@
 
 import functools
 import math
-from typing import Any, Callable, Optional, Iterable
+from typing import Any, Callable, Optional, Sequence
 
 from absl import logging
 import flax
@@ -32,7 +32,7 @@ from sparse_mixers import routing
 
 # Type Stubs
 PRNGKey = Any
-Shape = Iterable[int]
+Shape = Sequence[int]
 
 default_kernel_init = nn.initializers.normal(stddev=2e-2)
 default_bias_init = nn.initializers.zeros
@@ -470,7 +470,7 @@ class MoeLayer(GeneralizedFeedForwardLayer):
     router_confidence = (
         router_indices.combine_weights.sum() / num_tokens_dispatched)
 
-    self._sow_expert_metrics(router_indices.auxiliary_loss,
+    self._sow_expert_metrics(router_indices.auxiliary_loss,  # pytype: disable=wrong-arg-types  # jax-types
                              router_indices.router_z_loss,
                              fraction_tokens_left_behind, router_confidence,
                              expert_usage)
@@ -541,7 +541,7 @@ class MoeLayer(GeneralizedFeedForwardLayer):
       total_expert_capacity = self.num_experts * expert_capacity * num_groups
       expert_usage = num_tokens_dispatched / total_expert_capacity
 
-    self._sow_expert_metrics(router_mask.auxiliary_loss,
+    self._sow_expert_metrics(router_mask.auxiliary_loss,  # pytype: disable=wrong-arg-types  # jnp-type
                              router_mask.router_z_loss,
                              fraction_tokens_left_behind, router_confidence,
                              expert_usage)
@@ -851,7 +851,7 @@ class LinearTransform(MixingLayer):
     mat_seq = self.param("input_kernel", self.kernel_init,
                          (input_emb.shape[-2], input_emb.shape[-2]))
 
-    return jnp.einsum(
+    return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
         "bij,jk,ni->bnk",
         input_emb,
         mat_hidden,
@@ -1277,7 +1277,7 @@ class EmbeddingLayer(nn.Module):
         embedding_init=default_kernel_init,
         name="word")(
             input_ids)
-    position_embeddings = PositionalEncoding(
+    position_embeddings = PositionalEncoding(  # pytype: disable=wrong-arg-types  # jax-types
         seq_length=self.config.max_seq_length,
         posemb_init=default_kernel_init,
         name="position")(

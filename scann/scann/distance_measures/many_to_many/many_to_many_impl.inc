@@ -1,51 +1,5 @@
 
 
-template <typename T>
-SCANN_SIMD_INLINE T FusedMultiplyAdd(T a, T b, T acc) {
-  if constexpr (IsSame<T, Avx2<float>>()) {
-    return _mm256_fmadd_ps(*a, *b, *acc);
-  }
-  if constexpr (IsSame<T, Avx2<double>>()) {
-    return _mm256_fmadd_pd(*a, *b, *acc);
-  }
-  if constexpr (IsSame<T, Avx512<float>>()) {
-    return _mm512_fmadd_ps(*a, *b, *acc);
-  }
-  if constexpr (IsSame<T, Avx512<double>>()) {
-    return _mm512_fmadd_pd(*a, *b, *acc);
-  }
-
-  return acc + (a * b);
-}
-
-template <typename T>
-SCANN_SIMD_INLINE void FusedMultiplyAdd(T a, T b, T* acc) {
-  *acc = FusedMultiplyAdd(a, b, *acc);
-}
-
-template <typename T>
-SCANN_SIMD_INLINE T FusedMultiplySubtract(T a, T b, T acc) {
-  if constexpr (IsSame<T, Avx2<float>>()) {
-    return _mm256_fnmadd_ps(*a, *b, *acc);
-  }
-  if constexpr (IsSame<T, Avx2<double>>()) {
-    return _mm256_fnmadd_pd(*a, *b, *acc);
-  }
-  if constexpr (IsSame<T, Avx512<float>>()) {
-    return _mm512_fnmadd_ps(*a, *b, *acc);
-  }
-  if constexpr (IsSame<T, Avx512<double>>()) {
-    return _mm512_fnmadd_pd(*a, *b, *acc);
-  }
-
-  return acc - (a * b);
-}
-
-template <typename T>
-SCANN_SIMD_INLINE void FusedMultiplySubtract(T a, T b, T* acc) {
-  *acc = FusedMultiplySubtract(a, b, *acc);
-}
-
 template <typename T, size_t... kNumElements>
 SCANN_SIMD_INLINE Simd<T, index_sequence_sum_v<kNumElements...>> SimdConcat(
     const Simd<T, kNumElements>&... inputs) {
@@ -369,7 +323,40 @@ class DenseManyToManyTransposedBase : public VirtualDestructor {
   virtual void MidLevelBatch(size_t first_q_idx, size_t num_queries,
                              size_t first_dp_idx, size_t num_datapoints) = 0;
 
+ protected:
+  template <typename F>
+  static const F* DatabaseToPtr(const DenseDataset<F>& db) {
+    return db[0].values();
+  }
+
+  static const FP8SimdBlockTransposedDatabase* DatabaseToPtr(
+      const FP8SimdBlockTransposedDatabase& db) {
+    return &db;
+  }
+
  private:
+  template <size_t kNumQueries, typename AccumulatorT, typename CallbackT>
+  SCANN_SIMD_INLINE static void PassResultsToCallback(
+      const AccumulatorT& accumulators, CallbackT& callback, size_t first_q_idx,
+      size_t first_dp_idx, size_t num_datapoints) {
+    if constexpr (IsOptimizedCallback<CallbackT>::value) {
+      if (ABSL_PREDICT_TRUE(num_datapoints == 2 * kElementsPerRegister)) {
+        for (size_t j : Seq(kNumQueries)) {
+          const size_t query_idx = first_q_idx + j;
+          callback.InvokeOptimized(accumulators[j], first_dp_idx, query_idx);
+        }
+        return;
+      }
+    }
+
+    auto results = accumulators.Store();
+    for (size_t j : Seq(kNumQueries)) {
+      auto query_results = MakeMutableSpan(results[j].data(), num_datapoints);
+      const size_t query_idx = first_q_idx + j;
+      callback(query_results, first_dp_idx, query_idx);
+    }
+  }
+
   const size_t dimensionality_;
 
   const FloatT* queries_;
@@ -408,7 +395,7 @@ class DenseManyToManyTransposed final
                                          const DatabaseT& database,
                                          ThreadPool* pool, CallbackT callback)
       : Base(queries, database.size(), pool),
-        database_(DatabaseToPtr(database)),
+        database_(Base::DatabaseToPtr(database)),
         callback_(std::move(callback)) {
     CHECK_EQ(queries.dimensionality(), database.dimensionality());
     if constexpr (!kIsPretransposedFixed8) {
@@ -504,23 +491,8 @@ class DenseManyToManyTransposed final
     auto accumulators = DoAccumulationTransposedTemplate<kNumQueries>(
         transposed_ptr0, transposed_ptr1, query_ptrs, query_norms,
         dimensionality);
-
-    if constexpr (IsOptimizedCallback<CallbackT>::value) {
-      if (ABSL_PREDICT_TRUE(num_datapoints == 2 * kElementsPerRegister)) {
-        for (size_t j : Seq(kNumQueries)) {
-          const size_t query_idx = first_q_idx + j;
-          callback.InvokeOptimized(accumulators[j], first_dp_idx, query_idx);
-        }
-        return;
-      }
-    }
-
-    auto results = accumulators.Store();
-    for (size_t j : Seq(kNumQueries)) {
-      auto query_results = MakeMutableSpan(results[j].data(), num_datapoints);
-      const size_t query_idx = first_q_idx + j;
-      callback(query_results, first_dp_idx, query_idx);
-    }
+    Base::template PassResultsToCallback<kNumQueries>(
+        accumulators, callback, first_q_idx, first_dp_idx, num_datapoints);
   }
 
   template <size_t kNumQueries>
@@ -564,15 +536,6 @@ class DenseManyToManyTransposed final
   }
 
  private:
-  template <typename F>
-  const F* DatabaseToPtr(const DenseDataset<F>& db) {
-    return db[0].values();
-  }
-  const FP8SimdBlockTransposedDatabase* DatabaseToPtr(
-      const FP8SimdBlockTransposedDatabase& db) {
-    return &db;
-  }
-
   const DatabasePtrT database_;
   CallbackT callback_;
 };

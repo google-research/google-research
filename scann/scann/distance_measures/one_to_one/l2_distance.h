@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -61,8 +61,7 @@ struct Square {
 
 template <typename T>
 inline double SquaredL2Norm(const DatapointPtr<T>& a) {
-  return DenseSingleAccumulate(a.values_slice(),
-                               l2_distance_internal::Square());
+  return DenseSingleAccumulate(a.values_span(), l2_distance_internal::Square());
 }
 
 class SquaredL2Distance final : public DistanceMeasure {
@@ -226,11 +225,6 @@ inline double DenseSquaredL2Distance<double, double>(
 }
 
 #endif
-
-template <typename T, typename U>
-double DenseSquaredL2Norm(const DatapointPtr<T>& a, const DatapointPtr<U>& b) {
-  return DenseSquaredL2Distance(a, b);
-}
 
 }  // namespace research_scann
 

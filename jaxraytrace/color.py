@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,13 +36,13 @@ class Color:
     self.arr = jnp.array([r, g, b], dtype=jnp.float32)
 
   def r(self):
-    return self.arr[0]
+    return self.arr[0]  # pytype: disable=bad-return-type  # jnp-type
 
   def g(self):
-    return self.arr[1]
+    return self.arr[1]  # pytype: disable=bad-return-type  # jnp-type
 
   def b(self):
-    return self.arr[2]
+    return self.arr[2]  # pytype: disable=bad-return-type  # jnp-type
 
   def array(self):
     return self.arr

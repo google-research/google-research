@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -38,9 +38,9 @@ def align_examples(rng, x, x_index, y):
 
   Args:
     rng: an array of jax PRNG keys.
-    x: jnp.array; Matrix of shape `[N, M]`.
-    x_index: jnp.array; Vector of shape `[N,]`.
-    y: jnp.array; Matrix of shape `[N, M]`.
+    x: jnp.ndarray; Matrix of shape `[N, M]`.
+    x_index: jnp.ndarray; Vector of shape `[N,]`.
+    y: jnp.ndarray; Matrix of shape `[N, M]`.
 
   Returns:
     indices of aligned pairs.

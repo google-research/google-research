@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,7 +75,7 @@ def _pmap_preprocess_batch(batch,
   return jax.tree_map(reshape_arr, batch)
 
 
-@chex.dataclass
+@flax.struct.dataclass
 class TrainState:
   optimizer: flax.optim.Optimizer
   step: chex.Array
@@ -83,22 +83,6 @@ class TrainState:
   # parameters for handling outlier rejection
   ema_loss: chex.Array
   ema_variance: chex.Array
-
-
-def _serialize_state(state):
-  return {k: flax.serialization.to_state_dict(v) for k, v in state.items()}
-
-
-def _unserialize_state_dict(ty, state_dict):
-  args = {
-      k: flax.serialization.from_state_dict(getattr(ty, k), v)
-      for k, v in state_dict.items()
-  }
-  return TrainState(**args)
-
-
-flax.serialization.register_serialization_state(TrainState, _serialize_state,
-                                                _unserialize_state_dict)
 
 
 def _get_batch_size(batch):

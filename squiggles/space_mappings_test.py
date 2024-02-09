@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -141,7 +141,7 @@ class RescalePointsTest(absltest.TestCase):
 
   def test_x_dominates(self):
     input_array = np.array([[(-1, 0), (0, 0), (1, 1)]], dtype=np.float32)
-    output = space_mappings.rescale_points(input_array, margin=0.0)
+    output = space_mappings.rescale_points(input_array, margin=0.0)  # pytype: disable=wrong-arg-types  # jax-ndarray
     # Scale everything by factor of 0.5. (Also translate.)
     expected_output = np.array([[(0, 0.25), (0.5, 0.25), (1, 0.75)]],
                                dtype=np.float32)
@@ -150,7 +150,7 @@ class RescalePointsTest(absltest.TestCase):
 
   def test_y_dominates(self):
     input_array = np.array([[(0, 0), (0, 2), (1, 1)]], dtype=np.float32)
-    output = space_mappings.rescale_points(input_array, margin=0.0)
+    output = space_mappings.rescale_points(input_array, margin=0.0)  # pytype: disable=wrong-arg-types  # jax-ndarray
     # Scale everything by factor of 0.5. (Also translate.)
     expected_output = np.array([[(0.25, 0), (0.25, 1), (0.75, 0.5)]],
                                dtype=np.float32)
@@ -159,7 +159,7 @@ class RescalePointsTest(absltest.TestCase):
 
   def test_margin(self):
     input_array = np.array([[(0, 0), (1, 1), (2, 2)]], dtype=np.float32)
-    output = space_mappings.rescale_points(input_array)  # default margin is 0.1
+    output = space_mappings.rescale_points(input_array)  # default margin is 0.1  # pytype: disable=wrong-arg-types  # jax-ndarray
     # Scale everything to fit inside [0.1, 0.9] x [0.1, 0.9].
     expected_output = np.array([[(0.1, 0.1), (0.5, 0.5), (0.9, 0.9)]],
                                dtype=np.float32)
@@ -174,7 +174,7 @@ class RescalePointsTest(absltest.TestCase):
             [(0, 0), (1, 1), (2, 2)]
         ],
         dtype=np.float32)
-    output = space_mappings.rescale_points(input_array, margin=0.0)
+    output = space_mappings.rescale_points(input_array, margin=0.0)  # pytype: disable=wrong-arg-types  # jax-ndarray
     expected_output = np.array(
         [
             [(0, 0), (0.5, 0), (1, 1)],  #

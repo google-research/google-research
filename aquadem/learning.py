@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -222,24 +222,25 @@ def _generate_aquadem_samples(
 class AquademLearner(acme.Learner):
   """Aquadem learner."""
 
-  def __init__(self,
-               random_key,
-               discrete_rl_learner_factory,
-               iterator,
-               demonstrations_iterator,
-               optimizer,
-               make_demonstrations,
-               networks,
-               encoder_num_steps,
-               encoder_batch_size,
-               encoder_eval_every,
-               temperature,
-               demonstration_ratio,
-               min_demo_reward,
-               num_actions,
-               counter = None,
-               logger = None):
-
+  def __init__(
+      self,
+      random_key,
+      discrete_rl_learner_factory,
+      iterator,
+      demonstrations_iterator,
+      optimizer,
+      make_demonstrations,
+      networks,
+      encoder_num_steps,
+      encoder_batch_size,
+      encoder_eval_every,
+      temperature,
+      demonstration_ratio,
+      min_demo_reward,
+      num_actions,
+      counter = None,
+      logger = None,
+  ):
     random_key, key1 = jax.random.split(random_key, 2)
     demonstrations = make_demonstrations(
         encoder_batch_size * encoder_eval_every)

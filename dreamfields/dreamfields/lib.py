@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -92,7 +92,7 @@ class DreamField:
     del encode_text, tokenize_fn  # Clean up text encoder.
 
     ## Scene origin manually tracked
-    scene_origin = scene.EMA(np.zeros(3, dtype=np.float64), decay=0.999)
+    scene_origin = scene.EMA(np.zeros(3, dtype=np.float64), decay=0.999)  # pytype: disable=wrong-arg-types  # dataclasses-replace
 
     def train_step(state, rays, key, *multistep_constants):
       """Perform a training iteration, optionally composed of multiple substeps.
@@ -241,7 +241,7 @@ class DreamField:
     logging.info('n_device %d', n_device)
     ## Modified NeRF architecture, with swish, softplus, skips.
     variables, render_rays = helpers.init_nerf_model(rng.advance(1), config)
-    state = flax.optim.Adam(config.lr0, eps=config.adam_eps).create(variables)
+    state = flax.optim.Adam(config.lr0, eps=config.adam_eps).create(variables)  # pytype: disable=module-attr  # dataclasses-replace
 
     ## Try to restore a checkpoint.
     restore_dir = config.get('restore_dir', experiment_dir)
@@ -524,7 +524,7 @@ class DreamField:
         disparity = log.plot_to_image(fig)
         step_images['render/disparity'] = disparity
 
-        writer.write_images(step=l, images=step_images)
+        writer.write_images(step=l, images=step_images)  # pytype: disable=wrong-arg-types  # dataclasses-replace
 
       if config.render_lq_video and (i == config.iters or config.video_every and
                                      i % config.video_every == 0):
@@ -548,7 +548,7 @@ class DreamField:
               None, video, 'frames', label, l, work_unit_dir, scale=scale)
 
       if i % config.log_scalars_every == 0:
-        writer.write_scalars(step=l, scalars=scalars)
+        writer.write_scalars(step=l, scalars=scalars)  # pytype: disable=wrong-arg-types  # dataclasses-replace
 
       if i % config.flush_every == 0:
         writer.flush()
@@ -558,7 +558,7 @@ class DreamField:
         helpers.defragment()
 
       if config.get('checkpoint_every') and i % config.checkpoint_every == 0:
-        saved_path = checkpoints.save_checkpoint(
+        saved_path = checkpoints.save_checkpoint(  # pytype: disable=wrong-arg-types  # dataclasses-replace
             ckpt_dir=work_unit_dir,
             target={
                 'state': flax.jax_utils.unreplicate(state),

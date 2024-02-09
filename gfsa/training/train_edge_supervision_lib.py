@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -499,7 +499,7 @@ def add_rng_to_examples(
   Yields:
     Examples that are tuples (orig_example, rng)
   """
-  base_rng = jax.device_put(base_rng, jax.devices("cpu")[0])
+  base_rng = jax.device_put(base_rng, jax.local_devices(backend="cpu")[0])
   for i, item in enumerate(example_iter):
     rng = jax.random.fold_in(base_rng, i)
     yield dataclasses.replace(item, example=(item.example, rng))

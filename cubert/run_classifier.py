@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -934,7 +934,7 @@ def main(_):
       # later on. These do NOT count towards the metric (all tf.metrics
       # support a per-instance weight, and these get a weight of 0.0).
       while len(eval_examples) % FLAGS.eval_batch_size != 0:
-        eval_examples.append(PaddingInputExample())
+        eval_examples.append(PaddingInputExample())  # pytype: disable=attribute-error  # always-use-return-annotations
 
     eval_file = os.path.join(FLAGS.output_dir, "eval.tf_record")
     file_based_convert_examples_to_features(eval_examples, label_list,
@@ -980,7 +980,7 @@ def main(_):
       # will get dropped. So we pad with fake examples which are ignored
       # later on.
       while len(predict_examples) % FLAGS.predict_batch_size != 0:
-        predict_examples.append(PaddingInputExample())
+        predict_examples.append(PaddingInputExample())  # pytype: disable=attribute-error  # always-use-return-annotations
 
     predict_file = os.path.join(FLAGS.output_dir, "predict.tf_record")
     file_based_convert_examples_to_features(predict_examples, label_list,

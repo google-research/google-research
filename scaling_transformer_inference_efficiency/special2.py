@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,8 @@ def exp2(x):
     2.0^x.
   """
   # NOTE(reinerp): This version generates more efficient TPU code than jnp.exp2.
-  return lax.pow(jnp.float32(2.0), x)
+  two = jnp.float32(2.0)
+  return lax.pow(two.astype(x.dtype), x)
 
 
 def softmax2(x, axis = -1):

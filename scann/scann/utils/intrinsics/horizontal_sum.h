@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,6 +66,15 @@ SCANN_INLINE void HorizontalSum2X(Sse4<FloatT> a, Sse4<FloatT> b,
                                   FloatT* resulta, FloatT* resultb) {
   *resulta = HorizontalSum(a);
   *resultb = HorizontalSum(b);
+}
+
+template <typename FloatT>
+SCANN_INLINE void HorizontalSum3X(Sse4<FloatT> a, Sse4<FloatT> b,
+                                  Sse4<FloatT> c, FloatT* resulta,
+                                  FloatT* resultb, FloatT* resultc) {
+  *resulta = HorizontalSum(a);
+  *resultb = HorizontalSum(b);
+  *resultc = HorizontalSum(c);
 }
 
 template <typename FloatT>
@@ -209,6 +218,14 @@ SCANN_AVX512_INLINE void HorizontalSum2X(Avx512<double> a, Avx512<double> b,
                                          double* resulta, double* resultb) {
   *resulta = _mm512_reduce_add_pd(*a);
   *resultb = _mm512_reduce_add_pd(*b);
+}
+
+SCANN_AVX512_INLINE void HorizontalSum3X(Avx512<float> a, Avx512<float> b,
+                                         Avx512<float> c, float* resulta,
+                                         float* resultb, float* resultc) {
+  *resulta = _mm512_reduce_add_ps(*a);
+  *resultb = _mm512_reduce_add_ps(*b);
+  *resultc = _mm512_reduce_add_ps(*c);
 }
 
 SCANN_AVX512_INLINE void HorizontalSum4X(Avx512<float> a, Avx512<float> b,

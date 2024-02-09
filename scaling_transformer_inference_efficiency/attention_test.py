@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -151,7 +151,7 @@ class AttentionTest(absltest.TestCase):
           k=full_cache_k[:, :, :split_point, :],
           v=full_cache_v[:, :, :split_point, :],
           lengths=jnp.broadcast_to(split_point, (batch,)),
-          offset=jnp.array([0])
+          offset=0,
       )
       result = attention.attend(full_q[:, split_point:, :, :],
                                 full_k[:, split_point:, :],

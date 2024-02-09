@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,8 +66,7 @@ class NodeTypeNodeEmbedding(flax.deprecated.nn.Module):
 def positional_node_embedding(
     num_nodes,
     embedding_dim,
-    period_scale,
-    tie_in_with = None):
+    period_scale):
   """Positional embedding of nodes.
 
   Note that for program graphs this will be a pre-order traversal of the AST,
@@ -77,9 +76,6 @@ def positional_node_embedding(
     num_nodes: How many nodes to compute embeddings for.
     embedding_dim: Size of the embedding layer. Must be even.
     period_scale: Scale of the largest period, measured in nodes.
-    tie_in_with: Arbitrary optional NDArray; if this is a traced value, then we
-      delay computation of the embeddings until running the XLA computation.
-      This can reduce memory usage slightly.
 
   Returns:
       <float32[num_nodes, embedding_dim]> embedding array.
@@ -88,9 +84,6 @@ def positional_node_embedding(
     raise ValueError("Positional embedding requires embedding_dim to be even.")
   arange_nodes = jnp.arange(num_nodes)
   arange_embedding = jnp.arange(embedding_dim // 2)
-  if tie_in_with is not None:
-    arange_nodes = jax.lax.tie_in(tie_in_with, arange_nodes)
-    arange_embedding = jax.lax.tie_in(tie_in_with, arange_embedding)
 
   pos, offset = jnp.meshgrid(arange_nodes, arange_embedding, indexing="ij")
   pos = pos.astype(jnp.float32)
@@ -127,7 +120,7 @@ class PositionalAndTypeNodeEmbedding(flax.deprecated.nn.Module):
     """
     node_type = NodeTypeNodeEmbedding(node_types, num_node_types, embedding_dim)
     position = positional_node_embedding(
-        node_types.shape[0], embedding_dim, period_scale, tie_in_with=node_type)
+        node_types.shape[0], embedding_dim, period_scale)
     return node_type + position
 
 
@@ -810,7 +803,7 @@ def residual_layer_norm_update(node_states,
     <float32[num_nodes, node_embedding_dim]> new state.
   """
   combined = node_states + messages
-  return model_util.ScaleAndShift(jax.nn.normalize(combined, axis=-1))
+  return model_util.ScaleAndShift(jax.nn.standardize(combined, axis=-1))
 
 
 @flax.deprecated.nn.module

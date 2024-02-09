@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
 
 """A set of standard types and classes for the D3PM codebase."""
 
+import dataclasses
 import datetime
 from typing import Any, Callable, Iterable, Mapping, Optional, Tuple, Union
 
-from flax.struct import dataclasses
 import jax
 import seqio
 import tensorflow as tf

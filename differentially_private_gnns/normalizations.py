@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ def masked_inverse_degree_normalization(graph,
   """Returns weights for each edge corresponding to the normalization defined by D^-1 A."""
   num_nodes = compute_num_nodes(graph)
   senders = graph.senders
-  sender_degree = jraph.segment_sum(
+  sender_degree = jraph.segment_sum(  # pytype: disable=wrong-arg-types  # numpy-scalars
       mask.astype(jnp.int32), senders, num_nodes)
   sender_coeffs = 1 / jnp.maximum(sender_degree, 1.)
   edges = sender_coeffs[senders]
@@ -71,9 +71,9 @@ def masked_inverse_sqrt_degree_normalization(graph,
   num_nodes = compute_num_nodes(graph)
   senders = graph.senders
   receivers = graph.receivers
-  sender_degree = jraph.segment_sum(
+  sender_degree = jraph.segment_sum(  # pytype: disable=wrong-arg-types  # numpy-scalars
       mask.astype(jnp.int32), senders, num_nodes)
-  receiver_degree = jraph.segment_sum(
+  receiver_degree = jraph.segment_sum(  # pytype: disable=wrong-arg-types  # numpy-scalars
       mask.astype(jnp.int32), receivers, num_nodes)
   sender_coeffs = 1 / jnp.sqrt(jnp.maximum(sender_degree, 1.))
   receiver_coeffs = 1 / jnp.sqrt(jnp.maximum(receiver_degree, 1.))

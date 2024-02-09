@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,15 +24,17 @@ import copy
 from functools import partial  # pylint: disable=g-importing-member
 import os
 from typing import Any, NewType
-from typing import Optional
+from typing import Optional, Union
 
 from flax import serialization
 from flax import struct
 from flax import traverse_util
 import jax
+from jax import core
 import jax.numpy as jnp
 import numpy as np
-import seqio
+from seqio.vocabularies import SentencePieceVocabulary
+from seqio.vocabularies import Vocabulary
 import tensorstore
 
  import gfile
@@ -44,14 +46,28 @@ TsSpecDict = NewType('TsSpecDict', dict)
 @struct.dataclass
 class HParams:
   """Hyperparameters for a PaLM model."""
-  layers: int
-  embed: int
-  ff: int
-  heads: int
-  qkv: int
-  max_len: int  # Max length supported by attention
-  vocab: int
-  padded_heads: Optional[int] = 0  # modify norms when using padding partition
+  layers: int = struct.field(
+      pytree_node=False,
+  )
+  embed: int = struct.field(
+      pytree_node=False,
+  )
+  ff: int = struct.field(
+      pytree_node=False,
+  )
+  heads: int = struct.field(
+      pytree_node=False,
+  )
+  qkv: int = struct.field(
+      pytree_node=False,
+  )
+  max_len: int = struct.field(
+      pytree_node=False,
+  )
+  vocab: int = struct.field(
+      pytree_node=False,
+  )
+  padded_heads: Optional[int] = struct.field(pytree_node=False, default=0)
 
   @property
   def q_wi_per_head(self):
@@ -104,10 +120,11 @@ HParams.PALM_540B = HParams(
     layers=118,
     embed=18432,
     ff=4 * 18432,
-    heads=48,
+    heads=64,  # actually 48, but 16 padded
     qkv=256,
     max_len=8096,
     vocab=256128,
+    padded_heads=16,
 )
 
 HParams.TURING_NLG = HParams(
@@ -180,7 +197,7 @@ def flatten_state_dict(state_dict, keep_empty_nodes = False):
       sep='/')
 
 
-PyTreeDef = Any
+PyTree = Any
 FlatCheckpointDict = Any
 
 
@@ -258,27 +275,27 @@ class Checkpoint:
   """The contents of a checkpoint, without any postprocessing.
 
   Typically this is stored in host DRAM, or produced lazily as a
-  tensorstore.Spec or a jax.ShapedArray.
+  tensorstore.Spec or a core.ShapedArray.
   """
-  q_wi: np.ndarray
-  kv: np.ndarray
-  o_wo: np.ndarray
-  layernorm_scale: np.ndarray
-  embedding: np.ndarray
+  q_wi: Union[np.ndarray, core.ShapedArray]
+  kv: Union[np.ndarray, core.ShapedArray]
+  o_wo: Union[np.ndarray, core.ShapedArray]
+  layernorm_scale: Union[np.ndarray, core.ShapedArray]
+  embedding: Union[np.ndarray, core.ShapedArray]
 
   @classmethod
   def make_shaped_arrays(cls, h):
-    """Creates a Checkpoint populated by zero-footprint jax.ShapedArray."""
+    """Creates a Checkpoint populated by zero-footprint core.ShapedArray."""
     return Checkpoint(
-        q_wi=jax.ShapedArray(
+        q_wi=core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.bfloat16),
-        kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16),
-        o_wo=jax.ShapedArray(
+        kv=core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16),
+        o_wo=core.ShapedArray(
             (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
             jnp.bfloat16),
-        layernorm_scale=jax.ShapedArray((h.layers, h.embed), jnp.float32),
-        embedding=jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
+        layernorm_scale=core.ShapedArray((h.layers, h.embed), jnp.float32),
+        embedding=core.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
     )
 
   @classmethod
@@ -332,37 +349,37 @@ class QuantizedCheckpoint:
   """The contents of a checkpoint, without any postprocessing.
 
   Typically this is stored in host DRAM, or produced lazily as a
-  tensorstore.Spec or a jax.ShapedArray.
+  tensorstore.Spec or a core.ShapedArray.
 
   Separate quantized and non-quantized checkpoints to reduce code branching.
   """
-  q_wi: np.ndarray
-  q_wi_scale: np.ndarray
-  kv: np.ndarray
-  kv_scale: np.ndarray
-  o_wo: np.ndarray
-  o_wo_scale: np.ndarray
-  layernorm_scale: np.ndarray
-  embedding: np.ndarray
+  q_wi: Union[np.ndarray, core.ShapedArray]
+  q_wi_scale: Union[np.ndarray, core.ShapedArray]
+  kv: Union[np.ndarray, core.ShapedArray]
+  kv_scale: Union[np.ndarray, core.ShapedArray]
+  o_wo: Union[np.ndarray, core.ShapedArray]
+  o_wo_scale: Union[np.ndarray, core.ShapedArray]
+  layernorm_scale: Union[np.ndarray, core.ShapedArray]
+  embedding: Union[np.ndarray, core.ShapedArray]
 
   @classmethod
   def make_shaped_arrays(cls, h):
-    """Creates a Checkpoint populated by zero-footprint jax.ShapedArray."""
+    """Creates a Checkpoint populated by zero-footprint core.ShapedArray."""
     return QuantizedCheckpoint(
-        q_wi=jax.ShapedArray(
+        q_wi=core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.int8),
-        q_wi_scale=jax.ShapedArray(
+        q_wi_scale=core.ShapedArray(
             (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.bfloat16),
-        kv=jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8),
-        kv_scale=jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.bfloat16),
-        o_wo=jax.ShapedArray(
+        kv=core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8),
+        kv_scale=core.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.bfloat16),
+        o_wo=core.ShapedArray(
             (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
             jnp.int8),
-        o_wo_scale=jax.ShapedArray((h.layers, 1, 1, h.embed), jnp.bfloat16),
-        layernorm_scale=jax.ShapedArray((h.layers, h.embed), jnp.float32),
-        embedding=jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
+        o_wo_scale=core.ShapedArray((h.layers, 1, 1, h.embed), jnp.bfloat16),
+        layernorm_scale=core.ShapedArray((h.layers, h.embed), jnp.float32),
+        embedding=core.ShapedArray((h.vocab, h.embed), jnp.bfloat16),
     )
 
   @classmethod

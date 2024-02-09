@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -315,7 +315,7 @@ def fire_active(lit):
   walls = jnp.concatenate([walls, wall_n[jnp.newaxis, :]], axis=0)
   penetrated = jnp.any(walls, axis=0)
 
-  return jnp.any(jnp.logical_not(jnp.logical_or(exhausted, penetrated)))
+  return jnp.any(jnp.logical_not(jnp.logical_or(exhausted, penetrated)))  # pytype: disable=bad-return-type  # jnp-type
 
 
 def get_ignition_heat(simprop,

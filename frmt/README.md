@@ -59,14 +59,42 @@ Number of sentences in the dataset (paired with English):
 ### Setup
 
 The FRMT evaluation code released here requires Python 3 and the packages
-specified in `requirements.txt`. We recommend using an environment manager
+specified in `requirements.txt`, as well as BLEURT. We recommend using an environment manager
 like `virtualenv`, e.g.:
 
 ```
+# If pip isn't already installed:
+sudo apt-get install pip
+
 # From the parent directory of frmt/:
 virtualenv -p python3 frmt_env
+pip install --upgrade pip  # Ensures that pip is current.
 source frmt_env/bin/activate
 pip install -r frmt/requirements.txt
+# Install BLEURT library.
+git clone https://github.com/google-research/bleurt.git
+cd bleurt
+pip install .
+cd ..
+```
+
+BLEURT checkpoints (which are only needed if you intend to run BLEURT
+evaluations) can be downloaded as such:
+
+```
+# Download checkpoints.
+cd bleurt
+mkdir checkpoints
+cd checkpoints
+wget https://storage.googleapis.com/bleurt-oss-21/BLEURT-20.zip .
+wget https://storage.googleapis.com/bleurt-oss-21/BLEURT-20-D12.zip .
+wget https://storage.googleapis.com/bleurt-oss-21/BLEURT-20-D6.zip .
+wget https://storage.googleapis.com/bleurt-oss-21/BLEURT-20-D3.zip .
+unzip BLEURT-20.zip
+unzip BLEURT-20-D12.zip
+unzip BLEURT-20-D6.zip
+unzip BLEURT-20-D3.zip
+cd ../..
 ```
 
 Optionally execute `bash frmt/run.sh` to run the tests, which should print
@@ -74,9 +102,50 @@ Optionally execute `bash frmt/run.sh` to run the tests, which should print
 
 ### BLEU, BLEURT, chrF
 
-_Check back soon._ We are in the process of releasing the official evaluation
-script for measuring translation quality with BLEU, BLEURT and chrF.
+`evaluate.py` computes the string-overlap (BLEU, chrF) and neural (BLEURT)
+metrics for one bucket of data. It accepts the following flags:
 
+-   `prediction_files`: Path to model predictions, in text format (predicted
+    text only) or tsv format (source in the first column, prediction in the
+    second) for a single bucket (entity, lexical, random). Outputs from multiple
+    models can be processed at once (e.g. for a hyperparameter sweep) by passing
+    them as a comma-separated list.
+-   `output_file`: File to record the output to. If left empty, writes the
+    output to stdout.
+-   `dataset_dir`: Path to the frmt/dataset directory. Default is
+    "./frmt/dataset".
+-   `split`: "dev" or "test".
+-   `language`: "pt" or "zh".
+-   `bucket`: "entity", "lexical", or "random".
+-   `metric`: Which metrics to report (bleu, bleurt, bleurt_d12, etc.).
+    Multiple metrics can be computed in one run by repeating this flag (e.g. 
+    `--metric=bleu --metric=chrf`)
+-   `bleurt_checkpoint_dir`: Path to BLEURT checkpoint directory. Default is
+    "./bleurt/checkpoints".
+
+To evaluate the references against each other, assuming the current directory is
+the parent of `frmt` and the BLEURT checkpoints are located in
+`bleurt/checkpoints`, we can run the following command:
+
+```
+PT_BASENAME=frmt/dataset/lexical_bucket/pt_lexical_test
+python -m frmt.evaluate \
+  --prediction_files="${PT_BASENAME}_en_pt-BR.tsv,${PT_BASENAME}_en_pt-PT.tsv" \
+  --split=test \
+  --bucket=lexical \
+  --metric=bleu \
+  --metric=bleurt_d3 \
+  --language=pt
+
+ZH_BASENAME=frmt/dataset/lexical_bucket/zh_lexical_test
+python -m frmt.evaluate \
+  --prediction_files="${ZH_BASENAME}_en_zh-CN.tsv,${ZH_BASENAME}_en_zh-TW_Simplified.tsv" \
+  --split=test \
+  --bucket=lexical \
+  --metric=bleu \
+  --metric=bleurt_d3 \
+  --language=zh
+```
 ### Lexical Accuracy
 
 `lexical_accuracy_eval.py` computes the lexical accuracy metric, as defined in

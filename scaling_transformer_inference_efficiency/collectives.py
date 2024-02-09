@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 """Manual collectives which use bidirectional ICI and fully overlap compute."""
 
-from typing import Optional
+from typing import Optional, Union, Tuple
 import jax
 from jax import lax
 import jax.numpy as jnp
@@ -29,7 +29,7 @@ import numpy as np
 
 def interleave(a, b):
   """Interleave two 1D arrays."""
-  return jnp.dstack((a, b)).flatten()
+  return jnp.dstack((a, b)).flatten()  # pytype: disable=wrong-arg-types  # jnp-type
 
 
 def split_apart_axis(x, num_splits, axis):
@@ -68,12 +68,14 @@ def dynamic_index_and_slice(
     slice_axis,
     slice_start,
     slice_length,
-    x):
+    x,
+):
   """Helper for layer-indexing and slicing out chunks of layer-stacked weights.
 
   Args:
     index_axis: the stacked layer axis
-    index: the stacked layer index
+    index: the stacked layer index. If not provided we just slice without
+      indexing.
     slice_axis: the axis to slice a chunk from
     slice_start: the chunk index
     slice_length: the chunk size
@@ -82,15 +84,20 @@ def dynamic_index_and_slice(
   Returns:
     The squashed layer slice with a chunk extracted.
   """
-  assert index_axis != slice_axis, f'{index_axis} != {slice_axis}'
+  assert (
+      index is None or index_axis != slice_axis
+  ), f'{index_axis} != {slice_axis}'
   sizes = list(x.shape)
   starts = [0] * len(sizes)
-  starts[index_axis] = index
+  if index is not None:
+    starts[index_axis] = index
   starts[slice_axis] = slice_start
-  sizes[index_axis] = 1
+  if index is not None:
+    sizes[index_axis] = 1
   sizes[slice_axis] = slice_length
   x = lax.dynamic_slice(x, starts, sizes)
-  x = lax.squeeze(x, [index_axis])
+  if index is not None:
+    x = lax.squeeze(x, [index_axis])
   return x
 
 
@@ -105,9 +112,11 @@ def matmul_allgather_no_collective(
     rhs_split_axis,
     axis_name,
     layer,
-    layer_axis=0):
+    layer_axis=0,
+):
   """Non-overlapped allgather matmul using default allgather."""
-  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
+  if layer is not None:
+    rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
   lhs = lax.all_gather(lhs, axis_name, axis=rhs_split_axis, tiled=True)
   return jnp.einsum(einsum_spec, lhs, rhs)
 
@@ -119,7 +128,8 @@ def allgather_matmul_one_way(
     rhs_split_axis,
     axis_name,
     layer,
-    layer_axis=0):
+    layer_axis=0,
+):
   """Uses a single ICI direction, overlapped all gather -> matmul.
 
   Example usage:
@@ -301,7 +311,8 @@ def allgather_matmul_throughput(
 def preshuffle_for_allgather_matmul_latency(
     x,
     shuffle_axis,
-    axis_name):
+    axis_name,
+):
   """Pre-shuffle weights for allgather_matmul_latency.
 
     Function acts at a per-device view.
@@ -429,22 +440,26 @@ def matmul_reducescatter_no_collective(
     scatter_axis,
     axis_name,
     layer,
-    layer_axis=0):
+    layer_axis=0,
+):
   """Non overlapped matmul reduce scatter using default psum_scatter."""
-  rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
+  if layer is not None:
+    rhs = lax.dynamic_index_in_dim(rhs, layer, layer_axis, keepdims=False)
   tmp = jnp.einsum(einsum_spec, lhs, rhs)
   result = lax.psum_scatter(
       tmp, axis_name, scatter_dimension=scatter_axis, tiled=True)
   return result
 
 
-def matmul_reducescatter_oneway(einsum_spec,
-                                lhs,
-                                rhs,
-                                scatter_axis,
-                                axis_name,
-                                layer,
-                                layer_axis=0):
+def matmul_reducescatter_oneway(
+    einsum_spec,
+    lhs,
+    rhs,
+    scatter_axis,
+    axis_name,
+    layer,
+    layer_axis=0,
+):
   """Uses a single ICI direction, overlapped weight stationary reduce scatter.
 
   Usage:
@@ -461,7 +476,7 @@ def matmul_reducescatter_oneway(einsum_spec,
     scatter_axis: The rhs scatter axis.
     axis_name: The hardware axis along which we are reducing
     layer: Weights are stored with layer as the first dimension, index of the
-      layer
+      layer. If not provided we skip indexing and use the weights as is.
     layer_axis: Which axis is the layer dimension
 
   Returns:
@@ -472,13 +487,18 @@ def matmul_reducescatter_oneway(einsum_spec,
   axis_size = lax.psum(1, axis_name)
   axis_index = lax.axis_index(axis_name)
   rhs_scatter_axis = scatter_axis
-  if rhs_scatter_axis >= layer_axis:
+  if rhs_scatter_axis >= layer_axis and layer is not None:
     rhs_scatter_axis += 1
 
   permutes_remaining = axis_size - 1
 
   chunk_index = (axis_index + permutes_remaining) % axis_size
   chunk_size = rhs.shape[rhs_scatter_axis] // axis_size
+  if chunk_size == 0:
+    # Scatter axis size was smaller than axis size.
+    # Can't scatter so all reduce.
+    out = jnp.einsum(einsum_spec, lhs, rhs)
+    return lax.psum(out, axis_name)
   first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
                                         chunk_index * chunk_size, chunk_size,
                                         rhs)
@@ -636,7 +656,8 @@ def matmul_reducescatter_throughput(einsum_spec,
 def preshuffle_for_reducescatter_latency(
     x,
     scatter_axis,
-    axis_name):
+    axis_name,
+):
   """Pre-shuffles input arrays for bidirectional matmul-reduce-scatters.
 
   Function acts at a per-device view.
@@ -669,14 +690,16 @@ def preshuffle_for_reducescatter_latency(
   return permuted
 
 
-def matmul_reducescatter_latency(einsum_spec,
-                                 lhs,
-                                 rhs,
-                                 scatter_axis,
-                                 axis_name,
-                                 layer,
-                                 subsplit_axis,
-                                 layer_axis=0):
+def matmul_reducescatter_latency(
+    einsum_spec,
+    lhs,
+    rhs,
+    scatter_axis,
+    axis_name,
+    layer,
+    subsplit_axis,
+    layer_axis=0,
+):
   """Uses a two ICI directions, pre-communicate to halve the steps.
 
   Usage:

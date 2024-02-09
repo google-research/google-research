@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,8 +54,11 @@ def main(argv):
   evals = evaluate_utils.evaluate_experiments(ground_truth, experiments)
 
   # Save evaluation results to file.
-  eval_df = pd.DataFrame(evals).groupby(
-      ['task', 'train_size']).mean()[['metric-micro_f1', 'metric-macro_f1']]
+  eval_df = (
+      pd.DataFrame(evals)
+      .groupby(['task', 'train_size'])[['metric-micro_f1', 'metric-macro_f1']]
+      .mean()
+  )
   eval_df.to_csv(open(_EVAL_OUTPUT_PATH.value, 'w'), sep='\t')
 
 

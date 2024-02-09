@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1226,4 +1226,4 @@ def aggregate_unrolled_per_node(
                              num_combined]).at[0, node_index,
                                                initial_state].set(1.)
 
-  return jnp.concatenate([initial_state, per_node_combined], 0)
+  return jnp.concatenate([initial_state, per_node_combined], 0)  # pytype: disable=bad-return-type  # jnp-type

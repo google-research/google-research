@@ -22,7 +22,9 @@ def scann_py_proto_library(
     py_proto_library(
         name = name,
         srcs = srcs,
-        deps = py_proto_deps + ["@com_google_protobuf//:protobuf_python"],
+        deps = py_proto_deps,
         default_runtime = "@com_google_protobuf//:protobuf_python",
+        protoc = "@com_google_protobuf//:protoc",
+        more_deps = ["@com_google_protobuf//:well_known_types_py_pb2_genproto"],
         **kwargs
     )

@@ -1,0 +1,26 @@
+# This directory contains code for restricts, which filter results returned by ScaNN based on
+# Boolean logic.
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+cc_library(
+    name = "restrict_allowlist",
+    srcs = ["restrict_allowlist.cc"],
+    hdrs = ["restrict_allowlist.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/oss_wrappers:scann_aligned_malloc",
+        "//scann/oss_wrappers:scann_bits",
+        "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:bit_iterator",
+        "//scann/utils:common",
+        "//scann/utils:types",
+        "@com_google_absl//absl/base",
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_googletest//:gtest_main",
+    ],
+)

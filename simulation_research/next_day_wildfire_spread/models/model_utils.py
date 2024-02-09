@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -250,7 +250,7 @@ class BestModelExporter(tf.keras.callbacks.Callback):
             logging.info('Best metric value (%s=%s) restored on_train_begin.',
                          self.metric_key, self.best)
 
-  def on_epoch_end(self, epoch, logs):
+  def on_epoch_end(self, epoch, logs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     metric = logs[self.metric_key]
     if (self.best is None or (self.mode == 'min' and metric < self.best) or
         (self.mode == 'max' and metric > self.best)):

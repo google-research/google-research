@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ def prune(matrix, fraction=0.5):
     a pruned matrix with bottom `fraction` entries set to zero.
   """
   matrix_shape = matrix.shape
-  matrix = np.reshape(matrix, np.product(matrix_shape))
+  matrix = np.reshape(matrix, np.prod(matrix_shape))
   sorted_indexes = np.argsort(np.absolute(matrix))
   bottom = sorted_indexes[:int(math.ceil(sorted_indexes.size * fraction))]
   for i in bottom:

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,7 +86,9 @@ class Stream(tf.keras.layers.Layer):
       a delay layer to emulate looking ahead effect. Also there will be edge
       cases with residual connections. Demo of these is shown in delay_test.
       If 'causal' then whole conversion to streaming mode is fully automatic.
-    state_shape:
+    state_shape: Optional streaming state shape. Note that state_shape can have
+      some dims None with STREAM_EXTERNAL_STATE_INFERENCE.
+      But with STREAM_INTERNAL_STATE_INFERENCE shape has to be fully defined.
     ring_buffer_size_in_time_dim: size of ring buffer in time dim
     use_one_step: True - model will run one sample per one inference step;
       False - model will run multiple per one inference step.
@@ -353,20 +355,19 @@ class Stream(tf.keras.layers.Layer):
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
       ] + input_shape.as_list()[2:]
 
+    if self.pad_freq_dim == 'same' and self.state_shape[2] is not None:
+      # Additional padding value in frequency dimension
+      # defined by above function: frequeny_pad().
+      kernel_size = (self.kernel_size_freq - 1) * self.dilation_freq + 1
+      total_pad = kernel_size - self.stride_freq
+      output_feature_size = self.state_shape[2] + total_pad
+      # Note: override first feature dimension with padded value.
+      self.state_shape[2] = output_feature_size
+
     if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # Create a state varaible for streaming inference mode (internal state).
       # Where states become a weight in the layer
       if self.ring_buffer_size_in_time_dim:
-
-        if self.pad_freq_dim == 'same':
-          # Additional padding value in frequency dimension
-          # defined by above function: frequeny_pad().
-          kernel_size = (self.kernel_size_freq - 1) * self.dilation_freq + 1
-          total_pad = kernel_size - self.stride_freq
-          output_feature_size = self.state_shape[2] + total_pad
-          # Note: override first feature dimension with padded value.
-          self.state_shape[2] = output_feature_size
-
         self.states = self.add_weight(
             name='states',
             shape=self.state_shape,

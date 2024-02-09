@@ -1,4 +1,4 @@
-ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.10.0-devel
+ARG TF_SERVING_DEVEL_IMAGE=tensorflow/serving:2.11.0-devel
 FROM ${TF_SERVING_DEVEL_IMAGE} AS base_build
 LABEL maintainer="sunphil@google.com"
 
@@ -11,7 +11,7 @@ RUN apt-get update && apt-get install -y dirmngr && \
     apt-get update && apt-get install -y --no-install-recommends g++-9 clang-15 && \
     apt-get clean && rm -rf /var/lib/apt/lists/*
 
-ARG SCANN_COMMIT=40cc99bd3bf28e9bd997231a37cce7d54e08d260
+ARG SCANN_COMMIT=ea7fbced61a1b2b88919c3a37910c2c03f7a07ab
 WORKDIR /
 RUN mkdir scann && cd scann && \
     curl -sSL --retry 5 https://github.com/google-research/google-research/tarball/${SCANN_COMMIT} | \
@@ -21,7 +21,7 @@ RUN mkdir scann && cd scann && \
     cd .. && rm -rf scann
 
 WORKDIR /tensorflow-serving
-RUN git apply serving.patch && rm serving.patch
+RUN patch -p1 < serving.patch && rm serving.patch
 
 FROM base_build as binary_build
 # Build, and install TensorFlow Serving

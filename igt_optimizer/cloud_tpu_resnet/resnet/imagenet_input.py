@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -315,12 +315,12 @@ class ImageNetInput(ImageNetTFExampleInput):
 
     # Read the data from disk in parallel
     dataset = dataset.apply(
-        contrib_data.parallel_interleave(
+        tf.data.experimental.parallel_interleave(
             fetch_dataset, cycle_length=64, sloppy=True))
 
     if self.cache:
       dataset = dataset.cache().apply(
-          contrib_data.shuffle_and_repeat(1024 * 16))
+          tf.data.experimental.shuffle_and_repeat(1024 * 16))
     else:
       dataset = dataset.shuffle(1024)
     return dataset

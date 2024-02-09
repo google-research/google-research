@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -259,7 +259,7 @@ class SacAgent(tf_agent.TFAgent):
     # authors and has in our experience been more stable for gym/mujoco.
     flat_action_spec = tf.nest.flatten(action_spec)
     target_entropy = -np.sum([
-        np.product(single_spec.shape.as_list())
+        np.prod(single_spec.shape.as_list())
         for single_spec in flat_action_spec
     ]) / 2.0
     return target_entropy

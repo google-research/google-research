@@ -1,5 +1,10 @@
 # Deciphering Clinical Abbreviations
 
+This repository contains data processing and evaluation code for the following
+paper:
+
+> Rajkomar, A., Loreaux, E., Liu, Y. *et al.* Deciphering clinical abbreviations with a privacy protecting machine learning system. *Nat Commun* **13**, 7456 (2022). https://doi.org/10.1038/s41467-022-35007-9
+
 **Prerequisites:**
 
 * To run the code, `conda` distribution must be installed on your computer. The

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,9 +51,9 @@ class FeedForwardLayer(nn.Module):
   d_ff: int
   dropout_rate: float = 0.0
   intermediate_activation: Callable[[jnp.ndarray], jnp.ndarray] = nn.gelu
-  kernel_init: Callable[[PRNGKey, Shape, Dtype],
+  kernel_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
-  bias_init: Callable[[PRNGKey, Shape, Dtype], jnp.ndarray] = default_bias_init
+  bias_init: Callable[[PRNGKey, Shape, Dtype], jnp.ndarray] = default_bias_init  # pytype: disable=annotation-type-mismatch  # jax-types
 
   @nn.compact
   def __call__(self,
@@ -149,7 +149,7 @@ class LinearTransform(nn.Module):
     kernel_init: Initializer scheme for (matrix) kernel parameters.
   """
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
-  kernel_init: Callable[[PRNGKey, Shape, Dtype],
+  kernel_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
 
   @nn.compact
@@ -177,7 +177,7 @@ class LinearTransform(nn.Module):
     mat_seq = self.param("seq_kernel", self.kernel_init,
                          (inputs.shape[-2], inputs.shape[-2]))
 
-    return jnp.einsum(
+    return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
         "bij,jk,ni->bnk",
         inputs,
         mat_hidden,
@@ -202,7 +202,7 @@ class RandomTransform(nn.Module):
   max_seq_length: int
   d_model: int
   key: PRNGKey
-  kernel_init: Callable[[PRNGKey, Shape],
+  kernel_init: Callable[[PRNGKey, Shape],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = nn.initializers.lecun_normal()
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
@@ -231,7 +231,7 @@ class RandomTransform(nn.Module):
     del padding_mask  # Only used by self-attention sublayer.
     del deterministic  # RandomTransform uses fixed, random matrices.
 
-    return jnp.einsum(
+    return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
         "bij,jk,ni->bnk",
         inputs,
         self.mat_hidden,
@@ -303,9 +303,9 @@ class OutputProjection(nn.Module):
   kernel: Optional[jnp.ndarray] = None
   n_out: Optional[int] = None  # Required if kernel is None.
   bias: bool = True
-  kernel_init: Callable[[PRNGKey, Shape, Dtype],
+  kernel_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
-  bias_init: Callable[[PRNGKey, Shape, Dtype], jnp.ndarray] = default_bias_init
+  bias_init: Callable[[PRNGKey, Shape, Dtype], jnp.ndarray] = default_bias_init  # pytype: disable=annotation-type-mismatch  # jax-types
 
   @nn.compact
   def __call__(self, inputs):
@@ -367,7 +367,7 @@ class EmbeddingLayer(nn.Module):
         embedding_init=default_kernel_init,
         name="word")(
             input_ids)
-    position_embeddings = PositionalEncoding(
+    position_embeddings = PositionalEncoding(  # pytype: disable=wrong-arg-types  # jax-types
         max_seq_length=self.config.max_seq_length,
         posemb_init=default_kernel_init,
         name="position")(
@@ -398,7 +398,7 @@ class PositionalEncoding(nn.Module):
     posemb_init: Initializer scheme for positional embedding parameters.
   """
   max_seq_length: int
-  posemb_init: Callable[[PRNGKey, Shape, Dtype],
+  posemb_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
                         jnp.ndarray] = default_kernel_init
 
   @nn.compact

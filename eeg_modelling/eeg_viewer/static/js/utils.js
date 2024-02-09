@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,9 +37,9 @@
 
 goog.module('eeg_modelling.eeg_viewer.utils');
 
-const HtmlSanitizer = goog.require('goog.html.sanitizer.HtmlSanitizer');
 const JspbMap = goog.require('jspb.Map');
-const dom = goog.require('goog.dom');
+const {safeElement} = goog.require('safevalues.dom');
+const {sanitizeHtml} = goog.require('safevalues');
 
 /**
  * @typedef {{
@@ -157,7 +157,7 @@ function addMDLTooltip(parentElement, targetId, tooltipText) {
   const tooltip = document.createElement('div');
   tooltip.setAttribute('for', targetId);
   tooltip.className = 'mdl-tooltip mdl-tooltip--large';
-  dom.safe.setInnerHtml(tooltip, HtmlSanitizer.sanitize(tooltipText));
+  safeElement.setInnerHtml(tooltip, sanitizeHtml(tooltipText));
   parentElement.appendChild(tooltip);
 
   upgradeMDLElement(tooltip);

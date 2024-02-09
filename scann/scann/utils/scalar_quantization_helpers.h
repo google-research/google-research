@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -63,6 +63,10 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::vector<int8_t>* quantized_storage);
 
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    MutableSpan<int8_t> quantized);
+
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     const double noise_shaping_threshold, vector<int8_t>* quantized_storage,
@@ -78,6 +82,10 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, float multiplier,
     vector<int8_t>* quantized_storage);
+
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, float multiplier,
+    MutableSpan<int8_t> quantized);
 
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
     const DatapointPtr<float>& query,

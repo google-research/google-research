@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -253,7 +253,7 @@ class ModelPerformanceAnalysisTest(parameterized.TestCase):
         ],
         columns=["family_accession", "average_length"])
 
-    pd.testing.assert_frame_equal(actual, expected, check_less_precise=True)
+    pd.testing.assert_frame_equal(actual, expected, rtol=0.5e-3, atol=0.5e-3)
 
   def testFamiliesWithMoreThanNExamples(self):
     input_dataframe = pd.DataFrame(
@@ -304,7 +304,7 @@ class ModelPerformanceAnalysisTest(parameterized.TestCase):
 
     actual = model_performance_analysis.accuracy_by_family(
         input_predictions_dataframe)
-    pd.testing.assert_frame_equal(actual, expected, check_less_precise=True)
+    pd.testing.assert_frame_equal(actual, expected, rtol=0.5e-3, atol=0.5e-3)
 
   def testAccuracyBySizeOfTrainingSet(self):
     family_predictions = pd.DataFrame(

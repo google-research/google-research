@@ -20,7 +20,7 @@ To Appear in AISTATS'22.
 
 # For Pseudo-synthetic datasets experiments
 1. Collect code for previous work:
-      * Git pull `https://github.com/giorgiop/almostnolabel` (commit `4de5f54`) as folder `almostnolabel-master` in directory containing this README.
+      * Git pull `https://github.com/giorgiop/almostnolabel` (commit `4de5f54`) as folder `almostnolabel-main` in directory containing this README.
       * Git pull `https://github.com/Z-Jianxin/Learning-from-Label-Proportions-A-Mutual-Contamination-Framework` (commit `adb57fa`) and copy the contents of the LMMCM directory to ./Code/PythCode/.
 2. Create virtual environment `pythenv` with python 3.9.2.
       * `cd ./Code`, `python -m venv pythenv` 

@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,9 @@
 
 #define SCANN_RET_CHECK(cond)         \
   while (ABSL_PREDICT_FALSE(!(cond))) \
-  return RetCheckFail("SCANN_RET_CHECK failure ")
+  return RetCheckFail(                \
+      "SCANN_RET_CHECK "              \
+      "failure ")
 
 #define SCANN_RET_CHECK_EQ(lhs, rhs)         \
   while (ABSL_PREDICT_FALSE((lhs) != (rhs))) \

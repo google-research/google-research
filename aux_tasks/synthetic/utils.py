@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -283,7 +283,7 @@ def create_puddle_world_experiment(
       network_key, jnp.zeros((10, 2), dtype=jnp.float32))
   compute_phi = module.apply
 
-  return SyntheticExperiment(
+  return SyntheticExperiment(  # pytype: disable=wrong-arg-types  # jax-ndarray
       compute_phi=compute_phi,
       compute_psi=compute_psi,
       sample_states=sample_states,

@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <string>
 
 #include "google/protobuf/timestamp.pb.h"
+#include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_split.h"
@@ -98,7 +99,7 @@ StatusOr<std::vector<string>> GetChannelFeatureNames(
   std::vector<std::pair<string, tensorflow::Feature::KindCase>>
       feature_names_kind = GetFeatureNames(example);
   // Find the channel names.
-  absl::node_hash_set<string> channel_names;
+  absl::flat_hash_set<string> channel_names;
   for (const auto& feature_name_kind : feature_names_kind) {
     const string feature_name = feature_name_kind.first;
     if (feature_name.find(kUnitsFieldName) != string::npos) {

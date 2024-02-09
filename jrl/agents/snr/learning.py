@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ class SNRLearner(acme.Learner):
         min_q = 0.
       actor_loss = jnp.mean(actor_loss)
 
-      return actor_loss, (min_q, log_prob)
+      return actor_loss, (min_q, log_prob)  # pytype: disable=bad-return-type  # jax-ndarray
 
     actor_loss_fn_val_and_grad = jax.value_and_grad(actor_loss_fn, has_aux=True)
 
@@ -397,7 +397,7 @@ class SNRLearner(acme.Learner):
       metrics['snr/loss_weight'] = snr_loss_weight
       num_gt_zero = jnp.sum(masked_s > 0.)
       metrics['snr/num_gt_zero'] = num_gt_zero
-      min_s = jnp.take(masked_s, [num_gt_zero - 1], axis=0)[0]
+      min_s = jnp.take(masked_s, [num_gt_zero - 1], axis=0)[0]  # pytype: disable=wrong-arg-types  # jnp-type
       num_gt_zero = num_gt_zero + 1e-6
       mean_s = jnp.sum(masked_s) / num_gt_zero
       std_s = jnp.sqrt((jnp.sum(masked_s**2) / num_gt_zero) - mean_s**2)
@@ -439,7 +439,7 @@ class SNRLearner(acme.Learner):
         metrics['alpha'] = alpha
         metrics['alpha_loss'] = 0.
 
-      return new_state, metrics
+      return new_state, metrics  # pytype: disable=bad-return-type  # jax-ndarray
 
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()

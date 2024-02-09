@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ class ScannToTensorsOp : public OpKernel {
 
     auto options_or_status = scann_resource->scann_->ExtractOptions();
     OP_REQUIRES_OK(context, ConvertStatus(options_or_status.status()));
-    auto opts = options_or_status.ValueOrDie();
+    auto opts = options_or_status.value();
 
     TensorFromProtoRequireOk(context, "scann_config",
                              scann_resource->scann_->config());

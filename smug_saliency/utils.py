@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -773,7 +773,9 @@ def _crop_and_process_image(image, saliency_map, threshold, model_type):
                           crop_params['left']:crop_params['right'], :]
     return crop_mask, np.array(
         Image.fromarray(cropped_image.astype(np.uint8)).resize(
-            image_shape_original, resample=Image.BILINEAR))
+            image_shape_original, resample=Image.Resampling.BILINEAR
+        )
+    )
 
 
 def process_model_input(image, pixel_range):
@@ -927,9 +929,12 @@ def brute_force_fast_saliency_evaluate_masks(run_params,
         processed_image=np.array(
             Image.fromarray(cropped_image.astype(np.uint8)).resize(
                 run_params.image_placeholder_shape[1:-1],
-                resample=Image.BILINEAR)),
+                resample=Image.Resampling.BILINEAR,
+            )
+        ),
         saliency_map=None,
-        area_threshold=area_threshold)
+        area_threshold=area_threshold,
+    )
     if min_score is None or eval_record['saliency_score'] < min_score:
       min_score = eval_record['saliency_score']
       record = eval_record

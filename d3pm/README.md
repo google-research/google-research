@@ -20,5 +20,21 @@ be used to to reproduce our experiments from Section 6.
 It contains code for evaluating bits-per-dimension metrics, but
 the FID and IS metric evaluation code is not currently available.
 
-We plan to add a new subdirectory `text` which will contain our code for D3PMs
-in text space, corresponding to our experiments in Section 5.
+The `text` subdirectory contains our code for D3PMs in text space, corresponding
+to our experiments in Section 5.
+
+The `insertdelete` subdirectory contains code for D3PMs augmented with insertion
+and deletion operations, as described in the follow-up paper "Beyond In-Place
+Corruption: Insertion and Deletion In Denoising Probabilistic Models".
+
+```
+@inproceedings{johnson2021beyond,
+author    = {Daniel D. Johnson and
+             Jacob Austin and
+             Rianne van den Berg and
+             Daniel Tarlow},
+title     = {Beyond In-Place Corruption: Insertion and Deletion In Denoising Probabilistic Models},
+booktitle = {ICML Workshop on Invertible Neural Networks, Normalizing Flows, and Explicit Likelihood Models},
+year      = {2021}
+}
+```

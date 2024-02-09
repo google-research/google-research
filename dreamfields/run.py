@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ from clu import platform
 from dreamfields import helpers
 from dreamfields import lib
 import jax
-from jax.config import config as jax_config
+from jax import config as jax_config
 import ml_collections
 from ml_collections.config_flags import config_flags
 import numpy as onp

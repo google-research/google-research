@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -230,7 +230,7 @@ class PointwiseNormalizingFlow(NormalizingFlow):
 
     def dot_product_for_forward(coords_transformed):
       coords = self.base_flow.inverse(coords_transformed)
-      return jnp.dot(coords.squeeze(axis=-1), second_coords.squeeze(axis=-1))
+      return jnp.dot(coords.squeeze(axis=-1), second_coords.squeeze(axis=-1))  # pytype: disable=bad-return-type  # jnp-type
 
     first_coords_transformed = self.base_flow.forward(first_coords)
     second_coords_transformed = jax.grad(dot_product_for_forward)(
@@ -252,7 +252,7 @@ class PointwiseNormalizingFlow(NormalizingFlow):
 
     def dot_product_for_inverse(coords_inverted):
       coords = self.base_flow.forward(coords_inverted)
-      return jnp.dot(coords.squeeze(axis=-1), second_coords.squeeze(axis=-1))
+      return jnp.dot(coords.squeeze(axis=-1), second_coords.squeeze(axis=-1))  # pytype: disable=bad-return-type  # jnp-type
 
     first_coords_inverted = self.base_flow.inverse(first_coords)
     second_coords_inverted = jax.grad(dot_product_for_inverse)(

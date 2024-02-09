@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ class LossConfig:
 
 @dc.dataclass
 class OptConfig:
-  schedule: ScheduleConfig = ScheduleConfig()
+  schedule: ScheduleConfig = dc.field(default_factory=ScheduleConfig)
   weight_decay: Optional[float] = None
 
 
@@ -205,8 +205,10 @@ class TrainConfig:
 
 @dc.dataclass
 class ExperimentConfig(ProjectConfig):
-  data: datasets.DatasetConfig = datasets.DatasetConfig()
-  loss: LossConfig = LossConfig()
-  opt: OptConfig = OptConfig()
-  model: ModelConfig = ModelConfig()
-  train: TrainConfig = TrainConfig()
+  data: datasets.DatasetConfig = dc.field(
+      default_factory=datasets.DatasetConfig
+  )
+  loss: LossConfig = dc.field(default_factory=LossConfig)
+  opt: OptConfig = dc.field(default_factory=OptConfig)
+  model: ModelConfig = dc.field(default_factory=ModelConfig)
+  train: TrainConfig = dc.field(default_factory=TrainConfig)

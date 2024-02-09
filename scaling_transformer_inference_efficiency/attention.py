@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -107,7 +107,7 @@ class KVCache:
         lengths=P('attn_batch'),
         k=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
         v=P('prefix_layers', 'attn_batch', 'prefix_time', 'prefix_qkv'),
-        offset=P(None),
+        offset=P(),
         circular=circular,
     )  # pytype: disable=wrong-arg-types
 
@@ -151,8 +151,11 @@ def flat_broadcast(x, size):
 
 
 def _attend_chunk_multihead(
-    q, k, v,
-    mask):
+    q,
+    k,
+    v,
+    mask,
+):
   """Multihead attention over a single chunk.
 
   Result still needs cross-chunk normalization, because we have only normalized
@@ -187,8 +190,9 @@ def _attend_chunk_multihead(
   # print(f"q {q.shape}, k: {k.shape}, v: {v.shape}")
   q = jnp.reshape(q, (kv_batch, num_samples, qlen, num_heads, qkv))
   attn_logits = jnp.einsum('bsqhd,bkhd->bshqk', jnp.float32(q), jnp.float32(k))
-  # attn_mask: bool[cache_batch, cache_beam=1, heads=1, qlength=1, klength]
-  attn_logits += jnp.where(mask, 0, -1e10)
+  if mask is not None:
+    # attn_mask: bool[cache_batch, cache_beam=1, heads=1, qlength=1, klength]
+    attn_logits += jnp.where(mask, 0, -1e10)
   # local_max: f32[cache_batch, cache_beam, heads, qlength, 1=klength]
   local_max = jnp.max(attn_logits, axis=-1, keepdims=True)
   local_exps = special2.exp2(attn_logits - local_max)
@@ -206,8 +210,11 @@ def _attend_chunk_multihead(
 
 
 def _attend_chunk(
-    q, k, v,
-    mask):
+    q,
+    k,
+    v,
+    mask,
+):
   """Multiquery attention over a single chunk.
 
   Result still needs cross-chunk normalization, because we have only normalized
@@ -217,8 +224,8 @@ def _attend_chunk(
     q: Query. f32[qbatch, qlen, num_heads, d_qkv].
     k: Key. f32[kbatch, klen, (num_heads,)? d_qkv].
     v: Value. f32[kbatch, klen, (num_heads,)? d_qkv].
-    mask: Attention mask. Broadcastable to
-      bool[kbatch, qbatch // kbatch, num_heads, qlen, klen].
+    mask: Attention mask. Broadcastable to bool[kbatch, qbatch // kbatch,
+      num_heads, qlen, klen].
 
   Returns:
     (local_out, local_max, local_sum), where:
@@ -230,7 +237,12 @@ def _attend_chunk(
       f32[qbatch, qlen, num_heads, 1]
   """
   if k.ndim == 4:
-    return _attend_chunk_multihead(q, k, v, mask)
+    return _attend_chunk_multihead(
+        q,
+        k,
+        v,
+        mask,
+    )
 
   q_batch, qlen, num_heads, qkv = q.shape
   kv_batch, klen, qkv = k.shape
@@ -245,8 +257,9 @@ def _attend_chunk(
 
   q = jnp.reshape(q, (kv_batch, num_samples, qlen, num_heads, qkv))
   attn_logits = jnp.einsum('bsqhd,bkd->bshqk', jnp.float32(q), jnp.float32(k))
-  # attn_mask: bool[cache_batch, cache_beam=1, heads=1, qlength=1, klength]
-  attn_logits += jnp.where(mask, 0, -1e10)
+  if mask is not None:
+    # attn_mask: bool[cache_batch, cache_beam=1, heads=1, qlength=1, klength]
+    attn_logits += jnp.where(mask, 0, -1e10)
   # local_max: f32[cache_batch, cache_beam, heads, qlength, 1=klength]
   local_max = jnp.max(attn_logits, axis=-1, keepdims=True)
   local_exps = special2.exp2(attn_logits - local_max)
@@ -263,23 +276,35 @@ def _attend_chunk(
   return local_out, local_max, local_sum
 
 
-def attend(q, k, v,
-           prefix, layer):
-  """Computes multiquery attention of q over `prefix` followed by `k` and `v`.
+def attend(
+    q,
+    k,
+    v,
+    prefix,
+    layer,
+    causal_masking = True,
+    custom_mask = None,
+    custom_prefix_masks = None,
+):
+  """Computes attention of q over `prefix` followed by `k` and `v`.
 
   Args:
     q: Query. bf16[batch, len, num_heads, qkv].
-    k: Keys, of the same length and batch size as q. bf16[batch, len, qkv].
-      Triangular (causal) masking will be applied.
-    v: Values, of the same length and batch size as q. bf16[batch, len, qkv].
+    k: Keys, of the same length and batch size as q. bf16[batch, len,
+      (num_heads,)?, qkv].
+    v: Values, of the same length and batch size as q. bf16[batch, len,
+      (num_heads,)?, qkv].
     prefix: Additional attention context, which may have different length than q
       and smaller batch size than q. Lengths can be arbitrary; batch sizes must
       divide q's batch size. Masking will be applied according to
       `KVCache.lengths`.
     layer: Which layer of the KVCache in `prefix` to use.
+    causal_masking: Triangular (causal) masking will be applied.
+    custom_mask: Optional custom attention mask for the current q and k.
+    custom_prefix_masks: Optional custom attention mask for the caches.
 
   Returns:
-    multiquery attention of q over the k/v/prefix context.
+    Attention of q over the k/v/prefix context.
   """
   # Compare
   # flaxformer/components/attention/dense_attention.py
@@ -330,45 +355,75 @@ def attend(q, k, v,
   # Attention to previous steps of tokens. Here we don't need any triangular
   # attention mask (since they're all strictly in the past), but we do need
   # length-dependent masking.
-  for kv_cache in prefix:
-    def my_layer(t, layer_idx=0):
-      return lax.dynamic_index_in_dim(t, layer, axis=layer_idx, keepdims=False)
+  def my_layer(t, layer_idx=0):
+    return lax.dynamic_index_in_dim(t, layer, axis=layer_idx, keepdims=False)
 
-    # cache_k, cache_v: [klen, kbatch, qkv]
-    # cache_k, cache_v: [kbatch, klen, qkv]
-    cache_k = my_layer(kv_cache.k)
-    cache_v = my_layer(kv_cache.v)
+  if custom_prefix_masks is None:
+    for kv_cache in prefix:
+      # cache_k, cache_v: [klen, kbatch, qkv]
+      # cache_k, cache_v: [kbatch, klen, qkv]
+      cache_k = my_layer(kv_cache.k)
+      cache_v = my_layer(kv_cache.v)
 
-    # Attention mask so we don't attend past the length of each prefix.
-    k_iota = lax.iota(jnp.int32, kv_cache.max_length)
-    # mask: [kbatch, klen]
-    if kv_cache.circular:
-      # Gives us wraparound then checks it against lengths
-      # as when it is circular, the lengths trail the active offset
-      # Array([ 2,  1,  0, 11, 10,  9,  8,  7,  6,  5,  4,  3], dtype=int32)
-      mask = (
-          -(k_iota - kv_cache.offset[0] + 1) % kv_cache.max_length
-      ) < kv_cache.lengths[:, jnp.newaxis]
+      # Attention mask so we don't attend past the length of each prefix.
+      k_iota = lax.iota(jnp.int32, kv_cache.max_length)
+      # mask: [kbatch, klen]
+      if kv_cache.circular:
+        # Gives us wraparound then checks it against lengths
+        # as when it is circular, the lengths trail the active offset
+        # Array([ 2,  1,  0, 11, 10,  9,  8,  7,  6,  5,  4,  3], dtype=int32)
+        mask = (
+            -(k_iota - kv_cache.offset[0] + 1) % kv_cache.max_length
+        ) < kv_cache.lengths[:, jnp.newaxis]
+      else:
+        mask = k_iota < kv_cache.lengths[:, np.newaxis]
+      # mask: [kbatch, num_samples, num_heads, qlen, klen]
+      mask = mask[:, np.newaxis, np.newaxis, np.newaxis, :]
+
+      local_out, local_max, local_sum = _attend_chunk(
+          q,
+          cache_k,
+          cache_v,
+          mask,
+      )
+      local_outs.append(local_out)
+      local_maxes.append(local_max)
+      local_sums.append(local_sum)
+  elif len(prefix) == len(custom_prefix_masks):
+    for kv_cache, custom_prefix_mask in zip(prefix, custom_prefix_masks):
+      # cache_k, cache_v: [klen, kbatch, qkv]
+      # cache_k, cache_v: [kbatch, klen, qkv]
+      cache_k = my_layer(kv_cache.k)
+      cache_v = my_layer(kv_cache.v)
+      local_out, local_max, local_sum = _attend_chunk(
+          q,
+          cache_k,
+          cache_v,
+          custom_prefix_mask,
+      )
+      local_outs.append(local_out)
+      local_maxes.append(local_max)
+      local_sums.append(local_sum)
+
+  if k is not None and v is not None:
+    if causal_masking:
+      # Attention within this step of tokens. We need the triangular attention
+      # mask here, and no length-dependent masking.
+      qk = (q.shape[1], k.shape[1])
+      q_iota = lax.broadcasted_iota(jnp.int32, qk, 0)
+      k_iota = lax.broadcasted_iota(jnp.int32, qk, 1)
+      mask = q_iota >= k_iota
     else:
-      mask = k_iota < kv_cache.lengths[:, np.newaxis]
-    # mask: [kbatch, num_samples, num_heads, qlen, klen]
-    mask = mask[:, np.newaxis, np.newaxis, np.newaxis, :]
-
-    local_out, local_max, local_sum = _attend_chunk(q, cache_k, cache_v, mask)
+      mask = custom_mask
+    local_out, local_max, local_sum = _attend_chunk(
+        q,
+        k,
+        v,
+        mask,
+    )
     local_outs.append(local_out)
     local_maxes.append(local_max)
     local_sums.append(local_sum)
-
-  # Attention within this step of tokens. We need the triangular attention mask
-  # here, and no length-dependent masking.
-  qk = (q.shape[1], k.shape[1])
-  q_iota = lax.broadcasted_iota(jnp.int32, qk, 0)
-  k_iota = lax.broadcasted_iota(jnp.int32, qk, 1)
-  mask = q_iota >= k_iota
-  local_out, local_max, local_sum = _attend_chunk(q, k, v, mask)
-  local_outs.append(local_out)
-  local_maxes.append(local_max)
-  local_sums.append(local_sum)
 
   # End of first pass: sum locals to global
   global_max = functools.reduce(jnp.maximum, local_maxes)
@@ -387,7 +442,4 @@ def attend(q, k, v,
     # ^ local_normalizer: f32[batch, qlength, heads, 1]
     attn_out += local_normalizer * local_out
 
-  return attn_out
-
-
-
+  return attn_out  # pytype: disable=bad-return-type  # jax-ndarray

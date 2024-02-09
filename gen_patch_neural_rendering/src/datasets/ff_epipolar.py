@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,8 +19,7 @@ INTERNAL = False  # pylint: disable=g-statement-before-imports
 import os
 from os import path
 
-if not INTERNAL:
-  import cv2  # pylint: disable=g-import-not-at-top
+import cv2
 import imageio
 import jax
 import numpy as np

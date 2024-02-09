@@ -73,7 +73,7 @@ batch_size_sharder(
     name = "lut16_sse4_batches",
     max_batch_size = 9,
     tags = ["local"],
-    template = "lut16_sse4.tpl.cc",
+    template = "bazel_templates/lut16_sse4.tpl.cc",
 )
 
 cc_library(
@@ -105,7 +105,7 @@ batch_size_sharder(
     name = "lut16_avx2_batches",
     max_batch_size = 9,
     tags = ["local"],
-    template = "lut16_avx2.tpl.cc",
+    template = "bazel_templates/lut16_avx2.tpl.cc",
 )
 
 cc_library(
@@ -137,21 +137,21 @@ batch_size_sharder(
     name = "lut16_avx512_prefetch",
     max_batch_size = 9,
     tags = ["local"],
-    template = "lut16_avx512_prefetch.tpl.cc",
+    template = "bazel_templates/lut16_avx512_prefetch.tpl.cc",
 )
 
 batch_size_sharder(
     name = "lut16_avx512_smart",
     max_batch_size = 9,
     tags = ["local"],
-    template = "lut16_avx512_smart.tpl.cc",
+    template = "bazel_templates/lut16_avx512_smart.tpl.cc",
 )
 
 batch_size_sharder(
     name = "lut16_avx512_noprefetch",
     max_batch_size = 9,
     tags = ["local"],
-    template = "lut16_avx512_noprefetch.tpl.cc",
+    template = "bazel_templates/lut16_avx512_noprefetch.tpl.cc",
 )
 
 cc_library(

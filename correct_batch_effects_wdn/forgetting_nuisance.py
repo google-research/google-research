@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -403,7 +403,7 @@ class DatasetHolder(object):
     df_reset_index = df.reset_index(category_level)
 
     ## convert non-embedding values to one-hot encoding
-    df_with_one_hot = pd.get_dummies(df_reset_index)
+    df_with_one_hot = pd.get_dummies(df_reset_index, dtype="uint8")
 
     ## restore indices
     df_with_one_hot = pd.DataFrame(data=df_with_one_hot.values, index=df.index)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,14 +15,14 @@
 
 """Variation Transformer Network for Layout Generation."""
 
-from typing import Any, Callable, Iterable
+from typing import Any, Callable, Sequence
 
 from flax import linen as nn
 import jax
 import jax.numpy as jnp
 import ml_collections
 
-Initializer = Callable[[jnp.ndarray, Iterable[int], jnp.dtype], jnp.ndarray]
+Initializer = Callable[[jnp.ndarray, Sequence[int], jnp.dtype], jnp.ndarray]
 
 
 class MlpBlock(nn.Module):

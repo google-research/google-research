@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ class DynamicsModel(nn.Module):
     else:
       sigma = jnp.zeros(self.embedding_dim)
       sample = mu
-    return DynamicsModelType(mu, sigma, sample)
+    return DynamicsModelType(mu, sigma, sample)  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def l1(x, y):
@@ -239,13 +239,13 @@ def train(encoder_network_def,
                                                rewards,
                                                shuffled_idx,
                                                cumulative_gamma)
-      return jnp.mean(jax.vmap(losses.huber_loss)(online_distances,
+      return jnp.mean(jax.vmap(losses.huber_loss)(online_distances,  # pytype: disable=bad-return-type  # jnp-type
                                                   target_distances))
     else:
       online_dist = jax.vmap(l1)(learned_z, shuffled_z)
       target_dist = target_z_distances(
           predicted_dynamics, rewards, shuffled_idx, cumulative_gamma)
-      return jnp.mean(jax.vmap(lambda x: x**2)(online_dist - target_dist))
+      return jnp.mean(jax.vmap(lambda x: x**2)(online_dist - target_dist))  # pytype: disable=bad-return-type  # jnp-type
 
   def dynamics_loss_fn(
       reward_params,
@@ -307,7 +307,7 @@ def train(encoder_network_def,
     target_q_values_2 = jnp.squeeze(target_q_values_2)
     target_q_values = jnp.minimum(target_q_values_1, target_q_values_2)
 
-    alpha_value = jnp.exp(log_alpha)
+    alpha_value = jnp.exp(log_alpha)  # pytype: disable=wrong-arg-types  # numpy-scalars
     log_probs = target_outputs.actor.log_probability
     targets = reward_scale_factor * rewards + cumulative_gamma * (
         target_q_values - alpha_value * log_probs) * (1. - terminals)
@@ -326,7 +326,7 @@ def train(encoder_network_def,
     q_values_no_grad_1 = jnp.squeeze(q_values_no_grad_1)
     q_values_no_grad_2 = jnp.squeeze(q_values_no_grad_2)
     no_grad_q_values = jnp.minimum(q_values_no_grad_1, q_values_no_grad_2)
-    alpha_value = jnp.exp(jax.lax.stop_gradient(log_alpha))
+    alpha_value = jnp.exp(jax.lax.stop_gradient(log_alpha))  # pytype: disable=wrong-arg-types  # numpy-scalars
     policy_loss = jnp.mean(alpha_value * action_log_probs - no_grad_q_values)
 
     # J(\alpha) from equation (18) in paper.

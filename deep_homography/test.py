@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,14 +64,18 @@ def run_test():
   image_norm_list = []
   for i in range(2):
     if FLAGS.network_id == 'fmask_sem':
-      image_scale = cv2.resize(image_list[i],
-                               (FLAGS.train_width, FLAGS.train_height),
-                               cv2.INTER_LANCZOS4)
+      image_scale = cv2.resize(
+          image_list[i],
+          (FLAGS.train_width, FLAGS.train_height),
+          interpolation=cv2.INTER_LANCZOS4,
+      )
     else:
       image_gray = cv2.cvtColor(image_list[i], cv2.COLOR_BGR2GRAY)
-      image_scale = cv2.resize(image_gray,
-                               (FLAGS.train_width, FLAGS.train_height),
-                               cv2.INTER_LANCZOS4)
+      image_scale = cv2.resize(
+          image_gray,
+          (FLAGS.train_width, FLAGS.train_height),
+          interpolation=cv2.INTER_LANCZOS4,
+      )
 
     image_norm = image_scale / 256.0 - 0.5
     image_norm_list.append(image_norm)

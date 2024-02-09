@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 """Spectrogram augmentation for model regularization."""
 from typing import Any, Dict
 
-from keras.utils import control_flow_util
+import tensorflow as tf
 import tensorflow_model_optimization as tfmot
 
 from kws_streaming.layers.compat import tf
@@ -89,15 +89,20 @@ class SpecAugment(tf.keras.layers.Layer):
 
     def masked_inputs():
       # in time dim
-      net = spectrogram_masking(inputs, 1, self.time_masks_number,
-                                self.time_mask_max_size)
+      net = spectrogram_masking(
+          inputs, 1, self.time_masks_number, self.time_mask_max_size
+      )
       # in frequency dim
-      net = spectrogram_masking(net, 2, self.frequency_masks_number,
-                                self.frequency_mask_max_size)
+      net = spectrogram_masking(
+          net, 2, self.frequency_masks_number, self.frequency_mask_max_size
+      )
       return net
 
-    outputs = control_flow_util.smart_cond(training, masked_inputs,
-                                           lambda: array_ops.identity(inputs))
+    outputs = tf._keras_internal.utils.control_flow_util.smart_cond(  # pylint:disable=protected-access
+        training,
+        masked_inputs,
+        lambda: array_ops.identity(inputs),
+    )
     return outputs
 
   def get_config(self):

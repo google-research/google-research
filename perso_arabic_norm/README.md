@@ -5,6 +5,20 @@ This document provides a brief summary of Perso-Arabic script normalizer
 and neural machine translation experiments, also briefly outlined below
 in this document.
 
+The code in this directory is supplementary material used for the experiments
+for the following [paper](https://arxiv.org/abs/2210.12273):
+
+```bibtex
+@misc{doctor2022graphemic,
+  title={Graphemic Normalization of the Perso-Arabic Script},
+  author={Raiomond Doctor and Alexander Gutkin and Cibu Johny and Brian Roark and Richard Sproat},
+  year={2022},
+  eprint={2210.12273},
+  archivePrefix={arXiv},
+  primaryClass={cs.CL}
+}
+```
+
 ## Script Normalization Utilities
 
 The Perso-Arabic script normalizer uses the normalization grammars provided by
@@ -391,6 +405,5 @@ structure:
     the epochs of unnormalized and normalized model.
     * Individual PBS and PAR test results for each language and each epoch
     under the `test?.epoch?` subdirectory.
-
 
 

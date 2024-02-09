@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -102,7 +102,7 @@ class Metrics(NamedTuple):
 
   @property
   def scalars_np(self):
-    return {k: np.float32(v) for k, v in self.scalars.items()}
+    return {k: np.float32(v) for k, v in self.scalars.items()}  # pytype: disable=bad-return-type  # numpy-scalars
 
   @property
   def scalars_float(self):

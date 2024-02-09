@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -170,7 +170,7 @@ class TestTopologyMolecule(absltest.TestCase):
     state = mol.generate_search_state()
     for s in itertools.product(*state):
       res = mol.place_bonds(s, matching_parameters)
-      self.assertAlmostEqual(res.score, np.product(scores))
+      self.assertAlmostEqual(res.score, np.prod(scores))
 
 
 if __name__ == "__main__":

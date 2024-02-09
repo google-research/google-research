@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,7 +15,6 @@
 #include "edf/base/time_proto_util.h"
 
 #include "google/protobuf/timestamp.pb.h"
-#include "absl/base/integral_types.h"
 #include "absl/strings/str_cat.h"
 #include "absl/time/time.h"
 #include "edf/base/status.h"

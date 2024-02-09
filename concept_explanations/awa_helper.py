@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,18 +21,18 @@ import math
 import os
 import pickle
 from absl import app
-import keras
-import keras.backend as K
-from keras.layers import Dense
-from keras.layers import Input
-from keras.models import Model
-from keras.optimizers import SGD
 import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
 import numpy as np
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
+from tensorflow import keras
 import tensorflow.compat.v1 as tf
+import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Input
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import SGD
 
 
 def load_model(classes):

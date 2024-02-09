@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,24 +19,23 @@ from __future__ import division
 from __future__ import print_function
 
 import itertools
+
 from absl import app
-
-import keras
-from keras.activations import sigmoid
-import keras.backend as K
-from keras.layers import Input
-from keras.layers import Lambda
-from keras.layers import Layer
-from keras.models import Model
-
-from keras.optimizers import Adam
-from keras.optimizers import SGD
 import numpy as np
 from numpy import inf
 from numpy.random import seed
 from scipy.special import comb
+from tensorflow import keras
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import set_random_seed
+from tensorflow.keras.activations import sigmoid
+import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import Lambda
+from tensorflow.keras.layers import Layer
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import SGD
 
 seed(0)
 set_random_seed(0)

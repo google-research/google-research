@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -19,17 +19,8 @@ from __future__ import division
 from __future__ import print_function
 
 import pickle
-from absl import app
-import keras.backend as K
-from keras.layers import Conv2D
-from keras.layers import Dense
-from keras.layers import Flatten
-from keras.layers import Input
-from keras.layers import MaxPooling2D
-from keras.models import Model
 
-from keras.optimizers import Adam
-from keras.optimizers import SGD
+from absl import app
 from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
 from matplotlib.figure import Figure
 import matplotlib.pyplot as plt
@@ -40,6 +31,15 @@ from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.linear_model import LogisticRegression
 from tensorflow.compat.v1 import set_random_seed
+import tensorflow.keras.backend as K
+from tensorflow.keras.layers import Conv2D
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import Flatten
+from tensorflow.keras.layers import Input
+from tensorflow.keras.layers import MaxPooling2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers import SGD
 
 seed(0)
 set_random_seed(0)

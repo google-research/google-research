@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Google Research Authors.
+ * Copyright 2024 The Google Research Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -89,6 +89,9 @@
   position: relative;
   margin-top: 12px;
 }
+.anthea-deleted-error {
+  text-decoration: line-through;
+}
 .anthea-docnav-eval-button {
   margin-right: 8px;
   padding: 12px;
@@ -123,6 +126,7 @@
   table-layout: fixed;
 }
 .anthea-document-text-table p {
+  margin-bottom: 20px;
   max-width: 100ch;
   overflow-wrap: anywhere;
 }
@@ -147,6 +151,9 @@
 .anthea-document-text-table > tr:nth-of-type(3),
 .anthea-document-text-table > tr:nth-of-type(3) > td {
   border-top: 0 solid;
+}
+.anthea-being-edited {
+  text-decoration: red wavy underline;
 }
 .anthea-error-button {
   background-color: lightblue;
@@ -194,12 +201,12 @@
   text-align: center;
 }
 .anthea-eval-panel {
+  background: white;
   border-top: 1px solid black;
   box-sizing: border-box;
   display: inline-block;
   left: 0;
   max-height: 640px;
-  overflow-y: auto;
   position: absolute;
   text-align: left;
   width: 100%;
@@ -213,11 +220,15 @@
   text-align: center;
   vertical-align: top;
 }
+.anthea-eval-panel-mod {
+  min-height: 6ex;
+  width: 24px;
+}
 .anthea-eval-panel-nav {
   width: 25px;
 }
-.anthea-eval-panel-short {
-  min-height: 6ex;
+.anthea-eval-panel-row:hover .anthea-modifier-menu {
+  display: block;
 }
 .anthea-eval-panel-subtypes {
   background-clip: border-box;
@@ -274,7 +285,7 @@
 .anthea-feedback-panel {
   background-image:
     repeating-linear-gradient(to bottom, white, white 13px, lightgray 14px);
-  height: 150px;
+  height: 80px;
   outline: none;
   text-align: left;
   white-space: break-spaces;
@@ -326,6 +337,22 @@
 .anthea-hotw-revealed {
   background: lightblue;
 }
+.anthea-modifier-menu-button {
+  background: whitesmoke;
+  min-height: 4ex;
+  min-width: 140px;
+}
+.anthea-modifier-menu-parent {
+  position: relative;
+}
+.anthea-modifier-menu {
+  background: white;
+  display: none;
+  position: absolute;
+  right: 0;
+  top: 6ex;
+  z-index: 3;
+}
 .anthea-mqm-instructions li {
   line-height: 1.2;
   margin: 8px auto;
@@ -333,7 +360,7 @@
 #anthea-mqm-list-of-severities {
   line-height: 2;
 }
-.anthea-sentence-nav {
+.anthea-paralet-nav {
   cursor: pointer;
 }
 .anthea-space-active,
@@ -345,6 +372,10 @@
   font-style: italic;
   padding: 4px;
   vertical-align: bottom;
+}
+.anthea-subheading {
+  font-size: 80%;
+  font-style: italic;
 }
 .anthea-text-heading {
   background: whitesmoke;

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ class PolicyGradientController(base_controller.BaseController):
     """Initialization. See base class for more details."""
 
     super().__init__(dna_spec, batch_size)
-    self._controller = pg.generators.policy_gradient.PPO(
+    self._controller = pg.reinforcement_learning.PPO(
         train_batch_size=self._batch_size, update_batch_size=update_batch_size)
     self._controller.setup(self._dna_spec)
     # If you have:

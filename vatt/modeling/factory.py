@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ class MMRLModel(tf.keras.Model):
                    'total_loss': total_loss})
     return losses
 
-  def call(self,
+  def call(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
            inputs,
            training = None):
     """Call the layer.

@@ -45,21 +45,33 @@ http_archive(
 
 http_archive(
     name = "com_google_absl",
-    sha256 = "94aef187f688665dc299d09286bfa0d22c4ecb86a80b156dff6aabadc5a5c26d",
-    strip_prefix = "abseil-cpp-273292d1cfc0a94a65082ee350509af1d113344d",
+    sha256 = "8eeec9382fc0338ef5c60053f3a4b0e0708361375fe51c9e65d0ce46ccfe55a7",
+    strip_prefix = "abseil-cpp-b971ac5250ea8de900eae9f95e06548d14cd95fe",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/273292d1cfc0a94a65082ee350509af1d113344d.tar.gz",
-        "https://github.com/abseil/abseil-cpp/archive/273292d1cfc0a94a65082ee350509af1d113344d.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/abseil/abseil-cpp/archive/b971ac5250ea8de900eae9f95e06548d14cd95fe.tar.gz",
+        "https://github.com/abseil/abseil-cpp/archive/b971ac5250ea8de900eae9f95e06548d14cd95fe.tar.gz",
     ],
 )
+
+git_repository(
+    name = "com_google_protobuf",
+    patch_args = ["-p1"],
+    patches = ["//build_deps/patches:protobuf.patch"],
+    remote = "https://github.com/protocolbuffers/protobuf.git",
+    tag = "v3.21.9",
+)
+
+load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
+
+protobuf_deps()
 
 # rules_proto defines abstract rules for building Protocol Buffers.
 http_archive(
     name = "rules_proto",
-    sha256 = "ba66b430aaed1b6d2530154fd5ff968fb810ee0936edfe5f48e1f1c36ff2ea65",
-    strip_prefix = "rules_proto-e507ccded37c389186afaeb2b836ec576dc875dc",
+    sha256 = "dc3fb206a2cb3441b485eb1e423165b231235a1ea9b031b4433cf7bc1fa460dd",
+    strip_prefix = "rules_proto-5.3.0-21.7",
     urls = [
-        "https://github.com/bazelbuild/rules_proto/archive/e507ccded37c389186afaeb2b836ec576dc875dc.zip",
+        "https://github.com/bazelbuild/rules_proto/archive/refs/tags/5.3.0-21.7.tar.gz",
     ],
 )
 
@@ -69,28 +81,21 @@ rules_proto_dependencies()
 
 rules_proto_toolchains()
 
+http_archive(
+    name = "rules_python",
+    sha256 = "a644da969b6824cc87f8fe7b18101a8a6c57da5db39caa6566ec6109f37d2141",
+    strip_prefix = "rules_python-0.20.0",
+    url = "https://github.com/bazelbuild/rules_python/releases/download/0.20.0/rules_python-0.20.0.tar.gz",
+)
+
+load("@rules_python//python:repositories.bzl", "py_repositories")
+
+py_repositories()
+
 bind(
     name = "python_headers",
     actual = "@local_config_python//:python_headers",
 )
-
-http_archive(
-    name = "six_archive",
-    build_file = "//build_deps/patches:six.BUILD",
-    sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
-    urls = ["https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz#md5=34eed507548117b2ab523ab14b2f8b55"],
-)
-
-git_repository(
-    name = "com_google_protobuf",
-    patches = ["//build_deps/patches:protobuf.patch"],
-    remote = "https://github.com/protocolbuffers/protobuf.git",
-    tag = "v3.9.2",
-)
-
-load("@com_google_protobuf//:protobuf_deps.bzl", "protobuf_deps")
-
-protobuf_deps()
 
 git_repository(
     name = "com_google_googletest",

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ import jax.numpy as jnp
 import jax.scipy
 from jax.sharding import PartitionSpec as P
 import numpy as np
-import seqio
+from seqio.vocabularies import Vocabulary
 import typing_extensions
 
 from scaling_transformer_inference_efficiency import attention
@@ -108,8 +108,6 @@ from scaling_transformer_inference_efficiency import partitioning
 from scaling_transformer_inference_efficiency import special2
 
 Weights = Any
-
-_BOS_ID = 0
 
 
 @struct.dataclass
@@ -120,7 +118,7 @@ class Chunk:
 
   @classmethod
   def logical_axes(cls):
-    return Chunk(
+    return Chunk(  # pytype: disable=wrong-arg-types  # jax-ndarray
         tokens=P('batch', 'time'),
         lengths=P('batch'),
     )
@@ -151,8 +149,14 @@ class Chunk:
     )
 
   @classmethod
-  def tokenize(cls, vocab, texts,
-               is_first_chunk):
+  def tokenize(
+      cls,
+      vocab,
+      texts,
+      is_first_chunk,
+      append_eos = False,
+      pad_length = None,
+  ):
     """Parses the text into token IDs and creates a Chunk from them.
 
     For example:
@@ -185,6 +189,8 @@ class Chunk:
         so, as part of tokenization we will prepend the special
         "beginning-of-sequence" token (token ID = 0), which informs the model
         that this is indeed the beginning of the sequence.
+      append_eos: Whether to append eos or not.
+      pad_length: Optionally pad all sequences to a specified length.
 
     Returns:
       The batch of sequences, parsed into a Chunk. The result's sequence length
@@ -210,12 +216,19 @@ class Chunk:
     max_length = 0
     for text in texts:
       # Parsing:
-      tokens = vocab.encode_tf(text)
+      tokens = np.array(vocab.encode_tf(text))
+      if append_eos:
+        tokens = jnp.concatenate([tokens, np.array([vocab.eos_id])], axis=-1)
       length, = tokens.shape
       if length > max_length:
         max_length = length
       lengths.append(length)
-      batch_tokens.append(np.array(tokens))
+      batch_tokens.append(tokens)
+
+    if pad_length is not None:
+      max_length = pad_length
+      if is_first_chunk:
+        max_length = max_length - 1
 
     # Padding to max length, and then concatenating into a batch
     batch_tokens = np.array([
@@ -233,10 +246,13 @@ class Chunk:
     # then the beginning-of-sequence token has already been added to the first
     # one, so we don't need it again.
     if is_first_chunk:
-      batch_tokens = jnp.concatenate([
-          jnp.full((batch_tokens.shape[0], 1), _BOS_ID, jnp.int32), batch_tokens
-      ],
-                                     axis=1)
+      batch_tokens = jnp.concatenate(
+          [
+              jnp.full((batch_tokens.shape[0], 1), vocab.bos_id, jnp.int32),
+              batch_tokens,
+          ],
+          axis=1,
+      )
       lengths = lengths + 1
 
     # After padding and beginning-of-sequence insertion, an example output would
@@ -287,7 +303,11 @@ class Chunk:
     # end-of-sequence token.
     masked_tokens = np.where(
         np.array(me.token_mask), np.array(me.tokens), vocab.eos_id)
-    return list(vocab.decode_tf(masked_tokens).numpy())
+    decoded = vocab.decode_tf(masked_tokens)
+    if hasattr(decoded, 'numpy'):
+      return list(vocab.decode_tf(masked_tokens).numpy())
+    else:
+      return list(vocab.decode_tf(masked_tokens))
 
   @property
   def token_mask(self):
@@ -342,7 +362,7 @@ class ChunkResult:
 
   @classmethod
   def logical_axes(cls, circular=False):
-    return ChunkResult(
+    return ChunkResult(  # pytype: disable=wrong-arg-types  # jax-ndarray
         per_token_scores=P('batch', 'time'),
         top_token_ids=P('batch', 'time', 'top_k'),
         top_token_probs=P('batch', 'time', 'top_k'),
@@ -380,11 +400,15 @@ class ChunkResult:
         next_token_logits=jnp.zeros((batch, hparams.vocab), jnp.float32),
     )
 
-  def update(self,
-             token_i,
-             token_chunk,
-             token_full_result,
-             per_device = False):
+  def update(
+      self,
+      token_i,
+      token_chunk,
+      token_full_result,
+      per_device = False,
+      bos_id = 0,
+      overwrite_kv_cache = False,
+  ):
     """Writes a single-token FullChunkResult to the specified index of this.
 
     The index token_i is assumed to be the last token written to this
@@ -395,6 +419,11 @@ class ChunkResult:
       token_chunk: The input tokens with which to write. Shape Chunk[batch, 1].
       token_full_result: The results to write. Shape FullChunkResult[batch, 1].
       per_device: Whether this is used in a per device or global context.
+      bos_id: Optionally overwrite default BOS ID.
+      overwrite_kv_cache: Optionally overwrite the KV cache instead of appending
+        to it. Useful for handling more complex cache logic and shapes outside
+        of this function.
+
     Returns:
       This, but with token written at index token_i.
     """
@@ -404,31 +433,42 @@ class ChunkResult:
     assert token_seqlen == 1
     assert token_vocab == vocab
 
-    token_small = token_full_result.to_chunk_result(self.next_token_logits,
-                                                    token_chunk, per_device)
+    token_small = token_full_result.to_chunk_result(
+        self.next_token_logits, token_chunk, per_device, bos_id=bos_id
+    )
 
+    if overwrite_kv_cache:
+      kv_cache = token_full_result.kv_cache
+    else:
+      kv_cache = self.kv_cache.write_token(token_i, token_full_result.kv_cache)
     return ChunkResult(
-        kv_cache=self.kv_cache.write_token(token_i, token_full_result.kv_cache),
+        kv_cache=kv_cache,
         per_token_scores=lax.dynamic_update_index_in_dim(
-            self.per_token_scores, token_small.per_token_scores[:, 0], token_i,
-            1),
+            self.per_token_scores,
+            token_small.per_token_scores[:, 0],
+            token_i,
+            1,
+        ),
         top_token_ids=lax.dynamic_update_index_in_dim(
-            self.top_token_ids, token_small.top_token_ids[:, 0, :], token_i, 1),
+            self.top_token_ids, token_small.top_token_ids[:, 0, :], token_i, 1
+        ),
         top_token_probs=lax.dynamic_update_index_in_dim(
-            self.top_token_probs, token_small.top_token_probs[:, 0, :], token_i,
-            1),
+            self.top_token_probs,
+            token_small.top_token_probs[:, 0, :],
+            token_i,
+            1,
+        ),
         next_token_logits=token_full_result.logits[:, 0, :],
     )
 
 
 _TOP_K = 4
-_BOS_ID = 0
 
 
-def _bos_logits(vocab_size):
+def _bos_logits(vocab_size, bos_id = 0):
   """Logits that put assign probability 1.0 to on _BOS_ID."""
   logits = jnp.full((vocab_size,), -1e10)
-  return logits.at[_BOS_ID].set(0.0)
+  return logits.at[bos_id].set(0.0)
 
 
 @struct.dataclass
@@ -439,7 +479,7 @@ class FullChunkResult:
 
   @classmethod
   def logical_axes(cls):
-    return FullChunkResult(
+    return FullChunkResult(  # pytype: disable=wrong-arg-types  # jax-ndarray
         logits=P('logit_batch', 'time', 'vocab'),
         kv_cache=attention.KVCache.logical_axes(),
     )
@@ -449,6 +489,7 @@ class FullChunkResult:
       prev_logits,
       chunk,
       do_top_k = False,
+      bos_id = 0,
   ):
     """Converts this to its more minimal form, ChunkResult.
 
@@ -458,6 +499,7 @@ class FullChunkResult:
         float32[batch, vocab_size]. In 2D [batch.x, time, vocab.yz]
       chunk: Input token IDs for this chunk.
       do_top_k: Whether to do top_k - small latency impact.
+      bos_id: Optionally overwrite default BOS ID.
 
     Returns:
       This, but in its minimized form.
@@ -515,12 +557,12 @@ class FullChunkResult:
 
     batch, seqlen, vocab_size = self.logits.shape
     lengths = chunk.lengths
-
     # First figure out what logits to use for the first token.
     if prev_logits is None:
       # Use beginning-of-sequence marker as the logits.
       prev_logits = jnp.broadcast_to(
-          _bos_logits(vocab_size), (batch, vocab_size))
+          _bos_logits(vocab_size, bos_id), (batch, vocab_size)
+      )
       # ^ prev_logits: f32[batch, vocab]
     else:
       prev_logits = attention.flat_broadcast(prev_logits, batch)
@@ -564,7 +606,7 @@ class FullChunkResult:
       top_probs = jnp.zeros((batch, seqlen, _TOP_K), jnp.float32)
 
     return ChunkResult(
-        per_token_scores=per_token_scores,
+        per_token_scores=jnp.float32(per_token_scores),
         top_token_ids=top_ids,
         top_token_probs=top_probs,
         next_token_logits=next_token_logits,

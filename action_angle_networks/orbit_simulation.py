@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,11 +31,11 @@ def generate_canonical_coordinates(
   def eccentric_anomaly_to_time(eccentric_anomaly):
     """Maps eccentricity to time."""
     mean_anomaly = eccentric_anomaly - e * jnp.sin(eccentric_anomaly)
-    return period * mean_anomaly / (2 * jnp.pi) + t0
+    return period * mean_anomaly / (2 * jnp.pi) + t0  # pytype: disable=bad-return-type  # jnp-type
 
   def fixed_point_func(eccentric_anomaly):
     """Defines a function f such that its fixed point E satisfies eccentricity_to_time(E) = t."""
-    return e * jnp.sin(eccentric_anomaly) + (2 * jnp.pi) * (t - t0) / period
+    return e * jnp.sin(eccentric_anomaly) + (2 * jnp.pi) * (t - t0) / period  # pytype: disable=bad-return-type  # jax-types
 
   t0, a, m, e, k = (simulation_parameters['t0'], simulation_parameters['a'],
                     simulation_parameters['m'], simulation_parameters['e'],
@@ -77,7 +77,7 @@ def compute_angular_momentum(
   """Computes the angular momentum at these coordinates."""
   del position, simulation_parameters
   p_phi = momentum[1]
-  return p_phi
+  return p_phi  # pytype: disable=bad-return-type  # numpy-scalars
 
 
 def compute_hamiltonian(position, momentum,

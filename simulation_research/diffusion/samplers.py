@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -205,7 +205,7 @@ def discrete_ode_sample(diffusion,
   dynamics = jit(partial(diffusion.dynamics, scorefn))
   timesteps = (.5 + np.arange(nsteps)[::-1]) / nsteps
   x0, xs = heun_integrate(dynamics, xf, timesteps)
-  return xs if traj else x0
+  return xs if traj else x0  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def sde_sample(diffusion,
@@ -232,7 +232,7 @@ def sde_sample(diffusion,
   xf = diffusion.noise(key0, x_shape) * diffusion.sigma(diffusion.tmax)
   samples, xt = euler_maruyama_integrate(diffusion, scorefn, xf, timesteps,
                                          key1)
-  return xt if traj else samples
+  return xt if traj else samples  # pytype: disable=bad-return-type  # jax-ndarray
 
 
 def inpainting_scores(diff,
@@ -411,4 +411,4 @@ def marginal_logprob(diffusion,
     cp = conditional_prob(xi)
     event_nats.append(up - cp)
   event_nats = jnp.concatenate(event_nats, axis=0)
-  return event_nats.mean(), event_nats.std() / jnp.sqrt(num_samples)
+  return event_nats.mean(), event_nats.std() / jnp.sqrt(num_samples)  # pytype: disable=bad-return-type  # jnp-type

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -137,8 +137,8 @@ class ShardMapTest(absltest.TestCase):
       c = jax.jit(fwd)(a)
       # c = pjit(
       #     fwd,
-      #     in_axis_resources=(P('z', ('x', 'y')),),
-      #     out_axis_resources=P('z', ('x', 'y')))(a)
+      #     in_shardings=(P('z', ('x', 'y')),),
+      #     out_shardings=P('z', ('x', 'y')))(a)
     assert c.device_buffers[0].shape == (4, 2)
 
   #   ###############################################################################
@@ -168,8 +168,8 @@ class ShardMapTest(absltest.TestCase):
       c = jax.jit(fwd)(a)
       # c = pjit(
       #     fwd,
-      #     in_axis_resources=(P('z', ('x', 'y')),),
-      #     out_axis_resources=P(None, ('x', 'y')))(a)
+      #     in_shardings=(P('z', ('x', 'y')),),
+      #     out_shardings=P(None, ('x', 'y')))(a)
     assert c.device_buffers[0].shape == (8, 2)
 
   ##########################################################################
@@ -198,8 +198,8 @@ class ShardMapTest(absltest.TestCase):
       c = jax.jit(fwd)(a, b)
       # c = pjit(
       #     fwd,
-      #     in_axis_resources=(P('z', 'y'), P('y', None)),
-      #     out_axis_resources=P('z', 'y'))(a, b)
+      #     in_shardings=(P('z', 'y'), P('y', None)),
+      #     out_shardings=P('z', 'y'))(a, b)
     assert c.device_buffers[0].shape == (4, 8)
 
   ##########################################################################
@@ -229,8 +229,8 @@ class ShardMapTest(absltest.TestCase):
       c = jax.jit(fwd)(a, b)
       # c = pjit(
       #     fwd,
-      #     in_axis_resources=(P('z', 'y'), P('y', None)),
-      #     out_axis_resources=P(('z', 'y'), None))(a, b)
+      #     in_shardings=(P('z', 'y'), P('y', None)),
+      #     out_shardings=P(('z', 'y'), None))(a, b)
     assert c.device_buffers[0].shape == (2, 8)
 
   ##########################################################################
@@ -263,8 +263,8 @@ class ShardMapTest(absltest.TestCase):
       c = jax.jit(fwd)(a)
       # c = pjit(
       #     fwd,
-      #     in_axis_resources=(P('x', None),),
-      #     out_axis_resources=P('x', None))(a)
+      #     in_shardings=(P('x', None),),
+      #     out_shardings=P('x', None))(a)
     assert (c[1, :] == a[0, :]).all()
 
   ##########################################################################
@@ -275,8 +275,9 @@ class ShardMapTest(absltest.TestCase):
     devices = np.array(jax.devices()[:X * Y * Z]).reshape((X, Y, Z))
     mesh = Mesh(devices, axis_names=('x', 'y', 'z'))
     a = jax.device_put(
-        jnp.arange(8 * 8).reshape((8, 8)),
-        jax.sharding.NamedSharding(mesh, P('x', None)))
+        jnp.float32(jnp.arange(8 * 8).reshape((8, 8))),
+        jax.sharding.NamedSharding(mesh, P('x', None)),
+    )
 
     def all_to_all(a):
       return lax.all_to_all(a, 'x', split_axis=1, concat_axis=1, tiled=True)
@@ -287,12 +288,19 @@ class ShardMapTest(absltest.TestCase):
               a)
       return c
 
+    def loss(a):
+      return fwd(a).mean()
+
+    def grad(a):
+      return jax.value_and_grad(loss)(a)
+
     with mesh:
       c = jax.jit(fwd)(a)
+      _, _ = jax.jit(grad)(a)
       # c = pjit(
       #     fwd,
-      #     in_axis_resources=(P('x', None),),
-      #     out_axis_resources=P(None, 'x'))(a)
+      #     in_shardings=(P('x', None),),
+      #     out_shardings=P(None, 'x'))(a)
 
     assert (c == jnp.reshape(a.T, (1, 64))).all()
 
@@ -363,7 +371,8 @@ class ShardMapTest(absltest.TestCase):
     layer = Layer(q_wi, kv, o_wo)
     layer_sharding = Layer(q_wi_sharding, kv_sharding, o_wo_sharding)
 
-    def fwd(hparams, x, layer):
+    def fwd(hparams, x, layer, kv_cache):
+      del kv_cache
       q_wi, kv, o_wo = layer.q_wi, layer.kv, layer.o_wo
       # x: ['batch.Z', 'time', 'embed.XY']
       epsilon = 1e-6
@@ -454,19 +463,25 @@ class ShardMapTest(absltest.TestCase):
 
     fwd = partial(fwd, h)  # partial w/ the hparams
 
-    def wrapped_shardmap(x, layer):
+    def wrapped_shardmap(layer, x, kv_caches):
       result = shard_map(
           fwd,
           mesh,
-          in_specs=(x_sharding, layer_sharding),
-          out_specs=x_sharding)(x, layer)
+          in_specs=(x_sharding, layer_sharding, P()),
+          out_specs=x_sharding,
+      )(x, layer, kv_caches)
       return result
 
+    def loss(layer, x, kv_caches):
+      return wrapped_shardmap(layer, x, kv_caches).mean()
+
     with mesh:
-      z = jax.jit(wrapped_shardmap)(x, layer)
+      z = jax.jit(wrapped_shardmap)(layer, x, [])
+
+      _, _ = jax.jit(jax.value_and_grad(loss))(layer, x, [])
       # z = pjit(wrapped_shardmap,
-      #          in_axis_resources=(x_sharding, layer_sharding),
-      #          out_axis_resources=x_sharding)(x, layer)
+      #          in_shardings=(x_sharding, layer_sharding),
+      #          out_shardings=x_sharding)(x, layer)
 
     return z
 

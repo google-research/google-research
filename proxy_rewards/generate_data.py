@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -222,7 +222,7 @@ def generate_data(env_config,
 
     res.append(row)
 
-  df = pd.DataFrame.from_dict(res).sort_values('user')
+  df = pd.DataFrame.from_records(res).sort_values('user')
 
   logits = intercept + df['rating'] * rating_coef + df[
       'diversity_seeker'] * div_seek_coef + df['diversity'] * diversity_coef

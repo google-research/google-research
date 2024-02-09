@@ -1,0 +1,10 @@
+argparse
+attrs
+black
+chardet
+cupy-cuda11x
+isort
+matplotlib
+pytest
+qsimcirq
+git+https://github.com/quantumlib/ReCirq

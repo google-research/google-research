@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import bz2
 import datetime
 import hashlib
 import inspect
@@ -40,7 +41,6 @@ from xml.etree import ElementTree as et
 
 from absl import app
 from absl import flags
-import bz2file
 import mwparserfromhell as mwp
 import pandas as pd
 
@@ -109,7 +109,7 @@ class WikinewsParser(object):
     date_re = re.compile(r"{{date\|(\w*)\s(\d*), " + FLAGS.year + r"}}")
 
     with open(FLAGS.wikinews_archive, "rb") as bf:
-      with bz2file.BZ2File(bf) as xf:
+      with bz2.BZ2File(bf) as xf:
         parser = et.iterparse(xf)
 
         # Hold on to the root element so that we can clear empty children that

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -592,7 +592,8 @@ class BCAgent:
     e = cos / scale_y
     f = y - nx * d - ny * e
     image = image.transform(
-        image.size, Image.AFFINE, (a, b, c, d, e, f), fillcolor=255)
+        image.size, Image.Transform.AFFINE, (a, b, c, d, e, f), fillcolor=255
+    )
     return np.asarray(image)
 
   def draw_augment_params(self, im_size):

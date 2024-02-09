@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -27,6 +27,7 @@ from functools import partial  # pylint: disable=g-importing-member
 
 from flax import struct
 import jax
+from jax import core
 from jax import lax
 from jax import sharding
 from jax.experimental import pjit
@@ -137,19 +138,19 @@ class Weights:
   @classmethod
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
-    q_wi = jax.ShapedArray(
+    q_wi = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head),
         jnp.bfloat16,
     )
-    kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16)
-    o_wo = jax.ShapedArray(
+    kv = core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.bfloat16)
+    o_wo = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
         jnp.bfloat16,
     )
-    sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
-    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
+    sin = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    cos = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    embedding = core.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
+    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)  # pytype: disable=wrong-arg-types  # jax-types
 
   @classmethod
   def logical_axes(cls):
@@ -161,7 +162,7 @@ class Weights:
     cos = P(None, None)
     embedding = P('params_vocab', 'embedding_embed')
 
-    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)
+    return Weights(Layer(q_wi, kv, o_wo), sin=sin, cos=cos, embedding=embedding)  # pytype: disable=wrong-arg-types  # jax-ndarray
 
   @classmethod
   def physical_axes(cls):
@@ -311,11 +312,13 @@ class Weights:
     sin = copy_to_device(sin, axes.sin, expected_shapes.sin)
     cos = copy_to_device(cos, axes.cos, expected_shapes.cos)
 
-    q_wi_input_axes = ('layers', 'params_embed', 'params_heads', 'qkv')
+    q_wi_input_axes = P(
+        'layers', 'weight_load_embed', 'weight_load_heads', 'qkv'
+    )
     q_wi = copy_to_device(
         c.q_wi,
         q_wi_input_axes,
-        jax.ShapedArray(
+        core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.bfloat16,
         ),
@@ -326,7 +329,7 @@ class Weights:
     layernorm_scale = copy_to_device(
         c.layernorm_scale,
         layernorm_scale_axes,
-        jax.ShapedArray((h.layers, h.embed), jnp.float32),
+        core.ShapedArray((h.layers, h.embed), jnp.float32),
     )
     embedding = copy_to_device(
         c.embedding, axes.embedding, expected_shapes.embedding
@@ -344,14 +347,14 @@ class Weights:
     with mesh:
       q_wi, kv, o_wo, embedding = pjit.pjit(
           preprocess,
-          in_axis_resources=(
+          in_shardings=(
               q_wi_input_axes,
               kv_axes,
               o_wo_axes,
               layernorm_scale_axes,
               embedding_axes,
           ),
-          out_axis_resources=(
+          out_shardings=(
               q_wi_output_axes,
               kv_axes,
               o_wo_axes,
@@ -394,24 +397,24 @@ class QuantizedWeights:
   @classmethod
   def make_shaped_arrays(cls, h):
     """Creates weights populated with zero-footprint shaped arrays."""
-    q_wi = jax.ShapedArray(
+    q_wi = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, h.embed, h.q_wi_per_head), jnp.int8
     )
-    q_wi_scale = jax.ShapedArray(
+    q_wi_scale = core.ShapedArray(
         (h.layers, h.heads - h.padded_heads, 1, h.q_wi_per_head), jnp.float32
     )
-    kv = jax.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8)
-    kv_scale = jax.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
-    o_wo = jax.ShapedArray(
-        (h.layers, h.heads, h.o_wo_per_head, h.embed), jnp.int8
+    kv = core.ShapedArray((h.layers, h.embed, 1, 2 * h.qkv), jnp.int8)
+    kv_scale = core.ShapedArray((h.layers, 1, 1, 2 * h.qkv), jnp.float32)
+    o_wo = core.ShapedArray(
+        (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed), jnp.int8
     )
-    o_wo_scale = jax.ShapedArray((h.layers, 1, 1, h.embed), jnp.float32)
-    sin = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    cos = jax.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
-    embedding = jax.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
-    layernorm_scale = jax.ShapedArray((h.layers, h.embed), jnp.bfloat16)
-    return QuantizedWeights(
-        QuantizedLayer(
+    o_wo_scale = core.ShapedArray((h.layers, 1, 1, h.embed), jnp.float32)
+    sin = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    cos = core.ShapedArray((h.max_len, h.qkv // 2), jnp.float32)
+    embedding = core.ShapedArray((h.vocab, h.embed), jnp.bfloat16)
+    layernorm_scale = core.ShapedArray((h.layers, h.embed), jnp.bfloat16)
+    return QuantizedWeights(  # pytype: disable=wrong-arg-types  # jax-types
+        QuantizedLayer(  # pytype: disable=wrong-arg-types  # jax-types
             q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
         ),
         sin=sin,
@@ -436,8 +439,8 @@ class QuantizedWeights:
     embedding = P('params_vocab', 'embedding_embed')
     layernorm_scale = P('layers', 'params_embed')
 
-    return QuantizedWeights(
-        QuantizedLayer(
+    return QuantizedWeights(  # pytype: disable=wrong-arg-types  # jax-ndarray
+        QuantizedLayer(  # pytype: disable=wrong-arg-types  # jax-ndarray
             q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
         ),
         sin=sin,
@@ -500,7 +503,53 @@ class QuantizedWeights:
       # to avoid XLA doing that same transformation on every inference.
       q_wi = jnp.swapaxes(q_wi, 1, 2)
       q_wi_scale = jnp.swapaxes(q_wi_scale, 1, 2)
+      q_wi_input_axes = P(
+          'layers', 'weight_load_heads', 'weight_load_embed', 'qkv'
+      )
+      q_wi_scale_input_axes = P('layers', 'weight_load_heads', None, 'qkv')
+      # pylint: disable = protected-access
+      q_wi = partitioning._with_sharding_constraint(q_wi, q_wi_input_axes)
+      q_wi_scale = partitioning._with_sharding_constraint(
+          q_wi_scale, q_wi_scale_input_axes
+      )
       return q_wi, q_wi_scale
+
+    @partial(jax.jit, donate_argnums=(0,))
+    def reshard_q_wi(q_wi):
+      return jax.lax.with_sharding_constraint(
+          q_wi, QuantizedWeights.physical_axes().layer.q_wi
+      )
+
+    @jax.jit
+    def reshard_q_wi_scale(q_wi):
+      return jax.lax.with_sharding_constraint(
+          q_wi, QuantizedWeights.physical_axes().layer.q_wi_scale
+      )
+
+    @partial(jax.jit, donate_argnums=(0,))
+    def reshard_o_wo(o_wo):
+      return jax.lax.with_sharding_constraint(
+          o_wo, QuantizedWeights.physical_axes().layer.o_wo
+      )
+
+    def pad_heads(
+        h,
+        q_wi,
+        q_wi_scale,
+        o_wo,
+    ):
+      """Pads heads so we can shard them further, post transpose."""
+      if h.padded_heads > 0:
+        q_wi = jnp.pad(
+            q_wi, ((0, 0), (0, h.padded_heads), (0, 0), (0, 0))
+        ).block_until_ready()
+        q_wi_scale = jnp.pad(
+            q_wi_scale, ((0, 0), (0, h.padded_heads), (0, 0), (0, 0))
+        ).block_until_ready()
+        o_wo = jnp.pad(
+            o_wo, ((0, 0), (0, h.padded_heads), (0, 0), (0, 0))
+        ).block_until_ready()
+      return q_wi, q_wi_scale, o_wo
 
     # TODO(sholto): Why is a shard of an array not being donated?
     @partial(jax.jit, donate_argnums=(0, 1, 2))
@@ -522,9 +571,6 @@ class QuantizedWeights:
           o_wo_scale, jnp.float32(embedding)
       )
 
-      if h.padded_heads > 0:
-        raise NotImplementedError
-
       # embedding is returned as bfloat16, so do not donate
       return q_wi_scale, o_wo_scale, kv_scale, jnp.bfloat16(embedding)
 
@@ -536,12 +582,14 @@ class QuantizedWeights:
     sin = copy_to_device(sin, axes.sin, expected_shapes.sin)
     cos = copy_to_device(cos, axes.cos, expected_shapes.cos)
 
-    q_wi_input_axes = P('layers', 'params_embed', 'params_heads', 'qkv')
-    q_wi_scale_input_axes = P('layers', None, 'heads', 'qkv')
+    q_wi_input_axes = P(
+        'layers', 'weight_load_embed', 'weight_load_heads', 'qkv'
+    )
+    q_wi_scale_input_axes = P('layers', None, 'weight_load_heads', 'qkv')
     q_wi = copy_to_device(
         c.q_wi,
         q_wi_input_axes,
-        jax.ShapedArray(
+        core.ShapedArray(
             (h.layers, h.embed, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.int8,
         ),
@@ -549,7 +597,7 @@ class QuantizedWeights:
     q_wi_scale = copy_to_device(
         c.q_wi_scale,
         q_wi_scale_input_axes,
-        jax.ShapedArray(
+        core.ShapedArray(
             (h.layers, 1, h.heads - h.padded_heads, h.q_wi_per_head),
             jnp.float32,
         ),
@@ -558,7 +606,17 @@ class QuantizedWeights:
     kv_scale = copy_to_device(
         c.kv_scale, axes.layer.kv_scale, expected_shapes.layer.kv_scale
     )
-    o_wo = copy_to_device(c.o_wo, axes.layer.o_wo, expected_shapes.layer.o_wo)
+    o_wo_input_axes = P(
+        'layers', 'weight_load_heads', 'qkv', 'weight_load_embed'
+    )
+    o_wo = copy_to_device(
+        c.o_wo,
+        o_wo_input_axes,
+        core.ShapedArray(
+            (h.layers, h.heads - h.padded_heads, h.o_wo_per_head, h.embed),
+            jnp.int8,
+        ),
+    )
     o_wo_scale = copy_to_device(
         c.o_wo_scale, axes.layer.o_wo_scale, expected_shapes.layer.o_wo_scale
     )
@@ -580,8 +638,13 @@ class QuantizedWeights:
       # on this call we do not donate argnums as the input/output buffers are
       # different sizes
       q_wi, q_wi_scale = transpose_q_wi(q_wi, q_wi_scale)
+      q_wi, q_wi_scale, o_wo = pad_heads(h, q_wi, q_wi_scale, o_wo)
 
-    return QuantizedWeights(
+      q_wi = reshard_q_wi(q_wi).block_until_ready()
+      q_wi_scale = reshard_q_wi_scale(q_wi_scale).block_until_ready()
+      o_wo = reshard_o_wo(o_wo).block_until_ready()
+
+    params = QuantizedWeights(
         QuantizedLayer(
             q_wi, q_wi_scale, kv, kv_scale, o_wo, o_wo_scale, layernorm_scale
         ),
@@ -589,3 +652,4 @@ class QuantizedWeights:
         cos=cos,
         embedding=embedding,
     )
+    return params

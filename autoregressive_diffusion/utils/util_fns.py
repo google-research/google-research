@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -247,7 +247,7 @@ class KLTracker():
       self.n_updates[t] += 1
 
   def has_history_forall_t(self):
-    return np.alltrue(self.n_updates >= 5)
+    return np.all(self.n_updates >= 5)
 
   def get_kl_per_t(self):
     kl_per_t = self.history + np.where(self.n_updates == 0,

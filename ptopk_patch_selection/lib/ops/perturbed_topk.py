@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,10 +106,14 @@ def perturbed(func,
   return foo
 
 
-def perturbed_sorted_topk_indicators(x, rng, k,
-                                     sigma,
-                                     num_samples = 1000,
-                                     noise = "normal"):
+def perturbed_sorted_topk_indicators(
+    x,
+    rng,
+    k,
+    sigma,
+    num_samples = 1000,
+    noise = "normal",
+):
   return perturbed(
       functools.partial(sorted_topk_indicators, k=k, sort_by=SortBy.POSITION),
       num_samples, noise)(x, sigma, rng)

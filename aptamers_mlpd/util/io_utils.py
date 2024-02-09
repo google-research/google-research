@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -235,7 +235,7 @@ def _batch_sstable_values(table, chunk_size):
   if not isinstance(chunk_size, int):
     raise ValueError('The chunk_size must be an int. Found %s.' % chunk_size)
 
-  i = table.values()
+  i = list(table.values())
   while True:
     # wrapping the chunk allows more efficient garbage collection
     wrapped_chunk = [list(it.islice(i, chunk_size))]
@@ -279,7 +279,7 @@ def tfexample_sstable_to_dataframe(path,
       path, value_type=tf.Example.FromString, has_known_shard_key=False)
 
   # Determine features and their types from the first entry in the table.
-  first_example = table.values()[0]
+  first_example = next(iter(table.values()))
   # The Features message is just a single map from name to Feature, so the below
   # selection extracts the mapping from string name to feature value.
   first_feature_map = first_example.features.ListFields()[0][1]

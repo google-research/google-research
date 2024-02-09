@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -91,7 +91,7 @@ def uniform_scaling(dtype = jnp.float_):
     if len(shape) == 1:
       input_size = shape[0]
     else:
-      input_size = np.product(shape[:-1])
+      input_size = np.prod(shape[:-1])
     max_val = np.sqrt(1 / input_size)
     return jax.random.uniform(key, shape, dtype, -max_val, max_val)
 

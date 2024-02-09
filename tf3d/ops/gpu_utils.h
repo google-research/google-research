@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,7 +17,8 @@
 
 #if GOOGLE_CUDA
 #define EIGEN_USE_GPU  // For definition of Eigen::GpuDevice.
-#include "absl/base/integral_types.h"
+#include <cstdint>
+
 #include "third_party/gpus/cuda/include/cuda_runtime_api.h"
 
 namespace tensorflow {
@@ -33,7 +34,7 @@ template <typename T>
 __host__ __device__ __forceinline__ T FillLowerBits(T n);
 
 template <>
-__host__ __device__ __forceinline__ uint8 FillLowerBits<uint8>(uint8 n) {
+__host__ __device__ __forceinline__ uint8_t FillLowerBits<uint8_t>(uint8_t n) {
   n |= n >> 1;
   n |= n >> 2;
   n |= n >> 4;
@@ -41,7 +42,8 @@ __host__ __device__ __forceinline__ uint8 FillLowerBits<uint8>(uint8 n) {
 }
 
 template <>
-__host__ __device__ __forceinline__ uint16 FillLowerBits<uint16>(uint16 n) {
+__host__ __device__ __forceinline__ uint16_t
+FillLowerBits<uint16_t>(uint16_t n) {
   n |= n >> 1;
   n |= n >> 2;
   n |= n >> 4;
@@ -50,7 +52,8 @@ __host__ __device__ __forceinline__ uint16 FillLowerBits<uint16>(uint16 n) {
 }
 
 template <>
-__host__ __device__ __forceinline__ uint32 FillLowerBits<uint32>(uint32 n) {
+__host__ __device__ __forceinline__ uint32_t
+FillLowerBits<uint32_t>(uint32_t n) {
   n |= n >> 1;
   n |= n >> 2;
   n |= n >> 4;
@@ -60,7 +63,8 @@ __host__ __device__ __forceinline__ uint32 FillLowerBits<uint32>(uint32 n) {
 }
 
 template <>
-__host__ __device__ __forceinline__ uint64 FillLowerBits<uint64>(uint64 n) {
+__host__ __device__ __forceinline__ uint64_t
+FillLowerBits<uint64_t>(uint64_t n) {
   n |= n >> 1;
   n |= n >> 2;
   n |= n >> 4;

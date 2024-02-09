@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -419,7 +419,7 @@ def main(unused_argv):
 
     dataset = tf.data.Dataset.zip((train_data, finetune_data, target_data))
     dataset = dataset.map(_merge_datasets)
-    dataset = dataset.prefetch(buffer_size=tf.contrib.data.AUTOTUNE)
+    dataset = dataset.prefetch(buffer_size=tf.data.AUTOTUNE)
     return dataset
 
   max_train_steps = FLAGS.train_steps

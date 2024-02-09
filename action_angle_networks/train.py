@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2022 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ def create_model(config):
                                     skip_connections=True),
         name='decoder')
   if config.encoder_decoder_type == 'flow':
-    flow = create_flow(
+    flow = create_flow(  # pytype: disable=wrong-arg-types  # numpy-scalars
         config, init_shape=(config.batch_size, 2 * config.num_trajectories))
     encoder = models.FlowEncoder(flow)
     decoder = models.FlowDecoder(flow)
@@ -286,7 +286,7 @@ def compute_loss(predicted_positions,
     actions = auxiliary_predictions['actions']
     actions_variances = jnp.var(actions, axis=0).sum()
     loss += regularizations['actions'] * actions_variances
-  return loss
+  return loss  # pytype: disable=bad-return-type  # jnp-type
 
 
 @jax.jit
@@ -335,7 +335,7 @@ def compute_mean_change_in_hamiltonians(
   predicted_hamiltonians = compute_hamiltonian_fn(predicted_positions,
                                                   predicted_momentums,
                                                   simulation_parameters)
-  return jnp.mean(jnp.abs(curr_hamiltonians - predicted_hamiltonians))
+  return jnp.mean(jnp.abs(curr_hamiltonians - predicted_hamiltonians))  # pytype: disable=bad-return-type  # jnp-type
 
 
 @jax.jit
@@ -539,7 +539,7 @@ def get_coordinates_for_time_jumps(
 
   num_samples = positions.shape[1]
   curr_indices = jnp.arange(0, num_samples - max_jump)
-  target_indices = jax.vmap(map_to_target_indices)(curr_indices)
+  target_indices = jax.vmap(map_to_target_indices)(curr_indices)  # pytype: disable=wrong-arg-types  # jnp-type
   curr_positions = positions[curr_indices]
   target_positions = positions[target_indices]
   curr_momentums = momentums[curr_indices]
@@ -743,4 +743,4 @@ def train_and_evaluate(
           'metrics': all_test_metrics,
       },
   }
-  return scaler, best_state, auxiliary_data
+  return scaler, best_state, auxiliary_data  # pytype: disable=bad-return-type  # numpy-scalars

@@ -1,4 +1,4 @@
-// Copyright 2022 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -383,7 +383,7 @@ class DefaultDenseDatasetView : public DenseDatasetView<T> {
  public:
   DefaultDenseDatasetView() {}
 
-  explicit DefaultDenseDatasetView(const DenseDataset<T>& ds)
+  DefaultDenseDatasetView(const DenseDataset<T>& ds)
       : ptr_(ds.data().data()), size_(ds.size()) {
     if (ds.packing_strategy() == HashedItem::BINARY) {
       dims_ = ds.dimensionality() / 8 + (ds.dimensionality() % 8 > 0);
