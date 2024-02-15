@@ -107,7 +107,7 @@ evaluate() {
 }
 
 main() {
-  #setup
+  setup
   download
   split
   train
