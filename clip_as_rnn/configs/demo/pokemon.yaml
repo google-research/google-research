@@ -1,0 +1,126 @@
+# image_path: 'testcase/elon_mark.jpg'
+# image_caption: ['person']
+# image_caption: ['a photo of elon musk']
+
+# image_path: "testcase/voc_failure_case/cat.jpg"
+# image_caption: ['person', 'cat', 'aeroplane', 'dog', 'chair']
+
+# image_path: "testcase/voc_failure_case/dog.jpg"
+# image_caption: ['person', 'cat', 'aeroplane', 'dog', 'chair']
+
+
+# image_path: "testcase/voc_failure_case/bicycle.jpg"
+# image_caption: ['person', 'cat', 'aeroplane', 'dog', 'chair', 'bicycle']
+
+# image_path: "testcase/trump_xi.jpg"
+# image_caption: ['donald trump', 'jinping xi']
+
+image_path: "demo/pokemon1.jpg"
+image_caption: ['Charmander', 'Bulbasaur', 'Squirtle']
+
+
+# image_path: "testcase/voc_failure_case/bus.jpg"
+# image_caption: ['person', 'cat', 'aeroplane', 'dog', 'chair', 'bicycle', 'bus']
+
+
+# image_caption: ['dog']
+# image_path: 'testcase/harry_potter.jpg'
+# image_caption: ['ceo of facebook']
+# image_caption: ['harry potter']
+# image_caption: ['ron weasley']
+
+# image_path: testcase/trump_xi.jpg
+# image_caption: ['president of United States']
+
+# image_path: 'testcase/weiweizhang.jpg'
+# image_caption: ['weiwei zhang']
+
+# image_path: 'testcase/indian_ceos.jpg'
+# image_caption: ['Sundar Pichai']  # 'sundar pichai'
+
+
+# image_path: "testcase/voc_plane.jpg"
+# image_caption: ['aeroplane']
+# background_caption: ['ground','land','grass','tree','building','wall','sky','lake','water','river','sea','railway','railroad','keyboard','helmet',
+#                         'cloud','house','mountain','ocean','road','rock','street','valley','bridge','sign',
+#                         ]
+
+
+# image_path: "testcase/voc_train.jpg"
+# image_caption: ['train']
+# background_caption: ['ground','land','grass','tree','building','wall','sky','lake','water','river','sea','railway','railroad','keyboard','helmet',
+#                         'cloud','house','mountain','ocean','road','rock','street','valley','bridge','sign',
+#                         ]
+
+# image_path: testcase/maskcut/COCO_train2014_000000563679.jpg
+# image_caption: ['the middle zebra in the picture']
+
+clip:
+  semantic_clip_model_name: 'ViT-L/14'
+  semantic_pretrained_data: 'openai'
+  clip_model_name: 'ViT-B/16'
+  pretrained_data: 'openai'
+
+
+
+camcut:
+  iom_thres: 0.6
+  mask_threshold: 0.5
+  confidence_threshold: 0 # 0.2
+  clipes_threshold: 0.6
+  visual_prompt_type: ['gray', 'blur']
+  semantic_templates: ['a clean origami {}.',
+                        'a photo of a {}.',
+                    'This is a photo of a {}',
+                    'There is a {} in the scene',
+                    'There is the {} in the scene',
+                    'a photo of a {} in the scene',
+                    'a photo of a small {}.',
+                    'a photo of a medium {}.',
+                    'a photo of a large {}.',
+                    'This is a photo of a small {}.',
+                    'This is a photo of a medium {}.',
+                    'This is a photo of a large {}.',
+                    'There is a small {} in the scene.',
+                    'There is a medium {} in the scene.',
+                    'There is a large {} in the scene.']
+  bg_cls: ['ground', 'land', 'grass', 'tree', 'building',
+            'wall', 'sky', 'lake', 'water', 'river', 'sea',
+            'railway', 'railroad', 'helmet', 'cloud', 'house',
+            'mountain', 'ocean', 'road', 'rock', 'street',
+            'valley', 'bridge']
+#   # SAM
+#   # min_pred_threshold: 0.2
+#   # points_per_side: 64
+#   # pred_iou_thresh: 0.88
+#   # stability_score_thresh: 0.95
+#   # box_nms_thresh: 0.7
+  
+
+sam:
+  model_dir: "//homes/55/runjia/scratch/SAM/model_dir"
+  sam_checkpoint: "/homes/55/runjia/scratch/SAM/model_dir/sam_hq_vit_h.pth"  #  "/storage2/jianhaoy/SAM/sam_hq_vit_h.pth"
+  model_type: "vit_h"
+  min_pred_threshold: 0.01
+  points_per_side: 64
+  pred_iou_thresh: 0.88
+  stability_score_thresh: 0.95
+  box_nms_thresh: 0.7
+
+
+
+test:
+  confidence_threshold: 0.7
+  algo: "maskcut"
+  ds_name: "voc"
+  seg_mode: "semantic"
+  split: 'val'
+  # data_root: "/home/lir0c/storage/PASCAL/"
+  # data_root: "/datasets/jianhaoy/PASCAL/"
+  data_root: "/homes/55/runjia/scratch/PASCAL/"
+  sam_mask_root: "/homes/55/runjia/scratch/SAM_masks/VOC"
+  output_path: "./outputs/"
+  use_pseudo: False
+  # use_iterative: False
+  num_iteration: 1
+

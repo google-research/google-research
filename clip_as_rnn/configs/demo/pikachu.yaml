@@ -1,0 +1,66 @@
+image_path: "demo/pikachu.jpg"
+image_caption: ['Pikachu', 'Eevee', 'Bulbasaur', 'Squirtle']
+
+clip:
+  semantic_clip_model_name: 'ViT-L/14'
+  semantic_pretrained_data: 'openai'
+  clip_model_name: 'ViT-B/16'
+  pretrained_data: 'openai'
+
+
+
+camcut:
+  iom_thres: 0.6
+  mask_threshold: 0.5
+  confidence_threshold: 0 # 0.2
+  clipes_threshold: 0.6
+  visual_prompt_type: ['gray', 'blur']
+  semantic_templates: ['a clean origami {}.',
+                        'a photo of a {}.',
+                    'This is a photo of a {}',
+                    'There is a {} in the scene',
+                    'There is the {} in the scene',
+                    'a photo of a {} in the scene',
+                    'a photo of a small {}.',
+                    'a photo of a medium {}.',
+                    'a photo of a large {}.',
+                    'This is a photo of a small {}.',
+                    'This is a photo of a medium {}.',
+                    'This is a photo of a large {}.',
+                    'There is a small {} in the scene.',
+                    'There is a medium {} in the scene.',
+                    'There is a large {} in the scene.']
+  bg_cls: ['ground', 'land', 'grass', 'tree', 'building',
+            'wall', 'sky', 'lake', 'water', 'river', 'sea',
+            'railway', 'railroad', 'helmet', 'cloud', 'house',
+            'mountain', 'ocean', 'road', 'rock', 'street',
+            'valley', 'bridge']
+
+
+sam:
+  model_dir: "./SAM"
+  sam_checkpoint: "./sam_hq_vit_h.pth"
+  model_type: "vit_h"
+  min_pred_threshold: 0.03
+  points_per_side: 64
+  pred_iou_thresh: 0.88
+  stability_score_thresh: 0.8
+  box_nms_thresh: 0.6
+
+
+
+test:
+  confidence_threshold: 0.7
+  algo: "maskcut"
+  ds_name: "voc"
+  seg_mode: "semantic"
+  split: 'val'
+  # data_root: "/home/lir0c/storage/PASCAL/"
+  # data_root: "/datasets/jianhaoy/PASCAL/"
+  data_root: "/homes/55/runjia/scratch/PASCAL/"
+  sam_mask_root: "/homes/55/runjia/scratch/SAM_masks/VOC"
+  output_path: "./outputs/"
+  use_pseudo: False
+  # use_iterative: False
+  num_iteration: 1
+

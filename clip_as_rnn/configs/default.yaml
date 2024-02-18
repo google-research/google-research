@@ -1,0 +1,136 @@
+# image_path: 'testcase/failure_case/COCO_train2014_000000132574.jpg'
+# image_caption: 'girl in the right in purple jacket'
+# # image_caption: 'the roof in the background'
+# # image_caption: 'girl in the middle in blue jacket'
+
+# image_path: 'testcase/failure_case/COCO_train2014_000000169820.jpg'
+# image_caption: 'the right cat'
+
+# image_path: 'vis_results/refcoco/original_image.png'
+# image_caption: 'guy petting elephant'
+
+# image_path: 'vis_results/demo.jpg'
+# # image_caption: 'the right smaller baby donkey'
+# image_caption: 'the left larger donkey'
+
+# image_path: 'vis_results/sun.jpg'
+# image_caption: 'seven sisters cliff'
+
+# image_path: 'vis_results/harry.jpg'
+# image_caption: 'ron weasley'
+# image_caption: 'hermione granger'
+# image_caption: 'emma watson'
+# image_caption: 'harry potter'
+# image_caption: 'the black boy'
+
+
+# image_path: 'vis_results/avengers.jpg'
+# image_caption: 'hulk'
+
+# image_path: 'vis_results/doggie.jpg'
+# image_caption: 'dog in the middle'
+
+image_path: 'testcase/elon_mark.jpg'
+image_caption: ['ceo of facebook']
+
+# image_path: 'vis_results/batman.jpg'
+# image_caption: 'batman'
+
+
+# image_path: 'vis_results/trump_xi.jpg'
+# image_caption: 'the us president'
+
+# image_path: 'vis_results/yifu_lin.jpg'
+# image_caption: 'yifu lin'
+
+# image_path: 'vis_results/blackpink.jpg'
+# image_caption: 'jisoo'
+
+# image_path: 'vis_results/xukun_cai.jpg'
+# image_caption: 'xukun cai'
+
+# image_path: 'testcase/cars.jpg'
+# image_caption: 'porsche panamera'
+# image_caption: 'mercedes benz'
+# image_caption: 'audi'
+
+# image_path: 'vis_results/aircraft.jpg'
+# image_caption: 'boeing'
+# # image_caption: 'airbus'
+
+# image_path: 'vis_results/phil.jpg'
+# image_caption: 'philip torr'
+# 
+# image_path: 'vis_results/big_three.jpg'
+# # image_caption: 'yann lecun'
+# image_caption: 'geoffrey hinton'
+
+# image_path: 'testcase/Common_Yellowthroat_0040_190427.jpg'
+# image_caption: 'Common Yellowthroat'
+
+# image_path: '/datasets/jianhaoy/PASCAL/VOCdevkit/VOC2012/JPEGImages/2007_000033.jpg'
+# image_caption: 'airplane'
+
+
+# image_path: 'vis_results/cv_contributors.jpg'
+# # image_caption: 'andrew zisserman'
+# image_caption: 'black guy'
+
+# image_path: 'vis_results/c919.jpg'
+# # image_caption: 'boeing'
+# image_caption: 'airbus'
+# # image_caption: 'comac c919'
+
+# image_path: 'vis_results/watch.jpg'
+# image_caption: 'rolex'
+# # image_caption: 'omega'
+
+# image_path: '/datasets/jianhaoy/ReferSegmentation/data/images/mscoco/images/train2014/COCO_train2014_000000580785.jpg'
+# image_caption: 'adult'
+
+
+save_path: 'vis_results/'
+clip_model: 'ViT-bigG-14'
+pretrained_data: 'laion2b_s39b_b160k'
+# clip_model: 'ViT-L-14'
+# pretrained_data: 'openai'
+
+cam:
+  input_size: 512  # the input size of the image to SAM model.
+  iom_thres: 0.5
+  mask_threshold: 0.6
+  num_layers: 1
+  return_largest: False
+  min_area_ratio: 0.2
+  min_pred_threshold: 0.2
+  # SAM
+  points_per_side: 64
+  pred_iou_thresh: 0.88
+  stability_score_thresh: 0.95
+  box_nms_thresh: 0.7 
+
+sam_model:
+  model_dir: "/datasets/jianhaoy/Cache/SAM"
+  sam_checkpoint: "/storage2/jianhaoy/SAM/sam_hq_vit_h.pth"  #  "/storage2/jianhaoy/SAM/sam_hq_vit_h.pth"
+  model_type: "vit_h"
+  device: "cuda:0"
+  # device: "cpu"
+
+camcut:
+  tau: 0.15
+  amplification_factor: 100
+  attenuation_factor: 0.4
+  model_type: "clip" # 'clip' or 'dino'
+  dino_arch: "small" # 'small' or 'base'
+  dino_feat: "k" # 'k', 'q', 'v', 'kqv'
+
+
+
+sentence_process:
+  mixing_alpha: 0.2
+
+cam_memory:
+  enable: True
+
+inference_length: 100
+
