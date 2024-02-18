@@ -1,4 +1,0 @@
-tensorflow>=2.14.0
-numpy>=1.16.4
-torch>=2.0.0
-torchvision>=0.15.1

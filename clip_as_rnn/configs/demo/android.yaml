@@ -1,5 +1,4 @@
 image_path: "demo/android1.jpg"
-# image_caption: ['Pink Android', 'Blue Android', 'Yellow Android']
 image_caption: ['Android', 'Persimmon']
 
 clip:
@@ -8,12 +7,10 @@ clip:
   clip_model_name: 'ViT-B/16'
   pretrained_data: 'openai'
 
-
-
 camcut:
   iom_thres: 0.3
   mask_threshold: 0.5
-  confidence_threshold: 0 # 0.2
+  confidence_threshold: 0
   clipes_threshold: 0.5
   visual_prompt_type: ['gray', 'blur']
   semantic_templates: ['a clean origami {}.',
@@ -48,20 +45,6 @@ sam:
   stability_score_thresh: 0.75
   box_nms_thresh: 0.95
 
-
-
 test:
-  confidence_threshold: 0.7
-  algo: "maskcut"
-  ds_name: "voc"
   seg_mode: "semantic"
-  split: 'val'
-  # data_root: "/home/lir0c/storage/PASCAL/"
-  # data_root: "/datasets/jianhaoy/PASCAL/"
-  data_root: "/homes/55/runjia/scratch/PASCAL/"
-  sam_mask_root: "/homes/55/runjia/scratch/SAM_masks/VOC"
-  output_path: "./outputs/"
   use_pseudo: False
-  # use_iterative: False
-  num_iteration: 1
-

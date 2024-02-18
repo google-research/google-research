@@ -1,20 +1,16 @@
 image_path: "demo/batman.jpg"
 image_caption: ['Batman', 'Joker', 'Cat Woman']
 
-
-
 clip:
   semantic_clip_model_name: 'ViT-L/14'
   semantic_pretrained_data: 'openai'
   clip_model_name: 'ViT-B/16'
   pretrained_data: 'openai'
 
-
-
 camcut:
   iom_thres: 0.6
   mask_threshold: 0.5
-  confidence_threshold: 0 # 0.2
+  confidence_threshold: 0
   clipes_threshold: 0.6
   visual_prompt_type: ['gray', 'blur']
   semantic_templates: ['a clean origami {}.',
@@ -40,24 +36,15 @@ camcut:
   
 
 sam:
-  model_dir: "//homes/55/runjia/scratch/SAM/model_dir"
-  sam_checkpoint: "/homes/55/runjia/scratch/SAM/model_dir/sam_hq_vit_h.pth"  #  "/storage2/jianhaoy/SAM/sam_hq_vit_h.pth"
+  model_dir: "./SAM"
+  sam_checkpoint: "./sam_hq_vit_h.pth"
   model_type: "vit_h"
-  min_pred_threshold: 0.01
+  min_pred_threshold: 0.03
   points_per_side: 64
-  pred_iou_thresh: 0.88
-  stability_score_thresh: 0.95
-  box_nms_thresh: 0.7
-
-
+  pred_iou_thresh: 0.8
+  stability_score_thresh: 0.75
+  box_nms_thresh: 0.95
 
 test:
-  algo: "maskcut"
-  ds_name: "voc"
   seg_mode: "semantic"
-  split: 'val'
-  data_root: "/homes/55/runjia/scratch/PASCAL/"
-  sam_mask_root: "/homes/55/runjia/scratch/SAM_masks/VOC"
-  output_path: "./outputs/"
   use_pseudo: False
-  num_iteration: 1
