@@ -34,7 +34,6 @@ camcut:
             'mountain', 'ocean', 'road', 'rock', 'street',
             'valley', 'bridge']
 
-
 sam:
   model_dir: "./SAM"
   sam_checkpoint: "./sam_hq_vit_h.pth"

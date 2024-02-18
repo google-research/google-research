@@ -36,8 +36,6 @@ camcut:
             'mountain', 'ocean', 'road', 'rock', 'street',
             'valley', 'bridge']
 
-  
-
 sam:
   model_dir: "./SAM"
   sam_checkpoint: "./sam_hq_vit_h.pth"
@@ -47,8 +45,6 @@ sam:
   pred_iou_thresh: 0.8
   stability_score_thresh: 0.75
   box_nms_thresh: 0.95
-
-
 
 test:
   seg_mode: "semantic"
