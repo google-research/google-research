@@ -560,7 +560,7 @@ def _subtokenize_identifiers_heuristically(
     assert len(multi_token.spellings) == 1, (
         'Expected %r to be a singleton, but it is not.' % multi_token)
     if multi_token.kind is TokenKind.IDENTIFIER:
-      subtokenized = dataclasses.replace(
+      subtokenized = dataclasses.replace(  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
           multi_token,
           spellings=subtokenize_identifier(multi_token.spellings[0]))
       with_split_identifiers.append(subtokenized)
@@ -587,7 +587,7 @@ def _subtokenize_strings_heuristically(
     if multi_token.kind in _KINDS_TO_SPLIT_LIKE_WHITESPACE:
       assert len(multi_token.spellings) == 1, (
           'Expected %r to be a singleton, but it is not.' % multi_token)
-      subtokenized = dataclasses.replace(
+      subtokenized = dataclasses.replace(  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
           multi_token,
           spellings=code_to_tokens_simple_lossless(multi_token.spellings[0]))
       with_heuristically_split_text.append(subtokenized)
@@ -704,7 +704,7 @@ def sanitize_subtoken_lists(
                      [sanitized_spellings[-1]])
 
     sanitized_lists.append(
-        dataclasses.replace(multi_token, spellings=with_sentinel))
+        dataclasses.replace(multi_token, spellings=with_sentinel))  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
   return sanitized_lists
 
 

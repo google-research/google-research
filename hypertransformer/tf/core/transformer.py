@@ -253,7 +253,7 @@ class Encoder(tf.Module):
     ]
 
     if skip_last_nonlinearity:
-      params = dataclasses.replace(params, activation_fn=None)
+      params = dataclasses.replace(params, activation_fn=None)  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
     self.enc_layers.append(EncoderLayer(
         params, name=f'layer_{params.num_layers}'))
 
@@ -285,7 +285,7 @@ class Decoder(tf.Module):
         for i in range(params.num_layers - 1)
     ]
     if skip_last_nonlinearity:
-      params = dataclasses.replace(params, activation_fn=None)
+      params = dataclasses.replace(params, activation_fn=None)  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
     self.dec_layers.append(DecoderLayer(
         params, name=f'layer_{params.num_layers}'))
 
