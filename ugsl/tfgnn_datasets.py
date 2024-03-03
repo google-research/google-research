@@ -778,7 +778,7 @@ class OgbnData(NodeClassificationGraphData):
     for key, value in graph.items():
       if key != 'node_feat' and key.startswith('node_'):
         key = key.split('node_', 1)[-1]
-        ogb_graph.node_feat_dict[tfgnn.NODES][key] = as_tensor(value)
+        ogb_graph.node_feat_dict[tfgnn.NODES][key] = as_tensor(value)  # pytype: disable=unsupported-operands  # always-use-property-annotation
     idx_split = ogb_dataset.get_idx_split()
     idx_split['validation'] = idx_split.pop('valid')  # Rename
     idx_split = NodeSplit(**tf.nest.map_structure(
@@ -1036,7 +1036,7 @@ class OgblData(LinkPredictionGraphData):
     if add_id:
       counts = self.node_counts()
       for node_set_name, feats in features.items():
-        feats['#id'] = tf.range(counts[node_set_name], dtype=tf.int32)
+        feats['#id'] = tf.range(counts[node_set_name], dtype=tf.int32)  # pytype: disable=unsupported-operands  # always-use-property-annotation
     return features
 
   def node_counts(self):

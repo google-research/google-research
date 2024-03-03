@@ -114,16 +114,22 @@ def _clone_model(model, input_tensors):
   return new_model
 
 
+def _weight_get_basename(weight):
+  pos = weight.name.rfind('/')
+  return weight.name if pos == -1 else weight.name[pos + 1 :]
+
+
 def _copy_weights(new_model, model):
   """Copy weights of trained model to an inference one."""
 
   def _same_weights(weight, new_weight):
     # Check that weights are the same
     # Note that states should be marked as non trainable
-    return (weight.trainable == new_weight.trainable and
-            weight.shape == new_weight.shape and
-            weight.name[weight.name.rfind('/'):None] ==
-            new_weight.name[new_weight.name.rfind('/'):None])
+    return (
+        weight.trainable == new_weight.trainable
+        and weight.shape == new_weight.shape
+        and _weight_get_basename(weight) == _weight_get_basename(new_weight)
+    )
 
   if len(new_model.layers) != len(model.layers):
     raise ValueError(
