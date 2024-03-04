@@ -339,7 +339,7 @@ def generate_slice_distribution_with_conversions_raw(
                 1,
                 conv_value[conv_id],
             ])
-  return dataset
+  return dataset  # pytype: disable=bad-return-type
 
 
 def generate_counts_and_values_dataset_raw(
