@@ -100,15 +100,15 @@ def _get_next_statements(program_state,
       # If it's the last statement, force using all unused variables.
       if last_statement:
         if all(v in used_variables for v in unused_variables):
-          statements.append(dsl.Statement(variable, op, args))
+          statements.append(dsl.Statement(variable, op, args))  # pytype: disable=wrong-arg-types
       # If there are 2 unused variables, force using at least 1 unused variable.
       elif len(unused_variables) == 2:
         if any(v in used_variables for v in unused_variables):
-          statements.append(dsl.Statement(variable, op, args))
+          statements.append(dsl.Statement(variable, op, args))  # pytype: disable=wrong-arg-types
       # If there's only 1 unused variable, allow anything to enable "diamond"
       # computations. Or, on the first statement, all inputs are unused.
       elif len(unused_variables) <= 1:
-        statements.append(dsl.Statement(variable, op, args))
+        statements.append(dsl.Statement(variable, op, args))  # pytype: disable=wrong-arg-types
       else:
         raise dsl.DeepCoderError(
             f'Impossible number of unused variables! {unused_variables}')
