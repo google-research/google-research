@@ -37,6 +37,7 @@ const JspbMap = goog.require('jspb.Map');
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
 const SimilarityCurveResponse = goog.require('proto.eeg_modelling.protos.SimilarityCurveResponse');
 const log = goog.require('goog.log');
+const {DO_NOT_FREEZE__LEGACY_OPTION, asLegacyMutableArray} = goog.require('jspb.types.legacy_mutable_array');
 const {assert, assertArray, assertInstanceof, assertNumber, assertString} = goog.require('goog.asserts');
 
 /**
@@ -816,7 +817,8 @@ class Store {
     }
     if (data.hasPredictionMetadata()) {
       const predictionMeta = data.getPredictionMetadata();
-      newStoreData.chunkScores = predictionMeta.getChunkScoresList();
+      newStoreData.chunkScores = asLegacyMutableArray(
+          predictionMeta.getChunkScoresList(DO_NOT_FREEZE__LEGACY_OPTION));
     } else {
       newStoreData.chunkScores = null;
     }
@@ -1180,7 +1182,8 @@ class Store {
    */
   handleSimilarityCurveResponseOk(data) {
     return {
-      similarityCurveResult: data.getScoresList(),
+      similarityCurveResult: asLegacyMutableArray(
+          data.getScoresList(DO_NOT_FREEZE__LEGACY_OPTION)),
     };
   }
 
