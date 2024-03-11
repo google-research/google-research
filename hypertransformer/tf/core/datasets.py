@@ -364,6 +364,8 @@ class AugmentationConfig:
     if index is not None:
       return self.children[index].process(images)
     config = self.random_config
+    if config is None:
+      raise ValueError('AugmentationConfig is undefined.')
     if config.rotate_by_90:
       images = self._aug_rotate_90(images)
     if config.rotation_probability > 0.0:
