@@ -23,7 +23,22 @@ do
   do
     for method in "${method_list[@]}"
     do
-      python3 model_training/train.py --method=$method --split=$split_no --bag_size=$bag_size --random_bags=True
+      python3 model_training/train.py --method=$method --split=$split_no --bag_size=$bag_size --random_bags=True --which_dataset=criteo_ctr
+    done
+  done
+done
+
+declare -a method_list_sscl=(
+  'dllp_mse' 'dllp_mae' 'genbags' 'sim_llp'
+)
+
+for split_no in $(seq 0 4)
+do
+  for bag_size in 64 128 256 512
+  do
+    for method in "${method_list_sscl[@]}"
+    do
+      python3 model_training/train.py --method=$method --split=$split_no --bag_size=$bag_size --random_bags=True --which_dataset=criteo_sscl
     done
   done
 done

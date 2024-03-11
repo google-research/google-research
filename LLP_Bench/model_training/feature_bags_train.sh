@@ -34,7 +34,36 @@ for c1_c2 in "${c1_c2_list[@]}"; do
   do
     for split_no in $(seq 0 4)
     do
-      python3 model_training/train.py --c1=${strarr[0]} --c2=${strarr[1]} --split=$split_no --method=$method
+      python3 model_training/train.py --c1=${strarr[0]} --c2=${strarr[1]} --split=$split_no --method=$method --which_dataset=criteo_ctr
+    done
+  done
+done
+
+declare -a c1_c2_list_sscl=(
+    '2 5'
+    '3 5'
+    '3 8'
+    '3 16'
+    '5 6'
+    '5 7'
+    '5 8'
+    '5 9'
+    '5 16'
+    '8 16'
+)
+
+declare -a method_list_sscl=(
+  'dllp_mse' 'dllp_mae' 'genbags' 'sim_llp'
+)
+
+for c1_c2 in "${c1_c2_list_sscl[@]}"; do
+  read -a strarr <<< "$c1_c2"  # uses default whitespace IFS
+  # python feature_bag_ds_creation.py --c1=${strarr[0]} --c2=${strarr[1]}
+  for method in "${method_list_sscl[@]}"
+  do
+    for split_no in $(seq 0 4)
+    do
+      python3 model_training/train.py --c1=${strarr[0]} --c2=${strarr[1]} --split=$split_no --method=$method --which_dataset=criteo_sscl
     done
   done
 done

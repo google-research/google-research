@@ -13,9 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Performs feature analysis (Analysis of BagSep) on datasets with grp key size 2."""
+"""Performs feature analysis (Analysis of BagSep) on datasets."""
+
 from collections.abc import Sequence
-import pickle
+import functools
+import json
 
 from absl import app
 from absl import flags
@@ -29,6 +31,15 @@ from scipy.spatial.distance import squareform
 
 _C1 = flags.DEFINE_integer('c1', 0, 'What is column 1 to aggregate on?')
 _C2 = flags.DEFINE_integer('c2', 1, 'What is column 2 to aggregate on?')
+_GRP_KEY_SIZE_ONE = flags.DEFINE_bool(
+    'grp_key_size_one', False, 'Is the size of the group key one?'
+)
+_WHICH_DATASET = flags.DEFINE_enum(
+    'which_dataset',
+    'criteo_ctr',
+    ['criteo_ctr', 'criteo_sscl'],
+    'Which dataset to preprocess.',
+)
 
 
 def main(argv):
@@ -36,32 +47,57 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   logging.info('Program Started')
-  sparse_cols = [analysis_constants.C + str(i) for i in range(1, 27)]
-  dense_cols = [analysis_constants.I + str(i) for i in range(1, 14)]
-  all_cols = dense_cols + sparse_cols
-  criteo_df = pd.read_csv(
-      '../data/preprocessed_dataset/preprocessed_criteo.csv', usecols=all_cols
-  )
+  if _WHICH_DATASET.value == 'criteo_ctr':
+    sparse_cols = [analysis_constants.C + str(i) for i in range(1, 27)]
+    dense_cols = [analysis_constants.I + str(i) for i in range(1, 14)]
+    all_cols = dense_cols + sparse_cols
+    criteo_df = pd.read_csv(
+        '../data/preprocessed_dataset/preprocessed_criteo.csv', usecols=all_cols
+    )
+  else:
+    sparse_cols = [analysis_constants.C + str(i) for i in range(1, 18)]
+    dense_cols = [analysis_constants.N + str(i) for i in range(1, 4)]
+    all_cols = dense_cols + sparse_cols
+    criteo_df = pd.read_csv(
+        '../data/preprocessed_dataset/preprocessed_criteo_sscl.csv',
+    )
   logging.info('DataFrame Loaded')
 
-  c1 = analysis_constants.C + str(_C1.value)
-  c2 = analysis_constants.C + str(_C2.value)
-  criteo_df[c1 + '_copy'] = criteo_df[c1]
-  criteo_df[c2 + '_copy'] = criteo_df[c2]
-  grouped_df = (
-      criteo_df.groupby([c1 + '_copy', c2 + '_copy'])
-      .filter(lambda x: ((len(x) >= 50) and (len(x) <= 2500)))
-      .groupby([c1 + '_copy', c2 + '_copy'])
-  )
+  if _GRP_KEY_SIZE_ONE.value:
+    c1 = analysis_constants.C + str(_C1.value)
+    c2 = '-'
+    criteo_df[c1 + '_copy'] = criteo_df[c1]
+    grouped_df = (
+        criteo_df.groupby([c1 + '_copy'])
+        .filter(lambda x: ((len(x) >= 50) and (len(x) <= 2500)))
+        .groupby([c1])
+    )
+  else:
+    c1 = analysis_constants.C + str(_C1.value)
+    c2 = analysis_constants.C + str(_C2.value)
+    criteo_df[c1 + '_copy'] = criteo_df[c1]
+    criteo_df[c2 + '_copy'] = criteo_df[c2]
+    grouped_df = (
+        criteo_df.groupby([c1 + '_copy', c2 + '_copy'])
+        .filter(lambda x: ((len(x) >= 50) and (len(x) <= 2500)))
+        .groupby([c1 + '_copy', c2 + '_copy'])
+    )
   logging.info('Grouping Done')
 
-  embeddings = {}
-  for col in all_cols:
-    embeddings[col] = np.load(
-        '../results/autoint_embeddings/' + col + '_embeddings.npy'
-    )
-  for col in dense_cols:
-    embeddings[col] = embeddings[col].flatten()
+  if _WHICH_DATASET.value == 'criteo_ctr':
+    embeddings = {}
+    for col in all_cols:
+      embeddings[col] = np.load(
+          '../results/autoint_embeddings/' + col + '_embeddings.npy'
+      )
+    for col in dense_cols:
+      embeddings[col] = embeddings[col].flatten()
+  else:
+    embeddings = {}
+    for col in sparse_cols:
+      embeddings[col] = np.load(
+          '../results/autoint_embeddings/mse_' + col + '.npy'
+      )[0]
   logging.info('Embeddings Loaded')
 
   def generate_embedding(row):
@@ -73,9 +109,21 @@ def main(argv):
       embedding.append(embeddings[col][row[col]])
     return np.concatenate(embedding)
 
-  def compute_mean_and_avg_sq_norm(df):
+  def generate_embedding_sscl(row):
+    """Puts a row into the embedding space."""
+    embedding = [row[dense_cols]]
+    for col in sparse_cols:
+      embedding.append(embeddings[col][int(row[col])])
+    return np.concatenate(embedding)
+
+  def compute_mean_and_avg_sq_norm(which_dataset, df):
     """Computes mean and average squared norm of all vectors in df."""
-    embedding_matrix = np.array(df.apply(generate_embedding, axis=1).tolist())
+    if which_dataset == 'criteo_ctr':
+      embedding_matrix = np.array(df.apply(generate_embedding, axis=1).tolist())
+    else:
+      embedding_matrix = np.array(
+          df.apply(generate_embedding_sscl, axis=1).tolist()
+      )
     mean_embedding_vector = np.mean(embedding_matrix, axis=0)
     avg_sq_norm = np.mean(np.linalg.norm(embedding_matrix, axis=1) ** 2)
     sq_norm_of_avg = np.linalg.norm(mean_embedding_vector) ** 2
@@ -85,7 +133,9 @@ def main(argv):
     return (2 * (avg_sq_norm - sq_norm_of_avg), mean_embedding_vector_with_norm)
 
   aggregate_df = pd.DataFrame(
-      grouped_df.apply(compute_mean_and_avg_sq_norm).tolist(),
+      grouped_df.apply(
+          functools.partial(compute_mean_and_avg_sq_norm, _WHICH_DATASET.value)
+      ).tolist(),
       columns=[
           'Mean_Intra_Bag_Distances',
           'Mean_vectors_of_each_bags_with_avg_squared_norm',
@@ -139,8 +189,16 @@ def main(argv):
   }
   logging.info('Metrics computed')
 
-  saving_dir = '../results/dist_dicts/'
-  pickle.dump(data, saving_dir + c1 + '_' + c2 + '.pkl')
+  if _WHICH_DATASET.value == 'criteo_ctr':
+    saving_dir = '../results/dist_dicts/'
+  else:
+    saving_dir = '../results/dist_dicts/sscl_'
+  if _GRP_KEY_SIZE_ONE.value:
+    saving_file = saving_dir + c1 + '.json'
+  else:
+    saving_file = saving_dir + c1 + '_' + c2 + '.json'
+  with open(saving_file, 'w') as fp:
+    json.dump(data, fp)
   logging.info('Program completed')
 
 

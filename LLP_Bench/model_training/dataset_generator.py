@@ -126,3 +126,130 @@ def generate_dataset(
       ),
   )
   return train_ds, x_test, y_test, multihot_dim, p
+
+
+def bag_dataset_generator(
+    c1,
+    c2,
+    split,
+    random_bags,
+    bag_size,
+    batch_size,
+    validation_batch_size,
+):
+  """Bag dataset generator."""
+  if random_bags:
+    train_file_path = (
+        '../data/bag_ds/split_'
+        + split
+        + '/'
+        + 'train/random_'
+        + str(bag_size)
+        + '.ftr'
+    )
+    test_file_path = '../data/bag_ds/split_' + split + '/' + 'test/random.csv'
+  else:
+    train_file_path = (
+        '../data/bag_ds/split_'
+        + split
+        + '/train/sscl_'
+        + c1
+        + '_'
+        + c2
+        + '.ftr'
+    )
+    test_file_path = (
+        '../data/bag_ds/split_' + split + '/test/sscl_' + c1 + '_' + c2 + '.csv'
+    )
+  target = 'Y'
+  numerical_cols = ['N' + str(i) for i in range(1, 4)]
+  categorical_cols = ['C' + str(i) for i in range(1, 18)]
+  test_df = pd.read_csv(test_file_path)
+  x_catg_test, x_numer_test, y_test = (
+      np.array(test_df[categorical_cols]),
+      np.array(test_df[numerical_cols]),
+      np.array(test_df[target]),
+  )
+  test_ds = tf.data.Dataset.from_tensor_slices((
+      tf.convert_to_tensor(x_catg_test, dtype=tf.float32),
+      tf.convert_to_tensor(x_numer_test, dtype=tf.float32),
+      tf.convert_to_tensor(y_test, dtype=tf.float32),
+  )).batch(validation_batch_size)
+  df_all_bags = pd.read_feather(train_file_path)
+
+  def generate_indices_seq_randorder(steps_per_epoch, batch_size, len_df):
+    """Generates randomly shuffled indices."""
+    list_to_choose_from = np.arange(len_df).tolist()
+    random.shuffle(list_to_choose_from)
+    list_of_indices = list_to_choose_from[0 : batch_size * steps_per_epoch]
+    return list_of_indices
+
+  def bag_batch_xy_gen_seq_randorder(
+      batch_size, df_bags, categorical_cols, numerical_cols
+  ):
+    """Generates bag batch xy generator function from which the dataset is created."""
+    length_of_df = len(df_bags)
+    steps_per_epoch = int(length_of_df / batch_size)
+    list_of_indices = generate_indices_seq_randorder(
+        steps_per_epoch, batch_size, length_of_df
+    )
+    shuffled_df_bags = df_bags.iloc[list_of_indices].reset_index(drop=True)
+    batch_no = 0
+    while batch_no < steps_per_epoch - 1:
+      list_x_categ = []
+      list_x_numer = []
+      list_y = []
+      for bag_no in range(batch_size):
+        row = shuffled_df_bags.iloc[[batch_no * batch_size + bag_no]]
+        mean_label = row['mean_label'].tolist()[0]
+        bag_size = row['bag_size'].tolist()[0]
+        if bag_size == 1:
+          continue
+
+        list_col = []
+
+        for colname in categorical_cols:
+          list_col.append(row[colname].to_list()[0])
+
+        n_array = np.array(list_col, dtype=np.int32)
+        bag_x_categ = np.transpose(n_array)
+
+        list_col = []
+
+        for colname in numerical_cols:
+          list_col.append(row[colname].to_list()[0])
+
+        n_array = np.array(list_col, dtype=np.float32)
+        bag_x_numer = np.transpose(n_array)
+
+        bag_y = np.zeros(shape=(bag_size, 1), dtype=np.float32)
+        bag_y[0, 0] = bag_size
+        bag_y[1, 0] = mean_label
+
+        list_x_categ.append(bag_x_categ)
+        list_x_numer.append(bag_x_numer)
+        list_y.append(bag_y)
+
+      x_categ = np.vstack(list_x_categ)
+      x_numer = np.vstack(list_x_numer)
+      y = np.vstack(list_y)
+
+      yield x_categ, x_numer, y
+      batch_no = batch_no + 1
+
+  f = functools.partial(
+      bag_batch_xy_gen_seq_randorder,
+      batch_size,
+      df_all_bags,
+      categorical_cols,
+      numerical_cols,
+  )
+  train_ds = tf.data.Dataset.from_generator(
+      f,
+      output_signature=(
+          tf.TensorSpec(shape=(None, len(categorical_cols)), dtype=tf.int32),
+          tf.TensorSpec(shape=(None, len(numerical_cols)), dtype=tf.float32),
+          tf.TensorSpec(shape=(None, 1), dtype=tf.float32),
+      ),
+  )
+  return train_ds, test_ds

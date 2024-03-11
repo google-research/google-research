@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Feature bags mean map constants."""
+"""Mean Map constants."""
+
 PAIRS_LIST = [
     (1, 7),
     (1, 10),
@@ -152,3 +153,9 @@ FEATURE_COLS = [
     'C25',
     'C26',
 ]
+
+LIST_SIZES = [64, 128, 256, 512]
+
+LIST_NUM_SEGS = [40, 20, 10, 5]
+
+TOTAL_NUM_SEGS = 40

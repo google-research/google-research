@@ -13,34 +13,19 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Code to generate partial vectors from pi matrix for fixed size feature bags datasets."""
-import pickle
+"""Code to generate partial vectors from pi matrix."""
+
+import json
 from typing import Sequence
 
 from absl import app
 from absl import flags
 from absl import logging
-import fixed_size_feature_mean_map_constants
+import mean_map_constants
 import numpy as np
 import pandas as pd
 import tensorflow as tf
 
-
-_LIST_SIZES = fixed_size_feature_mean_map_constants.LIST_SIZES
-
-_LIST_NUM_SEGS = fixed_size_feature_mean_map_constants.LIST_NUM_SEGS
-
-_PAIRS_LIST = fixed_size_feature_mean_map_constants.PAIRS_LIST
-
-_READ_DATA_DIR = '../../data/bag_ds/split_'
-
-_NUM_BAGS_MATRIX_DATA_DIR = (
-    '../../results/mean_map_vectors/feat_rand_size_matrix_map_'
-)
-
-_PARTIAL_VECTOR_WRITE_DIR = (
-    '../../results/mean_map_vectors/feat_rand_partial_vector_'
-)
 
 _WHICH_SPLIT = flags.DEFINE_integer('which_split', default=0, help='SPLIT idx')
 
@@ -50,72 +35,137 @@ _WHICH_SEGMENT = flags.DEFINE_integer('which_seg', default=0, help='SEG idx')
 
 _WHICH_SIZE = flags.DEFINE_integer('which_size', default=0, help='bag size')
 
+_BAGS_TYPE = flags.DEFINE_enum(
+    'bags_type',
+    default='feat',
+    enum_values=['feat', 'rand', 'feat_rand'],
+    help='bags type',
+)
+
 
 def main(argv):
   """Main function."""
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
-
-  split_no = _WHICH_SPLIT.value
-
-  pair = _PAIRS_LIST[_WHICH_PAIR.value]
-
-  bag_size_index = _WHICH_SIZE.value
-
-  total_num_segment = _LIST_NUM_SEGS[bag_size_index]
-
-  bag_size = _LIST_SIZES[bag_size_index]
-
-  seg_no = _WHICH_SEGMENT.value
-
-  bags_file = (
-      _READ_DATA_DIR
-      + str(split_no)
-      + '/train/feature_random_'
-      + str(bag_size)
-      + '_'
-      + 'C'
-      + str(pair[0])
-      + '_'
-      + 'C'
-      + str(pair[1])
-      + '.ftr'
-  )
-
-  maps_file = (
-      _NUM_BAGS_MATRIX_DATA_DIR
-      + str(split_no)
-      + '_'
-      + str(bag_size)
-      + '_'
-      + 'C'
-      + str(pair[0])
-      + '_'
-      + 'C'
-      + str(pair[1])
-      + '.pkl'
-  )
-
-  write_file = (
-      _PARTIAL_VECTOR_WRITE_DIR
-      + str(split_no)
-      + '_'
-      + str(bag_size)
-      + '_'
-      + 'C'
-      + str(pair[0])
-      + '_'
-      + 'C'
-      + str(pair[1])
-      + '_'
-      + str(seg_no)
-      + '.pkl'
-  )
-
-  logging.info('Split: %d', split_no)
-  logging.info('Pair: %d', pair)
-  logging.info('Bag size: %d', bag_size)
-  logging.info('Segment: %d', seg_no)
+  if _BAGS_TYPE.value == 'feat':
+    split_no = _WHICH_SPLIT.value
+    pair = mean_map_constants.PAIRS_LIST[_WHICH_PAIR.value]
+    seg_no = _WHICH_SEGMENT.value
+    total_num_segment = mean_map_constants.TOTAL_NUM_SEGS
+    bags_file = (
+        '../../data/bag_ds/split_'
+        + str(split_no)
+        + '/train/'
+        + 'C'
+        + str(pair[0])
+        + '_'
+        + 'C'
+        + str(pair[1])
+        + '.ftr'
+    )
+    maps_file = (
+        '../../results/mean_map_vectors/size_matrix_map_'
+        + str(split_no)
+        + '_'
+        + 'C'
+        + str(pair[0])
+        + '_'
+        + 'C'
+        + str(pair[1])
+        + '.json'
+    )
+    write_file = (
+        '../../results/mean_map_vectors/partial_vector_'
+        + str(split_no)
+        + '_'
+        + 'C'
+        + str(pair[0])
+        + '_'
+        + 'C'
+        + str(pair[1])
+        + '_'
+        + str(seg_no)
+        + '.json'
+    )
+  elif _BAGS_TYPE.value == 'rand':
+    split_no = _WHICH_SPLIT.value
+    bag_size = _WHICH_SIZE.value
+    seg_no = _WHICH_SEGMENT.value
+    total_num_segment = mean_map_constants.TOTAL_NUM_SEGS
+    bags_file = (
+        '../../data/bag_ds/split_'
+        + str(split_no)
+        + '/train/'
+        + 'random_'
+        + str(bag_size)
+        + '.ftr'
+    )
+    maps_file = (
+        '../../results/mean_map_vectors/rand_size_matrix_map_'
+        + str(split_no)
+        + '_'
+        + 'random_'
+        + str(bag_size)
+        + '.json'
+    )
+    write_file = (
+        '../../results/mean_map_vectors/rand_partial_vector_'
+        + str(split_no)
+        + '_'
+        + 'random_'
+        + str(bag_size)
+        + '_'
+        + str(seg_no)
+        + '.json'
+    )
+  else:
+    split_no = _WHICH_SPLIT.value
+    pair = mean_map_constants.PAIRS_LIST[_WHICH_PAIR.value]
+    bag_size_index = _WHICH_SIZE.value
+    total_num_segment = mean_map_constants.LIST_NUM_SEGS[bag_size_index]
+    bag_size = mean_map_constants.LIST_SIZES[bag_size_index]
+    seg_no = _WHICH_SEGMENT.value
+    bags_file = (
+        '../../data/bag_ds/split_'
+        + str(split_no)
+        + '/train/feature_random_'
+        + str(bag_size)
+        + '_'
+        + 'C'
+        + str(pair[0])
+        + '_'
+        + 'C'
+        + str(pair[1])
+        + '.ftr'
+    )
+    maps_file = (
+        '../../results/mean_map_vectors/feat_rand_size_matrix_map_'
+        + str(split_no)
+        + '_'
+        + str(bag_size)
+        + '_'
+        + 'C'
+        + str(pair[0])
+        + '_'
+        + 'C'
+        + str(pair[1])
+        + '.json'
+    )
+    write_file = (
+        '../../results/mean_map_vectors/feat_rand_partial_vector_'
+        + str(split_no)
+        + '_'
+        + str(bag_size)
+        + '_'
+        + 'C'
+        + str(pair[0])
+        + '_'
+        + 'C'
+        + str(pair[1])
+        + '_'
+        + str(seg_no)
+        + '.json'
+    )
   logging.info('Bags file %s', bags_file)
   logging.info('Maps file %s', maps_file)
 
@@ -123,7 +173,8 @@ def main(argv):
 
   num_bags = len(df_bags.index)
 
-  map_to_read = pickle.load(maps_file)
+  with open(maps_file, 'r') as fp:
+    map_to_read = json.load(fp)
 
   assert num_bags == map_to_read['num_bags']
 
@@ -140,9 +191,9 @@ def main(argv):
 
   logging.info('start_index: %d, end_index: %d', start_index, end_index)
 
-  feature_cols = fixed_size_feature_mean_map_constants.FEATURE_COLS
+  feature_cols = mean_map_constants.FEATURE_COLS
 
-  offsets = fixed_size_feature_mean_map_constants.OFFSETS
+  offsets = mean_map_constants.OFFSETS
 
   num_total_features = 1000254 + len(offsets)
 
@@ -202,7 +253,8 @@ def main(argv):
       pi_transpose_pi_inverse_x_pi_transpose_x_mu_set
   ).numpy()
 
-  pickle.dump(partial_vec, write_file)
+  with open(write_file, 'w') as fp:
+    json.dump(partial_vec, fp)
 
 
 if __name__ == '__main__':

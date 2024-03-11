@@ -17,6 +17,14 @@ for bag_size in 64 128 256 512
 do
   for split in 0 1 2 3 4
   do
-    python3 bag_ds_creation/random_bag_ds_creation.py --bag_size=$bag_size --split=$split
+    python3 bag_ds_creation/random_bag_ds_creation.py --bag_size=$bag_size --split=$split --which_dataset=criteo_ctr
+  done
+done
+
+for bag_size in 64 128 256 512
+do
+  for split in 0 1 2 3 4
+  do
+    python3 bag_ds_creation/random_bag_ds_creation.py --bag_size=$bag_size --split=$split --which_dataset=criteo_sscl
   done
 done
