@@ -133,7 +133,9 @@ class CMAESOptimizer:
           value obtained after early_termination_num_fevals evaluations is still
           larger than early_termination_wrmsd.
       """
-      if not np.any(cma_es.fit.fit < early_termination_abnormal_wrmsd):
+      if not np.any(
+          np.asarray(cma_es.fit.fit) < early_termination_abnormal_wrmsd
+      ):
         logging.info(
             'Optimization terminated due to abnormal function values: %s',
             cma_es.fit.fit)
