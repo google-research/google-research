@@ -17,8 +17,6 @@
 
 # pylint: disable=g-importing-member
 import clip
-from clip.model import CLIP
-from clip.model import VisionTransformer
 import numpy as np
 import torch
 from torch import nn

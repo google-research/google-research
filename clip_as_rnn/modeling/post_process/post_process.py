@@ -14,12 +14,14 @@
 # limitations under the License.
 
 """Post processing."""
+
 import torch
 import torch.nn.functional as F
 
+# pylint: disable=g-bad-import-order
 # pylint: disable=g-importing-member
-from clip_as_rnn.modeling.model.utils.metrics import IoM
-from clip_as_rnn.modeling.post_process.object_discovery import get_instances
+from modeling.post_process.object_discovery import get_instances
+from utils.metrics import IoM
 
 
 # This should be a abstract function to generate masks for the input image.
@@ -136,6 +138,7 @@ def post_process(
       return_largest: If true, return the largest connected component.
       min_area_ratio: Keep the mask if its area is larger than this threshold.
       return_instances: Whether to return instances or not.
+
   Returns:
       attn_masks: A list of tensors with shape [num_instances, height, width]
           x num_texts, where len(attn_masks) = num_texts.

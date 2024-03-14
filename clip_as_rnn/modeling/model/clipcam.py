@@ -23,12 +23,12 @@ import numpy as np
 import torch
 
 # pylint: disable=g-importing-member
-from clip_as_rnn.modeling.model.cam import CAM
-from clip_as_rnn.modeling.model.cam import scale_cam_image
-from clip_as_rnn.modeling.model.utils import img_ms_and_flip
-from clip_as_rnn.modeling.model.utils import reshape_transform
-from clip_as_rnn.modeling.model.utils import scoremap2bbox
-
+# pylint: disable=g-bad-import-order
+from modeling.model.cam import CAM
+from modeling.model.cam import scale_cam_image
+from modeling.model.utils import img_ms_and_flip
+from modeling.model.utils import reshape_transform
+from modeling.model.utils import scoremap2bbox
 
 warnings.filterwarnings("ignore")
 

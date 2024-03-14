@@ -18,7 +18,9 @@
 import numpy as np
 from PIL import Image
 import torch
-from clip_as_rnn.modeling.model import utils
+
+# pylint: disable=g-bad-import-order
+from modeling.model import utils
 
 
 def test_scoremap2bbox():

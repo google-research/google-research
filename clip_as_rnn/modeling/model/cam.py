@@ -14,24 +14,25 @@
 # limitations under the License.
 
 """Get CAM activation."""
-from typing import Callable, List, Tuple, Union
+
 import cv2
 import numpy as np
 import torch
+
+
+_EPSILON = 1e-15
 
 
 def scale_cam_image(cam, target_size=None):
   """Normalize and rescale cam image."""
   result = []
   for img in cam:
-    img = np.float32(img)
-    img_min = np.min(img)
-    img_max = np.max(img)
-    img = (img - img_min) / np.max(1e-15, img_max - img_min)
+    img = img - np.min(img)
+    img = img / (_EPSILON + np.max(img))
     if target_size is not None:
       img = cv2.resize(img, target_size)
     result.append(img)
-  result = np.array(result, dtype=np.float32)
+  result = np.float32(result)
 
   return result
 
@@ -78,6 +79,7 @@ class ActivationsAndGradients:
       self.gradients = [grad.cpu().detach()] + self.gradients
 
     output.register_hook(_store_grad)
+
   # pylint: enable=unused-argument
   # pylint: enable=redefined-builtin
 
@@ -104,10 +106,10 @@ class CAM:
       self,
       model,
       target_layers,
-      use_cuda = False,
-      reshape_transform = None,
-      compute_input_gradient = False,
-      stride = 16,
+      use_cuda=False,
+      reshape_transform=None,
+      compute_input_gradient=False,
+      stride=16,
   ):
     self.model = model.eval()
     self.target_layers = target_layers
@@ -119,9 +121,7 @@ class CAM:
         self.model, target_layers, reshape_transform, stride=stride
     )
 
-  def get_cam(
-      self, activations, grads
-  ):
+  def get_cam(self, activations, grads):
     weights = np.mean(grads, axis=(2, 3))
     weighted_activations = weights[:, :, None, None] * activations
     cam = weighted_activations.sum(axis=1)
@@ -158,9 +158,7 @@ class CAM:
     else:
       return self.aggregate_multi_layers(cam_per_layer), outputs
 
-  def get_target_width_height(
-      self, input_tensor
-  ):
+  def get_target_width_height(self, input_tensor):
     width = None
     height = None
     if isinstance(input_tensor, (tuple, list)):
@@ -193,9 +191,7 @@ class CAM:
 
     return cam_per_target_layer
 
-  def aggregate_multi_layers(
-      self, cam_per_target_layer
-  ):
+  def aggregate_multi_layers(self, cam_per_target_layer):
     cam_per_target_layer = np.concatenate(cam_per_target_layer, axis=1)
     cam_per_target_layer = np.maximum(cam_per_target_layer, 0)
     result = np.mean(cam_per_target_layer, axis=1)
@@ -204,7 +200,7 @@ class CAM:
   def __call__(
       self,
       input_tensor,
-      targets = None,
+      targets=None,
       target_size=None,
   ):
     return self.forward(input_tensor, targets, target_size)
