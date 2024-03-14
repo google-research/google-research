@@ -21,6 +21,10 @@ mapping capabilities and primitive extensions of JAX.
 For an introduction on how to use FAX, check out the colab notebook in the
 `tutorials` subdirectory.
 
+## System design
+
+For details on FAX's system design, check out our [paper](https://arxiv.org/abs/2403.07128).
+
 ## Installing
 
 ```
@@ -34,3 +38,18 @@ Run `python -m build` to build a new `google-fax` wheel.
 ## Run tests
 
 Execute the `run_test.sh` script.
+
+## Citing FAX
+
+To cite this repository, please use the following BibTeX citation:
+
+```
+@misc{rush2024fax,
+      title={FAX: Scalable and Differentiable Federated Primitives in JAX}, 
+      author={Keith Rush and Zachary Charles and Zachary Garrett},
+      year={2024},
+      eprint={2403.07128},
+      archivePrefix={arXiv},
+      primaryClass={cs.DC}
+}
+```
