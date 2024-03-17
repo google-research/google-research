@@ -682,7 +682,7 @@ def _update_output_dir(args):
     value_log += "_s" + str(args.v_step)
     args.output_dir += value_log
 
-
+# ImageReward calculation function
 def _calculate_reward_ir(
     pipe,
     args,
@@ -696,6 +696,8 @@ def _calculate_reward_ir(
     test_flag=False,
 ):
   """Computes reward using ImageReward model."""
+
+  # Images should be in PIL format for ImageReward
   if test_flag:
     image_pil = imgs
   else:
@@ -703,8 +705,14 @@ def _calculate_reward_ir(
   blip_reward, _ = utils.image_reward_get_reward(
       image_reward, image_pil, prompts, weight_dtype
   )
+
+  # blip_reward returns the rewards and text features for the prompts from utils 
+  # Reward calculation includes ImageReward with BLIP and MLP for extracted features
+
+  # If there is already calculated blip_reward, uses prev_reward to take range of the rewards with min of 0
   if args.reward_filter == 1:
     blip_reward = torch.clamp(blip_reward, min=0)
+  # Reward tokenizer is a CLIP model to convert prompts into more understandable texts
   inputs = reward_tokenizer(
       prompts,
       max_length=tokenizer.model_max_length,
@@ -715,12 +723,21 @@ def _calculate_reward_ir(
   padded_tokens = reward_tokenizer.pad(
       {"input_ids": input_ids}, padding=True, return_tensors="pt"
   )
+  # For text embeddings of the prompts, clip model used again but still ImageReward uses BLIP as a backbone
+  # Text embeddings can be used for compare several rewards like CLIP, BLIP, Aesthetic score 
+
+  """CLIP score and BLIP score are calculated directly as cosine similarity between text and image
+     embedding, while the Aesthetic score is given by an aesthetic predictor introduced by LAION"""
+  
   txt_emb = reward_clip_model.get_text_features(
       input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
   )
   return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
 
 
+# This function is for calculation of several reward models with givin reward_model parameter name
+# CLIP is using feature extractor in this case
+# We need to add rarity reward as a separate class like reward_model.py because reward_model parameter uses this class I guess
 def _calculate_reward_custom(
     pipe,
     _,
@@ -760,10 +777,12 @@ def _calculate_reward_custom(
   txt_emb = reward_clip_model.get_text_features(
       input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
   )
+  # Score is depend on reward_model name with text and image embeddings
+  # I think this function calculates the aesthetic score for comparison, paper uses aesthetic score to compare ImageReward scores
   score = reward_model(txt_emb, img_emb)
   return score.to(weight_dtype).squeeze(0).squeeze(0), txt_emb.squeeze(0)
 
-
+# Creates a batch of prompts for generative model 
 def _get_batch(data_iter_loader, data_iterator, prompt_list, args, accelerator):
   """Creates a batch."""
   batch = next(data_iter_loader, None)
@@ -776,17 +795,20 @@ def _get_batch(data_iter_loader, data_iterator, prompt_list, args, accelerator):
         )
     )
 
+  # Replaces each item with same prompt inside the batch
   if args.single_flag == 1:
     for i in range(len(batch)):
       batch[i] = args.single_prompt
 
   batch_list = []
+  # Creates same prompt num_samples times like it is good to create numerous samples for same prompt
   for i in range(len(batch)):
     batch_list.extend([batch[i] for _ in range(args.num_samples)])
   batch = batch_list
   return batch
 
-
+# Take the last buffer_size amount of elements from state_dict keys
+# State dict keys has lists of some features like state,prompt, state etc.
 def _trim_buffer(buffer_size, state_dict):
   """Delete old samples from the bufffer."""
   if state_dict["state"].shape[0] > buffer_size:
@@ -804,7 +826,8 @@ def _trim_buffer(buffer_size, state_dict):
     state_dict["txt_emb"] = state_dict["txt_emb"][-buffer_size:]
     state_dict["log_prob"] = state_dict["log_prob"][-buffer_size:]
 
-
+# Why only saves UNET model in here?
+    """We apply LoRA to the UNet [31] module and only update the added weights (Maybe because of this experimental part)"""
 def _save_model(args, count, is_ddp, accelerator, unet):
   """Saves UNET model."""
   save_path = os.path.join(args.output_dir, f"save_{count}")
@@ -818,7 +841,7 @@ def _save_model(args, count, is_ddp, accelerator, unet):
     unet_to_save = copy.deepcopy(unet).to(torch.float32)
     unet_to_save.save_attn_procs(save_path)
 
-
+# Evaluation / inference 
 def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
   """Collects trajectories."""
   for _ in range(args.g_step):
@@ -867,6 +890,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         state_dict["log_prob"] = torch.cat(
             (state_dict["log_prob"], log_prob_list[i])
         )
+      # Delete generated images, lists for inference
       del (
           image,
           latents_list,
@@ -896,6 +920,7 @@ def _train_value_func(value_function, state_dict, accelerator, args):
       batch_timestep.cuda().detach()
   )
   batch_final_reward = batch_final_reward.cuda().float()
+  # Calculates mse loss between predicted value and target(batch_final_reward) values
   value_loss = F.mse_loss(
       pred_value.float().reshape([args.v_batch_size, 1]),
       batch_final_reward.cuda().detach().reshape([args.v_batch_size, 1]))
@@ -915,7 +940,7 @@ class TrainPolicyFuncData:
   tot_kl: float = 0
   tot_grad_norm: float = 0
 
-
+# PPO training for RL part
 def _train_policy_func(
     args,
     state_dict,
@@ -930,6 +955,7 @@ def _train_policy_func(
 ):
   """Trains the policy function."""
   with torch.no_grad():
+    # Data preparation with random indices from the dataset
     indices = get_random_indices(
         state_dict["state"].shape[0], args.p_batch_size
     )
@@ -948,6 +974,8 @@ def _train_policy_func(
     batch_log_prob = state_dict["log_prob"][indices]
   # calculate loss from the custom function
   # (modified in pipeline_stable_diffusion.py and scheduling_ddim.py)
+    
+  # Forward pass (ratio between current policy and old policy)
   log_prob, kl_regularizer = pipe.forward_calculate_logprob(
       prompt_embeds=batch_promt_embeds.cuda(),
       latents=batch_state.cuda(),
@@ -980,7 +1008,6 @@ def _train_policy_func(
   tpfdata.tot_ratio += ratio.mean().item() / policy_steps
   tpfdata.tot_kl += kl_regularizer.mean().item() / policy_steps
   tpfdata.tot_p_loss += loss.item() / policy_steps
-
 
 def main():
   args = parse_args()
@@ -1056,10 +1083,14 @@ def main():
   reward_tokenizer = CLIPTokenizer.from_pretrained(
       "openai/clip-vit-large-patch14"
   )
+  # CLIP model layers are frozen so used as text embedding's feature extraction only for ImageReward
   if args.reward_flag == 0:
     image_reward = imagereward.load("ImageReward-v1.0")
     image_reward.requires_grad_(False)
     image_reward.to(accelerator.device, dtype=weight_dtype)
+  
+  # 1 as Custom Reward model rather than ImageReward 
+  # We can change also here to update reward model as rarity for example taken from another class
   else:
     reward_model = pickle.load(open(args.reward_model_path, "rb"))["reward"]
     reward_model.requires_grad_(False)
@@ -1067,7 +1098,16 @@ def main():
 
   reward_clip_model.requires_grad_(False)
 
+  # Supervised Fine-tuning as 0 and pretrained as 1 for StableDiffusion so also for conditional UNet
+  """Supervised Finetuning initialized with weights pre-trained 
+     on a large dataset or task similar to the one being tackled"""
+  
+  """In direct pre-trained version, models are initialized with weights 
+     trained on a specific task or dataset, 
+     and no further fine-tuning is performed during initialization"""
+  
   if args.sft_initialization == 0:
+    # For example we can change here with our pretrained Stable Diffusion pipeline
     pipe = StableDiffusionPipelineExtended.from_pretrained(
         args.pretrained_model_name_or_path, torch_dtype=weight_dtype
     )
@@ -1108,6 +1148,10 @@ def main():
   unet_copy.to(accelerator.device, dtype=weight_dtype)
 
   # Create EMA for the unet.
+  """During training, the EMAModel will give smoothed versions of these parameters 
+     based on the exponentially weighted moving average, rather than utilizing 
+     the UNet model's parameters directly."""
+  
   if args.use_ema:
     ema_unet = UNet2DConditionModel.from_pretrained(
         args.pretrained_model_name_or_path,
@@ -1140,6 +1184,9 @@ def main():
       )
 
   # Define lora layers
+    """initializes and configures LoRA layers for attention processors 
+       in the generative model's UNet architecture."""
+    
   lora_attn_procs = {}
   for name in unet.attn_processors.keys():
     cross_attention_dim = (
@@ -1342,6 +1389,7 @@ def main():
   state_dict["txt_emb"] = _map_cpu(torch.FloatTensor().to(weight_dtype))
   state_dict["log_prob"] = _map_cpu(torch.FloatTensor().to(weight_dtype))
 
+  # Calculates custom reward or ImageReward
   if args.reward_flag == 0:
     calculate_reward = functools.partial(
         _calculate_reward_ir,
@@ -1375,6 +1423,10 @@ def main():
   pipe.unet = unet
   print("model is parallel:", is_ddp)
 
+
+
+  # Policy training and UNet training done in here
+  # UNet layers created with LoRA so StableDiffusion pipe is also integrated
   for count in range(0, args.max_train_steps // args.p_step):
     # fix batchnorm
     unet.eval()
