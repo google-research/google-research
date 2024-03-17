@@ -929,7 +929,7 @@ def main():
     reward_tokenizer = CLIPTokenizer.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.reward_flag == 0:
+    if args.reward_flag == 0: #FIXME
         image_reward = imagereward.load("ImageReward-v1.0")
         image_reward.requires_grad_(False)
         image_reward.to(accelerator.device, dtype=weight_dtype)
@@ -1039,8 +1039,7 @@ def main():
     lora_layers = AttnProcsLayers(unet.attn_processors)
 
     # Enable TF32 for faster training on Ampere GPUs,
-    # cf https://pytorch.org/docs/stable/notes/cuda.
-    # html#tensorfloat-32-tf32-on-ampere-devices
+    # cf https://pytorch.org/docs/stable/notes/cuda.html#tensorfloat-32-tf32-on-ampere-devices
     if args.gradient_checkpointing:
         unet.enable_gradient_checkpointing()
 
