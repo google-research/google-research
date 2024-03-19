@@ -20,6 +20,7 @@ from typing import Any
 import jax
 import jax.experimental.maps
 from jax.experimental.shard_alike import shard_alike
+from jax.interpreters import pxla
 import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 
@@ -64,7 +65,7 @@ def read_sequence_batch(
 
 def _global_mesh_defined():
   """Checks if global xmap/pjit mesh resource environment is defined."""
-  maps_env = jax.experimental.maps.thread_resources.env
+  maps_env = pxla.thread_resources.env
   return maps_env.physical_mesh.devices.shape != ()  # pylint: disable=g-explicit-bool-comparison
 
 
@@ -72,7 +73,7 @@ def _placement_axis_in_mesh(placement):
   """Checks if a clients axis is present in the global mesh."""
   if not _global_mesh_defined():
     return False
-  mesh = jax.experimental.maps.thread_resources.env.physical_mesh
+  mesh = pxla.thread_resources.env.physical_mesh
   return placement in mesh.axis_names
 
 
