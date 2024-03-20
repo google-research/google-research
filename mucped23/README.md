@@ -85,7 +85,10 @@ distortions `/mucped23/[methodA]/[originalName].png` and
 `/mucped23/originals/[originalName].png` inside
 [mucped23.zip](https://cloudinary.com/labs/cid22/mucped23.zip).
 
+### Analysis
 
+An analysis of the results can be found at [Users prefer Jpegli over same-sized
+libjpeg-turbo or MozJPEG](report/jpegli.pdf).
 
 ## Computing the Elo scores
 
