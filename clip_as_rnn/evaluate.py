@@ -25,7 +25,7 @@ import torchvision.transforms as T
 
 # pylint: disable=g-bad-import-order
 from modeling.model.car import CaR
-from SAM.utils import build_sam_config
+from sam.utils import build_sam_config
 from utils.utils import Config
 from utils.utils import load_yaml
 from utils.utils import MetricLogger
