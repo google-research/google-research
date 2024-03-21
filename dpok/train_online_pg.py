@@ -737,7 +737,7 @@ def _calculate_reward_ir(
 
 # This function is for calculation of several reward models with givin reward_model parameter name
 # CLIP is using feature extractor in this case
-# We need to add rarity reward as a separate class like reward_model.py because reward_model parameter uses this class I guess
+# We need to add rarity reward as a separate class like reward_model.py because reward_model parameter uses this class I
 def _calculate_reward_custom(
     pipe,
     _,

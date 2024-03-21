@@ -583,8 +583,10 @@ def _calculate_reward_ir(
     txt_emb = reward_clip_model.get_text_features(
         input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
     )
+    # ImageReward backbone is blip so ImageReward == BLIP Reward
     return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
 
+# Uses CLIP for extract embeddings then specific reward_model given like "Aesthetic score model"
 def _calculate_reward_custom(
                             pipe,
                             _,
@@ -694,8 +696,14 @@ def _save_model(args, count, is_ddp, accelerator, unet):
         unet_to_save.save_attn_procs(save_path)
 
 
+# collects trajectories during the rollout phase of a reinforcement learning training process
+# keep track of states, actions and rewards for RL part update based on selected reward model (Custom or ImageReward)
+# Original model (pretrained)/SFT (supervised fine tune)/RL training --> this function is for calculating rewards based on RL training
+# Collect the actions, states and rewards based on generated images while training (no update or calculation in here)
 def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
     """Collects trajectories."""
+    # g_step meaning number of steps 
+    # Each step --> single action
     for _ in range(args.g_step):
         # samples for each prompt
         # collect the rollout data from the custom sampling function
@@ -754,8 +762,12 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
                 txt_emb,
             )
         torch.cuda.empty_cache()
-        
-
+    
+# Use for PPO phase of training to compare trajected values with predicted ones as a loss via MSE Loss
+# Prediction: future rewards
+# Actual: rewards came from trajectory function
+# Each reward calculated separately so the loss value depends on selected reward is ImageReward or custom reward
+# There is no addition of different scores of rewards --> loss value means difference between actual and predicted value of reward in selected reward domain
 def _train_value_func(value_function, state_dict, accelerator, args):
     """Trains the value function."""
     indices = get_random_indices(state_dict["state"].shape[0], args.v_batch_size)
@@ -903,6 +915,8 @@ def main():
     if accelerator.is_main_process:
         os.makedirs(args.output_dir, exist_ok=True)
 
+    # Text inputs to individual tokens 
+
     # Load scheduler, tokenizer and models.
     tokenizer = CLIPTokenizer.from_pretrained(
         args.pretrained_model_name_or_path,
@@ -922,6 +936,7 @@ def main():
         weight_dtype = torch.bfloat16
 
     # reward models
+    reward_rarity_model = None
     reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
     reward_processor = CLIPProcessor.from_pretrained(
         "openai/clip-vit-large-patch14"
@@ -929,10 +944,14 @@ def main():
     reward_tokenizer = CLIPTokenizer.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
-    if args.reward_flag == 0: #FIXME
+    if args.reward_flag == 0: 
         image_reward = imagereward.load("ImageReward-v1.0")
         image_reward.requires_grad_(False)
         image_reward.to(accelerator.device, dtype=weight_dtype)
+    
+    # We need to give RarityScore path to reward_model_path because this is the part for custom reward
+    # Using Rarity score like this requires training for RarityScore separatelty then need to load model so 
+    #we need to train with our dataset and Rarity Score only version first
     else:
         reward_model = pickle.load(open(args.reward_model_path, "rb"))["reward"]
         reward_model.requires_grad_(False)
@@ -940,6 +959,7 @@ def main():
 
     reward_clip_model.requires_grad_(False)
 
+    # for pretrained weights
     if args.sft_initialization == 0:
         pipe = StableDiffusionPipelineExtended.from_pretrained(
             args.pretrained_model_name_or_path, torch_dtype=weight_dtype
@@ -949,6 +969,7 @@ def main():
             subfolder="unet",
             revision=args.non_ema_revision,
         )
+    # sft training RL 
     else:
         pipe = StableDiffusionPipelineExtended.from_pretrained(
             args.sft_path, torch_dtype=weight_dtype
@@ -1242,7 +1263,7 @@ def main():
     policy_steps = args.gradient_accumulation_steps * args.p_step
     # test_batch = get_test_prompts(args.prompt_category)
     data_iter_loader = iter(data_iterator)
-    is_ddp = isinstance(unet, DistributedDataParallel)
+    is_ddp = isinstance(unet, DistributedDataParallel) # NOOO
     pipe.unet = unet
     print("model is parallel:", is_ddp)
 
