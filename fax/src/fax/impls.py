@@ -18,7 +18,6 @@
 from typing import Any
 
 import jax
-import jax.experimental.maps
 from jax.experimental.shard_alike import shard_alike
 from jax.interpreters import pxla
 import jax.numpy as jnp
