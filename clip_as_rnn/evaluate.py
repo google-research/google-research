@@ -37,7 +37,7 @@ from utils.merge_mask import merge_masks_simple
 # pylint: disable=g-multiple-import
 from data.ade import ADE_THING_CLASS, ADE_STUFF_CLASS, ADE_THING_CLASS_ID, ADE_STUFF_CLASS_ID, ADEDataset
 from data.ade847 import ADE_847_THING_CLASS_ID, ADE_847_STUFF_CLASS_ID, ADE_847_THING_CLASS, ADE_847_STUFF_CLASS, ADE847Dataset
-from data.coco_stuff import COCO_STUFF_CLASSES, COCOStuffDataset
+from data.coco import COCO_OBJECT_CLASSES, COCODataset
 from data.context import PASCAL_CONTEXT_STUFF_CLASS_ID, PASCAL_CONTEXT_THING_CLASS_ID, PASCAL_CONTEXT_STUFF_CLASS, PASCAL_CONTEXT_THING_CLASS, CONTEXTDataset
 from data.gres import GReferDataset
 from data.pascal459 import PASCAL_459_THING_CLASS_ID, PASCAL_459_STUFF_CLASS_ID, PASCAL_459_THING_CLASS, PASCAL_459_STUFF_CLASS, Pascal459Dataset
@@ -79,7 +79,7 @@ def get_dataset(cfg, ds_name, split, transform, data_root=None):
     )
 
   elif ds_name == 'cocostuff':
-    ds = COCOStuffDataset(transform=transform, **data_args)
+    ds = COCODataset(transform=transform, **data_args)
 
   elif ds_name == 'context':
     ds = CONTEXTDataset(
@@ -451,8 +451,8 @@ def main(args):
   stuff_label_space = None
   if cfg.test.ds_name == 'voc':
     label_space = VOC_CLASSES
-  elif cfg.test.ds_name == 'cocostuff':
-    label_space = COCO_STUFF_CLASSES
+  elif cfg.test.ds_name == 'coco':
+    label_space = COCO_OBJECT_CLASSES
   elif cfg.test.ds_name == 'context':
     # label_space = PASCAL_CONTEXT_CLASSES
     label_space = PASCAL_CONTEXT_THING_CLASS

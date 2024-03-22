@@ -40,10 +40,10 @@ import os
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from SAM.utils import show_anns
-from SAM.utils import show_box
-from SAM.utils import show_mask
-from SAM.utils import show_points
+from sam.utils import show_anns
+from sam.utils import show_box
+from sam.utils import show_mask
+from sam.utils import show_points
 from segment_anything import sam_model_registry
 from segment_anything import SamAutomaticMaskGenerator
 from segment_anything import SamPredictor

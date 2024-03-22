@@ -234,7 +234,6 @@ def build_sam_config(config_path):
   with open(config_path, 'r') as infile:
     config = json.load(infile)
 
-  model_dir = config['model']['model_dir']
   sam_checkpoint = config['model']['sam_checkpoint']
   model_type = config['model']['model_type']
-  return model_dir, sam_checkpoint, model_type
+  return sam_checkpoint, model_type

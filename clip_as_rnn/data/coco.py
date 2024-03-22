@@ -21,7 +21,7 @@ from PIL import Image
 import torch
 
 
-COCO_STUFF_CLASSES = [
+COCO_OBJECT_CLASSES = [
     'person with clothes,people,human',
     'bicycle',
     'car',
@@ -105,11 +105,11 @@ COCO_STUFF_CLASSES = [
 ]
 
 
-class COCOStuffDataset(torch.utils.data.Dataset):
-  """COCO Stuff Dataset."""
+class COCODataset(torch.utils.data.Dataset):
+  """COCO Object Dataset."""
 
   def __init__(self, root, split='val', transform=None):
-    """Construct COCO Stuff Dataset.
+    """Construct COCO Object Dataset.
 
     Args:
         root (string): Root directory where images are downloaded.
