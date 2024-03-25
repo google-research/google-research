@@ -3646,7 +3646,10 @@ class Marot {
     if (metadata.prior_rater) {
       html += '<br><span">Prior rater: ' + metadata.prior_rater + '</span>\n';
     }
-    const prior_or_this_rater = metadata.prior_rater ?? rater;
+    let prior_or_this_rater = rater;
+    if (metadata.prior_rater) {
+      prior_or_this_rater = this.PRIOR_RATER_PREFIX + metadata.prior_rater;
+    }
     if (metadata.prior_error) {
       html += '<br><details><summary>Annotation from prior rater:</summary>' +
               '<div class="marot-prior-error">' +
@@ -3661,8 +3664,13 @@ class Marot {
         const de = metadata.deleted_errors[x];
         html += '<tr><td><span class="marot-deleted-index">' +
                 (x + 1) + '.</span></td><td>';
+        let deleted_prior_or_this_rater = prior_or_this_rater;
+        if (de.metadata.prior_rater) {
+          deleted_prior_or_this_rater =
+              this.PRIOR_RATER_PREFIX + de.metadata.prior_rater;
+        }
         html += this.rawErrorHTML(
-            de, de.metadata.prior_rater ?? prior_or_this_rater);
+            de, deleted_prior_or_this_rater);
         html += '</td></tr>';
       }
       html += '</table></details>\n';
