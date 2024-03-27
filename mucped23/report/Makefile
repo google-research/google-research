@@ -17,5 +17,8 @@ all: jpegli.pdf
 jpegli.pdf: jpegli.md meta.yaml bibliography.bib
 	pandoc -f markdown -t pdf --citeproc --bibliography bibliography.bib --csl ${JHEP_REPORTS_CSL} --filter ${PANDOC_EQNOS_BINARY} --metadata-file meta.yaml --template ${PANDOC_TEMPLATE} jpegli.md > jpegli.pdf
 
+jpegli.latex: jpegli.md meta.yaml bibliography.bib
+	pandoc -f markdown -t latex --citeproc --bibliography bibliography.bib --csl ${JHEP_REPORTS_CSL} --filter ${PANDOC_EQNOS_BINARY} --metadata-file meta.yaml --template ${PANDOC_TEMPLATE} jpegli.md > jpegli.latex
+
 show: jpegli.pdf
 	xdg-open jpegli.pdf
