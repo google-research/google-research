@@ -947,16 +947,22 @@ class AntheaEval {
   /**
    * Copies previous evaluation results as the starting point.
    *
-   * @param {string} priorRater
+   * @param {!Array<string>} priorRaters
    * @param {!Array<!Object>} priorResults
    */
-  startFromPriorResults(priorRater, priorResults) {
+  startFromPriorResults(priorRaters, priorResults) {
     if (!this.manager_ || this.READ_ONLY) {
       return;
     }
     if (!priorResults || priorResults.length == 0) {
       this.manager_.log(this.manager_.ERROR,
                         'Cannot start from empty prior eval results');
+      return;
+    }
+    if (!priorRaters || priorRaters.length === 0) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          'Cannot start from prior eval results with empty prior raters');
       return;
     }
     if (priorResults.length != this.evalResults_.length) {
@@ -968,14 +974,21 @@ class AntheaEval {
               this.evalResults_.length);
       return;
     }
+    if (priorRaters.length !== priorResults.length) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          'Cannot start from previous results: found ' + priorResults.length +
+              ' prior results vs. ' + priorRaters.length + ' prior raters');
+      return;
+    }
 
     for (let seg = 0; seg < this.evalResults_.length; seg++) {
       const segment = this.segments_[seg];
       const result = this.evalResults_[seg];
-      result.prior_rater = priorRater;
+      result.prior_rater = priorRaters[seg];
       const priorResult = priorResults[seg];
       for (const priorError of priorResult.errors) {
-        const newError = AntheaError.newFromPriorError(priorRater, priorError);
+        const newError = AntheaError.newFromPriorError(priorRaters[seg], priorError);
         result.errors.push(newError);
       }
       if (result.errors.length > 0) {
@@ -3606,6 +3619,8 @@ class AntheaEval {
     const srcParaBreak = '</p><p class="anthea-source-para" dir="auto">';
     const tgtParaBreak = '</p><p class="anthea-target-para" dir="auto">';
 
+    let priorResults = [];
+    let priorRaters = [];
     for (let docsys of projectData) {
       const doc = {
         'docsys': docsys,
@@ -3633,6 +3648,7 @@ class AntheaEval {
 
       const srcSegments = docsys.srcSegments;
       const tgtSegments = docsys.tgtSegments;
+      const annotations = docsys.annotations;
       let srcSpannified = '<p class="anthea-source-para" dir="auto">';
       let tgtSpannified = '<p class="anthea-target-para" dir="auto">';
       const addEndSpacesSrc = this.isSpaceSepLang(srcLang);
@@ -3654,6 +3670,25 @@ class AntheaEval {
           'hotw_list': [],
         };
         this.evalResults_.push(evalResult);
+        if (i < annotations.length) {
+          let parsed_anno = {};
+          try {
+            parsed_anno = JSON.parse(annotations[i]);
+          } catch (err) {
+            parsed_anno = {};
+          }
+          if (parsed_anno.hasOwnProperty('prior_result')) {
+            priorResults.push(parsed_anno.prior_result);
+            let priorRater = 'unspecified-prior-rater';
+            if (parsed_anno.hasOwnProperty('prior_rater')) {
+              priorRater = parsed_anno.prior_rater;
+            } else if (parameters.hasOwnProperty('prior_rater')) {
+              priorRater = parameters.prior_rater;
+            }
+            priorRaters.push(priorRater);
+          }
+        }
+
 
         const segment = {
           doc: this.docs_.length - 1,
@@ -3765,8 +3800,23 @@ class AntheaEval {
     this.createUI(instructionsPanel, controlPanel);
 
     if (parameters.hasOwnProperty('prior_results')) {
-      const priorRater = parameters.prior_rater ?? 'unspecified-prior-rater';
-      this.startFromPriorResults(priorRater, parameters.prior_results);
+      if (priorResults) {
+        this.manager_.log(
+            this.manager_.ERROR,
+            'Found prior results in both JSON parameters and segment ' +
+                'annotations; ignoring JSON parameters');
+      } else {
+        priorResults = parameters.prior_results;
+        priorRater = 'unspecified-prior-rater';
+        if (parameters.hasOwnProperty('prior_rater')) {
+          priorRater = parameters.prior_rater;
+        }
+        priorRaters = Array.from({'length': priorResults.length})
+            .fill(priorRater);
+      }
+    }
+    if (priorResults) {
+      this.startFromPriorResults(priorRaters, priorResults);
     }
     this.restoreEvalResults(projectResults);
     this.saveResults();
