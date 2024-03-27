@@ -299,4 +299,7 @@ def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
   train_set, test_set = map(lambda ds: (ds[0].astype(dtype), ds[1]),
                             (train_set, test_set))
 
+  data_info["train_shape"] = (train_set[0].shape, train_set[1].shape)
+  data_info["test_shape"] = (test_set[0].shape, test_set[1].shape)
+
   return train_set, test_set, task, data_info

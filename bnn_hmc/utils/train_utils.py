@@ -57,7 +57,11 @@ def get_task_specific_fns(task, data_info):
     likelihood_fn = losses.make_xent_log_likelihood
     ensemble_fn = (
         ensemble_utils.compute_updated_ensemble_predictions_classification)
-    predict_fn = get_softmax_predictions
+    predict_batch_size = 1_024  # want 1024 samples to be predicted together
+    assert data_info["train_shape"][0][1] % predict_batch_size == 0, (
+        "train shape should be devisible by predict batch size, but got values "
+        f"train shape={data_info['train_shape'][0][1]}, predict batch size={predict_batch_size}")
+    predict_fn = get_softmax_predictions(num_batches=data_info['train_shape'][0][1] // predict_batch_size)
     metrics_fns = {
         "accuracy": metrics.accuracy,
         "nll": metrics.nll,
@@ -70,7 +74,7 @@ def get_task_specific_fns(task, data_info):
   elif task == data_utils.Task.REGRESSION:
     likelihood_fn = losses.make_gaussian_likelihood
     ensemble_fn = ensemble_utils.compute_updated_ensemble_predictions_regression
-    predict_fn = get_regression_gaussian_predictions
+    predict_fn = get_regression_gaussian_predictions(num_batches=1)
 
     data_scale = data_info["y_scale"]
     metrics_fns = {
@@ -298,6 +302,6 @@ def make_get_predictions(activation_fn, num_batches=1, is_training=False):
   return get_predictions
 
 
-get_softmax_predictions = make_get_predictions(jax.nn.softmax)
-get_regression_gaussian_predictions = make_get_predictions(
-    losses.preprocess_network_outputs_gaussian)
+get_softmax_predictions = lambda num_batches: make_get_predictions(jax.nn.softmax, num_batches)
+get_regression_gaussian_predictions = lambda num_batches: make_get_predictions(
+    losses.preprocess_network_outputs_gaussian, num_batches=num_batches)
