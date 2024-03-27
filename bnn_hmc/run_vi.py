@@ -186,7 +186,9 @@ def train_model():
       del train_stats["prior"]
 
       # Evaluate the ensemble
-      net_state, ensemble_predictions = onp.asarray(
+      def wrap(res):
+          return res if True else onp.asarray(res)
+      net_state, ensemble_predictions =wrap(
           vi_ensemble_predict_fn(net_apply, params, net_state, test_set))
       ensemble_stats = train_utils.evaluate_metrics(ensemble_predictions,
                                                     test_set[1], metrics_fns)
@@ -210,7 +212,7 @@ def train_model():
     # Add a histogram of MFVI stds
     with tf_writer.as_default():
       stds = jax.tree_map(jax.nn.softplus, params["inv_softplus_std"])
-      stds = jnp.concatenate([std.reshape(-1) for std in jax.tree_leaves(stds)])
+      stds = jnp.concatenate([std.reshape(-1) for std in jax.tree.leaves(stds)])
       tf.summary.histogram("MFVI/param_stds", stds, step=iteration)
 
     tabulate_dict = script_utils.get_tabulate_dict(tabulate_metrics,

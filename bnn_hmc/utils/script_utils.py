@@ -136,7 +136,7 @@ def get_initialization_dict(dirname, args, init_dict):
 def evaluate(net_apply, params, net_state, train_set, test_set, predict_fn,
              metrics_fns, log_prior_fn):
   def wrap(res):
-      return res if False else onp.asarray(res)
+      return res if True else onp.asarray(res)
   net_state, test_predictions = wrap(
       predict_fn(net_apply, params, net_state, test_set))
   net_state, train_predictions = wrap(

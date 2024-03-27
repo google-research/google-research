@@ -34,7 +34,6 @@ import jax.numpy as jnp
 import tensorflow.compat.v2 as tf
 import numpy as onp
 import functools
-from jax.config import config
 
 from bnn_hmc.core import hmc
 from bnn_hmc.utils import data_utils
@@ -46,10 +45,10 @@ from bnn_hmc.utils import metrics
 
 def set_up_jax(tpu_ip, use_float64):
   if tpu_ip is not None:
-    config.FLAGS.jax_xla_backend = "tpu_driver"
-    config.FLAGS.jax_backend_target = "grpc://{}:8470".format(tpu_ip)
+    jax.config.FLAGS.jax_xla_backend = "tpu_driver"
+    jax.config.FLAGS.jax_backend_target = "grpc://{}:8470".format(tpu_ip)
   if use_float64:
-    config.update("jax_enable_x64", True)
+    jax.config.update("jax_enable_x64", True)
   tf.config.set_visible_devices([], "GPU")
 
 
