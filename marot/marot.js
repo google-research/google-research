@@ -858,6 +858,40 @@ class Marot {
   }
 
   /**
+   * Aggregates metrics info for this.data, collecting all metrics for a
+   * particular segment translation into the aggrDocSeg.metrics object in the
+   * metadata.segment field. Metric info is keyed by system.
+   */
+  addMetricSegmentAggregations() {
+    for (const doc of this.dataIter.docs) {
+      for (const docSegId of this.dataIter.docSegs[doc]) {
+        let aggrDocSegMetrics = {};
+        for (const system of this.dataIter.docSys[doc]) {
+          const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
+          let aggrDocSegSysMetrics = {};
+          for (let rowId = range[0]; rowId < range[1]; rowId++) {
+            const parts = this.data[rowId];
+            const segment = parts[this.DATA_COL_METADATA].segment;
+            segment.aggrDocSeg.metrics = aggrDocSegMetrics;
+            if (segment.hasOwnProperty('metrics')) {
+              aggrDocSegSysMetrics = {
+                ...segment.metrics,
+                ...aggrDocSegSysMetrics,
+              };
+            }
+          }
+          for (let metric in aggrDocSegSysMetrics) {
+            if (!aggrDocSegMetrics.hasOwnProperty(metric)) {
+              aggrDocSegMetrics[metric] = {};
+            }
+            aggrDocSegMetrics[metric][system] = aggrDocSegSysMetrics[metric];
+          }
+        }
+      }
+    }
+  }
+
+  /**
    * Aggregates this.data, collecting all data for a particular segment
    * translation (i.e., for a given (doc, docSegId) pair) into the aggrDocSeg
    * object in the metadata.segment field, adding to it the following
@@ -867,7 +901,6 @@ class Marot {
    *     the values being arrays of strings that are categories, severities,
    *     and <sev>[/<cat>], * respectively.
    *
-   *     Also added are aggrDocSeg.metrics[metric][system] values.
    * Makes sure that the metadata.segment object is common for each row from
    * the same doc+seg+sys.
    */
@@ -888,7 +921,6 @@ class Marot {
           sevsByRater: {},
           sevcatsBySystem: {},
           sevcatsByRater: {},
-          metrics: {},
           aggrDoc: aggrDoc,
         };
         for (const system of this.dataIter.docSys[doc]) {
@@ -898,17 +930,10 @@ class Marot {
             docSegId: docSegId,
             system: system,
             aggrDocSeg: aggrDocSeg,
-            metrics: {},
           };
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             const parts = this.data[rowId];
             const segment = parts[this.DATA_COL_METADATA].segment || {};
-            if (segment.hasOwnProperty('metrics')) {
-              aggrDocSegSys.metrics = {
-                ...segment.metrics,
-                ...aggrDocSegSys.metrics,
-              };
-            }
             aggrDocSegSys = {...segment, ...aggrDocSegSys};
             if (!aggrDocSegSys.hasOwnProperty('num_source_chars')) {
               aggrDocSegSys.num_source_chars = parts.num_source_chars;
@@ -916,12 +941,6 @@ class Marot {
             if (!aggrDocSegSys.hasOwnProperty('num_target_chars')) {
               aggrDocSegSys.num_target_chars = parts.num_target_chars;
             }
-          }
-          for (let metric in aggrDocSegSys.metrics) {
-            if (!aggrDocSeg.metrics.hasOwnProperty(metric)) {
-              aggrDocSeg.metrics[metric] = {};
-            }
-            aggrDocSeg.metrics[metric][system] = aggrDocSegSys.metrics[metric];
           }
           if (!aggrDocSegSys.source_tokens ||
               aggrDocSegSys.source_tokens.length == 0) {
@@ -3664,13 +3683,13 @@ class Marot {
         const de = metadata.deleted_errors[x];
         html += '<tr><td><span class="marot-deleted-index">' +
                 (x + 1) + '.</span></td><td>';
-        let deleted_prior_or_this_rater = prior_or_this_rater;
+        let deleted_error_prior_or_this_rater = prior_or_this_rater;
         if (de.metadata.prior_rater) {
-          deleted_prior_or_this_rater =
+          deleted_error_prior_or_this_rater =
               this.PRIOR_RATER_PREFIX + de.metadata.prior_rater;
         }
         html += this.rawErrorHTML(
-            de, deleted_prior_or_this_rater);
+            de, deleted_error_prior_or_this_rater);
         html += '</td></tr>';
       }
       html += '</table></details>\n';
@@ -5261,6 +5280,7 @@ class Marot {
       this.addSegmentAggregations();
       this.setSelectOptions();
       this.recomputeMQM();
+      this.addMetricSegmentAggregations();
       this.show();
     }
   }
