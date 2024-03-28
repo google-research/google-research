@@ -1,2 +1,2 @@
-tensorflow~=2.15.0
+tensorflow~=2.16.0
 numpy
