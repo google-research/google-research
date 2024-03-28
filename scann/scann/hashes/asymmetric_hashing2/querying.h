@@ -22,12 +22,14 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <optional>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
 #include "absl/flags/flag.h"
+#include "absl/types/span.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/data_format/datapoint.h"
@@ -40,6 +42,7 @@
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/projection/chunking_projection.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -67,12 +70,22 @@ struct PackedDataset {
 
   DatapointIndex num_datapoints = 0;
 
-  DimensionIndex num_blocks = 0;
+  uint32_t num_blocks = 0;
 };
 
 PackedDataset CreatePackedDataset(const DenseDataset<uint8_t>& hashed_database);
 
 DenseDataset<uint8_t> UnpackDataset(const PackedDataset& packed);
+
+struct PackedDatasetView {
+  ConstSpan<uint8_t> bit_packed_data = {};
+
+  DatapointIndex num_datapoints = 0;
+
+  DimensionIndex num_blocks = 0;
+};
+
+PackedDatasetView CreatePackedDatasetView(const PackedDataset& packed_dataset);
 
 template <typename PostprocessFunctor =
               asymmetric_hashing_internal::IdentityPostprocessFunctor,
@@ -80,12 +93,9 @@ template <typename PostprocessFunctor =
 struct QueryerOptions {
   std::shared_ptr<DatasetView> hashed_dataset;
 
-  const PackedDataset* lut16_packed_dataset = nullptr;
+  std::optional<PackedDatasetView> lut16_packed_dataset;
 
   PostprocessFunctor postprocessing_functor;
-
-  DatapointIndex first_dp_index = 0;
-  float lut16_bias = 0;
 };
 
 namespace ai = ::research_scann::asymmetric_hashing_internal;
@@ -163,17 +173,6 @@ class AsymmetricQueryer {
   shared_ptr<const Model<T>> model() const { return model_; }
 
  private:
-  template <typename TopN, typename Functor, typename DatasetView>
-  static Status FindApproximateTopNeighborsTopNDispatch(
-      const LookupTable& lookup_table, const SearchParameters& params,
-      QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n);
-
-  template <typename DistT, typename Functor, typename DatasetView>
-  static Status FindApproximateTopNeighborsTopNDispatch(
-      const LookupTable& lookup_table, const SearchParameters& params,
-      QueryerOptions<Functor, DatasetView> querying_options,
-      FastTopNeighbors<DistT>* top_n);
-
   template <typename LookupElement, typename TopN,
             typename Functor = IdentityPostprocessFunctor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
@@ -208,27 +207,6 @@ class AsymmetricQueryer {
   shared_ptr<const DistanceMeasure> lookup_distance_;
   shared_ptr<const Model<T>> model_;
 };
-
-inline NNResultsVector FixedToFloatDistance(NNResultsVector possibly_fixed,
-                                            float multiplier) {
-  return possibly_fixed;
-}
-
-inline NNResultsVector FixedToFloatDistance(
-    std::vector<pair<DatapointIndex, int32_t>> possibly_fixed,
-    float multiplier) {
-  NNResultsVector result(possibly_fixed.size());
-  const float inv_mul = 1.0f / multiplier;
-  auto dst_ptr = result.begin();
-  auto src_ptr = possibly_fixed.begin();
-  auto src_size = possibly_fixed.size();
-  for (size_t i = 0; i < src_size; ++i) {
-    dst_ptr[i].first = src_ptr[i].first;
-    dst_ptr[i].second = src_ptr[i].second * inv_mul;
-  }
-
-  return result;
-}
 
 template <typename T>
 inline ConstSpan<T> GetRawLookupTable(const LookupTable& lookup_table) {
@@ -303,6 +281,16 @@ template <typename TopN, typename Functor, typename DatasetView>
 Status AsymmetricQueryer<T>::FindApproximateNeighbors(
     const LookupTable& lookup_table, const SearchParameters& params,
     QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
+  DCHECK(top_n);
+  static_assert(std::is_same_v<float, decltype(top_n->approx_bottom().second)>,
+                "The distance type for TopN must be float for "
+                "AsymmetricQueryer::FindApproximateNeighbors.");
+  if (!top_n->empty()) {
+    return FailedPreconditionError(
+        "TopN must be empty for "
+        "AsymmetricQueryer::FindApproximateNeighbors.");
+  }
+
   if (static_cast<int>(lookup_table.float_lookup_table.empty()) +
           static_cast<int>(lookup_table.int16_lookup_table.empty()) +
           static_cast<int>(lookup_table.int8_lookup_table.empty()) !=
@@ -312,7 +300,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
   }
 
   if (!querying_options.hashed_dataset &&
-      !querying_options.lut16_packed_dataset) {
+      !querying_options.lut16_packed_dataset.has_value()) {
     return InvalidArgumentError(
         "Either hashed_dataset or lut16_packed_dataset must be provided to "
         "AsymmetricQueryer::FindApproximateNeighbors.");
@@ -320,13 +308,40 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
 
   if ((querying_options.hashed_dataset &&
        querying_options.hashed_dataset->size() == 0) ||
-      (querying_options.lut16_packed_dataset &&
+      (querying_options.lut16_packed_dataset.has_value() &&
        querying_options.lut16_packed_dataset->num_blocks == 0)) {
     return OkStatus();
   }
 
-  return FindApproximateTopNeighborsTopNDispatch(lookup_table, params,
-                                                 querying_options, top_n);
+  const bool can_use_lut16 =
+      RuntimeSupportsSse4() &&
+      querying_options.lut16_packed_dataset.has_value() &&
+      !lookup_table.int8_lookup_table.empty() &&
+      lookup_table.int8_lookup_table.size() /
+              querying_options.lut16_packed_dataset->num_blocks ==
+          16;
+
+  if (can_use_lut16) {
+    return FindApproximateNeighborsForceLUT16<TopN, Functor>(
+        lookup_table, params, querying_options, top_n);
+  } else if (querying_options.hashed_dataset) {
+    auto in_memory_ptr =
+        (!lookup_table.float_lookup_table.empty())
+            ? &FindApproximateNeighborsNoLUT16<float, TopN, Functor,
+                                               DatasetView>
+            : (!lookup_table.int8_lookup_table.empty())
+                  ? &FindApproximateNeighborsNoLUT16<uint8_t, TopN, Functor,
+                                                     DatasetView>
+                  : &FindApproximateNeighborsNoLUT16<uint16_t, TopN, Functor,
+                                                     DatasetView>;
+    return (*in_memory_ptr)(lookup_table, params, querying_options, top_n);
+  } else {
+    return InvalidArgumentError(
+        "LUT16 querying not possible.  Could not fall back to in-memory "
+        "querying because no hashed_dataset provided.");
+  }
+
+  return OkStatus();
 }
 
 namespace asymmetric_hashing2_internal {
@@ -335,7 +350,7 @@ template <size_t kNumQueries>
 Status FindApproxNeighborsFastTopNeighbors(
     array<const LookupTable*, kNumQueries> lookup_tables,
     array<const SearchParameters*, kNumQueries> params,
-    const PackedDataset& packed_dataset,
+    const PackedDatasetView& packed_dataset,
     array<TopNeighbors<float>*, kNumQueries> top_ns) {
   array<FastTopNeighbors<int16_t>, kNumQueries> ftns;
   array<FastTopNeighbors<int16_t>*, kNumQueries> ftn_ptrs;
@@ -396,109 +411,6 @@ Status FindApproxNeighborsFastTopNeighbors(
 }  // namespace asymmetric_hashing2_internal
 
 template <typename T>
-template <typename TopN, typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateTopNeighborsTopNDispatch(
-    const LookupTable& lookup_table, const SearchParameters& params,
-    QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
-  DCHECK(top_n);
-  static_assert(
-      std::is_same<float, decltype(top_n->approx_bottom().second)>::value,
-      "The distance type for TopN must be float for "
-      "AsymmetricQueryer::FindApproximateNeighbors.");
-  if (!top_n->empty()) {
-    return FailedPreconditionError(
-        "TopN must be empty for "
-        "AsymmetricQueryer::FindApproximateNeighbors.");
-  }
-
-  const bool can_use_lut16 =
-      RuntimeSupportsSse4() && querying_options.lut16_packed_dataset &&
-      !lookup_table.int8_lookup_table.empty() &&
-      lookup_table.int8_lookup_table.size() /
-              querying_options.lut16_packed_dataset->num_blocks ==
-          16;
-
-  if (can_use_lut16) {
-    return FindApproximateNeighborsForceLUT16<TopN, Functor>(
-        lookup_table, params, querying_options, top_n);
-  } else if (querying_options.hashed_dataset) {
-    auto in_memory_ptr =
-        (!lookup_table.float_lookup_table.empty())
-            ? &FindApproximateNeighborsNoLUT16<float, TopN, Functor,
-                                               DatasetView>
-            : (!lookup_table.int8_lookup_table.empty())
-                  ? &FindApproximateNeighborsNoLUT16<uint8_t, TopN, Functor,
-                                                     DatasetView>
-                  : &FindApproximateNeighborsNoLUT16<uint16_t, TopN, Functor,
-                                                     DatasetView>;
-    return (*in_memory_ptr)(lookup_table, params, querying_options, top_n);
-  } else {
-    return InvalidArgumentError(
-        "LUT16 querying not possible.  Could not fall back to in-memory "
-        "querying because no hashed_dataset provided.");
-  }
-
-  return OkStatus();
-}
-
-template <typename T>
-template <typename DistT, typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateTopNeighborsTopNDispatch(
-    const LookupTable& lookup_table, const SearchParameters& params,
-    QueryerOptions<Functor, DatasetView> querying_options,
-    FastTopNeighbors<DistT>* top_n) {
-  DCHECK(top_n);
-
-  static_assert(std::is_same_v<float, DistT>,
-                "The distance type for TopN must be float for "
-                "AsymmetricQueryer::FindApproximateNeighbors.");
-
-  const bool can_use_lut16 =
-      RuntimeSupportsSse4() && querying_options.lut16_packed_dataset &&
-      !lookup_table.int8_lookup_table.empty() &&
-      (lookup_table.int8_lookup_table.size() /
-       querying_options.lut16_packed_dataset->num_blocks) == 16;
-  if (!can_use_lut16)
-    return InvalidArgumentError(
-        "FastTopNeighbors+AsymmetricQueryer fast path only works with LUT16.");
-  if (!std::is_same_v<Functor, IdentityPostprocessFunctor>)
-    return InvalidArgumentError(
-        "FastTopNeighbors+AsymmetricQueryer fast path doesn't support "
-        "non-identity postprocess functors.");
-
-  if (!lookup_table.can_use_int16_accumulator)
-    return InvalidArgumentError(
-        "FastTopNeighbors+AsymmetricQueryer fast path only supports int16 "
-        "accumulators.");
-
-  const auto& packed_dataset = *querying_options.lut16_packed_dataset;
-  array<FastTopNeighbors<float>*, 1> tops = {top_n};
-  array<const uint8_t*, 1> lookups = {lookup_table.int8_lookup_table.data()};
-  array<float, 1> multipliers = {lookup_table.fixed_point_multiplier};
-  array<float, 1> biases = {querying_options.lut16_bias};
-  array<RestrictAllowlistConstView, 1> allowlists = {
-      params.restricts_enabled()
-          ? RestrictAllowlistConstView(*params.restrict_whitelist())
-          : RestrictAllowlistConstView()};
-
-  asymmetric_hashing_internal::LUT16ArgsTopN<float> args;
-  args.packed_dataset = packed_dataset.bit_packed_data.data();
-  args.num_32dp_simd_iters = DivRoundUp(packed_dataset.num_datapoints, 32);
-  args.num_blocks = packed_dataset.num_blocks;
-  args.lookups = lookups;
-  args.fixed_point_multipliers = multipliers;
-  args.biases = biases;
-  args.first_dp_index = querying_options.first_dp_index;
-  args.num_datapoints = packed_dataset.num_datapoints;
-  args.fast_topns = tops;
-  args.restrict_whitelists = allowlists;
-  asymmetric_hashing_internal::LUT16Interface::GetTopFloatDistances(
-      std::move(args));
-
-  return OkStatus();
-}
-
-template <typename T>
 template <size_t kNumQueries, typename TopN, typename Functor,
           typename DatasetView>
 Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
@@ -510,7 +422,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
                 "Only batch sizes up to 9 are supported in "
                 "FindApproximateNeighborsBatched.");
   static_assert(
-      std::is_same<float, decltype(top_ns[0]->approx_bottom().second)>::value,
+      std::is_same_v<float, decltype(top_ns[0]->approx_bottom().second)>,
       "The distance type for TopN must be float for "
       "AsymmetricQueryer::FindApproximateNeighborsBatched.");
   for (TopN* top_n : top_ns) {
@@ -523,7 +435,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
   }
 
   if (!querying_options.hashed_dataset &&
-      !querying_options.lut16_packed_dataset) {
+      !querying_options.lut16_packed_dataset.has_value()) {
     return InvalidArgumentError(
         "Either hashed_dataset or lut16_packed_dataset must be provided to "
         "AsymmetricQueryer::FindApproximateNeighborsBatched.");
@@ -531,15 +443,15 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
 
   if ((querying_options.hashed_dataset &&
        querying_options.hashed_dataset->size() == 0) ||
-      (querying_options.lut16_packed_dataset &&
+      (querying_options.lut16_packed_dataset.has_value() &&
        querying_options.lut16_packed_dataset->num_blocks == 0)) {
     return OkStatus();
   }
 
   const bool can_use_lut16_for_all = [&] {
-    if (!std::is_same<Functor, IdentityPostprocessFunctor>::value) return false;
+    if (!std::is_same_v<Functor, IdentityPostprocessFunctor>) return false;
     if (!RuntimeSupportsSse4()) return false;
-    if (!querying_options.lut16_packed_dataset) return false;
+    if (!querying_options.lut16_packed_dataset.has_value()) return false;
     for (const LookupTable* lt : lookup_tables) {
       if (lt->int8_lookup_table.empty()) return false;
       if (lt->int8_lookup_table.size() /
@@ -566,7 +478,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
     return true;
   }();
 
-  const auto& packed_dataset = *querying_options.lut16_packed_dataset;
+  auto& packed_dataset = *querying_options.lut16_packed_dataset;
   std::array<ConstSpan<uint8_t>, kNumQueries> lookup_spans;
   std::array<int32_t, kNumQueries> max_dists;
   std::array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null;
@@ -621,22 +533,20 @@ namespace asymmetric_hashing2_internal {
 template <typename TopN>
 void MoveOrOverwriteFromClone(TopN* dst, TopN* src,
                               float fixed_point_multiplier) {
-  static_assert(
-      std::is_same<float, decltype(src->approx_bottom().second)>::value,
-      "The single-template parameter instantiation of "
-      "MoveOrOverwriteFromClone should only be "
-      "called with float distance.");
+  static_assert(std::is_same_v<float, decltype(src->approx_bottom().second)>,
+                "The single-template parameter instantiation of "
+                "MoveOrOverwriteFromClone should only be "
+                "called with float distance.");
   *dst = std::move(*src);
 }
 
 template <typename TopN0, typename TopN1>
 void MoveOrOverwriteFromClone(TopN0* dst, TopN1* src,
                               float fixed_point_multiplier) {
-  static_assert(
-      !std::is_same<float, decltype(src->approx_bottom().second)>::value,
-      "The dual-template parameter instantiation of "
-      "MoveOrOverwriteFromClone should only be "
-      "called with non-float src distance.");
+  static_assert(!std::is_same_v<float, decltype(src->approx_bottom().second)>,
+                "The dual-template parameter instantiation of "
+                "MoveOrOverwriteFromClone should only be "
+                "called with non-float src distance.");
   const float inv_fixed_point_multiplier = 1.0f / fixed_point_multiplier;
   dst->OverwriteFromClone(src, [inv_fixed_point_multiplier](int32_t x) {
     return x * inv_fixed_point_multiplier;
@@ -668,13 +578,12 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
 
   const size_t num_hashes = hashed_dataset->dimensionality();
 
-  if (std::is_same<LookupElement, int8_t>::value &&
-      num_hashes > kMaxInt8Blocks) {
+  if (std::is_same_v<LookupElement, int8_t> && num_hashes > kMaxInt8Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
         ") may produce overflow.  (Max blocks for int8 lookup table = ",
         kMaxInt8Blocks, ")."));
-  } else if (std::is_same<LookupElement, int16_t>::value &&
+  } else if (std::is_same_v<LookupElement, int16_t> &&
              num_hashes > kMaxInt16Blocks) {
     return InvalidArgumentError(absl::StrCat(
         "Number of AH blocks (", num_hashes,
@@ -691,8 +600,8 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
   }
 
   const RestrictAllowlist* whitelist_or_null = params.restrict_whitelist();
-  if (std::is_same<Functor, IdentityPostprocessFunctor>::value ||
-      std::is_same<LookupElement, float>::value) {
+  if (std::is_same_v<Functor, IdentityPostprocessFunctor> ||
+      std::is_same_v<LookupElement, float>) {
     auto possibly_fixed_point_max_distance =
         ai::ComputePossiblyFixedPointMaxDistance<LookupElement>(
             params.pre_reordering_epsilon(),
@@ -766,10 +675,10 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsForceLUT16(
     const LookupTable& lookup_table, const SearchParameters& params,
     QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
   DCHECK(!lookup_table.int8_lookup_table.empty());
-  DCHECK(querying_options.lut16_packed_dataset);
-  const auto& packed_dataset = *querying_options.lut16_packed_dataset;
+  DCHECK(querying_options.lut16_packed_dataset.has_value());
+  auto& packed_dataset = *querying_options.lut16_packed_dataset;
 
-  if (std::is_same<Functor, IdentityPostprocessFunctor>::value) {
+  if constexpr (std::is_same_v<Functor, IdentityPostprocessFunctor>) {
     int32_t fixed_point_max_distance =
         ai::ComputePossiblyFixedPointMaxDistance<int8_t>(
             params.pre_reordering_epsilon(),

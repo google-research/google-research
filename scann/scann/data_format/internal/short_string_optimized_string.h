@@ -54,7 +54,8 @@ class ShortStringOptimizedString {
     rhs.ClearNoFree();
   }
 
-  ShortStringOptimizedString& operator=(ShortStringOptimizedString&& rhs) {
+  ShortStringOptimizedString& operator=(
+      ShortStringOptimizedString&& rhs) noexcept {
     this->~ShortStringOptimizedString();
     memcpy(storage_, rhs.storage_, kStorageSize);
     rhs.ClearNoFree();

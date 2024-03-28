@@ -24,6 +24,7 @@ cc_library(
         "//scann/utils:util_functions",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -36,9 +37,12 @@ cc_library(
         ":identity_projection",
         ":projection_base",
         "//scann/data_format:datapoint",
+        "//scann/oss_wrappers:scann_status",
         "//scann/proto:projection_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:datapoint_utils",
         "//scann/utils:types",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -71,6 +75,7 @@ cc_library(
         ":projection_base",
         "//scann/data_format:dataset",
         "//scann/proto:projection_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:types",
     ],
 )

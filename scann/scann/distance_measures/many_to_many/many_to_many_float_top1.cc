@@ -23,7 +23,25 @@ namespace research_scann {
 namespace mm_internal {
 
 template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, const DenseDataset<float> &queries,
+    const DistanceMeasure &dist, DefaultDenseDatasetView<float> queries,
+    const DenseDataset<float> &database, ThreadPool *pool,
+    EpsilonFilteringCallback<float> callback);
+
+template void DenseManyToManyOrthogonalityAmplifiedImpl(
+    const DenseDataset<float> &queries,
+    const DenseDataset<float> &normalized_residuals, float lambda,
+    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
+    EpsilonFilteringOffsetWrapper<float> callback);
+
+template void DenseManyToManyOrthogonalityAmplifiedImpl(
+    const DenseDataset<float> &queries,
+    const DenseDataset<float> &normalized_residuals, float lambda,
+    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
+    ManyToManyResultsCallback<float> callback);
+
+template void DenseManyToManyOrthogonalityAmplifiedImpl(
+    const DenseDataset<float> &queries,
+    const DenseDataset<float> &normalized_residuals, float lambda,
     const DenseDataset<float> &database, ThreadPool *pool,
     EpsilonFilteringCallback<float> callback);
 

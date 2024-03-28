@@ -21,7 +21,6 @@
 
 #include "absl/types/variant.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/macros.h"
 
 namespace research_scann {
 namespace internal {

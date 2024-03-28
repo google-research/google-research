@@ -48,8 +48,48 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
 
   void set_thread_pool(std::shared_ptr<ThreadPool> p) { pool_ = std::move(p); }
 
+  void set_min_distance(float min_distance) { min_distance_ = min_distance; }
+
   using PrecomputedMutationArtifacts =
       UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;
+
+  class Mutator : public SingleMachineSearcherBase<T>::Mutator {
+   public:
+    using MutationOptions = UntypedSingleMachineSearcherBase::MutationOptions;
+    using MutateBaseOptions =
+        UntypedSingleMachineSearcherBase::UntypedMutator::MutateBaseOptions;
+
+    static StatusOr<unique_ptr<typename BruteForceSearcher<T>::Mutator>> Create(
+        BruteForceSearcher<T>* searcher);
+    Mutator(const Mutator&) = delete;
+    Mutator& operator=(const Mutator&) = delete;
+    ~Mutator() final {}
+    StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<T>& dptr,
+                                          string_view docid,
+                                          const MutationOptions& mo) final;
+    Status RemoveDatapoint(string_view docid) final;
+    void Reserve(size_t size) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<T>& dptr,
+                                             string_view docid,
+                                             const MutationOptions& mo) final;
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<T>& dptr,
+                                             DatapointIndex index,
+                                             const MutationOptions& mo) final;
+
+    StatusOr<std::optional<ScannConfig>> IncrementalMaintenance() final;
+
+   private:
+    explicit Mutator(BruteForceSearcher<T>* searcher) : searcher_(searcher) {}
+
+    StatusOr<DatapointIndex> LookupDatapointIndexOrError(
+        string_view docid) const;
+
+    BruteForceSearcher<T>* searcher_;
+  };
+
+  StatusOr<typename SingleMachineSearcherBase<T>::Mutator*> GetMutator()
+      const final;
 
  protected:
   Status FindNeighborsImpl(const DatapointPtr<T>& query,
@@ -60,16 +100,21 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
       MutableSpan<NNResultsVector> results) const final;
 
+  Status FindNeighborsBatchedImpl(
+      const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+      MutableSpan<FastTopNeighbors<float>*> results,
+      ConstSpan<DatapointIndex> datapoint_index_mapping) const final;
+
   Status EnableCrowdingImpl(
       ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
 
  private:
-  template <typename TopN>
+  template <bool kUseMinDistance, typename TopN>
   void FindNeighborsInternal(const DatapointPtr<T>& query,
                              const SearchParameters& params,
                              TopN* top_n_ptr) const;
 
-  template <typename WhitelistIterator, typename TopN>
+  template <bool kUseMinDistance, typename WhitelistIterator, typename TopN>
   void FindNeighborsOneToOneInternal(const DatapointPtr<T>& query,
                                      const SearchParameters& params,
                                      WhitelistIterator* allowlist_iterator,
@@ -97,6 +142,13 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
   const bool supports_low_level_batching_;
 
   std::shared_ptr<ThreadPool> pool_;
+
+  float min_distance_ = -numeric_limits<float>::infinity();
+
+  mutable unique_ptr<typename BruteForceSearcher<T>::Mutator> mutator_ =
+      nullptr;
+
+  bool is_immutable_ = false;
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, BruteForceSearcher);

@@ -22,7 +22,7 @@ namespace research_scann {
 namespace mm_internal {
 
 template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, const DenseDataset<float> &queries,
+    const DistanceMeasure &dist, DefaultDenseDatasetView<float> queries,
     const DenseDataset<float> &database, ThreadPool *pool,
     ManyToManyResultsCallback<float> callback);
 

@@ -42,6 +42,9 @@ KMeansTreeTrainingOptions::KMeansTreeTrainingOptions(
     case PartitioningConfig::GREEDY_BALANCED:
       balancing_type = GmmUtils::Options::GREEDY_BALANCED;
       break;
+    case PartitioningConfig::UNBALANCED_FLOAT32:
+      balancing_type = GmmUtils::Options::UNBALANCED_FLOAT32;
+      break;
   }
   switch (config.trainer_type()) {
     case PartitioningConfig::DEFAULT_SAMPLING_TRAINER:

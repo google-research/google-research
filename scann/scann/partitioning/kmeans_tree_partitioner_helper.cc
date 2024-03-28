@@ -29,6 +29,7 @@
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/parallel_for.h"
+#include "scann/utils/reordering_helper.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
 

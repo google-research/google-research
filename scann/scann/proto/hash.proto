@@ -72,7 +72,7 @@ message AsymmetricHasherConfig {
 
   optional bool use_norm_biasing_correction = 31 [default = false];
 
-  optional bool use_global_topn = 33 [default = false];
+  optional bool use_global_topn = 33 [default = true];
 
   message FixedPointLUTConversionOptions {
     enum FloatToIntConversionMethod {

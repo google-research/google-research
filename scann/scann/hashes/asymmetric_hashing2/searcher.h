@@ -33,7 +33,6 @@
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/platform/macros.h"
 
 namespace research_scann {
 
@@ -46,7 +45,7 @@ class SearcherOptions {
  public:
   explicit SearcherOptions(shared_ptr<const AsymmetricQueryer<T>> queryer,
                            shared_ptr<const Indexer<T>> indexer = nullptr)
-      : asymmetric_queryer_(std::move(queryer)), indexer_(std::move(indexer)) {}
+      : indexer_(std::move(indexer)), asymmetric_queryer_(std::move(queryer)) {}
 
   void set_asymmetric_lookup_type(
       AsymmetricHasherConfig::LookupType lookup_type) {
@@ -77,16 +76,16 @@ class SearcherOptions {
   void set_noise_shaping_threshold(double t) { noise_shaping_threshold_ = t; }
 
  private:
-  shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer_ = nullptr;
-
   shared_ptr<const Indexer<T>> indexer_ = nullptr;
 
-  AsymmetricHasherConfig::LookupType asymmetric_lookup_type_ =
-      AsymmetricHasherConfig::FLOAT;
+  double noise_shaping_threshold_ = NAN;
 
   FixedPointLUTConversionOptions fixed_point_lut_conversion_options_;
 
-  double noise_shaping_threshold_ = NAN;
+  shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer_ = nullptr;
+
+  AsymmetricHasherConfig::LookupType asymmetric_lookup_type_ =
+      AsymmetricHasherConfig::FLOAT;
 
   template <typename U>
   friend class Searcher;
@@ -103,14 +102,74 @@ class Searcher final : public SingleMachineSearcherBase<T> {
 
   ~Searcher() final;
 
-  Searcher(Searcher&& rhs) = default;
-  Searcher& operator=(Searcher&& rhs) = default;
+  SCANN_DECLARE_IMMOBILE_CLASS(Searcher);
 
   bool supports_crowding() const final { return true; }
 
   DatapointIndex optimal_batch_size() const final {
     return optimal_low_level_batch_size_;
   }
+
+  const PackedDataset& packed_dataset() { return packed_dataset_; }
+
+  using PrecomputedMutationArtifacts =
+      UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;
+  using MutationOptions = UntypedSingleMachineSearcherBase::MutationOptions;
+
+  class Mutator : public SingleMachineSearcherBase<T>::Mutator {
+   public:
+    using MutateBaseOptions =
+        UntypedSingleMachineSearcherBase::UntypedMutator::MutateBaseOptions;
+
+    static StatusOr<unique_ptr<typename Searcher<T>::Mutator>> Create(
+        Searcher<T>* searcher);
+    Mutator(const Mutator&) = delete;
+    Mutator& operator=(const Mutator&) = delete;
+    ~Mutator() final {}
+
+    using SingleMachineSearcherBase<
+        T>::Mutator::ComputePrecomputedMutationArtifacts;
+    unique_ptr<PrecomputedMutationArtifacts>
+    ComputePrecomputedMutationArtifacts(
+        const DatapointPtr<T>& dptr) const final;
+
+    StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<T>& dptr,
+                                          string_view docid,
+                                          const MutationOptions& mo) final;
+    Status RemoveDatapoint(string_view docid) final;
+    void Reserve(size_t size) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<T>& dptr,
+                                             string_view docid,
+                                             const MutationOptions& mo) final;
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<T>& dptr,
+                                             DatapointIndex index,
+                                             const MutationOptions& mo) final;
+
+    unique_ptr<PrecomputedMutationArtifacts>
+    ComputePrecomputedMutationArtifacts(const DatapointPtr<T>& maybe_residual,
+                                        const DatapointPtr<T>& original) const;
+
+   private:
+    Mutator(Searcher<T>* searcher, const Indexer<T>* indexer,
+            PackedDataset* packed_dataset)
+        : searcher_(searcher),
+          indexer_(indexer),
+          packed_dataset_(packed_dataset) {}
+
+    Status Hash(const DatapointPtr<T>& maybe_residual,
+                const DatapointPtr<T>& original,
+                Datapoint<uint8_t>* result) const;
+
+    Datapoint<uint8_t> EnsureDatapointUnpacked(const Datapoint<uint8_t>& dp);
+
+    Searcher<T>* searcher_ = nullptr;
+    const Indexer<T>* indexer_ = nullptr;
+    PackedDataset* packed_dataset_ = nullptr;
+  };
+
+  StatusOr<typename SingleMachineSearcherBase<T>::Mutator*> GetMutator()
+      const final;
 
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
@@ -167,21 +226,19 @@ class Searcher final : public SingleMachineSearcherBase<T> {
 
   PackedDataset packed_dataset_;
 
-  vector<float> norm_inv_ = {};
+  const bool limited_inner_product_ : 1;
 
-  const bool limited_inner_product_;
+  const bool lut16_ : 1;
 
-  vector<float> bias_ = {};
+  uint8_t max_low_level_batch_size_ = 9;
 
-  const bool lut16_;
+  uint8_t optimal_low_level_batch_size_ = 1;
 
-  size_t max_low_level_batch_size_ = 9;
+  std::vector<float> norm_inv_or_bias_ = {};
 
-  size_t optimal_low_level_batch_size_ = 1;
+  mutable unique_ptr<typename Searcher<T>::Mutator> mutator_ = nullptr;
 
   friend class ::research_scann::TreeAHHybridResidual;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(Searcher);
 };
 
 class AsymmetricHashingOptionalParameters
@@ -191,22 +248,12 @@ class AsymmetricHashingOptionalParameters
       LookupTable precomputed_lookup_table)
       : precomputed_lookup_table_(std::move(precomputed_lookup_table)) {}
 
-  void SetIndexAndBias(DatapointIndex index, float bias) {
-    starting_dp_idx_ = index;
-    lut16_bias_ = bias;
+  const LookupTable& precomputed_lookup_table() const {
+    return precomputed_lookup_table_;
   }
-
-  void SetFastTopNeighbors(FastTopNeighbors<float>* top_n) { top_n_ = top_n; }
-
-  const FastTopNeighbors<float>* top_n() const { return top_n_; }
 
  private:
   LookupTable precomputed_lookup_table_;
-
-  FastTopNeighbors<float>* top_n_ = nullptr;
-
-  DatapointIndex starting_dp_idx_ = 0;
-  float lut16_bias_ = 0;
 
   template <typename U>
   friend class Searcher;

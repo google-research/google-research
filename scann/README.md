@@ -55,15 +55,15 @@ information.
 ## Building from source
 
 To build ScaNN from source, first install the build tool
-[bazel](https://bazel.build), Clang 8, and libstdc++ headers for C++17 (which
+[bazel](https://bazel.build), Clang 16, and libstdc++ headers for C++17 (which
 are provided with GCC 9). Additionally, ScaNN requires a modern version of
-Python (3.8.x or later) and Tensorflow 2.13 installed on that version of Python.
+Python (3.8.x or later) and Tensorflow 2.15 installed on that version of Python.
 Once these prerequisites are satisfied, run the following command in the root
 directory of the repository:
 
 ```
 python configure.py
-CC=clang-8 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+CC=clang-16 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 

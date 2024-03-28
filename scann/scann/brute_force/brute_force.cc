@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <type_traits>
 #include <utility>
 
 #include "absl/synchronization/mutex.h"
@@ -69,6 +70,8 @@ Status BruteForceSearcher<T>::EnableCrowdingImpl(
 
 namespace {
 
+struct EmptyStruct {};
+
 template <typename ResultType>
 class TopNWrapperInterface {
  public:
@@ -78,16 +81,21 @@ class TopNWrapperInterface {
   virtual NNResultsVector TakeUnsorted() = 0;
 };
 
-template <typename TopNBase, typename ResultType>
+template <typename TopNBase, typename ResultType, bool kUseMinDistance>
 class TopNWrapper final : public TopNWrapperInterface<ResultType> {
  public:
-  TopNWrapper(TopNBase base, ResultType epsilon)
-      : base_(std::move(base)), epsilon_(epsilon) {}
+  TopNWrapper(TopNBase base, ResultType epsilon, ResultType min_distance)
+      : base_(std::move(base)), epsilon_(epsilon) {
+    if constexpr (kUseMinDistance) {
+      min_distance_ = min_distance;
+    }
+  }
 
   void PushBatch(ConstSpan<ResultType> result_block, size_t base_dp_idx) final {
     for (size_t i : IndicesOf(result_block)) {
-      if (result_block[i] <= epsilon_) {
-        base_.push(std::make_pair(base_dp_idx + i, result_block[i]));
+      const ResultType dist = result_block[i];
+      if (ShouldPush(dist)) {
+        base_.push(std::make_pair(base_dp_idx + i, dist));
         if (base_.full()) epsilon_ = base_.approx_bottom().second;
       }
     }
@@ -96,15 +104,29 @@ class TopNWrapper final : public TopNWrapperInterface<ResultType> {
   NNResultsVector TakeUnsorted() final { return base_.TakeUnsorted(); }
 
  private:
+  bool ShouldPush(ResultType dist) const {
+    if constexpr (kUseMinDistance) {
+      return dist <= epsilon_ && dist >= min_distance_;
+    } else {
+      return dist <= epsilon_;
+    }
+  }
+
   TopNBase base_;
   ResultType epsilon_;
+  std::conditional_t<kUseMinDistance, ResultType, EmptyStruct> min_distance_;
 };
 
-template <typename TopNBase, typename ResultType>
+template <typename TopNBase, typename ResultType, bool kUseMinDistance>
 class TopNWrapperThreadSafe final : public TopNWrapperInterface<ResultType> {
  public:
-  TopNWrapperThreadSafe(TopNBase base, ResultType epsilon)
-      : base_(std::move(base)), epsilon_(epsilon) {}
+  TopNWrapperThreadSafe(TopNBase base, ResultType epsilon,
+                        ResultType min_distance)
+      : base_(std::move(base)), epsilon_(epsilon) {
+    if constexpr (kUseMinDistance) {
+      min_distance_ = min_distance;
+    }
+  }
 
   void PushBatch(ConstSpan<ResultType> result_block, size_t base_dp_idx) final {
     constexpr size_t kBufferSize = 16;
@@ -126,7 +148,7 @@ class TopNWrapperThreadSafe final : public TopNWrapperInterface<ResultType> {
 
     for (size_t i : IndicesOf(result_block)) {
       auto dist = result_block[i];
-      if (dist > eps) continue;
+      if (dist > eps || !AboveMinDist(dist)) continue;
       buf[num_to_push++] = {i + base_dp_idx, dist};
       if (num_to_push == kBufferSize) locked_push_results();
     }
@@ -136,22 +158,44 @@ class TopNWrapperThreadSafe final : public TopNWrapperInterface<ResultType> {
   NNResultsVector TakeUnsorted() final { return base_.TakeUnsorted(); }
 
  private:
+  bool AboveMinDist(ResultType dist) const {
+    if constexpr (kUseMinDistance) {
+      return dist >= min_distance_;
+    } else {
+      return true;
+    }
+  }
+
   TopNBase base_;
   std::atomic<ResultType> epsilon_;
+  std::conditional_t<kUseMinDistance, ResultType, EmptyStruct> min_distance_;
   mutable absl::Mutex mutex_;
 };
 
 template <typename ResultType, typename TopNBase>
-unique_ptr<TopNWrapperInterface<ResultType>> MakeTopNWrapper(TopNBase base,
-                                                             ResultType epsilon,
-                                                             bool thread_safe) {
+unique_ptr<TopNWrapperInterface<ResultType>> MakeTopNWrapper(
+    TopNBase base, ResultType epsilon, ResultType min_distance,
+    bool thread_safe) {
   if (thread_safe) {
-    return unique_ptr<TopNWrapperInterface<ResultType>>(
-        new TopNWrapperThreadSafe<TopNBase, ResultType>(std::move(base),
-                                                        epsilon));
+    if (min_distance == -numeric_limits<float>::infinity()) {
+      return unique_ptr<TopNWrapperInterface<ResultType>>(
+          new TopNWrapperThreadSafe<TopNBase, ResultType, false>(
+              std::move(base), epsilon, min_distance));
+    } else {
+      return unique_ptr<TopNWrapperInterface<ResultType>>(
+          new TopNWrapperThreadSafe<TopNBase, ResultType, true>(
+              std::move(base), epsilon, min_distance));
+    }
   } else {
-    return unique_ptr<TopNWrapperInterface<ResultType>>(
-        new TopNWrapper<TopNBase, ResultType>(std::move(base), epsilon));
+    if (min_distance == -numeric_limits<float>::infinity()) {
+      return unique_ptr<TopNWrapperInterface<ResultType>>(
+          new TopNWrapper<TopNBase, ResultType, false>(std::move(base), epsilon,
+                                                       min_distance));
+    } else {
+      return unique_ptr<TopNWrapperInterface<ResultType>>(
+          new TopNWrapper<TopNBase, ResultType, true>(std::move(base), epsilon,
+                                                      min_distance));
+    }
   }
 }
 
@@ -228,22 +272,24 @@ class FastTopNeighborsWrapperThreadSafe final
 
 template <typename ResultType>
 unique_ptr<TopNWrapperInterface<ResultType>> MakeNonCrowdingTopN(
-    const SearchParameters& params, bool thread_safe) {
-  if constexpr (IsSame<ResultType, float>()) {
-    if (thread_safe) {
-      return make_unique<FastTopNeighborsWrapperThreadSafe>(
-          params.pre_reordering_num_neighbors(),
-          params.pre_reordering_epsilon());
-    } else {
-      return make_unique<FastTopNeighborsWrapper>(
-          params.pre_reordering_num_neighbors(),
-          params.pre_reordering_epsilon());
+    const SearchParameters& params, float min_distance, bool thread_safe) {
+  if (min_distance == -numeric_limits<float>::infinity()) {
+    if constexpr (IsSame<ResultType, float>()) {
+      if (thread_safe) {
+        return make_unique<FastTopNeighborsWrapperThreadSafe>(
+            params.pre_reordering_num_neighbors(),
+            params.pre_reordering_epsilon());
+      } else {
+        return make_unique<FastTopNeighborsWrapper>(
+            params.pre_reordering_num_neighbors(),
+            params.pre_reordering_epsilon());
+      }
     }
   }
 
   return MakeTopNWrapper<ResultType>(
       TopNeighbors<float>(params.pre_reordering_num_neighbors()),
-      params.pre_reordering_epsilon(), thread_safe);
+      params.pre_reordering_epsilon(), min_distance, thread_safe);
 }
 
 }  // namespace
@@ -267,7 +313,8 @@ BruteForceSearcher<T>::FinishBatchedSearch(
     ConstSpan<SearchParameters> params,
     MutableSpan<NNResultsVector> results) const {
   if constexpr (std::is_same_v<Float, float>) {
-    if (std::all_of(params.begin(), params.end(),
+    if (min_distance_ == -numeric_limits<float>::infinity() &&
+        std::all_of(params.begin(), params.end(),
                     [](const SearchParameters& params) {
                       return !params.pre_reordering_crowding_enabled();
                     })) {
@@ -279,7 +326,8 @@ BruteForceSearcher<T>::FinishBatchedSearch(
   for (size_t i : IndicesOf(params)) {
     if (params[i].pre_reordering_crowding_enabled()) {
     } else {
-      top_ns[i] = MakeNonCrowdingTopN<Float>(params[i], pool_.get());
+      top_ns[i] =
+          MakeNonCrowdingTopN<Float>(params[i], min_distance_, pool_.get());
     }
   }
 
@@ -338,22 +386,54 @@ Status BruteForceSearcher<T>::FindNeighborsBatchedImpl(
 }
 
 template <typename T>
+Status BruteForceSearcher<T>::FindNeighborsBatchedImpl(
+    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+    MutableSpan<FastTopNeighbors<float>*> results,
+    ConstSpan<DatapointIndex> datapoint_index_mapping) const {
+  auto fallback = [&] {
+    return SingleMachineSearcherBase<T>::FindNeighborsBatchedImpl(
+        queries, params, results, datapoint_index_mapping);
+  };
+  if constexpr (!std::is_same_v<T, float>) return fallback();
+  if (!supports_low_level_batching_) return fallback();
+  if (!queries.IsDense()) return fallback();
+  if (min_distance_ != -numeric_limits<float>::infinity()) return fallback();
+  if (std::any_of(params.begin(), params.end(), [](const SearchParameters& p) {
+        return p.restricts_enabled() || p.pre_reordering_crowding_enabled();
+      })) {
+    return fallback();
+  }
+
+  const DenseDataset<float>& database =
+      *reinterpret_cast<const DenseDataset<float>*>(this->dataset());
+  const DenseDataset<float>& queries_dense =
+      *reinterpret_cast<const DenseDataset<float>*>(&queries);
+  DenseDistanceManyToManyTopKRemapped(*distance_, queries_dense, database,
+                                      results, datapoint_index_mapping,
+                                      pool_.get());
+  return OkStatus();
+}
+
+template <typename T>
 Status BruteForceSearcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
                                                 const SearchParameters& params,
                                                 NNResultsVector* result) const {
   DCHECK(result);
+  const bool use_min_distance =
+      min_distance_ != -numeric_limits<float>::infinity();
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
     TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
-    FindNeighborsInternal(query, params, &top_n);
+    use_min_distance ? FindNeighborsInternal<true>(query, params, &top_n)
+                     : FindNeighborsInternal<false>(query, params, &top_n);
     *result = top_n.TakeUnsorted();
   }
   return OkStatus();
 }
 
 template <typename T>
-template <typename TopN>
+template <bool kUseMinDistance, typename TopN>
 void BruteForceSearcher<T>::FindNeighborsInternal(
     const DatapointPtr<T>& query, const SearchParameters& params,
     TopN* top_n_ptr) const {
@@ -363,6 +443,17 @@ void BruteForceSearcher<T>::FindNeighborsInternal(
     TopN top_n = std::move(*top_n_ptr);
     const float epsilon = params.pre_reordering_epsilon();
     float min_keep_distance = epsilon;
+
+    const float min_distance = min_distance_;
+
+    auto should_push = [&](float dist) SCANN_INLINE_LAMBDA {
+      if constexpr (kUseMinDistance) {
+        return dist <= min_keep_distance && dist >= min_distance;
+      } else {
+        return dist <= min_keep_distance;
+      }
+    };
+
     const DenseDataset<T>& dataset =
         *down_cast<const DenseDataset<T>*>(this->dataset());
 
@@ -372,8 +463,9 @@ void BruteForceSearcher<T>::FindNeighborsInternal(
       MutableSpan<float> distances(distances_storage.get(), dataset.size());
       DenseDistanceOneToMany<T, float>(*distance_, query, dataset, distances);
       for (DatapointIndex i : IndicesOf(dataset)) {
-        if (distances[i] <= min_keep_distance) {
-          top_n.push(std::make_pair(i, distances[i]));
+        const float dist = distances[i];
+        if (should_push(dist)) {
+          top_n.push(std::make_pair(i, dist));
           if (top_n.full()) {
             min_keep_distance = top_n.approx_bottom().second;
           }
@@ -382,17 +474,19 @@ void BruteForceSearcher<T>::FindNeighborsInternal(
     }
     *top_n_ptr = std::move(top_n);
   } else if (params.restricts_enabled()) {
-    auto it = params.restrict_whitelist()->WhitelistedPointIterator();
-    FindNeighborsOneToOneInternal(query, params, &it, top_n_ptr);
+    auto it = params.restrict_whitelist()->AllowlistedPointIterator();
+    FindNeighborsOneToOneInternal<kUseMinDistance>(query, params, &it,
+                                                   top_n_ptr);
   } else {
     DummyAllowlist allowlist(this->dataset()->size());
     auto it = allowlist.AllowlistedPointIterator();
-    FindNeighborsOneToOneInternal(query, params, &it, top_n_ptr);
+    FindNeighborsOneToOneInternal<kUseMinDistance>(query, params, &it,
+                                                   top_n_ptr);
   }
 }
 
 template <typename T>
-template <typename AllowlistIterator, typename TopN>
+template <bool kUseMinDistance, typename AllowlistIterator, typename TopN>
 void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
     const DatapointPtr<T>& query, const SearchParameters& params,
     AllowlistIterator* allowlist_iterator, TopN* top_n_ptr) const {
@@ -402,6 +496,16 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
   const float epsilon = params.pre_reordering_epsilon();
   float min_keep_distance = epsilon;
 
+  const float min_distance = min_distance_;
+
+  auto should_push = [&](float dist) SCANN_INLINE_LAMBDA {
+    if constexpr (kUseMinDistance) {
+      return dist <= min_keep_distance && dist >= min_distance;
+    } else {
+      return dist <= min_keep_distance;
+    }
+  };
+
   if (query.IsDense() && this->dataset()->IsDense()) {
     const DenseDataset<T>& dataset =
         *down_cast<const DenseDataset<T>*>(this->dataset());
@@ -409,7 +513,7 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
       const DatapointIndex i = allowlist_iterator->value();
       const DatapointPtr<T> dptr = dataset[i];
       const double dist = distance_->GetDistanceDense(query, dptr);
-      if (dist <= min_keep_distance) {
+      if (should_push(dist)) {
         top_n.push(std::make_pair(i, dist));
         if (top_n.full()) {
           min_keep_distance = top_n.approx_bottom().second;
@@ -423,7 +527,7 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
       const DatapointIndex i = allowlist_iterator->value();
       const DatapointPtr<T> dptr = dataset[i];
       const double dist = distance_->GetDistanceSparse(query, dptr);
-      if (dist <= min_keep_distance) {
+      if (should_push(dist)) {
         top_n.push(std::make_pair(i, dist));
         if (top_n.full()) {
           min_keep_distance = top_n.approx_bottom().second;
@@ -435,7 +539,7 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
       const DatapointIndex i = allowlist_iterator->value();
       const DatapointPtr<T> dptr = (*this->dataset())[i];
       const double dist = distance_->GetDistanceHybrid(query, dptr);
-      if (dist <= min_keep_distance) {
+      if (should_push(dist)) {
         top_n.push(std::make_pair(i, dist));
         if (top_n.full()) {
           min_keep_distance = top_n.approx_bottom().second;
@@ -444,6 +548,24 @@ void BruteForceSearcher<T>::FindNeighborsOneToOneInternal(
     }
   }
   *top_n_ptr = std::move(top_n);
+}
+
+template <typename T>
+StatusOr<typename SingleMachineSearcherBase<T>::Mutator*>
+BruteForceSearcher<T>::GetMutator() const {
+  if (is_immutable_) {
+    DCHECK(!mutator_);
+    return FailedPreconditionError(
+        "Cannot GetMutator on an immutable BruteForceSearcher.");
+  }
+  if (!mutator_) {
+    auto mutable_this = const_cast<BruteForceSearcher<T>*>(this);
+    TF_ASSIGN_OR_RETURN(mutator_,
+                        BruteForceSearcher<T>::Mutator::Create(mutable_this));
+    SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
+  }
+  return static_cast<typename SingleMachineSearcherBase<T>::Mutator*>(
+      mutator_.get());
 }
 
 SCANN_INSTANTIATE_TYPED_CLASS(, BruteForceSearcher);

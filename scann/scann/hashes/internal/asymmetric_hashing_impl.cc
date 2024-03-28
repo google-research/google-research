@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/random/distributions.h"
+#include "absl/status/status.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
@@ -32,7 +33,6 @@
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {
@@ -47,6 +47,7 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
 
   ChunkedDatapoint<double> chunked_vec;
 
+  SCANN_RET_CHECK(opts.projector());
   if (opts.preprocessing_function()) {
     TF_ASSIGN_OR_RETURN(Datapoint<T> preprocessed,
                         opts.preprocessing_function()(dataset[0]));
@@ -131,12 +132,13 @@ StatusOr<vector<DenseDataset<double>>> AhImpl<T>::TrainAsymmetricHashing(
     }
   }
 
-  auto quantization_distance = opts.quantization_distance();
+  const auto& quantization_distance = opts.quantization_distance();
   GmmUtils::Options gmm_opts;
   gmm_opts.seed = opts.config().clustering_seed();
   gmm_opts.max_iterations = opts.config().max_clustering_iterations();
   gmm_opts.epsilon = opts.config().clustering_convergence_tolerance();
   gmm_opts.parallelization_pool = std::move(pool);
+  gmm_opts.partition_assignment_type = gmm_opts.UNBALANCED_FLOAT32;
   GmmUtils gmm(quantization_distance, gmm_opts);
 
   vector<DenseDataset<double>> all_centers(num_blocks);

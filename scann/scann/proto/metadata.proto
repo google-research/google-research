@@ -58,4 +58,6 @@ message ClassLabelMetadataConfig {}
 
 message DatabaseVectorMetadataConfig {
   optional bool return_database_vector = 1 [default = false];
+
+  optional bool verbatim_gfv = 2 [default = false];
 }

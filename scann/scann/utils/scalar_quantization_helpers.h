@@ -56,8 +56,17 @@ ScalarQuantizationResults ScalarQuantizeFloatDataset(
     double noise_shaping_threshold = NAN);
 
 ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
-    const DenseDataset<float>& dataset, std::vector<float> multipliers,
+    DenseDatasetView<float>&& dataset, std::vector<float> multipliers,
     double noise_shaping_threshold = NAN);
+
+SCANN_INLINE ScalarQuantizationResults
+ScalarQuantizeFloatDatasetWithMultipliers(
+    const DenseDataset<float>& dataset, std::vector<float> multipliers,
+    double noise_shaping_threshold = NAN) {
+  return ScalarQuantizeFloatDatasetWithMultipliers(
+      DefaultDenseDatasetView<float>(dataset), multipliers,
+      noise_shaping_threshold);
+}
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,

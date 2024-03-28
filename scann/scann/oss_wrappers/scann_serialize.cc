@@ -50,6 +50,8 @@ inline std::string Uint32ToKey(uint32_t u32) {
   return key;
 }
 
+std::string Int32ToKey(int32_t i32) { return Uint32ToKey(i32); }
+
 inline std::string Uint64ToKey(uint64_t u64) {
   std::string key;
   KeyFromUint64(u64, &key);
@@ -71,6 +73,8 @@ inline uint32_t KeyToUint32(absl::string_view key) {
   memcpy(&value, key.data(), sizeof(value));
   return absl::gntohl(value);
 }
+
+int32_t KeyToInt32(absl::string_view key) { return KeyToUint32(key); }
 
 inline uint64_t KeyToUint64(absl::string_view key) {
   uint64_t value;

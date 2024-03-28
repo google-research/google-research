@@ -32,9 +32,11 @@ message ScannAsset {
     DATASET_NPY = 9;
     INT8_DATASET_NPY = 10;
     AH_DATASET_NPY = 11;
+    AH_DATASET_SOAR_NPY = 16;
     TOKENIZATION_NPY = 12;
     INT8_MULTIPLIERS_NPY = 13;
     INT8_NORMS_NPY = 14;
+    BF16_DATASET_NPY = 15;
   }
   optional AssetType asset_type = 1;
   optional string asset_path = 2;

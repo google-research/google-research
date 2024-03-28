@@ -1,0 +1,46 @@
+// Copyright 2024 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+syntax = "proto2";
+
+package research_scann;
+
+message AutopilotTreeAH {
+  optional int64 l1_size = 1 [default = 32768];
+
+  optional int64 l3_size = 2 [default = 33554432];
+
+  enum IncrementalMode {
+    NONE = 0;
+
+    ONLINE = 1;
+
+    ONLINE_INCREMENTAL = 2;
+  }
+  optional IncrementalMode incremental_mode = 3 [default = NONE];
+
+  enum DataType {
+    UNKNOWN = 0;
+    FLOAT32 = 1;
+    BFLOAT16 = 2;
+    INT8 = 3;
+  }
+  optional DataType reordering_dtype = 4 [default = BFLOAT16];
+}
+
+message AutopilotConfig {
+  oneof autopilot_option {
+    AutopilotTreeAH tree_ah = 1;
+  }
+}

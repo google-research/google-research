@@ -13,6 +13,7 @@
 // limitations under the License.
 
 
+
 #ifndef SCANN_UTILS_REORDERING_HELPER_H_
 #define SCANN_UTILS_REORDERING_HELPER_H_
 
@@ -22,78 +23,20 @@
 #include <utility>
 #include <vector>
 
+#include "absl/log/log.h"
+#include "absl/status/statusor.h"
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
-#include "scann/hashes/asymmetric_hashing2/querying.h"
-#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
+#include "scann/utils/reordering_helper_interface.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
-
-template <typename T>
-class ReorderingInterface {
- public:
-  class Mutator;
-  virtual std::string name() const = 0;
-  virtual bool needs_dataset() const = 0;
-  virtual Status ComputeDistancesForReordering(
-      const DatapointPtr<T>& query, NNResultsVector* result) const = 0;
-
-  virtual StatusOr<std::pair<DatapointIndex, float>>
-  ComputeTop1ReorderingDistance(const DatapointPtr<T>& query,
-                                NNResultsVector* result) const {
-    SCANN_RETURN_IF_ERROR(ComputeDistancesForReordering(query, result));
-    std::pair<DatapointIndex, float> best = {kInvalidDatapointIndex,
-                                             std::numeric_limits<float>::max()};
-    DistanceComparatorBranchOptimized comparator;
-    for (const auto& neighbor : *result) {
-      bool better_than_best = comparator(neighbor, best);
-      best.first = better_than_best ? neighbor.first : best.first;
-      best.second = better_than_best ? neighbor.second : best.second;
-    }
-    return best;
-  }
-
-  virtual StatusOr<ReorderingInterface<T>::Mutator*> GetMutator() const = 0;
-
-  virtual bool owns_mutation_data_structures() const = 0;
-
-  virtual void AppendDataToSingleMachineFactoryOptions(
-      SingleMachineFactoryOptions* opts) const {}
-
-  virtual ~ReorderingInterface() {}
-};
-
-template <typename T>
-class ReorderingInterface<T>::Mutator : public VirtualDestructor {
- public:
-  virtual StatusOr<DatapointIndex> AddDatapoint(
-      const DatapointPtr<T>& dptr) = 0;
-
-  virtual StatusOr<DatapointIndex> RemoveDatapoint(DatapointIndex idx) = 0;
-
-  virtual Status UpdateDatapoint(const DatapointPtr<T>& dptr,
-                                 DatapointIndex idx) = 0;
-
-  virtual void Reserve(DatapointIndex num_datapoints) {}
-};
-
-template <typename T>
-class ReorderingHelper : public ReorderingInterface<T> {
- public:
-  StatusOr<typename ReorderingInterface<T>::Mutator*> GetMutator()
-      const override {
-    return FailedPreconditionError(
-        StrCat("Mutation not supported for reordering helper of type ",
-               this->name(), "."));
-  }
-  bool owns_mutation_data_structures() const override { return true; }
-};
 
 template <typename T>
 class ExactReorderingHelper : public ReorderingHelper<T> {
@@ -116,10 +59,21 @@ class ExactReorderingHelper : public ReorderingHelper<T> {
   Status ComputeDistancesForReordering(const DatapointPtr<T>& query,
                                        NNResultsVector* result) const override;
 
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<T>& query, NNResultsVector* result) const override;
+  absl::StatusOr<std::pair<DatapointIndex, float>>
+  ComputeTop1ReorderingDistance(const DatapointPtr<T>& query,
+                                NNResultsVector* result) const override;
 
   bool owns_mutation_data_structures() const override { return false; }
+
+  Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const final {
+    for (auto j : Seq((*exact_reordering_dataset_)[i].dimensionality()))
+      output[j] = (*exact_reordering_dataset_)[i].values_span()[j];
+    return OkStatus();
+  }
+
+  shared_ptr<const Dataset> dataset() const final {
+    return exact_reordering_dataset_;
+  }
 
  private:
   shared_ptr<const DistanceMeasure> exact_reordering_distance_ = nullptr;
@@ -154,14 +108,22 @@ class FixedPointFloatDenseDotProductReorderingHelper
       const DatapointPtr<float>& query, NNResultsVector* result,
       CallbackFunctor* __restrict__ callback) const;
 
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<float>& query, NNResultsVector* result) const override;
+  absl::StatusOr<std::pair<DatapointIndex, float>>
+  ComputeTop1ReorderingDistance(const DatapointPtr<float>& query,
+                                NNResultsVector* result) const override;
 
   DimensionIndex dimensionality() const {
     return fixed_point_dataset_->dimensionality();
   }
 
   Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const;
+
+  shared_ptr<const Dataset> dataset() const final {
+    return fixed_point_dataset_;
+  }
+
+  class Mutator;
+  StatusOr<ReorderingInterface<float>::Mutator*> GetMutator() const override;
 
   void AppendDataToSingleMachineFactoryOptions(
       SingleMachineFactoryOptions* opts) const override {
@@ -173,6 +135,7 @@ class FixedPointFloatDenseDotProductReorderingHelper
  private:
   shared_ptr<DenseDataset<int8_t>> fixed_point_dataset_;
   std::vector<float> inverse_multipliers_;
+  mutable unique_ptr<Mutator> mutator_;
 
   friend class FixedPointFloatDenseSquaredL2ReorderingHelper;
 };
@@ -199,8 +162,20 @@ class FixedPointFloatDenseCosineReorderingHelper
   Status ComputeDistancesForReordering(const DatapointPtr<float>& query,
                                        NNResultsVector* result) const override;
 
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<float>& query, NNResultsVector* result) const override;
+  absl::StatusOr<std::pair<DatapointIndex, float>>
+  ComputeTop1ReorderingDistance(const DatapointPtr<float>& query,
+                                NNResultsVector* result) const override;
+
+  class Mutator;
+  StatusOr<ReorderingInterface<float>::Mutator*> GetMutator() const override;
+
+  Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const final {
+    return dot_product_helper_.Reconstruct(i, output);
+  }
+
+  shared_ptr<const Dataset> dataset() const final {
+    return dot_product_helper_.dataset();
+  }
 
   void AppendDataToSingleMachineFactoryOptions(
       SingleMachineFactoryOptions* opts) const override {
@@ -209,6 +184,9 @@ class FixedPointFloatDenseCosineReorderingHelper
 
  private:
   FixedPointFloatDenseDotProductReorderingHelper dot_product_helper_;
+
+  mutable unique_ptr<Mutator> mutator_;
+  friend class Mutator;
 };
 
 class FixedPointFloatDenseSquaredL2ReorderingHelper
@@ -232,8 +210,9 @@ class FixedPointFloatDenseSquaredL2ReorderingHelper
   Status ComputeDistancesForReordering(const DatapointPtr<float>& query,
                                        NNResultsVector* result) const override;
 
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<float>& query, NNResultsVector* result) const override;
+  absl::StatusOr<std::pair<DatapointIndex, float>>
+  ComputeTop1ReorderingDistance(const DatapointPtr<float>& query,
+                                NNResultsVector* result) const override;
 
   DimensionIndex dimensionality() const {
     return dot_product_helper_.dimensionality();
@@ -241,6 +220,10 @@ class FixedPointFloatDenseSquaredL2ReorderingHelper
 
   Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const {
     return dot_product_helper_.Reconstruct(i, output);
+  }
+
+  shared_ptr<const Dataset> dataset() const final {
+    return dot_product_helper_.dataset();
   }
 
   void AppendDataToSingleMachineFactoryOptions(
@@ -270,16 +253,64 @@ class FixedPointFloatDenseLimitedInnerReorderingHelper
 
   bool needs_dataset() const override { return false; }
 
+  Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const final {
+    return dot_product_helper_.Reconstruct(i, output);
+  }
+
+  shared_ptr<const Dataset> dataset() const final {
+    return dot_product_helper_.dataset();
+  }
+
   Status ComputeDistancesForReordering(const DatapointPtr<float>& query,
                                        NNResultsVector* result) const override;
 
-  StatusOr<std::pair<DatapointIndex, float>> ComputeTop1ReorderingDistance(
-      const DatapointPtr<float>& query, NNResultsVector* result) const override;
+  absl::StatusOr<std::pair<DatapointIndex, float>>
+  ComputeTop1ReorderingDistance(const DatapointPtr<float>& query,
+                                NNResultsVector* result) const override;
 
  private:
   FixedPointFloatDenseDotProductReorderingHelper dot_product_helper_;
 
   std::vector<float> inverse_database_l2_norms_;
+};
+
+class Bfloat16DenseDotProductReorderingHelper : public ReorderingHelper<float> {
+ public:
+  explicit Bfloat16DenseDotProductReorderingHelper(
+      const DenseDataset<float>& exact_reordering_dataset);
+
+  explicit Bfloat16DenseDotProductReorderingHelper(
+      shared_ptr<DenseDataset<int16_t>> bfloat16_dataset);
+
+  ~Bfloat16DenseDotProductReorderingHelper() override;
+
+  std::string name() const override {
+    return "Bfloat16DenseDotProductReordering";
+  }
+
+  bool needs_dataset() const override { return false; }
+
+  Status ComputeDistancesForReordering(const DatapointPtr<float>& query,
+                                       NNResultsVector* result) const override;
+
+  DimensionIndex dimensionality() const {
+    return bfloat16_dataset_->dimensionality();
+  }
+
+  class Mutator;
+  StatusOr<ReorderingInterface<float>::Mutator*> GetMutator() const override;
+
+  void AppendDataToSingleMachineFactoryOptions(
+      SingleMachineFactoryOptions* opts) const override {
+    opts->bfloat16_dataset = bfloat16_dataset_;
+  }
+
+  Status Reconstruct(DatapointIndex i, MutableSpan<float> output) const final;
+  shared_ptr<const Dataset> dataset() const final;
+
+ private:
+  shared_ptr<DenseDataset<int16_t>> bfloat16_dataset_;
+  mutable unique_ptr<Mutator> mutator_;
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, ExactReorderingHelper);

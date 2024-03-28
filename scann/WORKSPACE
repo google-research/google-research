@@ -30,16 +30,16 @@ python_configure(name = "local_config_python")
 
 git_repository(
     name = "pybind11_bazel",
-    commit = "9a24c33cbdc510fa60ab7f5ffb7d80ab89272799",
+    commit = "af7151f632550cd2f470fdefacf17770d5b94959",
     remote = "https://github.com/pybind/pybind11_bazel.git",
 )
 
 http_archive(
     name = "pybind11",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
-    strip_prefix = "pybind11-2.10.1",
+    strip_prefix = "pybind11-2.11.1",
     urls = [
-        "https://github.com/pybind/pybind11/archive/v2.10.1.tar.gz",
+        "https://github.com/pybind/pybind11/archive/v2.11.1.tar.gz",
     ],
 )
 

@@ -33,13 +33,17 @@ namespace research_scann {
 
 #define DCHECK_OK(val) DCHECK_EQ(OkStatus(), (val))
 
+#ifdef SCANN_DATAPOINT_INDEX_64
+using DatapointIndex = uint64_t;
+#else
 using DatapointIndex = uint32_t;
+#endif
 enum : DatapointIndex {
   kInvalidDatapointIndex = std::numeric_limits<DatapointIndex>::max(),
 };
 
 enum : size_t {
-  kMaxNumDatapoints = 1 << 30,
+  kMaxNumDatapoints = (kInvalidDatapointIndex >> 1) + 1
 };
 
 using DimensionIndex = uint64_t;
@@ -228,11 +232,11 @@ T DisabledTagErrorOrCrash(uint8_t tag) {
 template <typename T>
 T InvalidTagErrorOrCrash(uint8_t tag) {
   if (static_cast<TypeTag>(tag) == kInvalidTypeTag) {
-    LOG(FATAL) << "\n\n\n"
-               << "BUG_BUG_BUG: SCANN_CALL_FUNCTION_BY_TAG was invoked w/ "
-                  "kInvalidTypeTag.\n"
-               << "Your code has forgotten to initialize a TypeTag variable!"
-               << "\n\n\n";
+    DLOG(FATAL) << "\n\n\n"
+                << "BUG_BUG_BUG: SCANN_CALL_FUNCTION_BY_TAG was invoked w/ "
+                   "kInvalidTypeTag.\n"
+                << "Your code has forgotten to initialize a TypeTag variable!"
+                << "\n\n\n";
 
     return ErrorOrCrash<T>(
         "Invalid tag: kInvalidTag. This means that a "
@@ -309,7 +313,7 @@ T NonFpTagErrorOrCrash(uint8_t tag) {
 #else
 
 #define SCANN_CALL_FUNCTION_BY_TAG(tag, function, ...)                  \
-  [&] {                                                                 \
+  [&]() ABSL_NO_THREAD_SAFETY_ANALYSIS {                                \
     using ReturnT = decltype(function<float>(__VA_ARGS__));             \
     switch (tag) {                                                      \
       case ::research_scann::InputOutputConfig::FLOAT:                  \

@@ -28,12 +28,17 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/oss_wrappers/scann_castops.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/proto/partitioning.pb.h"
+#include "scann/trees/kmeans_tree/training_options.h"
+#include "scann/utils/common.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/gmm_utils.h"
-#include "scann/utils/parallel_for.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"

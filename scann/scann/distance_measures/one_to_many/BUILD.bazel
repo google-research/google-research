@@ -5,15 +5,21 @@ package(
 
 cc_library(
     name = "one_to_many",
-    srcs = ["one_to_many.cc"],
-    hdrs = ["one_to_many.h"],
+    srcs = ["one_to_many_asymmetric.cc"],
+    hdrs = [
+        "one_to_many.h",
+        "one_to_many_asymmetric.h",
+        "one_to_many_helpers.h",
+        "one_to_many_symmetric.h",
+    ],
     tags = ["local"],
-    textual_hdrs = ["one_to_many_impl.inc"],
+    textual_hdrs = ["one_to_many_asymmetric_impl.inc"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:bfloat16_helpers",
         "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils/internal:avx2_funcs",

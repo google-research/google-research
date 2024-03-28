@@ -25,6 +25,7 @@
 #include <vector>
 
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/noise_shaping_utils.h"
@@ -94,7 +95,7 @@ ScalarQuantizationResults ScalarQuantizeFloatDataset(
 }
 
 ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
-    const DenseDataset<float>& dataset, vector<float> multipliers,
+    DenseDatasetView<float>&& dataset, vector<float> multipliers,
     double noise_shaping_threshold) {
   const size_t dimensionality = dataset.dimensionality();
   DCHECK_EQ(multipliers.size(), dimensionality);
@@ -103,15 +104,16 @@ ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
   fixed_point_dataset.set_dimensionality(dimensionality);
   fixed_point_dataset.Reserve(dataset.size());
   unique_ptr<int8_t[]> fixed_point_dp(new int8_t[dimensionality]);
-  for (auto dptr : dataset) {
+  for (size_t i = 0; i < dataset.size(); ++i) {
+    const float* values = dataset.GetPtr(i);
     if (std::isnan(noise_shaping_threshold)) {
-      const float* values = dptr.values();
       for (size_t j : Seq(dimensionality)) {
         fixed_point_dp[j] = Int8Quantize(values[j] * multipliers[j]);
       }
     } else {
       ScalarQuantizeFloatDatapointWithNoiseShaping(
-          dptr, multipliers, noise_shaping_threshold,
+          MakeDatapointPtr(values, dimensionality), multipliers,
+          noise_shaping_threshold,
           MakeMutableSpan(fixed_point_dp.get(), dimensionality));
     }
     fixed_point_dataset.AppendOrDie(

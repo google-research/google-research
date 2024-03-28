@@ -13,6 +13,7 @@ proto_library(
     srcs = ["scann.proto"],
     tags = ["local"],
     deps = [
+        ":auto_tuning_proto",
         ":brute_force_proto",
         ":crowding_proto",
         ":disjoint_restrict_token_proto",
@@ -21,6 +22,7 @@ proto_library(
         ":hash_proto",
         ":input_output_proto",
         ":metadata_proto",
+        ":min_distance_proto",
         ":partitioning_proto",
     ],
 )
@@ -36,6 +38,7 @@ scann_py_proto_library(
     srcs = ["scann.proto"],
     proto_deps = [":scann_proto"],
     py_proto_deps = [
+        ":auto_tuning_py_pb2",
         ":brute_force_py_pb2",
         ":crowding_py_pb2",
         ":disjoint_restrict_token_py_pb2",
@@ -44,6 +47,7 @@ scann_py_proto_library(
         ":hash_py_pb2",
         ":input_output_py_pb2",
         ":metadata_py_pb2",
+        ":min_distance_py_pb2",
         ":partitioning_py_pb2",
     ],
     tags = ["local"],
@@ -370,5 +374,50 @@ scann_py_proto_library(
     name = "incremental_updates_py_pb2",
     srcs = ["incremental_updates.proto"],
     proto_deps = [":incremental_updates_proto"],
+    tags = ["local"],
+)
+
+proto_library(
+    name = "auto_tuning_proto",
+    srcs = ["auto_tuning.proto"],
+    tags = ["local"],
+)
+
+cc_proto_library(
+    name = "auto_tuning_cc_proto",
+    tags = ["local"],
+    deps = [":auto_tuning_proto"],
+)
+
+scann_py_proto_library(
+    name = "auto_tuning_py_pb2",
+    srcs = ["auto_tuning.proto"],
+    proto_deps = [":auto_tuning_proto"],
+    tags = ["local"],
+)
+
+scann_py_proto_library(
+    name = "scoring_extension_py_pb2",
+    srcs = ["scoring_extension.proto"],
+    proto_deps = [":scoring_extension_proto"],
+    tags = ["local"],
+)
+
+proto_library(
+    name = "min_distance_proto",
+    srcs = ["min_distance.proto"],
+    tags = ["local"],
+)
+
+cc_proto_library(
+    name = "min_distance_cc_proto",
+    tags = ["local"],
+    deps = [":min_distance_proto"],
+)
+
+scann_py_proto_library(
+    name = "min_distance_py_pb2",
+    srcs = ["min_distance.proto"],
+    proto_deps = [":scoring_extension_proto"],
     tags = ["local"],
 )

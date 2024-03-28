@@ -14,7 +14,45 @@
 
 #include "scann/tree_x_hybrid/internal/utils.h"
 
+#ifdef __x86_64__
+#include <x86intrin.h>
+#endif
+
+#include <cstdint>
+
+#include "scann/utils/common.h"
+
 namespace research_scann {
+
+#ifdef __x86_64__
+SCANN_AVX2_OUTLINE size_t Avx2GatherCreateLeafLocalAllowlist(
+    RestrictAllowlistConstView global_allowlist,
+    RestrictAllowlistMutableView leaf_view,
+    ConstSpan<DatapointIndex> leaf_local_to_global) {
+  enum : size_t {
+    kDatapointIndicesPerRegister = 256 / (sizeof(DatapointIndex) * 8),
+    kSizetBits = sizeof(size_t) * 8
+  };
+  const size_t num_full_iters =
+      leaf_local_to_global.size() / kDatapointIndicesPerRegister;
+  for (size_t i : Seq(num_full_iters)) {
+    const size_t start_idx = i * kDatapointIndicesPerRegister;
+    __m256i dp_idxs = _mm256_loadu_si256(
+        reinterpret_cast<const __m256i*>(&leaf_local_to_global[start_idx]));
+    __m256i uint32_idxs = _mm256_srli_epi32(dp_idxs, 5);
+    __m256i bit_idxs = _mm256_and_si256(dp_idxs, _mm256_set1_epi32(0x1F));
+    __m256i uint32s = _mm256_i32gather_epi32(
+        reinterpret_cast<const int*>(global_allowlist.data()), uint32_idxs, 4);
+    __m256i shifted = _mm256_srlv_epi32(uint32s, bit_idxs);
+    __m256i mask = _mm256_slli_epi32(shifted, 31);
+    size_t bitmask_bits = _mm256_movemask_ps(static_cast<__m256>(mask));
+    leaf_view.data()[start_idx / kSizetBits] |= bitmask_bits
+                                                << (start_idx % kSizetBits);
+  }
+  return num_full_iters * kDatapointIndicesPerRegister;
+}
+
+#endif
 
 StatusOr<bool> ValidateDatapointsByToken(
     const vector<std::vector<DatapointIndex>>& datapoints_by_token,
@@ -71,6 +109,37 @@ StatusOr<bool> ValidateDatapointsByToken(
   }
 
   return is_disjoint;
+}
+
+vector<uint32_t> SizeByPartition(
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token) {
+  vector<uint32_t> result(datapoints_by_token.size());
+  for (size_t i : IndicesOf(datapoints_by_token)) {
+    result[i] = datapoints_by_token[i].size();
+  }
+  return result;
+}
+
+void DeduplicateDatabaseSpilledResults(NNResultsVector* results,
+                                       size_t final_size) {
+  DCHECK_GT(final_size, 0);
+  DCHECK_LE(results->size() / 2, final_size);
+  flat_hash_map<DatapointIndex, float> map;
+  map.reserve(results->size());
+  for (const auto& neighbor : *results) {
+    auto [it, was_inserted] = map.insert(neighbor);
+    if (!was_inserted) {
+      it->second = 0.5f * it->second + 0.5f * neighbor.second;
+    }
+  }
+  std::copy(map.begin(), map.end(), results->begin());
+  results->resize(map.size());
+  if (results->size() > final_size) {
+    NthElementBranchOptimized(results->begin(),
+                              results->begin() + final_size - 1, results->end(),
+                              DistanceComparatorBranchOptimized());
+    results->resize(final_size);
+  }
 }
 
 }  // namespace research_scann

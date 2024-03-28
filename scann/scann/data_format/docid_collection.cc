@@ -17,21 +17,23 @@
 #include "scann/data_format/docid_collection.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/flags/flag.h"
 #include "absl/strings/str_cat.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
+#include "scann/data_format/docid_collection_interface.h"
+#include "scann/data_format/internal/short_string_optimized_string.h"
+#include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/utils/common.h"
 #include "scann/utils/memory_logging.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/status.h"
 
 ABSL_FLAG(bool, use_memory_optimized_immutable_docid_collection, false,
           "Controls which implementation is used for immutable "
@@ -704,9 +706,8 @@ StatusOr<DocidCollectionInterface::Mutator*>
 FixedLengthDocidCollection::GetMutator() const {
   if (!mutator_) {
     auto mutable_this = const_cast<FixedLengthDocidCollection*>(this);
-    auto statusor = FixedLengthDocidCollection::Mutator::Create(mutable_this);
-    SCANN_RETURN_IF_ERROR(statusor.status());
-    mutator_ = std::move(statusor).value();
+    TF_ASSIGN_OR_RETURN(
+        mutator_, FixedLengthDocidCollection::Mutator::Create(mutable_this));
   }
   return static_cast<DocidCollectionInterface::Mutator*>(mutator_.get());
 }

@@ -126,7 +126,7 @@ Status Datapoint<T>::FromGfvImpl(const GenericFeatureVector& gfv) {
   if (need_check_dupes) {
     for (size_t j : Seq(1, indices_.size())) {
       if (indices_[j] == indices_[j - 1]) {
-        SCANN_LOG_NOOP(ERROR, 10)
+        LOG_FIRST_N(ERROR, 10)
             << "Found duplicate indices when parsing GFV with data_id: "
             << gfv.data_id_str();
         return InvalidArgumentError(

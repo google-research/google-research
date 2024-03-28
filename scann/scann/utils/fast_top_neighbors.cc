@@ -17,11 +17,13 @@
 #include <algorithm>
 #include <cstdint>
 #include <string>
+#include <type_traits>
+#include <utility>
 
 #include "absl/strings/str_cat.h"
 #include "scann/utils/bits.h"
-#include "scann/utils/intrinsics/avx2.h"
 #include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
 
@@ -47,11 +49,23 @@ SCANN_INLINE std::string DebugLogArrayContents(DatapointIndexT* indices,
         sep = ".  END: ";
       }
       if (idx_is_masked) {
-        StrAppendFormat(&txt, "%s%d:[%d, %s]", sep, idx, indices[idx],
-                        absl::StrCat(values[idx]));
+        if constexpr (std::is_same_v<DatapointIndexT,
+                                     std::pair<uint64_t, uint64_t>>) {
+          StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx, indices[idx].first,
+                          absl::StrCat(values[idx]));
+        } else {
+          StrAppendFormat(&txt, "%s%d:[%d, %s]", sep, idx, indices[idx],
+                          absl::StrCat(values[idx]));
+        }
       } else {
-        StrAppendFormat(&txt, "%s%d:{%d, %s}", sep, idx, indices[idx],
-                        absl::StrCat(values[idx]));
+        if constexpr (std::is_same_v<DatapointIndexT,
+                                     std::pair<uint64_t, uint64_t>>) {
+          StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx, indices[idx].first,
+                          absl::StrCat(values[idx]));
+        } else {
+          StrAppendFormat(&txt, "%s%d:{%d, %s}", sep, idx, indices[idx],
+                          absl::StrCat(values[idx]));
+        }
       }
       sep = ", ";
       if (idx == sz) {
@@ -136,6 +150,13 @@ namespace sse4 {
 
 #endif
 
+namespace fallback {
+#define SCANN_SIMD_ATTRIBUTE
+
+#include "scann/utils/fast_top_neighbors_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace fallback
+
 template <typename DistT, typename DatapointIndexT>
 size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
     size_t keep_min, size_t keep_max, size_t sz, DatapointIndexT* ii, DistT* dd,
@@ -149,21 +170,7 @@ size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
   }
 #endif
 
-  SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-      "ZipNthElementBranchOptimized from %d => %d elements", sz, keep_min);
-  vector<pair<DatapointIndexT, DistT>> tmp(sz);
-  for (size_t i : Seq(sz)) {
-    tmp[i] = {ii[i], dd[i]};
-  }
-  ZipNthElementBranchOptimized(DistanceComparatorBranchOptimized(),
-                               keep_min - 1, tmp.begin(), tmp.end());
-  for (size_t i : Seq(sz)) {
-    std::tie(ii[i], dd[i]) = tmp[i];
-  }
-
-  dd[keep_min] = dd[keep_min - 1];
-  ii[keep_min] = ii[keep_min - 1];
-  return keep_min;
+  return fallback::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
 }
 
 template <typename DistT, typename DatapointIndexT>
@@ -215,11 +222,11 @@ void FastTopNeighbors<DistT, DatapointIndexT>::GarbageCollect(size_t keep_min,
                          distances_.get(), masks_.get());
   const DistT old_epsilon = epsilon_;
   epsilon_ = distances_[sz_];
-  SCANN_LOG_NOOP(INFO, kShouldLog)
+  DLOG_IF(INFO, kShouldLog)
       << DebugLogArrayContents(indices_.get(), distances_.get(), nullptr, sz_);
-  SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-      "Threshold change: %f => %f (sz = %d)", static_cast<double>(old_epsilon),
-      static_cast<double>(epsilon_), sz_);
+  DLOG_IF(INFO, kShouldLog) << StrFormat("Threshold change: %f => %f (sz = %d)",
+                                         static_cast<double>(old_epsilon),
+                                         static_cast<double>(epsilon_), sz_);
 }
 
 template <typename DistT, typename DatapointIndexT>
@@ -234,10 +241,11 @@ FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted() {
   return {ii, vv};
 }
 
-template class FastTopNeighbors<int16_t, DatapointIndex>;
-template class FastTopNeighbors<float, DatapointIndex>;
+template class FastTopNeighbors<int16_t, uint32_t>;
+template class FastTopNeighbors<float, uint32_t>;
 template class FastTopNeighbors<int16_t, uint64_t>;
 template class FastTopNeighbors<float, uint64_t>;
 template class FastTopNeighbors<float, absl::uint128>;
+template class FastTopNeighbors<float, std::pair<uint64_t, size_t>>;
 
 }  // namespace research_scann

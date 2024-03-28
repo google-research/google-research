@@ -52,6 +52,16 @@ message IncrementalUpdateConfig {
     optional bool use_mod_term_filter = 7 [default = false];
 
     optional string mod_term_filter_signature = 8 [default = "fprint"];
+
+    message Fifo {
+      optional bool enabled = 1 [default = false];
+
+      optional google.protobuf.Duration max_msg_pending_time = 2;
+
+      optional google.protobuf.Duration initial_msg_buffering_period = 3;
+    }
+
+    optional Fifo fifo = 9;
   }
 
   oneof DurabilityReplication {

@@ -30,16 +30,10 @@ class string_view32 {
     CHECK_LE(s.length(), numeric_limits<uint32_t>::max());
   }
 
-  const char* ptr() const { return ptr_; }
-  uint32_t size() const { return length_; }
-  uint32_t length() const { return length_; }
   bool empty() const { return length_ == 0; }
 
   explicit operator string_view() const {
     return string_view(static_cast<const char*>(ptr_), length_);
-  }
-  bool operator==(string_view rhs) const {
-    return static_cast<string_view>(*this) == rhs;
   }
   bool operator==(string_view32 rhs) const {
     return static_cast<string_view>(*this) == static_cast<string_view>(rhs);

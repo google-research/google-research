@@ -31,7 +31,11 @@
 #include "absl/container/node_hash_map.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/flags/flag.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/memory/memory.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_replace.h"
@@ -42,10 +46,7 @@
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/platform/logging.h"
 #include "tensorflow/core/platform/prefetch.h"
-#include "tensorflow/core/platform/types.h"
 
 namespace research_scann {
 
@@ -83,9 +84,9 @@ using ::absl::Mutex;
 using ::absl::MutexLock;
 using ::absl::ReaderMutexLock;
 
-using ::tensorflow::Status;
-using OkStatus = Status;
-using ::tensorflow::StatusOr;
+using ::absl::OkStatus;
+using ::absl::Status;
+using ::absl::StatusOr;
 
 #define MAKE_TF_ERROR_FORWARDER(ERRNAME)                                      \
   ABSL_MUST_USE_RESULT inline Status ERRNAME##Error(absl::string_view s) {    \
@@ -139,10 +140,6 @@ const std::string& EmptyString();
 template <typename CollectionT>
 bool IsEmpty(const CollectionT& c) {
   return c.empty();
-}
-
-inline bool IsEmpty(const absl::Flag<std::string>& flag) {
-  return absl::GetFlag(flag).empty();
 }
 
 template <typename CollectionT>
@@ -249,7 +246,7 @@ T ValueOrDie(StatusOr<T> statusor) {
   if (!statusor.ok()) {
     LOG(FATAL) << "VALUE_OR_DIE_FAILURE: " << statusor.status();
   }
-  return std::move(statusor).value();
+  return *std::move(statusor);
 }
 
 template <ssize_t kStride = 1>

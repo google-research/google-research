@@ -18,11 +18,15 @@ cc_library(
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:tf_dependency",
+        "//scann/restricts:restrict_allowlist",
         "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils:zip_sort",
+        "//scann/utils/intrinsics:flags",
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 

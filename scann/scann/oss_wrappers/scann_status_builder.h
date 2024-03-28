@@ -21,18 +21,17 @@
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/platform/statusor.h"
+#include "tensorflow/tsl/platform/statusor.h"
 
 namespace research_scann {
 
-using tensorflow::Status;
 namespace error = tensorflow::error;
 namespace errors = tensorflow::errors;
 
 class ABSL_MUST_USE_RESULT StatusBuilder {
  public:
-  explicit StatusBuilder(const Status& status);
-  explicit StatusBuilder(Status&& status);
+  explicit StatusBuilder(const absl::Status& status);
+  explicit StatusBuilder(absl::Status&& status);
   explicit StatusBuilder(tensorflow::error::Code code);
   StatusBuilder(const StatusBuilder& sb);
 
@@ -53,24 +52,25 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
   StatusBuilder& LogError() &;
   StatusBuilder&& LogError() &&;
 
-  operator Status() const&;
-  operator Status() &&;
+  operator absl::Status() const&;
+  operator absl::Status() &&;
 
   template <typename T>
-  inline operator tensorflow::StatusOr<T>() const& {
-    if (streamptr_ == nullptr) return tensorflow::StatusOr<T>(status_);
-    return tensorflow::StatusOr<T>(StatusBuilder(*this).CreateStatus());
+  inline operator absl::StatusOr<T>() const& {
+    if (streamptr_ == nullptr) return absl::StatusOr<T>(status_);
+    return absl::StatusOr<T>(StatusBuilder(*this).CreateStatus());
   }
 
   template <typename T>
-  inline operator tensorflow::StatusOr<T>() && {
-    if (streamptr_ == nullptr) return tensorflow::StatusOr<T>(status_);
-    return tensorflow::StatusOr<T>(StatusBuilder(*this).CreateStatus());
+  inline operator absl::StatusOr<T>() && {
+    if (streamptr_ == nullptr) return absl::StatusOr<T>(status_);
+    return absl::StatusOr<T>(StatusBuilder(*this).CreateStatus());
   }
 
   template <typename Enum>
   StatusBuilder& SetErrorCode(Enum code) & {
-    status_ = Status(static_cast<absl::StatusCode>(code), status_.message());
+    status_ =
+        absl::Status(static_cast<absl::StatusCode>(code), status_.message());
     return *this;
   }
 
@@ -79,12 +79,12 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
     return std::move(SetErrorCode(code));
   }
 
-  Status CreateStatus() &&;
+  absl::Status CreateStatus() &&;
 
  private:
   std::unique_ptr<std::ostringstream> streamptr_;
 
-  Status status_;
+  absl::Status status_;
 };
 
 StatusBuilder AbortedErrorBuilder();

@@ -21,11 +21,14 @@
 
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 
 struct GenericSearchParameters {
   Status PopulateValuesFromScannConfig(const ScannConfig& config);
+
+  float min_distance = -numeric_limits<float>::infinity();
 
   shared_ptr<const DistanceMeasure> pre_reordering_dist;
 

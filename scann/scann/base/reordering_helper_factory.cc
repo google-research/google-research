@@ -33,6 +33,15 @@ using StatusOrHelper = StatusOr<unique_ptr<ReorderingInterface<T>>>;
 namespace {
 
 template <typename T>
+StatusOrHelper<T> BuildBfloat16ReorderingHelper(
+    const shared_ptr<const DistanceMeasure>& reordering_dist,
+    const shared_ptr<TypedDataset<T>>& dataset,
+    SingleMachineFactoryOptions* opts) {
+  return InvalidArgumentError(
+      "BFloat16 reordering is only supported for float32 return types.");
+}
+
+template <typename T>
 StatusOrHelper<T> BuildFixedPointReorderingHelper(
     const FixedPoint& config,
     const shared_ptr<const DistanceMeasure>& reordering_dist,
@@ -40,6 +49,35 @@ StatusOrHelper<T> BuildFixedPointReorderingHelper(
     SingleMachineFactoryOptions* opts) {
   return InvalidArgumentError(
       "Fixed-point reordering is only supported for float types.");
+}
+
+template <>
+StatusOrHelper<float> BuildBfloat16ReorderingHelper(
+    const shared_ptr<const DistanceMeasure>& reordering_dist,
+    const shared_ptr<TypedDataset<float>>& dataset,
+    SingleMachineFactoryOptions* opts) {
+  if (dataset && !dataset->IsDense()) return {nullptr};
+  const auto& distance_type = typeid(*reordering_dist);
+  if (distance_type != typeid(const DotProductDistance)) {
+    return UnimplementedError(
+        "For now, bfloat16 reordering only supports DotProductDistance");
+  }
+
+  if (opts->bfloat16_dataset) {
+    return {make_unique<Bfloat16DenseDotProductReorderingHelper>(
+        std::move(opts->bfloat16_dataset))};
+  } else {
+    if (dataset == nullptr)
+      return FailedPreconditionError(
+          "No dataset provided; this is required when bfloat16_dataset isn't "
+          "present in opts");
+    const DenseDataset<float>* dense_dataset =
+        down_cast<const DenseDataset<float>*>(dataset.get());
+    if (dense_dataset == nullptr)
+      return FailedPreconditionError("Failed to cast to DenseDataset<float>.");
+    return {
+        make_unique<Bfloat16DenseDotProductReorderingHelper>(*dense_dataset)};
+  }
 }
 
 template <>
@@ -115,6 +153,9 @@ StatusOrHelper<T> ExactReorderingFactory(
     const shared_ptr<const DistanceMeasure>& reordering_dist,
     const shared_ptr<TypedDataset<T>>& dataset,
     SingleMachineFactoryOptions* opts) {
+  if (config.bfloat16().enabled()) {
+    return BuildBfloat16ReorderingHelper<T>(reordering_dist, dataset, opts);
+  }
   if (config.fixed_point().enabled() || config.use_fixed_point_if_possible()) {
     auto statusor = BuildFixedPointReorderingHelper<T>(
         config.fixed_point(), reordering_dist, dataset, opts);

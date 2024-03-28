@@ -24,6 +24,7 @@
 #include "cnpy/cnpy.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/io_oss_wrapper.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -32,17 +33,22 @@ std::string numpy_type_name();
 
 template <typename T>
 Status SpanToNumpy(absl::string_view filename, ConstSpan<T> data,
-                   ConstSpan<size_t> dim_sizes = {}) {
+                   ConstSpan<size_t> dim_sizes = {},
+                   DimensionIndex last_dim = kInvalidDimension) {
   std::string shape_str = "(";
   size_t dim_prod = 1;
   for (size_t dim_size : dim_sizes) {
     dim_prod *= dim_size;
     shape_str += std::to_string(dim_size) + ",";
   }
-  if (dim_prod == 0 || data.size() % dim_prod != 0)
-    return InvalidArgumentError(
-        "Size of data isn't compatible with given shape");
-  shape_str += std::to_string(data.size() / dim_prod) + ",)";
+  if (last_dim != kInvalidDimension) {
+    shape_str += std::to_string(last_dim) + ",)";
+  } else {
+    if (dim_prod == 0 || data.size() % dim_prod != 0)
+      return InvalidArgumentError(
+          "Size of data isn't compatible with given shape");
+    shape_str += std::to_string(data.size() / dim_prod) + ",)";
+  }
 
   if (shape_str.size() > 65000)
     return InvalidArgumentError("Shape string is too large for npy format: " +
@@ -75,7 +81,8 @@ Status VectorToNumpy(absl::string_view filename, const vector<T>& data,
 
 template <typename T>
 Status DatasetToNumpy(absl::string_view filename, const DenseDataset<T>& data) {
-  return SpanToNumpy(filename, data.data(), {data.size()});
+  return SpanToNumpy(filename, data.data(), {data.size()},
+                     data.dimensionality());
 }
 
 template <typename T>

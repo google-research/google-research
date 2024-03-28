@@ -26,12 +26,14 @@ namespace research_scann {
 StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
+    const DenseDataset<int16_t>* bfloat16_dataset,
     const vector<int64_t>* crowding_attributes);
 
 StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     const HashConfig& config, const Dataset* dataset,
     const DenseDataset<uint8_t>* hashed_dataset,
-    const PreQuantizedFixedPoint* pre_quantized_fixed_point);
+    const PreQuantizedFixedPoint* pre_quantized_fixed_point,
+    const DenseDataset<int16_t>* bfloat16_dataset);
 
 }  // namespace research_scann
 

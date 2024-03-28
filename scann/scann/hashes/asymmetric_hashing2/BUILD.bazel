@@ -52,9 +52,12 @@ cc_library(
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/oss_wrappers:scann_status",
         "//scann/proto:centers_cc_proto",
         "//scann/proto:hash_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:types",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -75,6 +78,7 @@ cc_library(
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -93,7 +97,7 @@ cc_library(
         "//scann/hashes/internal:asymmetric_hashing_impl",
         "//scann/hashes/internal:stacked_quantizers",
         "//scann/oss_wrappers:scann_serialize",
-        "//scann/oss_wrappers:tf_dependency",
+        "//scann/oss_wrappers:scann_status",
         "//scann/projection:chunking_projection",
         "//scann/proto:hash_cc_proto",
         "//scann/utils:common",
@@ -128,6 +132,7 @@ cc_library(
         "//scann/utils:util_functions",
         "//scann/utils/intrinsics:flags",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -135,6 +140,7 @@ cc_library(
     name = "searcher",
     srcs = [
         "searcher.cc",
+        "searcher_mutator.cc",
     ],
     hdrs = ["searcher.h"],
     tags = ["local"],
@@ -149,9 +155,8 @@ cc_library(
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/hashes/internal:asymmetric_hashing_postprocess",
-        "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_serialize",
+        "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:hash_cc_proto",
         "//scann/tree_x_hybrid:leaf_searcher_optional_parameter_creator",
@@ -161,7 +166,6 @@ cc_library(
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "@com_google_absl//absl/base",
-        "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/status",
     ],
 )

@@ -15,23 +15,31 @@
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 
 #include <cstdint>
+#include <cstdlib>
 #include <memory>
 #include <utility>
 #include <vector>
 
-#include "absl/memory/memory.h"
-#include "scann/base/restrict_allowlist.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
+#include "absl/strings/str_format.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/base/single_machine_factory_options.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
-#include "scann/oss_wrappers/scann_status_builder.h"
+#include "scann/distance_measures/one_to_one/dot_product.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/utils/common.h"
+#include "scann/utils/datapoint_utils.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
 #include "scann/utils/scalar_quantization_helpers.h"
-#include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
@@ -124,7 +132,7 @@ ScalarQuantizedBruteForceSearcher::
   SCANN_RETURN_IF_ERROR(CheckValidDistanceTag(distance_tag));
   if (distance_tag == DistanceMeasure::SQUARED_L2 && !quantized.empty() &&
       squared_l2_norms.empty()) {
-    SCANN_LOG_NOOP(INFO, 1)
+    LOG_FIRST_N(INFO, 1)
         << "squared_l2_norms are not loaded, and they will be computed.";
     TF_ASSIGN_OR_RETURN(squared_l2_norms,
                         ComputeSquaredL2NormsFromQuantizedDataset(
@@ -226,6 +234,8 @@ Status ScalarQuantizedBruteForceSearcher::FindNeighborsImpl(
     preprocessed = MakeDatapointPtr(preproc_buf.get(), query.nonzero_entries());
   }
 
+  const bool use_min_distance =
+      min_distance_ > -numeric_limits<float>::infinity();
   if (params.restricts_enabled()) {
     return UnimplementedError("Restricts not supported.");
   } else {
@@ -235,26 +245,28 @@ Status ScalarQuantizedBruteForceSearcher::FindNeighborsImpl(
                                     quantized_dataset_.size());
     DenseDotProductDistanceOneToManyInt8Float(preprocessed, quantized_dataset_,
                                               dot_products);
-    Status status =
-        PostprocessDistances<float>(query, params, dot_products, result);
+    Status status = use_min_distance ? PostprocessDistances<true, float>(
+                                           query, params, dot_products, result)
+                                     : PostprocessDistances<false, float>(
+                                           query, params, dot_products, result);
     free(dot_products_ptr);
     return status;
   }
 }
 
-template <typename ResultElem>
+template <bool kUseMinDistance, typename ResultElem>
 Status ScalarQuantizedBruteForceSearcher::PostprocessDistances(
     const DatapointPtr<float>& query, const SearchParameters& params,
     ConstSpan<ResultElem> dot_products, NNResultsVector* result) const {
   switch (distance_->specially_optimized_distance_tag()) {
     case DistanceMeasure::DOT_PRODUCT:
-      return PostprocessDistancesImpl(
+      return PostprocessDistancesImpl<kUseMinDistance>(
           query, params, dot_products,
           [](float dot_product, DatapointIndex i) { return dot_product; },
           result);
     case DistanceMeasure::COSINE:
 
-      return PostprocessDistancesImpl(
+      return PostprocessDistancesImpl<kUseMinDistance>(
           query, params, dot_products,
           [](float dot_product, DatapointIndex i) {
             return 1.0f + dot_product;
@@ -263,7 +275,7 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessDistances(
     case DistanceMeasure::SQUARED_L2: {
       ConstSpan<float> squared_norms = squared_l2_norms_;
       const float query_squared_l2_norm = SquaredL2Norm(query);
-      return PostprocessDistancesImpl(
+      return PostprocessDistancesImpl<kUseMinDistance>(
           query, params, dot_products,
           [&squared_norms, query_squared_l2_norm](float dot_product,
                                                   DatapointIndex i) {
@@ -280,24 +292,31 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessDistances(
   return OkStatus();
 }
 
-template <typename DistanceFunctor, typename ResultElem>
+template <bool kUseMinDistance, typename DistanceFunctor, typename ResultElem>
 Status ScalarQuantizedBruteForceSearcher::PostprocessDistancesImpl(
     const DatapointPtr<float>& query, const SearchParameters& params,
     ConstSpan<ResultElem> dot_products, DistanceFunctor distance_functor,
     NNResultsVector* result) const {
+  const bool use_min_distance =
+      min_distance_ > -numeric_limits<float>::infinity();
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
     FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
                                   params.pre_reordering_epsilon());
-    SCANN_RETURN_IF_ERROR(PostprocessTopNImpl(query, params, dot_products,
-                                              distance_functor, &top_n));
+    if (use_min_distance) {
+      SCANN_RETURN_IF_ERROR(PostprocessTopNImpl<true>(
+          query, params, dot_products, distance_functor, &top_n));
+    } else {
+      SCANN_RETURN_IF_ERROR(PostprocessTopNImpl<false>(
+          query, params, dot_products, distance_functor, &top_n));
+    }
     top_n.FinishUnsorted(result);
   }
   return OkStatus();
 }
 
-template <typename DistanceFunctor, typename TopN>
+template <bool kUseMinDistance, typename DistanceFunctor, typename TopN>
 Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
     const DatapointPtr<float>& query, const SearchParameters& params,
     ConstSpan<float> dot_products, DistanceFunctor distance_functor,
@@ -306,9 +325,11 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
   typename TopN::Mutator mutator;
   top_n_ptr->AcquireMutator(&mutator);
   float min_keep_distance = mutator.epsilon();
+  const float min_distance = min_distance_;
   for (DatapointIndex i = 0; i < dot_products.size(); ++i) {
     const float distance = distance_functor(dot_products[i], i);
-    if (distance <= min_keep_distance) {
+    if (distance <= min_keep_distance &&
+        (!kUseMinDistance || distance >= min_distance)) {
       if (mutator.Push(i, distance)) {
         mutator.GarbageCollect();
         min_keep_distance = mutator.epsilon();
@@ -318,7 +339,7 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
   return OkStatus();
 }
 
-template <typename DistanceFunctor, typename TopN>
+template <bool kUseMinDistance, typename DistanceFunctor, typename TopN>
 Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
     const DatapointPtr<float>& query, const SearchParameters& params,
     ConstSpan<pair<DatapointIndex, float>> dot_products,
@@ -327,10 +348,12 @@ Status ScalarQuantizedBruteForceSearcher::PostprocessTopNImpl(
   typename TopN::Mutator mutator;
   top_n_ptr->AcquireMutator(&mutator);
   float min_keep_distance = mutator.epsilon();
+  const float min_distance = min_distance_;
   for (const auto& pair : dot_products) {
     const DatapointIndex dp_idx = pair.first;
     const float distance = distance_functor(pair.second, dp_idx);
-    if (distance <= min_keep_distance) {
+    if (distance <= min_keep_distance &&
+        (!kUseMinDistance || distance >= min_distance)) {
       if (mutator.Push(dp_idx, distance)) {
         mutator.GarbageCollect();
         min_keep_distance = mutator.epsilon();
@@ -355,6 +378,18 @@ ConstSpan<float>
 TreeScalarQuantizationPreprocessedQueryCreator::inverse_multipliers() const {
   return MakeConstSpan(inverse_multipliers_.data(),
                        inverse_multipliers_.size());
+}
+
+StatusOr<SingleMachineSearcherBase<float>::Mutator*>
+ScalarQuantizedBruteForceSearcher::GetMutator() const {
+  if (!mutator_) {
+    auto mutable_this = const_cast<ScalarQuantizedBruteForceSearcher*>(this);
+    TF_ASSIGN_OR_RETURN(
+        mutator_,
+        ScalarQuantizedBruteForceSearcher::Mutator::Create(mutable_this));
+    SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
+  }
+  return static_cast<SingleMachineSearcherBase::Mutator*>(mutator_.get());
 }
 
 StatusOr<SingleMachineFactoryOptions>

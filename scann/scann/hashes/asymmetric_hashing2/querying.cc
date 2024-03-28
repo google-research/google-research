@@ -17,6 +17,7 @@
 #include <cstdint>
 #include <utility>
 
+#include "absl/types/span.h"
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/flags.h"
 
@@ -65,6 +66,14 @@ DenseDataset<uint8_t> UnpackDataset(const PackedDataset& packed) {
     }
   }
   return DenseDataset<uint8_t>(unpacked, packed.num_datapoints);
+}
+
+PackedDatasetView CreatePackedDatasetView(const PackedDataset& packed_dataset) {
+  PackedDatasetView result;
+  result.bit_packed_data = absl::MakeConstSpan(packed_dataset.bit_packed_data);
+  result.num_datapoints = packed_dataset.num_datapoints;
+  result.num_blocks = packed_dataset.num_blocks;
+  return result;
 }
 
 template <typename T>

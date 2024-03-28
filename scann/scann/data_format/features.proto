@@ -74,8 +74,7 @@ message GenericFeatureVector {
 
   optional google.protobuf.Timestamp expiration_timestamp = 20;
 
-  optional uint64 feature_dim = 10
-      [default = 0xFFFFFFFFFFFFFFFF, deprecated = true];
+  optional uint64 feature_dim = 10 [default = 0xFFFFFFFFFFFFFFFF];
 
   optional float weight = 8 [deprecated = true];
   repeated int32 tokens = 14 [packed = true, deprecated = true];

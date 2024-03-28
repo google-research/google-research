@@ -28,6 +28,9 @@ namespace asymmetric_hashing2 {
 template <typename T>
 class Model {
  public:
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+
   using FloatT = FloatingTypeFor<T>;
 
   static StatusOr<unique_ptr<Model<T>>> FromCenters(
@@ -63,8 +66,6 @@ class Model {
 
   AsymmetricHasherConfig::QuantizationScheme quantization_scheme_ =
       AsymmetricHasherConfig::PRODUCT;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(Model);
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Model);

@@ -104,9 +104,11 @@ message PartitioningConfig {
     DEFAULT_UNBALANCED = 0;
 
     GREEDY_BALANCED = 1;
+
+    UNBALANCED_FLOAT32 = 2;
   }
 
-  optional BalancingType balancing_type = 35 [default = DEFAULT_UNBALANCED];
+  optional BalancingType balancing_type = 35 [default = UNBALANCED_FLOAT32];
 
   enum SingleMachineCenterInitializationType {
     DEFAULT_KMEANS_PLUS_PLUS = 0;
@@ -165,6 +167,8 @@ message PartitioningConfig {
 
   optional float avq = 51 [default = nan];
 
+  optional IncrementalTrainingConfig incremental_training_config = 52;
+
   optional bool use_float_centers_for_query_tokenization = 26
       [default = false, deprecated = true];
 
@@ -189,6 +193,10 @@ message DatabaseSpillingConfig {
     FIXED_NUMBER_OF_CENTERS = 3;
 
     TWO_CENTER_ORTHOGONALITY_AMPLIFIED = 4;
+
+    SOAR = 4;
+
+    option allow_alias = true;
   }
 
   optional SpillingType spilling_type = 1 [default = NO_SPILLING];
@@ -197,7 +205,9 @@ message DatabaseSpillingConfig {
 
   optional uint32 max_spill_centers = 3 [default = 4294967295];
 
-  reserved 4;
+  optional float orthogonality_amplification_lambda = 4 [default = 1.5];
+
+  optional float overretrieve_factor = 5 [default = 2.0];
 }
 
 message QuerySpillingConfig {
@@ -218,6 +228,20 @@ message QuerySpillingConfig {
   optional float spilling_threshold = 2;
 
   optional uint32 max_spill_centers = 3 [default = 4294967295];
+}
+
+message IncrementalTrainingConfig {
+  oneof reassignment_trigger {
+    float fraction = 1 [default = inf];
+
+    uint32 number_of_datapoints = 2 [default = 4294967295];
+  }
+
+  optional uint32 cluster_stability_size = 3 [default = 200];
+
+  optional bool autopilot = 4 [default = false];
+
+  optional uint32 max_split = 5 [default = 4294967295];
 }
 
 message TreeXHybridPartitioningConfig {

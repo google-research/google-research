@@ -151,7 +151,7 @@ class LUT16Interface {
     case 9:                                                           \
       return ClassName<9, kPrefetch>::Function(__VA_ARGS__);          \
     default:                                                          \
-      LOG(FATAL) << "Invalid Batch Size";                             \
+      DLOG(FATAL) << "Invalid Batch Size";                            \
   }
 
 #ifdef __x86_64__

@@ -48,7 +48,6 @@
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
@@ -72,7 +71,7 @@ DatapointIndex GetSample(MTRandom* random, ConstSpan<double> distances,
         "%f).",
         distances.size(), distances_sum);
     if (is_first) {
-      SCANN_LOG_NOOP(WARNING, 1000000) << StrFormat(
+      LOG_EVERY_N(WARNING, 1000000) << StrFormat(
           "All %d points are exactly the same. (distances_sum = %f)",
           distances.size(), distances_sum);
     }
@@ -119,8 +118,13 @@ class GmmUtilsImplInterface : public VirtualDestructor {
 
   using IterateDatasetCallback = std::function<void(
       size_t offset, const DenseDataset<double>& dataset_batch)>;
+  using IterateDatasetCallbackFloat = std::function<void(
+      size_t offset, DefaultDenseDatasetView<float> dataset_batch)>;
   virtual void IterateDataset(ThreadPool* parallelization_pool,
                               const IterateDatasetCallback& callback) const = 0;
+  virtual void IterateDataset(
+      ThreadPool* parallelization_pool,
+      const IterateDatasetCallbackFloat& callback) const = 0;
 
   void DistancesFromPoint(DatapointPtr<double> center,
                           MutableSpan<double> distances) const {
@@ -204,8 +208,9 @@ class GenericDatasetWithSubset : public GmmUtilsImplInterface {
     return storage->ToPtr();
   }
 
-  void IterateDataset(ThreadPool* parallelization_pool,
-                      const IterateDatasetCallback& callback) const final {
+  template <typename DataT, typename CallbackT>
+  void IterateDatasetImpl(ThreadPool* parallelization_pool,
+                          const CallbackT& callback) const {
     constexpr size_t kBatchSize = 128;
     ParallelFor<1>(
         SeqWithStride<kBatchSize>(subset_.size()), parallelization_pool,
@@ -213,17 +218,28 @@ class GenericDatasetWithSubset : public GmmUtilsImplInterface {
           const size_t batch_size =
               std::min(kBatchSize, subset_.size() - subset_idx);
 
-          DenseDataset<double> dataset_batch;
+          DenseDataset<DataT> dataset_batch;
           dataset_batch.set_dimensionality(dataset_.dimensionality());
           dataset_batch.Reserve(batch_size);
-          Datapoint<double> dp;
+          Datapoint<DataT> dp;
           for (size_t offset : Seq(batch_size)) {
             const DatapointIndex dp_index = subset_[subset_idx + offset];
             dataset_.GetDenseDatapoint(dp_index, &dp);
             TF_CHECK_OK(dataset_batch.Append(dp.ToPtr(), ""));
           }
+
           callback(subset_idx, dataset_batch);
         });
+  }
+
+  void IterateDataset(ThreadPool* parallelization_pool,
+                      const IterateDatasetCallback& callback) const final {
+    IterateDatasetImpl<double>(parallelization_pool, callback);
+  }
+
+  void IterateDataset(ThreadPool* parallelization_pool,
+                      const IterateDatasetCallbackFloat& callback) const final {
+    IterateDatasetImpl<float>(parallelization_pool, callback);
   }
 
  private:
@@ -249,29 +265,53 @@ class DenseDatasetWrapper : public GmmUtilsImplInterface {
     return MaybeConvertDatapoint(dataset_[idx], storage);
   }
 
-  void IterateDataset(ThreadPool* parallelization_pool,
-                      const IterateDatasetCallback& callback) const final {
-    if (IsSame<T, double>()) {
-      callback(0, reinterpret_cast<const DenseDataset<double>&>(dataset_));
-      return;
-    }
-
+  template <typename DataT, typename CallbackT>
+  void IterateDatasetImpl(ThreadPool* parallelization_pool,
+                          const CallbackT& callback) const {
     constexpr size_t kBatchSize = 128;
     ParallelFor<1>(
         SeqWithStride<kBatchSize>(dataset_.size()), parallelization_pool,
         [&](size_t offset) SCANN_INLINE_LAMBDA {
           const size_t batch_size =
               std::min(kBatchSize, dataset_.size() - offset);
-          DenseDataset<double> dataset_batch;
+          DenseDataset<DataT> dataset_batch;
           dataset_batch.set_dimensionality(dataset_.dimensionality());
           dataset_batch.Reserve(batch_size);
-          Datapoint<double> storage;
+          Datapoint<DataT> storage;
           for (size_t j : Seq(batch_size)) {
             auto dptr = MaybeConvertDatapoint(dataset_[offset + j], &storage);
             TF_CHECK_OK(dataset_batch.Append(dptr, ""));
           }
+
           callback(offset, dataset_batch);
         });
+  }
+
+  void IterateDataset(ThreadPool* parallelization_pool,
+                      const IterateDatasetCallback& callback) const final {
+    if constexpr (IsSame<T, double>()) {
+      callback(0, reinterpret_cast<const DenseDataset<double>&>(dataset_));
+      return;
+    }
+    IterateDatasetImpl<double>(parallelization_pool, callback);
+  }
+
+  void IterateDataset(ThreadPool* parallelization_pool,
+                      const IterateDatasetCallbackFloat& callback) const final {
+    if constexpr (IsSame<T, float>()) {
+      constexpr size_t kBatchSize = 1024;
+      const auto& ds = reinterpret_cast<const DenseDataset<float>&>(dataset_);
+      const size_t dims = ds.dimensionality();
+      ParallelFor<1>(
+          SeqWithStride<kBatchSize>(ds.size()), parallelization_pool,
+          [&](size_t offset) SCANN_INLINE_LAMBDA {
+            const size_t batch_size = std::min(kBatchSize, ds.size() - offset);
+            ConstSpan<float> span(ds.data(offset).data(), batch_size * dims);
+            callback(offset, DefaultDenseDatasetView<float>(span, dims));
+          });
+      return;
+    }
+    IterateDatasetImpl<float>(parallelization_pool, callback);
   }
 
  private:
@@ -332,6 +372,37 @@ vector<pair<DatapointIndex, double>> UnbalancedPartitionAssignment(
   return top1_results;
 }
 
+vector<pair<DatapointIndex, double>> UnbalancedFloat32PartitionAssignment(
+    GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
+    const DenseDataset<double>& centers, ThreadPool* pool) {
+  vector<pair<DatapointIndex, double>> top1_results(impl->size());
+  DenseDataset<float> centers_fp32;
+  centers.ConvertType(&centers_fp32);
+
+  impl->IterateDataset(
+      pool,
+      [&](size_t offset, DefaultDenseDatasetView<float> dataset_batch)
+          SCANN_INLINE_LAMBDA {
+            DCHECK(&dataset_batch);
+            DCHECK(&centers);
+            DCHECK_GT(dataset_batch.size(), 0);
+            DCHECK_GT(centers.size(), 0);
+            DCHECK_EQ(centers.dimensionality(), dataset_batch.dimensionality());
+            DCHECK(&distance);
+            DCHECK(!distance.name().empty());
+            DCHECK_OK(VerifyAllFinite(dataset_batch.data()));
+            DCHECK_OK(VerifyAllFinite(centers.data()));
+
+            auto results = DenseDistanceManyToManyTop1(distance, dataset_batch,
+                                                       centers_fp32, nullptr);
+            DCHECK_EQ(results.size(), dataset_batch.size());
+
+            std::copy(results.begin(), results.end(),
+                      top1_results.begin() + offset);
+          });
+  return top1_results;
+}
+
 vector<pair<DatapointIndex, double>> MinCostMaxFlowPartitionAssignment(
     GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
     const DenseDataset<double>& centers, ThreadPool* pool) {
@@ -353,6 +424,8 @@ GmmUtils::PartitionAssignmentFn GetPartitionAssignmentFn(
       return &GreedyBalancedPartitionAssignment;
     case GmmUtils::Options::MIN_COST_MAX_FLOW:
       return &MinCostMaxFlowPartitionAssignment;
+    case GmmUtils::Options::UNBALANCED_FLOAT32:
+      return &UnbalancedFloat32PartitionAssignment;
     default:
       LOG(FATAL) << "Invalid partition assignment type.";
   }
@@ -601,10 +674,15 @@ bool IsStdIota(ConstSpan<DatapointIndex> indices) {
 
 }  // namespace
 
-SCANN_OUTLINE Status GmmUtils::ComputeKmeansClustering(
+__attribute__((no_sanitize("float-divide-by-zero"))) SCANN_OUTLINE Status
+GmmUtils::ComputeKmeansClustering(
     const Dataset& dataset, int32_t num_clusters,
     DenseDataset<double>* final_centers,
     const ComputeKmeansClusteringOptions& kmeans_opts) {
+  static_assert(
+      std::numeric_limits<double>::is_iec559,
+      "Function depends on IEEE divide-by-zero semantics for correctness");
+
   SCANN_RET_CHECK(final_centers);
   const bool spherical = kmeans_opts.spherical;
   ConstSpan<DatapointIndex> subset = kmeans_opts.subset;
@@ -655,7 +733,7 @@ SCANN_OUTLINE Status GmmUtils::ComputeKmeansClustering(
   }
 
   if (!impl->CheckDataDegeneracy().ok()) {
-    SCANN_LOG_NOOP(WARNING, 1000000) << StrFormat(
+    LOG_EVERY_N(WARNING, 1000000) << StrFormat(
         "All %d points are exactly the same in the partition.", dataset_size);
   }
 
@@ -663,7 +741,7 @@ SCANN_OUTLINE Status GmmUtils::ComputeKmeansClustering(
   vector<double> new_means(num_clusters, -1.0);
 
   vector<uint32_t> partition_sizes(num_clusters);
-  vector<pair<uint32_t, double>> top1_results;
+  vector<pair<DatapointIndex, double>> top1_results;
 
   ThreadPool* pool = opts_.parallelization_pool.get();
   const absl::Time deadline = absl::Now() + opts_.max_iteration_duration;
@@ -765,7 +843,7 @@ StatusOr<double> GmmUtils::ComputeSpillingThreshold(
     const Dataset& dataset, ConstSpan<DatapointIndex> subset,
     const DenseDataset<double>& centers,
     const DatabaseSpillingConfig::SpillingType spilling_type,
-    const float total_spill_factor, const uint32_t max_centers) {
+    const float total_spill_factor, const DatapointIndex max_centers) {
   if (max_centers <= 1) {
     return InvalidArgumentError(
         "max_centers must be > 1 for ComputeSpillingThreshold.");
@@ -795,7 +873,8 @@ StatusOr<double> GmmUtils::ComputeSpillingThreshold(
     return 0.0;
   }
 
-  const uint32_t max_neighbors = std::min(centers.size(), max_centers);
+  const DatapointIndex max_neighbors =
+      std::min<DatapointIndex>(centers.size(), max_centers);
 
   vector<double> spills;
 
@@ -813,13 +892,13 @@ StatusOr<double> GmmUtils::ComputeSpillingThreshold(
     auto top_items = top_n.Take();
 
     if (spilling_type == DatabaseSpillingConfig::ADDITIVE) {
-      for (uint32_t k : Seq(1, max_neighbors)) {
+      for (DatapointIndex k : Seq(1, max_neighbors)) {
         spills.push_back(top_items[k] - top_items[0]);
       }
     } else {
       DCHECK_EQ(spilling_type, DatabaseSpillingConfig::MULTIPLICATIVE);
 
-      for (uint32_t k : Seq(1, max_neighbors)) {
+      for (DatapointIndex k : Seq(1, max_neighbors)) {
         if (top_items[0] == 0.0 && top_items[k] == 0.0) {
           return InternalError(
               "Duplicate centers.  Cannot compute spilling threshold.");
@@ -853,8 +932,8 @@ StatusOr<double> GmmUtils::ComputeSpillingThreshold(
 namespace {
 void NormalizeCentroid(MutableSpan<double> mut_centroid, double divisor) {
   if (divisor == 0) {
-    SCANN_LOG_NOOP(WARNING, 1) << "Could not normalize centroid due to zero "
-                                  "norm or empty or zero-weight partition.";
+    LOG_FIRST_N(WARNING, 1) << "Could not normalize centroid due to zero "
+                               "norm or empty or zero-weight partition.";
     return;
   }
   const double multiplier = 1.0 / divisor;
@@ -865,9 +944,9 @@ void NormalizeCentroid(MutableSpan<double> mut_centroid, double divisor) {
 }  // namespace
 
 Status GmmUtils::RecomputeCentroidsSimple(
-    ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
-    ConstSpan<uint32_t> partition_sizes, bool spherical,
-    DenseDataset<double>* centroids) const {
+    ConstSpan<pair<DatapointIndex, double>> top1_results,
+    GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
+    bool spherical, DenseDataset<double>* centroids) const {
   const size_t dataset_size = impl->size();
   const size_t dimensionality = impl->dimensionality();
   std::fill(centroids->mutable_data().begin(), centroids->mutable_data().end(),
@@ -894,8 +973,8 @@ Status GmmUtils::RecomputeCentroidsSimple(
 }
 
 Status GmmUtils::RecomputeCentroidsWeighted(
-    ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
-    ConstSpan<float> weights, bool spherical,
+    ConstSpan<pair<DatapointIndex, double>> top1_results,
+    GmmUtilsImplInterface* impl, ConstSpan<float> weights, bool spherical,
     DenseDataset<double>* centroids) const {
   const size_t dataset_size = impl->size();
   SCANN_RET_CHECK_EQ(weights.size(), dataset_size);
@@ -928,9 +1007,10 @@ Status GmmUtils::RecomputeCentroidsWeighted(
 }
 
 Status GmmUtils::RandomReinitializeCenters(
-    ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
-    ConstSpan<uint32_t> partition_sizes, bool spherical,
-    DenseDataset<double>* centroids, std::vector<double>* convergence_means) {
+    ConstSpan<pair<DatapointIndex, double>> top1_results,
+    GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
+    bool spherical, DenseDataset<double>* centroids,
+    std::vector<double>* convergence_means) {
   Datapoint<double> storage;
   int num_reinit_this_iter = 0;
   const uint32_t dimensionality = centroids->dimensionality();
@@ -968,7 +1048,7 @@ Status GmmUtils::RandomReinitializeCenters(
     if (spherical) {
       const double norm = std::sqrt(SquaredL2Norm(centroids->at(c)));
       if (norm == 0) {
-        SCANN_LOG_NOOP(WARNING, 1)
+        LOG_FIRST_N(WARNING, 1)
             << "Could not normalize centroid due to zero norm.";
         continue;
       }
@@ -1046,9 +1126,9 @@ Status GmmUtils::SplitLargeClusterReinitialization(
 }
 
 Status GmmUtils::PCAKmeansReinitialization(
-    ConstSpan<pair<uint32_t, double>> top1_results, GmmUtilsImplInterface* impl,
-    ConstSpan<uint32_t> partition_sizes, bool spherical,
-    DenseDataset<double>* centroids,
+    ConstSpan<pair<DatapointIndex, double>> top1_results,
+    GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
+    bool spherical, DenseDataset<double>* centroids,
     std::vector<double>* convergence_means) const {
   using Eigen::aligned_allocator;
   using Eigen::JacobiSVD;

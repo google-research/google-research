@@ -60,9 +60,11 @@ class GmmUtils {
       GREEDY_BALANCED,
 
       MIN_COST_MAX_FLOW,
+
+      UNBALANCED_FLOAT32,
     };
 
-    PartitionAssignmentType partition_assignment_type = UNBALANCED;
+    PartitionAssignmentType partition_assignment_type = UNBALANCED_FLOAT32;
 
     enum CenterReassignmentType {
       RANDOM_REASSIGNMENT,
@@ -107,27 +109,19 @@ class GmmUtils {
       DenseDataset<double>* final_centers,
       const ComputeKmeansClusteringOptions& kmeans_opts);
 
-  Status ComputeKmeansClustering(const Dataset& dataset,
-                                 const int32_t num_clusters,
-                                 DenseDataset<double>* final_centers) {
-    ComputeKmeansClusteringOptions kmeans_opts;
-    return ComputeKmeansClustering(dataset, num_clusters, final_centers,
-                                   kmeans_opts);
-  }
-
   StatusOr<double> ComputeSpillingThreshold(
       const Dataset& dataset, ConstSpan<DatapointIndex> subset,
       const DenseDataset<double>& centers,
       const DatabaseSpillingConfig::SpillingType spilling_type,
-      const float total_spill_factor, const uint32_t max_centers);
+      const float total_spill_factor, const DatapointIndex max_centers);
 
   Status RecomputeCentroidsSimple(
-      ConstSpan<pair<uint32_t, double>> top1_results,
+      ConstSpan<pair<DatapointIndex, double>> top1_results,
       GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
       bool spherical, DenseDataset<double>* centroids) const;
 
   Status RecomputeCentroidsWeighted(
-      ConstSpan<pair<uint32_t, double>> top1_results,
+      ConstSpan<pair<DatapointIndex, double>> top1_results,
       GmmUtilsImplInterface* impl, ConstSpan<float> weights, bool spherical,
       DenseDataset<double>* centroids) const;
 
@@ -149,7 +143,7 @@ class GmmUtils {
       vector<vector<DatapointIndex>>* final_partitions);
 
   Status RandomReinitializeCenters(
-      ConstSpan<pair<uint32_t, double>> top1_results,
+      ConstSpan<pair<DatapointIndex, double>> top1_results,
       GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
       bool spherical, DenseDataset<double>* centroids,
       std::vector<double>* convergence_means);
@@ -159,7 +153,7 @@ class GmmUtils {
       DenseDataset<double>* centroids, std::vector<double>* convergence_means);
 
   Status PCAKmeansReinitialization(
-      ConstSpan<pair<uint32_t, double>> top1_results,
+      ConstSpan<pair<DatapointIndex, double>> top1_results,
       GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
       bool spherical, DenseDataset<double>* centroids,
       std::vector<double>* convergence_means) const;

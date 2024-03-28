@@ -33,6 +33,7 @@ cc_library(
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -188,6 +189,7 @@ cc_library(
         "//scann/utils/intrinsics:avx512",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -231,6 +233,7 @@ cc_library(
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -271,9 +274,11 @@ cc_library(
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/data_format:docid_collection",
         "//scann/distance_measures",
         "//scann/distance_measures/many_to_many",
         "//scann/distance_measures/one_to_many",
+        "//scann/distance_measures/one_to_one:dot_product",
         "//scann/hashes/asymmetric_hashing2:training_options_base",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/utils:common",
@@ -281,5 +286,6 @@ cc_library(
         "//scann/utils:dataset_sampling",
         "//scann/utils:gmm_utils",
         "//scann/utils:types",
+        "@com_google_absl//absl/log",
     ],
 )

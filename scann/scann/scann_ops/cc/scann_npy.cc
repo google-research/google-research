@@ -16,20 +16,37 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include "scann/base/single_machine_base.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/scann_ops/cc/scann.h"
+#include "scann/utils/common.h"
 #include "scann/utils/io_oss_wrapper.h"
+#include "scann/utils/single_machine_autopilot.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
+using MutationOptions = UntypedSingleMachineSearcherBase::MutationOptions;
+using PrecomputedMutationArtifacts =
+    UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;
 
 void RuntimeErrorIfNotOk(const char* prefix, const Status& status) {
   if (!status.ok()) {
     std::string msg = prefix + std::string(status.message());
     throw std::runtime_error(msg);
   }
+}
+
+template <typename T>
+T ValueOrRuntimeError(StatusOr<T> status_or, const char* prefix) {
+  RuntimeErrorIfNotOk(prefix, status_or.status());
+  return status_or.value();
 }
 
 ScannNumpy::ScannNumpy(const std::string& artifacts_dir,
@@ -53,6 +70,116 @@ ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
                                         training_threads));
 }
 
+vector<DatapointIndex> ScannNumpy::Upsert(
+    vector<std::optional<DatapointIndex>> indices,
+    vector<np_row_major_arr<float>>& vecs, int batch_size) {
+  auto mutator =
+      ValueOrRuntimeError(scann_.GetMutator(), "Failed to fetch mutator: ");
+  if (batch_size > 1)
+    mutator->set_mutation_threadpool(scann_.parallel_query_pool());
+  if (indices.size() != vecs.size())
+    throw std::runtime_error("Upsert input size must match.");
+
+  DatapointIndex n = vecs.size();
+  vector<DatapointIndex> result;
+
+  for (size_t b : Seq(DivRoundUp(n, batch_size))) {
+    size_t begin = batch_size * b;
+    size_t bs = std::min<DatapointIndex>(n - begin, batch_size);
+    DenseDataset<float> ds;
+    for (size_t i : Seq(bs))
+      RuntimeErrorIfNotOk("Error appending datapoint.",
+                          ds.Append(MakeDatapointPtr(vecs[begin + i].data(),
+                                                     vecs[begin + i].size())));
+    auto precomputed = mutator->ComputePrecomputedMutationArtifacts(
+        ds, scann_.parallel_query_pool());
+
+    for (size_t i : Seq(bs)) {
+      auto& index = indices[begin + i];
+      auto& vec = vecs[begin + i];
+      auto mo = MutationOptions{.precomputed_mutation_artifacts =
+                                    precomputed[i].get()};
+      if (!index.has_value()) {
+        result.push_back(ValueOrRuntimeError(
+            mutator->AddDatapoint(MakeDatapointPtr(vec.data(), vec.size()), "",
+                                  mo),
+            "Failed to add datapoint: "));
+      } else {
+        result.push_back(ValueOrRuntimeError(
+            mutator->UpdateDatapoint(MakeDatapointPtr(vec.data(), vec.size()),
+                                     index.value(), mo),
+            "Failed to update datapoint: "));
+      }
+    }
+    auto statusor = mutator->IncrementalMaintenance();
+    RuntimeErrorIfNotOk("Error performing incremental maintenance ",
+                        statusor.status());
+    if (statusor.value().has_value()) {
+      Rebalance();
+      mutator =
+          ValueOrRuntimeError(scann_.GetMutator(), "Failed to fetch mutator: ");
+      mutator->set_mutation_threadpool(scann_.parallel_query_pool());
+    }
+  }
+  return result;
+}
+
+vector<DatapointIndex> ScannNumpy::Delete(vector<DatapointIndex> indices) {
+  auto mutator =
+      ValueOrRuntimeError(scann_.GetMutator(), "Failed to fetch mutator: ");
+  mutator->set_mutation_threadpool(scann_.parallel_query_pool());
+  vector<DatapointIndex> result;
+  for (const auto& index : indices) {
+    RuntimeErrorIfNotOk("Failed to delete datapoint: ",
+                        mutator->RemoveDatapoint(index));
+    auto statusor = mutator->IncrementalMaintenance();
+    RuntimeErrorIfNotOk("Error performing incremental maintenance ",
+                        statusor.status());
+    if (statusor.value().has_value()) {
+      Rebalance();
+      mutator =
+          ValueOrRuntimeError(scann_.GetMutator(), "Failed to fetch mutator: ");
+    }
+    result.push_back(scann_.n_points());
+  }
+  return result;
+}
+
+int ScannNumpy::Rebalance(const string& config) {
+  auto statusor = scann_.RetrainAndReindex(config);
+  if (!statusor.ok()) {
+    RuntimeErrorIfNotOk("Failed to retrain searcher: ", statusor.status());
+    return -1;
+  }
+
+  return scann_.n_points();
+}
+
+size_t ScannNumpy::Size() const { return scann_.n_points(); }
+
+void ScannNumpy::Reserve(size_t num_datapoints) {
+  auto mutator =
+      ValueOrRuntimeError(scann_.GetMutator(), "Failed to fetch mutator: ");
+  mutator->Reserve(num_datapoints);
+}
+
+void ScannNumpy::SetNumThreads(int num_threads) {
+  scann_.SetNumThreads(num_threads);
+}
+
+string ScannNumpy::SuggestAutopilot(const std::string& config_str,
+                                    DatapointIndex n, DimensionIndex dim) {
+  ScannConfig config;
+  RuntimeErrorIfNotOk("Failed to parse config: ",
+                      ParseTextProto(&config, config_str));
+  auto status_or = Autopilot(config, nullptr, n, dim);
+  RuntimeErrorIfNotOk("Failed to suggest autopilot config: ",
+                      status_or.status());
+  return status_or.value().DebugString();
+}
+
+string ScannNumpy::Config() { return scann_.config()->DebugString(); }
+
 std::pair<pybind11::array_t<DatapointIndex>, pybind11::array_t<float>>
 ScannNumpy::Search(const np_row_major_arr<float>& query, int final_nn,
                    int pre_reorder_nn, int leaves) {
@@ -74,7 +201,8 @@ ScannNumpy::Search(const np_row_major_arr<float>& query, int final_nn,
 
 std::pair<pybind11::array_t<DatapointIndex>, pybind11::array_t<float>>
 ScannNumpy::SearchBatched(const np_row_major_arr<float>& queries, int final_nn,
-                          int pre_reorder_nn, int leaves, bool parallel) {
+                          int pre_reorder_nn, int leaves, bool parallel,
+                          int batch_size) {
   if (queries.ndim() != 2)
     throw std::invalid_argument("Queries must be in two-dimensional array");
 
@@ -85,7 +213,8 @@ ScannNumpy::SearchBatched(const np_row_major_arr<float>& queries, int final_nn,
   Status status;
   if (parallel)
     status = scann_.SearchBatchedParallel(query_dataset, MakeMutableSpan(res),
-                                          final_nn, pre_reorder_nn, leaves);
+                                          final_nn, pre_reorder_nn, leaves,
+                                          batch_size);
   else
     status = scann_.SearchBatched(query_dataset, MakeMutableSpan(res), final_nn,
                                   pre_reorder_nn, leaves);

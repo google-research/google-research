@@ -17,19 +17,20 @@
 #ifndef SCANN_BRUTE_FORCE_SCALAR_QUANTIZED_BRUTE_FORCE_H_
 #define SCANN_BRUTE_FORCE_SCALAR_QUANTIZED_BRUTE_FORCE_H_
 
+#include <cmath>
 #include <cstdint>
 #include <utility>
 #include <vector>
 
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
-#include "scann/oss_wrappers/scann_status.h"
 #include "scann/tree_x_hybrid/leaf_searcher_optional_parameter_creator.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
@@ -61,6 +62,8 @@ class ScalarQuantizedBruteForceSearcher final
 
   bool supports_crowding() const final { return true; }
 
+  void set_min_distance(float min_distance) { min_distance_ = min_distance; }
+
   ScalarQuantizedBruteForceSearcher(
       shared_ptr<const DistanceMeasure> distance,
       vector<float> squared_l2_norms, DenseDataset<int8_t> quantized_dataset,
@@ -84,6 +87,52 @@ class ScalarQuantizedBruteForceSearcher final
                        ConstSpan<float> abs_thresholds_for_each_dimension,
                        int32_t default_num_neighbors, float default_epsilon);
 
+  class Mutator : public SingleMachineSearcherBase<float>::Mutator {
+   public:
+    using PrecomputedMutationArtifacts =
+        UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;
+    using MutateBaseOptions =
+        UntypedSingleMachineSearcherBase::UntypedMutator::MutateBaseOptions;
+
+    static StatusOr<unique_ptr<Mutator>> Create(
+        ScalarQuantizedBruteForceSearcher* searcher);
+    Mutator(const Mutator&) = delete;
+    Mutator& operator=(const Mutator&) = delete;
+    ~Mutator() final {}
+    StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<float>& dptr,
+                                          string_view docid,
+                                          const MutationOptions&) final;
+    Status RemoveDatapoint(string_view docid) final;
+    void Reserve(size_t size) final;
+    Status RemoveDatapoint(DatapointIndex index) final;
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<float>& dptr,
+                                             string_view docid,
+                                             const MutationOptions&) final;
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<float>& dptr,
+                                             DatapointIndex index,
+                                             const MutationOptions&) final;
+
+   private:
+    Mutator(ScalarQuantizedBruteForceSearcher* searcher,
+            TypedDataset<int8_t>::Mutator* quantized_dataset_mutator,
+            std::vector<float> multipliers)
+        : searcher_(searcher),
+          quantized_dataset_mutator_(quantized_dataset_mutator),
+          multipliers_(std::move(multipliers)),
+          quantized_datapoint_(multipliers_.size()) {}
+    StatusOr<DatapointIndex> LookupDatapointIndexOrError(
+        string_view docid) const;
+    DatapointPtr<int8_t> ScalarQuantize(const DatapointPtr<float>& dptr);
+
+    ScalarQuantizedBruteForceSearcher* searcher_;
+    TypedDataset<int8_t>::Mutator* quantized_dataset_mutator_;
+    std::vector<float> multipliers_;
+    std::vector<int8_t> quantized_datapoint_;
+  };
+
+  StatusOr<typename SingleMachineSearcherBase<float>::Mutator*> GetMutator()
+      const final;
+
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
 
@@ -96,27 +145,27 @@ class ScalarQuantizedBruteForceSearcher final
       ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
 
  private:
-  template <typename ResultElem>
+  template <bool kUseMinDistance, typename ResultElem>
   Status PostprocessDistances(const DatapointPtr<float>& query,
                               const SearchParameters& params,
                               ConstSpan<ResultElem> dot_products,
                               NNResultsVector* result) const;
 
-  template <typename DistanceFunctor, typename ResultElem>
+  template <bool kUseMinDistance, typename DistanceFunctor, typename ResultElem>
   Status PostprocessDistancesImpl(const DatapointPtr<float>& query,
                                   const SearchParameters& params,
                                   ConstSpan<ResultElem> dot_products,
                                   DistanceFunctor distance_functor,
                                   NNResultsVector* result) const;
 
-  template <typename DistanceFunctor, typename TopN>
+  template <bool kUseMinDistance, typename DistanceFunctor, typename TopN>
   Status PostprocessTopNImpl(const DatapointPtr<float>& query,
                              const SearchParameters& params,
                              ConstSpan<float> dot_products,
                              DistanceFunctor distance_functor,
                              TopN* top_n_ptr) const;
 
-  template <typename DistanceFunctor, typename TopN>
+  template <bool kUseMinDistance, typename DistanceFunctor, typename TopN>
   Status PostprocessTopNImpl(
       const DatapointPtr<float>& query, const SearchParameters& params,
       ConstSpan<pair<DatapointIndex, float>> dot_products,
@@ -133,6 +182,10 @@ class ScalarQuantizedBruteForceSearcher final
   Options opts_;
 
   vector<float> inverse_multiplier_by_dimension_;
+
+  float min_distance_ = -numeric_limits<float>::infinity();
+
+  mutable unique_ptr<Mutator> mutator_ = nullptr;
 };
 
 class TreeScalarQuantizationPreprocessedQuery final

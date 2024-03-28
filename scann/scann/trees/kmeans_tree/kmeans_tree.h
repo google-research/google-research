@@ -23,6 +23,8 @@
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
+#include "absl/strings/str_cat.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -32,8 +34,11 @@
 #include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree_node.h"
 #include "scann/trees/kmeans_tree/training_options.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
+#include "scann/utils/util_functions.h"
+#include "scann/utils/zip_sort.h"
 #include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
@@ -81,12 +86,20 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
 
   explicit KMeansTree(const SerializedKMeansTree& serialized);
 
+  KMeansTree(const KMeansTree&) = delete;
+  KMeansTree& operator=(const KMeansTree&) = delete;
+
   KMeansTree(KMeansTree&& rhs) = default;
   KMeansTree& operator=(KMeansTree&& rhs) = default;
 
   Status Train(const Dataset& training_data,
                const DistanceMeasure& training_distance, int32_t k_per_level,
                KMeansTreeTrainingOptions* training_options) override;
+
+  template <typename T>
+  Status ApplyAvq(const DenseDataset<T>& dataset,
+                  ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+                  float avq_eta, ThreadPool* pool_or_null = nullptr);
 
   enum TokenizationType {
     FLOAT = 1,
@@ -138,10 +151,10 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
     TokenizationType tokenization_type = FLOAT;
   };
 
-  template <typename T>
+  template <typename T, typename ResT>
   Status Tokenize(const DatapointPtr<T>& query, const DistanceMeasure& dist,
                   const TokenizationOptions& opts,
-                  std::vector<KMeansTreeSearchResult>* result) const;
+                  std::vector<ResT>* result) const;
 
   const KMeansTreeNode* root() const { return &root_; }
 
@@ -149,7 +162,11 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
 
   void SerializeWithoutIndices(SerializedKMeansTree* result) const override;
 
+  void CheckIfFlat();
+
   int32_t n_tokens() const { return n_tokens_; }
+
+  bool is_flat() const { return is_flat_; }
 
   bool is_trained() const { return n_tokens_ > 0; }
 
@@ -169,11 +186,11 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
       std::vector<KMeansTreeSearchResult>* results) const;
 
  private:
-  template <typename CentersType>
+  template <typename CentersType, typename ResT>
   Status TokenizeImpl(const DatapointPtr<float>& query,
                       const DistanceMeasure& dist,
                       const TokenizationOptions& opts,
-                      std::vector<KMeansTreeSearchResult>* result) const;
+                      std::vector<ResT>* result) const;
 
   template <typename CentersType>
   Status TokenizeWithoutSpillingImpl(const DatapointPtr<float>& query,
@@ -188,6 +205,14 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
       double spilling_threshold, int32_t max_centers,
       const KMeansTreeNode* current_node,
       std::vector<KMeansTreeSearchResult>* results) const;
+
+  template <typename CentersType>
+  Status TokenizeWithSpillingImpl(
+      const DatapointPtr<float>& query, const DistanceMeasure& dist,
+      QuerySpillingConfig::SpillingType spilling_type,
+      double spilling_threshold, int32_t max_centers,
+      const KMeansTreeNode* current_node,
+      std::vector<pair<DatapointIndex, float>>* results) const;
 
   template <typename CallbackType, typename RetValueType>
   pair<bool, RetValueType> NodeIteratingHelper(
@@ -250,7 +275,7 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
 
   int32_t n_tokens_ = -1;
 
-  TF_DISALLOW_COPY_AND_ASSIGN(KMeansTree);
+  bool is_flat_ = false;
 };
 
 inline bool KMeansTreeSearchResult::operator<(
@@ -268,35 +293,48 @@ inline bool KMeansTreeSearchResult::operator<(
   return distance_to_center < rhs.distance_to_center;
 }
 
-template <typename T>
+template <typename T, typename ResT>
 Status KMeansTree::Tokenize(const DatapointPtr<T>& query,
                             const DistanceMeasure& dist,
                             const TokenizationOptions& opts,
-                            std::vector<KMeansTreeSearchResult>* result) const {
+                            std::vector<ResT>* result) const {
+  static_assert(std::is_same_v<ResT, KMeansTreeSearchResult> ||
+                std::is_same_v<ResT, pair<DatapointIndex, float>>);
   SCANN_RETURN_IF_ERROR(root_.CheckDimensionality(query.dimensionality()));
 
   Datapoint<float> converted_values;
   const DatapointPtr<float> query_float = ToFloat(query, &converted_values);
   if (opts.tokenization_type == FLOAT) {
-    return TokenizeImpl<float>(query_float, dist, opts, result);
+    return TokenizeImpl<float, ResT>(query_float, dist, opts, result);
   } else if (opts.tokenization_type == FIXED_POINT_INT8) {
-    return TokenizeImpl<int8_t>(query_float, dist, opts, result);
+    return TokenizeImpl<int8_t, ResT>(query_float, dist, opts, result);
   } else {
     return InternalError(
         absl::StrCat("Invalid tokenization type:  ", opts.tokenization_type));
   }
 }
 
-template <typename CentersType>
-Status KMeansTree::TokenizeImpl(
-    const DatapointPtr<float>& query, const DistanceMeasure& dist,
-    const TokenizationOptions& opts,
-    std::vector<KMeansTreeSearchResult>* result) const {
+template <typename CentersType, typename ResT>
+Status KMeansTree::TokenizeImpl(const DatapointPtr<float>& query,
+                                const DistanceMeasure& dist,
+                                const TokenizationOptions& opts,
+                                std::vector<ResT>* result) const {
+  static_assert(std::is_same_v<ResT, KMeansTreeSearchResult> ||
+                std::is_same_v<ResT, pair<DatapointIndex, float>>);
   switch (opts.spilling_type) {
     case TokenizationOptions::NONE:
       result->resize(1);
-      return TokenizeWithoutSpillingImpl<CentersType>(query, dist, &root_,
-                                                      result->data());
+      if constexpr (std::is_same_v<ResT, KMeansTreeSearchResult>) {
+        return TokenizeWithoutSpillingImpl<CentersType>(query, dist, &root_,
+                                                        result->data());
+      } else {
+        KMeansTreeSearchResult kmeans_res;
+        SCANN_RETURN_IF_ERROR(TokenizeWithoutSpillingImpl<CentersType>(
+            query, dist, &root_, &kmeans_res));
+        result->front() = {kmeans_res.node->LeafId(),
+                           kmeans_res.distance_to_center};
+        return OkStatus();
+      }
     case TokenizationOptions::LEARNED:
       return TokenizeWithSpillingImpl<CentersType>(
           query, dist,
@@ -380,10 +418,10 @@ Status KMeansTree::TokenizeWithSpillingImpl(
           : spilling_threshold;
 
   std::vector<pair<DatapointIndex, float>> children_to_search;
-  Status status = current_node->FindChildrenWithSpilling<float, CentersType>(
-      query, spilling_type, possibly_learned_spilling_threshold, max_centers,
-      dist, &children_to_search);
-  if (!status.ok()) return status;
+  SCANN_RETURN_IF_ERROR(
+      (current_node->FindChildrenWithSpilling<float, CentersType>(
+          query, spilling_type, possibly_learned_spilling_threshold,
+          max_centers, dist, &children_to_search)));
   for (const auto& elem : children_to_search) {
     const int32_t child_index = elem.first;
     const float distance_to_child_center = elem.second;
@@ -393,14 +431,60 @@ Status KMeansTree::TokenizeWithSpillingImpl(
       result.distance_to_center = distance_to_child_center;
       results->push_back(result);
     } else {
-      status = TokenizeWithSpillingImpl<CentersType>(
+      SCANN_RETURN_IF_ERROR((TokenizeWithSpillingImpl<CentersType>(
           query, dist, spilling_type, spilling_threshold, max_centers,
-          &current_node->Children()[child_index], results);
-      if (!status.ok()) return status;
+          &current_node->Children()[child_index], results)));
     }
   }
 
   ZipSortBranchOptimized(results->begin(), results->end());
+  return OkStatus();
+}
+
+template <typename CentersType>
+Status KMeansTree::TokenizeWithSpillingImpl(
+    const DatapointPtr<float>& query, const DistanceMeasure& dist,
+    QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
+    int32_t max_centers, const KMeansTreeNode* current_node,
+    std::vector<pair<DatapointIndex, float>>* results) const {
+  if (ABSL_PREDICT_TRUE(is_flat_)) {
+    const double possibly_learned_spilling_threshold =
+        (std::isnan(spilling_threshold))
+            ? current_node->learned_spilling_threshold()
+            : spilling_threshold;
+    SCANN_RETURN_IF_ERROR(
+        (current_node->FindChildrenWithSpilling<float, CentersType>(
+            query, spilling_type, possibly_learned_spilling_threshold,
+            max_centers, dist, results)));
+    ZipSortBranchOptimized(DistanceComparatorBranchOptimized(),
+                           results->begin(), results->end());
+    return OkStatus();
+  } else {
+    vector<KMeansTreeSearchResult> full_results;
+    SCANN_RETURN_IF_ERROR(TokenizeWithSpillingImpl<CentersType>(
+        query, dist, spilling_type, spilling_threshold, max_centers,
+        current_node, &full_results));
+    results->resize(full_results.size());
+    for (const auto& [i, full_res] : Enumerate(full_results)) {
+      (*results)[i] = {full_res.node->LeafId(), full_res.distance_to_center};
+    }
+    return OkStatus();
+  }
+}
+
+template <typename T>
+Status KMeansTree::ApplyAvq(
+    const DenseDataset<T>& dataset,
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token, float avq_eta,
+    ThreadPool* pool_or_null) {
+  const bool need_reenable_fixed8 = !root_.fixed_point_centers_.empty();
+  SCANN_RETURN_IF_ERROR(
+      root_.ApplyAvq(dataset, datapoints_by_token, avq_eta, pool_or_null));
+  root_.PopulateCurNodeCenters();
+  if (need_reenable_fixed8) {
+    root_.CreateFixedPointCenters();
+  }
+
   return OkStatus();
 }
 

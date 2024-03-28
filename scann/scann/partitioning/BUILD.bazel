@@ -15,6 +15,19 @@ package(
 # ==============================================================================
 
 cc_library(
+    name = "anisotropic",
+    srcs = ["anisotropic.cc"],
+    hdrs = ["anisotropic.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:common",
+        "//scann/utils/linear_algebra:eigen_utils",
+        "//scann/utils/linear_algebra:types",
+    ],
+)
+
+cc_library(
     name = "partitioner_base",
     srcs = ["partitioner_base.cc"],
     hdrs = ["partitioner_base.h"],
@@ -25,6 +38,7 @@ cc_library(
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:types",
@@ -32,6 +46,17 @@ cc_library(
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
+    ],
+)
+
+cc_library(
+    name = "orthogonality_amplification_utils",
+    hdrs = ["orthogonality_amplification_utils.h"],
+    tags = ["local"],
+    deps = [
+        "//scann/data_format:datapoint",
+        "//scann/utils:types",
     ],
 )
 
@@ -61,6 +86,7 @@ cc_library(
     deps = [
         ":kmeans_tree_like_partitioner",
         ":kmeans_tree_partitioner_cc_proto",
+        ":orthogonality_amplification_utils",
         ":partitioner_base",
         ":partitioner_cc_proto",
         "//scann/base:search_parameters",
@@ -86,12 +112,31 @@ cc_library(
         "//scann/utils:datapoint_utils",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:parallel_for",
+        "//scann/utils:reordering_helper",
         "//scann/utils:types",
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/synchronization",
+    ],
+)
+
+cc_library(
+    name = "tree_brute_force_second_level_wrapper",
+    srcs = ["tree_brute_force_second_level_wrapper.cc"],
+    hdrs = ["tree_brute_force_second_level_wrapper.h"],
+    tags = ["local"],
+    deps = [
+        ":kmeans_tree_like_partitioner",
+        "//scann/brute_force",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/proto:partitioning_cc_proto",
+        "//scann/tree_x_hybrid:tree_x_hybrid_smmd",
+        "//scann/trees/kmeans_tree",
+        "//scann/utils:datapoint_utils",
+        "//scann/utils:types",
     ],
 )
 
@@ -103,7 +148,7 @@ cc_library(
         ":kmeans_tree_partitioner",
         ":partitioner_base",
         "//scann/distance_measures",
-        "//scann/oss_wrappers:tf_dependency",
+        "//scann/oss_wrappers:scann_status",
         "@com_google_absl//absl/synchronization",
     ],
 )
@@ -116,10 +161,12 @@ cc_library(
     deps = [
         ":kmeans_tree_like_partitioner",
         ":partitioner_base",
+        "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/projection:projection_base",
+        "//scann/utils:common",
         "//scann/utils:datapoint_utils",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/memory",
     ],
 )
@@ -135,7 +182,7 @@ cc_library(
         ":projecting_decorator",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
-        "//scann/oss_wrappers:tf_dependency",
+        "//scann/oss_wrappers:scann_status",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
         "//scann/proto:distance_measure_cc_proto",
@@ -163,12 +210,13 @@ cc_library(
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_random",
-        "//scann/oss_wrappers:tf_dependency",
+        "//scann/oss_wrappers:scann_status",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:partitioning_cc_proto",
         "//scann/trees/kmeans_tree",
+        "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "//scann/utils:weak_ptr_cache",
@@ -187,6 +235,7 @@ proto_library(
     deps = [
         ":kmeans_tree_partitioner_proto",
         ":linear_projection_tree_proto",
+        "//scann/data_format:features_proto",
     ],
 )
 

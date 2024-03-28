@@ -18,6 +18,7 @@ import pickle
 import tempfile
 import time
 import numpy as np
+
 from scann.scann_ops.py import scann_ops
 import tensorflow as tf
 
@@ -156,8 +157,9 @@ class TestEagerMode(tf.test.TestCase):
     self.assertAllEqual(indices3, np_indices2[0])
 
   def test_parallel(self):
-    np_dataset = np.random.rand(10000, 32)
-    np_queries = np.random.rand(1000, 32)
+    rng = np.random.default_rng(518)
+    np_dataset = rng.random((10000, 32))
+    np_queries = rng.random((1000, 32))
     dataset = tf.convert_to_tensor(np_dataset, dtype=tf.float32)
     queries = tf.convert_to_tensor(np_queries, dtype=tf.float32)
     k = 10

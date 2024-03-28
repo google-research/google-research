@@ -16,7 +16,9 @@
 
 #include "scann/metadata/metadata_getter.h"
 
-#include "tensorflow/core/lib/core/status.h"
+#include "scann/data_format/features.pb.h"
+#include "scann/utils/common.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 

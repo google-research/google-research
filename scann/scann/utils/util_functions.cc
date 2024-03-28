@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
