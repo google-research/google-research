@@ -21,7 +21,7 @@ import chex
 import jax
 import jax.numpy as jnp
 
-from differentially_private_gnns import optimizers
+import optimizers
 
 
 class DifferentiallyPrivateAggregateTest(parameterized.TestCase):

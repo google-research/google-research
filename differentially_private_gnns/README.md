@@ -27,14 +27,14 @@ pip install --upgrade pip && pip install -r requirements.txt
 Download a dataset (ogbn-arxiv shown below) with our script:
 
 ```shell
-python download_datasets.py --dataset_name=ogbn-arxiv
+python -m download_datasets --dataset_name=ogbn-arxiv
 ```
 
 Start training with a configuration defined
 under `configs/`:
 
 ```shell
-python main.py --workdir=./tmp --config=configs/dpgcn.py
+python -m main --workdir=./tmp --config=configs/dpgcn.py
 ```
 
 #### Changing Hyperparameters
@@ -45,7 +45,7 @@ you can override hyperparameters. For example, to change the number of training
 steps, the batch size and the dataset:
 
 ```shell
-python main.py --workdir=./tmp --config=configs/dpgcn.py \
+python -m main --workdir=./tmp --config=configs/dpgcn.py \
 --config.num_training_steps=10 --config.batch_size=50 \
 --config.dataset=reddit-disjoint
 ```
@@ -54,7 +54,7 @@ If you just want to test training without any dataset downloads,
 you can also run the end-to-end training test on the dummy dataset:
 
 ```shell
-python train_test.py
+python -m train_test
 ```
 
 For more extensive changes, you can directly edit the configuration files,
@@ -66,14 +66,14 @@ By default, the datasets are downloaded to `datasets/` in the current working
 directory. You can change this by passing `dataset_path` to the download script:
 
 ```shell
-python download_datasets.py --dataset_name=ogbn-arxiv \
+python -m download_datasets --dataset_name=ogbn-arxiv \
 --dataset_path=${DATASET_PATH}
 ```
 
 and then updating the path in the config:
 
 ```shell
-python main.py --workdir=./tmp --config=configs/dpgcn.py \
+python -m main --workdir=./tmp --config=configs/dpgcn.py \
 --config.dataset_path=${DATASET_PATH}
 ```
 
