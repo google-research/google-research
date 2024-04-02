@@ -138,6 +138,21 @@ def parse_args():
             " resized to the resolution first before cropping."
         ),
     )
+    
+    parser.add_argument(
+      "--train_data_dir",
+      type=str,
+      default=None,
+      # previous: default="./dataset/align_test",
+      help=(
+          "A folder containing the training data. Folder contents must follow"
+          " the structure described in"
+          " https://huggingface.co/docs/datasets/image_dataset#imagefolder. In"
+          " particular, a `metadata.jsonl` file must exist to provide the"
+          " captions for the images. Ignored if `dataset_name` is specified."
+      ),
+    )
+    
     parser.add_argument( # NIYE bu var ?
         "--random_flip",
         default=True,
