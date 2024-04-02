@@ -411,6 +411,11 @@ def parse_args():
         help="0: raw value, 1: took positive",
     )
     parser.add_argument(
+        "--rarity_model_path",
+        type=str,
+        help="rarity model path"
+    )
+    parser.add_argument(
         "--kl_weight", type=float, default=0.01, help="weight of kl loss"
     )
     parser.add_argument(
@@ -962,8 +967,10 @@ def main():
     elif accelerator.mixed_precision == "bf16":
         weight_dtype = torch.bfloat16
 
+    import torch.nn as nn
     # reward models
-    reward_rarity_model = ViTForImageClassification.from_pretrained('PATH')
+    reward_rarity_model = ViTForImageClassification.from_pretrained(args.rarity_model_path)
+    reward_rarity_model.classifier = nn.Linear(reward_rarity_model.config.hidden_size, 1)
     reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14") #NOTE
     reward_processor = CLIPProcessor.from_pretrained(
         "openai/clip-vit-large-patch14"
