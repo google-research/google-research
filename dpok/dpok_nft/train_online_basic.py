@@ -1,5 +1,6 @@
 """Finetune diffusion model via policy gradient method."""
-
+# combined_reward = alpha * rarity_score + (1 - alpha) * original_reward  # alpha is a weighting factor we need something like this combine rewards
+#NOTES
 import argparse
 import copy
 import dataclasses
@@ -9,7 +10,7 @@ import logging
 import os
 import pickle
 import random
-
+from transformers import ViTForImageClassification
 from accelerate import Accelerator
 from accelerate.logging import get_logger
 from accelerate.utils import ProjectConfiguration, set_seed  # pylint: disable=g-multiple-import
@@ -38,7 +39,6 @@ import transformers
 from transformers import CLIPModel, CLIPProcessor  # pylint: disable=g-multiple-import
 from transformers import CLIPTextModel, CLIPTokenizer  # pylint: disable=g-multiple-import
 import utils
-
 
 logger = get_logger(__name__, log_level="INFO")
 def parse_args():
@@ -548,12 +548,33 @@ def _update_output_dir(args):
         value_log = "_v_lr" + str(args.v_lr) + "_b" + str(args.v_batch_size)
         value_log += "_s" + str(args.v_step)
         args.output_dir += value_log
-    
+
+from torchvision.transforms import Compose, Resize, Normalize, ToTensor
+def preprocess_image_for_vit(image_pil):
+    transform = Compose([
+        Resize((224, 224)),  # Example resize, adjust according to your ViT model
+        ToTensor(),
+        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),  # Example normalization, adjust as needed
+    ])
+    return transform(image_pil).unsqueeze(0)  # Add batch dimension
+
+def calculate_rarity_score(image_pil, rarity_model):
+    processed_img = preprocess_image_for_vit(image_pil)
+    with torch.no_grad():
+        outputs = rarity_model(processed_img.to('cuda'))
+        # Assume outputs are logits; convert to probabilities
+        probs = torch.nn.functional.softmax(outputs.logits, dim=-1)
+        # Example: assuming the highest probability indicates rarity
+        rarity_score = probs.max()
+    return rarity_score.item()
+
+
 def _calculate_reward_ir(
                         pipe,
                         args,
                         reward_tokenizer,
                         tokenizer,
+                        reward_rarity_model,
                         weight_dtype,
                         reward_clip_model,
                         image_reward,
@@ -568,6 +589,7 @@ def _calculate_reward_ir(
     blip_reward, _ = utils.image_reward_get_reward(
         image_reward, image_pil, prompts, weight_dtype
     )
+    rarity_score = calculate_rarity_score(image_pil=image_pil, reward_rarity_model=reward_rarity_model)
     if args.reward_filter == 1:
         blip_reward = torch.clamp(blip_reward, min=0)
     inputs = reward_tokenizer(
@@ -583,8 +605,10 @@ def _calculate_reward_ir(
     txt_emb = reward_clip_model.get_text_features(
         input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
     )
-    # ImageReward backbone is blip so ImageReward == BLIP Reward
-    return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
+    # ImageReward backbone is blip so ImageReward == BLIP Reward, Emir: is left statement true ?
+    # score = blip_reward.cpu().squeeze(0).squeeze(0) + rarity_score
+    final_score = blip_reward + rarity_score
+    return final_score, txt_emb.squeeze(0)
 
 # Uses CLIP for extract embeddings then specific reward_model given like "Aesthetic score model"
 def _calculate_reward_custom(
@@ -610,6 +634,7 @@ def _calculate_reward_custom(
         .pixel_values.to(weight_dtype)
         .to("cuda")
     )
+    
     img_emb = reward_clip_model.get_image_features(pixels)
     # prompt
     inputs = reward_tokenizer(
@@ -918,7 +943,7 @@ def main():
     # Text inputs to individual tokens 
 
     # Load scheduler, tokenizer and models.
-    tokenizer = CLIPTokenizer.from_pretrained(
+    tokenizer = CLIPTokenizer.from_pretrained( #NOTE what are they doing ??? tokenizer ?
         args.pretrained_model_name_or_path,
         subfolder="tokenizer",
         revision=args.revision,
@@ -936,8 +961,8 @@ def main():
         weight_dtype = torch.bfloat16
 
     # reward models
-    reward_rarity_model = None
-    reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
+    reward_rarity_model = ViTForImageClassification.from_pretrained('PATH')
+    reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14") #NOTE
     reward_processor = CLIPProcessor.from_pretrained(
         "openai/clip-vit-large-patch14"
     )
@@ -949,16 +974,12 @@ def main():
         image_reward.requires_grad_(False)
         image_reward.to(accelerator.device, dtype=weight_dtype)
     
-    # We need to give RarityScore path to reward_model_path because this is the part for custom reward
-    # Using Rarity score like this requires training for RarityScore separatelty then need to load model so 
-    #we need to train with our dataset and Rarity Score only version first
     else:
         reward_model = pickle.load(open(args.reward_model_path, "rb"))["reward"]
         reward_model.requires_grad_(False)
         reward_model.to(accelerator.device, dtype=weight_dtype)
 
     reward_clip_model.requires_grad_(False)
-
     # for pretrained weights
     if args.sft_initialization == 0:
         pipe = StableDiffusionPipelineExtended.from_pretrained(
@@ -1240,6 +1261,7 @@ def main():
             pipe,
             args,
             reward_tokenizer,
+            reward_rarity_model,
             tokenizer,
             weight_dtype,
             reward_clip_model,
