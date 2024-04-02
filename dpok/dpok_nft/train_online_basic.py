@@ -607,6 +607,8 @@ def _calculate_reward_ir(
     )
     # ImageReward backbone is blip so ImageReward == BLIP Reward, Emir: is left statement true ?
     # score = blip_reward.cpu().squeeze(0).squeeze(0) + rarity_score
+    print(f"img_reward: {blip_reward}")
+    print(f"rarity_reward: {rarity_score}")
     final_score = blip_reward + rarity_score
     return final_score, txt_emb.squeeze(0)
 
