@@ -224,8 +224,7 @@ def train(encoder_network_def,
         fixed_encoded_states, actions, brng)
     learned_z = jax.vmap(encoder_online_critic)(states)
     # We shuffle the batch element IDs.
-    shuffled_idx = jnp.array(list(range(batch_size)))
-    shuffled_idx = jax.random.shuffle(rng12, shuffled_idx)
+    shuffled_idx = jax.random.permutation(rng12, batch_size)
     shuffled_z = learned_z[shuffled_idx]
     if use_mico:
       base_distances = jax.vmap(metric_utils.cosine_distance)(learned_z,
