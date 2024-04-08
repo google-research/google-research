@@ -1704,7 +1704,7 @@ class Marot {
           continue;
         }
         metricDocAndDocSegs.add(
-            unitStats.doc, this.unitIdToDocSegId(unitStats.unit));
+            this.aColonB(unitStats.doc, this.unitIdToDocSegId(unitStats.unit)));
         metricStats.num_source_chars += unitStats.num_source_chars;
         metricStats.score += unitStats.metrics[metric];
       }
