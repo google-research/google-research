@@ -1,5 +1,5 @@
 import torch
-from transformers import CLIPProcessor, CLIPModel
+from transformers import CLIPProcessor, CLIPModel, CLIPTokenizer
 from diffusers import StableDiffusionPipeline, LMSDiscreteScheduler
 import numpy as np
 from tqdm import tqdm
@@ -42,6 +42,9 @@ from transformers import CLIPModel, CLIPProcessor  # pylint: disable=g-multiple-
 from transformers import CLIPTextModel, CLIPTokenizer  # pylint: disable=g-multiple-import
 import utils
 import argparse
+
+logger = get_logger(__name__, log_level="INFO")
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -88,6 +91,28 @@ def parse_arguments():
     
     return parser.parse_args()
 
+def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype, reward_clip_model, image_reward, images, prompts):
+    #TODO add rarity score here analize how should it work ?
+    image_pil = pipe.numpy_to_pil(images)[0]
+    blip_reward, _ = utils.image_reward_get_reward(image_reward, image_pil, prompts, weight_dtype)
+    if args.reward_filter == 1:
+       blip_reward = torch.clamp(blip_reward, min=0)
+       
+    inputs = reward_tokenizer(
+        prompts,
+        max_length=tokenizer.model_max_length,
+        padding="do_not_pad",
+        truncation=True,
+    )
+    input_ids = inputs.input_ids
+    padded_tokens = reward_tokenizer.pad(
+        {"input_ids": input_ids}, padding=True, return_tensors="pt"
+    )
+    txt_emb = reward_clip_model.get_text_features(
+          input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
+    )
+    return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
+
 
 args = parse_arguments()
 device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -115,9 +140,9 @@ if accelerator.mixed_precision == "fp16":
 elif accelerator.mixed_precision == "bf16":
     weight_dtype = torch.bfloat16
 
-clip_processor = CLIPProcessor.from_pretrained(clip_model_id)
-clip_model = CLIPModel.from_pretrained(clip_model_id).to(device)
-
+reward_processor = CLIPProcessor.from_pretrained(clip_model_id)
+reward_clip_model = CLIPModel.from_pretrained(clip_model_id).to(device)
+reward_tokenizer = CLIPTokenizer.from_pretrained(clip_model_id)
 pipe = StableDiffusionPipelineExtended.from_pretrained(
     args.sft_path, torch_dtype=weight_dtype
 )
@@ -187,50 +212,54 @@ lora_layers = AttnProcsLayers(unet.attn_processors)
 
 optimizer = torch.optim.AdamW(lora_layers.parameters(), lr=args.learning_rate)
 dataset = load_dataset(args.train_dir)
-def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype, reward_clip_model, image_reward, images, prompts):
-    #TODO add rarity score here analize how should it work ?
-    image_pil = pipe.numpy_to_pil(images)[0]
-    blip_reward, _ = utils.image_reward_get_reward(image_reward, image_pil, prompts, weight_dtype)
-    if args.reward_filter == 1:
-       blip_reward = torch.clamp(blip_reward, min=0)
-       
-    inputs = reward_tokenizer(
-        prompts,
-        max_length=tokenizer.model_max_length,
-        padding="do_not_pad",
-        truncation=True,
+
+#TODO data iterator, specially collect
+
+
+value_function = ValueMulti(50, (4, 64, 64))
+value_optimizer = torch.optim.AdamW(value_function.parameters(), lr=args.v_lr)
+value_function, value_optimizer = accelerator.prepare(
+      value_function, value_optimizer
+)
+
+if args.use_ema:
+    ema_unet.to(accelerator.device)
+
+reward_clip_model.to(accelerator.device, dtype=weight_dtype)
+
+if accelerator.is_main_process:
+    accelerator.init_trackers("text2image-fine-tune", config=vars(args))
+
+total_batch_size = (
+      args.train_batch_size
+      * accelerator.num_processes
+      * args.gradient_accumulation_steps
+  )
+
+logger.info("***** Running training *****")
+logger.info(f"  Num Epochs = {args.num_train_epochs}")
+logger.info(
+    f"  Instantaneous batch size per device = {args.train_batch_size}"
+)
+logger.info(
+    "  Total train batch size (w. parallel, distributed & accumulation) ="
+    f" {total_batch_size}"
+)
+logger.info(
+    f"  Gradient Accumulation steps = {args.gradient_accumulation_steps}"
+)
+logger.info(
+    f"  Total optimization steps = {args.max_train_steps // args.p_step}"
+)
+
+pipe.scheduler = DDIMSchedulerExtended.from_config(pipe.scheduler.config)
+pipe.to("cuda")
+
+for count in range(0, args.max_train_steps // args.p_steps):
+    unet.eval()
+    #NOTE whattfck is prompt list why are we using it like its dataset itself, where is the loading images ? 
+    batch = _get_batch(
+        data_iter_loader, _my_data_iterator, 
     )
-    input_ids = inputs.input_ids
-    padded_tokens = reward_tokenizer.pad(
-        {"input_ids": input_ids}, padding=True, return_tensors="pt"
-    )
-    txt_emb = reward_clip_model.get_text_features(
-          input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
-    )
-    return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
-
-# Example training loop
-for epoch in range(num_epochs):
-    # This is a simplification. You should load your actual data here.
-    text_prompts = ["A digital painting of a landscape", "A digital painting of a cat"]
-    for text in tqdm(text_prompts, desc=f"Epoch {epoch+1}"):
-        optimizer.zero_grad()
-        
-        # Generate image from text
-        with torch.no_grad():
-            generated = diffusion_model([text])
-            image = generated.images[0]
-
-        # Calculate reward
-        reward = calculate_image_reward(image, text)
-
-        # Example: Define a simple loss based on the reward. This is for illustration; 
-        # you'd want a more sophisticated approach.
-        loss = 1.0 - torch.tensor(reward, requires_grad=True)
-        loss.backward()
-        optimizer.step()
-
-        print(f"Processed text: {text}, Reward: {reward}")
-
-# Save the fine-tuned model
-torch.save(diffusion_model.unet.state_dict(), "fine_tuned_model.pth")
+    _collect_rollout()
+    _trim_buffer()
