@@ -187,18 +187,19 @@ def convert_to_pairwise_preferences(
 def make_title_presentable(title, convert_a = True):
   """Makes titles more presentable, cleaning "X, The (year)" and "X, A (year)".
 
-  This converts "X, The" to "The X" and (optionally) "X, A" to "A X". It is
-  necessary when data files come from different sources, with different formats.
+  This converts "X, The" to "The X" and (optionally) "X, A"/"X, An" to "A X"/"An
+  X". It is necessary when data files come from different sources, with
+  different formats.
 
   Args:
     title: Title to convert.
-    convert_a: If set, also convert "X, A" to "A X".
+    convert_a: If set, also convert "X, A"/"X, An" to "A X"/"An X".
 
   Returns:
     Presentable format of title.
   """
   if convert_a:
-    regex = re.compile(r"^([A-Za-z0-9:\.,& ']+), ((The)|(A))(.*)")
+    regex = re.compile(r"^([A-Za-z0-9:\.,& ']+), ((The)|(An)|(A))(.*)")
   else:
     regex = re.compile(r"^([A-Za-z0-9:\.,& ']+), (The)(.*)")
   match = regex.search(title)
