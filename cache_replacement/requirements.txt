@@ -29,7 +29,7 @@ numpy==1.18.1
 oauthlib==3.1.0
 opencv-python==4.2.0.32
 opt-einsum==3.1.0
-Pillow==7.0.0
+Pillow==10.3.0
 prettytable==0.7.2
 progressbar2==3.47.0
 protobuf==3.11.3
