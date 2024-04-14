@@ -123,14 +123,142 @@ def load_dataset(train_data_dir):
 # TODO get_random_indices, it would be nice to have a helper function like this
 # _upddate_output_dir
 # _get_batch DONE
-# _trim_buffer
-# TODO _save_model
+# _trim_buffer DONE
+# TODO _save_model DONE
 # TODO _collect_rollout is basically a validation and inference so we need it 
 # TODO _train_value_function, probably, we need this since it calculates some loss for unknown purposes
 # TODO keep a same logical state_dict dictionary
 # NOTE check line 978 in train_online_pg, and see how pipe.forward_calculate_logprob(.) works
 
 # NOTE below is helper function
+
+def _save_model(args, count, is_ddp, accelerator, unet):
+  """Saves UNET model."""
+  save_path = os.path.join(args.output_dir, f"save_{count}")
+  print(f"Saving model to {save_path}")
+  if is_ddp:
+    unet_to_save = copy.deepcopy(accelerator.unwrap_model(unet)).to(
+        torch.float32
+    )
+    unet_to_save.save_attn_procs(save_path)
+  else:
+    unet_to_save = copy.deepcopy(unet).to(torch.float32)
+    unet_to_save.save_attn_procs(save_path)
+
+
+@dataclasses.dataclass(frozen=False)
+class TrainPolicyFuncData:
+  tot_p_loss: float = 0
+  tot_ratio: float = 0
+  tot_kl: float = 0
+  tot_grad_norm: float = 0
+
+def get_random_indices(num_indices, sample_size):
+  """Returns a random sample of indices from a larger list of indices.
+
+  Args:
+      num_indices (int): The total number of indices to choose from.
+      sample_size (int): The number of indices to choose.
+
+  Returns:
+      A numpy array of `sample_size` randomly chosen indices.
+  """
+  return np.random.choice(num_indices, size=sample_size, replace=False)
+
+def _train_value_func(value_function, state_dict, accelerator, args):
+    """Trains the value function."""
+    indices = get_random_indices(state_dict["state"].shape[0], args.v_batch_size)
+    # permutation = torch.randperm(state_dict['state'].shape[0])
+    # indices = permutation[:v_batch_size]
+    batch_state = state_dict["state"][indices]
+    batch_timestep = state_dict["timestep"][indices]
+    batch_final_reward = state_dict["final_reward"][indices]
+    batch_txt_emb = state_dict["txt_emb"][indices]
+    pred_value = value_function(
+        batch_state.cuda().detach(),
+        batch_txt_emb.cuda().detach(),
+        batch_timestep.cuda().detach()
+    )
+    batch_final_reward = batch_final_reward.cuda().float()
+    # Calculates mse loss between predicted value and target(batch_final_reward) values
+    value_loss = F.mse_loss(
+        pred_value.float().reshape([args.v_batch_size, 1]),
+        batch_final_reward.cuda().detach().reshape([args.v_batch_size, 1]))
+    accelerator.backward(value_loss/args.v_step)
+    del pred_value
+    del batch_state
+    del batch_timestep
+    del batch_final_reward
+    del batch_txt_emb
+    return (value_loss.item() / args.v_step)
+
+
+def _train_policy_func(
+    args,
+    state_dict,
+    pipe,
+    unet_copy,
+    is_ddp,
+    count,
+    policy_steps,
+    accelerator,
+    tpfdata,
+    value_function):
+    """Trains the policy function."""
+    with torch.no_grad():
+        # Data preparation with random indices from the dataset
+        indices = get_random_indices(
+            state_dict["state"].shape[0], args.p_batch_size
+        )
+        batch_state = state_dict["state"][indices]
+        batch_next_state = state_dict["next_state"][indices]
+        batch_timestep = state_dict["timestep"][indices]
+        batch_final_reward = state_dict["final_reward"][indices]
+        batch_unconditional_prompt_embeds = state_dict[
+            "unconditional_prompt_embeds"
+        ][indices]
+        batch_guided_prompt_embeds = state_dict["guided_prompt_embeds"][indices]
+        batch_promt_embeds = torch.cat(
+            [batch_unconditional_prompt_embeds, batch_guided_prompt_embeds]
+        )
+        batch_txt_emb = state_dict["txt_emb"][indices]
+        batch_log_prob = state_dict["log_prob"][indices]
+    # calculate loss from the custom function
+    # (modified in pipeline_stable_diffusion.py and scheduling_ddim.py)
+        
+    # Forward pass (ratio between current policy and old policy)
+    log_prob, kl_regularizer = pipe.forward_calculate_logprob(
+        prompt_embeds=batch_promt_embeds.cuda(),
+        latents=batch_state.cuda(),
+        next_latents=batch_next_state.cuda(),
+        ts=batch_timestep.cuda(),
+        unet_copy=unet_copy,
+        is_ddp=is_ddp,
+    )
+    with torch.no_grad():
+        if args.v_flag == 1:
+            # pylint: disable=line-too-long
+            adv = batch_final_reward.cuda().reshape([args.p_batch_size, 1]) - value_function(
+                batch_state.cuda(),
+                batch_txt_emb.cuda(),
+                batch_timestep.cuda()).reshape([args.p_batch_size, 1])
+        else:
+            adv = batch_final_reward.cuda().reshape([args.p_batch_size, 1])
+    ratio = torch.exp(log_prob - batch_log_prob.cuda())
+    ratio = torch.clamp(ratio, 1.0 - args.ratio_clip, 1.0 + args.ratio_clip)
+    loss = (
+        -args.reward_weight
+        * adv.detach().float()
+        * ratio.float().reshape([args.p_batch_size, 1])
+    ).mean()
+    if count > args.kl_warmup:
+        loss += args.kl_weight * kl_regularizer.mean()
+    loss = loss / (args.gradient_accumulation_steps)
+    accelerator.backward(loss)
+    # logging
+    tpfdata.tot_ratio += ratio.mean().item() / policy_steps
+    tpfdata.tot_kl += kl_regularizer.mean().item() / policy_steps
+    tpfdata.tot_p_loss += loss.item() / policy_steps
 
 #TODO again this is using prompt list we should figure out why are we using prompt_list ? if this is the way of this, we should figure out for our dataset to fine-tune somehow
 def _get_batch(data_iter_loader, data_iterator, prompt_list, args, accelerator):
@@ -177,6 +305,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             log_prob_list,
             _,
         ) = pipe.forward_collect_traj_ddim(prompt=batch, is_ddp=is_ddp)
+        #TODO what does actually this do ?, basically its inference, generates image
         reward_list = []
         txt_emb_list = []
         for i in range(len(batch)):
