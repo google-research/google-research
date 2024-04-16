@@ -16,7 +16,7 @@
 """Defines a decoder-only transformer model."""
 
 import functools
-from typing import Optional
+from typing import Optional, Tuple
 
 from flax import linen as nn
 from flax import struct
@@ -116,6 +116,7 @@ class MultiHeadAttention(nn.Module):
     self.attn = lambda q, k, v: v  # Passthrough the value
     self.transpose = True  # q, k, v of shape [batch, heads, length, head_sz]
     self.pre_attn_layer = None
+    self.mixed = False
 
     if self.attention == 'polynomial':
       self.pre_attn_layer = nn.LayerNorm(epsilon=1e-5)
@@ -151,6 +152,28 @@ class MultiHeadAttention(nn.Module):
       self.attn = linear_squared_attention.make_squared_attn_fn(
           is_causal=self.causal, grain_size=self.grain_size
       )
+    elif self.attention == 'learned_sketch_mixed':
+      # Note self.attn handles both sketching and mixing exact attention
+      self.mixed = True
+      self.pre_attn_layer = skl.SketchLayer(
+          sketch_dim=self.sketch_size, sketch_levels=2, expansion_factor=8
+      )
+      self.attn = linear_squared_attention.make_mixed_squared_attn_fn(
+          is_causal=self.causal, grain_size=self.grain_size
+      )
+    elif self.attention == 'random_sketch_mixed':
+      # Note self.attn handles both sketching and mixing exact attention
+      self.mixed = True
+      self.pre_attn_layer = nn.LayerNorm(epsilon=1e-5)
+      self.attn = psa.make_mixed_polysketch_attn_fn(
+          feature_dimension=self.head_size,
+          sketch_key=self.random_key,
+          sketch_size=self.sketch_size,
+          is_causal=self.causal,
+          grain_size=self.grain_size,
+      )
+    else:
+      raise ValueError(f'Unknown attention: {self.attention}')
 
     if self.checkpoint_attention:
       self.attn = jax.checkpoint(self.attn)
@@ -187,11 +210,22 @@ class MultiHeadAttention(nn.Module):
       k = k.transpose((0, 2, 1, 3))
       v = v.transpose((0, 2, 1, 3))
 
+    q_pre_sketch, k_pre_sketch = None, None
+
+    if self.mixed:
+      # Apply layer norm to original query and key vectors and store them.
+      q_pre_sketch = nn.LayerNorm(epsilon=1e-5)(q)
+      k_pre_sketch = nn.LayerNorm(epsilon=1e-5)(k)
+
     if self.pre_attn_layer is not None:
+      # Compute the transformed vectors
       q = self.pre_attn_layer(q)
       k = self.pre_attn_layer(k)
 
-    output = self.attn(q, k, v)
+    if not self.mixed:
+      output = self.attn(q, k, v)
+    else:
+      output = self.attn(q, k, v, q_pre_sketch, k_pre_sketch)
 
     if self.transpose:
       # Switch head and context_length dimensions back
@@ -276,17 +310,20 @@ class Transformer(nn.Module):
     )  # Learnable bias to add to logits
 
   @nn.compact
-  def __call__(self, idx, training):
+  def __call__(
+      self, idx, training
+  ):
     """Applies the transformer model to the input tokens.
 
     Args:
       idx: Input of shape [batch,...,context_length] of dtype jnp.int32. Each
-        entry of idx must be in the interval [0, config.context_length]
+           entry of idx must be in the interval [0, config.context_length]
       training: True/False denoting training/inference
 
     Returns:
       logits: An array of shape idx.shape + (config.context_length, ) giving
               unnormalized logits
+      cache: A cache that can be used to speedup inference. *Unimplemented*
     """
     token_embd = self.wte(idx)
     x = token_embd + self.pe
@@ -296,4 +333,4 @@ class Transformer(nn.Module):
 
     x = self.ln(x)
     logits = self.wte.attend(x) + self.softmax_bias
-    return logits
+    return logits, None

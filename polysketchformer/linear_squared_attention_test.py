@@ -16,7 +16,9 @@
 """Tests for linear_squared_attention."""
 
 from absl.testing import absltest
+from absl.testing import parameterized
 import jax.numpy as jnp
+from jax.scipy import linalg
 
 from polysketchformer import linear_squared_attention
 
@@ -88,6 +90,70 @@ class LinearSquaredAttentionTest(absltest.TestCase):
 
     # Check allclose
     self.assertTrue(jnp.allclose(direct_result, impl_output))
+
+
+class MixedLinearSquaredAttentionTest(parameterized.TestCase):
+
+  @parameterized.product(grain_size=[1, 2, 4, 16], power=[2, 4])
+  def test_causal(self, grain_size, power):
+    context_length = 32
+    dimension = 8
+    query = (
+        jnp.arange(context_length * dimension)
+        .astype(jnp.float32)
+        .reshape((1, context_length, dimension))
+    )
+    key = (
+        jnp.arange(context_length * dimension, 2 * context_length * dimension)
+        .astype(jnp.float32)
+        .reshape((1, context_length, dimension))
+    )
+    query_prime = (
+        jnp.arange(
+            2 * context_length * dimension, 3 * context_length * dimension
+        )
+        .astype(jnp.float32)
+        .reshape((1, context_length, dimension))
+    )
+    key_prime = (
+        jnp.arange(
+            3 * context_length * dimension, 4 * context_length * dimension
+        )
+        .astype(jnp.float32)
+        .reshape((1, context_length, dimension))
+    )
+    value = query
+
+    causal_mixed_squared_attention = (
+        linear_squared_attention.make_mixed_squared_attn_fn(
+            is_causal=True, grain_size=grain_size, power=power
+        )
+    )
+    impl_output = causal_mixed_squared_attention(
+        query, key, value, query_prime, key_prime
+    )
+
+    # Computing the reference output
+    original_weights_matrix = jnp.tril((query @ key.transpose(0, 2, 1)) ** 2)
+    within_blocks_weight_matrix = jnp.tril(
+        (query_prime @ key_prime.transpose(0, 2, 1)) ** power
+    )
+    blocks_grain_size = jnp.ones((grain_size, grain_size), dtype=jnp.int32)
+    block_diagonal_matrix = linalg.block_diag(
+        *([blocks_grain_size] * (context_length // grain_size))
+    )
+    block_diagonal_mask = block_diagonal_matrix.astype(jnp.bool)
+    mixed_attention_weights = jnp.where(
+        block_diagonal_mask,
+        within_blocks_weight_matrix,
+        original_weights_matrix,
+    )
+
+    scalings = jnp.einsum("...qk -> ...q", mixed_attention_weights) + 1.0
+    scalings = jnp.reciprocal(scalings)
+
+    reference_output = (mixed_attention_weights @ value) * scalings[Ellipsis, None]
+    self.assertTrue(jnp.allclose(reference_output, impl_output))
 
 
 if __name__ == "__main__":
