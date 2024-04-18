@@ -158,7 +158,10 @@ class DataFrame(tf.keras.layers.Layer):
 
   def _streaming_internal_state(self, inputs):
     # first dimension is batch size
-    if inputs.shape[0] != self.inference_batch_size:
+    if (
+        inputs.shape[0] is not None
+        and inputs.shape[0] != self.inference_batch_size
+    ):
       raise ValueError(
           'inputs.shape[0]:%d must be = self.inference_batch_size:%d' %
           (inputs.shape[0], self.inference_batch_size))
@@ -201,7 +204,10 @@ class DataFrame(tf.keras.layers.Layer):
 
   def _streaming_external_state(self, inputs, states):
     # first dimension is batch size
-    if inputs.shape[0] != self.inference_batch_size:
+    if (
+        inputs.shape[0] is not None
+        and inputs.shape[0] != self.inference_batch_size
+    ):
       raise ValueError(
           'inputs.shape[0]:%d must be = self.inference_batch_size:%d' %
           (inputs.shape[0], self.inference_batch_size))
