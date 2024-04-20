@@ -1,3 +1,18 @@
+# coding=utf-8
+# Copyright 2023 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
 """Extension of diffusers.DDIMScheduler."""
 
 from typing import Optional, Tuple, Union
@@ -12,11 +27,11 @@ class DDIMSchedulerExtended(DDIMScheduler):
   """Extension of diffusers.DDIMScheduler."""
 
   def _get_variance_logprob(self, timestep, prev_timestep):
-    alpha_prod_t = self.alphas_cumprod[timestep].to(timestep.device)
+    alpha_prod_t = self.alphas_cumprod[timestep.cpu()].to(timestep.device)
     mask_a = (prev_timestep >= 0).int().to(timestep.device)
     mask_b = 1 - mask_a
     alpha_prod_t_prev = (
-        self.alphas_cumprod[prev_timestep].to(timestep.device) * mask_a
+        self.alphas_cumprod[prev_timestep.cpu()].to(timestep.device) * mask_a
         + self.final_alpha_cumprod.to(timestep.device) * mask_b
     )
     beta_prod_t = 1 - alpha_prod_t
@@ -79,7 +94,7 @@ class DDIMSchedulerExtended(DDIMScheduler):
           "Number of inference steps is 'None', you need to run 'set_timesteps'"
           " after creating the scheduler"
       )
-
+    
     # pylint: disable=line-too-long
     # See formulas (12) and (16) of DDIM paper https://arxiv.org/pdf/2010.02502.pdf
     # Ideally, read DDIM paper in-detail understanding
@@ -98,12 +113,12 @@ class DDIMSchedulerExtended(DDIMScheduler):
     )
 
     # 2. compute alphas, betas
-    alpha_prod_t = self.alphas_cumprod[timestep].to(timestep.device)
+    alpha_prod_t = self.alphas_cumprod[timestep.cpu()].to(timestep.device)
     # alpha_prod_t = alpha_prod_t.to(torch.float16)
     mask_a = (prev_timestep >= 0).int().to(timestep.device)
     mask_b = 1 - mask_a
     alpha_prod_t_prev = (
-        self.alphas_cumprod[prev_timestep].to(timestep.device) * mask_a
+        self.alphas_cumprod[prev_timestep.cpu()].to(timestep.device) * mask_a
         + self.final_alpha_cumprod.to(timestep.device) * mask_b
     )
     beta_prod_t = 1 - alpha_prod_t
@@ -264,11 +279,11 @@ class DDIMSchedulerExtended(DDIMScheduler):
     )
 
     # 2. compute alphas, betas
-    alpha_prod_t = self.alphas_cumprod[timestep].to(timestep.device)
+    alpha_prod_t = self.alphas_cumprod[timestep.cpu()].to(timestep.device)
     mask_a = (prev_timestep >= 0).int().to(timestep.device)
     mask_b = 1 - mask_a
     alpha_prod_t_prev = (
-        self.alphas_cumprod[prev_timestep].to(timestep.device) * mask_a
+        self.alphas_cumprod[prev_timestep.cpu()].to(timestep.device) * mask_a
         + self.final_alpha_cumprod.to(timestep.device) * mask_b
     )
     beta_prod_t = 1 - alpha_prod_t
