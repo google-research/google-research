@@ -111,12 +111,24 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
 
 
-def load_dataset(train_data_dir):
+def load_dataset(args):
     """
     should load the whole dataset
+    images haven't used for fine-tuning, interesting.
     """
-    dataset = None
-    return dataset
+    with open(args.prompt_path) as json_file:
+        prompt_dict = json.load(json_file) # TODO should we some how create json for this
+    if args.prompt_category != "all":
+          prompt_category = [e for e in args.prompt_category.split(",")]
+    prompt_list = []
+    for prompt in prompt_dict:
+        category = prompt_dict[prompt]["category"] # so c
+        if args.prompt_category != "all":
+            if category in prompt_category:
+                prompt_list.append(prompt)
+        else:
+            prompt_list.append(prompt)
+    return prompt_list
 
 
 # NOTE do we need below functions or not
@@ -509,6 +521,7 @@ def main():
         eps=args.adam_epsilon,)
     
     #TODO load_dataset here
+    prompt_list = load_dataset(args.dataset_name, args.prompt_path)
     
     def _my_data_iterator(data, batch_size):
         # Shuffle the data randomly
@@ -518,7 +531,7 @@ def main():
             batch = data[i : i + batch_size]
             yield batch
     
-    #TODO prompt_list should be replaced by data ???    
+    #TODO prompt_list should be replaced by data ??? NO, because dpok only uses prompts as a dataset
     data_iterator = _my_data_iterator(prompt_list, batch_size=args.g_batch_size)
     data_iterator = accelerator.prepare(data_iterator)
     
