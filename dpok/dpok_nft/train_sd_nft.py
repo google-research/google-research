@@ -481,7 +481,7 @@ def parse_arguments():
     parser.add_argument(
         "--prompt_path",
         type=str,
-        default="./dataset/drawbench/data_meta_new.json",
+        default="../dataset/drawbench/data_meta_new.json",
         help="path to the prompt dataset",
     )
     parser.add_argument(
@@ -558,7 +558,7 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
 
 
-def load_dataset(args):
+def load_dataset_prompts(args):
     """
     should load the whole dataset
     images haven't used for fine-tuning, interesting.
@@ -731,6 +731,16 @@ def _get_batch(data_iter_loader, data_iterator, prompt_list, args, accelerator):
                 )
             )
         )
+    if args.single_flag == 1:
+        for i in range(len(batch)):
+            batch[i] = args.single_prompt
+
+    batch_list = []
+    # Creates same prompt num_samples times like it is good to create numerous samples for same prompt
+    for i in range(len(batch)):
+        batch_list.extend([batch[i] for _ in range(args.num_samples)])
+    batch = batch_list
+    return batch
 
 def _trim_buffer(buffer_size, state_dict):
     """Delete old samples from the bufffer."""
@@ -755,6 +765,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         # samples for each prompt
         # collect the rollout data from the custom sampling function
         # (modified in pipeline_stable_diffusion.py and scheduling_ddim.py)
+        #FIXME batch becomes None
         with torch.no_grad():
             (
             image,
@@ -764,7 +775,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             log_prob_list,
             _,
         ) = pipe.forward_collect_traj_ddim(prompt=batch, is_ddp=is_ddp)
-        #TODO what does actually this do ?, basically its inference, generates image
+        #TODO what does actually this do ?, basically its inference, generates images
         reward_list = []
         txt_emb_list = []
         for i in range(len(batch)):
@@ -967,7 +978,7 @@ def main():
         eps=args.adam_epsilon,)
     
     #TODO load_dataset here
-    prompt_list = load_dataset(args.dataset_name, args.prompt_path)
+    prompt_list = load_dataset_prompts(args)
     
     def _my_data_iterator(data, batch_size):
         # Shuffle the data randomly
