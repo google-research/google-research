@@ -92,19 +92,6 @@ def parse_arguments():
         ),
     )
     parser.add_argument(
-        "--train_data_dir",
-        type=str,
-        default=None,
-        # previous: default="./dataset/align_test",
-        help=(
-            "A folder containing the training data. Folder contents must follow"
-            " the structure described in"
-            " https://huggingface.co/docs/datasets/image_dataset#imagefolder. In"
-            " particular, a `metadata.jsonl` file must exist to provide the"
-            " captions for the images. Ignored if `dataset_name` is specified."
-        ),
-    )
-    parser.add_argument(
         "--image_column",
         type=str,
         default="image",
@@ -494,7 +481,7 @@ def parse_arguments():
     parser.add_argument(
         "--prompt_path",
         type=str,
-        default="./dataset/drawbench/data_meta.json",
+        default="./dataset/drawbench/data_meta_new.json",
         help="path to the prompt dataset",
     )
     parser.add_argument(
@@ -837,7 +824,6 @@ def main():
     accelerator_project_config = ProjectConfiguration(
         logging_dir=logging_dir, total_limit=args.checkpoints_total_limit
     )
-    num_epochs = args.num_epochs
     accelerator = Accelerator(
         mixed_precision=args.mixed_precision,
         log_with=args.report_to,
@@ -857,7 +843,7 @@ def main():
         datasets.utils.logging.set_verbosity_error()
         transformers.utils.logging.set_verbosity_error()
         diffusers.utils.logging.set_verbosity_error()
-    if accelerator.is_main_process():
+    if accelerator.is_main_process:
         os.makedirs(args.output_dir, exist_ok=True)
     tokenizer = CLIPTokenizer.from_pretrained(
         args.pretrained_model_name_or_path,
