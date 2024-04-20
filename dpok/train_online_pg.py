@@ -1268,7 +1268,7 @@ def main():
       prompt_category = [e for e in args.prompt_category.split(",")]
     prompt_list = []
     for prompt in prompt_dict:
-      category = prompt_dict[prompt]["category"]
+      category = prompt_dict[prompt]["category"] # so c
       if args.prompt_category != "all":
         if category in prompt_category:
           prompt_list.append(prompt)
