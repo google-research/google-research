@@ -63,6 +63,10 @@ def parse_arguments():
         ),
     )
     parser.add_argument(
+        "--enable_rarity",
+        action="store_true"
+    )
+    parser.add_argument(
         "--revision",
         type=str,
         default=None,
@@ -539,6 +543,9 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     #TODO add rarity score here analize how should it work ? copy pasted from original
     image_pil = pipe.numpy_to_pil(images)[0]
     blip_reward, _ = utils.image_reward_get_reward(image_reward, image_pil, prompts, weight_dtype)
+    if args.enable_rarity:
+        rarity_reward = calculate_rarity_score(images) # this should return a vector of probs rarity
+        print(rarity_reward)
     if args.reward_filter == 1:
        blip_reward = torch.clamp(blip_reward, min=0)
        
@@ -590,6 +597,24 @@ def load_dataset_prompts(args):
 # NOTE check line 978 in train_online_pg, and see how pipe.forward_calculate_logprob(.) works
 
 # NOTE below is helper function
+
+from torchvision.transforms import Compose, Resize, Normalize, ToTensor
+def preprocess_image_for_vit(image_pil):
+    transform = Compose([
+        Resize((224, 224)),
+        ToTensor(),
+        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
+    ])
+    return transform(image_pil).unsqueeze(0)
+
+
+def calculate_rarity_score(image_pil, rarity_model):
+    processed_img = preprocess_image_for_vit(image_pil)
+    with torch.no_grad():
+        outputs = rarity_model(processed_img.to('cuda'))
+
+    return outputs
+
 
 def _save_model(args, count, is_ddp, accelerator, unet):
   """Saves UNET model."""
@@ -803,7 +828,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         #FIXME batch becomes None
         with torch.no_grad():
             (
-            image,
+            image, # are length of batch size
             latents_list,
             unconditional_prompt_embeds,
             guided_prompt_embeds,
@@ -845,6 +870,9 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
                 (state_dict["log_prob"], log_prob_list[i])
             )
         # Delete generated images, lists for inference
+        print(torch.cat(
+                (state_dict["final_reward"], reward_list)
+            ))
         del (
             image,
             latents_list,
@@ -913,6 +941,12 @@ def main():
     # TODO below initialize rarity model class
     
     # reward models
+    from transformers import ViTForImageClassification
+    import torch.nn as nn
+    
+    if args.enable_rarity:
+        reward_rarity_model = ViTForImageClassification.from_pretrained(args.rarity_model_path)
+        reward_rarity_model.classifier = nn.Linear(reward_rarity_model.config.hidden_size, 1)
     reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
     reward_processor = CLIPProcessor.from_pretrained(
         "openai/clip-vit-large-patch14"
@@ -1047,7 +1081,9 @@ def main():
     
     if args.use_ema:
         ema_unet.to(accelerator.device)
-        
+    
+    if args.enable_rarity:
+        reward_rarity_model.to(accelerator.device, dtype=weight_dtype)
     reward_clip_model.to(accelerator.device, dtype=weight_dtype)
     if accelerator.is_main_process:
         accelerator.init_trackers("text2image-fine-tune", config=vars(args))
@@ -1133,6 +1169,7 @@ def main():
         reward_clip_model,
         image_reward
     )
+    
     count = 0
     #TODO why is there a buffer for what ???
     
@@ -1144,11 +1181,9 @@ def main():
     print("model is parallel: ", is_ddp)
     
     # policy training done below
-    #TODO what is policy training, what are we training actually ???
     for count in range(0, args.max_train_steps // args.p_step):
         # fix batchnorm
         unet.eval()
-        #NOTE again below uses prompt list as a dataset, again i am asking what are we training ?????
         batch = _get_batch(
             data_iter_loader, _my_data_iterator, prompt_list, args, accelerator
         )
