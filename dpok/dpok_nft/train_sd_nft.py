@@ -604,6 +604,41 @@ def _save_model(args, count, is_ddp, accelerator, unet):
     unet_to_save = copy.deepcopy(unet).to(torch.float32)
     unet_to_save.save_attn_procs(save_path)
 
+def _update_output_dir(args):
+    """Modifies `args.output_dir` using configurations in `args`.
+
+    Args:
+        args: argparse.Namespace object.
+    """
+    if args.single_flag == 1:
+        data_log = "single_prompt/" + args.single_prompt.replace(" ", "_") + "/"
+    else:
+        data_log = args.prompt_path.split("/")[-2] + "_"
+        data_log += args.prompt_category + "/"
+    learning_log = "p_lr" + str(args.learning_rate) + "_s" + str(args.p_step)
+    learning_log += (
+        "_b"
+        + str(args.p_batch_size)
+        + "_g"
+        + str(args.gradient_accumulation_steps)
+    )
+    learning_log += "_l" + str(args.lora_rank)
+    coeff_log = "_kl" + str(args.kl_weight) + "_re" + str(args.reward_weight)
+    if args.kl_warmup > 0:
+        coeff_log += "_klw" + str(args.kl_warmup)
+    if args.sft_initialization == 0:
+        start_log = "/pre_train/"
+    else:
+        start_log = "/sft/"
+    if args.reward_flag == 0:
+        args.output_dir += "/img_reward_{}/".format(args.reward_filter)
+    else:
+        args.output_dir += "/prev_reward_{}/".format(args.reward_filter)
+    args.output_dir += start_log + data_log + "/" + learning_log + coeff_log
+    if args.v_flag == 1:
+        value_log = "_v_lr" + str(args.v_lr) + "_b" + str(args.v_batch_size)
+        value_log += "_s" + str(args.v_step)
+        args.output_dir += value_log
 
 @dataclasses.dataclass(frozen=False)
 class TrainPolicyFuncData:
@@ -829,8 +864,10 @@ def main():
     args = parse_arguments()
     device = "cuda" if torch.cuda.is_available() else "cpu"
     # TODO non_ema_revision !!!!!!!!?????? missing right now for the sake of my mental health
-    diffusion_model_id = "CompVis/stable-diffusion-v1-4" #TODO update to SD2.0 # doesn't need experiments showed that 1.5 performs better in our case.
-    clip_model_id = "openai/clip-vit-base-patch32" #NOTE check output input shapes, how are they suitable ??????
+    # below 2 lines are deprecated
+    # diffusion_model_id = "CompVis/stable-diffusion-v1-4" #TODO update to SD2.0 # doesn't need experiments showed that 1.5 performs better in our case.
+    # clip_model_id = "openai/clip-vit-base-patch32" #NOTE check output input shapes, how are they suitable ??????
+    _update_output_dir(args)
     logging_dir = os.path.join(args.output_dir, args.logging_dir)
     accelerator_project_config = ProjectConfiguration(
         logging_dir=logging_dir, total_limit=args.checkpoints_total_limit
@@ -873,6 +910,7 @@ def main():
     elif accelerator.mixed_precision == "bf16":
         weight_dtype = torch.bfloat16
     
+    # TODO below initialize rarity model class
     
     # reward models
     reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
