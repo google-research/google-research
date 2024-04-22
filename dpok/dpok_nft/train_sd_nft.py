@@ -844,8 +844,8 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         txt_emb_list = []
         for i in range(len(batch)):
             reward, txt_emb, rarity_reward = calculate_reward(image[i], batch[i])
-            reward_list.append(reward)
-            reward_list.append(rarity_reward)
+            reward_list.append(reward) # reward (hxh) dimension
+            # reward_list.append(rarity_reward) this way didn't work # (,) h+1,h 
             txt_emb_list.append(txt_emb)
         reward_list = torch.stack(reward_list).detach().cpu()
         txt_emb_list = torch.stack(txt_emb_list).detach().cpu()
