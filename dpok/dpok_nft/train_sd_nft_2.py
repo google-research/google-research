@@ -586,7 +586,8 @@ def combine_rewards(blip_rewards, rarity_rewards, blip_weight=1.0, rarity_weight
     blip_rewards = blip_weight * blip_rewards
     rarity_rewards = rarity_weight * rarity_rewards
     
-    return blip_rewards,rarity_rewards
+    #return blip_rewards,rarity_rewards
+    return torch.stack([blip_rewards, rarity_rewards], dim=-1)
 
 
 def load_dataset_prompts(args):
@@ -634,15 +635,20 @@ def preprocess_image_for_vit(images):
 
 def calculate_rarity_score(images, rarity_model):
     processed_img = preprocess_image_for_vit(images)
+    print(f"Processed image shape: {processed_img.shape}")
+
     with torch.no_grad():
         outputs = rarity_model(processed_img.to('cuda'))
-        probs = torch.nn.functional.softmax(outputs.logits) # found the correct dimension for applying softmax (should it be dim=1)
+        logits = outputs.logits
+        print(f"Logits shape: {logits.shape}")
+        print(f"Sample logits: {logits[:5]}")
+        probs = torch.nn.functional.softmax(logits, dim=1) # found the correct dimension for applying softmax (should it be dim=1)
+        print(f"Probabilities shape: {probs.shape}")
+        print(f"Sample probabilities: {probs[:5]}")
         #probs = torch.nn.functional.softmax(outputs.logits, dim=1)
-        print(f"outputs below: {outputs.logits.shape}")
+        
         #print("Sample logits:", outputs.logits[:5])
         #print("Sample probabilities:", probs[:5])
-        print(outputs.logits)
-        print(f"outputs value: {outputs}")
 
     return probs
     # return probs[:,1] 
@@ -869,17 +875,16 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         ) = pipe.forward_collect_traj_ddim(prompt=batch, is_ddp=is_ddp)
         #TODO what does actually this do ?, basically its inference, generates images
             
-        reward_stack = []
+        reward_list = []
         txt_emb_list = []
 
         for i in range(len(batch)):
             blip_reward, txt_emb, rarity_reward = calculate_reward(image[i], batch[i])
-            scaled_blip, scaled_rarity = combine_rewards(blip_rewards=blip_reward,rarity_rewards=rarity_reward)
-            stacked_rewards = torch.stack([scaled_blip, scaled_rarity], dim=-1)
-            reward_stack.append(stacked_rewards)
+            combined_rewards = combine_rewards(blip_rewards=blip_reward, rarity_rewards=rarity_reward)
+            reward_list.append(combined_rewards)
             txt_emb_list.append(txt_emb)
         
-        reward_stack = torch.stack(reward_stack).detach().cpu()
+        reward_list = torch.stack(reward_list).detach().cpu()
         txt_emb_list = torch.stack(txt_emb_list).detach().cpu()
 
         # store the rollout data
@@ -894,7 +899,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
                 (state_dict["timestep"], torch.LongTensor([i] * len(batch)))
             )
             state_dict["final_reward"] = torch.cat(
-                (state_dict["final_reward"], reward_stack)
+                (state_dict["final_reward"], reward_list)
             )
             
             state_dict["unconditional_prompt_embeds"] = torch.cat((
@@ -910,6 +915,8 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             )
         # Delete generated images, lists for inference
         print(f"Final rewards: {state_dict['final_reward']}")
+        print(f"Final rewards shape: {combined_rewards.shape}")
+        print(f"Sample combined rewards: {combined_rewards[:3]}")
 
         del (
             image,
