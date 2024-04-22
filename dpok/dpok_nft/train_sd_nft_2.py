@@ -639,6 +639,7 @@ def calculate_rarity_score(images, rarity_model):
         outputs = rarity_model(processed_img.to('cuda'))
         logits = outputs.logits
         print(f"Logits range: {logits.min()} to {logits.max()}")
+        # sigmoid applied while 1 class is appear to convert them into probabilities
         probs = torch.nn.functional.softmax(logits, dim=1) if logits.size(1) > 1 else torch.sigmoid(logits)
         print(f"Probabilities: {probs}")
     return probs
@@ -714,12 +715,16 @@ def get_random_indices(num_indices, sample_size):
 
 def _train_value_func(value_function, state_dict, accelerator, args):
     """Trains the value function."""
+
+    print("Size of final_reward before indexing:", state_dict["final_reward"].shape)
+
     indices = get_random_indices(state_dict["state"].shape[0], args.v_batch_size)
     # permutation = torch.randperm(state_dict['state'].shape[0])
     # indices = permutation[:v_batch_size]
     batch_state = state_dict["state"][indices]
     batch_timestep = state_dict["timestep"][indices]
     batch_final_reward = state_dict["final_reward"][indices]
+    print("Size of final_reward after indexing:", batch_final_reward.shape)
     batch_txt_emb = state_dict["txt_emb"][indices]
     pred_value = value_function(
         batch_state.cuda().detach(),
