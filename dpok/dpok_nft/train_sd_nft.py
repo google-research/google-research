@@ -67,6 +67,10 @@ def parse_arguments():
         action="store_true"
     )
     parser.add_argument(
+        "--rarity_model_path",
+        type=str
+    )
+    parser.add_argument(
         "--revision",
         type=str,
         default=None,
@@ -539,12 +543,12 @@ def parse_arguments():
 
     return args
 
-def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype, reward_clip_model, image_reward, images, prompts):
+def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype, reward_clip_model, reward_rarity_model, image_reward, images, prompts):
     #TODO add rarity score here analize how should it work ? copy pasted from original
     image_pil = pipe.numpy_to_pil(images)[0]
     blip_reward, _ = utils.image_reward_get_reward(image_reward, image_pil, prompts, weight_dtype)
     if args.enable_rarity:
-        rarity_reward = calculate_rarity_score(images) # this should return a vector of probs rarity
+        rarity_reward = calculate_rarity_score(images, reward_rarity_model) # this should return a vector of probs rarity
         print(rarity_reward)
     if args.reward_filter == 1:
        blip_reward = torch.clamp(blip_reward, min=0)
@@ -562,7 +566,7 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     txt_emb = reward_clip_model.get_text_features(
           input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
     )
-    return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0)
+    return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0), rarity_reward
 
 
 def load_dataset_prompts(args):
@@ -599,21 +603,21 @@ def load_dataset_prompts(args):
 # NOTE below is helper function
 
 from torchvision.transforms import Compose, Resize, Normalize, ToTensor
-def preprocess_image_for_vit(image_pil):
+def preprocess_image_for_vit(images):
     transform = Compose([
-        Resize((224, 224)),
         ToTensor(),
+        Resize((224, 224)),
         Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
-    return transform(image_pil).unsqueeze(0)
+    return transform(images).unsqueeze(0)
 
 
-def calculate_rarity_score(image_pil, rarity_model):
-    processed_img = preprocess_image_for_vit(image_pil)
+def calculate_rarity_score(images, rarity_model):
+    processed_img = preprocess_image_for_vit(images)
     with torch.no_grad():
         outputs = rarity_model(processed_img.to('cuda'))
-
-    return outputs
+        probs = torch.nn.functional.softmax(outputs.logits)
+    return probs
 
 
 def _save_model(args, count, is_ddp, accelerator, unet):
@@ -839,8 +843,9 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         reward_list = []
         txt_emb_list = []
         for i in range(len(batch)):
-            reward, txt_emb = calculate_reward(image[i], batch[i])
+            reward, txt_emb, rarity_reward = calculate_reward(image[i], batch[i])
             reward_list.append(reward)
+            reward_list.append(rarity_reward)
             txt_emb_list.append(txt_emb)
         reward_list = torch.stack(reward_list).detach().cpu()
         txt_emb_list = torch.stack(txt_emb_list).detach().cpu()
@@ -941,12 +946,14 @@ def main():
     # TODO below initialize rarity model class
     
     # reward models
-    from transformers import ViTForImageClassification
+    from transformers import ViTForImageClassification, ViTConfig
     import torch.nn as nn
     
     if args.enable_rarity:
-        reward_rarity_model = ViTForImageClassification.from_pretrained(args.rarity_model_path)
+        config = ViTConfig.from_pretrained('google/vit-base-patch16-224-in21k')
+        reward_rarity_model = ViTForImageClassification(config)
         reward_rarity_model.classifier = nn.Linear(reward_rarity_model.config.hidden_size, 1)
+        reward_rarity_model.load_state_dict(torch.load(args.rarity_model_path))
     reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
     reward_processor = CLIPProcessor.from_pretrained(
         "openai/clip-vit-large-patch14"
@@ -1167,6 +1174,7 @@ def main():
         tokenizer,
         weight_dtype,
         reward_clip_model,
+        reward_rarity_model,
         image_reward
     )
     
