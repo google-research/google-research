@@ -549,7 +549,7 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     blip_reward, _ = utils.image_reward_get_reward(image_reward, image_pil, prompts, weight_dtype)
     if args.enable_rarity:
         rarity_reward = calculate_rarity_score(images, reward_rarity_model) # this should return a vector of probs rarity
-        print(rarity_reward)
+        print(f"rarity reward {rarity_reward}")
     if args.reward_filter == 1:
        blip_reward = torch.clamp(blip_reward, min=0)
        
@@ -875,9 +875,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
                 (state_dict["log_prob"], log_prob_list[i])
             )
         # Delete generated images, lists for inference
-        print(torch.cat(
-                (state_dict["final_reward"], reward_list)
-            ))
+        print(f"final_reward: {(state_dict["final_reward"])}")
         del (
             image,
             latents_list,
