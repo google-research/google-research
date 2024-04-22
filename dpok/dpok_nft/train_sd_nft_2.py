@@ -632,7 +632,7 @@ def preprocess_image_for_vit(images):
     ])
     return transform(images).unsqueeze(0)
 
-
+# we can add mean and stdev normalization to this function but it can be ruined the shapes!
 def calculate_rarity_score(images, rarity_model):
     processed_img = preprocess_image_for_vit(images)
     with torch.no_grad():
@@ -642,6 +642,20 @@ def calculate_rarity_score(images, rarity_model):
         # sigmoid applied while 1 class is appear to convert them into probabilities
         probs = torch.nn.functional.softmax(logits, dim=1) if logits.size(1) > 1 else torch.sigmoid(logits)
         print(f"Probabilities: {probs}")
+    return probs
+
+def calculate_rarity_score_normalized(images, rarity_model):
+    processed_img = preprocess_image_for_vit(images)
+    with torch.no_grad():
+        outputs = rarity_model(processed_img.to('cuda'))
+        logits = outputs.logits
+        logits_mean = logits.mean()
+        logits_std = logits.std()
+        normalized_logits = (logits - logits_mean) / logits_std
+        print(f"Normalized Logits range: {normalized_logits.min()} to {normalized_logits.max()}")
+        probs = torch.nn.functional.softmax(normalized_logits, dim=1) if normalized_logits.size(1) > 1 else torch.sigmoid(normalized_logits)
+        print(f"Normalized Probabilities: {probs}")
+        
     return probs
 
 
@@ -734,14 +748,14 @@ def _train_value_func(value_function, state_dict, accelerator, args):
         batch_state.cuda().detach(),
         batch_txt_emb.cuda().detach(),
         batch_timestep.cuda().detach()
-    ).view(-1, 1)
+    ).view(-1, 1) # view kafamı karıstırdı ama calıstırımayınca onu yapmam gerektigini gpt söyledi
     losses = []
-    for i in range(batch_final_reward.shape[-1]):
-        reward_component = batch_final_reward[:, i].cuda().float().view(-1, 1) 
+    for i in range(batch_final_reward.shape[-1]): # last dimension is for losses 
+        reward_component = batch_final_reward[:, i].cuda().float().view(-1, 1) #same 
         loss = F.mse_loss(pred_value, reward_component)
         losses.append(loss)
     #batch_final_reward = batch_final_reward.cuda().float()
-    total_loss = sum(losses) / len(losses)  # Averaging the losses
+    total_loss = sum(losses) / len(losses) 
     accelerator.backward(total_loss / args.v_step)
     del pred_value
     del batch_state
