@@ -635,23 +635,13 @@ def preprocess_image_for_vit(images):
 
 def calculate_rarity_score(images, rarity_model):
     processed_img = preprocess_image_for_vit(images)
-    print(f"Processed image shape: {processed_img.shape}")
-
     with torch.no_grad():
         outputs = rarity_model(processed_img.to('cuda'))
         logits = outputs.logits
-        print(f"Logits shape: {logits.shape}")
-        print(f"Sample logits: {logits[:5]}")
-        probs = torch.nn.functional.softmax(logits, dim=1) # found the correct dimension for applying softmax (should it be dim=1)
-        print(f"Probabilities shape: {probs.shape}")
-        print(f"Sample probabilities: {probs[:5]}")
-        #probs = torch.nn.functional.softmax(outputs.logits, dim=1)
-        
-        #print("Sample logits:", outputs.logits[:5])
-        #print("Sample probabilities:", probs[:5])
-
+        print(f"Logits range: {logits.min()} to {logits.max()}")
+        probs = torch.nn.functional.softmax(logits, dim=1) if logits.size(1) > 1 else torch.sigmoid(logits)
+        print(f"Probabilities: {probs}")
     return probs
-    # return probs[:,1] 
 
 
 def _save_model(args, count, is_ddp, accelerator, unet):
@@ -926,7 +916,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             reward_list,
             txt_emb_list,
             log_prob_list,
-            reward,
+            blip_reward,
             txt_emb,
         )
         torch.cuda.empty_cache()
