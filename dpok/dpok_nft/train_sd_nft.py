@@ -552,7 +552,7 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
         print(f"rarity reward {rarity_reward}")
     if args.reward_filter == 1:
        blip_reward = torch.clamp(blip_reward, min=0)
-       
+    print(f"blip reward shpae: {blip_reward.shape}, value: {blip_reward}")
     inputs = reward_tokenizer(
         prompts,
         max_length=tokenizer.model_max_length,
@@ -617,6 +617,10 @@ def calculate_rarity_score(images, rarity_model):
     with torch.no_grad():
         outputs = rarity_model(processed_img.to('cuda'))
         probs = torch.nn.functional.softmax(outputs.logits)
+        print(f"outputs below: {outputs.logits.shape}")
+        print(outputs.logits)
+        print(f"outputs value: {outputs}")
+
     return probs
 
 
@@ -844,6 +848,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         txt_emb_list = []
         for i in range(len(batch)):
             reward, txt_emb, rarity_reward = calculate_reward(image[i], batch[i])
+            print(f"reward shpae: {reward.shape}")
             reward_list.append(reward) # reward (hxh) dimension
             # reward_list.append(rarity_reward) this way didn't work # (,) h+1,h 
             txt_emb_list.append(txt_emb)
@@ -875,7 +880,7 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
                 (state_dict["log_prob"], log_prob_list[i])
             )
         # Delete generated images, lists for inference
-        print(f"final_reward: {(state_dict["final_reward"])}")
+        print(f"final_reward: {(state_dict['final_reward'])}")
         del (
             image,
             latents_list,
