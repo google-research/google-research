@@ -723,7 +723,7 @@ def _train_value_func(value_function, state_dict, accelerator, args):
     # indices = permutation[:v_batch_size]
     batch_state = state_dict["state"][indices]
     batch_timestep = state_dict["timestep"][indices]
-    batch_final_reward = state_dict["final_reward"][indices]
+    batch_final_reward = state_dict["final_reward"][indices].squeeze()
     print("Indexed final_reward size:", batch_final_reward.shape)
     #batch_final_reward = batch_final_reward.squeeze() # change the shape from [256, 1, 1, 2] to [256, 2]
     #print("Squeezed final_reward size:", batch_final_reward.shape)
@@ -736,8 +736,8 @@ def _train_value_func(value_function, state_dict, accelerator, args):
         batch_timestep.cuda().detach()
     ).view(-1, 1)
     losses = []
-    for i in range(batch_final_reward.shape[1]):  # Assuming last dimension is reward types
-        reward_component = batch_final_reward[:, i].cuda().float().view(-1, 1)
+    for i in range(batch_final_reward.shape[-1]):
+        reward_component = batch_final_reward[:, i].cuda().float().view(-1, 1) 
         loss = F.mse_loss(pred_value, reward_component)
         losses.append(loss)
     #batch_final_reward = batch_final_reward.cuda().float()
