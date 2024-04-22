@@ -716,7 +716,7 @@ def get_random_indices(num_indices, sample_size):
 def _train_value_func(value_function, state_dict, accelerator, args):
     """Trains the value function."""
 
-    print("Size of final_reward before indexing:", state_dict["final_reward"].shape)
+    #print("Size of final_reward before indexing:", state_dict["final_reward"].shape) # torch.Size([500, 1, 1, 2])
 
     indices = get_random_indices(state_dict["state"].shape[0], args.v_batch_size)
     # permutation = torch.randperm(state_dict['state'].shape[0])
@@ -724,25 +724,32 @@ def _train_value_func(value_function, state_dict, accelerator, args):
     batch_state = state_dict["state"][indices]
     batch_timestep = state_dict["timestep"][indices]
     batch_final_reward = state_dict["final_reward"][indices]
-    print("Size of final_reward after indexing:", batch_final_reward.shape)
+    print("Indexed final_reward size:", batch_final_reward.shape)
+    #batch_final_reward = batch_final_reward.squeeze() # change the shape from [256, 1, 1, 2] to [256, 2]
+    #print("Squeezed final_reward size:", batch_final_reward.shape)
+
+    #print("Size of final_reward after indexing:", batch_final_reward.shape) # torch.Size([256, 1, 1, 2])
     batch_txt_emb = state_dict["txt_emb"][indices]
     pred_value = value_function(
         batch_state.cuda().detach(),
         batch_txt_emb.cuda().detach(),
         batch_timestep.cuda().detach()
     )
-    batch_final_reward = batch_final_reward.cuda().float()
-    # Calculates mse loss between predicted value and target(batch_final_reward) values
-    value_loss = F.mse_loss(
-        pred_value.float().reshape([args.v_batch_size, 1]),
-        batch_final_reward.cuda().detach().reshape([args.v_batch_size, 1]))
-    accelerator.backward(value_loss/args.v_step)
+    losses = []
+    for i in range(batch_final_reward.shape[1]):  # Assuming last dimension is reward types
+        reward_component = batch_final_reward[:, i].cuda().float().view(-1, 1)
+        loss = F.mse_loss(pred_value, reward_component)
+        losses.append(loss)
+    #batch_final_reward = batch_final_reward.cuda().float()
+    total_loss = sum(losses) / len(losses)  # Averaging the losses
+    accelerator.backward(total_loss / args.v_step)
     del pred_value
     del batch_state
     del batch_timestep
     del batch_final_reward
     del batch_txt_emb
-    return (value_loss.item() / args.v_step)
+
+    return total_loss.item() / args.v_step
 
 
 def _train_policy_func(
