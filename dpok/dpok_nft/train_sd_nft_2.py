@@ -734,7 +734,7 @@ def _train_value_func(value_function, state_dict, accelerator, args):
         batch_state.cuda().detach(),
         batch_txt_emb.cuda().detach(),
         batch_timestep.cuda().detach()
-    )
+    ).view(-1, 1)
     losses = []
     for i in range(batch_final_reward.shape[1]):  # Assuming last dimension is reward types
         reward_component = batch_final_reward[:, i].cuda().float().view(-1, 1)
