@@ -572,7 +572,7 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
         total_reward = _combine_rewards(blip_reward, rarity_reward, args)
     else:
         total_reward = blip_reward.cpu().squeeze(0).squeeze(0)
-    print(f"total reward shpae: {total_reward.shape}, value: {total_reward}")
+    print(f"total reward value: {total_reward}")
     inputs = reward_tokenizer(
         prompts,
         max_length=tokenizer.model_max_length,
