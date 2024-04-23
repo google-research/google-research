@@ -630,7 +630,6 @@ def _combine_rewards(blip_reward, rarity_reward, args):
     if args.ir_weight and args.rarity_weight:
         total_reward = args.ir_weight * blip_reward + args.rarity_weight * rarity_reward
     elif args.penalization:
-    
         if rarity_reward > args.penalty_threshold:
             total_reward = blip_reward + rarity_reward
         else:
@@ -987,6 +986,8 @@ def main():
         reward_rarity_model = ViTForImageClassification(config)
         reward_rarity_model.classifier = nn.Linear(reward_rarity_model.config.hidden_size, 1)
         reward_rarity_model.load_state_dict(torch.load(args.rarity_model_path))
+    else:
+        reward_rarity_model = None
     reward_clip_model = CLIPModel.from_pretrained("openai/clip-vit-large-patch14")
     reward_processor = CLIPProcessor.from_pretrained(
         "openai/clip-vit-large-patch14"
@@ -1305,20 +1306,20 @@ def main():
             accelerator.log({"p_loss": tpfdata.tot_p_loss}, step=count)
         torch.cuda.empty_cache()
     
-    if accelerator.sync_gradients:
-        global_step += 1
-        if global_step % args.checkpointing_steps == 0:
-            if accelerator.is_main_process:
-                save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
-                accelerator.save_state(output_dir=save_path)
-                logger.info(f"Saved state to {save_path}")
-        print("global_step", global_step)
+        if accelerator.sync_gradients:
+            global_step += 1
+            if global_step % args.checkpointing_steps == 0:
+                if accelerator.is_main_process:
+                    save_path = os.path.join(args.output_dir, f"checkpoint-{global_step}")
+                    accelerator.save_state(output_dir=save_path)
+                    logger.info(f"Saved state to {save_path}")
+            print("global_step", global_step)
 
-    # Save model per interval
-    if count % args.save_interval == 0:
-        accelerator.wait_for_everyone()
-        if accelerator.is_main_process:
-            _save_model(args, count, is_ddp, accelerator, unet)
+        # Save model per interval
+        if count % args.save_interval == 0:
+            accelerator.wait_for_everyone()
+            if accelerator.is_main_process:
+                _save_model(args, count, is_ddp, accelerator, unet)
 
     # Create the pipeline using the trained modules and save it.
     accelerator.wait_for_everyone()
