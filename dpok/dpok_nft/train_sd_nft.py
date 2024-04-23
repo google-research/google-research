@@ -528,6 +528,22 @@ def parse_arguments():
         type=float,
         default=1e-4,
     )
+    parser.add_argument(
+        "--penalization",
+        action="store_true"
+    )
+    parser.add_argument(
+        "--penalty_threshold",
+        type=float
+    )
+    parser.add_argument(
+        "--ir_weight",
+        type=float
+    )
+    parser.add_argument(
+        "--rarity_weight",
+        type=float
+    )
     args = parser.parse_args()
     env_local_rank = int(os.environ.get("LOCAL_RANK", -1))
     if env_local_rank != -1 and env_local_rank != args.local_rank:
@@ -547,18 +563,23 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     #TODO add rarity score here analize how should it work ? copy pasted from original
     image_pil = pipe.numpy_to_pil(images)[0]
     blip_reward, _ = utils.image_reward_get_reward(image_reward, image_pil, prompts, weight_dtype)
-    if args.enable_rarity:
-        rarity_reward = calculate_rarity_score(images, reward_rarity_model) # this should return a vector of probs rarity
-        print(f"rarity reward {rarity_reward}")
     if args.reward_filter == 1:
        blip_reward = torch.clamp(blip_reward, min=0)
-    print(f"blip reward shpae: {blip_reward.shape}, value: {blip_reward}")
+    if args.enable_rarity:
+        blip_reward = blip_reward.cpu().squeeze(0).squeeze(0)
+        rarity_reward = calculate_rarity_score(images, reward_rarity_model) # this should return a vector of probs rarity
+        rarity_reward = rarity_reward.cpu().squeeze(0).squeeze(0)
+        total_reward = _combine_rewards(blip_reward, rarity_reward, args)
+    else:
+        total_reward = blip_reward.cpu().squeeze(0).squeeze(0)
+    print(f"total reward shpae: {total_reward.shape}, value: {total_reward}")
     inputs = reward_tokenizer(
         prompts,
         max_length=tokenizer.model_max_length,
         padding="do_not_pad",
         truncation=True,
     )
+    
     input_ids = inputs.input_ids
     padded_tokens = reward_tokenizer.pad(
         {"input_ids": input_ids}, padding=True, return_tensors="pt"
@@ -566,7 +587,7 @@ def calculate_image_reward(pipe, args, reward_tokenizer, tokenizer, weight_dtype
     txt_emb = reward_clip_model.get_text_features(
           input_ids=padded_tokens.input_ids.to("cuda").unsqueeze(0)
     )
-    return blip_reward.cpu().squeeze(0).squeeze(0), txt_emb.squeeze(0), rarity_reward
+    return total_reward, txt_emb.squeeze(0)
 
 
 def load_dataset_prompts(args):
@@ -603,11 +624,23 @@ def load_dataset_prompts(args):
 # NOTE below is helper function
 
 from torchvision.transforms import Compose, Resize, Normalize, ToTensor
+
+def _combine_rewards(blip_reward, rarity_reward, args):
+    #TODO below fucntionality is beyond discussion, please discuss and research below well, most important thing
+    if args.ir_weight and args.rarity_weight:
+        total_reward = args.ir_weight * blip_reward + args.rarity_weight * rarity_reward
+    elif args.penalization:
+    
+        if rarity_reward > args.penalty_threshold:
+            total_reward = blip_reward + rarity_reward
+        else:
+            total_reward = blip_reward - rarity_reward
+    return total_reward
+
 def preprocess_image_for_vit(images):
     transform = Compose([
         ToTensor(),
         Resize((224, 224)),
-        Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
     ])
     return transform(images).unsqueeze(0)
 
@@ -616,10 +649,8 @@ def calculate_rarity_score(images, rarity_model):
     processed_img = preprocess_image_for_vit(images)
     with torch.no_grad():
         outputs = rarity_model(processed_img.to('cuda'))
-        probs = torch.nn.functional.softmax(outputs.logits)
-        print(f"outputs below: {outputs.logits.shape}")
-        print(outputs.logits)
-        print(f"outputs value: {outputs}")
+        probs = torch.nn.functional.sigmoid(outputs.logits)
+        print(f"outputs value: {outputs.logits}, probs: {probs}")
 
     return probs
 
@@ -847,8 +878,8 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
         reward_list = []
         txt_emb_list = []
         for i in range(len(batch)):
-            reward, txt_emb, rarity_reward = calculate_reward(image[i], batch[i])
-            print(f"reward shpae: {reward.shape}")
+            reward, txt_emb, = calculate_reward(image[i], batch[i])
+            print(f"reward: {reward}")
             reward_list.append(reward) # reward (hxh) dimension
             # reward_list.append(rarity_reward) this way didn't work # (,) h+1,h 
             txt_emb_list.append(txt_emb)
@@ -880,7 +911,6 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
                 (state_dict["log_prob"], log_prob_list[i])
             )
         # Delete generated images, lists for inference
-        print(f"final_reward: {(state_dict['final_reward'])}")
         del (
             image,
             latents_list,
