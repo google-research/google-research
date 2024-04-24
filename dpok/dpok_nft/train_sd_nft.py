@@ -882,7 +882,21 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             reward_list.append(reward) # reward (hxh) dimension
             # reward_list.append(rarity_reward) this way didn't work # (,) h+1,h 
             txt_emb_list.append(txt_emb)
-        reward_list = torch.stack(reward_list).detach().cpu()
+        
+        min_reward = min(reward_list)
+        max_reward = max(reward_list)
+        if max_reward == min_reward:
+            print("Warning: All rewards are the same. Normalization will divide by zero.")
+            normalized_reward_list = [0] * len(reward_list)  # or handle differently as needed
+        else:
+            # Normalize rewards using min-max scaling
+            normalized_reward_list = [(reward - min_reward) / (max_reward - min_reward) for reward in reward_list]
+        
+        print(f"reward list: {np.array(reward_list).shape}, values: {reward_list}, min {np.array(reward_list).min()}, max {np.array(reward_list).max()}")
+        print(f"normalized reward list: {np.array(reward_list).shape}, values: {reward_list}, min {np.array(reward_list).min()}, max {np.array(reward_list).max()}")
+        # TODO i guess should normalize reward list here
+        reward_list = normalized_reward_list
+        reward_list = torch.stack(reward_list).detach().cpu() 
         txt_emb_list = torch.stack(txt_emb_list).detach().cpu()
         # store the rollout data
         for i in range(len(latents_list) - 1):
