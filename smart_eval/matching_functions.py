@@ -42,7 +42,7 @@ class RougeMatchingFunction(MatchingFunction):
   """ROUGE matching function."""
 
   def __init__(self, rouge_type):
-    self._rouge = rouge_scorer.RougeScorer(rouge_type=[rouge_type])
+    self._rouge = rouge_scorer.RougeScorer(rouge_types=[rouge_type])
     self.rouge_type = rouge_type
 
   def __call__(
