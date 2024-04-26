@@ -12,7 +12,8 @@ class RarityScore(nn.Module):
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.vit_model.load_state_dict(torch.load(vit_model_weights_path)) # weights of our trained ViT model
         self.vit_model.to(self.device) # we have logits 
-        self.softmax = nn.Softmax(dim=1) # logits into probs
+        #self.softmax = nn.Softmax(dim=1) # logits into probs
+        self.sigmoid = torch.nn.functional.sigmoid()
 
         self.preprocess = Compose([
             Resize((224, 224)),
@@ -33,7 +34,7 @@ class RarityScore(nn.Module):
         with torch.no_grad():
             output = self.vit_model(image)
             logit = output.logit
-        probabilities = self.softmax(logit)
+        probabilities = self.sigmoid(logit)
         reward = probabilities[:,1].item()
         
         self.rewards.append(reward)
