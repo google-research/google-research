@@ -630,7 +630,7 @@ def _combine_rewards(blip_reward, rarity_reward, args):
     if args.ir_weight and args.rarity_weight:
         total_reward = args.ir_weight * blip_reward + args.rarity_weight * rarity_reward
     elif args.penalization:
-        if rarity_reward > args.penalty_threshold:
+        if rarity_reward > args.penalty_threshold: # 0.5
             total_reward = blip_reward + rarity_reward
         else:
             total_reward = blip_reward - rarity_reward
@@ -882,21 +882,22 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             reward_list.append(reward) # reward (hxh) dimension
             # reward_list.append(rarity_reward) this way didn't work # (,) h+1,h 
             txt_emb_list.append(txt_emb)
-        
-        min_reward = min(reward_list)
-        max_reward = max(reward_list)
+        reward_tensor = torch.stack(reward_list)
+        min_reward = torch.min(reward_tensor)
+        max_reward = torch.max(reward_tensor)
         if max_reward == min_reward:
             print("Warning: All rewards are the same. Normalization will divide by zero.")
-            normalized_reward_list = [0] * len(reward_list)  # or handle differently as needed
+            normalized_reward_list = torch.zeros_like(reward_tensor)  # or handle differently as needed
         else:
-            # Normalize rewards using min-max scaling
-            normalized_reward_list = [(reward - min_reward) / (max_reward - min_reward) for reward in reward_list]
-        
-        print(f"reward list: {np.array(reward_list).shape}, values: {reward_list}, min {np.array(reward_list).min()}, max {np.array(reward_list).max()}")
-        print(f"normalized reward list: {np.array(reward_list).shape}, values: {reward_list}, min {np.array(reward_list).min()}, max {np.array(reward_list).max()}")
+            normalized_reward_list = (reward_tensor - min_reward) / (max_reward - min_reward)
+
+        print(f"reward list: {reward_tensor.shape}, values: {reward_tensor.tolist()}, min {min_reward.item()}, max {max_reward.item()}")
+        print(f"normalized reward list: {normalized_reward_list.shape}, values: {normalized_reward_list.tolist()}, min {torch.min(normalized_reward_list).item()}, max {torch.max(normalized_reward_list).item()}")
+        # print(f"reward list: {np.array(reward_list).shape}, values: {reward_list}, min {np.array(reward_list).min()}, max {np.array(reward_list).max()}")
+        # print(f"normalized reward list: {np.array(reward_list).shape}, values: {reward_list}, min {np.array(reward_list).min()}, max {np.array(reward_list).max()}")
         # TODO i guess should normalize reward list here
         reward_list = normalized_reward_list
-        reward_list = torch.stack(reward_list).detach().cpu() 
+        reward_list = reward_list.detach().cpu() 
         txt_emb_list = torch.stack(txt_emb_list).detach().cpu()
         # store the rollout data
         for i in range(len(latents_list) - 1):
