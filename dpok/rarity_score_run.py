@@ -1,11 +1,12 @@
 import argparse
 from dpok_nft.rarity.rarity_engine import RarityScore
+import torch
 import os
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--vit_weights", required=True, help="Path to the pretrained ViT model weights file.")
-    parser.add_argument("--generated_images_path", nargs="+", required=True, help="Paths to the generated images.")
+    parser.add_argument("--generated_images_path", type=str, required=True, help="Paths to the generated images.")
     parser.add_argument("--enable_weighting", action="store_true", help="Enable weighted averaging of scores.")
     parser.add_argument("--enable_mean", action="store_true", help="Enable mean calculation of scores.")
     return parser.parse_args()
@@ -23,8 +24,8 @@ def main(vit_weights_path, generated_images_path):
                               for filename in os.listdir(generated_images_path) 
                               if filename.endswith(('.png'))]
 
-
     for image_path in generated_images:
+        
         rarity_model.compute_reward(image_path=image_path)
     
     rarity_model.normalize_reward()
