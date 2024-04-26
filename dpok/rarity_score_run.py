@@ -4,8 +4,8 @@ import os
 
 def main(vit_weights_path, generated_images_path):
     if args.enable_weighting:
-        rare_weight = 2
-        not_rare_weight = 1
+        rare_weight = 1.2
+        not_rare_weight = 0.8
     else:
         rare_weight = 1
         not_rare_weight = 1
