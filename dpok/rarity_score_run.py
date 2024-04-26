@@ -1,5 +1,5 @@
 import argparse
-from dpok_nft.ImageReward.models.RarityScore import RarityScore
+from dpok_nft.rarity.rarity_engine import RarityScore
 import os
 
 def parse_arguments():
