@@ -627,7 +627,7 @@ from torchvision.transforms import Compose, Resize, Normalize, ToTensor
 
 def _combine_rewards(blip_reward, rarity_reward, args):
     #TODO below fucntionality is beyond discussion, please discuss and research below well, most important thing
-    if args.ir_weight and args.rarity_weight:
+    if args.ir_weight + args.rarity_weight == 1.0:
         total_reward = args.ir_weight * blip_reward + args.rarity_weight * rarity_reward
     elif args.penalization:
         if rarity_reward > args.penalty_threshold: # 0.5
@@ -648,7 +648,8 @@ def calculate_rarity_score(images, rarity_model):
     processed_img = preprocess_image_for_vit(images)
     with torch.no_grad():
         outputs = rarity_model(processed_img.to('cuda'))
-        probs = torch.nn.functional.sigmoid(outputs.logits)
+        # probs = torch.nn.functional.sigmoid(outputs.logits)
+        probs = outputs.logits
         print(f"outputs value: {outputs.logits}, probs: {probs}")
 
     return probs
@@ -882,14 +883,14 @@ def _collect_rollout(args, pipe, is_ddp, batch, calculate_reward, state_dict):
             reward_list.append(reward) # reward (hxh) dimension
             # reward_list.append(rarity_reward) this way didn't work # (,) h+1,h 
             txt_emb_list.append(txt_emb)
-        reward_tensor = torch.stack(reward_list)
-        min_reward = torch.min(reward_tensor)
-        max_reward = torch.max(reward_tensor)
-        if max_reward == min_reward:
-            print("Warning: All rewards are the same. Normalization will divide by zero.")
-            normalized_reward_list = torch.zeros_like(reward_tensor)  # or handle differently as needed
-        else:
-            normalized_reward_list = (reward_tensor - min_reward) / (max_reward - min_reward)
+        reward_list = torch.stack(reward_list)
+        min_reward = torch.min(reward_list)
+        max_reward = torch.max(reward_list)
+        # if max_reward == min_reward:
+            # print("Warning: All rewards are the same. Normalization will divide by zero.")
+            # normalized_reward_list = torch.zeros_like(reward_tensor)  # or handle differently as needed
+        # else:
+            # normalized_reward_list = (reward_tensor - min_reward) / (max_reward - min_reward)
 
         print(f"reward list: {reward_tensor.shape}, values: {reward_tensor.tolist()}, min {min_reward.item()}, max {max_reward.item()}")
         print(f"normalized reward list: {normalized_reward_list.shape}, values: {normalized_reward_list.tolist()}, min {torch.min(normalized_reward_list).item()}, max {torch.max(normalized_reward_list).item()}")

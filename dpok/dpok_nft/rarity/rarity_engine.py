@@ -15,9 +15,8 @@ class RarityScore(nn.Module):
         self.vit_model.to(self.device) # we have logits 
         #self.softmax = nn.Softmax(dim=1) # logits into probs
         self.preprocess = Compose([
-            Resize((224, 224)),
             ToTensor(),
-            Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5])
+            Resize((224, 224)),
         ])
 
         self.rewards = []
@@ -26,6 +25,7 @@ class RarityScore(nn.Module):
 
     def preprocess_image(self,image_path):
         image = Image.open(image_path).convert('RGB')
+        image.save("./image.png")
         image = self.preprocess(image).unsqueeze(0).to(self.device)
         return image
     
@@ -34,10 +34,10 @@ class RarityScore(nn.Module):
         self.vit_model.eval()
         with torch.no_grad():
             output = self.vit_model(image)
-            logit = output.logit
-        probabilities = torch.nn.functional.sigmoid(logit)
-        reward = probabilities[:,1].item()
-        
+            logits = output.logits
+        probabilities = torch.nn.functional.sigmoid(logits)
+        reward = probabilities.squeeze(0).squeeze(0).item()
+        print(f"{image_path}: {reward}")
         self.rewards.append(reward)
 
         return reward

@@ -2,7 +2,7 @@ import argparse
 from dpok_nft.rarity.rarity_engine import RarityScore
 import torch
 import os
-
+import time
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument("--vit_weights", required=True, help="Path to the pretrained ViT model weights file.")
@@ -14,8 +14,8 @@ def parse_arguments():
 
 def main(vit_weights_path, generated_images_path):
     if args.enable_weighting:
-        rare_weight = 1.2
-        not_rare_weight = 0.8
+        rare_weight = 1
+        not_rare_weight = 0
     else:
         rare_weight = 1
         not_rare_weight = 1
@@ -23,13 +23,16 @@ def main(vit_weights_path, generated_images_path):
     generated_images = [os.path.join(generated_images_path, filename) 
                               for filename in os.listdir(generated_images_path) 
                               if filename.endswith(('.png'))]
-
+    # print(generated_images)
     for image_path in generated_images:
         
         rarity_model.compute_reward(image_path=image_path)
+        # time.sleep(0.1)
     
-    rarity_model.normalize_reward()
-
+    # rarity_model.normalize_reward()
+    # print(f"reward: {len(rarity_model.rewards >= 0.5)}")
+    num_rewards_above_0_5 = len([reward for reward in rarity_model.rewards if reward >= 0.5])
+    print(f"num rare: {num_rewards_above_0_5}")
     if args.enable_weighting:
         weighted_rarity_score = rarity_model.calculate_weighted_average()
         print("Weighted Rarity Score: ", weighted_rarity_score)
