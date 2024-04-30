@@ -24,7 +24,6 @@ import jax
 import jax.numpy as jnp
 from matplotlib import cm
 import numpy as np
-from smerf.internal.mock import error_metrics
 
 
 _Array = Union[np.ndarray, jnp.ndarray]
@@ -205,26 +204,13 @@ class MetricHarness:
   """A helper class for evaluating several error metrics."""
 
   def __init__(self, disable_ssim=False, disable_lpips=False, device=None):
+    _ = device
     self.ssim_fn = lambda x, y: np.nan
     if not disable_ssim:
       self.ssim_fn = jax.jit(dm_pix.ssim)
 
-    self.lpips_fn = lambda x, y: np.nan
     if not disable_lpips:
-      # The spin implementation matches the public implementation up to a
-      # tolerance of 0.001.
-      device = device or jax.devices()[0]
-      self.lpips_spin_fn = error_metrics.LPIPS(device=device)
-
-      # The mipnerf360 implementation of LPIPS fails to to ensure that pixel
-      # intensities are in [-1, 1]. Rather than using their TF model, use the
-      # implementation in spin for intensities in [0.5, 1].
-      def lpips_m360_fn(x, y):
-        x = (x + 1) / 2.0
-        y = (y + 1) / 2.0
-        return self.lpips_spin_fn(x, y)
-
-      self.lpips_m360_fn = lpips_m360_fn
+      raise NotImplementedError('LPIPS is not implemented in this codebase.')
 
   def __call__(self, rgb_pred, rgb_gt, name_fn=lambda s: s):
     """Evaluate the error between a predicted rgb image and the true image.
@@ -239,12 +225,8 @@ class MetricHarness:
     """
     psnr = float(imgs_to_psnr(rgb_pred, rgb_gt))
     ssim = float(self.ssim_fn(rgb_pred, rgb_gt))
-    lpips_spin = float(self.lpips_spin_fn(rgb_pred, rgb_gt))
-    lpips_m360 = float(self.lpips_m360_fn(rgb_pred, rgb_gt))
 
     return {
         name_fn('psnr'): psnr,
         name_fn('ssim'): ssim,
-        name_fn('lpips_spin'): lpips_spin,
-        name_fn('lpips_m360'): lpips_m360,
     }

@@ -15,4 +15,4 @@
 
 """Mocked-out libraries."""
 
-parallel = None
+from . import parallel

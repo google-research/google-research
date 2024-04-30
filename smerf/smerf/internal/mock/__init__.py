@@ -15,5 +15,4 @@
 
 """Mocked-out libraries."""
 
-error_metrics = None
-gfile = None
+from . import concurrent
