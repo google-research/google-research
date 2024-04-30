@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "smerf"
+version = "0.0.1"
+dependencies = [
+    "absl-py",
+    "camp_zipnerf",
+    "chex",
+    "dm-pix",
+    "e3x",
+    "etils",
+    "flax",
+    "gin-config",
+    "jax",
+    "jaxlib",
+    "matplotlib",
+    "mediapy",
+    "numpy",
+    "opencv-python",
+    "optax",
+    "orbax",
+    "pillow",
+    "pycolmap",
+    "scikit-image",
+    "scipy",
+    "tqdm",
+]
+authors = [
+    {name = "Daniel Duckworth"},
+    {name = "Peter Hedman"},
+]
+description = "Official implementation of SMERF."
+
+license = {file = "LICENSE"}
+readme = "README.md"
+
+[tool.setuptools.packages.find]
+where = [""]
+include = ["smerf*"]  # only publish one folder: "smerf"
