@@ -34,36 +34,36 @@ from smerf.internal import coord as merf_coord
 
 
 _TEACHER_NAMESPACES = {
-    'Config': 'mipnerf360.internal.configs',
-    'HashEncoding': 'mipnerf360.internal.grid_utils',
-    'MLP': 'mipnerf360.internal.models',
-    'Model': 'mipnerf360.internal.models',
+    'Config': 'camp_zipnerf.internal.configs',
+    'HashEncoding': 'camp_zipnerf.internal.grid_utils',
+    'MLP': 'camp_zipnerf.internal.models',
+    'Model': 'camp_zipnerf.internal.models',
     'experiment_name': 'spin.utils.sweep_utils',
 }
 
 _MERF_NAMESPACES = {
     # configs.py
-    'Config': 'merf_v2.internal.configs',
+    'Config': 'smerf.internal.configs',
     # contract.py
-    'contract': 'merf_v2.internal.coord',
-    'uncontract': 'merf_v2.internal.coord',
+    'contract': 'smerf.internal.coord',
+    'uncontract': 'smerf.internal.coord',
     # hash_encoding.py
-    'Multi3DGrid': 'merf_v2.internal.hash_encoding',
-    'MultiHashEncoding': 'merf_v2.internal.hash_encoding',
-    'MultiPropHashEncoding': 'merf_v2.internal.hash_encoding',
+    'Multi3DGrid': 'smerf.internal.hash_encoding',
+    'MultiHashEncoding': 'smerf.internal.hash_encoding',
+    'MultiPropHashEncoding': 'smerf.internal.hash_encoding',
     # math.py
-    'feature_activation': 'merf_v2.internal.math',
+    'feature_activation': 'smerf.internal.math',
     # models.py
-    'DeferredMLP': 'merf_v2.internal.models',
-    'Model': 'merf_v2.internal.models',
-    'PropMLP': 'merf_v2.internal.models',
-    'MultiPropMLP': 'merf_v2.internal.models',
-    'DensityAndFeaturesMLP': 'merf_v2.internal.models',
-    'MultiDensityAndFeaturesMLP': 'merf_v2.internal.models',
-    'MultiPostProcessingMLP': 'merf_v2.internal.models',
+    'DeferredMLP': 'smerf.internal.models',
+    'Model': 'smerf.internal.models',
+    'PropMLP': 'smerf.internal.models',
+    'MultiPropMLP': 'smerf.internal.models',
+    'DensityAndFeaturesMLP': 'smerf.internal.models',
+    'MultiDensityAndFeaturesMLP': 'smerf.internal.models',
+    'MultiPostProcessingMLP': 'smerf.internal.models',
     # schedule.py
-    'ConstSchedule': 'merf_v2.internal.schedule',
-    'LogLerpSchedule': 'merf_v2.internal.schedule',
+    'ConstSchedule': 'smerf.internal.schedule',
+    'LogLerpSchedule': 'smerf.internal.schedule',
 }
 
 
@@ -88,8 +88,8 @@ def load_config(save_config = True):
       Config.data_dir = 'NOT_USED'
     """
 
-    # The user may configure objects in both 'merf_v2' and 'mipnerf360' in their
-    # original Gin config. If there is a naming conflict, prefer the 'merf_v2'
+    # The user may configure objects in both 'smerf' and 'camp_zipnerf' in their
+    # original Gin config. If there is a naming conflict, prefer the 'smerf'
     # version of the object.
     merf_bindings = _set_namespaces(
         _MERF_NAMESPACES,
@@ -113,13 +113,6 @@ def load_config(save_config = True):
       Config.render_chunk_size = {_mipnerf360_batch_size(merf_config, 'test')}
       eval/Config.near_plane_meters = None  # Don't clip when camera gets close to a surface
     """)
-
-    # Teachers can get exposure information from two sources: the rays and the
-    # predictions of their own internal Exposure MLP. Disable the latter here.
-    if not merf_configs.use_exposure_in_teacher(merf_config):
-      additional_teacher_bindings += textwrap.dedent("""
-        Model.use_exposure_mlp = False  # Disable Exposure MLP, if enabled
-      """)
 
     # Process base & additional teacher bindings.
     teacher_bindings = {
@@ -191,7 +184,7 @@ def _additional_gin_bindings_for_sweep(gin_bindings):
   ):
     checkpoint_dir = os.path.join(merf_config.checkpoint_dir, experiment_name)
     additional_gin_bindings.append(
-        f'merf_v2.internal.configs.Config.checkpoint_dir = "{checkpoint_dir}"',
+        f'smerf.internal.configs.Config.checkpoint_dir = "{checkpoint_dir}"',
     )
 
   # Modify baking_checkpoint_dir.
@@ -203,7 +196,7 @@ def _additional_gin_bindings_for_sweep(gin_bindings):
         merf_config.baking_checkpoint_dir, experiment_name
     )
     additional_gin_bindings.append(
-        'merf_v2.internal.configs.Config.baking_checkpoint_dir ='
+        'smerf.internal.configs.Config.baking_checkpoint_dir ='
         f' "{baking_checkpoint_dir}"'
     )
 
@@ -248,8 +241,8 @@ def _strip_deprecated_name_suffixes(
 def _set_namespace(scopes, name, value, *, name_to_namespace):
   """Set the namespace of each name."""
   # Example:
-  # --> name = mipnerf360.internal.models.Model.bg_intensity_range
-  # --> old_namespace = 'mipnerf360.internal.models'
+  # --> name = camp_zipnerf.internal.models.Model.bg_intensity_range
+  # --> old_namespace = 'camp_zipnerf.internal.models'
   # --> cls_or_fn = 'Model'
   # --> field = 'bg_intensity_range'
   *old_namespace, cls_or_fn, field = name.split('.')
@@ -269,16 +262,16 @@ def _set_namespace(scopes, name, value, *, name_to_namespace):
       # the new namespace, which should be more complete.
       #
       # old_namespace = 'internal.models'
-      # new_namespace = 'merf_v2.internal.models'
-      # result        = 'merf_v2.internal.models'
+      # new_namespace = 'smerf.internal.models'
+      # result        = 'smerf.internal.models'
       pass
     else:
       # The new and old namespace for this class or function aren't compatible.
       # Use the old namespace.
       #
-      # old_namespace = 'mipnerf360.internal.models'
-      # new_namespace = 'merf_v2.internal.models'
-      # result        = 'mipnerf360.internal.models'
+      # old_namespace = 'camp_zipnerf.internal.models'
+      # new_namespace = 'smerf.internal.models'
+      # result        = 'camp_zipnerf.internal.models'
       new_namespace = old_namespace
 
   name = f'{cls_or_fn}.{field}'

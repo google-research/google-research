@@ -1,0 +1,46 @@
+# Enables distillation training.
+#
+# This config is a stripped-down version of smerf.gin. It enables the
+# following features,
+# - Disable PropMLP; use teacher's tdist values instead.
+# - Disable data rgb loss; use teacher's rgb loss instead.
+# - Enable teacher's geometry loss.
+# - Enable ray jittering.
+
+# Define teacher model checkpoint.
+smerf.internal.configs.Config.distill_teacher_ckpt_dir = "REQUIRED"
+
+# Training
+# ------------------------------------------------------------------------------
+# Jitter teacher's ray intervals
+smerf.internal.configs.Config.distill_teacher_use_rng = True
+
+# Disable supervision from ground truth pixels
+smerf.internal.configs.Config.data_loss_mult = 0.0
+
+# Disable loss on PropMLPs as they're disabled
+smerf.internal.configs.Config.interlevel_loss_mult = 0.0
+
+# Enable ray position/direction jittering
+smerf.internal.configs.Config.enable_ray_jitter = True
+smerf.internal.configs.Config.ray_jitter_origin_patch_aware = False
+smerf.internal.configs.Config.ray_jitter_origin_stddev = 0.03
+smerf.internal.configs.Config.ray_jitter_viewdir_patch_aware = True
+smerf.internal.configs.Config.ray_jitter_viewdir_stddev = 0.03
+
+# Use teacher for geometry supervision.
+smerf.internal.configs.Config.distill_geometry_loss_mult_init = 0.015
+smerf.internal.configs.Config.distill_geometry_loss_mult_final = 0.001
+
+# Use teacher supervision for RGB.
+smerf.internal.configs.Config.distill_rgb_loss_mult = 1.0
+smerf.internal.configs.Config.distill_rgb_loss_fn = "rmse"
+
+# Model
+# ------------------------------------------------------------------------------
+# Use teacher tdist, exposure predictions.
+smerf.internal.configs.Config.distill_use_teacher_tdist = True
+smerf.internal.configs.Config.distill_use_teacher_exposure = True
+
+# Disable PropMLP
+smerf.internal.models.Model.enable_prop_mlp = False

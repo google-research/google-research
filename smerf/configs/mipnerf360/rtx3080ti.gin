@@ -1,0 +1,34 @@
+# Additional configuration for single GPU Training
+#
+# Use this config to ensure that training works on a local machine.
+#
+
+# Training
+# ------------------------------------------------------------------------------
+# Reduce the learning rate.
+smerf.internal.configs.Config.lr_init = 3e-3
+smerf.internal.configs.Config.lr_final = 1e-4
+
+# Use a smaller batch size.
+smerf.internal.configs.Config.batch_size = 8192
+smerf.internal.configs.Config.render_chunk_size = 8192
+smerf.internal.configs.Config.gradient_accumulation_steps = 4
+
+# Train for fewer steps.
+smerf.internal.configs.Config.max_steps = 10_000
+v0/smerf.internal.schedule.LogLerpSchedule.start = 4_000
+v0/smerf.internal.schedule.LogLerpSchedule.end = 8_000
+
+# Print more often.
+smerf.internal.configs.Config.print_every = 10
+
+# Model
+# ------------------------------------------------------------------------------
+# Use a smaller hash grid backend.
+smerf.internal.hash_encoding.MultiHashEncoding.hash_map_size = 1_048_576  # 2^20
+smerf.internal.hash_encoding.MultiDensityAndFeaturesMLP.net_width = 32
+smerf.internal.hash_encoding.MultiDensityAndFeaturesMLP.net_depth = 1
+
+# Reduce spatial resolution
+smerf.internal.configs.Config.triplane_resolution = 1024
+smerf.internal.configs.Config.sparse_grid_resolution = 256

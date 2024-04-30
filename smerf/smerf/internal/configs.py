@@ -31,9 +31,6 @@ from smerf.internal import schedule
 from smerf.internal import utils
 
 
-# You can specify paths to Gin files with respect to this directory.
-gin.add_config_file_search_path('experimental/dinnerf/merf_v2/configs')
-
 # Note that this is intended to complete the original list in
 configurables = {
     'jax.nn': [jax.nn.elu],

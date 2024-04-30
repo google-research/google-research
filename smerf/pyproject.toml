@@ -7,7 +7,8 @@ name = "smerf"
 version = "0.0.1"
 dependencies = [
     "absl-py",
-    "camp_zipnerf",
+    # TODO(duckworthd): Revert to jonbarron's version of camp_zipnerf
+    "camp_zipnerf @ git+https://github.com/duckworthd/camp_zipnerf.git",
     "chex",
     "dm-pix",
     "e3x",
@@ -23,7 +24,7 @@ dependencies = [
     "optax",
     "orbax",
     "pillow",
-    "pycolmap",
+    "pycolmap @ git+https://github.com/rmbrualla/pycolmap.git",
     "scikit-image",
     "scipy",
     "tqdm",

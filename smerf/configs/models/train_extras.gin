@@ -1,0 +1,51 @@
+# Enables training enhancements.
+#
+# This config is a stripped-down version of smerf.gin. It enables the
+# following features,
+# - Longer training
+# - Bigger hash grids and related MLP
+# - Focused submodel_scale_factor
+# - Use elu activation in DeferredMLP
+# - Introduce SSIM loss
+# - Improved learning rate schedule
+# - Improved param regularizers
+
+# Training
+# ------------------------------------------------------------------------------
+# Learning rate schedule.
+smerf.internal.configs.Config.lr_init = 1e-2
+smerf.internal.configs.Config.lr_final = 3e-4
+
+# Train for longer.
+smerf.internal.configs.Config.max_steps = 50_000  # Default: 25_000
+
+# Use SSIM loss with 3x3 patches.
+smerf.internal.configs.Config.distill_ssim_loss_mult = 1.5
+smerf.internal.configs.Config.patch_size = 3
+
+# We may get slightly sharper results by lowering the weight decay like this.
+smerf.internal.configs.Config.param_regularizers = {
+  'MultiDensityAndFeaturesMLP_0/MultiHashEncoding_0': (0.01, @jnp.mean, 2, 1),
+  'MultiPropMLP_0/MultiPropHashEncoding_0': (0.01, @jnp.mean, 2, 1),
+}
+
+# Model
+# ------------------------------------------------------------------------------
+# Elu is a better DeferredMLP.
+smerf.internal.models.DeferredMLP.net_activation =  @jax.nn.elu
+
+# Alpha thresholding for 50k steps.
+smerf.internal.configs.Config.alpha_threshold = @v0/smerf.internal.schedule.LogLerpSchedule()
+v0/smerf.internal.schedule.LogLerpSchedule.start = 20000  # Default: 10_000
+v0/smerf.internal.schedule.LogLerpSchedule.end = 40000  # Default: 20_000
+v0/smerf.internal.schedule.LogLerpSchedule.v0 = 0.0005
+v0/smerf.internal.schedule.LogLerpSchedule.v1 = 0.005
+v0/smerf.internal.schedule.LogLerpSchedule.zero_before_start = True
+
+# Use a more powerful hash grid back-end.
+smerf.internal.hash_encoding.MultiHashEncoding.hash_map_size = 4_194_304  # 2^22
+smerf.internal.hash_encoding.MultiDensityAndFeaturesMLP.net_width = 64
+smerf.internal.hash_encoding.MultiDensityAndFeaturesMLP.net_depth = 2
+
+# Focus on the center of the scene.
+smerf.internal.configs.Config.submodel_scale_factor = 2.5

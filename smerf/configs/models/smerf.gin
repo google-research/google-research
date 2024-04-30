@@ -1,0 +1,10 @@
+# SMERF
+include 'configs/models/merf.gin'
+include 'configs/models/distill_extras.gin'
+include 'configs/models/model_extras.gin'
+include 'configs/models/train_extras.gin'
+
+# Baking
+# ------------------------------------------------------------------------------
+# Eliminate floaters in high-resolution occupancy grid
+smerf.internal.configs.Config.baking_alive_voxels_median_filter_size = 3

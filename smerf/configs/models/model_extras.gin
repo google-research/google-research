@@ -1,0 +1,31 @@
+# Enables model enhancements.
+#
+# This config is a stripped-down version of smerf.gin. It enables the
+# following features,
+# - Bigger DeferredMLP, powered by Grid MLPs
+# - Concat-weight-and-sum style feature merging
+# - Total variation regularizatoin for Grid MLP parameters
+
+# Model
+# ------------------------------------------------------------------------------
+# Shared MLP parameters for all submodels
+smerf.internal.configs.Config.submodel_enable_multimlp = False
+
+# Randomly reassign rays to submodels
+smerf.internal.configs.Config.submodel_idx_replace_percent = 0.2
+
+# Use one of the low-res feature channels to weigh the triplane fetches.
+smerf.internal.configs.Config.use_low_res_features_as_weights = True
+smerf.internal.configs.Config.use_triplane_weights_for_density = True
+
+# Concatenate triplane + sparse voxel features to sparse voxel features before
+# alpha-compositing.
+smerf.internal.configs.Config.merge_features_combine_op = "coarse_sum"
+
+# Trilinearly interpolate the DeferredMLP parameters based on the ray origins.
+smerf.internal.models.DeferredMLP.net_width = 16
+smerf.internal.models.DeferredMLP.grid_size =  5
+
+# Apply total variation regularization to DeferredMLP parameters.
+smerf.internal.configs.Config.deferred_mlp_tv_regularizer_loss_mult = 0.1
+smerf.internal.configs.Config.deferred_mlp_tv_regularizer_loss_fn = "l2"
