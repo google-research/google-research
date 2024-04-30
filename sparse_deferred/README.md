@@ -11,7 +11,6 @@ sd.prod([adj, adj, adj]) @ embedding_matrix
 ```
 but without computing the dense `M = adj ** 3`. Instead, the DAG representing `M` will be passed to algorithms, which may only need to compute (multiplication) `M`-times-Tensor, without needing explicit values of `M`. The multiplication will be pushed towards the leaves (`adj`) of the computation graph.
 
-
 As the framework is backend-agnostic, it is independent from computation engines
 such as JAX, TensorFlow,
 PyTorch, Numpy, scipy, etc. Nonetheless, we integrate with some of these
