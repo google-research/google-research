@@ -8,7 +8,13 @@ citation below.
 For details on generating the tables found in the paper, follow
 [this link](generate_tables.md).
 
-More details on code and data will be added soon.
+For details on generated text resources used in the paper, follow
+[this_link](text_resources.md).
+
+For details on running Nisaba FST-based transliteration code with released
+models, follow [this_link](fst_translit.md).
+
+More details on neural model checkpoints (including usage) will be added soon.
 
 Citation:
 
