@@ -1,0 +1,6 @@
+# kitchencounter
+smerf.internal.configs.Config.data_dir = "datasets/counter"
+smerf.internal.configs.Config.distill_teacher_ckpt_dir = "teachers/counter"
+smerf.internal.configs.Config.factor = 2
+smerf.internal.configs.Config.near = 0.2
+smerf.internal.configs.Config.far = 1000000.0

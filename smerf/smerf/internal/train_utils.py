@@ -17,7 +17,6 @@
 
 import collections
 import functools
-import pprint
 from typing import Any, Callable, Dict, MutableMapping, Optional, Tuple
 
 from absl import logging
@@ -1236,18 +1235,16 @@ def setup_model(
       rays=temp_rays, mode='test', merf_config=config, dataset=dataset
   )
   model, variables = models.construct_model(rng, temp_rays, config)
-  print('** Model Architecture:')
-  pprint.pprint(model, indent=2)
-  print(f'** Model Variables: size={_estimate_memory_usage_mb(variables)}')
-  pprint.pprint(jax.tree_util.tree_map(_safe_shape, model), indent=2)
+  logging.info(
+      'Model Variables: size: %f MB', _estimate_memory_usage_mb(variables)
+  )
 
   final_alpha_threshold = 0.0
   if config.alpha_threshold is not None:
     final_alpha_threshold = config.alpha_threshold(config.max_steps)
 
   state, lr_fn = create_optimizer(config, variables)
-  print(f'** Optimizer State: size={_estimate_memory_usage_mb(state)}')
-  pprint.pprint(jax.tree_util.tree_map(_safe_shape, state), indent=2)
+  logging.info('Optimizer State: size: %f MB', _estimate_memory_usage_mb(state))
 
   render_eval_pfn = create_render_fn(
       model, return_ray_results, final_alpha_threshold

@@ -7,8 +7,7 @@ name = "smerf"
 version = "0.0.1"
 dependencies = [
     "absl-py",
-    # TODO(duckworthd): Revert to jonbarron's version of camp_zipnerf
-    "camp_zipnerf @ git+https://github.com/duckworthd/camp_zipnerf.git",
+    "camp_zipnerf @ git+https://github.com/jonbarron/camp_zipnerf.git",
     "chex",
     "dm-pix",
     "e3x",

@@ -14,7 +14,7 @@
 
 #!/bin/bash
 #
-# Trains a small model on a single RTX 3080 Ti 12GB.
+# Trains SMERF on a single mipnerf360 scene with a single RTX 3080 Ti 12GB.
 #
 
 TIMESTAMP="$(date +'%Y%m%d_%H%M')"
