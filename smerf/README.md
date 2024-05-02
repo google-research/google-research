@@ -57,8 +57,10 @@ python3 -m pip install -e .
       ...
     ```
 
-3. Run a training script
+3. Run the SMERF pipeline, which includes distillation, baking, and evaluation.
 
     ```
-    ./scripts/demo.sh  # Train a small model on a single, local GPU. 
+    ./scripts/demo.sh         # Train a small model on a single, local GPU. 
+    ./scripts/mipnerf360.sh   # Train models on all mip-NeRF 360 scenes.
+    ./scripts/zipnerf.sh      # Train models on all Zip-NeRF scenes.
     ```

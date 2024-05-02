@@ -1,5 +1,4 @@
 # bicycle
-
 smerf.internal.configs.Config.data_dir = "datasets/bicycle"
 smerf.internal.configs.Config.distill_teacher_ckpt_dir = "teachers/bicycle"
 smerf.internal.configs.Config.factor = 4

@@ -13,3 +13,8 @@ camp_zipnerf.internal.configs.Config.render_video_fps = 60
 # Skip every other frame in rendering.
 smerf.internal.configs.Config.render_path_video_every = 2
 smerf.internal.configs.Config.baked_render_path_video_every = 2
+
+# Train for 200,000 steps
+smerf.internal.configs.Config.max_steps = 200_000
+v0/smerf.internal.schedule.LogLerpSchedule.start = 80_000
+v0/smerf.internal.schedule.LogLerpSchedule.end = 160_000
