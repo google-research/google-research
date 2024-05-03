@@ -1224,15 +1224,19 @@ class Marot {
   }
 
   /**
-   * This function will return false for segments that have some metric (MQM or
-   * other) only available for some of the systems, not all/none.
+   * This function will return false for segments that have some metric only
+   * available for some of the systems, not all/none. If MQM scores are present,
+   * non-MQM metrics are ignored for this check. Otherwise, all metrics are
+   * considered.
    * @param {!Object} metadata
    * @return {boolean}
    */
   allSystemsFilterPasses(metadata) {
     const segment = metadata.segment;
     const aggrDocSeg = segment.aggrDocSeg;
-    for (let metric in aggrDocSeg.metrics) {
+    const metrics =
+        'MQM' in aggrDocSeg.metrics ? ['MQM'] : Object.keys(aggrDocSeg.metrics);
+    for (const metric of metrics) {
       const numSystemsWithMetric =
           Object.keys(aggrDocSeg.metrics[metric]).length;
       if (numSystemsWithMetric > 0 &&
