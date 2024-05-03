@@ -82,7 +82,7 @@ termcolor==1.1.0
 tf-slim==1.1.0
 toml==0.10.2
 toolz==0.11.2
-tqdm==4.64.0
+tqdm==4.66.3
 typing_extensions==4.2.0
 urllib3==1.26.9
 Werkzeug==2.1.2
