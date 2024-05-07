@@ -4884,8 +4884,10 @@ class Marot {
                 statsBySystem[system][doc][unit], 0, category, severity, 0);
           }
           if (aggrDocSegSys) {
+            const allSegUnitStats = scoringUnits.map(
+                scoringUnit => statsBySystem[system][doc][scoringUnit.unit]);
             const allUnitStats = this.getUnitStatsAsArray(
-                statsBySystem[system]);
+                {doc: allSegUnitStats});
             const aggrScores = this.aggregateUnitStats(allUnitStats);
             for (const mqm in aggrScores.mqmStats) {
               const mqmStats = aggrScores.mqmStats[mqm];
