@@ -80,6 +80,19 @@ void DenseDotProductDistanceOneToManyBf16Float(
     const DatapointPtr<float>& query, DefaultDenseDatasetView<int16_t> database,
     ConstSpan<DatapointIndex> indices, MutableSpan<float> result);
 
+void OneToManyBf16FloatSquaredL2(const DatapointPtr<float>& query,
+                                 DefaultDenseDatasetView<int16_t> database,
+                                 MutableSpan<float> result);
+
+void OneToManyBf16FloatSquaredL2(
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int16_t> database,
+    MutableSpan<pair<DatapointIndex, float>> result);
+
+void OneToManyBf16FloatSquaredL2(const DatapointPtr<float>& query,
+                                 DefaultDenseDatasetView<int16_t> database,
+                                 ConstSpan<DatapointIndex> indices,
+                                 MutableSpan<float> result);
+
 #ifdef __x86_64__
 
 namespace sse4 {
@@ -146,7 +159,6 @@ SCANN_OUTLINE void OneToManyBf16FloatImpl(const float* __restrict__ query,
                                           const IndexT* indices,
                                           MutableSpan<ResultElemT> result,
                                           CallbackT callback) {
-  static_assert(!kIsSquaredL2);
   const DimensionIndex dims = dataset_view.dimensionality();
   DatapointPtr<float> query_dptr(nullptr, query, dims, dims);
   vector<float> db_fp32(dims);

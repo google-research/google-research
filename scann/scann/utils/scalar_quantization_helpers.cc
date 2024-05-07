@@ -26,9 +26,11 @@
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/noise_shaping_utils.h"
+#include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -80,7 +82,7 @@ std::vector<float> ComputeQuantiledQuantizationMultipliers(
 
 ScalarQuantizationResults ScalarQuantizeFloatDataset(
     const DenseDataset<float>& dataset, float multiplier_quantile,
-    double noise_shaping_threshold) {
+    double noise_shaping_threshold, ThreadPool* pool) {
   DCHECK_LE(multiplier_quantile, 1.0f);
   DCHECK_GT(multiplier_quantile, 0.0f);
 
@@ -91,34 +93,31 @@ ScalarQuantizationResults ScalarQuantizeFloatDataset(
                                                     multiplier_quantile);
 
   return ScalarQuantizeFloatDatasetWithMultipliers(
-      dataset, std::move(multipliers), noise_shaping_threshold);
+      dataset, std::move(multipliers), noise_shaping_threshold, pool);
 }
 
 ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
     DenseDatasetView<float>&& dataset, vector<float> multipliers,
-    double noise_shaping_threshold) {
+    double noise_shaping_threshold, ThreadPool* pool) {
   const size_t dimensionality = dataset.dimensionality();
   DCHECK_EQ(multipliers.size(), dimensionality);
+  vector<int8_t> quantized_vec(dimensionality * dataset.size());
 
-  DenseDataset<int8_t> fixed_point_dataset;
-  fixed_point_dataset.set_dimensionality(dimensionality);
-  fixed_point_dataset.Reserve(dataset.size());
-  unique_ptr<int8_t[]> fixed_point_dp(new int8_t[dimensionality]);
-  for (size_t i = 0; i < dataset.size(); ++i) {
-    const float* values = dataset.GetPtr(i);
+  ParallelFor<128>(IndicesOf(dataset), pool, [&](size_t dp_idx) {
+    MutableSpan<int8_t> quantized_dp(
+        quantized_vec.data() + dp_idx * dimensionality, dimensionality);
+    const float* values = dataset.GetPtr(dp_idx);
     if (std::isnan(noise_shaping_threshold)) {
-      for (size_t j : Seq(dimensionality)) {
-        fixed_point_dp[j] = Int8Quantize(values[j] * multipliers[j]);
+      for (size_t dim_idx : Seq(dimensionality)) {
+        quantized_dp[dim_idx] =
+            Int8Quantize(values[dim_idx] * multipliers[dim_idx]);
       }
     } else {
       ScalarQuantizeFloatDatapointWithNoiseShaping(
           MakeDatapointPtr(values, dimensionality), multipliers,
-          noise_shaping_threshold,
-          MakeMutableSpan(fixed_point_dp.get(), dimensionality));
+          noise_shaping_threshold, quantized_dp);
     }
-    fixed_point_dataset.AppendOrDie(
-        MakeDatapointPtr(fixed_point_dp.get(), dimensionality), "");
-  }
+  });
 
   vector<float> inv_multipliers(dimensionality);
   for (size_t j : Seq(dimensionality)) {
@@ -126,7 +125,8 @@ ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
   }
 
   ScalarQuantizationResults results;
-  results.quantized_dataset = std::move(fixed_point_dataset);
+  results.quantized_dataset =
+      DenseDataset<int8_t>(std::move(quantized_vec), dataset.size());
   results.multiplier_by_dimension = std::move(multipliers);
   results.inverse_multiplier_by_dimension = std::move(inv_multipliers);
 
@@ -174,9 +174,8 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    const double noise_shaping_threshold,
-    std::vector<int8_t>* quantized_storage, int* num_changes,
-    double* residual_ptr, double* parallel_residual_ptr) {
+    double noise_shaping_threshold, std::vector<int8_t>* quantized_storage,
+    int* num_changes, double* residual_ptr, double* parallel_residual_ptr) {
   quantized_storage->resize(dptr.dimensionality());
   MutableSpan<int8_t> quantized(quantized_storage->data(),
                                 quantized_storage->size());
@@ -187,81 +186,48 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    const double noise_shaping_threshold, MutableSpan<int8_t> quantized,
+    double noise_shaping_threshold, MutableSpan<int8_t> quantized,
     int* num_changes, double* residual_ptr, double* parallel_residual_ptr) {
-  DCHECK_EQ(quantized.size(), dptr.dimensionality());
-  for (size_t i : IndicesOf(quantized)) {
-    quantized[i] = Int8Quantize(dptr.values()[i] * multipliers[i]);
-  }
-
   vector<float> residuals(quantized.size());
-  double residual_sq_norm = 0.0;
-  double parallel_residual_dot = 0.0;
-  const double squared_dptr_norm = SquaredL2Norm(dptr);
-  const float dptr_norm = std::sqrt(squared_dptr_norm);
-  const float inv_dptr_norm = 1.0 / dptr_norm;
-  for (size_t i : IndicesOf(residuals)) {
-    residuals[i] = quantized[i] / multipliers[i] - dptr.values()[i];
-    residual_sq_norm += residuals[i] * residuals[i];
-    parallel_residual_dot += residuals[i] * dptr.values()[i] * inv_dptr_norm;
+  vector<uint32_t> dims(quantized.size());
+  return ScalarQuantizeFloatDatapointWithNoiseShaping(
+      dptr, multipliers, noise_shaping_threshold, quantized,
+      MakeMutableSpan(residuals), MakeMutableSpan(dims), num_changes,
+      residual_ptr, parallel_residual_ptr);
+}
+
+class Fixed8NoiseShapingLambdas {
+ public:
+  explicit Fixed8NoiseShapingLambdas(ConstSpan<float> multipliers)
+      : multipliers_(multipliers) {}
+
+  int8_t QuantizeSingleDim(float f, DimensionIndex dim_idx) const {
+    return Int8Quantize(f * multipliers_[dim_idx]);
   }
 
-  vector<uint32_t> dims(residuals.size());
-  std::iota(dims.begin(), dims.end(), 0U);
-  ZipSortBranchOptimized(
-      [](float a, float b) { return std::abs(a) > std::abs(b); },
-      residuals.begin(), residuals.end(), quantized.begin(), quantized.end(),
-      dims.begin(), dims.end());
-  const double relative_cost = ComputeParallelCostMultiplier(
-      noise_shaping_threshold, squared_dptr_norm, dptr.dimensionality());
-
-  if (num_changes) *num_changes = 0;
-  bool cur_round_changes = true;
-  enum { kMaxRounds = 10 };
-  for (int round = 0; cur_round_changes && round < kMaxRounds; ++round) {
-    cur_round_changes = false;
-    for (size_t i : IndicesOf(residuals)) {
-      int8_t quantized_delta = 0;
-      if (residuals[i] > 0) {
-        if (quantized[i] == numeric_limits<int8_t>::min()) continue;
-        quantized_delta = -1;
-      } else {
-        if (quantized[i] == numeric_limits<int8_t>::max()) continue;
-        quantized_delta = 1;
-      }
-      const float actual = dptr.values()[dims[i]];
-      const float original = quantized[i] / multipliers[dims[i]];
-      const float shifted =
-          (quantized[i] + quantized_delta) / multipliers[dims[i]];
-      const double residual_delta =
-          Square(shifted - actual) - Square(original - actual);
-      const float new_residual = shifted - actual;
-      const double new_parallel_dot = parallel_residual_dot -
-                                      (residuals[i]) * actual * inv_dptr_norm +
-                                      (new_residual)*actual * inv_dptr_norm;
-      const double parallel_delta =
-          Square(new_parallel_dot) - Square(parallel_residual_dot);
-      if (parallel_delta > 0) continue;
-      const double perpendicular_delta = residual_delta - parallel_delta;
-      const double cost_delta =
-          relative_cost * parallel_delta + perpendicular_delta;
-      if (cost_delta < 0.0) {
-        quantized[i] += quantized_delta;
-        parallel_residual_dot = new_parallel_dot;
-        residuals[i] = new_residual;
-        residual_sq_norm += residual_delta;
-        if (num_changes) ++*num_changes;
-        cur_round_changes = true;
-      }
-    }
+  float DequantizeSingleDim(int8_t f, DimensionIndex dim_idx) const {
+    return f / multipliers_[dim_idx];
   }
 
-  PermuteInPlace<int8_t>(quantized, MakeMutableSpan(dims));
-  if (residual_ptr) *residual_ptr = residual_sq_norm;
-  if (parallel_residual_ptr) {
-    *parallel_residual_ptr = Square(parallel_residual_dot);
-  }
-  return MakeDatapointPtr(quantized.data(), quantized.size());
+  bool AtMaximum(int8_t i) const { return i == numeric_limits<int8_t>::max(); }
+  bool AtMinimum(int8_t i) const { return i == numeric_limits<int8_t>::min(); }
+
+  int8_t NextLargerDelta(int8_t) const { return 1; }
+  int8_t NextSmallerDelta(int8_t) const { return -1; }
+
+ private:
+  ConstSpan<float> multipliers_;
+};
+
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    double noise_shaping_threshold, MutableSpan<int8_t> quantized,
+    MutableSpan<float> residuals, MutableSpan<uint32_t> dims, int* num_changes,
+    double* residual_ptr, double* parallel_residual_ptr) {
+  return ScalarQuantizeFloatDatapointWithNoiseShapingImpl(
+      dptr, noise_shaping_threshold, quantized, residuals, dims,
+      Fixed8NoiseShapingLambdas(multipliers), num_changes, residual_ptr,
+      parallel_residual_ptr);
 }
 
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(

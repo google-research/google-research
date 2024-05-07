@@ -57,22 +57,6 @@ void AddLeafResultsToTopN(ConstSpan<DatapointIndex> local_to_global_index,
   }
 }
 
-template <typename Mutator>
-void AddLeafResultsToTopN(const float distance_to_center_adjustment,
-                          ConstSpan<pair<DatapointIndex, float>> leaf_results,
-                          Mutator* mutator) {
-  float epsilon = mutator->epsilon();
-  for (const auto& result : leaf_results) {
-    float dist = result.second + distance_to_center_adjustment;
-    if (dist <= epsilon) {
-      if (ABSL_PREDICT_FALSE(mutator->Push(result.first, dist))) {
-        mutator->GarbageCollect();
-        epsilon = mutator->epsilon();
-      }
-    }
-  }
-}
-
 struct QueryForResidualLeaf {
   QueryForResidualLeaf() {}
   QueryForResidualLeaf(DatapointIndex query_index, float distance_to_center)

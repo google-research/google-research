@@ -27,12 +27,14 @@ class Bfloat16BruteForceSearcher final
   Bfloat16BruteForceSearcher(shared_ptr<const DistanceMeasure> distance,
                              shared_ptr<const DenseDataset<float>> dataset,
                              int32_t default_num_neighbors,
-                             float default_epsilon);
+                             float default_epsilon,
+                             float noise_shaping_threshold = NAN);
 
   Bfloat16BruteForceSearcher(shared_ptr<const DistanceMeasure> distance,
                              DenseDataset<int16_t> bfloat16_dataset,
                              int32_t default_num_neighbors,
-                             float default_epsilon);
+                             float default_epsilon,
+                             float noise_shaping_threshold = NAN);
 
   ~Bfloat16BruteForceSearcher() override = default;
 
@@ -78,6 +80,9 @@ class Bfloat16BruteForceSearcher final
   StatusOr<typename SingleMachineSearcherBase<float>::Mutator*> GetMutator()
       const final;
 
+  StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
+      override;
+
  protected:
   Status FindNeighborsImpl(const DatapointPtr<float>& query,
                            const SearchParameters& params,
@@ -89,9 +94,10 @@ class Bfloat16BruteForceSearcher final
  private:
   bool impl_needs_dataset() const override { return false; }
 
-  shared_ptr<const DistanceMeasure> distance_;
-
+  bool is_dot_product_;
   DenseDataset<int16_t> bfloat16_dataset_;
+
+  const float noise_shaping_threshold_ = NAN;
 
   mutable unique_ptr<Mutator> mutator_ = nullptr;
 };

@@ -19,6 +19,7 @@
 
 #include <memory>
 
+#include "absl/strings/match.h"
 #include "scann/base/reordering_helper_factory.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"

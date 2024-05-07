@@ -332,7 +332,11 @@ class FixedPointFloatDenseDotProductReorderingHelper::Mutator final
   StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<float>& dptr) final {
     vector<int8_t> storage(dptr.dimensionality());
     DatapointPtr<int8_t> quantized =
-        ScalarQuantizeFloatDatapoint(dptr, multipliers_, &storage);
+        std::isfinite(helper_->noise_shaping_threshold_)
+            ? ScalarQuantizeFloatDatapointWithNoiseShaping(
+                  dptr, multipliers_, helper_->noise_shaping_threshold_,
+                  &storage)
+            : ScalarQuantizeFloatDatapoint(dptr, multipliers_, &storage);
     SCANN_RETURN_IF_ERROR(dataset_mutator_->AddDatapoint(quantized, ""));
     return helper_->fixed_point_dataset_->size() - 1;
   }
@@ -344,7 +348,11 @@ class FixedPointFloatDenseDotProductReorderingHelper::Mutator final
                          DatapointIndex idx) final {
     vector<int8_t> storage(dptr.dimensionality());
     DatapointPtr<int8_t> quantized =
-        ScalarQuantizeFloatDatapoint(dptr, multipliers_, &storage);
+        std::isfinite(helper_->noise_shaping_threshold_)
+            ? ScalarQuantizeFloatDatapointWithNoiseShaping(
+                  dptr, multipliers_, helper_->noise_shaping_threshold_,
+                  &storage)
+            : ScalarQuantizeFloatDatapoint(dptr, multipliers_, &storage);
     return dataset_mutator_->UpdateDatapoint(quantized, idx);
   }
   void Reserve(DatapointIndex num_datapoints) final {
@@ -366,9 +374,12 @@ class FixedPointFloatDenseDotProductReorderingHelper::Mutator final
 FixedPointFloatDenseDotProductReorderingHelper::
     FixedPointFloatDenseDotProductReorderingHelper(
         const DenseDataset<float>& exact_reordering_dataset,
-        float fixed_point_multiplier_quantile) {
+        float fixed_point_multiplier_quantile, float noise_shaping_threshold,
+        ThreadPool* pool)
+    : noise_shaping_threshold_(noise_shaping_threshold) {
   ScalarQuantizationResults quantization_results = ScalarQuantizeFloatDataset(
-      exact_reordering_dataset, fixed_point_multiplier_quantile);
+      exact_reordering_dataset, fixed_point_multiplier_quantile,
+      noise_shaping_threshold_, pool);
   fixed_point_dataset_ = std::make_shared<DenseDataset<int8_t>>(
       std::move(quantization_results.quantized_dataset));
   inverse_multipliers_ =
@@ -378,8 +389,10 @@ FixedPointFloatDenseDotProductReorderingHelper::
 FixedPointFloatDenseDotProductReorderingHelper::
     FixedPointFloatDenseDotProductReorderingHelper(
         shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
-        const std::vector<float>& multiplier_by_dimension)
-    : fixed_point_dataset_(std::move(fixed_point_dataset)) {
+        const std::vector<float>& multiplier_by_dimension,
+        float noise_shaping_threshold)
+    : fixed_point_dataset_(std::move(fixed_point_dataset)),
+      noise_shaping_threshold_(noise_shaping_threshold) {
   DCHECK(fixed_point_dataset_ != nullptr);
   DCHECK_EQ(multiplier_by_dimension.size(),
             fixed_point_dataset_->dimensionality());
@@ -487,18 +500,21 @@ class FixedPointFloatDenseCosineReorderingHelper::Mutator final
 FixedPointFloatDenseCosineReorderingHelper::
     FixedPointFloatDenseCosineReorderingHelper(
         const DenseDataset<float>& exact_reordering_dataset,
-        float fixed_point_multiplier_quantile)
+        float fixed_point_multiplier_quantile, float noise_shaping_threshold,
+        ThreadPool* pool)
     : dot_product_helper_(exact_reordering_dataset,
-                          fixed_point_multiplier_quantile) {
+                          fixed_point_multiplier_quantile,
+                          noise_shaping_threshold, pool) {
   DCHECK_EQ(exact_reordering_dataset.normalization(), UNITL2NORM);
 }
 
 FixedPointFloatDenseCosineReorderingHelper::
     FixedPointFloatDenseCosineReorderingHelper(
         shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
-        const vector<float>& multiplier_by_dimension)
+        const vector<float>& multiplier_by_dimension,
+        float noise_shaping_threshold)
     : dot_product_helper_(std::move(fixed_point_dataset),
-                          multiplier_by_dimension) {}
+                          multiplier_by_dimension, noise_shaping_threshold) {}
 
 FixedPointFloatDenseCosineReorderingHelper::
     ~FixedPointFloatDenseCosineReorderingHelper() = default;
@@ -615,17 +631,21 @@ FixedPointFloatDenseLimitedInnerReorderingHelper::ComputeTop1ReorderingDistance(
   return top1_functor.Top1Pair();
 }
 
-class Bfloat16DenseDotProductReorderingHelper::Mutator final
+template <bool kIsDotProduct>
+class Bfloat16ReorderingHelper<kIsDotProduct>::Mutator final
     : public ReorderingInterface<float>::Mutator {
  public:
-  explicit Mutator(Bfloat16DenseDotProductReorderingHelper* helper)
+  explicit Mutator(Bfloat16ReorderingHelper<kIsDotProduct>* helper)
       : helper_(helper),
         dataset_mutator_(helper_->bfloat16_dataset_->GetMutator().value()) {}
 
   StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<float>& dptr) final {
     vector<int16_t> storage(dptr.dimensionality());
     DatapointPtr<int16_t> quantized =
-        Bfloat16QuantizeFloatDatapoint(dptr, &storage);
+        std::isfinite(helper_->noise_shaping_threshold_)
+            ? Bfloat16QuantizeFloatDatapointWithNoiseShaping(
+                  dptr, helper_->noise_shaping_threshold_, &storage)
+            : Bfloat16QuantizeFloatDatapoint(dptr, &storage);
     SCANN_RETURN_IF_ERROR(dataset_mutator_->AddDatapoint(quantized, ""));
     return helper_->bfloat16_dataset_->size() - 1;
   }
@@ -637,7 +657,10 @@ class Bfloat16DenseDotProductReorderingHelper::Mutator final
                          DatapointIndex idx) final {
     vector<int16_t> storage(dptr.dimensionality());
     DatapointPtr<int16_t> quantized =
-        Bfloat16QuantizeFloatDatapoint(dptr, &storage);
+        std::isfinite(helper_->noise_shaping_threshold_)
+            ? Bfloat16QuantizeFloatDatapointWithNoiseShaping(
+                  dptr, helper_->noise_shaping_threshold_, &storage)
+            : Bfloat16QuantizeFloatDatapoint(dptr, &storage);
     return dataset_mutator_->UpdateDatapoint(quantized, idx);
   }
   void Reserve(DatapointIndex num_datapoints) final {
@@ -645,44 +668,60 @@ class Bfloat16DenseDotProductReorderingHelper::Mutator final
   }
 
  private:
-  Bfloat16DenseDotProductReorderingHelper* helper_ = nullptr;
+  Bfloat16ReorderingHelper<kIsDotProduct>* helper_ = nullptr;
   TypedDataset<int16_t>::Mutator* dataset_mutator_;
 };
 
-Bfloat16DenseDotProductReorderingHelper::
-    Bfloat16DenseDotProductReorderingHelper(
-        const DenseDataset<float>& exact_reordering_dataset) {
-  bfloat16_dataset_ = std::make_shared<DenseDataset<int16_t>>(
-      Bfloat16QuantizeFloatDataset(exact_reordering_dataset));
+template <bool kIsDotProduct>
+Bfloat16ReorderingHelper<kIsDotProduct>::Bfloat16ReorderingHelper(
+    const DenseDataset<float>& exact_reordering_dataset,
+    float noise_shaping_threshold, ThreadPool* pool)
+    : noise_shaping_threshold_(noise_shaping_threshold) {
+  if (std::isfinite(noise_shaping_threshold)) {
+    bfloat16_dataset_ = std::make_shared<DenseDataset<int16_t>>(
+        Bfloat16QuantizeFloatDatasetWithNoiseShaping(
+            exact_reordering_dataset, noise_shaping_threshold, pool));
+  } else {
+    bfloat16_dataset_ = std::make_shared<DenseDataset<int16_t>>(
+        Bfloat16QuantizeFloatDataset(exact_reordering_dataset));
+  }
 }
 
-Bfloat16DenseDotProductReorderingHelper::
-    Bfloat16DenseDotProductReorderingHelper(
-        shared_ptr<DenseDataset<int16_t>> bfloat16_dataset)
-    : bfloat16_dataset_(bfloat16_dataset) {}
+template <bool kIsDotProduct>
+Bfloat16ReorderingHelper<kIsDotProduct>::Bfloat16ReorderingHelper(
+    shared_ptr<DenseDataset<int16_t>> bfloat16_dataset,
+    float noise_shaping_threshold)
+    : bfloat16_dataset_(bfloat16_dataset),
+      noise_shaping_threshold_(noise_shaping_threshold) {}
 
-Bfloat16DenseDotProductReorderingHelper::
-    ~Bfloat16DenseDotProductReorderingHelper() = default;
+template <bool kIsDotProduct>
+Bfloat16ReorderingHelper<kIsDotProduct>::~Bfloat16ReorderingHelper() = default;
 
-Status Bfloat16DenseDotProductReorderingHelper::ComputeDistancesForReordering(
+template <bool kIsDotProduct>
+Status Bfloat16ReorderingHelper<kIsDotProduct>::ComputeDistancesForReordering(
     const DatapointPtr<float>& query, NNResultsVector* result) const {
   auto view = DefaultDenseDatasetView<int16_t>(*bfloat16_dataset_);
-  DenseDotProductDistanceOneToManyBf16Float(query, view,
-                                            MakeMutableSpan(*result));
-
+  if constexpr (kIsDotProduct) {
+    DenseDotProductDistanceOneToManyBf16Float(query, view,
+                                              MakeMutableSpan(*result));
+  } else {
+    OneToManyBf16FloatSquaredL2(query, view, MakeMutableSpan(*result));
+  }
   return OkStatus();
 }
 
+template <bool kIsDotProduct>
 StatusOr<ReorderingInterface<float>::Mutator*>
-Bfloat16DenseDotProductReorderingHelper::GetMutator() const {
+Bfloat16ReorderingHelper<kIsDotProduct>::GetMutator() const {
   if (!mutator_) {
     mutator_ = make_unique<Mutator>(
-        const_cast<Bfloat16DenseDotProductReorderingHelper*>(this));
+        const_cast<Bfloat16ReorderingHelper<kIsDotProduct>*>(this));
   }
   return mutator_.get();
 }
 
-Status Bfloat16DenseDotProductReorderingHelper::Reconstruct(
+template <bool kIsDotProduct>
+Status Bfloat16ReorderingHelper<kIsDotProduct>::Reconstruct(
     DatapointIndex i, MutableSpan<float> output) const {
   DatapointPtr<int16_t> db_dptr = bfloat16_dataset_->at(i);
   for (int j : Seq(db_dptr.dimensionality()))
@@ -690,10 +729,14 @@ Status Bfloat16DenseDotProductReorderingHelper::Reconstruct(
   return OkStatus();
 }
 
-shared_ptr<const Dataset> Bfloat16DenseDotProductReorderingHelper::dataset()
+template <bool kIsDotProduct>
+shared_ptr<const Dataset> Bfloat16ReorderingHelper<kIsDotProduct>::dataset()
     const {
   return bfloat16_dataset_;
 }
+
+template class Bfloat16ReorderingHelper<true>;
+template class Bfloat16ReorderingHelper<false>;
 
 SCANN_INSTANTIATE_TYPED_CLASS(, ExactReorderingHelper);
 

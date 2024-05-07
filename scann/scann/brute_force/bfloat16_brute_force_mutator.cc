@@ -44,7 +44,10 @@ StatusOr<DatapointIndex> Bfloat16BruteForceSearcher::Mutator::AddDatapoint(
   const DatapointIndex result = searcher_->bfloat16_dataset_.size();
   vector<int16_t> storage(dptr.dimensionality());
   DatapointPtr<int16_t> quantized =
-      Bfloat16QuantizeFloatDatapoint(dptr, &storage);
+      std::isfinite(searcher_->noise_shaping_threshold_)
+          ? Bfloat16QuantizeFloatDatapointWithNoiseShaping(
+                dptr, searcher_->noise_shaping_threshold_, &storage)
+          : Bfloat16QuantizeFloatDatapoint(dptr, &storage);
   SCANN_RETURN_IF_ERROR(
       quantized_dataset_mutator_->AddDatapoint(quantized, ""));
   TF_ASSIGN_OR_RETURN(

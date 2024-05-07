@@ -26,6 +26,7 @@ cc_library(
         "//scann/utils:scann_config_utils",
         "//scann/utils:single_machine_autopilot",
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
+        "@com_google_absl//absl/strings",
     ],
 )
 

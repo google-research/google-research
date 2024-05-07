@@ -59,6 +59,8 @@ message FixedPoint {
 
 message Bfloat16 {
   optional bool enabled = 1 [default = false];
+
+  optional double noise_shaping_threshold = 2 [default = nan];
 }
 
 message NeighborSelectionOverrideHeuristics {

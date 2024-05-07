@@ -89,10 +89,12 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
   const DimensionIndex input_dim = config.input_dim();
 
   if (!config.has_num_dims_per_block() &&
-      config.projection_type() != ProjectionConfig::NONE) {
+      config.projection_type() != ProjectionConfig::NONE &&
+      (config.projection_type() != ProjectionConfig::PCA &&
+       !config.has_pca_significance_threshold())) {
     return InvalidArgumentError(
         "num_dims_per_block must be specified for ProjectionFactory unless "
-        "projection type NONE is being used.");
+        "projection type NONE or PCA is being used.");
   }
 
   DimensionIndex projected_dim =

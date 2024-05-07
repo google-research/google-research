@@ -86,11 +86,13 @@ class FixedPointFloatDenseDotProductReorderingHelper
  public:
   explicit FixedPointFloatDenseDotProductReorderingHelper(
       const DenseDataset<float>& exact_reordering_dataset,
-      float fixed_point_multiplier_quantile = 1.0f);
+      float fixed_point_multiplier_quantile = 1.0f,
+      float noise_shaping_threshold = NAN, ThreadPool* pool = nullptr);
 
   explicit FixedPointFloatDenseDotProductReorderingHelper(
       shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
-      const std::vector<float>& multiplier_by_dimension);
+      const std::vector<float>& multiplier_by_dimension,
+      float noise_shaping_threshold = NAN);
 
   ~FixedPointFloatDenseDotProductReorderingHelper() override;
 
@@ -135,6 +137,7 @@ class FixedPointFloatDenseDotProductReorderingHelper
  private:
   shared_ptr<DenseDataset<int8_t>> fixed_point_dataset_;
   std::vector<float> inverse_multipliers_;
+  const float noise_shaping_threshold_ = NAN;
   mutable unique_ptr<Mutator> mutator_;
 
   friend class FixedPointFloatDenseSquaredL2ReorderingHelper;
@@ -145,11 +148,13 @@ class FixedPointFloatDenseCosineReorderingHelper
  public:
   explicit FixedPointFloatDenseCosineReorderingHelper(
       const DenseDataset<float>& exact_reordering_dataset,
-      float fixed_point_multiplier_quantile = 1.0f);
+      float fixed_point_multiplier_quantile = 1.0f,
+      float noise_shaping_threshold = NAN, ThreadPool* pool = nullptr);
 
   explicit FixedPointFloatDenseCosineReorderingHelper(
       shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
-      const std::vector<float>& multiplier_by_dimension);
+      const std::vector<float>& multiplier_by_dimension,
+      float noise_shaping_threshold = NAN);
 
   ~FixedPointFloatDenseCosineReorderingHelper() override;
 
@@ -274,18 +279,25 @@ class FixedPointFloatDenseLimitedInnerReorderingHelper
   std::vector<float> inverse_database_l2_norms_;
 };
 
-class Bfloat16DenseDotProductReorderingHelper : public ReorderingHelper<float> {
+template <bool kIsDotProduct>
+class Bfloat16ReorderingHelper : public ReorderingHelper<float> {
  public:
-  explicit Bfloat16DenseDotProductReorderingHelper(
-      const DenseDataset<float>& exact_reordering_dataset);
+  explicit Bfloat16ReorderingHelper(
+      const DenseDataset<float>& exact_reordering_dataset,
+      float noise_shaping_threshold = NAN, ThreadPool* pool = nullptr);
 
-  explicit Bfloat16DenseDotProductReorderingHelper(
-      shared_ptr<DenseDataset<int16_t>> bfloat16_dataset);
+  explicit Bfloat16ReorderingHelper(
+      shared_ptr<DenseDataset<int16_t>> bfloat16_dataset,
+      float noise_shaping_threshold = NAN);
 
-  ~Bfloat16DenseDotProductReorderingHelper() override;
+  ~Bfloat16ReorderingHelper() override;
 
   std::string name() const override {
-    return "Bfloat16DenseDotProductReordering";
+    if constexpr (kIsDotProduct) {
+      return "Bfloat16DenseDotProductReordering";
+    } else {
+      return "Bfloat16DenseSquaredL2Reordering";
+    }
   }
 
   bool needs_dataset() const override { return false; }
@@ -310,8 +322,15 @@ class Bfloat16DenseDotProductReorderingHelper : public ReorderingHelper<float> {
 
  private:
   shared_ptr<DenseDataset<int16_t>> bfloat16_dataset_;
+  const float noise_shaping_threshold_ = NAN;
   mutable unique_ptr<Mutator> mutator_;
 };
+
+using Bfloat16DenseDotProductReorderingHelper = Bfloat16ReorderingHelper<true>;
+using Bfloat16DenseSquaredL2ReorderingHelper = Bfloat16ReorderingHelper<false>;
+
+extern template class Bfloat16ReorderingHelper<true>;
+extern template class Bfloat16ReorderingHelper<false>;
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, ExactReorderingHelper);
 

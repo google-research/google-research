@@ -101,6 +101,11 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
     spilling_overretrieve_factor_ = factor;
   }
 
+  void set_fixed_point_lut_conversion_options(
+      AsymmetricHasherConfig::FixedPointLUTConversionOptions opts) {
+    fixed_point_lut_conversion_options_ = std::move(opts);
+  }
+
  protected:
   bool impl_needs_dataset() const final { return leaf_searchers_.empty(); }
 
@@ -211,6 +216,9 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   AsymmetricHasherConfig::LookupType lookup_type_tag_ =
       AsymmetricHasherConfig::FLOAT;
+
+  AsymmetricHasherConfig::FixedPointLUTConversionOptions
+      fixed_point_lut_conversion_options_;
 
   mutable unique_ptr<TreeXHybridMutator<TreeAHHybridResidual>> mutator_;
   friend class TreeXHybridMutator<TreeAHHybridResidual>;

@@ -54,6 +54,26 @@ DatapointPtr<int16_t> Bfloat16QuantizeFloatDatapoint(
 DatapointPtr<int16_t> Bfloat16QuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, MutableSpan<int16_t> quantized);
 
+DatapointPtr<int16_t> Bfloat16QuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, double noise_shaping_threshold,
+    vector<int16_t>* quantized_storage, int* num_changes = nullptr,
+    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
+
+DatapointPtr<int16_t> Bfloat16QuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, double noise_shaping_threshold,
+    MutableSpan<int16_t> quantized, int* num_changes = nullptr,
+    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
+
+DatapointPtr<int16_t> Bfloat16QuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, double noise_shaping_threshold,
+    MutableSpan<int16_t> quantized, MutableSpan<float> residuals,
+    MutableSpan<uint32_t> dims, int* num_changes = nullptr,
+    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
+
+DenseDataset<int16_t> Bfloat16QuantizeFloatDatasetWithNoiseShaping(
+    const DenseDataset<float>& dataset, float noise_shaping_threshold,
+    ThreadPool* pool = nullptr);
+
 }  // namespace research_scann
 
 #endif

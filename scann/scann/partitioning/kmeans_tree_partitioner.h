@@ -101,7 +101,7 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
 
   double query_spilling_threshold() const { return query_spilling_threshold_; }
 
-  uint32_t query_spilling_max_centers() const {
+  uint32_t query_spilling_max_centers() const override {
     return query_spilling_max_centers_;
   }
 

@@ -114,11 +114,12 @@ class ScannTest(parameterized.TestCase):
   def test_tree_ah(self, dist, quantize_tree, reorder, soar):
     if soar and dist != "dot_product":
       return
-    if reorder == scann_builder.ReorderType.BFLOAT16 and dist != "dot_product":
-      return
-    # Like bfloat16, AVQ is dot product only, but functions independently, so
-    # we test this pair together to avoid excessive numbers of combinations.
-    avq = 2.5 if reorder == scann_builder.ReorderType.BFLOAT16 else None
+    avq = None
+    # To avoid excessive numbers of combinations, we test AVQ if we're using
+    # dot product distance (a prereq) and bfloat16, since bfloat16 behavior
+    # should be independent of whether AVQ is enabled or not.
+    if reorder == scann_builder.ReorderType.BFLOAT16 and dist == "dot_product":
+      avq = 2.5
 
     n_dims = 50
     ds = np.random.rand(12345, n_dims).astype(np.float32)
@@ -130,7 +131,8 @@ class ScannTest(parameterized.TestCase):
             quantize_centroids=quantize_tree,
             avq=avq,
             soar_lambda=1.5 if soar[0] else None,
-            overretrieve_factor=soar[1] if soar[0] else None).score_ah(2))
+            overretrieve_factor=soar[1] if soar[0] else None,
+        ).score_ah(2))
     if reorder:
       builder = builder.reorder(20, quantize=reorder)
     self.verify_serialization(builder.build(), n_dims, 5)
@@ -168,11 +170,17 @@ class ScannTest(parameterized.TestCase):
             200, 10, min_partition_size=5).score_ah(1).build())
     self.verify_serialization(s, n_dims, 500)
 
-  @parameterized.parameters(("squared_l2",), ("dot_product",))
-  def test_brute_force_int8(self, dist):
+  @parameterized.product(
+      dist=["squared_l2", "dot_product"],
+      quant=[
+          scann_builder.ReorderType.INT8,
+          scann_builder.ReorderType.BFLOAT16,
+      ],
+  )
+  def test_brute_force_quantized(self, dist, quant):
     n_dims = 100
     ds = np.random.rand(12345, n_dims).astype(np.float32)
-    s = scann_ops_pybind.builder(ds, 10, dist).score_brute_force(True).build()
+    s = scann_ops_pybind.builder(ds, 10, dist).score_brute_force(quant).build()
     self.verify_serialization(s, n_dims, 5)
 
   def test_shapes(self):
@@ -387,11 +395,6 @@ class ScannTest(parameterized.TestCase):
         scann_ops_pybind.builder(ds, k,
                                  "dot_product").autopilot().create_config())
     self.assertEqual(config2, config)
-    with self.assertRaises(ValueError) as e:
-      _ = (
-          scann_ops_pybind.builder(ds, k, "squared_l2").autopilot(
-              quantize=scann_builder.ReorderType.BFLOAT16).build())
-    self.assertIn("BFLOAT16 requires dot product distance.", str(e.exception))
 
   def verify_accuracy(self, base, exp, gt, test, op, threshold=0.05):
     op(base)
@@ -481,8 +484,8 @@ class ScannTest(parameterized.TestCase):
     s = (
         scann_ops_pybind.builder(train[::2], k, "dot_product").autopilot(
             mode=scann_builder.IncrementalMode.ONLINE_INCREMENTAL,
-            quantize=scann_builder.ReorderType.BFLOAT16).build(
-                docids=docids[::2]))
+            quantize=scann_builder.ReorderType.BFLOAT16,
+        ).build(docids=docids[::2]))
     bf = (
         scann_ops_pybind.builder(
             train[::2], k,

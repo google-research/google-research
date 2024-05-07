@@ -220,11 +220,16 @@ class ScannBuilder(object):
       }} """
 
   @_factory_decorator("score_bf")
-  def score_brute_force(self, quantize=False):
+  def score_brute_force(self, quantize=ReorderType.FLOAT32):
+    # Backwards-compatibility shims for when quantize was a bool parameter.
+    if quantize is True:  # pylint: disable=g-bool-id-comparison
+      quantize = ReorderType.INT8
+    elif quantize is False:  # pylint: disable=g-bool-id-comparison
+      quantize = ReorderType.FLOAT32
     return f"""
       brute_force {{
-        fixed_point {{
-          enabled: {quantize}
+        {"bfloat16" if quantize == ReorderType.BFLOAT16 else "fixed_point"} {{
+          enabled: {quantize != ReorderType.FLOAT32}
         }}
       }}
     """
@@ -259,9 +264,6 @@ class ScannBuilder(object):
         ReorderType.INT8: "INT8",
         ReorderType.BFLOAT16: "BFLOAT16",
     }
-    if quantize == ReorderType.BFLOAT16:
-      if self.distance_measure != "dot_product":
-        raise ValueError("BFLOAT16 requires dot product distance.")
     return f"""
     autopilot {{
       tree_ah {{

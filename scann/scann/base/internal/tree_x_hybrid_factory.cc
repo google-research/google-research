@@ -320,6 +320,8 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
   opts->datapoints_by_token = nullptr;
   SCANN_RETURN_IF_ERROR(
       SetOverretrievalFactor(config.partitioning(), result.get()));
+  result->set_fixed_point_lut_conversion_options(
+      config.hash().asymmetric_hash().fixed_point_lut_conversion_options());
   return {std::move(result)};
 }
 

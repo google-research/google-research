@@ -480,8 +480,6 @@ SCANN_SIMD_OUTLINE void OneToManyBf16FloatImpl(const float* __restrict__ query,
                                                const IndexT* indices,
                                                MutableSpan<ResultElemT> result,
                                                CallbackT callback) {
-  static_assert(!kIsSquaredL2);
-
   constexpr const float* kNoMultipliersForBfloat16 = nullptr;
   const size_t dims = dataset_view.dimensionality();
   if (dims == 128) {

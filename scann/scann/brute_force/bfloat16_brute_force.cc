@@ -26,25 +26,39 @@ namespace research_scann {
 Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
     shared_ptr<const DistanceMeasure> distance,
     shared_ptr<const DenseDataset<float>> dataset,
-    const int32_t default_num_neighbors, const float default_epsilon)
+    const int32_t default_num_neighbors, const float default_epsilon,
+    float noise_shaping_threshold)
     : SingleMachineSearcherBase<float>(dataset, default_num_neighbors,
                                        default_epsilon),
-      distance_(distance) {
-  if (distance->specially_optimized_distance_tag() != distance->DOT_PRODUCT) {
-    LOG(FATAL) << "Bfloat16 brute force only supports dot product distance.";
+      is_dot_product_(distance->specially_optimized_distance_tag() ==
+                      distance->DOT_PRODUCT),
+      noise_shaping_threshold_(noise_shaping_threshold) {
+  if (distance->specially_optimized_distance_tag() != distance->DOT_PRODUCT &&
+      distance->specially_optimized_distance_tag() != distance->SQUARED_L2) {
+    LOG(FATAL) << "Bfloat16 brute force only supports dot product and squared "
+                  "L2 distance.";
   }
-  bfloat16_dataset_ = Bfloat16QuantizeFloatDataset(*dataset);
+  if (std::isfinite(noise_shaping_threshold)) {
+    bfloat16_dataset_ = Bfloat16QuantizeFloatDatasetWithNoiseShaping(
+        *dataset, noise_shaping_threshold);
+  } else {
+    bfloat16_dataset_ = Bfloat16QuantizeFloatDataset(*dataset);
+  }
 }
 Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
     shared_ptr<const DistanceMeasure> distance,
     DenseDataset<int16_t> bfloat16_dataset, const int32_t default_num_neighbors,
-    const float default_epsilon)
+    const float default_epsilon, float noise_shaping_threshold)
     : SingleMachineSearcherBase<float>(nullptr, default_num_neighbors,
                                        default_epsilon),
-      distance_(distance),
-      bfloat16_dataset_(std::move(bfloat16_dataset)) {
-  if (distance->specially_optimized_distance_tag() != distance->DOT_PRODUCT) {
-    LOG(FATAL) << "Bfloat16 brute force only supports dot product distance.";
+      is_dot_product_(distance->specially_optimized_distance_tag() ==
+                      distance->DOT_PRODUCT),
+      bfloat16_dataset_(std::move(bfloat16_dataset)),
+      noise_shaping_threshold_(noise_shaping_threshold) {
+  if (distance->specially_optimized_distance_tag() != distance->DOT_PRODUCT &&
+      distance->specially_optimized_distance_tag() != distance->SQUARED_L2) {
+    LOG(FATAL) << "Bfloat16 brute force only supports dot product and squared "
+                  "L2 distance.";
   }
   TF_CHECK_OK(this->set_docids(bfloat16_dataset_.ReleaseDocids()));
 }
@@ -81,21 +95,24 @@ Status Bfloat16BruteForceSearcher::FindNeighborsImpl(
   if (params.restricts_enabled()) {
     return UnimplementedError("Restricts not supported.");
   } else {
-    auto dot_products_ptr =
+    auto dists_ptr =
         static_cast<float*>(malloc(bfloat16_dataset_.size() * sizeof(float)));
-    MutableSpan<float> dot_products_span(dot_products_ptr,
-                                         bfloat16_dataset_.size());
-    DenseDotProductDistanceOneToManyBf16Float(query, bfloat16_dataset_,
-                                              dot_products_span);
+    MutableSpan<float> dists_span(dists_ptr, bfloat16_dataset_.size());
+    if (is_dot_product_) {
+      DenseDotProductDistanceOneToManyBf16Float(query, bfloat16_dataset_,
+                                                dists_span);
+    } else {
+      OneToManyBf16FloatSquaredL2(query, bfloat16_dataset_, dists_span);
+    }
     if (params.pre_reordering_crowding_enabled()) {
       return FailedPreconditionError("Crowding is not supported.");
     } else {
       FastTopNeighbors<float> top_n(params.pre_reordering_num_neighbors(),
                                     params.pre_reordering_epsilon());
-      top_n.PushBlock(dot_products_span, 0);
+      top_n.PushBlock(dists_span, 0);
       top_n.FinishUnsorted(result);
     }
-    free(dot_products_ptr);
+    free(dists_ptr);
   }
   return OkStatus();
 }
@@ -109,6 +126,16 @@ Bfloat16BruteForceSearcher::GetMutator() const {
     SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
   }
   return static_cast<SingleMachineSearcherBase::Mutator*>(mutator_.get());
+}
+
+StatusOr<SingleMachineFactoryOptions>
+Bfloat16BruteForceSearcher::ExtractSingleMachineFactoryOptions() {
+  TF_ASSIGN_OR_RETURN(
+      auto opts,
+      SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
+  opts.bfloat16_dataset =
+      make_shared<DenseDataset<int16_t>>(bfloat16_dataset_.Copy());
+  return opts;
 }
 
 }  // namespace research_scann

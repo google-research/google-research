@@ -106,16 +106,10 @@ StatusOrSearcherUntyped BruteForceFactory(const BruteForceConfig& config,
 StatusOrSearcherUntyped BruteForceFactory(
     const BruteForceConfig& config, const GenericSearchParameters& params,
     DenseDataset<int16_t>* bfloat16_dataset) {
-  const auto& distance_type = typeid(*params.reordering_dist);
-  if (distance_type == typeid(const DotProductDistance)) {
-    auto result = make_unique<Bfloat16BruteForceSearcher>(
-        params.reordering_dist, std::move(*bfloat16_dataset),
-        params.pre_reordering_num_neighbors, params.pre_reordering_epsilon);
-    return result;
-  } else {
-    return InvalidArgumentError(
-        "Bfloat16 bruteforce is supported only for dot product distance.");
-  }
+  return make_unique<Bfloat16BruteForceSearcher>(
+      params.reordering_dist, std::move(*bfloat16_dataset),
+      params.pre_reordering_num_neighbors, params.pre_reordering_epsilon,
+      config.bfloat16().noise_shaping_threshold());
 }
 
 template <>
@@ -155,11 +149,6 @@ StatusOrSearcherUntyped BruteForceFactory<float>(
     result->set_min_distance(params.min_distance);
     return result;
   } else if (config.bfloat16().enabled()) {
-    if (params.pre_reordering_dist->specially_optimized_distance_tag() !=
-        DistanceMeasure::DOT_PRODUCT) {
-      return InvalidArgumentError(
-          "Bfloat16 brute force only supports dot product distance.");
-    }
     auto dense = std::dynamic_pointer_cast<DenseDataset<float>>(dataset);
     if (!dense) {
       return InvalidArgumentError(
@@ -167,7 +156,8 @@ StatusOrSearcherUntyped BruteForceFactory<float>(
     }
     return make_unique<Bfloat16BruteForceSearcher>(
         params.pre_reordering_dist, dense, params.pre_reordering_num_neighbors,
-        params.pre_reordering_epsilon);
+        params.pre_reordering_epsilon,
+        config.bfloat16().noise_shaping_threshold());
   } else {
     auto result = make_unique<BruteForceSearcher<float>>(
         params.pre_reordering_dist, dataset,

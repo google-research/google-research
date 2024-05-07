@@ -59,6 +59,9 @@ message ProjectionConfig {
 
   optional bool build_covariance = 8 [default = true];
 
+  optional float pca_significance_threshold = 13 [default = inf];
+  optional float pca_truncation_threshold = 14 [default = inf];
+
   optional RandomBilinearConfig random_bilinear_config = 10;
 
   optional CkmeansConfig ckmeans_config = 11;

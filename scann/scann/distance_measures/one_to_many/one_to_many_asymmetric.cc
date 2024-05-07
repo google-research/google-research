@@ -103,4 +103,30 @@ void DenseDotProductDistanceOneToManyBf16Float(
       one_to_many_low_level::SetDistanceFunctor<float>(result));
 }
 
+void OneToManyBf16FloatSquaredL2(const DatapointPtr<float>& query,
+                                 DefaultDenseDatasetView<int16_t> database,
+                                 MutableSpan<float> result) {
+  one_to_many_low_level::OneToManyBf16FloatDispatch<false, true>(
+      query.values(), database, static_cast<uint32_t*>(nullptr), result,
+      one_to_many_low_level::SetDistanceFunctor<float>(result));
+}
+
+void OneToManyBf16FloatSquaredL2(
+    const DatapointPtr<float>& query, DefaultDenseDatasetView<int16_t> database,
+    MutableSpan<pair<DatapointIndex, float>> result) {
+  one_to_many_low_level::OneToManyBf16FloatDispatch<false, true>(
+      query.values(), database, static_cast<DatapointIndex*>(nullptr), result,
+      one_to_many_low_level::SetDistanceFunctor<pair<DatapointIndex, float>>(
+          result));
+}
+
+void OneToManyBf16FloatSquaredL2(const DatapointPtr<float>& query,
+                                 DefaultDenseDatasetView<int16_t> database,
+                                 ConstSpan<DatapointIndex> indices,
+                                 MutableSpan<float> result) {
+  one_to_many_low_level::OneToManyBf16FloatDispatch<true, true>(
+      query.values(), database, indices.data(), result,
+      one_to_many_low_level::SetDistanceFunctor<float>(result));
+}
+
 }  // namespace research_scann

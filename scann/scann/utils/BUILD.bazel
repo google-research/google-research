@@ -60,10 +60,12 @@ cc_library(
         ":util_functions",
         ":zip_sort",
         "//scann/oss_wrappers:scann_bits",
+        "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:flags",
         "//scann/utils/intrinsics:simd",
         "//scann/utils/intrinsics:sse4",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/numeric:bits",
         "@com_google_absl//absl/numeric:int128",
         "@com_google_absl//absl/strings",
@@ -195,7 +197,6 @@ cc_library(
         "//scann/proto:projection_cc_proto",
         "//scann/proto:scann_cc_proto",
         "@com_google_absl//absl/base:core_headers",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
@@ -465,12 +466,15 @@ cc_library(
         ":common",
         ":datapoint_utils",
         ":noise_shaping_utils",
+        ":parallel_for",
         ":top_n_amortized_constant",
         ":types",
         ":util_functions",
         ":zip_sort",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/distance_measures/one_to_one:l2_distance",
+        "//scann/oss_wrappers:scann_threadpool",
     ],
 )
 
@@ -481,6 +485,8 @@ cc_library(
     tags = ["local"],
     deps = [
         ":common",
+        ":noise_shaping_utils",
+        ":types",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
     ],
@@ -526,7 +532,9 @@ cc_library(
     hdrs = ["noise_shaping_utils.h"],
     tags = ["local"],
     deps = [
+        ":datapoint_utils",
         ":types",
+        "//scann/data_format:datapoint",
     ],
 )
 

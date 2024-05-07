@@ -15,16 +15,20 @@
 #include "scann/utils/fast_top_neighbors.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <type_traits>
 #include <utility>
 
+#include "absl/base/optimization.h"
+#include "absl/log/log.h"
+#include "absl/numeric/int128.h"
 #include "absl/strings/str_cat.h"
 #include "scann/utils/bits.h"
+#include "scann/utils/common.h"
+#include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/flags.h"
-#include "scann/utils/types.h"
-#include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
 
 namespace research_scann {
@@ -245,6 +249,7 @@ template class FastTopNeighbors<int16_t, uint32_t>;
 template class FastTopNeighbors<float, uint32_t>;
 template class FastTopNeighbors<int16_t, uint64_t>;
 template class FastTopNeighbors<float, uint64_t>;
+template class FastTopNeighbors<int16_t, absl::uint128>;
 template class FastTopNeighbors<float, absl::uint128>;
 template class FastTopNeighbors<float, std::pair<uint64_t, size_t>>;
 

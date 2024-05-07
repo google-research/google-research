@@ -218,7 +218,8 @@ Status TreeAHHybridResidual::PreprocessQueryIntoParamsUnlocked(
 
   TF_ASSIGN_OR_RETURN(
       auto shared_lookup_table,
-      asymmetric_queryer_->CreateLookupTable(query, lookup_type_tag_));
+      asymmetric_queryer_->CreateLookupTable(
+          query, lookup_type_tag_, fixed_point_lut_conversion_options_));
   search_params.set_unlocked_query_preprocessing_results(
       {make_unique<UnlockedTreeAHHybridResidualPreprocessingResults>(
           std::move(centers_to_search), std::move(shared_lookup_table))});
@@ -502,7 +503,8 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
 
     for (const auto& [i, p] : Enumerate(params)) {
       TF_ASSIGN_OR_RETURN(auto lut, asymmetric_queryer_->CreateLookupTable(
-                                        queries[i], lookup_type_tag_));
+                                        queries[i], lookup_type_tag_,
+                                        fixed_point_lut_conversion_options_));
       lookup_tables[i] = std::move(lut.int8_lookup_table);
       lookup_addrs[i] = lookup_tables[i].data();
       multipliers[i] = lut.fixed_point_multiplier;
@@ -593,7 +595,8 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
       queries.size());
   for (size_t i : IndicesOf(queries)) {
     TF_ASSIGN_OR_RETURN(auto lut, asymmetric_queryer_->CreateLookupTable(
-                                      queries[i], lookup_type_tag_));
+                                      queries[i], lookup_type_tag_,
+                                      fixed_point_lut_conversion_options_));
     lookup_tables[i] =
         make_shared<AsymmetricHashingOptionalParameters>(std::move(lut));
   }
@@ -663,7 +666,9 @@ Status TreeAHHybridResidual::FindNeighborsInternal1(
     lookup_table = query_preprocessing_results->lookup_table();
   } else {
     lookup_table = make_shared<AsymmetricHashingOptionalParameters>(
-        asymmetric_queryer_->CreateLookupTable(query, lookup_type_tag_)
+        asymmetric_queryer_
+            ->CreateLookupTable(query, lookup_type_tag_,
+                                fixed_point_lut_conversion_options_)
             .value());
   }
 

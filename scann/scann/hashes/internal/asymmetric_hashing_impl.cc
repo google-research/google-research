@@ -587,7 +587,7 @@ vector<T> ConvertLookupToFixedPoint(
   if (conversion_options.multiplier_quantile() == 1.0f) {
     if (conversion_options.float_to_int_conversion_method() == kRound) {
       return ConvertLookupToFixedPointImpl<T>(
-          raw_lookup, [](float f) { return std::lround(f); }, *multiplier);
+          raw_lookup, [](float f) { return std::round(f); }, *multiplier);
     } else {
       return ConvertLookupToFixedPointImpl<T>(
           raw_lookup, [](float f) { return static_cast<SignedT>(f); },
@@ -602,7 +602,7 @@ vector<T> ConvertLookupToFixedPoint(
       return ConvertLookupToFixedPointImpl<T>(
           raw_lookup,
           [&](float f) {
-            return static_cast<SignedT>(std::lround(compress_to_bounds(f)));
+            return static_cast<SignedT>(std::round(compress_to_bounds(f)));
           },
           *multiplier);
     } else {

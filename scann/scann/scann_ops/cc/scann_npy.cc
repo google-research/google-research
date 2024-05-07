@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "pybind11/gil.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -55,9 +56,10 @@ ScannNumpy::ScannNumpy(const std::string& artifacts_dir,
   RuntimeErrorIfNotOk(
       "Failed reading scann_config.pb: ",
       ReadProtobufFromFile(artifacts_dir + "/scann_config.pb", &config));
-  RuntimeErrorIfNotOk(
-      "Error initializing searcher: ",
-      scann_.Initialize(config.DebugString(), scann_assets_pbtxt));
+  std::string config_text;
+  google::protobuf::TextFormat::PrintToString(config, &config_text);
+  RuntimeErrorIfNotOk("Error initializing searcher: ",
+                      scann_.Initialize(config_text, scann_assets_pbtxt));
 }
 
 ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
@@ -65,6 +67,7 @@ ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
   if (np_dataset.ndim() != 2)
     throw std::invalid_argument("Dataset input must be two-dimensional");
   ConstSpan<float> dataset(np_dataset.data(), np_dataset.size());
+  pybind11::gil_scoped_release gil_release;
   RuntimeErrorIfNotOk("Error initializing searcher: ",
                       scann_.Initialize(dataset, np_dataset.shape()[0], config,
                                         training_threads));
@@ -175,10 +178,16 @@ string ScannNumpy::SuggestAutopilot(const std::string& config_str,
   auto status_or = Autopilot(config, nullptr, n, dim);
   RuntimeErrorIfNotOk("Failed to suggest autopilot config: ",
                       status_or.status());
-  return status_or.value().DebugString();
+  std::string result;
+  google::protobuf::TextFormat::PrintToString(status_or.value(), &result);
+  return result;
 }
 
-string ScannNumpy::Config() { return scann_.config()->DebugString(); }
+string ScannNumpy::Config() {
+  std::string config_str;
+  google::protobuf::TextFormat::PrintToString(*scann_.config(), &config_str);
+  return config_str;
+}
 
 std::pair<pybind11::array_t<DatapointIndex>, pybind11::array_t<float>>
 ScannNumpy::Search(const np_row_major_arr<float>& query, int final_nn,
@@ -236,9 +245,11 @@ void ScannNumpy::Serialize(std::string path) {
   StatusOr<ScannAssets> assets_or = scann_.Serialize(path);
   RuntimeErrorIfNotOk("Failed to extract SingleMachineFactoryOptions: ",
                       assets_or.status());
+  std::string assets_or_text;
+  google::protobuf::TextFormat::PrintToString(*assets_or, &assets_or_text);
   RuntimeErrorIfNotOk("Failed to write ScannAssets proto: ",
                       OpenSourceableFileWriter(path + "/scann_assets.pbtxt")
-                          .Write(assets_or->DebugString()));
+                          .Write(assets_or_text));
 }
 
 }  // namespace research_scann

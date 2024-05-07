@@ -19,13 +19,11 @@
 #include <functional>
 #include <string>
 
-#include "absl/status/status.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "scann/data_format/features.pb.h"
-#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/brute_force.pb.h"

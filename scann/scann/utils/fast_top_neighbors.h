@@ -43,9 +43,9 @@ class FastTopNeighbors {
     Init(max_results, epsilon);
   }
 
-  FastTopNeighbors(FastTopNeighbors&& rhs) { *this = std::move(rhs); }
+  FastTopNeighbors(FastTopNeighbors&& rhs) noexcept { *this = std::move(rhs); }
 
-  FastTopNeighbors& operator=(FastTopNeighbors&& rhs) {
+  FastTopNeighbors& operator=(FastTopNeighbors&& rhs) noexcept {
     indices_ = std::move(rhs.indices_);
     distances_ = std::move(rhs.distances_);
     masks_ = std::move(rhs.masks_);
@@ -167,6 +167,10 @@ class FastTopNeighbors {
     return std::make_pair(indices, dists);
   }
 
+  ConstSpan<DatapointIndexT> GetAllRawIndices() const {
+    return MutableSpan<DatapointIndexT>(indices_.get(), sz_);
+  }
+
   pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>> FinishSorted();
 
   void FinishUnsorted(std::vector<pair<DatapointIndexT, DistT>>* results) {
@@ -188,6 +192,8 @@ class FastTopNeighbors {
                         DistanceComparatorBranchOptimized());
   }
 
+  void GarbageCollect(size_t keep_min, size_t keep_max);
+
  protected:
   unique_ptr<DatapointIndexT[]> indices_;
 
@@ -198,8 +204,6 @@ class FastTopNeighbors {
   bool mutator_held_ = false;
 
  private:
-  void GarbageCollect(size_t keep_min, size_t keep_max);
-
   SCANN_INLINE void GarbageCollectApproximate() {
     if (capacity_ < max_capacity_) {
       return ReallocateForPureEnn();
@@ -372,6 +376,7 @@ extern template class FastTopNeighbors<int16_t, uint32_t>;
 extern template class FastTopNeighbors<float, uint32_t>;
 extern template class FastTopNeighbors<int16_t, uint64_t>;
 extern template class FastTopNeighbors<float, uint64_t>;
+extern template class FastTopNeighbors<int16_t, absl::uint128>;
 extern template class FastTopNeighbors<float, absl::uint128>;
 
 extern template class FastTopNeighbors<float, pair<uint64_t, uint64_t>>;
