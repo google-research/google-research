@@ -203,7 +203,7 @@ def colorize_depth(depth, bounds=None):
 class MetricHarness:
   """A helper class for evaluating several error metrics."""
 
-  def __init__(self, disable_ssim=False, disable_lpips=False, device=None):
+  def __init__(self, disable_ssim=False, disable_lpips=True, device=None):
     _ = device
     self.ssim_fn = lambda x, y: np.nan
     if not disable_ssim:

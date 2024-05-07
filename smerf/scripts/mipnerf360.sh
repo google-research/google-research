@@ -35,7 +35,7 @@ SCENES=(
 )
 
 for SCENE in "${SCENES[@]}"; do
-  CHECKPOINT_DIR="checkpoints/${TIMESTAMP}-${SCENE}"
+  CHECKPOINT_DIR="$(pwd)/checkpoints/${TIMESTAMP}-${SCENE}"
   python3 -m smerf.train \
     --gin_configs=configs/models/smerf.gin \
     --gin_configs=configs/mipnerf360/${SCENE}.gin \

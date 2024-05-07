@@ -460,7 +460,7 @@ def main(unused_argv):
         metric = metric_harness(merf_rgb, img_gt)
         for metric_name in sorted(metric.keys()):
           all_metrics[f'{prefix}.{metric_name}'].append(metric[metric_name])
-        logging.info(f'image#={img_idx} {metric}')
+        logging.info(f'{prefix} image#={img_idx} {metric}')
 
     # Compute per-frame averages of all metrics.
     for key, values in list(all_metrics.items()):
@@ -495,7 +495,7 @@ def main(unused_argv):
   ##############################################################################
   # Render render_path video
   def render_path_video():
-    logging.info('Rendering render_path_file.npy...')
+    logging.info('Rendering video...')
     gc.collect()
     threadpool = merf_utils.AsyncThreadPool()
 

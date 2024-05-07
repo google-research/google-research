@@ -18,7 +18,7 @@
 #
 
 TIMESTAMP="$(date +'%Y%m%d_%H%M')"
-CHECKPOINT_DIR="checkpoints/${TIMESTAMP}-demo"
+CHECKPOINT_DIR="$(pwd)/checkpoints/${TIMESTAMP}-demo"
 
 python3 -m smerf.train \
   --gin_configs=configs/models/smerf.gin \

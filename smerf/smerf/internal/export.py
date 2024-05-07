@@ -23,8 +23,8 @@ import multiprocessing
 import os
 
 from absl import logging
-from camp_zipnerf.internal import camera_utils
 import chex
+from diffren.jax import camera
 from etils import epath
 import flax
 import gin
@@ -509,7 +509,7 @@ def _webviewer_camera_from_index(index, dataset, near, far):
   center_offset_x = intrinsics[0, 2] - dataset.width / 2
   center_offset_y = dataset.height / 2 - intrinsics[1, 2]
 
-  webviewer_projection = camera_utils.perspective_from_intrinsics(
+  webviewer_projection = camera.perspective_from_intrinsics(
       focal_x, focal_y, center_offset_x, center_offset_y, near, far,
       dataset.width, dataset.height)
   return webviewer_position, webviewer_rotation, webviewer_projection

@@ -1120,7 +1120,7 @@ def render_dataset(
     # TODO(duckworthd): Compare against teacher.
     metric = metric_harness(rendering['rgb'], gt_rgb)
     for metric_name, baked_metric_name in zip(METRIC_NAMES, BAKED_METRIC_NAMES):
-      result[baked_metric_name] = metric[metric_name]
+      result[baked_metric_name] = metric.get(metric_name, np.nan)
 
     # Log metrics to STDERR.
     logging.info(f'{render_idx=} {metric=}')
