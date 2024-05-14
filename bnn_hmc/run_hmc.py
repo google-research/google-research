@@ -110,7 +110,7 @@ def train_model():
 
   # manually convert all params to dtype
   dtype = script_utils.get_dtype(args)
-  params = jax.tree_map(lambda p: p.astype(dtype), params)
+  params = jax.tree.map(lambda p: p.astype(dtype), params)
 
   update, get_log_prob_and_grad = train_utils.make_hmc_update(
       net_apply, log_likelihood_fn, log_prior_fn, log_prior_diff_fn,

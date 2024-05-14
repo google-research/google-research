@@ -490,11 +490,11 @@ def sample_simulation_parameters(
   """Samples simulation parameters."""
 
   is_tuple = lambda val: isinstance(val, tuple)
-  ranges_flat, ranges_treedef = jax.tree_flatten(
+  ranges_flat, ranges_treedef = jax.tree.flatten(
       simulation_parameter_ranges, is_leaf=is_tuple)
   rng, shuffle_rng, *rngs = jax.random.split(rng, len(ranges_flat) + 2)
   shuffle_indices = jax.random.permutation(shuffle_rng, num_trajectories)
-  rng_tree = jax.tree_unflatten(ranges_treedef, rngs)
+  rng_tree = jax.tree.unflatten(ranges_treedef, rngs)
 
   def sample_simulation_parameter(simulation_parameter_range,
                                   parameter_rng):
@@ -504,7 +504,7 @@ def sample_simulation_parameters(
     samples = jnp.linspace(minval, maxval, num=num_trajectories)
     return jnp.sort(samples)[shuffle_indices]
 
-  return jax.tree_map(
+  return jax.tree.map(
       sample_simulation_parameter,
       simulation_parameter_ranges,
       rng_tree,
@@ -595,7 +595,7 @@ def get_trajectory_with_parameters(
     simulation_parameters
 ):
   """Gets the trajectory and simulation parameters for a particular index."""
-  return jax.tree_map(
+  return jax.tree.map(
       lambda arr: arr[index], (positions, momentums, simulation_parameters))
 
 

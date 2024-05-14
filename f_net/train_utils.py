@@ -157,14 +157,14 @@ def _measure_and_maybe_clip_grad(grad,
                                  metrics,
                                  clipped_grad_norm = None):
   """Records and optionally clips gradient."""
-  grad_l2_sum = sum([jnp.sum(x**2) for x in jax.tree_leaves(grad)])
+  grad_l2_sum = sum([jnp.sum(x**2) for x in jax.tree.leaves(grad)])
   metrics["unclipped_grad_l2_sum"] = grad_l2_sum
 
   if clipped_grad_norm is not None:
     # Clip gradients after pmean aggregation
     grad = jax.example_libraries.optimizers.clip_grads(grad, clipped_grad_norm)
     metrics["clipped_grad_l2_sum"] = sum(
-        [jnp.sum(x**2) for x in jax.tree_leaves(grad)])
+        [jnp.sum(x**2) for x in jax.tree.leaves(grad)])
   else:
     # Clipped grad same as unclipped grad
     metrics["clipped_grad_l2_sum"] = grad_l2_sum

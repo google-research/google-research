@@ -25,7 +25,7 @@ class GATAdapter(common_adapters.SequenceAdapter):
   """Adapter for GAT model."""
 
   def as_example(self, dataset_item):
-    inputs = jax.tree_map(lambda x: x.numpy(), dataset_item)
+    inputs = jax.tree.map(lambda x: x.numpy(), dataset_item)
     example = {
         'start_index': inputs['cfg']['start_index'],
         'exit_index': inputs['cfg']['exit_index'],
@@ -52,7 +52,7 @@ class GGNNAdapter(common_adapters.SequenceAdapter):
   """Adapter for GGNN model."""
 
   def as_example(self, dataset_item):
-    inputs = jax.tree_map(lambda x: x.numpy(), dataset_item)
+    inputs = jax.tree.map(lambda x: x.numpy(), dataset_item)
     example = {
         'start_index': inputs['cfg']['start_index'],
         'exit_index': inputs['cfg']['exit_index'],

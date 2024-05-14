@@ -255,7 +255,7 @@ class TransformerTrainer(base_trainer.LayoutBaseTrainer):
         break
       rng, sample_rng = jax.random.split(rng, 2)
       p_rng = jax.random.split(sample_rng, jax.local_device_count())
-      test_batch = jax.tree_map(lambda x: x._numpy(), test_batch)  # pylint: disable=protected-access
+      test_batch = jax.tree.map(lambda x: x._numpy(), test_batch)  # pylint: disable=protected-access
       test_batch, test_label = self.preprocess_batch(test_batch, batch_size,
                                                      dataset, use_vertical)
       # For uncondtional generation, we stop the process according to the

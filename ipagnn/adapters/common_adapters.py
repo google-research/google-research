@@ -239,7 +239,7 @@ class SequenceAdapter(BaseAdapter):
   """Adapts datasets for use with sequence models."""
 
   def as_example(self, dataset_item):
-    example = jax.tree_map(lambda x: x.numpy(), dataset_item)
+    example = jax.tree.map(lambda x: x.numpy(), dataset_item)
     return example
 
   def shard(self, dataset_iter):

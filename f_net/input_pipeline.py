@@ -310,5 +310,5 @@ def c4_masked_lm_inputs(
 
     examples.append(example)
     if len(examples) == batch_size:
-      yield jax.tree_map(lambda *x: np.stack(x), *examples)
+      yield jax.tree.map(lambda *x: np.stack(x), *examples)
       examples = []
