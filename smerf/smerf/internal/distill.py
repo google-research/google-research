@@ -245,8 +245,13 @@ def _set_namespace(scopes, name, value, *, name_to_namespace):
   # --> old_namespace = 'camp_zipnerf.internal.models'
   # --> cls_or_fn = 'Model'
   # --> field = 'bg_intensity_range'
-  *old_namespace, cls_or_fn, field = name.split('.')
-  old_namespace = '.'.join(old_namespace)
+  *field_prefix, field = name.split('.')
+  if field_prefix:
+    *old_namespace, cls_or_fn = field_prefix
+    old_namespace = '.'.join(old_namespace)
+  else:
+    old_namespace = ''
+    cls_or_fn = None
 
   if cls_or_fn not in name_to_namespace:
     # No rule has been registered for this class or function. Keep the
@@ -274,7 +279,8 @@ def _set_namespace(scopes, name, value, *, name_to_namespace):
       # result        = 'camp_zipnerf.internal.models'
       new_namespace = old_namespace
 
-  name = f'{cls_or_fn}.{field}'
+  if cls_or_fn is not None:
+    name = f'{cls_or_fn}.{field}'
   if new_namespace:
     name = f'{new_namespace}.{name}'
   return scopes, name, value
