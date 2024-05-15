@@ -131,7 +131,7 @@ def meanflat(x):
 def global_norm(pytree):
   return jnp.sqrt(
       jnp.sum(
-          jnp.asarray([jnp.sum(jnp.square(x)) for x in jax.tree_leaves(pytree)
+          jnp.asarray([jnp.sum(jnp.square(x)) for x in jax.tree.leaves(pytree)
                       ])))
 
 
@@ -172,19 +172,19 @@ def clip_by_global_norm(pytree, clip_norm, use_norm=None):
     # assert use_norm.shape == ()
     assert not use_norm.shape
   scale = clip_norm * jnp.minimum(1.0 / use_norm, 1.0 / clip_norm)
-  return jax.tree_map(lambda x: x * scale, pytree), use_norm
+  return jax.tree.map(lambda x: x * scale, pytree), use_norm
 
 
 def apply_ema(decay, avg, new):
-  return jax.tree_map(lambda a, b: decay * a + (1. - decay) * b, avg, new)
+  return jax.tree.map(lambda a, b: decay * a + (1. - decay) * b, avg, new)
 
 
 def count_params(pytree):
-  return sum([x.size for x in jax.tree_leaves(pytree)])
+  return sum([x.size for x in jax.tree.leaves(pytree)])
 
 
 def copy_pytree(pytree):
-  return jax.tree_map(jnp.array, pytree)
+  return jax.tree.map(jnp.array, pytree)
 
 
 def dist(fn, accumulate, axis_name='batch'):
@@ -203,7 +203,7 @@ def dist(fn, accumulate, axis_name='batch'):
   @functools.partial(jax.pmap, axis_name=axis_name)
   def pmapped_fn(*args, **kwargs):
     out = fn(*args, **kwargs)
-    return out if accumulate_fn is None else jax.tree_map(accumulate_fn, out)
+    return out if accumulate_fn is None else jax.tree.map(accumulate_fn, out)
 
   def wrapper(*args, **kwargs):
     return jax.device_get(
@@ -229,7 +229,7 @@ def write_config_json(config, path):
 def tf_to_numpy(tf_batch):
   """TF to NumPy, using ._numpy() to avoid copy."""
   # pylint: disable=protected-access
-  return jax.tree_map(
+  return jax.tree.map(
       lambda x: x._numpy() if hasattr(x, '_numpy') else x,
       tf_batch)
 
@@ -241,8 +241,8 @@ def numpy_iter(tf_dataset):
 @functools.partial(jax.pmap, axis_name='batch')
 def _check_synced(pytree):
   mins = jax.lax.pmin(pytree, axis_name='batch')
-  equals = jax.tree_map(jnp.array_equal, pytree, mins)
-  return jnp.all(jnp.asarray(jax.tree_leaves(equals)))
+  equals = jax.tree.map(jnp.array_equal, pytree, mins)
+  return jnp.all(jnp.asarray(jax.tree.leaves(equals)))
 
 
 def assert_synced(pytree):

@@ -57,7 +57,7 @@ def shard(pytree, n_devices=None):
   def _shard_array(array):
     return array.reshape((n_devices, -1) + array.shape[1:])
 
-  return jax.tree_map(_shard_array, pytree)
+  return jax.tree.map(_shard_array, pytree)
 
 
 def normalize(image, dtype=tf.float32):

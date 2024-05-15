@@ -164,7 +164,7 @@ def vectorize_eval_fn(
         batch_eval_args,
         n,
     ):
-      sample_pred_label = jax.tree_map(lambda arr: arr[n, Ellipsis], batch_eval_args)
+      sample_pred_label = jax.tree.map(lambda arr: arr[n, Ellipsis], batch_eval_args)
       return single_sample_eval_fn(*sample_pred_label)
 
     def vectorized_eval_fn(*batch_eval_args):
@@ -239,7 +239,7 @@ def sample_batch(
   def sampled_tree_or_tree(arg, ind):
     batch_axis = batch_axes_[ind]
     if batch_axis is not None:
-      return jax.tree_map(
+      return jax.tree.map(
           lambda arr: sample_array(arr, rng, batch_size, batch_axis), arg
       )
     else:

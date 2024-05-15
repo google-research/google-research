@@ -212,7 +212,7 @@ class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
               noise_factor=initialization_noise_factor)
           if legacy_initialize:
             return routing_probs
-          return jax.tree_map(lambda x: jnp.log(x + initialize_smoothing),
+          return jax.tree.map(lambda x: jnp.log(x + initialize_smoothing),
                               routing_probs)
 
         log_routing_params = self.param(
@@ -374,7 +374,7 @@ class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
                   noise_factor=initialization_noise_factor)
           if legacy_initialize:
             return routing_probs
-          return jax.tree_map(lambda x: jnp.log(x + initialize_smoothing),
+          return jax.tree.map(lambda x: jnp.log(x + initialize_smoothing),
                               routing_probs)
 
         log_routing_params = self.param(

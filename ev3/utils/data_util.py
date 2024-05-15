@@ -64,13 +64,13 @@ class TestDataIterator(base.DataIterator):
     if self._start_pos + self.batch_size > self.n_all_data:
       self._start_pos = 0
       self.rand_key, perm_key = jax.random.split(self.rand_key, 2)
-      self.all_data = jax.tree_map(
+      self.all_data = jax.tree.map(
           lambda arr: jax.random.permutation(  # pylint: disable=g-long-lambda
               perm_key, arr, axis=self.batch_axis
           ),
           self.all_data,
       )
-    batch = jax.tree_map(
+    batch = jax.tree.map(
         lambda arr: jax.lax.dynamic_slice_in_dim(  # pylint: disable=g-long-lambda
             arr,
             start_index=self._start_pos,
@@ -86,7 +86,7 @@ class TestDataIterator(base.DataIterator):
     def concat(*arrays):
       return jnp.concatenate(arrays, axis=batch_axis)
 
-    return jax.tree_map(concat, *batches)
+    return jax.tree.map(concat, *batches)
 
   def next(self, num_batches=1):
     """Get a batch with num_batches x batch_size samples.
@@ -138,7 +138,7 @@ class NumpyDataIterator(base.DataIterator):
   def __next__(self):
     start_pos = self.rng.integers(0, self.n_all_data - self.batch_size)
     end_pos = start_pos + self.batch_size
-    return jax.tree_map(
+    return jax.tree.map(
         lambda arr: jnp.array(arr[start_pos:end_pos]),
         self.all_data,
     )
@@ -147,7 +147,7 @@ class NumpyDataIterator(base.DataIterator):
     def concat(*arrays):
       return jnp.concatenate(arrays, axis=batch_axis)
 
-    return jax.tree_map(concat, *batches)
+    return jax.tree.map(concat, *batches)
 
   def next(self, num_batches=1):
     """Get a batch with num_batches x batch_size samples.

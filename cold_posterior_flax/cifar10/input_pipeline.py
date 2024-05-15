@@ -131,4 +131,4 @@ def load_and_shard_tf_batch(config, xs):
       x = x._numpy()  # pylint: disable=protected-access
       return x.reshape((local_device_count, -1) + x.shape[1:])
 
-  return jax.tree_map(_prepare, xs)
+  return jax.tree.map(_prepare, xs)

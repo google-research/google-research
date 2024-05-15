@@ -209,7 +209,7 @@ def _forward_and_reverse_subsets(
     reverse_values[edge_type_index] = 1.0
     i += 1
 
-  return jax.tree_map(
+  return jax.tree.map(
       jnp.array,
       (forward_index_map, forward_values, reverse_index_map, reverse_values))
 
