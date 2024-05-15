@@ -298,7 +298,7 @@ def main(argv):
         with jax.profiler.StepTraceAnnotation('train', step_num=step):
           try:
             batch = common_utils.shard(
-                jax.tree_map(np.asarray, next(train_iter)))
+                jax.tree.map(np.asarray, next(train_iter)))
             optimizer, metrics = p_train_step(
                 optimizer, batch, dropout_rng=dropout_rngs)
             train_metrics.append(metrics)
@@ -317,9 +317,9 @@ def main(argv):
             logging.info('Gathering training metrics.')
             train_metrics = common_utils.get_metrics(train_metrics)
             lr = train_metrics.pop('learning_rate').mean()
-            metrics_sums = jax.tree_map(jnp.sum, train_metrics)
+            metrics_sums = jax.tree.map(jnp.sum, train_metrics)
             denominator = metrics_sums.pop('denominator')
-            summary = jax.tree_map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
+            summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
             summary['learning_rate'] = lr
             summary = {'train_' + k: v for k, v in summary.items()}
             writer.write_scalars(step, summary)

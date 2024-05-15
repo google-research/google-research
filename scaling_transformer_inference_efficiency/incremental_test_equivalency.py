@@ -263,7 +263,7 @@ def xmap_pjit_equivalency(
   prefill_fn = the_model_manual.instantiate_prefill_fn()
   # prompt_result2 = the_model_manual.prefill(params, prefill_fn, [], prompt)
   generate_fn = the_model_manual.instantiate_generating_fn(steps=steps)
-  # print(jax.tree_map(jnp.shape, prompt_result2))
+  # print(jax.tree.map(jnp.shape, prompt_result2))
   # samples2, _ = jax.jit(the_model_manual.generate).lower(
   #     params, generate_fn, [prompt_result], sample_ids,
   # )
@@ -370,7 +370,7 @@ def switch_sharding_patterns(
   prefill_fn = prefill_model.instantiate_prefill_fn()
   prompt_result2 = prefill_model.prefill(params, prefill_fn, [], prompt)
   generate_fn = generate_model.instantiate_generating_fn(steps=steps)
-  # print(jax.tree_map(jnp.shape, prompt_result2))
+  # print(jax.tree.map(jnp.shape, prompt_result2))
   samples2, _ = generate_model.generate(
       params,
       generate_fn,

@@ -217,7 +217,7 @@ class InferenceModel:
       self.embeddings_logical = P(
           'residual_batch', 'residual_time', 'residual_embed'
       )
-      self.embeddings_sharding = jax.tree_map(
+      self.embeddings_sharding = jax.tree.map(
           partitioning.logical_to_physical, self.embeddings_logical
       )
     self.vocab = vocab
