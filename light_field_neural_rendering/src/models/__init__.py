@@ -54,8 +54,8 @@ def create_model(config, rng, example_batch):
 def prepare_example_batch(example_batch):
   """Function to get rid of extra dimension in batch due to pmap"""
   # Get rid of the pmapping dimension as initialization is done on main process
-  example_batch = jax.tree_map(lambda x: x[0], example_batch)
-  example_batch.target_view.rays = jax.tree_map(lambda x: x[:4],
+  example_batch = jax.tree.map(lambda x: x[0], example_batch)
+  example_batch.target_view.rays = jax.tree.map(lambda x: x[:4],
                                                 example_batch.target_view.rays)
 
   return example_batch

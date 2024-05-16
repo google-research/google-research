@@ -60,7 +60,7 @@ class TrainState:
 
 def merge_batch_stats(replicated_state):
   """Merge model batch stats."""
-  if jax.tree_leaves(replicated_state.batch_stats):
+  if jax.tree.leaves(replicated_state.batch_stats):
     cross_replica_mean = jax.pmap(lambda x: jax.lax.pmean(x, 'x'), 'x')
     return replicated_state.replace(
         batch_stats=cross_replica_mean(replicated_state.batch_stats)
@@ -238,7 +238,7 @@ def train_step(
   loss_val, grads = jax.value_and_grad(get_l1_loss)(params)
 
   grads = jax.lax.pmean(grads, axis_name='batch')
-  grads = jax.tree_map(jnp.conj, grads)
+  grads = jax.tree.map(jnp.conj, grads)
 
   updates, new_opt_state = optimizer.update(grads, state.opt_state, params)
   new_params = optax.apply_updates(params, updates)
@@ -318,7 +318,7 @@ def train_step_z0(
   loss_val, grads = jax.value_and_grad(get_l1_loss)(params)
 
   grads = jax.lax.pmean(grads, axis_name='batch')
-  grads = jax.tree_map(jnp.conj, grads)
+  grads = jax.tree.map(jnp.conj, grads)
 
   updates, new_opt_state = optimizer.update(grads, state.opt_state, params)
   new_params = optax.apply_updates(params, updates)

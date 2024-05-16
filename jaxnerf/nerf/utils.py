@@ -397,13 +397,13 @@ def learning_rate_decay(step,
 
 def shard(xs):
   """Split data into shards for multiple devices along the first dimension."""
-  return jax.tree_map(
+  return jax.tree.map(
       lambda x: x.reshape((jax.local_device_count(), -1) + x.shape[1:]), xs)
 
 
 def to_device(xs):
   """Transfer data to devices (GPU/TPU)."""
-  return jax.tree_map(jnp.array, xs)
+  return jax.tree.map(jnp.array, xs)
 
 
 def unshard(x, padding=0):
