@@ -93,4 +93,4 @@ def map_quantize(*l):
     x = jax.nn.sigmoid(x)
     return quantize_float_to_byte(x)
 
-  return jax.tree_map(sigmoid_and_quantize_float_to_byte, l)
+  return jax.tree.map(sigmoid_and_quantize_float_to_byte, l)

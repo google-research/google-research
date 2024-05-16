@@ -75,7 +75,7 @@ class OneHopGraphConvolution(nn.Module):
     # Message-passing occurs against the direction of the input edges.
     senders, receivers = graph.receivers, graph.senders
 
-    num_nodes = jax.tree_leaves(graph.nodes)[0].shape[0]
+    num_nodes = jax.tree.leaves(graph.nodes)[0].shape[0]
     num_edges = senders.shape[0]
 
     # Compute the convolution by partitioning the edges.

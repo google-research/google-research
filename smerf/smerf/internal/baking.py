@@ -514,13 +514,13 @@ def _compute_alive_voxels(
       # pylint: disable=cell-var-from-loop
       step = config.baking_subsample_factor
       every_nth = lambda x: x[::step, ::step]
-      rays = jax.tree_map(every_nth, rays)
+      rays = jax.tree.map(every_nth, rays)
       # pylint: enable=cell-var-from-loop
 
     if config.baking_enable_ray_jitter:
       # Insert dummy patch dims.
       insert_patch_dims = lambda x: x.reshape(*x.shape[0:-1], 1, 1, x.shape[-1])
-      rays = jax.tree_map(insert_patch_dims, rays)
+      rays = jax.tree.map(insert_patch_dims, rays)
 
       # Jitter rays.
       # TODO(duckworthd): Use pjitter_rays to leverage all devices.
@@ -529,7 +529,7 @@ def _compute_alive_voxels(
 
       # Remove patch dims.
       remove_patch_dims = lambda x: x.reshape(*x.shape[0:-3], x.shape[-1])
-      rays = jax.tree_map(remove_patch_dims, rays)
+      rays = jax.tree.map(remove_patch_dims, rays)
 
     # Override sm_idx for all rays.
     sm_idxs = jnp.full_like(rays.sm_idxs, sm_idx)
@@ -650,19 +650,19 @@ def _compute_alive_voxels_grid_positions_batched(
 
   # Merge batch dims for all inputs
   flatten_fn = lambda x: x.reshape(-1, x.shape[-1])
-  rays = jax.tree_map(flatten_fn, rays)  # f32[N,C]
+  rays = jax.tree.map(flatten_fn, rays)  # f32[N,C]
 
   for start in range(0, num_rays, num_rays_per_batch):
     # Get a batch of rays.
     # pylint: disable=cell-var-from-loop
     stop = min(num_rays, start + num_rays_per_batch)
-    rays_batch = jax.tree_map(lambda x: x[start:stop], rays)  # f32[B,C]
+    rays_batch = jax.tree.map(lambda x: x[start:stop], rays)  # f32[B,C]
     # pylint: enable=cell-var-from-loop
 
     # Prepare for pmap'd render.
     _, batch_info = utils.pre_pmap(rays_batch.origins, ndims=1)
     pre_pmap = lambda x: utils.pre_pmap(x, ndims=1)[0]
-    rays_batch = jax.tree_map(pre_pmap, rays_batch)  # f32[D,R,C]
+    rays_batch = jax.tree.map(pre_pmap, rays_batch)  # f32[D,R,C]
 
     # Render batch of rays. These outputs will be partitioned across devices.
     # render_fn() applies jax.lax.all_gather() at the end of its computation.

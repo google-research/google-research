@@ -155,7 +155,7 @@ class AutomatonSamplingTest(parameterized.TestCase):
       variant_weights = variant_weights / jnp.sum(
           variant_weights, axis=-1, keepdims=True)
       routing_params_sum = builder.routing_reduce(routing_params, "sum")
-      routing_params = jax.tree_map(jax.lax.div, routing_params,
+      routing_params = jax.tree.map(jax.lax.div, routing_params,
                                     routing_params_sum)
       tmat = builder.build_transition_matrix(routing_params, enc_graph,
                                              enc_meta)
