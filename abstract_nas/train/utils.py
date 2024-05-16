@@ -58,7 +58,7 @@ class ExponentialMovingAverage:
     decay *= factor
     new_target = flax.core.FrozenDict(new_target)
     state = flax.core.FrozenDict(self.state)
-    weight_ema = jax.tree_map(lambda a, b: (1 - decay) * a + decay * b,
+    weight_ema = jax.tree.map(lambda a, b: (1 - decay) * a + decay * b,
                               new_target, state)
     return self.replace(state=weight_ema)
 # pytype:enable=attribute-error

@@ -921,7 +921,7 @@ def init_model(hparams):
   with model.mesh:
 
     def init_weights():
-      return jax.tree_map(
+      return jax.tree.map(
           lambda array: jnp.zeros(array.shape, array.dtype),
           weights.Weights.make_shaped_arrays(hparams),
       )
@@ -968,7 +968,7 @@ def benchmark_generate_with_model(
     context = pjit.pjit(
         ChunkResult.zeros,
         in_shardings=(),
-        out_shardings=jax.tree_map(
+        out_shardings=jax.tree.map(
             partitioning.logical_to_physical, ChunkResult.logical_axes()
         ),
         static_argnums=(0, 1, 2),
@@ -1283,7 +1283,7 @@ def run_serial_layer(
         jnp.arange(x_axis), jnp.arange(y_axis), jnp.arange(z_axis)
     )
     params = layers_serial.SerialLayer(q, wi, kv, o, wo)
-    # print(jax.tree_map(jnp.shape, params))
+    # print(jax.tree.map(jnp.shape, params))
     kv_caches = KVCache(lengths, k, v, jnp.zeros([0], jnp.int32))
 
     def run():

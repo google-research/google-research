@@ -55,7 +55,7 @@ def maybe_skip_gradient_update(
     inner_state = state.inner_state
     # Compute gradient norm and clip gradient if necessary
     gradient_norm = optax.global_norm(updates)
-    flat_updates = jax.tree_flatten(updates)[0]
+    flat_updates = jax.tree.flatten(updates)[0]
     isfinite = jnp.all(
         jnp.array([jnp.all(jnp.isfinite(p)) for p in flat_updates]))
     islowerthan = gradient_norm < gradient_norm_skip_threshold
@@ -64,7 +64,7 @@ def maybe_skip_gradient_update(
       return inner.update(updates, inner_state, params)
 
     def reject_update(_):
-      return (jax.tree_map(jnp.zeros_like, updates), inner_state)
+      return (jax.tree.map(jnp.zeros_like, updates), inner_state)
 
     updates, new_inner_state = jax.lax.cond(
         jnp.logical_and(isfinite, islowerthan),

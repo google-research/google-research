@@ -62,13 +62,13 @@ def makedirs(pth):
 
 def shard(xs):
   """Split data into shards for multiple devices along the first dimension."""
-  return jax.tree_map(
+  return jax.tree.map(
       lambda x: x.reshape((jax.local_device_count(), -1) + x.shape[1:]), xs)
 
 
 def to_device(xs):
   """Transfer data to devices (GPU/TPU)."""
-  return jax.tree_map(jnp.array, xs)
+  return jax.tree.map(jnp.array, xs)
 
 
 def unshard(x, padding=0):
@@ -80,7 +80,7 @@ def unshard(x, padding=0):
 
 
 def dataclass_map(fn, x):
-  """Behaves like jax.tree_map but doesn't recurse on fields of a dataclass."""
+  """Behaves like jax.tree.map but doesn't recurse on fields of a dataclass."""
   return x.__class__(**{k: fn(v) for k, v in vars(x).items()})
 
 

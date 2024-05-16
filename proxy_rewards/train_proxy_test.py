@@ -61,7 +61,7 @@ class TrainProxyTest(absltest.TestCase):
 
     erm_params, _ = train_proxy.train(erm_loss, init_params, lr=1., nsteps=1000)
 
-    b, w = jax.tree_leaves(erm_params)
+    b, w = jax.tree.leaves(erm_params)
     self.assertAlmostEqual(w[0].item(), 1.0988, places=3)
     self.assertAlmostEqual(w[1].item(), -1.0216, places=3)
     self.assertAlmostEqual(b.item(), -0.0274, places=3)
@@ -78,7 +78,7 @@ class TrainProxyTest(absltest.TestCase):
     erm_params_reg, _ = train_proxy.train(
         erm_loss_reg, init_params, lr=1., nsteps=1000)
 
-    b, w = jax.tree_leaves(erm_params_reg)
+    b, w = jax.tree.leaves(erm_params_reg)
     self.assertAlmostEqual(w[0].item(), 0.0030, places=3)
     self.assertAlmostEqual(w[1].item(), -0.0028, places=3)
     self.assertAlmostEqual(b.item(), 0.0158, places=3)
@@ -95,7 +95,7 @@ class TrainProxyTest(absltest.TestCase):
     mix_params, _ = train_proxy.train(
         mix_loss, init_params, lr=1., nsteps=1000)
 
-    b, w = jax.tree_leaves(mix_params)
+    b, w = jax.tree.leaves(mix_params)
     self.assertAlmostEqual(w[0].item(), 1.4478, places=3)
     self.assertAlmostEqual(w[1].item(), -1.2915, places=3)
     self.assertAlmostEqual(b.item(), 0.1693, places=3)

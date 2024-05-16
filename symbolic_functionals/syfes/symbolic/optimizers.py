@@ -195,7 +195,7 @@ class CMAESOptimizer:
         Float, the weighted root mean square deviation (WRMSD).
       """
       loss = float(
-          eval_wrmsd(**jax.tree_unflatten(
+          eval_wrmsd(**jax.tree.unflatten(
               functional.parameters_spec, parameters_vec)))
       if self.l1_penalty > 1e-8:
         loss += self.l1_penalty * np.sum(np.abs(parameters_vec))
@@ -230,7 +230,7 @@ class CMAESOptimizer:
     objective = self.get_objective(functional)
 
     if parameters_init:
-      parameters_vec_init = jax.tree_flatten(parameters_init)[0]
+      parameters_vec_init = jax.tree.flatten(parameters_init)[0]
 
     start = time.time()
     wrmsd_best = float('inf')
@@ -258,7 +258,7 @@ class CMAESOptimizer:
         wrmsd_best = wrmsd
         results = results_trial
         results['parameters'] = (
-            None if results['xbest'] is None else jax.tree_unflatten(
+            None if results['xbest'] is None else jax.tree.unflatten(
                 functional.parameters_spec, results['xbest']))
 
     results['wrmsd_trials'] = wrmsds
