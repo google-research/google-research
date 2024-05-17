@@ -157,7 +157,7 @@ def get_dataset(rng, config):
         'sample_rate': 16000,
         'num_examples': num_examples,
         'num_batches': num_batches,
-        'shape': jax.tree_map(
+        'shape': jax.tree.map(
             lambda x: x.shape, next(ds[name].as_numpy_iterator())),
     }
 

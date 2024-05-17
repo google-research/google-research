@@ -27,7 +27,7 @@ import tensorflow as tf
 
 def merge_batch_stats(replicated_state):
   """Merge model batch stats."""
-  if hasattr(replicated_state, "batch_stats") and jax.tree_leaves(
+  if hasattr(replicated_state, "batch_stats") and jax.tree.leaves(
       replicated_state.batch_stats
   ):
     cross_replica_mean = jax.pmap(lambda x: jax.lax.pmean(x, "x"), "x")

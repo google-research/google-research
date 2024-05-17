@@ -467,4 +467,4 @@ class UNet:
                                                           1)).reshape(-1)
 
   def print_layer_shape(self):
-    print([array.shape for array in jax.tree_flatten(self.net_params)[0]])
+    print([array.shape for array in jax.tree.flatten(self.net_params)[0]])

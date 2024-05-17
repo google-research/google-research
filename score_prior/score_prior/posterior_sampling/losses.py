@@ -38,7 +38,7 @@ def clip_grad(grad, grad_clip = 1.
   grad_norm = jnp.sqrt(
       sum([jnp.sum(jnp.square(x)) for x in jax.tree_util.tree_leaves(grad)]))
   # Clip gradient.
-  clipped_grad = jax.tree_map(
+  clipped_grad = jax.tree.map(
       lambda x: x * (grad_clip / jnp.maximum(grad_norm + 1e-6, grad_clip)),
       grad)
   return clipped_grad
@@ -299,7 +299,7 @@ def get_train_step_fn(
     data_weight = state.data_weight
     prior_weight = state.prior_weight
     entropy_weight = state.entropy_weight
-    grad = jax.tree_map(
+    grad = jax.tree.map(
         lambda a, b, c: data_weight * a + prior_weight * b + entropy_weight * c,
         grad_data, grad_prior, grad_entropy)
 

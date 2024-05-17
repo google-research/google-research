@@ -84,7 +84,7 @@ def prepare_tf_data(xs):
     x = x._numpy()  # pylint: disable=protected-access
     return x
 
-  return jax.tree_map(_prepare, xs)
+  return jax.tree.map(_prepare, xs)
 
 
 def create_iter(config, bs, train=True):
