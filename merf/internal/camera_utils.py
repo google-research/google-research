@@ -229,7 +229,7 @@ def transform_poses_pca(poses):
   # Just make sure it's it in the [-1, 1]^3 cube
   scale_factor = 1.0 / np.max(np.abs(poses_recentered[:, :3, 3]))
   poses_recentered[:, :3, 3] *= scale_factor
-  transform = np.diag(np.array([scale_factor] * 3 + [1])) @ transform
+  transform = np.diag(np.array([1] * 3 + [scale_factor])) @ transform
 
   return poses_recentered, transform
 
