@@ -216,7 +216,7 @@ def train_step(
   new_mutable_state = metrics_dict["mutable_state"]
   new_state.replace(mutable_state=new_mutable_state)
 
-  metrics_dict["scalars"] = jax.tree_map(
+  metrics_dict["scalars"] = jax.tree.map(
       lambda x: jax.lax.pmean(x, axis_name="batch"),
       metrics_dict["scalars"])
 
@@ -286,7 +286,7 @@ def evaluate(
     del batch["sid"]
     rng_i = jax.random.fold_in(rng, curr_eval_step)
 
-    batch = jax.tree_map(jnp.asarray, batch)
+    batch = jax.tree.map(jnp.asarray, batch)
     # Create inputs
     uncond_cond = jnp.zeros((1,), dtype=jnp.int32)
     logging.info("Sample.")
