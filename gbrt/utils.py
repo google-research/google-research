@@ -132,7 +132,7 @@ def replicate_batch(x, batch_size):
 
 
 def replicate_batch_tree(tree, batch_size):
-  return jax.tree_map(
+  return jax.tree.map(
       functools.partial(replicate_batch, batch_size=batch_size), tree)
 
 

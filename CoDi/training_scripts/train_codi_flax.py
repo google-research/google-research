@@ -500,7 +500,7 @@ def main():
     ]:
       controlnet_params[key] = unet_params[key]
 
-    ema_controlnet_params = jax.tree_map(jnp.array, controlnet_params)
+    ema_controlnet_params = jax.tree.map(jnp.array, controlnet_params)
 
     pipeline, pipeline_params = (
         FlaxStableDiffusionControlNetPipeline.from_pretrained(
@@ -567,7 +567,7 @@ def main():
       # reshape batch, add grad_step_dim if gradient_accumulation_steps > 1
       if args.gradient_accumulation_steps > 1:
         grad_steps = args.gradient_accumulation_steps
-        batch = jax.tree_map(
+        batch = jax.tree.map(
             lambda x: x.reshape(
                 (grad_steps, x.shape[0] // grad_steps) + x.shape[1:]
             ),
@@ -808,7 +808,7 @@ def main():
       else:
         init_loss_grad_rng = (
             0.0,  # initial value for cumul_loss
-            jax.tree_map(
+            jax.tree.map(
                 jnp.zeros_like, state.params
             ),  # initial value for cumul_grad
             train_rng,  # initial value for train_rng
@@ -817,7 +817,7 @@ def main():
         def cumul_grad_step(grad_idx, loss_grad_rng):
           cumul_loss, cumul_grad, train_rng = loss_grad_rng
           loss, grad, new_train_rng = loss_and_grad(grad_idx, train_rng)
-          cumul_loss, cumul_grad = jax.tree_map(
+          cumul_loss, cumul_grad = jax.tree.map(
               jnp.add, (cumul_loss, cumul_grad), (loss, grad)
           )
           return cumul_loss, cumul_grad, new_train_rng
@@ -828,7 +828,7 @@ def main():
             cumul_grad_step,
             init_loss_grad_rng,
         )
-        loss, grad = jax.tree_map(
+        loss, grad = jax.tree.map(
             lambda x: x / args.gradient_accumulation_steps, (loss, grad)
         )
 
@@ -837,7 +837,7 @@ def main():
 
       new_state = state.apply_gradients(grads=grad)
 
-      new_ema_params = jax.tree_map(
+      new_ema_params = jax.tree.map(
           lambda ema, p: ema * args.ema_decay + (1 - args.ema_decay) * p,
           state.ema_params,
           new_state.params,

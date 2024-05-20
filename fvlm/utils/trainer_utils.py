@@ -170,8 +170,8 @@ def log_model_size(params):
     params: A dictionary of string to parameter arrays.
   """
   parameter_overview.log_parameter_overview(params)
-  params_size = jax.tree_map(lambda x: x.size, params)
-  params_size = sum(jax.tree_flatten(params_size)[0])
+  params_size = jax.tree.map(lambda x: x.size, params)
+  params_size = sum(jax.tree.flatten(params_size)[0])
   logging.info('Model params size: %d', params_size)
 
 
@@ -440,7 +440,7 @@ def create_train_state(optimizer_def,
 def has_nan(inputs):
   """returns a boolean if any NaN is found in the `inputs` pytree."""
   inputs = jax_utils.unreplicate(inputs)
-  return any([jnp.any(jnp.isnan(x)) for x in jax.tree_leaves(inputs)])
+  return any([jnp.any(jnp.isnan(x)) for x in jax.tree.leaves(inputs)])
 
 
 def pop_non_savable_collections(
@@ -767,7 +767,7 @@ def train(output_dir,
       grads_norm = flax.core.unfreeze(grads)
       grads_norm = traverse_util.flatten_dict(grads_norm)
       grads_norm = {'.'.join(k): v for k, v in grads_norm.items()}
-      grads_norm = jax.tree_map(jax_opt.l2_norm, grads_norm)
+      grads_norm = jax.tree.map(jax_opt.l2_norm, grads_norm)
       grads_norm['global'] = jax_opt.l2_norm(grads)
     else:
       grads_norm = {}

@@ -48,7 +48,7 @@ Synopsis for deterministic training with multiple hosts:
   )
   ds_iter = iter(ds)
   for _ in range(num_train_steps):
-    batch = jax.tree_map(lambda x: x._numpy(), next(ds_iter)
+    batch = jax.tree.map(lambda x: x._numpy(), next(ds_iter)
     # (training step)
 
 """

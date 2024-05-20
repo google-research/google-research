@@ -160,7 +160,7 @@ class NeRFSceneManager(pycolmap.SceneManager):
       distortion_params.append(params)
     w2c_mats = np.stack(w2c_mats, axis=0)
     pixtocams = np.stack(p2c_mats, axis=0)
-    distortion_params = jax.tree_map(
+    distortion_params = jax.tree.map(
         lambda *args: np.array(args), *distortion_params
     )
 
@@ -299,7 +299,7 @@ def create_ngp_posedata_dict(
     pixtocam = pixtocams[i] if pixtocams.ndim >= 3 else pixtocams
     frame.update(create_intrinsic_dict(pixtocam))
     if distortion_params is not None:
-      dist = jax.tree_map(
+      dist = jax.tree.map(
           lambda x: x if isinstance(x, float) else x[i], distortion_params
       )
       frame.update(dist)
@@ -422,7 +422,7 @@ def load_ngp_posedata(data_dir, pose_file_name='transforms.json'):
   if distortion_params[0] is None:
     distortion_params = extract_distortion(meta)
   else:
-    distortion_params = jax.tree_map(
+    distortion_params = jax.tree.map(
         lambda *args: np.array(args), *distortion_params
     )
 

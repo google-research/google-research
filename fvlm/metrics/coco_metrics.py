@@ -101,8 +101,8 @@ def get_host_evaluator(
       """Process the predictions before update."""
       if 'detection' in predictions:
         predictions = predictions['detection']  # Get task scope.
-      predictions = jax.tree_map(np.array, predictions)
-      predictions = jax.tree_map(flatten_leading_dims, predictions)
+      predictions = jax.tree.map(np.array, predictions)
+      predictions = jax.tree.map(flatten_leading_dims, predictions)
       predictions = self.filter_by_source_ids(predictions)
       self.update(predictions)
 
