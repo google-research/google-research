@@ -408,7 +408,7 @@ class MSGLearner(acme.Learner):
           tile_shape = [1] * t.ndim
           tile_shape[0] = 2*num_cql_actions
           return jnp.tile(t, tile_shape)
-        tiled_obs = jax.tree_map(obs_tile_fn, obs)
+        tiled_obs = jax.tree.map(obs_tile_fn, obs)
         concat_acts = jnp.concatenate([policy_acts, unif_acts], axis=0)
         concat_acts = jnp.reshape(
             concat_acts,
@@ -480,7 +480,7 @@ class MSGLearner(acme.Learner):
       critic_params = optax.apply_updates(critic_params, critic_update)
 
       if self._use_ema_target_critic_params:
-        target_critic_params = jax.tree_map(
+        target_critic_params = jax.tree.map(
             lambda x, y: x * (1 - tau) + y * tau, target_critic_params,
             critic_params)
 
@@ -508,7 +508,7 @@ class MSGLearner(acme.Learner):
               # main_shuffle,
           ], axis=0)
       # inds = main_shuffle
-      x = jax.tree_map(lambda t: jnp.take(t, inds, axis=0), x)
+      x = jax.tree.map(lambda t: jnp.take(t, inds, axis=0), x)
       return x
 
     mimo_batch = jax.vmap(_mimo_batch, in_axes=(0, None), out_axes=0)
@@ -556,8 +556,8 @@ class MSGLearner(acme.Learner):
         key = all_keys[0]
         batch_keys = all_keys[1:]
         sarsa_tuple = mimo_batch(batch_keys, sarsa_tuple) # ensemble_size x batch x ...
-        sarsa_tuple = jax.tree_map(lambda x: jnp.swapaxes(x, 0, 1), sarsa_tuple) # batch x ensemble_size x ...
-        sarsa_tuple = jax.tree_map(lambda x: jnp.reshape(x, [x.shape[0], -1]), sarsa_tuple)
+        sarsa_tuple = jax.tree.map(lambda x: jnp.swapaxes(x, 0, 1), sarsa_tuple) # batch x ensemble_size x ...
+        sarsa_tuple = jax.tree.map(lambda x: jnp.reshape(x, [x.shape[0], -1]), sarsa_tuple)
 
       obs, acts, rews, discs, next_obs, next_acts, policy_acts_for_obs = sarsa_tuple
 
@@ -574,17 +574,17 @@ class MSGLearner(acme.Learner):
 
 #       if mimo_using_obs_tile and mimo_using_act_tile:
 #         # if using the version where we also tile the obs
-#         obs, acts, rews, discs, next_obs = jax.tree_map(
+#         obs, acts, rews, discs, next_obs = jax.tree.map(
 #             lambda x: jnp.tile(x, [1]*(x.ndim-1) + [ensemble_size]),
 #             (obs, acts, transitions.reward[:, None], transitions.discount[:, None], next_obs))
 #       elif (not mimo_using_obs_tile) and mimo_using_act_tile:
 #         # otherwise not tiling obs
-#         acts, rews, discs = jax.tree_map(
+#         acts, rews, discs = jax.tree.map(
 #             lambda x: jnp.tile(x, [1]*(x.ndim-1) + [ensemble_size]),
 #             (acts, transitions.reward[:, None], transitions.discount[:, None]))
 #       elif (not mimo_using_obs_tile) and (not mimo_using_act_tile):
 #         # otherwise not tile obs or acts
-#         rews, discs = jax.tree_map(
+#         rews, discs = jax.tree.map(
 #             lambda x: jnp.tile(x, [1]*(x.ndim-1) + [ensemble_size]),
 #             (transitions.reward[:, None], transitions.discount[:, None]))
 #       else:
@@ -614,7 +614,7 @@ class MSGLearner(acme.Learner):
 
 #       # much older
 #       # batch_size = transitions.reward.shape[0] // ensemble_size
-#       # sarsa_tuple = jax.tree_map(
+#       # sarsa_tuple = jax.tree.map(
 #       #     lambda x: jnp.reshape(x, (batch_size, -1)),
 #       #     sarsa_tuple)
 #       # obs, acts, rews, discs, next_obs, next_acts = sarsa_tuple
@@ -623,10 +623,10 @@ class MSGLearner(acme.Learner):
 #       # key = all_keys[0]
 #       # batch_keys = all_keys[1:]
 #       # sarsa_tuple = mimo_batch(batch_keys, sarsa_tuple) # ensemble_size x normal batch size x dim
-#       # sarsa_tuple = jax.tree_map(lambda t: jnp.swapaxes(t, 0, 1), sarsa_tuple)
+#       # sarsa_tuple = jax.tree.map(lambda t: jnp.swapaxes(t, 0, 1), sarsa_tuple)
 #       # pre_flatten_obs = sarsa_tuple[0] # normal batch size x ensemble size x dim
 #       # batch_size = transitions.reward.shape[0]
-#       # sarsa_tuple = jax.tree_map(
+#       # sarsa_tuple = jax.tree.map(
 #       #     lambda x: jnp.reshape(x, (batch_size, -1)),
 #       #     sarsa_tuple)
 #       # obs, acts, rews, discs, next_obs, next_acts = sarsa_tuple
@@ -748,7 +748,7 @@ class MSGLearner(acme.Learner):
       critic_params = optax.apply_updates(critic_params, critic_update)
 
       if self._use_ema_target_critic_params:
-        target_critic_params = jax.tree_map(
+        target_critic_params = jax.tree.map(
             lambda x, y: x * (1 - tau) + y * tau, target_critic_params,
             critic_params)
 
@@ -1032,8 +1032,8 @@ class MSGLearner(acme.Learner):
           new_shape = [B,] + rest_t_shape
           return jnp.reshape(t, new_shape)
 
-        obs_for_devices = jax.tree_map(reshape_for_devices, obs)
-        next_obs_for_devices = jax.tree_map(reshape_for_devices, next_obs)
+        obs_for_devices = jax.tree.map(reshape_for_devices, obs)
+        next_obs_for_devices = jax.tree.map(reshape_for_devices, next_obs)
 
         encoded_obs = pmapped_img_encoder(
             state.img_encoder_params,
@@ -1042,8 +1042,8 @@ class MSGLearner(acme.Learner):
             state.img_encoder_params,
             next_obs_for_devices,)
 
-        encoded_obs = jax.tree_map(reshape_back, encoded_obs)
-        encoded_next_obs = jax.tree_map(reshape_back, encoded_next_obs)
+        encoded_obs = jax.tree.map(reshape_back, encoded_obs)
+        encoded_next_obs = jax.tree.map(reshape_back, encoded_next_obs)
 
         obs = dict(
             state_image=encoded_obs,
@@ -1143,7 +1143,7 @@ class MSGLearner(acme.Learner):
       if not self._perform_sarsa_q_eval:
         key, sub_key = jax.random.split(key)
         # if ensemble_method == 'mimo':
-        #   transitions = jax.tree_map(lambda x: x[:256], transitions)
+        #   transitions = jax.tree.map(lambda x: x[:256], transitions)
         new_policy_params, new_policy_optimizer_state, avg_log_prob, act_loss, all_q_vals, spec_norm_loss = actor_update_step(
             state.policy_params,
             state.all_q_params,
@@ -1309,7 +1309,7 @@ class MSGLearner(acme.Learner):
       #     next_obs,
       #     next_act,
       # )
-      stop_grad_target_q_params = jax.tree_map(
+      stop_grad_target_q_params = jax.tree.map(
           jax.lax.stop_gradient, target_q_params)
       h2 = networks.get_critic_repr(
           stop_grad_target_q_params,
@@ -1503,28 +1503,28 @@ class MSGLearner(acme.Learner):
         new_shape = [num_devices, num_models_per_device] + p_shape[1:]
         return jnp.reshape(p, new_shape)
 
-      all_q_params = jax.tree_map(stack_params, *all_q_params)
-      all_q_params = jax.tree_map(reshape_params, all_q_params)
+      all_q_params = jax.tree.map(stack_params, *all_q_params)
+      all_q_params = jax.tree.map(reshape_params, all_q_params)
       # all_q_params = [
       #     [all_q_params[i] for i in range(num_devices*j, num_devices*j + num_models_per_device)]
       #     for j in range(num_devices)
       # ]
 
-      all_q_optimizer_states = jax.tree_map(stack_params,
+      all_q_optimizer_states = jax.tree.map(stack_params,
                                             *all_q_optimizer_states)
-      all_q_optimizer_states = jax.tree_map(reshape_params, all_q_optimizer_states)
+      all_q_optimizer_states = jax.tree.map(reshape_params, all_q_optimizer_states)
       # all_q_optimizer_states = [
       #     [all_q_optimizer_states[i] for i in range(num_devices*j, num_devices*j + num_models_per_device)]
       #     for j in range(num_devices)
       # ]
 
-      all_pretrain_encoder_params = jax.tree_map(stack_params,
+      all_pretrain_encoder_params = jax.tree.map(stack_params,
                                                  *all_pretrain_encoder_params)
-      all_pretrain_encoder_params = jax.tree_map(reshape_params, all_pretrain_encoder_params)
+      all_pretrain_encoder_params = jax.tree.map(reshape_params, all_pretrain_encoder_params)
 
-      all_pretrain_encoder_optimizer_states = jax.tree_map(
+      all_pretrain_encoder_optimizer_states = jax.tree.map(
           stack_params, *all_pretrain_encoder_optimizer_states)
-      all_pretrain_encoder_optimizer_states = jax.tree_map(reshape_params, all_pretrain_encoder_optimizer_states)
+      all_pretrain_encoder_optimizer_states = jax.tree.map(reshape_params, all_pretrain_encoder_optimizer_states)
 
       # policy stuff
       key, sub_key = jax.random.split(key)
@@ -1639,7 +1639,7 @@ class MSGLearner(acme.Learner):
         'all_q': self._state.all_q_params,
     }
     if self._use_img_encoder:
-      img_encoder_params = jax.tree_map(
+      img_encoder_params = jax.tree.map(
           lambda x: x[0], self._state.img_encoder_params)
       variables['img_encoder'] = img_encoder_params
     return [variables[name] for name in names]

@@ -79,7 +79,7 @@ def build_q_filtered_actor(
       # tile_shape[0] = num_samples
       tile_shape[0] = acts.shape[0]
       return jnp.tile(t, tile_shape)
-    tiled_obs = jax.tree_map(obs_tile_fn, obs)
+    tiled_obs = jax.tree.map(obs_tile_fn, obs)
 
     # batch_size x num_critics
     all_q = networks.q_network.apply(q_params, tiled_obs, acts)
