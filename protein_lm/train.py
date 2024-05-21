@@ -150,7 +150,7 @@ def run_experiment(
 
     num_evals = 0
     for step, batch in zip(range(start_step, max_train_steps), train_iter):
-      batch = jax.tree_map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
+      batch = jax.tree.map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
       metrics = model.fit_batch(batch)
       train_metrics.append(metrics)
 

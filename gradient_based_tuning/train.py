@@ -909,7 +909,7 @@ def update_model_and_guidance_step(
                     guided_opt_key] = jnp.count_nonzero(
                         raw_vars_grad > grad_clip_limit) + jnp.count_nonzero(
                             raw_vars_grad < -grad_clip_limit)
-      raw_vars_grad = jax.tree_map(
+      raw_vars_grad = jax.tree.map(
           lambda g_: jnp.clip(  # pylint: disable=g-long-lambda
               g_,
               a_min=-grad_clip_limit,
@@ -1074,7 +1074,7 @@ def eval_step(model, batch, label_smoothing=0.0, use_bfloat16=False):
 
 
 def batch_to_numpy(batch):
-  return jax.tree_map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
+  return jax.tree.map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
 
 
 def do_eval_single(
@@ -1103,10 +1103,10 @@ def do_eval_single(
   if not eval_metrics:
     raise ValueError('Eval has failed for: %s' % eval_ds_name)
   eval_metrics = common_utils.get_metrics(eval_metrics)
-  eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+  eval_metrics_sums = jax.tree.map(jnp.sum, eval_metrics)
 
   eval_denominator = eval_metrics_sums.pop('dataset_eval/denominator')
-  eval_summary = jax.tree_map(
+  eval_summary = jax.tree.map(
       lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
       eval_metrics_sums)
   eval_summary['dataset_eval/unique_examples'] = sum_unique_examples
@@ -1692,7 +1692,7 @@ def output_train_metrics(
         summary[k] = 0.0
       pass
   # Take the sums across batch for 'loss', 'accuracy', and 'denominator'.
-  metrics_sums = jax.tree_map(jnp.sum, train_step_metrics)
+  metrics_sums = jax.tree.map(jnp.sum, train_step_metrics)
   # Handle weighted loss.
   unweighted_keys = [x for x in metrics_sums.keys() if 'training_set_unw/' in x]
   if unweighted_keys:
@@ -1702,7 +1702,7 @@ def output_train_metrics(
     denominator_unweighted = unweighted_metrics_sums.pop(
         'training_set_unw/denominator')
     summary.update(
-        jax.tree_map(lambda x: x / denominator_unweighted,
+        jax.tree.map(lambda x: x / denominator_unweighted,
                      unweighted_metrics_sums))  # pylint: disable=cell-var-from-loop
   guidance_set_keys = [x for x in metrics_sums.keys() if 'dataset_guide/' in x]
   if guidance_set_keys:
@@ -1712,13 +1712,13 @@ def output_train_metrics(
     denominator_unweighted = unweighted_metrics_sums.pop(
         'dataset_guide/denominator')
     summary.update(
-        jax.tree_map(lambda x: x / denominator_unweighted,
+        jax.tree.map(lambda x: x / denominator_unweighted,
                      unweighted_metrics_sums))  # pylint: disable=cell-var-from-loop
 
   # After this, only loss and accuracy are left in the metrics_sums.
   if 'dataset_train/denominator' in metrics_sums:
     denominator = metrics_sums.pop('dataset_train/denominator')
-    summary.update(jax.tree_map(lambda x: x / denominator, metrics_sums))  # pylint: disable=cell-var-from-loop
+    summary.update(jax.tree.map(lambda x: x / denominator, metrics_sums))  # pylint: disable=cell-var-from-loop
 
   steps_per_eval = get_train_metrics_freq() if step != 0 else 1
   steps_per_sec = steps_per_eval / (time.time() - t_metrics_timer)
@@ -1746,13 +1746,13 @@ def output_train_metrics(
         # This is 'learning_rate' and various guidance metrics if present.
         metrics_summary[k] = guide_step_metrics.pop(k).mean()
     # Take the sums across batch for 'loss', 'accuracy', and 'denominator'.
-    metrics_sums = jax.tree_map(jnp.sum, guide_step_metrics)
+    metrics_sums = jax.tree.map(jnp.sum, guide_step_metrics)
     # After this, only loss and accuracy are left in the metrics_sums.
     if 'dataset_guide/denominator' in metrics_sums:
       denominator = metrics_sums.pop('dataset_guide/denominator')
       # metrics_summary['dataset_guide/denominator'] = denominator
       metrics_summary.update(
-          jax.tree_map(lambda x: x / denominator, metrics_sums))  # pylint: disable=cell-var-from-loop
+          jax.tree.map(lambda x: x / denominator, metrics_sums))  # pylint: disable=cell-var-from-loop
 
     if jax.process_index() == 0:
       train_sum_writer.flush()
@@ -1891,7 +1891,7 @@ def main(_):
 
   extra_metrics = {
       'general/num_params_model':
-          sum(x.size for x in jax.tree_leaves(optimizer_dict['model'].target)),
+          sum(x.size for x in jax.tree.leaves(optimizer_dict['model'].target)),
   }
 
   # this allows us to set separate learning_rate_scalar values for each guided

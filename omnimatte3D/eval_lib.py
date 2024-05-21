@@ -161,7 +161,7 @@ def evaluate(config, workdir):
         break
 
       logging.info("Evaluating [%d / %d].", idx, eval_ds.cardinality())
-      batch = jax.tree_map(np.asarray, batch)
+      batch = jax.tree.map(np.asarray, batch)
       render_dict, metrics_update = flax_utils.unreplicate(
           p_eval_step(state=state, batch=batch)
       )
@@ -176,7 +176,7 @@ def evaluate(config, workdir):
         # Only log from the main process.
         continue
 
-      viz_batch = jax.tree_map(lambda x: x[0], batch)
+      viz_batch = jax.tree.map(lambda x: x[0], batch)
       test_pixels = viz_batch["rgb"]
 
       # -----------------------------------------------------------
@@ -273,7 +273,7 @@ def evaluate(config, workdir):
       if not config.eval.eval_once and idx == showcase_index:
         showcase_dict = render_dict
 
-    eval_metrics_cpu = jax.tree_map(np.array, eval_metrics.compute())
+    eval_metrics_cpu = jax.tree.map(np.array, eval_metrics.compute())
     # -----------------------------------------------------------
     if (not config.eval.eval_once) and (jax.process_index() == 0):
       writer.write_images(step, showcase_dict)
