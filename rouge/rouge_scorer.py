@@ -174,7 +174,7 @@ def _create_ngrams(tokens, n):
     tokens: A list of tokens from which ngrams are created.
     n: Number of tokens to use, e.g. 2 for bigrams.
   Returns:
-    A dictionary mapping each bigram to the number of occurrences.
+    A dictionary mapping each ngram to the number of occurrences.
   """
 
   ngrams = collections.Counter()
