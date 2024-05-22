@@ -153,9 +153,9 @@ class TrainTest(absltest.TestCase):
       eval_metrics.append(metrics)
 
     eval_metrics = common_utils.get_metrics(eval_metrics)
-    eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+    eval_metrics_sums = jax.tree.map(jnp.sum, eval_metrics)
     eval_denominator = eval_metrics_sums.pop('denominator')
-    eval_summary = jax.tree_map(
+    eval_summary = jax.tree.map(
         lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
         eval_metrics_sums)
 

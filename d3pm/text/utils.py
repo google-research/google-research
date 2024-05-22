@@ -119,7 +119,7 @@ def build_batch_from_info(dataset_info,
 
     return jnp.zeros(shape, dtype=spec.dtype)
 
-  return jax.tree_map(_initialize, dataset_info.shapes)
+  return jax.tree.map(_initialize, dataset_info.shapes)
 
 
 def make_model_apply(model, rng_key):
@@ -167,7 +167,7 @@ def make_model_apply(model, rng_key):
 
 def stack_forest(forest):
   stack_args = lambda *args: np.stack(args)
-  return jax.tree_map(stack_args, *forest)
+  return jax.tree.map(stack_args, *forest)
 
 
 def get_metrics(device_metrics):
@@ -207,13 +207,13 @@ def combine_metrics(step_metrics):
       nonorm[k] = metrics_all[k]
   for k in nonorm:
     metrics_all.pop(k)
-  nonorm = jax.tree_map(jnp.mean, nonorm)
+  nonorm = jax.tree.map(jnp.mean, nonorm)
 
-  metrics_all = jax.tree_map(lambda x: jnp.asarray(x, dtype=np.float32),
+  metrics_all = jax.tree.map(lambda x: jnp.asarray(x, dtype=np.float32),
                              metrics_all)
-  metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+  metrics_sums = jax.tree.map(jnp.sum, metrics_all)
   denominator = metrics_sums.pop("denominator")
-  summary = jax.tree_map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
+  summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
   summary["denominator_sum"] = denominator
   if lr is not None:
     summary["learning_rate"] = lr
@@ -342,7 +342,7 @@ def evaluate(model, eval_ds, num_eval_steps=None):
   else:
     num_iter = range(num_eval_steps)
   for _, eval_batch in zip(num_iter, eval_iter):
-    eval_batch = jax.tree_map(np.asarray, eval_batch)
+    eval_batch = jax.tree.map(np.asarray, eval_batch)
     metrics, _ = model.evaluate_batch(eval_batch)  # ignore extras
     eval_metrics.append(metrics)
   finish = time.time()
@@ -374,7 +374,7 @@ def predict(model, eval_ds, metric_fns, dataset_info, num_predict_steps=None):
   else:
     num_iter = range(num_predict_steps)
   for _, eval_batch in zip(num_iter, eval_iter):
-    eval_batch = jax.tree_map(np.asarray, eval_batch)
+    eval_batch = jax.tree.map(np.asarray, eval_batch)
     prediction = model.predict_batch(eval_batch)
 
     for metric_fn in metric_fns:
@@ -582,11 +582,11 @@ def summarize_tree(pytree, short=True):
     else:
       return x
 
-  return jax.tree_map(_describe, pytree)
+  return jax.tree.map(_describe, pytree)
 
 
 def apply_ema(decay, avg, new):
-  return jax.tree_map(lambda a, b: decay * a + (1. - decay) * b, avg, new)
+  return jax.tree.map(lambda a, b: decay * a + (1. - decay) * b, avg, new)
 
 
 def expand_by_shape(arr, shape):

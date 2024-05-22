@@ -352,7 +352,7 @@ def train_step(state,
       optimizer.target, lp_optimizer.target)
   grads = jax.lax.pmean(grads, 'batch')
   new_optimizer = optimizer.apply_gradient(
-      jax.tree_map(jnp.add, grads[0], ae_grad), learning_rate=lr)
+      jax.tree.map(jnp.add, grads[0], ae_grad), learning_rate=lr)
   new_lp_optimizer = lp_optimizer.apply_gradient(grads[1], learning_rate=lr)
 
   metrics = compute_metrics(logits, programs, weights)
@@ -557,7 +557,7 @@ def predict_step(state,
   # Step 2: Beam-search over program tokens.
   per_latent_inputs = decode.flat_batch_beam_expand(
       inputs, FLAGS.latent_beam_size)
-  per_latent_cache = jax.tree_map(
+  per_latent_cache = jax.tree.map(
       lambda x: decode.flat_batch_beam_expand(x, FLAGS.latent_beam_size), cache)
   beam_seqs, _ = decode.beam_search(
       per_latent_inputs,
@@ -620,9 +620,9 @@ def per_host_sum_pmap(in_tree):
   devices = [host2devices[k][0] for k in host2devices]
   host_psum = jax.pmap(lambda x: jax.lax.psum(x, 'i'), 'i', devices=devices)
   def pre_pmap(xs):
-    return jax.tree_map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
+    return jax.tree.map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
   def post_pmap(xs):
-    return jax.tree_map(lambda x: x[0], xs)
+    return jax.tree.map(lambda x: x[0], xs)
   return post_pmap(host_psum(pre_pmap(in_tree)))
 
 
@@ -867,7 +867,7 @@ def main(_):
     state, metrics, latent_metrics, train_rngs = p_train_step(
         state, inputs, outputs, programs, step <= FLAGS.num_pretrain_steps,
         train_rng=train_rngs)
-    metrics, latent_metrics = jax.tree_map(np.array, (metrics, latent_metrics))
+    metrics, latent_metrics = jax.tree.map(np.array, (metrics, latent_metrics))
     metrics_all.append(metrics)
     latent_metrics_all.append(latent_metrics)
 
@@ -889,9 +889,9 @@ def main(_):
     # Training Metrics
     metrics_all = common_utils.get_metrics(metrics_all)
     lr = metrics_all.pop('learning_rate').mean()
-    metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+    metrics_sums = jax.tree.map(jnp.sum, metrics_all)
     denominator = metrics_sums.pop('denominator')
-    summary = jax.tree_map(
+    summary = jax.tree.map(
         lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
         metrics_sums)
     summary['learning_rate'] = lr
@@ -899,9 +899,9 @@ def main(_):
     summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
 
     latent_metrics_all = common_utils.get_metrics(latent_metrics_all)
-    metrics_sums = jax.tree_map(jnp.sum, latent_metrics_all)
+    metrics_sums = jax.tree.map(jnp.sum, latent_metrics_all)
     denominator = metrics_sums.pop('denominator')
-    summary.update(jax.tree_map(
+    summary.update(jax.tree.map(
         lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
         metrics_sums))
 
@@ -927,21 +927,21 @@ def main(_):
     for batches in eval_ds.as_numpy_iterator():
       inputs, outputs, programs = common_utils.shard(batches)
       all_metrics = p_eval_step(state, inputs, outputs, programs)
-      metrics, latent_metrics = jax.tree_map(np.array, all_metrics)
+      metrics, latent_metrics = jax.tree.map(np.array, all_metrics)
       eval_metrics.append(metrics)
       latent_eval_metrics.append(latent_metrics)
 
     eval_metrics = common_utils.get_metrics(eval_metrics)
-    eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+    eval_metrics_sums = jax.tree.map(jnp.sum, eval_metrics)
     eval_denominator = eval_metrics_sums.pop('denominator')
-    eval_summary = jax.tree_map(
+    eval_summary = jax.tree.map(
         lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
         eval_metrics_sums)
 
     latent_eval_metrics = common_utils.get_metrics(latent_eval_metrics)
-    eval_metrics_sums = jax.tree_map(jnp.sum, latent_eval_metrics)
+    eval_metrics_sums = jax.tree.map(jnp.sum, latent_eval_metrics)
     eval_denominator = eval_metrics_sums.pop('denominator')
-    eval_summary.update(jax.tree_map(
+    eval_summary.update(jax.tree.map(
         lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
         eval_metrics_sums))
 
@@ -967,7 +967,7 @@ def main(_):
         if cur_pred_batch_size % n_devices:
           padded_size = int(
               np.ceil(cur_pred_batch_size / n_devices) * n_devices)
-          pred_batch = jax.tree_map(
+          pred_batch = jax.tree.map(
               lambda x: pad_examples(x, padded_size), pred_batch)  # pylint: disable=cell-var-from-loop
         inputs, outputs, programs = common_utils.shard(pred_batch)
 
@@ -996,7 +996,7 @@ def main(_):
               ' '.join(list(np.array(latent_predicted[i, p_idx]).astype(str))))
 
       all_pred_acc, all_pred_denominator = per_host_sum_pmap(
-          jax.tree_map(np.array, (pred_acc, pred_denominator)))
+          jax.tree.map(np.array, (pred_acc, pred_denominator)))
 
       # Record beam search results as text summaries.
       message = []

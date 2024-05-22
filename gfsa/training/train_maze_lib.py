@@ -85,7 +85,7 @@ def iterative_fixed_point(
       else:
         return v
 
-    dx = jax.tree_map(int_tangents_to_float, dx)
+    dx = jax.tree.map(int_tangents_to_float, dx)
 
     # Solve the system.
     y = solve_forward(x, guess)

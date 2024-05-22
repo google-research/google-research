@@ -50,7 +50,7 @@ def _convert_spec(spec):
 
 def get_dataset_info(ds, vocab=None):
   """Wraps a set of TFDS datasets with vocabularies."""
-  shapes = jax.tree_map(_convert_spec, ds.element_spec)
+  shapes = jax.tree.map(_convert_spec, ds.element_spec)
 
   if not isinstance(shapes, dict):
     raise ValueError(

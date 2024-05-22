@@ -457,7 +457,7 @@ def full_pes_grad(key, params, data, targets, K, sigma, N):
 
   T = len(data)
   t = 0
-  gradient_estimate = jax.tree_map(lambda x: jnp.zeros(x.shape), theta)
+  gradient_estimate = jax.tree.map(lambda x: jnp.zeros(x.shape), theta)
   while t < T:
     grad_pes_term = estimator.grad_estimate(theta, update_state=True)
     gradient_estimate += grad_pes_term
