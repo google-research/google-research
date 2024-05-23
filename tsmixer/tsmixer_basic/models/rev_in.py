@@ -31,13 +31,13 @@ class RevNorm(layers.Layer):
   def build(self, input_shape):
     if self.affine:
       self.affine_weight = self.add_weight(
-          'affine_weight', shape=input_shape[-1], initializer='ones'
+          'affine_weight', shape=(1,input_shape[-1]), initializer='ones'
       )
       self.affine_bias = self.add_weight(
-          'affine_bias', shape=input_shape[-1], initializer='zeros'
+          'affine_bias', shape=(1,input_shape[-1]), initializer='zeros'
       )
 
-  def call(self, x, mode, target_slice=None):
+  def call(self, x, mode, target_slice=slice(0, None)):
     if mode == 'norm':
       self._get_statistics(x)
       x = self._normalize(x)
@@ -65,10 +65,10 @@ class RevNorm(layers.Layer):
       x = x + self.affine_bias
     return x
 
-  def _denormalize(self, x, target_slice=None):
+  def _denormalize(self, x, target_slice):
     if self.affine:
       x = x - self.affine_bias[target_slice]
       x = x / self.affine_weight[target_slice]
-    x = x * self.stdev[:, :, target_slice]
-    x = x + self.mean[:, :, target_slice]
+    x = x * self.stdev[:, target_slice]
+    x = x + self.mean[:, target_slice]
     return x
