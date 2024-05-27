@@ -279,6 +279,8 @@ def make_mlp_regression(data_info, output_dim=2, layer_dims=[100, 100]):
 def make_mlp_regression_small(data_info):
   return make_mlp([50], 2)
 
+def make_bayesian_regression(data_info):
+  return make_mlp([], 2)
 
 def make_mlp_classification(data_info, layer_dims=[256, 256]):
   num_classes = data_info["num_classes"]
@@ -308,6 +310,8 @@ def get_model(model_name, data_info, **kwargs):
           make_mlp_regression,
       "mlp_regression_small":
           make_mlp_regression_small,
+      "bayesian_regression":
+          make_bayesian_regression,
       "mlp_classification":
           make_mlp_classification,
       "logistic_regression":

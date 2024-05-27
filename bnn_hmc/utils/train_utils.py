@@ -84,10 +84,11 @@ def get_task_specific_fns(task, data_info):
         "nll": lambda preds, y: metrics.regression_nll(preds, y, data_scale),
         "mse": lambda preds, y: metrics.mse(preds, y, data_scale),
         "rmse": lambda preds, y: metrics.rmse(preds, y, data_scale),
+        "str": lambda preds, y: metrics.summarize_1d_regr(preds, y, data_scale),
     }
     tabulate_metrics = [
         "train/rmse", "train/nll", "test/rmse", "test/nll", "test/ens_rmse",
-        "test/ens_nll"
+        "test/ens_nll", "test/str"
     ]
   return likelihood_fn, predict_fn, ensemble_fn, metrics_fns, tabulate_metrics
 

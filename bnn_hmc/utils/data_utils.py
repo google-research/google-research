@@ -227,6 +227,26 @@ def _parse_uci_regression_dataset(name_str):
   return None, None
 
 
+def generate_test_regression_dataset(which='both', dataset='linear'):
+  x_train = onp.array([[-1.], [+1.]])
+  x_test = onp.linspace(-2, +2, num=5, endpoint=True).reshape((-1, 1))
+  if dataset == "zero":
+    y_train = onp.zeros((2, 1))
+    y_test = onp.zeros((5, 1))
+  elif dataset == "linear":
+    y_train = -x_train
+    y_test = -x_test
+
+  data_info = {"y_scale": 0.1}
+
+  if str(which) == "-1":
+    x_train, y_train = x_train[:1], y_train[:1]
+  elif str(which) == "1":
+    x_train, y_train = x_train[1:], y_train[1:]
+
+  return (x_train, y_train), (x_test, y_test), data_info
+
+
 def load_npz_array(filename):
   arr = onp.load(filename, allow_pickle=True)
   return ((arr["x_train"], arr["y_train"]), (arr["x_test"], arr["y_test"]),
@@ -275,6 +295,14 @@ def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
     train_set, test_set, data_info = load_npz_array(name)
     loaded = True
     task = Task.CLASSIFICATION
+  elif name.startswith("regtest"):
+    if "_" not in name:
+      which = "both"
+    else:
+      which = name.split('_')[-1]
+    train_set, test_set, data_info = generate_test_regression_dataset(which)
+    loaded = True
+    task = Task.REGRESSION
   else:
     name, seed = _parse_uci_regression_dataset(name)
     loaded = name is not None
