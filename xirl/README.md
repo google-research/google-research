@@ -125,7 +125,7 @@ Create your own sampler in `xirl/frame_samplers.py` and add it to the `FRAME_SAM
 
 > How can I implement additional pretraining evaluation metrics?
 
-You'll want to inherit from `xirl.evaluators.base.Evaluator` class and as you guessed, add it to the `EVALUATORS` dict in `factory.py`. See `xirl/evaluators` for our current list of qualitative and quantative evaluation metrics
+You'll want to inherit from `xirl.evaluators.base.Evaluator` class and as you guessed, add it to the `EVALUATORS` dict in `factory.py`. See `xirl/evaluators` for our current list of qualitative and quantitative evaluation metrics
 
 ## Acknowledgments
 
