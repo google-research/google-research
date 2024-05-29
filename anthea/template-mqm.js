@@ -106,6 +106,10 @@ antheaTemplates['MQM'] = {
           display: 'Mistranslation',
           description: 'The target text does not accurately represent the source text.',
         },
+        gender_mismatch: {
+          display: 'Gender Mismatch',
+          description: 'The gender is incorrect (incorrect pronouns, noun/adjective endings, etc).',
+        },
         untranslated: {
           display: 'Source language fragment',
           description: 'Content that should have been translated has been left untranslated.',
@@ -166,6 +170,10 @@ antheaTemplates['MQM'] = {
         sentence_structure: {
           display: 'Bad sentence structure',
           description: 'The marked span of text is an unnecessary repetition, or makes the sentence unnecessarily long, or would have been better as a clause in the previous sentence.'
+        },
+        archaic_word: {
+          display: 'Archaic or obscure word choice',
+          description: 'An archaic or lesser-known word is used where a more colloquial term would be a better fit.',
         },
       },
     },
