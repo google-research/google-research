@@ -353,6 +353,15 @@
   top: 6ex;
   z-index: 3;
 }
+.anthea-note-to-raters {
+  font-weight: bold;
+  color: black;
+}
+.anthea-note-to-raters:before {
+  content: "PLEASE NOTE: ";
+  font-weight: bold;
+  color: red;
+}
 .anthea-mqm-instructions li {
   line-height: 1.2;
   margin: 8px auto;

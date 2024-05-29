@@ -810,6 +810,18 @@ class AntheaEval {
     /** function */
     this.resizeListener_ = null;
   }
+  /**
+   * Escapes HTML to safely render as text.
+   * @param {string} unescapedHtml
+   * @return {string}
+   */
+  escapeHtml(unescapedHtml) {
+    return unescapedHtml.replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+ }
 
   /**
    * Removes all window/document-level listeners and sets manager_ to null;
@@ -3553,6 +3565,9 @@ class AntheaEval {
     const srcLang = parameters.source_language || '';
     const tgtLang = parameters.target_language || '';
 
+    let noteToRaters = parameters.hasOwnProperty('note_to_raters') ?
+        parameters.note_to_raters :
+        '';
     /**
      * By default, raters navigate in units of sentences. If subpara_*
      * parameters have been passed in, they control the unit size.
@@ -3687,6 +3702,18 @@ class AntheaEval {
             }
             priorRaters.push(priorRater);
           }
+          if (parsed_anno.hasOwnProperty('note_to_raters')) {
+            if (noteToRaters) {
+              this.manager_.log(
+                  this.manager_.ERROR,
+                  'Found note to raters in multiple places (JSON parameters ' +
+                  'and/or multiple segment annotations); ignoring ' +
+                  'subsequent notes');
+              }
+            else {
+              noteToRaters = parsed_anno.note_to_raters;
+            }
+          }
         }
 
 
@@ -3797,6 +3824,11 @@ class AntheaEval {
                                    config.TARGET_SIDE_FIRST || false,
                                    this.updateProgressForSegment.bind(this));
 
+    if (noteToRaters) {
+      this.config.instructions +=
+          '<p class="anthea-note-to-raters">' +
+          this.escapeHtml(noteToRaters) + '</p>';
+    }
     this.createUI(instructionsPanel, controlPanel);
 
     if (parameters.hasOwnProperty('prior_results')) {
