@@ -88,6 +88,10 @@ def _aggregate_output(
 def _get_weights(line):
   """Parses the token_id, mismatching weight and matching weight from a string.
 
+  NOTE: we assume the weights from the input file are used for Hamming distance
+  while this library requires weights for Hamming similarity. So we negate the
+  input weights.
+
   Args:
     line: A string corresponding to a json object which contains _TOKEN_ID,
       _MATCHING_WEIGHT and _MISMATCHING_WEIGHT.
@@ -113,7 +117,7 @@ def _get_weights(line):
 
   return (
       int(dic[_TOKEN_ID]),
-      (float(dic[_MISMATCHING_WEIGHT]), float(dic[_MATCHING_WEIGHT])),
+      (-float(dic[_MISMATCHING_WEIGHT]), -float(dic[_MATCHING_WEIGHT])),
   )
 
 
