@@ -5,6 +5,8 @@ Generation with Long Documents](https://arxiv.org/abs/2312.01279).
 
 ## Setup and run minimal experiment
 
+Make sure you're in the `/experiments` directory before running these commands.
+
 Dependencies are defined in `requirements.txt`. `run.sh` installs them and
 runs a minimal toy version of the experiments in this repo. Start with:
 ```
