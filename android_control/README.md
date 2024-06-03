@@ -16,7 +16,7 @@ with compression type `'GZIP'` with the following fields:
 *   `episode_id`: a unique identifier integer for each episode. This is especially useful when generating the data splits.
 *   `goal`: the goal instruction for the entire episode.
 *   `screenshots`: a list of screenshot byte strings for each observation encoded as PNGs.
-*   `accessibility_trees`: a list of accessibility trees for each observation.
+*   `accessibility_trees`: a list of [accessibility trees](https://github.com/google-deepmind/android_env/blob/main/android_env/proto/a11y/android_accessibility_forest.proto) for each observation.
 *   `screenshot_widths`: a list of the widths of each of the screenshots.
 *   `screenshot_heights`: a list of the heights of each of the screenshots.
 *   `actions`: a list of actions represented as JSON dictionaries. The actions are performed between consecutive screenshots, so there are **len(screenshots) - 1** of them.
@@ -30,8 +30,23 @@ Our actions are represented as JSON dictionaries with an `action_type` key. The 
 * `long_press`: long press at a specific point on the screen using the coordinates found in the `'x'` and `'y'` fields of the action.
 * `scroll`: scroll in a specific direction set in the `'direction'` field (one of 'up', 'down', 'left', or 'right').
 * `open_app`: open an app with the name stored in the `'app_name'` field. This name should map to an activity name which can be used to open the app using adb.
-* `type`: performs a click at the specified coordinates (`'x'` and `'y'` fields), inputs the text (`'text'` field), and then hits enter.
-* `input_text`: types the text in the `'text'` field using ADB. Note: unlike the `type` action, this only types the text. It does not perform a click or press enter at the end.
+* `input_text`: types the text in the `'text'` field. It does not perform a click or press enter at the end.
 * `navigate_home`: go to the home screen.
 * `navigate_back`: go back to the previous screen.
 * `wait`: wait a set number of seconds. This is used when no action should be taken other than to wait for something on screen (e.g., a loading bar).
+
+## License
+
+Copyright 2024 The Google Research Authors.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
