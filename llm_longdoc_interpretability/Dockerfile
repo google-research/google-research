@@ -24,9 +24,5 @@ WORKDIR google-research/llm_longdoc_interpretability
 # Install dependencies.
 RUN pip install -r requirements.txt
 
-# Run experiments script.
-CMD ["bash", "run.sh"]
-
-# TODO(pragunananda): Replace previous run command with script to run on Vertex
-# once implemented.
-# CMD ["python", "run_on_vertex.py"]
+# Execute run.py
+ENTRYPOINT ["python", "run.py"]
