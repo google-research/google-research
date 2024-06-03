@@ -454,7 +454,7 @@ class ConnectedNodes(GraphTask):
             name_dict[source_node],
             answer,
         )
-      else:
+    else:
         answer = 'No nodes.'
         if cot:
           answer += (
