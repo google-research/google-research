@@ -276,7 +276,9 @@ def _calculate_dataset_config(config, grid_config, datasets):
         default_exposure=np.median(exposures),
         exposure_range=(np.min(exposures), np.max(exposures)),
     )
-    exposure_config = jax.tree.map(lambda x: x.tolist(), exposure_config)
+    exposure_config = jax.tree_util.tree_map(
+        lambda x: x.tolist(), exposure_config
+    )
 
   return grid_config, exposure_config
 

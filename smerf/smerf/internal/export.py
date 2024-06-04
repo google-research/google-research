@@ -451,7 +451,7 @@ def export_scene(
   utils.save_json_gz(export_scene_params, scene_params_path_gz)
 
   # Calculate memory, disk consumption.
-  storage_stats = jax.tree.map(
+  storage_stats = jax.tree_util.tree_map(
       estimate_storage_stats,
       output_paths + [scene_params_path],
       output_images + [deferred_mlp_vars],
@@ -524,7 +524,7 @@ def _export_deferred_mlp_vars(variables):
   def format_array(x):
     return {'shape': x.shape, 'data': x.flatten().tolist()}
 
-  variables = jax.tree.map(format_array, variables)
+  variables = jax.tree_util.tree_map(format_array, variables)
 
   return variables
 
@@ -551,7 +551,7 @@ def estimate_storage_stats(filepath, representation):
     representation = representation[Ellipsis, 0]
 
   disk_mb = epath.Path(filepath).stat().length / 1e6
-  memory_mb = jax.tree.map(lambda x: x.nbytes / 1e6, representation)
+  memory_mb = jax.tree_util.tree_map(lambda x: x.nbytes / 1e6, representation)
   aggregate_memory_mb = jax.tree_util.tree_reduce(
       lambda x, y: x + y, memory_mb, initializer=0.0
   )

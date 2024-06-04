@@ -314,7 +314,9 @@ def _first_m_hits_per_ray(
     p = jnp.full((num_rays, max_steps, x.shape[-1]), fill_value, dtype=x.dtype)
     return jnp.concatenate([x, p], axis=1)
 
-  variables = jax.tree.map(lambda x: append_placeholders(x, 0), variables)
+  variables = jax.tree_util.tree_map(
+      lambda x: append_placeholders(x, 0), variables
+  )
   is_occupied = append_placeholders(is_occupied, 1)
 
   # Compute mask based on occupancy.
@@ -357,7 +359,7 @@ def _first_m_hits_per_ray(
     d = x.shape[-1]
     return x.reshape(-1, d)[inds].reshape(num_rays, max_steps, d)
 
-  variables = jax.tree.map(first_m_per_ray, variables)
+  variables = jax.tree_util.tree_map(first_m_per_ray, variables)
 
   return variables, is_placeholder
 
@@ -1435,4 +1437,3 @@ def merge_all_baked_path_renders(sm_idxs, baked_log_dir, config):
 
   # Create render path mp4 videos.
   create_render_path_mp4_files(output_dir, config)
-
