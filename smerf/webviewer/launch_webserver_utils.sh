@@ -23,18 +23,18 @@
 
 # Where to store data locally. Paths are with respect to the directory
 # containing this script.
-ROOT_SCENES_DIR="scenes"
-MIPNERF360_SCENES_SUBDIR="nov_15"
+DEFAULT_BAKED_SCENE_DIR="baked/example"
 
 # Web viewer config.
-SCENE_NAME="bicycle"
-QUALITY="high"
-COMBINE_MODE="concat_and_sum"
-VERTICAL_FOV="40.038544"
-RESOLUTION="1245,825"
-NEAR=0.2
-USE_DISTANCE_GRID="true"
-PORT=8000
+DEFAULT_MOUSE_MODE="fps"  # or "orbit"
+DEFAULT_QUALITY="high"  # or "phone", "low", or "medium"
+DEFAULT_VERTICAL_FOV="40.038544"
+DEFAULT_RESOLUTION="1245,825"
+DEFAULT_NEAR=0.2
+DEFAULT_PORT=8000
+DEFAULT_COMBINE_MODE="concat_and_sum"
+DEFAULT_USE_DISTANCE_GRID="true"
+DEFAULT_USE_BITS="true"
 
 ################################################################################
 ## Functions
@@ -53,7 +53,7 @@ function install_dependencies() {
         Darwin*)    install_dependencies_osx;;
         *)          echo "Unrecognized platform: ${UNAME_OUTPUTS}"
     esac
-    echo ${machine}
+    echo "http-server has been installed."
   else
     echo "http-server is already installed. Skipping installation..."
   fi
@@ -83,16 +83,30 @@ function install_dependencies_linux() {
 
 # Launches web viewer
 function launch_webviewer() {
-  local DATA_DIR="${ROOT_SCENES_DIR}/${MIPNERF360_SCENES_SUBDIR}/${SCENE_NAME}/sm_000"
+  # Override these environment variables if desired.
+  local BAKED_SCENE_DIR="${BAKED_SCENE_DIR:-${DEFAULT_BAKED_SCENE_DIR}}"
+  local QUALITY="${QUALITY:-${DEFAULT_QUALITY}}"
+  local VERTICAL_FOV="${VERTICAL_FOV:-${DEFAULT_VERTICAL_FOV}}"
+  local RESOLUTION="${RESOLUTION:-${DEFAULT_RESOLUTION}}"
+  local NEAR="${NEAR:-${DEFAULT_NEAR}}"
+  local PORT="${PORT:-${DEFAULT_PORT}}"
+  local MOUSE_MODE="${MOUSE_MODE:-${DEFAULT_MOUSE_MODE}}"
+
+  # Don't change these unless your training config requires it.
+  local COMBINE_MODE="${COMBINE_MODE:-${DEFAULT_COMBINE_MODE}}"
+  local USE_DISTANCE_GRID="${USE_DISTANCE_GRID:-${DEFAULT_USE_DISTANCE_GRID}}"
+  local USE_BITS="${USE_BITS:-${DEFAULT_USE_BITS}}"
 
   echo "Open the following link:"
   echo "Link      = http://localhost:${PORT}/"\
-"?dir=${DATA_DIR}"\
+"?dir=${BAKED_SCENE_DIR}/sm_000"\
 "&quality=${QUALITY}"\
 "&combineMode=${COMBINE_MODE}"\
 "&s=${RESOLUTION}"\
 "&vfovy=${VERTICAL_FOV}"\
-"&useDistanceGrid=${USE_DISTANCE_GRID}"
+"&useDistanceGrid=${USE_DISTANCE_GRID}"\
+"&useBits=${USE_BITS}"\
+"&mouseMode=${MOUSE_MODE}"
   echo "PWD       = $(pwd)"
 
   # Launch server with the following arguments.
