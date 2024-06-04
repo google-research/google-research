@@ -6,7 +6,9 @@ fields of large indoor & outdoor spaces.
 ## Installation
 
 1. Install NVIDIA drivers, CUDA, and cuDNN. The instructions for this are
-   platform-specific.
+   platform-specific. The codebase is verified working on driver version
+   525.147.05, CUDA 12.3, and cuDNN 8.9. Support for other versions is not
+   guaranteed.
 
 2. Install [miniconda](https://docs.anaconda.com/free/miniconda/miniconda-install/).
 
@@ -20,7 +22,8 @@ conda activate smerf-env
 4. Install JAX with GPU support.
 
 ```
-python3 -m pip install --upgrade "jax[cuda12_pip]==0.4.23" -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
+python3 -m pip install --upgrade "jax[cuda12_pip]==0.4.23" \
+  -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
 5. Install `smerf` locally,

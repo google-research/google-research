@@ -63,6 +63,16 @@ def main(unused_argv):
   # Hide GPUs from TensorFlow. If we don't JAX computations will OOM.
   tf.config.set_visible_devices([], 'GPU')
 
+  # Verify that GPUs are available.
+  num_gpu_devices = sum([device.platform == 'gpu' for device in jax.devices()])
+  if not num_gpu_devices:
+    raise ValueError(
+        'The following code will be unreasonably slow unless JAX has access to'
+        ' one or more GPUs. Please make sure that JAX has been installed with'
+        ' CUDA support.'
+    )
+  del num_gpu_devices
+
   dataset = test_dataset = render_dataset = None
 
   # Shift the numpy random seed by host_id() to shuffle data loaded by different
