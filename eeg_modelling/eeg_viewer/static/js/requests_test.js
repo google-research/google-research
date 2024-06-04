@@ -87,30 +87,35 @@ testSuite({
           ['0-1'], waveformChunk.getChannelDataIdsList().map((x) => {
             if (x.hasBipolarChannel()) {
               return (
-                  x.getBipolarChannel().getIndex() + '-' +
-                  x.getBipolarChannel().getReferentialIndex());
+                  x.getBipolarChannel().getIndex_asLegacyNumberOrString() +
+                  '-' +
+                  x.getBipolarChannel()
+                      .getReferentialIndex_asLegacyNumberOrString());
             } else {
-              return String(x.getSingleChannel().getIndex());
+              return x.getSingleChannel().getIndex_asLegacyNumberOrString();
             }
           }));
       return actionTypeEqual && dataTableEqual && channelIdsEqual;
     });
 
     const mockDispatcher = mockControl.createStrictMock(Dispatcher);
-    mockDispatcher.sendAction({
-      actionType: Dispatcher.ActionType.REQUEST_START,
-      data: {
-        fileParamDirty: true,
-      },
-    }).$once();
+    mockDispatcher
+        .sendAction({
+          actionType: Dispatcher.ActionType.REQUEST_START,
+          data: {
+            fileParamDirty: true,
+          },
+        })
+        .$once();
     mockDispatcher.sendAction(responseMatcher).$once();
-    const mockGetInstance = mockControl.createMethodMock(Dispatcher,
-        'getInstance');
+    const mockGetInstance =
+        mockControl.createMethodMock(Dispatcher, 'getInstance');
     mockGetInstance().$times(2).$returns(mockDispatcher);
 
     mockControl.$replayAll();
 
-    const promise = requests.handleRequestParameters(chunkData, ['tfExSSTablePath']);
+    const promise =
+        requests.handleRequestParameters(chunkData, ['tfExSSTablePath']);
     mockXhrIo.simulateResponse(200, response.serializeBinary());
     await promise;
 
