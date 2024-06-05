@@ -7,6 +7,10 @@ generalize beyond the apps and tasks they were trained on. The dataset includes
 screenshots and accessibility trees from the device, natural language instructions (both high-level
 goals and low-level step instructions), and actions represented as JSON dictionaries.
 
+## Dataset location
+
+The AndroidControl dataset and split file can be found [here](https://console.cloud.google.com/storage/browser/gresearch/android_control).
+
 ## Dataset format
 
 Each datapoint is stored as a
