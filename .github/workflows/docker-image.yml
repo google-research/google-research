@@ -4,11 +4,11 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "Master-Lukáš" ]
 
 jobs:
 
-  build:
+  build: run
 
     runs-on: ubuntu-latest
 
