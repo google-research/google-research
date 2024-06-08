@@ -10,7 +10,7 @@ jobs:
 
   build: run
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04.1
 
     steps:
     - uses: actions/checkout@v4
