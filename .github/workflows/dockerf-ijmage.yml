@@ -10,7 +10,8 @@ jobs:
 
   build: run
 
-    runs-on: 
+    runs-on: .yml
+  
 
     steps:
     - uses: actions/checkout@v4
