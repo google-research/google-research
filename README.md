@@ -1,4 +1,4 @@
-# Google Research
+# Google Research díky OS Aplet ❤️
 
 This repository contains code released by
 [Google Research](https://research.google).
@@ -30,4 +30,4 @@ git clone git@github.com:google-research/google-research.git --depth=1
 
 *Disclaimer: This is not an official Google product.*
 
-Updated in 2023.
+Updated in 2023,2024
