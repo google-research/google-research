@@ -164,7 +164,7 @@ def main(_):
     increment_str = 'i' if FLAGS.increment_seed else ''
     log_path = os.path.join(
         logdir, f's{FLAGS.seed}{increment_str}_e{FLAGS.num_episodes}{run_id}')
-    gfile.makedirs(os.path.dirname(log_path))
+    gfile.makedirs(os.path.dirname(log_path), mode=0o775)
     print('Writing to', log_path)
   env_loop(env, agent, FLAGS.num_episodes, log_path, FLAGS.record_failed,
            FLAGS.seed, FLAGS.increment_seed)

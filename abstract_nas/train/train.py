@@ -97,7 +97,7 @@ def train_and_eval(
       if gfile.exists(config.output_dir):
         logging.warn("Output directory %s already exists.", config.output_dir)
       else:
-        gfile.makedirs(config.output_dir)
+        gfile.makedirs(config.output_dir, mode=0o775)
       utils.write_to_store(config, f"{config.output_dir}/config")
     else:
       ready = False

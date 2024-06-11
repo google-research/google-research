@@ -209,7 +209,7 @@ def filter_example_sstables(output_dir, input_dir, update_func):
       returns a dataframe with updated/filtered data. Returned dataframe should
       be valid input to the sequencing_counts.write_sstable function.
   """
-  gfile.MakeDirs(output_dir)
+  gfile.MakeDirs(output_dir, mode=0o775)
   # The relevant parameters in the experiment proto (conditions, concentration,
   # sequence length) are identical for all folds and train/validation. Choose
   # one randomly as a template.

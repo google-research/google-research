@@ -404,7 +404,7 @@ def eval_tpu(params):
   best_acc_path = os.path.join(params.output_dir, 'ckpt_best')
   best_acc_file = os.path.join(best_acc_path, 'best_acc')
   if not gfile.IsDirectory(best_acc_path):
-    gfile.MakeDirs(best_acc_path)
+    gfile.MakeDirs(best_acc_path, mode=0o775)
 
   # actually run
   tpu_init = tf.tpu.initialize_system()

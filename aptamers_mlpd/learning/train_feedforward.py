@@ -628,7 +628,7 @@ def run_training(hps,
 
   def make_subdir(subdirectory_mame):
     path = os.path.join(train_dir, subdirectory_mame)
-    gfile.MakeDirs(path)
+    gfile.MakeDirs(path, mode=0o775)
     return path
 
   logger.info('Computing preprocessing statistics')
@@ -848,7 +848,7 @@ def run_training_with_default_inputs(hps,
   Returns:
     None.
   """
-  gfile.MakeDirs(train_dir)
+  gfile.MakeDirs(train_dir, mode=0o775)
 
   task_log_path = os.path.join(train_dir, 'train_feedforward.log')
   io_utils.log_to_stderr_and_file(
@@ -1013,7 +1013,7 @@ def main(unused_argv):
 
   # use r=3 subdirectory to fix empty events files (see b/28535367)
   root_dir = os.path.join(FLAGS.save_base, FLAGS.run_name, 'r=3')
-  gfile.MakeDirs(root_dir)
+  gfile.MakeDirs(root_dir, mode=0o775)
 
   if FLAGS.autotune:
     _train_with_autotune(root_dir)
