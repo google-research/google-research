@@ -51,7 +51,7 @@ def setup_output_dir(base_dir):
   # tensorflow doesn't like : in filenames
   save_dir = save_dir.replace(':', '-')
   logging.info('creating output directory %s', save_dir)
-  gfile.MakeDirs(save_dir, mode=0o775)
+  gfile.MakeDirs(save_dir)
   generationinfo.to_file(os.path.join(save_dir, 'geninfo.pbtxt'))
   return save_dir
 

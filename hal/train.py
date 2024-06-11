@@ -199,11 +199,11 @@ def main(_):
     exp_name = 'SingleExperiment'
   save_dir = os.path.join(save_home, exp_name)
   try:
-    gfile.MkDir(save_home, mode=0o775)
+    gfile.MkDir(save_home)
   except gfile.Error as e:
     print(e)
   try:
-    gfile.MkDir(save_dir, mode=0o775)
+    gfile.MkDir(save_dir)
   except gfile.Error as e:
     print(e)
 
