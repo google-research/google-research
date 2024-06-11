@@ -1,7 +1,7 @@
 # AndroidControl
 
-AndroidControl is a collection of demonstrations from human raters performing a
-diverse variety of tasks using a large number of apps on Android devices. The
+AndroidControl is a collection of over 15,000 demonstrations from human raters performing a
+diverse variety of tasks on 833 different apps spanning 40 app categories on Android devices. The
 dataset is structured particularly to measure the ability of agents to
 generalize beyond the apps and tasks they were trained on. The dataset includes
 screenshots and accessibility trees from the device, natural language instructions (both high-level
@@ -38,6 +38,26 @@ Our actions are represented as JSON dictionaries with an `action_type` key. The 
 * `navigate_home`: go to the home screen.
 * `navigate_back`: go back to the previous screen.
 * `wait`: wait a set number of seconds. This is used when no action should be taken other than to wait for something on screen (e.g., a loading bar).
+
+## Comparison to other datasets
+
+![](images/dataset_comparison.png)
+
+## Example episodes
+
+![](images/episode_1.png)
+![](images/episode_2.png)
+
+## Citation
+
+```
+@article{li2024effects,
+  title={On the Effects of Data Scale on Computer Control Agents},
+  author={Li, Wei and Bishop, William and Li, Alice and Rawles, Chris and Campbell-Ajala, Folawiyo and Tyamagundlu, Divya and Riva, Oriana},
+  journal={arXiv preprint arXiv:2406.03679},
+  year={2024}
+}
+```
 
 ## License
 
