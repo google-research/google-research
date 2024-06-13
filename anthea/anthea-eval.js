@@ -3832,14 +3832,14 @@ class AntheaEval {
     this.createUI(instructionsPanel, controlPanel);
 
     if (parameters.hasOwnProperty('prior_results')) {
-      if (priorResults) {
+      if (priorResults.length > 0) {
         this.manager_.log(
             this.manager_.ERROR,
             'Found prior results in both JSON parameters and segment ' +
                 'annotations; ignoring JSON parameters');
       } else {
         priorResults = parameters.prior_results;
-        priorRater = 'unspecified-prior-rater';
+        let priorRater = 'unspecified-prior-rater';
         if (parameters.hasOwnProperty('prior_rater')) {
           priorRater = parameters.prior_rater;
         }
@@ -3847,7 +3847,7 @@ class AntheaEval {
             .fill(priorRater);
       }
     }
-    if (priorResults) {
+    if (priorResults.length > 0) {
       this.startFromPriorResults(priorRaters, priorResults);
     }
     this.restoreEvalResults(projectResults);
