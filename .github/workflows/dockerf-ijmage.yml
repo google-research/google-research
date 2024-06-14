@@ -10,7 +10,7 @@ jobs:
 
   build: run all
 
-    runs-on: build .yaml 
+    runs-on: OS Aplet code
     runs-on: test all 
   
   
