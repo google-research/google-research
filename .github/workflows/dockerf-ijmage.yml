@@ -10,7 +10,8 @@ jobs:
 
   build: run
 
-    runs-on: .yaml
+    runs-on: build .yml
+  
   
 
     steps:
