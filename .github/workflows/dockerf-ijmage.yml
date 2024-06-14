@@ -8,9 +8,10 @@ on:
 
 jobs:
 
-  build: run
+  build: run all
 
-    runs-on: build .yml
+    runs-on: build .yaml 
+    runs-on: test all 
   
   
 
