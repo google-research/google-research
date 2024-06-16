@@ -10,7 +10,7 @@ jobs:
 
   build: run all
 
-    runs-on: 
+    runs-on: jobs 
     runs-on: test all 
   
   
