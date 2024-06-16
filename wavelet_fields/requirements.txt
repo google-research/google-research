@@ -58,7 +58,7 @@ ipython==8.12.2
 jax==0.2.8
 jaxlib==0.1.57+cuda110
 jedi==0.18.2
-Jinja2==3.1.2
+Jinja2==3.1.4
 joblib==1.2.0
 jsonpatch==1.32
 jsonpointer==2.3
