@@ -6,7 +6,7 @@ on:
   push:
     branches: [ "master" ]
   pull_request:
-    branches: [ "Master-Lukáš" ]
+    branches: [ "master" ]
 
 jobs:
   build:
@@ -73,3 +73,23 @@ jobs:
       # Execute tests defined by the CMake configuration. Note that --build-config is needed because the default Windows generator is a multi-config generator (Visual Studio generator).
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest --build-config ${{ matrix.build_type }}
+                  - název: Cache
+  použití: actions/cache@v4.0.2
+  s:
+    # Seznam souborů, adresářů a vzorů zástupných znaků, které se mají uložit do mezipaměti a obnovit
+    cesta:
+    # Explicitní klíč pro obnovení a uložení mezipaměti
+    klíč:
+    # Seřazený seznam klíčů, které se mají použít pro obnovení zastaralé mezipaměti, pokud u klíče nedošlo k žádnému zásahu do mezipaměti. Všimněte si, že `cache-hit` v tomto případě vrací false.
+    obnovovací klíče: # volitelné
+    # Velikost části používaná k rozdělení velkých souborů během nahrávání v bajtech
+    upload-chunk-size: # volitelné
+    # Volitelný boolean, pokud je povolen, umožňuje běžcům systému Windows ukládat nebo obnovovat mezipaměti, které lze obnovit nebo uložit na jiných platformách
+    enableCrossOsArchive: # volitelné, výchozí hodnota je false
+    # Selhání pracovního postupu, pokud nebyl nalezen záznam z mezipaměti
+    fail-on-cache-miss: # volitelné, výchozí hodnota je false
+    # Zkontrolujte, zda pro daný vstup (klíče, klíče pro obnovení) existuje záznam v mezipaměti bez stahování mezipaměti
+    lookup-only: # volitelné, výchozí hodnota je false
+    # Spusťte krok post pro uložení mezipaměti, i když selže jiný předchozí krok
+    save-always: # volitelné, výchozí hodnota je false
+          
