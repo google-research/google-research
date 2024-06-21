@@ -458,7 +458,7 @@ class InferenceModel:
   # pylint: disable = unnecessary-lambda
   # pytype: disable=attribute-error
   # pytype: disable=bad-unpacking
-  @partial(jax.jit, static_argnums=(0, 5, 6, 7, 8))
+  @partial(jax.jit, static_argnums=(0, 6, 7, 8))
   def _generate_impl(
       self,
       params: Weights,
