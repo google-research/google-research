@@ -17,7 +17,7 @@ For running Reinforcement Learning with Human Feedback (RLHF) with PPO, we use t
 
 ### Setup
 
-Please first intall the required packages.
+Please first install the required packages.
 ```
 pip install -r requirements.txt
 ```
@@ -37,7 +37,7 @@ For 1, 2, and 5, please follow the README.md in ```dp_finetuning```.
 
 For 3, please follow the README.md in ```resample_with_dp_histogram```.
 
-For 4, please follow the README.md in ```label_instructions```.
+For 4, please follow the README.md in ```query_gpt35_for_annotation```.
 
 
 
