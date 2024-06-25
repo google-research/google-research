@@ -12,12 +12,11 @@ found in the LICENSE file.
 ---
 
 Because the repo is large, we recommend you download only the subdirectory of
-interest:
+interest.
 
-```
-SUBDIR=foo
-svn export https://github.com/google-research/google-research/trunk/$SUBDIR
-```
+To do so, use GitHub editor to open the project. Then change the url from github.com to github.dev in the address bar
+In the left navigation pannel, right-click on the folder of interest and select download.
+
 
 If you'd like to submit a pull request, you'll need to clone the repository;
 we recommend making a shallow clone (without history).
