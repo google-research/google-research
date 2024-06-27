@@ -47,28 +47,34 @@ class SACConvNetwork(nn.Module):
   action_limits: Optional[Tuple[Tuple[float, Ellipsis], Tuple[float, Ellipsis]]] = None
 
   def setup(self):
-    self._sac_network = continuous_networks.SACNetwork(
-        self.action_shape, self.num_layers,
-        self.hidden_units, self.action_limits)
+    self._sac_network = continuous_networks.ActorCriticNetwork(
+        self.action_shape,
+        self.num_layers,
+        self.hidden_units,
+        self.action_limits,
+    )
 
-  def __call__(self,
-               z,
-               key,
-               mean_action = True):
+  def __call__(
+      self, z, key, mean_action = True
+  ):
     """Calls the SAC actor/critic networks."""
     actor_output = self._sac_network.actor(z, key)
-    action = actor_output.mean_action if mean_action else actor_output.sampled_action
+    action = (
+        actor_output.mean_action if mean_action else actor_output.sampled_action
+    )
     critic_output = self._sac_network.critic(z, action)
 
-    return continuous_networks.SacOutput(actor_output, critic_output)
+    return continuous_networks.ActorCriticOutput(actor_output, critic_output)
 
-  def actor(self, z,
-            key):
+  def actor(
+      self, z, key
+  ):
     """Calls the SAC actor network."""
     return self._sac_network.actor(z, key)
 
-  def critic(self, z,
-             action):
+  def critic(
+      self, z, action
+  ):
     """Calls the SAC critic network."""
     return self._sac_network.critic(z, action)
 
