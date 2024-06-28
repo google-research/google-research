@@ -274,8 +274,9 @@ class AntheaCursor {
    * @param {boolean} tgtOnly Set to true for monolingual evals.
    * @param {boolean} tgtFirst Set to true for target-first evals.
    * @param {function(number)} segmentDone Called with seg id for each segment.
+   * @param {!Array<number>} presentationOrder Order in which to display docs.
    */
-  constructor(segments, tgtOnly, tgtFirst, segmentDone) {
+  constructor(segments, tgtOnly, tgtFirst, segmentDone, presentationOrder) {
     this.segments = segments;
     console.assert(segments.length > 0, segments.length);
     this.tgtOnly = tgtOnly;
@@ -283,6 +284,9 @@ class AntheaCursor {
     this.segmentDone_ = segmentDone;
     this.numSubparas = [[], []];
     this.numSubparasShown = [[], []];
+    this.presentationOrder = presentationOrder;
+    /** number identifying the current index within presentationOrder. */
+    this.presentationIndex = 0;
     /** Array<number> identifying the starting seg for each doc. */
     this.docSegStarts = [];
     let doc = -1;
@@ -305,7 +309,8 @@ class AntheaCursor {
     /** number that is the index of the current subpara. */
     this.para = 0;
     this.startAtTgt = this.tgtOnly || this.tgtFirst;
-    this.goto(0, this.startAtTgt ? 1 : 0, 0);
+    const firstSeg = this.docSegStarts[this.presentationOrder[0]];
+    this.goto(firstSeg, this.startAtTgt ? 1 : 0, 0);
   }
 
   /**
@@ -491,14 +496,25 @@ class AntheaCursor {
     console.assert(seg >= 0 && seg < this.segments.length, seg);
     this.seg = seg;
     this.doc = this.segments[seg].doc;
+    this.presentationIndex = this.presentationOrder.indexOf(this.doc);
     console.assert(side == 0 || side == 1, side);
     console.assert(!this.tgtOnly || side == 1);
     this.side = side;
     console.assert(para >= 0 && para < this.numSubparas[side][seg], para);
     this.para = para;
-    for (let s = 0; s < seg; s++) {
-      this.numSubparasShown[0][s] = this.numSubparas[0][s];
-      this.numSubparasShown[1][s] = this.numSubparas[1][s];
+    // For each segment from a previously-presented doc, mark all of its
+    // subparas as shown. Also do this for prior segments in the current doc.
+    for (let presIdx = 0; presIdx <= this.presentationIndex; presIdx++) {
+      const presDoc = this.presentationOrder[presIdx];
+      // Last segment for this doc: one before the next doc's first segment, or
+      // the last segment overall.
+      const endSeg = (presDoc + 1 < this.presentationOrder.length) ?
+                     this.docSegStarts[presDoc + 1] - 1 :
+                     this.segments.length - 1;
+      for (let s = this.docSegStarts[presDoc]; s < Math.min(endSeg, seg); s++) {
+        this.numSubparasShown[0][s] = this.numSubparas[0][s];
+        this.numSubparasShown[1][s] = this.numSubparas[1][s];
+      }
     }
     this.numSubparasShown[side][seg] = Math.max(
         this.numSubparasShown[side][seg], para + 1);
@@ -689,6 +705,42 @@ class AntheaError {
 }
 
 /**
+ * A seeded random number generator based on C++ std::minstd_rand. Note that
+ * using seed=0 is a special case that results in always returning 0. Because
+ * this class is only used for shuffling (see AntheaEval.deterministicShuffle),
+ * using seed=0 effectively disables shuffling.
+ */
+class AntheaDeterministicRandom {
+  /**
+   * @param{number} seed
+   */
+  constructor(seed) {
+    this.seed_ = seed;
+    this.MULTIPLIER_ = 48271;
+    this.MOD_ = 2147483647;  // 2^31 - 1
+
+    // Some seed values (e.g. 1) can result in the first few random numbers
+    // having low entropy. To avoid this, we skip the first 30.
+    for (let i = 0; i < 30; i++) {
+      this.next();
+    }
+  }
+
+  /**
+   * Generates the next random number in [0, 1).
+   * @return{number}
+   */
+  next() {
+    const candidate_seed = (this.MULTIPLIER_ * this.seed_) % this.MOD_;
+    // If candidate_seed is the wrong sign, add this.MOD_ to wrap it to the
+    // correct sign.
+    this.seed_ = (candidate_seed * this.MOD_ < 0) ? candidate_seed + this.MOD_
+                                                  : candidate_seed;
+    return (this.seed_ / this.MOD_);
+  }
+}
+
+/**
  * An object that encapsulates one active evaluation.
  *
  * After constructing, setUpEval() should be called. After finishing one
@@ -821,7 +873,22 @@ class AntheaEval {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
- }
+  }
+
+  /**
+   * Shuffles an array deterministically using the given seed. Using seed=0
+   * results in no shuffling.
+   * @param {!Array<!Object>} data
+   * @param {number} seed
+   * @return {!Array<!Object>}
+   */
+  deterministicShuffle(data, seed) {
+    const prng = new AntheaDeterministicRandom(seed);
+    const dataWithRandoms =
+        data.map((x) => ({element: x, random: prng.next()}));
+    dataWithRandoms.sort((a, b) => a.random - b.random);
+    return dataWithRandoms.map((x) => x.element);
+  }
 
   /**
    * Removes all window/document-level listeners and sets manager_ to null;
@@ -943,7 +1010,7 @@ class AntheaEval {
     }
 
     this.docs_[this.cursor.doc].row.style.display = '';
-    this.displayedDocNum_.innerHTML = '' + (this.cursor.doc + 1);
+    this.displayedDocNum_.innerHTML = `${(this.cursor.presentationIndex + 1)}`;
     const docEvalCell = this.docs_[this.cursor.doc].eval;
     docEvalCell.appendChild(this.evalPanel_);
     this.displayedProgress_.innerHTML = this.getPercentEvaluated();
@@ -1671,9 +1738,9 @@ class AntheaEval {
     }
     this.prevButton_.disabled = this.cursor.atDocStart();
     this.nextButton_.disabled = this.cursor.atDocEnd();
-    this.prevDocButton_.style.display = (this.cursor.doc == 0) ? 'none' : '';
+    this.prevDocButton_.style.display = (this.cursor.presentationIndex === 0) ? 'none' : '';
     this.prevDocButton_.disabled = false;
-    if (this.cursor.doc == this.docs_.length - 1) {
+    if (this.cursor.presentationIndex === this.docs_.length - 1) {
       this.nextDocButton_.style.display = 'none';
     } else {
       this.nextDocButton_.style.display = '';
@@ -2550,7 +2617,8 @@ class AntheaEval {
    * Returns to the previous document.
    */
   prevDocument() {
-    if (!this.READ_ONLY && (this.error_ || this.cursor.doc == 0)) {
+    if (!this.READ_ONLY &&
+        (this.error_ || this.cursor.presentationIndex === 0)) {
       return;
     }
     this.noteTiming('prev-document');
@@ -2558,8 +2626,9 @@ class AntheaEval {
       return;
     }
     this.docs_[this.cursor.doc].row.style.display = 'none';
-    this.cursor.gotoDoc(this.cursor.doc - 1);
-    this.displayedDocNum_.innerHTML = '' + (this.cursor.doc + 1);
+    this.cursor.gotoDoc(
+        this.cursor.presentationOrder[this.cursor.presentationIndex - 1]);
+    this.displayedDocNum_.innerHTML = `${(this.cursor.presentationIndex + 1)}`;
     this.docs_[this.cursor.doc].row.style.display = '';
     const docEvalCell = this.docs_[this.cursor.doc].eval;
     docEvalCell.appendChild(this.evalPanel_);
@@ -2574,7 +2643,8 @@ class AntheaEval {
    */
   nextDocument() {
     if (!this.READ_ONLY &&
-        (this.error_ || this.cursor.doc == this.docs_.length - 1 ||
+        (this.error_ ||
+         this.cursor.presentationIndex === this.docs_.length - 1 ||
          !this.cursor.seenDocEnd())) {
       return;
     }
@@ -2583,8 +2653,9 @@ class AntheaEval {
       return;
     }
     this.docs_[this.cursor.doc].row.style.display = 'none';
-    this.cursor.gotoDoc(this.cursor.doc + 1);
-    this.displayedDocNum_.innerHTML = '' + (this.cursor.doc + 1);
+    this.cursor.gotoDoc(
+        this.cursor.presentationOrder[this.cursor.presentationIndex + 1]);
+    this.displayedDocNum_.innerHTML = `${(this.cursor.presentationIndex + 1)}`;
     this.docs_[this.cursor.doc].row.style.display = '';
     const docEvalCell = this.docs_[this.cursor.doc].eval;
     docEvalCell.appendChild(this.evalPanel_);
@@ -3200,7 +3271,7 @@ class AntheaEval {
       googdom.createDom('div', 'anthea-eval-panel-nav', this.nextButton_)));
 
     this.displayedDocNum_ = googdom.createDom(
-      'span', null, '' + (this.cursor.doc + 1));
+      'span', null, `${(this.cursor.presentationIndex + 1)}`);
     this.displayedProgress_ = googdom.createDom('span', 'anthea-bold',
                                                  this.getPercentEvaluated());
     const progressMessage = googdom.createDom(
@@ -3650,9 +3721,8 @@ class AntheaEval {
       doc.row = googdom.createDom(
           'tr', null, docTextSrcRow, docTextTgtRow,
           googdom.createDom('td', 'anthea-document-eval-cell', doc.eval));
-      if (this.docs_.length > 1) {
-        doc.row.style.display = 'none';
-      }
+      // Hide all docs for now; we will un-hide the first one later.
+      doc.row.style.display = 'none';
       if (config.TARGET_SIDE_ONLY) {
         docTextSrcRow.style.display = 'none';
       }
@@ -3819,10 +3889,19 @@ class AntheaEval {
       }
     }
 
-    this.cursor = new AntheaCursor(this.segments_,
-                                   config.TARGET_SIDE_ONLY || false,
-                                   config.TARGET_SIDE_FIRST || false,
-                                   this.updateProgressForSegment.bind(this));
+    // If a non-zero seed is provided, deterministically shuffle the
+    // presentation order. Otherwise, present the documents in the input order.
+    const shuffle_seed = parameters.shuffle_seed || 0;
+    const presentationOrder = this.deterministicShuffle(
+        [...Array(this.docs_.length).keys()], shuffle_seed);
+
+    // Show the first document.
+    this.docs_[presentationOrder[0]].row.style.display = '';
+
+    this.cursor = new AntheaCursor(
+        this.segments_, config.TARGET_SIDE_ONLY || false,
+        config.TARGET_SIDE_FIRST || false,
+        this.updateProgressForSegment.bind(this), presentationOrder);
 
     if (noteToRaters) {
       this.config.instructions +=
