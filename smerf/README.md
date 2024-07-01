@@ -1,7 +1,14 @@
 # SMERF: Real-Time View Synthesis for Large Scenes
 
+> __SMERF: Streamable Memory Efficient Radiance Fields for Real-Time Large-Scene Exploration__
+> Daniel Duckworth\*, Peter Hedman\*, Christian Reiser, Peter Zhizhin, Jean-François Thibert, Mario Lučić, Richard Szeliski, Jonathan T. Barron
+> _ACM Transactions on Graphics (SIGGRAPH), July 2024_
+> __[Project page](https://smerf-3d.github.io/) / [Paper](https://arxiv.org/abs/2312.07541) / [Video](https://www.youtube.com/watch?v=zhO8iUBpnCc&feature=youtu.be) / [Demos](https://smerf-3d.github.io/#demos) / [Datasets & Teacher Checkpoints](https://smerf-3d.github.io/#data)__
+
+
 This repository contains code for SMERF, a real-time approach for radiance
-fields of large indoor & outdoor spaces.
+fields of large indoor & outdoor spaces. See the [project
+website](https://smerf-3d.github.io/) for more details.
 
 ## Installation
 
@@ -63,7 +70,7 @@ python3 -m pip install -e .
 3. Run the SMERF pipeline, which includes distillation, baking, and evaluation.
 
     ```
-    ./scripts/demo.sh         # Train a small model on a single, local GPU. 
+    ./scripts/demo.sh         # Train a small model on a single, local GPU.
     ./scripts/mipnerf360.sh   # Train models on all mip-NeRF 360 scenes.
     ./scripts/zipnerf.sh      # Train models on all Zip-NeRF scenes.
     ```
@@ -95,3 +102,4 @@ To use the webviewer, use the following instructions,
     BAKED_SCENE_DIR="bicycle" \
       ./webviewer/launch_webserver.sh
     ```
+
