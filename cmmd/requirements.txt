@@ -1,9 +1,6 @@
---find-links https://storage.googleapis.com/jax-releases/jax_releases.html
---find-links https://download.pytorch.org/whl/torch_stable.html
 numpy
 tensorflow
 flax
 Pillow
-torch
 absl-py
 tqdm
