@@ -3282,11 +3282,13 @@ class AntheaEval {
           'span', null, ' (across all documents, ', this.displayedProgress_,
           ' of translation segments have been evaluated so far)'));
     }
+    const documentDisplayTerm =
+        this.config.SHARED_SOURCE ? 'Translation' : 'Document';
     this.prevDocButton_ = googdom.createDom(
       'button', {
         id: 'anthea-prev-doc-button', class: 'anthea-docnav-eval-button',
         title: 'Revisit the previous document' },
-      'Prev Document');
+      `Prev ${documentDisplayTerm}`);
     this.prevDocButton_.style.backgroundColor = this.buttonColor_;
     this.prevDocButton_.addEventListener(
       'click', (e) => {
@@ -3297,7 +3299,7 @@ class AntheaEval {
       'button', {
         id: 'anthea-next-doc-button', class: 'anthea-docnav-eval-button',
         title: 'Proceed with evaluating the next document' },
-      'Next Document');
+      `Next ${documentDisplayTerm}`);
     this.nextDocButton_.style.backgroundColor = this.buttonColor_;
     this.nextDocButton_.disabled = true;
     this.nextDocButton_.addEventListener(
@@ -3843,6 +3845,32 @@ class AntheaEval {
       googdom.setInnerHtml(docTextSrcRow, srcSpannified + '</p>');
       googdom.setInnerHtml(docTextTgtRow, tgtSpannified + '</p>');
       this.adjustHeight(docTextSrcRow, docTextTgtRow);
+    }
+
+    /*
+     * For shared-source templates, verify that every docsys has the same source
+     * segments.
+     */
+    if (config.SHARED_SOURCE) {
+      const sharedSrcSegments = [];
+      let sameSrc = true;
+      for (const doc of this.docs_) {
+        const docsys = doc.docsys;
+        if (sharedSrcSegments.length === 0) {
+          sharedSrcSegments.push(...docsys.srcSegments);
+        } else if (sharedSrcSegments.length === docsys.srcSegments.length) {
+          sameSrc &&= docsys.srcSegments.every(
+              (val, idx) => val === sharedSrcSegments[idx]);
+        } else {
+          sameSrc = false;
+        }
+      }
+      if (!sameSrc) {
+        this.manager_.log(
+            this.manager_.ERROR,
+            'This is a shared-source template, but not all documents have' +
+                ' the same source segments!');
+      }
     }
 
     /* Grab subpara span elements */
