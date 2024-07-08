@@ -508,10 +508,15 @@ class AntheaCursor {
       const presDoc = this.presentationOrder[presIdx];
       // Last segment for this doc: one before the next doc's first segment, or
       // the last segment overall.
-      const endSeg = (presDoc + 1 < this.presentationOrder.length) ?
-                     this.docSegStarts[presDoc + 1] - 1 :
-                     this.segments.length - 1;
-      for (let s = this.docSegStarts[presDoc]; s < Math.min(endSeg, seg); s++) {
+      let endSeg = (presDoc + 1 < this.presentationOrder.length) ?
+          this.docSegStarts[presDoc + 1] - 1 :
+          this.segments.length - 1;
+      // For the currently-presented document, only mark up to the current
+      // segment.
+      if (presIdx === this.presentationIndex) {
+        endSeg = Math.min(endSeg, seg);
+      }
+      for (let s = this.docSegStarts[presDoc]; s < endSeg; s++) {
         this.numSubparasShown[0][s] = this.numSubparas[0][s];
         this.numSubparasShown[1][s] = this.numSubparas[1][s];
       }
@@ -712,7 +717,7 @@ class AntheaError {
  */
 class AntheaDeterministicRandom {
   /**
-   * @param{number} seed
+   * @param {number} seed
    */
   constructor(seed) {
     this.seed_ = seed;
@@ -728,7 +733,7 @@ class AntheaDeterministicRandom {
 
   /**
    * Generates the next random number in [0, 1).
-   * @return{number}
+   * @return {number}
    */
   next() {
     const candidate_seed = (this.MULTIPLIER_ * this.seed_) % this.MOD_;
@@ -736,7 +741,7 @@ class AntheaDeterministicRandom {
     // correct sign.
     this.seed_ = (candidate_seed * this.MOD_ < 0) ? candidate_seed + this.MOD_
                                                   : candidate_seed;
-    return (this.seed_ / this.MOD_);
+    return this.seed_ / this.MOD_;
   }
 }
 
@@ -1261,7 +1266,7 @@ class AntheaEval {
    *
    * @param {number=} startSpanIndex optional index of the starting span of
    *     an already begun marking.
-   * @return {!Set} of 0-based indices into the sentInfos in the the current
+   * @return {!Set} of 0-based indices into the sentInfos in the current
    *     subpara.
    */
   getMarkableSentences(startSpanIndex=-1) {
@@ -1312,7 +1317,7 @@ class AntheaEval {
    *
    * @param {number=} startSpanIndex optional index of the starting span of
    *     an already begun marking.
-   * @return {!Set} of 0-based indices into the token spans in the the current
+   * @return {!Set} of 0-based indices into the token spans in the current
    *     subpara.
    */
   getMarkableSpanIndices(startSpanIndex=-1) {
@@ -1738,7 +1743,8 @@ class AntheaEval {
     }
     this.prevButton_.disabled = this.cursor.atDocStart();
     this.nextButton_.disabled = this.cursor.atDocEnd();
-    this.prevDocButton_.style.display = (this.cursor.presentationIndex === 0) ? 'none' : '';
+    this.prevDocButton_.style.display =
+        (this.cursor.presentationIndex === 0) ? 'none' : '';
     this.prevDocButton_.disabled = false;
     if (this.cursor.presentationIndex === this.docs_.length - 1) {
       this.nextDocButton_.style.display = 'none';
@@ -3921,14 +3927,14 @@ class AntheaEval {
     // presentation order. Otherwise, present the documents in the input order.
     const shuffle_seed = parameters.shuffle_seed || 0;
     const presentationOrder = this.deterministicShuffle(
-        [...Array(this.docs_.length).keys()], shuffle_seed);
+        Array.from({length: this.docs_.length}, (v, i) => i), shuffle_seed);
 
     // Show the first document.
     this.docs_[presentationOrder[0]].row.style.display = '';
 
     this.cursor = new AntheaCursor(
-        this.segments_, config.TARGET_SIDE_ONLY || false,
-        config.TARGET_SIDE_FIRST || false,
+        this.segments_, !!config.TARGET_SIDE_ONLY,
+        !!config.TARGET_SIDE_FIRST,
         this.updateProgressForSegment.bind(this), presentationOrder);
 
     if (noteToRaters) {
