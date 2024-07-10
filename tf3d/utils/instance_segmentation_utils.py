@@ -235,6 +235,11 @@ def kmeans_initialize_centers_plus_plus(inputs, num_centers):
             tf.math.log(
                 tf.transpose(inputs_min_distances) + sys.float_info.min), 1))
     best_new_center_ind = tf.cast(best_new_center_ind, dtype=tf.int32)
+    # Set the indices to zero if they are greater than the number of
+    # inputs.
+    best_new_center_ind = tf.where(
+        best_new_center_ind < tf.shape(inputs)[0], best_new_center_ind, 0
+    )
     indices += tf.pad(tf.stack([best_new_center_ind]),
                       paddings=[[i, num_centers-i-1]])
     init_centers_i = tf.expand_dims(tf.gather(inputs, best_new_center_ind), 0)
