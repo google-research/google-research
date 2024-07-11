@@ -17,7 +17,7 @@
  * from this by overriding severitities/errors and changing configuration
  * constants.
  */
-antheaTemplates['MQM'] = {
+antheaTemplates['MQM-SxS'] = {
   severities: {
     major: {
       display: 'Major severity',
@@ -41,12 +41,12 @@ antheaTemplates['MQM'] = {
   /**
    * @const {string} Template version identifier.
    */
-  VERSION: 'v1.00-Feb-13-2023',
+  VERSION: 'v1.00-Jun-09-2024',
 
   /**
    * @const {boolean} Show two translations when set to true.
    */
-  SIDE_BY_SIDE: false,
+  SIDE_BY_SIDE: true,
 
   /**
    * @const {boolean} Only rate the target side, i.e., the translated text.
@@ -246,7 +246,159 @@ antheaTemplates['MQM'] = {
   },
 
   /**
-   * Instructions are built using default section order and contents in
-   * template-base.js.
+   * The 'Navigation', 'Annotation Process', and 'Annotation Tips' sections
+   * of the instructions differs from the ones defined in template-base.js.
    */
+  instructions_section_contents: {
+    'Navigation': `
+    <h2>Navigation</h2>
+    <p>
+      Each task consists of text from a single document alongside <b>two</b>
+      translations of it. Sometimes it can be a very short document (even a single
+      sentence), but typically a document will have 10-20 sentences.
+    </p>
+    <ul>
+      <li>
+      You will go through a document in convenient steps of small
+      "sub-paragraphs" (groups of consecutive sentences from the same
+      paragraph). You can move from one sub-paragraph to the next (and back)
+      using the arrow keys or using the buttons labeled with left and right
+      arrows. Note that these sub-paragraphs are automatically created in the
+      source and the translations, <i>independently</i> of each
+      other, purely for convenient navigation through potentially long
+      documents. In particular, they are <i>not</i> expected to be
+      aligned—i.e., the translation of the third (say) sub-paragraph in the
+      source needs not be exactly just the third sub-paragraph in a
+      translation.
+      </li>
+      <li>
+      If the document was translated in steps of segments that were smaller
+      than the whole document, then at the end of the last sub-paragraph in
+      the source of each segment, the right arrow key/button will take
+      you to the start (i.e., the first sub-paragraph) of the first translation
+      of that segment. In the same way, it will take you to the start of the
+      second translation of that segment. At the end of the second translation
+      of that segment, it will take you back to the source but of the next segment.
+      </li>
+      <li>
+      If the entire document was translated as one segment, then the right
+      arrow key/button will take you to the start of the translation only at
+      the end of the source of the whole document.
+      </li>
+      <li>
+      If a source segment appears to be too long, you can (at any time) choose
+      to jump to the translations after reading some part of the source using
+      the Tab key. The Tab key will take you to different columns from left
+      to right (source &#rarr; translation 1 &#rarr; translation 2 &#rarr; source),
+      and then back to the source. We leave the judgment to you, as to how to
+      divide your annotation process for long segments into smaller units.
+      </li>
+      <li>
+      You can also use the left arrow key/button to go <i>back</i> through the
+      sub-paragraphs and segments. You can also directly click on any
+      previously read part of the text to jump back to it.
+      </li>
+    </ul>
+    `,
+    'Annotation Process': `
+    <h2>Annotation Process</h2>
+    <ol>
+      <li>Review the translations of each segment against the source, following
+          the general guidelines above.</li>
+      <li>
+        Select the <b>span</b> of words affected by the issue by clicking on
+        the word/particle where the identified issue “begins”, then clicking
+        on the word/particle where the issue “ends”. If it is only one word,
+        then you have to click on it twice.
+        <ul>
+          <li>The marked span should be the minimal contiguous sequence such
+              that modifying the word(s) within the span, deleting the span,
+              or moving the word(s) somewhere else in the sentence will remove
+              the identified issue. The span should not include adjoining
+              words that are not directly affected by the identified issue and
+              do not need to be modified in order for the issue to be
+              fixed.</li>
+          <li>You can only mark spans within sentences. In the rare case that
+              an error straddles multiple sentences (e.g., when there is an
+              incorrect sentence break), just mark the first part of the span
+              that lies within a sentence.</li>
+          <li>The shorter the span, the more useful it is.</li>
+          <li>When it comes to "Style/Unnatural or awkward" errors, please
+              pinpoint the error rather than extend the span to an entire
+              clause.</li>
+          <li>If a single issue affects words that do not directly follow each
+              other, as is the case with split verbs in German
+              (“teilte die Feuerwehr auf”) or phrasal verbs in English
+              (“called Mary and her brother up”), log the issue only for the
+              first part (“teilte”, “called”) and do not log anything for the
+              latter part (“auf”, “up”). The text between “teilte” and “auf”,
+              or between “called” and “up”, should not be included in the span
+              if the issue is with the verb only (“aufteilen”, “call up”).
+          </li>
+          <li>Note: issues can appear either in the translations, or
+              rarely, for the "Source issue" type, in the source. When
+              the error is an omission, the error span must be selected in the
+              source.</li>
+        </ul>
+      </li>
+      <li>
+        Select the <b>severity</b> of the issue using the buttons in the
+        rightmost column ("Evaluations") or their keyboard shortcuts:
+        <ul>
+          <li>Major severity (M)</li>
+          <li>Minor severity (m)</li>
+        </ul>
+      </li>
+      <li>Select the <b>category</b> (also called <b>type</b>) and
+          <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
+          found. For example: Accuracy &gt; Mistranslation.</li>
+      <li>After annotating all identified issues in a sub-paragraph, use the
+          <b>right arrow key</b> (or the <b>button</b>) to go to the next
+          sub-paragraph.</li>
+    </ol>`,
+    'Annotation Tips': `
+    <details>
+      <summary>
+        <span class="summary-heading">Annotation Tips</span>
+      </summary>
+      <ol>
+        <li>
+          You can modify or delete any rating in the current sub-paragraph
+          by using the menu shown to the right of the rating. The menu is
+          revealed when you hover your mouse over the hamburger icon
+          (&#9776;). If deleted, the rating is shown with a strikethrough
+          line. You can undelete a deleted rating using the menu, if desired.
+        </li>
+        <li>
+          While editing a rating, its text will be shown with a
+          <span style="text-decoration: red wavy underline">red wavy
+          underline</span>.
+          You can use the "Cancel" button or the Escape key to abort an ongoing
+          modification to a rating.
+        </li>
+        <li>
+          To modify or delete a rating for a previous sentence in the
+          current document, you can first click on it to navigate to it (or
+          use the arrow key/button) and then use the hamburger menu.
+        </li>
+        <li>
+          Sometimes, you might be re-evaluating a document that was already
+          evaluated previously. In such cases, you will see the previous
+          annotations and can simply keep them, edit them, delete them, or
+          supplement them with additional annotations.
+        </li>
+        <li>
+          Occasionally, the translated sentence will be altered to
+          include an artificially injected error. Evaluating translation
+          quality is a difficult and demanding task, and such "test sentences"
+          are used to help you maintain the high level of attention the task
+          needs. Once you have marked any error in a test sentence, its
+          unaltered version will be shown. If you miss marking any error in a
+          test sentence, you will be shown a cautionary reminder about that.
+          In either case, once the unaltered version is revealed, you have to
+          proceed to rate its quality just like all the other sentences.
+        </li>
+      </ol>
+    </details>`,
+  }
 };
