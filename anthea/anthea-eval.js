@@ -273,29 +273,40 @@ class AntheaCursor {
    *     "doc" field and arrays "srcSubparas" and "tgtSubparas".
    * @param {boolean} tgtOnly Set to true for monolingual evals.
    * @param {boolean} tgtFirst Set to true for target-first evals.
+   * @param {boolean} sideBySide Set to true for sideBySide evals.
    * @param {function(number)} segmentDone Called with seg id for each segment.
    * @param {!Array<number>} presentationOrder Order in which to display docs.
    */
-  constructor(segments, tgtOnly, tgtFirst, segmentDone, presentationOrder) {
+  constructor(segments, tgtOnly, tgtFirst, sideBySide, segmentDone,
+              presentationOrder) {
     this.segments = segments;
     console.assert(segments.length > 0, segments.length);
     this.tgtOnly = tgtOnly;
     this.tgtFirst = tgtFirst;
+    this.sideBySide = sideBySide;
+    /* numSides = 2 when not SideBySide (src, tgt)
+     * numSides = 3 when is SideBySide  (src, tgt, tgt2)
+     */
+    this.numSides = sideBySide ? 3 : 2;
     this.segmentDone_ = segmentDone;
-    this.numSubparas = [[], []];
-    this.numSubparasShown = [[], []];
+    this.numSubparas = Array.from(Array(this.numSides), () => []);
+    this.numSubparasShown = Array.from(Array(this.numSides), () => []);
     this.presentationOrder = presentationOrder;
     /** number identifying the current index within presentationOrder. */
     this.presentationIndex = 0;
     /** Array<number> identifying the starting seg for each doc. */
     this.docSegStarts = [];
     let doc = -1;
+    /* Get the number of subparas on each side for each segment. */
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i];
-      this.numSubparas[0].push(segment.srcSubparas.length);
-      this.numSubparas[1].push(segment.tgtSubparas.length);
-      this.numSubparasShown[0].push(0);
-      this.numSubparasShown[1].push(0);
+      const sideSubparas = [segment.srcSubparas,
+                            segment.tgtSubparas,
+                            segment.tgtSubparas2 || []];
+      for (let j = 0; j < this.numSides; j++) {
+        this.numSubparas[j].push(sideSubparas[j].length);
+        this.numSubparasShown[j].push(0);
+      }
       if (this.docSegStarts.length == 0 || segment.doc != doc) {
         this.docSegStarts.push(i);
         doc = segment.doc;
@@ -304,13 +315,37 @@ class AntheaCursor {
     console.assert(doc == this.docSegStarts.length - 1);
     this.doc = 0;
     this.seg = 0;
-    /** number that is 0 when the current side is src, and 1 when tgt. */
+    /** number that is 0 when the current side is src, and 1 when tgt.
+     * In sideBySide mode, it is 2 when the current side is tgt2.
+     */
     this.side = 0;
     /** number that is the index of the current subpara. */
     this.para = 0;
-    this.startAtTgt = this.tgtOnly || this.tgtFirst;
     const firstSeg = this.docSegStarts[this.presentationOrder[0]];
-    this.goto(firstSeg, this.startAtTgt ? 1 : 0, 0);
+    this.updateSideOrder(firstSeg);
+    this.goto(firstSeg, this.sideOrder[0], 0);
+  }
+
+  /**
+   * Builds the order in which to display the columns.
+   * Takes as input a segment Idx and uses that to update the sideOrder.
+   * @param {!Array<number>} segmentIdx
+   * @return {!Array<number>}
+   */
+  updateSideOrder(segmentIdx) {
+    /* Define sideOrder for functions next(), prev(), and cycleSides().
+     * Initialize with the target side(s).
+     * Add in the source side depending on the mode only once
+     * Updating only once is achieved by checking sideOrder length.*/
+    this.sideOrder = this.segments[segmentIdx].tgtsOrder;
+    if (this.tgtOnly || this.sideOrder.length >= this.numSides) {
+      return;
+    }
+    if (this.tgtFirst) {
+      this.sideOrder.push(0);
+    } else {
+      this.sideOrder.unshift(0);
+    }
   }
 
   /**
@@ -321,7 +356,7 @@ class AntheaCursor {
     if (this.seg != this.docSegStarts[this.doc]) {
       return false;
     }
-    const startSide = this.startAtTgt ? 1 : 0;
+    const startSide = this.sideOrder[0];
     if (this.para != 0 || (this.side != startSide)) {
       return false;
     }
@@ -334,16 +369,12 @@ class AntheaCursor {
    * @return {boolean}
    */
   segFullySeen(seg) {
-    if (this.numSubparasShown[1][seg] < this.numSubparas[1][seg]) {
+  for (let side of this.sideOrder) {
+    if (this.numSubparasShown[side][seg] < this.numSubparas[side][seg]) {
       return false;
     }
-    if (this.tgtOnly) {
-      return true;
-    }
-    if (this.numSubparasShown[0][seg] < this.numSubparas[0][seg]) {
-      return false;
-    }
-    return true;
+  }
+  return true;
   }
 
   /**
@@ -351,7 +382,7 @@ class AntheaCursor {
    * @return {boolean}
    */
   atDocEnd() {
-    const endSide = (this.tgtFirst && !this.tgtOnly) ? 0 : 1;
+    let endSide = this.sideOrder.at(-1);
     if (this.side != endSide) {
       return false;
     }
@@ -380,54 +411,45 @@ class AntheaCursor {
   }
 
   /**
-   * Moves the cursor to the next subpara. Which subpara that next one is
-   * depends on tgtOnly/tgtFirst.
+   * Moves the cursor to the next subpara. If this results in changing sides,
+   * the new side is the next element in this.sideOrder.
    */
   next() {
     if (this.atDocEnd()) {
       return;
     }
+    /* Check if the current side has unseen subparas.
+     * If yes, stay in the side and return. */
     if (this.para + 1 < this.numSubparas[this.side][this.seg]) {
       /** Goto: next subpara, same side. */
       this.goto(this.seg, this.side, this.para + 1);
+      return;
+    }
+    const currSideIdx = this.getCurrSideIdx(this.side);
+    if (currSideIdx + 1 < this.sideOrder.length) {
+      /* currSideIdx is not at the last to-be-visited side,
+       * go to the next side in sideOrder. */
+      const nextSide = this.sideOrder[currSideIdx + 1];
+      const nextSubpara = Math.max(
+          0, this.numSubparasShown[nextSide][this.seg] - 1
+          );
+      this.goto(this.seg, nextSide, nextSubpara);
     } else {
-      if (this.tgtFirst) {
-        if (this.side == 1) {
-          /** Goto: last-read subpara, src side. */
-          const srcSubpara = Math.max(
-              0, this.numSubparasShown[0][this.seg] - 1);
-          this.goto(this.seg, 0, srcSubpara);
-        } else {
-          if (this.seg + 1 < this.segments.length) {
-            /** Goto: start subpara of next seg, tgt side. */
-            this.goto(this.seg + 1, 1, 0);
-          }
-        }
-      } else {
-        if (this.side == 0) {
-          /** Goto: last-read subpara, tgt side. */
-          const tgtSubpara = Math.max(
-              0, this.numSubparasShown[1][this.seg] - 1);
-          this.goto(this.seg, 1, tgtSubpara);
-        } else {
-          /**
-           * By using Tab to switch sides, it's possible that you
-           * haven't yet seen all of side 0 (src). Check:
-           */
-          if (!this.segFullySeen(this.seg)) {
-            this.switchSides();
-          } else if (this.seg + 1 < this.segments.length) {
-            /** Goto: start subpara of next seg, src side (tgt for tgtOnly). */
-            this.goto(this.seg + 1, this.tgtOnly ? 1 : 0, 0);
-          }
-        }
+      /* By using Tab to switch sides, it's possible that you
+       * haven't yet seen all of side 0 (src). Check:
+       */
+      if (!this.segFullySeen(this.seg)) {
+        this.cycleSides();
+      } else if (this.seg + 1 < this.segments.length) {
+        /* Goto: start subpara of next seg in the first side in sideOrder. */
+        this.goto(this.seg + 1, this.sideOrder[0], 0);
       }
     }
   }
 
   /**
-   * Moves the cursor to the previous subpara. Which subpara that previous
-   * one is depends on tgtOnly/tgtFirst.
+   * Moves the cursor to the previous subpara. If it results in changing sides,
+   * the new side is the previous element in this.sideOrder.
    */
   prev() {
     if (this.atDocStart()) {
@@ -435,24 +457,21 @@ class AntheaCursor {
     }
     if (this.para > 0) {
       this.goto(this.seg, this.side, this.para - 1);
+      return;
+    }
+    const currSideIdx = this.getCurrSideIdx(this.side);
+    const nextSideIdx = (
+        currSideIdx + this.sideOrder.length - 1
+        ) % this.sideOrder.length;
+    const nextSide = this.sideOrder[nextSideIdx];
+    if (currSideIdx === 0) {
+      this.goto(this.seg - 1,
+                nextSide,
+                this.numSubparasShown[nextSide][this.seg - 1] - 1);
     } else {
-      if (this.tgtFirst) {
-        if (this.side == 0) {
-          this.goto(this.seg, 1, this.numSubparas[1][this.seg] - 1);
-        } else {
-          if (this.seg > 0) {
-            this.goto(this.seg - 1, 0, this.numSubparas[0][this.seg - 1] - 1);
-          }
-        }
-      } else {
-        if (this.side == 1 && !this.tgtOnly) {
-          this.goto(this.seg, 0, this.numSubparas[0][this.seg] - 1);
-        } else {
-          if (this.seg > 0) {
-            this.goto(this.seg - 1, 1, this.numSubparas[1][this.seg - 1] - 1);
-          }
-        }
-      }
+      this.goto(this.seg,
+                nextSide,
+                this.numSubparasShown[nextSide][this.seg] - 1);
     }
   }
 
@@ -470,20 +489,31 @@ class AntheaCursor {
   }
 
   /**
-   * Makes the cursor jump to the "other" side (src->tgt or tgt->src).
+   * Makes the cursor jump to the next side without going through
+   * all the subparas. The next side is determined by this.sideOrder.
    */
-  switchSides() {
-    if (this.tgtOnly) {
+  cycleSides() {
+    const currSideIdx = this.getCurrSideIdx(this.side);
+    const nextSideIdx = (currSideIdx + 1) % this.sideOrder.length;
+    const nextSide = this.sideOrder[nextSideIdx];
+    /* For tgtFirst, if the target side(s) is/are not fully seen, do not
+     * cycle to the source side. */
+    if (nextSide === 0 && !this.srcVisible(this.seg)) {
       return;
     }
-    if (!this.srcVisible(this.seg)) {
-      return;
-    }
-    const otherSide = 1 - this.side;
-    const otherSubpara = Math.min(
-        this.numSubparasShown[otherSide][this.seg] - 1,
+    const nextSubpara = Math.min(
+        this.numSubparasShown[nextSide][this.seg] - 1,
         this.para);
-    this.goto(this.seg, otherSide, otherSubpara);
+    this.goto(this.seg, nextSide, nextSubpara);
+  }
+
+  /**
+   * Returns the index of the current side in the sideOrder array.
+   * @param {number} currSide
+   * @return {number}
+   */
+  getCurrSideIdx(currSide) {
+    return this.sideOrder.indexOf(currSide);
   }
 
   /**
@@ -497,8 +527,7 @@ class AntheaCursor {
     this.seg = seg;
     this.doc = this.segments[seg].doc;
     this.presentationIndex = this.presentationOrder.indexOf(this.doc);
-    console.assert(side == 0 || side == 1, side);
-    console.assert(!this.tgtOnly || side == 1);
+    console.assert(this.sideOrder.includes(side), side);
     this.side = side;
     console.assert(para >= 0 && para < this.numSubparas[side][seg], para);
     this.para = para;
@@ -517,23 +546,26 @@ class AntheaCursor {
         endSeg = Math.min(endSeg, seg);
       }
       for (let s = this.docSegStarts[presDoc]; s < endSeg; s++) {
-        this.numSubparasShown[0][s] = this.numSubparas[0][s];
-        this.numSubparasShown[1][s] = this.numSubparas[1][s];
+        for (let i = 0; i < this.numSides; i++) {
+          this.numSubparasShown[i][s] = this.numSubparas[i][s];
+        }
       }
     }
     this.numSubparasShown[side][seg] = Math.max(
         this.numSubparasShown[side][seg], para + 1);
     if (!this.tgtFirst || side == 0) {
       /**
-       * At least 1 subpara is made visible on the other side, if there is one.
+       * Make at least 1 subpara visible on all sides.
        */
-      const otherSide = 1 - side;
-      this.numSubparasShown[otherSide][seg] = Math.max(
-          this.numSubparasShown[otherSide][seg], 1);
+      for (let i = 0; i < this.numSides; i++) {
+        this.numSubparasShown[i][seg] = Math.max(
+            this.numSubparasShown[i][seg], 1
+            );
+      }
     }
-    if (this.numSubparasShown[1][seg] == this.numSubparas[1][seg] &&
-        (this.tgtOnly ||
-         (this.numSubparasShown[0][seg] == this.numSubparas[0][seg]))) {
+    /* Check completion of a segment seg on a side s. */
+    let sideDone = (s) => this.numSubparasShown[s][seg] === this.numSubparas[s][seg];
+    if (this.sideOrder.every((s) => sideDone(s))) {
       this.segmentDone_(seg);
     }
   }
@@ -568,7 +600,8 @@ class AntheaCursor {
    */
   gotoDoc(doc) {
     console.assert(doc >= 0 && doc < this.docSegStarts.length, doc);
-    this.goto(this.docSegStarts[doc], this.startAtTgt ? 1 : 0, 0);
+    this.updateSideOrder(this.docSegStarts[doc]);
+    this.goto(this.docSegStarts[doc], this.sideOrder[0], 0);
   }
 }
 
@@ -917,9 +950,11 @@ class AntheaEval {
     if (!this.manager_ || this.READ_ONLY) {
       return;
     }
+    const segStartIdxArray = [];
     /** Save any feedback, for each doc */
     for (let docIdx = 0; docIdx < this.docs_.length; docIdx++) {
       const doc = this.docs_[docIdx];
+      segStartIdxArray.push(doc.startSG);
       const results = this.evalResults_[doc.startSG];
       results.feedback = {};
       const notes = doc.feedbackNotes ? doc.feedbackNotes.innerText.trim() : '';
@@ -932,7 +967,73 @@ class AntheaEval {
         results.feedback.thumbs = 'down';
       }
     }
-    this.manager_.persistActiveResults(this.evalResults_);
+    let evalResults = this.evalResults_;
+    if (this.config.SIDE_BY_SIDE) {
+      /* Split the eval results.*/
+      evalResults = this.splitSideBySideEvalResults(segStartIdxArray, evalResults);
+    }
+    /* Remove the location field from hotw_list which was added in for splitting
+     * the eval results in the sideBySide mode. */
+    this.removeLocationFromHotw(evalResults);
+    this.manager_.persistActiveResults(evalResults);
+  }
+
+  /**
+   * Split the eval results for target and target2 in the sideBySide mode.
+   * The number of segments will be doubled after splitting and formatted
+   * as follows:
+   * doc0
+   *    seg0 [srcErrors, tgtErrors (loc = 'translation'), tgtHotw (w/o loc info)]
+   *    seg1 [srcErrors, tgtErrors (loc = 'translation'), tgtHotw (w/o loc info)]
+   *    ...
+   *    seg0 [srcErrors, tgt2Errors (loc = 'translation'), tgt2Hotw (w/o loc info)]
+   *    seg1 [srcErrors, tgt2Errors (loc = 'translation'), tgt2Hotw (w/o loc info)]
+   * doc1 ...
+   * @param {!Array<number>} segStartIdxArray
+   * @param {!Array<!Object>} evalResults
+   * @return {!Array<!Object>}
+   */
+  splitSideBySideEvalResults(segStartIdxArray, evalResults) {
+    const splitEvalResults = [];
+    for (let i = 0; i < segStartIdxArray.length; i++) {
+      const startIdx = segStartIdxArray[i];
+      const endIdx = i + 1 < segStartIdxArray.length ?
+          segStartIdxArray[i + 1] :
+          evalResults.length;
+      /* Loop through each doc twice.
+       * 1st time only keep (src, translation) errors.
+       * 2nd time only keep (src, translation2) errors. */
+      let validErrorLists = [
+        ['source', 'translation'],
+        ['source', 'translation2']
+      ];
+      for (let j = 0; j < validErrorLists.length; j++) {
+        /* Loop through each segment in a doc. */
+        for (let s = startIdx; s < endIdx; s++) {
+          const evalResultCopy = JSON.parse(JSON.stringify(evalResults[s]));
+          /* Split the errors based on their location. */
+          evalResultCopy.errors = evalResults[s].errors.filter(
+              (error) => validErrorLists[j].includes(error.location)
+              );
+          /* Split the hotw_list based on their injection location. */
+          evalResultCopy.hotw_list = evalResults[s].hotw_list.filter(
+              (hotwError) => validErrorLists[j].includes(hotwError.location)
+              );
+          splitEvalResults.push(evalResultCopy);
+        }
+      }
+    }
+    /* Change the location of translation2 errors back to translation. */
+    for (let i = 0; i < splitEvalResults.length; i++) {
+      splitEvalResults[i].errors = splitEvalResults[i].errors.map((error) => {
+        let errorCopy = { ...error };
+        if (errorCopy.location === 'translation2') {
+          errorCopy.location = 'translation';
+        }
+        return errorCopy;
+      });
+    }
+    return splitEvalResults;
   }
 
   /**
@@ -953,6 +1054,9 @@ class AntheaEval {
         this.manager_.log(this.manager_.INFO, 'No previous results to restore');
       }
       return;
+    }
+    if (this.config.SIDE_BY_SIDE) {
+      projectResults = this.mergeEvalResults(projectResults);
     }
     if (projectResults.length != this.evalResults_.length) {
       this.manager_.log(
@@ -977,15 +1081,25 @@ class AntheaEval {
       if (this.READ_ONLY || result.visited) {
         /** Clear any new HOTW injections in this segment */
         for (let p = 0; p < segment.tgtSubparas.length; p++) {
-          const subpara = this.getSubpara(seg, 1, p);
-          delete subpara.hotw;
+          /* Loop through each side of the segment. */
+          for (let side = 1; side < this.cursor.numSides; side ++) {
+            const subpara = this.getSubpara(seg, side, p);
+            delete subpara.hotw;
+            subpara.hotwSpanHTML = '';
+            subpara.hotwError = '';
+            subpara.hotwType = '';
+          }
         }
         const result = this.evalResults_[seg];
         for (let hotw of result.hotw_list || []) {
-          const subpara = this.getSubpara(seg, 1, hotw.para);
+          const side = (hotw.location === 'translation' ? 1 : 2);
+          const subpara = this.getSubpara(seg, side, hotw.para);
           subpara.hotw = hotw;
+          subpara.hotwSpanHTML = hotw.hotw_html;
+          subpara.hotwError = hotw.injected_error;
+          subpara.hotwType = hotw.hotw_type;
         }
-        this.cursor.goto(seg, this.config.TARGET_SIDE_ONLY ? 1 : 0, 0);
+        this.cursor.goto(seg, this.cursor.sideOrder[0], 0);
       } else {
         result.hotw_list = replacedResults[seg].hotw_list;
       }
@@ -1026,6 +1140,81 @@ class AntheaEval {
 
     this.manager_.log(this.manager_.INFO,
                       'Restored previous evaluation results');
+  }
+
+  /**
+   * Merge the eval results from the sideBySide mode.
+   * The number of segments will be reduced by half after merging.
+   * The evalResults are formatted as follows:
+   * doc0
+   *    seg0 [srcErrors,
+   *          tgtErrors (loc = 'translation'),
+   *          tgt2Errors (loc = 'translation2'),
+   *          tgtHotw (w/ loc info being 'translation' or 'translation2')]
+   *    ...
+   * doc1 ...
+   *
+   * @param {!Array<!Object>} projectResults
+   * @return {!Array<!Object>}
+   */
+  mergeEvalResults(projectResults) {
+    const mergedEvalResults = [];
+    const segStartIdxArray = this.docs_.map(doc => doc.startSG);
+
+    /* Loop through each doc. */
+    for (let i = 0; i < segStartIdxArray.length; i++) {
+      const startIdx = segStartIdxArray[i];
+      const endIdx = i + 1 < segStartIdxArray.length ?
+          segStartIdxArray[i + 1] :
+          this.evalResults_.length;
+      const numSegs =  endIdx - startIdx;
+
+      /* Loop through each segment in a doc. */
+      for (let j = 0; j < numSegs; j++) {
+        const splitOne = projectResults[2*startIdx + j];
+        const splitTwo = projectResults[2*startIdx + numSegs + j];
+
+        /* Merge the errors. */
+        for (let error of splitTwo.errors) {
+          if (error.location !== 'source') {
+            /* Non-source errors should be added into splitOne.
+             * Change translation to translation2 in splitTwo. */
+            error.location = 'translation2';
+            splitOne.errors.push(error);
+          }
+        }
+        this.addLocationToHotw(splitOne, "translation");
+        this.addLocationToHotw(splitTwo, "translation2");
+        splitOne.hotw_list.push(...splitTwo.hotw_list);
+
+        mergedEvalResults.push(splitOne);
+      }
+    }
+    return mergedEvalResults;
+  }
+
+  /**
+   * Function to add location of injected hotw to the hotw_list when merging.
+   * @param {!Object} splitObject of either translation or translation2.
+   * @param {string} location of the injected hotw.
+   */
+  addLocationToHotw(splitObject, location) {
+      splitObject.hotw_list.forEach((hotwError) => {
+        hotwError.location = location;
+      });
+  }
+
+  /**
+   * Function to remove location of injected hotw from the hotw_list when
+   * sideBySide mode is off.
+   * @param {!Array<!Object>} evalResults
+   */
+  removeLocationFromHotw(evalResults) {
+    for (const evalResult of evalResults) {
+      for (const hotw of evalResult.hotw_list) {
+        delete hotw.location;
+      }
+    }
   }
 
   /**
@@ -1078,11 +1267,13 @@ class AntheaEval {
       if (result.errors.length > 0) {
         /** Clear any HOTW injections in this segment */
         for (let p = 0; p < segment.tgtSubparas.length; p++) {
-          const subpara = this.getSubpara(seg, 1, p);
-          delete subpara.hotw;
-          subpara.hotwSpanHTML = '';
-          subpara.hotwError = '';
-          subpara.hotwType = '';
+          for (let side = 1; side < this.cursor.numSides; side++) {
+            const subpara = this.getSubpara(seg, side, p);
+            delete subpara.hotw;
+            subpara.hotwSpanHTML = '';
+            subpara.hotwError = '';
+            subpara.hotwType = '';
+          }
         }
         result.hotw_list = [];
       }
@@ -1204,8 +1395,13 @@ class AntheaEval {
    */
   getSubpara(seg, side, para) {
     const segment = this.segments_[seg];
-    return side == 0 ?
-        segment.srcSubparas[para] : segment.tgtSubparas[para];
+    if (side === 0) {
+      return segment.srcSubparas[para];
+    } else if (side == 1) {
+      return segment.tgtSubparas[para];
+    } else if (side == 2) {
+      return segment.tgtSubparas2[para];
+    }
   }
 
   /**
@@ -1394,8 +1590,9 @@ class AntheaEval {
     }
     for (let e = 0; e < errors.length; e++) {
       const error = errors[e];
-      if (side == 0 && error.location != 'source') continue;
-      if (side == 1 && error.location == 'source') continue;
+      if (side === 0 && error.location !== 'source') continue;
+      if (side === 1 && error.location !== 'translation') continue;
+      if (side === 2 && error.location !== 'translation2') continue;
       const range = this.intersectRanges(
         [error.start, error.end], tokenRangeInSeg);
       if (!range) continue;
@@ -1524,6 +1721,11 @@ class AntheaEval {
       }
       for (let t = 0; t < segment.tgtSubparas.length; t++) {
         this.redrawSubpara(n, 1, t);
+      }
+      if (this.config.SIDE_BY_SIDE) {
+        for (let u = 0; u < segment.tgtSubparas2.length; u++) {
+          this.redrawSubpara(n, 2, u);
+        }
       }
     }
     this.setEvalButtonsAvailability();
@@ -1881,7 +2083,7 @@ class AntheaEval {
       return;
     }
     this.noteTiming('switch-sides');
-    this.cursor.switchSides();
+    this.cursor.cycleSides();
     this.redrawAllSegments();
     this.ensureCurrSubparaVisible();
   }
@@ -1941,7 +2143,6 @@ class AntheaEval {
         return false;
       }
       this.noteTiming('confirmed-override-all-errors');
-      this.error_.location = 'translation';
       this.error_.prefix = '';
       const subpara = this.getCurrSubpara();
       const range = this.sentenceTokensRange(
@@ -2195,7 +2396,7 @@ class AntheaEval {
     }
     this.error_.start = start + subpara.token_offset;
     this.error_.end = end + subpara.token_offset;
-    this.error_.location = this.cursor.side == 0 ? 'source' : 'translation';
+    this.error_.location = ['source', 'translation', 'translation2'][this.cursor.side];
     this.error_.prefix = prefix;
     this.error_.selected = selected;
     this.maybeConcludeError();
@@ -3342,24 +3543,31 @@ class AntheaEval {
    * Adjusts the line-height of the smaller column to compensate.
    * @param {!Element} srcTD The source TD cell.
    * @param {!Element} tgtTD The target TD cell.
+   * @param {?Element} tgtTD2 The second target TD cell for sideBySide.
    */
-  adjustHeight(srcTD, tgtTD) {
+  adjustHeight(srcTD, tgtTD, tgtTD2) {
     if (!srcTD || !tgtTD) {
       return;
     }
+    /* Set default line-height to 1.3 and get the line count in each column. */
     srcTD.style.lineHeight = 1.3;
     tgtTD.style.lineHeight = 1.3;
     const srcLines = this.getApproxNumLines(srcTD, 'anthea-source-para');
     const tgtLines = this.getApproxNumLines(tgtTD, 'anthea-target-para');
-    let perc = 100;
-    if (srcLines < tgtLines) {
-      perc = Math.floor(100 * tgtLines / srcLines);
-    } else {
-      perc = Math.floor(100 * srcLines / tgtLines);
+    const colTDs = [[srcLines, srcTD], [tgtLines, tgtTD]];
+    if (tgtTD2) {
+      tgtTD2.style.lineHeight = 1.3;
+      const tgtLines2 = this.getApproxNumLines(tgtTD2, 'anthea-target-para');
+      colTDs.push([tgtLines2, tgtTD2]);
     }
-    if (perc >= 101) {
-      const smaller = (srcLines < tgtLines) ? srcTD : tgtTD;
-      smaller.style.lineHeight = 1.3 * perc / 100;
+    /* Sort the columns by line count to decide which one to adjust. */
+    colTDs.sort((a, b) => a[0] - b[0]);
+    /* Adjust the line-height of the shorter columns to match the longest one. */
+    for (let i = 0; i < colTDs.length; i++) {
+      const perc = Math.floor(100 * colTDs[colTDs.length - 1][0] / colTDs[i][0]);
+      if (perc >= 101) {
+        colTDs[i][1].style.lineHeight = 1.3 * perc / 100;
+      }
     }
   }
 
@@ -3606,6 +3814,39 @@ class AntheaEval {
   }
 
   /**
+   * Validates the input format of the SIDE_BY_SIDE mode.
+   * The outputs of sys1 and 2 of the same doc should be adjacent.
+   * The adjacent docsys should have the same source segments.
+   * @param {!Array<!Object>} projectData The input data.
+   * @return {boolean}
+   */
+  validateSideBySideData(projectData) {
+    for (let i = 0; i < projectData.length; i += 2) {
+      if (i + 1 < projectData.length && projectData[i].doc !== projectData[i + 1].doc) {
+        this.manager_.log(this.manager_.ERROR,
+                          "The output of system1 and system2 of " +
+                          "the same doc are NOT adjacent in the input!");
+        return false;
+      }
+      const docsys = projectData[i];
+      const docsys2 = projectData[i + 1];
+      if (docsys.srcSegments.length !== docsys2.srcSegments.length) {
+        this.manager_.log(this.manager_.ERROR,
+                          "Source segment lengths differ between systems!");
+        return false;
+      }
+      for (let j = 0; j < docsys.srcSegments.length; j++) {
+        if (docsys.srcSegments[j] !== docsys2.srcSegments[j]) {
+          this.manager_.log(this.manager_.ERROR,
+                            'Source segments differ at index ' + j);
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
    * Sets up the eval. This is the starting point called once the template has
    *     been loaded.
    *
@@ -3672,6 +3913,11 @@ class AntheaEval {
         (targetLabel + ' (' + tgtLang + ')') : targetLabel;
     const tgtHeadingDiv = googdom.createDom('div', null, tgtHeading);
 
+    /* Set up second target column in the sideBySide mode. */
+    const targetLabel2 = `${targetLabel} 2`;
+    const tgtHeading2 = tgtLang ? `${targetLabel2} (${tgtLang})` : targetLabel2;
+    const tgtHeadingDiv2 = googdom.createDom('div', null, tgtHeading2);
+
     const evalHeading = this.READ_ONLY ?
         'Evaluations (view-only)' : 'Evaluations';
     const evalHeadingDiv = googdom.createDom('div', null, evalHeading);
@@ -3687,6 +3933,11 @@ class AntheaEval {
         tgtHeadingDiv.appendChild(googdom.createDom(
             'span', 'anthea-subheading', config.subheadings.target));
       }
+      if (config.subheadings.target) {
+        tgtHeadingDiv2.appendChild(googdom.createDom('br'));
+        tgtHeadingDiv2.appendChild(googdom.createDom(
+            'span', 'anthea-subheading', config.subheadings.target));
+      }
       if (config.subheadings.evaluations) {
         evalHeadingDiv.appendChild(googdom.createDom('br'));
         evalHeadingDiv.appendChild(googdom.createDom(
@@ -3698,12 +3949,19 @@ class AntheaEval {
         'td', 'anthea-text-heading', srcHeadingDiv);
     const tgtHeadingTD = googdom.createDom(
         'td', 'anthea-text-heading', tgtHeadingDiv);
+    const headerRow = googdom.createDom(
+      'tr', null, srcHeadingTD, tgtHeadingTD);
+    if (config.SIDE_BY_SIDE) {
+      const tgtHeadingTD2 = googdom.createDom(
+        'td', 'anthea-text-heading', tgtHeadingDiv2);
+      headerRow.appendChild(tgtHeadingTD2);
+    }
     const evalHeadingTD = googdom.createDom(
-        'td', 'anthea-text-heading', evalHeadingDiv);
+      'td', 'anthea-text-heading', evalHeadingDiv);
+    headerRow.appendChild(evalHeadingTD);
     const docTextTable = googdom.createDom(
         'table', 'anthea-document-text-table',
-        googdom.createDom(
-            'tr', null, srcHeadingTD, tgtHeadingTD, evalHeadingTD),
+        headerRow,
         this.contextRow_);
     if (config.TARGET_SIDE_ONLY) {
       srcHeadingTD.style.display = 'none';
@@ -3715,10 +3973,25 @@ class AntheaEval {
 
     let priorResults = [];
     let priorRaters = [];
-    for (let docsys of projectData) {
-      const doc = {
-        'docsys': docsys,
-      };
+
+    const stepSize = config.SIDE_BY_SIDE ? 2 : 1;
+    if (config.SIDE_BY_SIDE) {
+      const validationResult = this.validateSideBySideData(projectData, stepSize);
+      if (!validationResult) {
+        return;
+      }
+    }
+
+    /* The order of the two targets in the side-by-side mode. */
+    const tgtsShuffleSeed = parameters.shuffle_seed || 0;
+    const pseudoRandNumGenerator = new AntheaDeterministicRandom(tgtsShuffleSeed);
+    for (let i = 0; i < projectData.length; i += stepSize) {
+      const docsys = projectData[i];
+      const doc = {'docsys': docsys};
+      const docsys2 = config.SIDE_BY_SIDE ? projectData[i + 1] : null;
+      if (config.SIDE_BY_SIDE) {
+        doc.docsys2 = docsys2;
+      }
       this.docs_.push(doc);
       doc.eval = googdom.createDom('div', 'anthea-document-eval-div');
 
@@ -3726,9 +3999,20 @@ class AntheaEval {
                                               'anthea-document-text-cell');
       const docTextTgtRow = googdom.createDom('td',
                                               'anthea-document-text-cell');
-      doc.row = googdom.createDom(
-          'tr', null, docTextSrcRow, docTextTgtRow,
-          googdom.createDom('td', 'anthea-document-eval-cell', doc.eval));
+      const docTextTgtRow2 = config.SIDE_BY_SIDE ? googdom.createDom('td',
+                                              'anthea-document-text-cell') : null;
+      doc.row = googdom.createDom('tr', null, docTextSrcRow);
+      const tgtsOrder = [1];
+      const tgtRows = [docTextTgtRow];
+      if (config.SIDE_BY_SIDE) {
+        const tgt2SpliceIndex = pseudoRandNumGenerator.next() < 0.5 ? 1 : 0;
+        tgtsOrder.splice(tgt2SpliceIndex, 0, 2);
+        tgtRows.splice(tgt2SpliceIndex, 0, docTextTgtRow2);
+      }
+      doc.row = googdom.createDom('tr',
+                                  null, docTextSrcRow,
+                                  ...tgtRows,
+                                  googdom.createDom('td', 'anthea-document-eval-cell', doc.eval));
       // Hide all docs for now; we will un-hide the first one later.
       doc.row.style.display = 'none';
       if (config.TARGET_SIDE_ONLY) {
@@ -3741,9 +4025,12 @@ class AntheaEval {
 
       const srcSegments = docsys.srcSegments;
       const tgtSegments = docsys.tgtSegments;
+      /* Create the second target column for sideBySide templates. */
+      const tgtSegments2 = config.SIDE_BY_SIDE ? docsys2.tgtSegments : null;
       const annotations = docsys.annotations;
       let srcSpannified = '<p class="anthea-source-para" dir="auto">';
       let tgtSpannified = '<p class="anthea-target-para" dir="auto">';
+      let tgtSpannified2 = config.SIDE_BY_SIDE ? '<p class="anthea-target-para" dir="auto">' : '';
       const addEndSpacesSrc = this.isSpaceSepLang(srcLang);
       const addEndSpacesTgt = this.isSpaceSepLang(tgtLang);
       for (let i = 0; i < srcSegments.length; i++) {
@@ -3751,6 +4038,7 @@ class AntheaEval {
           /* New paragraph. */
           srcSpannified += srcParaBreak;
           tgtSpannified += tgtParaBreak;
+          tgtSpannified2 += config.SIDE_BY_SIDE ? tgtParaBreak : '';
           continue;
         }
 
@@ -3794,12 +4082,14 @@ class AntheaEval {
           }
         }
 
-
         const segment = {
           doc: this.docs_.length - 1,
           srcText: srcSegments[i],
           tgtText: tgtSegments[i],
+          tgtText2: config.SIDE_BY_SIDE ? tgtSegments2[i] : '',
+          tgtsOrder: tgtsOrder,
           numTgtWords: 0,
+          numTgtWords2: 0,
           srcSubparas: AntheaEval.splitAndSpannify(
               srcSegments[i], addEndSpacesSrc,
               subparaSentences, subparaTokens, 0),
@@ -3807,6 +4097,10 @@ class AntheaEval {
               tgtSegments[i], addEndSpacesTgt,
               subparaSentences, subparaTokens,
               this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
+          tgtSubparas2: config.SIDE_BY_SIDE ? AntheaEval.splitAndSpannify(
+              tgtSegments2[i], addEndSpacesTgt,
+              subparaSentences, subparaTokens,
+              this.READ_ONLY ? 0 : hotwPercent, hotwPretend) : [],
         };
         const segIndex = this.segments_.length;
         this.segments_.push(segment);
@@ -3814,49 +4108,78 @@ class AntheaEval {
         const srcSegmentClass = 'anthea-source-segment-' + segIndex;
         for (let srcSubpara of segment.srcSubparas) {
           srcSpannified += '<span class="anthea-source-subpara ' +
-                           srcSegmentClass + '">' +
-                           srcSubpara.spanHTML + '</span>';
+                          srcSegmentClass + '">' +
+                          srcSubpara.spanHTML + '</span>';
           if (srcSubpara.ends_with_para_break) {
             srcSpannified += srcParaBreak;
           }
         }
-
-        const tgtSegmentClass = 'anthea-target-segment-' + segIndex;
-        for (let t = 0; t < segment.tgtSubparas.length; t++) {
-          const tgtSubpara = segment.tgtSubparas[t];
-          tgtSpannified += '<span class="anthea-target-subpara ' +
-                           tgtSegmentClass + '">' +
-                           (tgtSubpara.hotwSpanHTML || tgtSubpara.spanHTML) +
-                           '</span>';
-          if (tgtSubpara.ends_with_para_break) {
-            tgtSpannified += tgtParaBreak;
+        function buildTargetSubparaHTML(segment, tgtSubparas, tgtSpannified, tgtSegmentClass,
+                                        tgtParaBreak, evalResult, lastTimestampMS, tgtSubparaClassName) {
+          for (let t = 0; t < tgtSubparas.length; t++) {
+            const tgtSubpara = tgtSubparas[t];
+            tgtSpannified += tgtSubparaClassName + tgtSegmentClass + '">' +
+                            (tgtSubpara.hotwSpanHTML || tgtSubpara.spanHTML) +
+                            '</span>';
+            if (tgtSubpara.ends_with_para_break) {
+              tgtSpannified += tgtParaBreak;
+            }
+            segment.numTgtWords += tgtSubpara.num_words;
+            if (tgtSubpara.hotwError) {
+              tgtSubpara.hotw = {
+                timestamp: lastTimestampMS,
+                injected_error: tgtSubpara.hotwError,
+                hotw_html: tgtSubpara.hotwSpanHTML,
+                hotw_type: tgtSubpara.hotwType,
+                para: t,
+                /* Add in the location of where hotw is injected.
+                 * It is removed when merging/splitting the saved results.*/
+                location: tgtSubparaClassName.includes("-target2-") ?
+                    'translation2' :
+                    'translation',
+                done: false,
+                found: false,
+              };
+              evalResult['hotw_list'].push(tgtSubpara.hotw);
+            }
           }
-          segment.numTgtWords += tgtSubpara.num_words;
-          if (tgtSubpara.hotwError) {
-            tgtSubpara.hotw = {
-              timestamp: this.lastTimestampMS_,
-              injected_error: tgtSubpara.hotwError,
-              hotw_type: tgtSubpara.hotwType,
-              para: t,
-              done: false,
-              found: false,
-            };
-            evalResult['hotw_list'].push(tgtSubpara.hotw);
-          }
+          return tgtSpannified;
         }
+        const tgtSegmentClass = 'anthea-target-segment-' + segIndex;
+        const tgtSegmentClass2 = 'anthea-target2-segment-' + segIndex;
+        tgtSpannified = buildTargetSubparaHTML(segment,
+                                               segment.tgtSubparas,
+                                               tgtSpannified,
+                                               tgtSegmentClass,
+                                               tgtParaBreak,
+                                               evalResult,
+                                               this.lastTimestampMS_,
+                                               '<span class="anthea-target-subpara ');
+        if (config.SIDE_BY_SIDE) {
+          tgtSpannified2 = buildTargetSubparaHTML(segment,
+                                                  segment.tgtSubparas2,
+                                                  tgtSpannified2,
+                                                  tgtSegmentClass2,
+                                                  tgtParaBreak,
+                                                  evalResult,
+                                                  this.lastTimestampMS_,
+                                                  '<span class="anthea-target2-subpara ');
+        }
+        /* Increment the total target word count for the progress tracker. */
         this.numTgtWordsTotal_ += segment.numTgtWords;
-
         doc.numSG++;
       }
       googdom.setInnerHtml(docTextSrcRow, srcSpannified + '</p>');
       googdom.setInnerHtml(docTextTgtRow, tgtSpannified + '</p>');
-      this.adjustHeight(docTextSrcRow, docTextTgtRow);
+      if (config.SIDE_BY_SIDE) {
+        googdom.setInnerHtml(docTextTgtRow2, tgtSpannified2 + '</p>');
+      }
+      this.adjustHeight(docTextSrcRow, docTextTgtRow, docTextTgtRow2);
     }
-
     /*
-     * For shared-source templates, verify that every docsys has the same source
-     * segments.
-     */
+    * For shared-source templates, verify that every docsys has the same source
+    * segments.
+    */
     if (config.SHARED_SOURCE) {
       const sharedSrcSegments = [];
       let sameSrc = true;
@@ -3878,8 +4201,6 @@ class AntheaEval {
                 ' the same source segments!');
       }
     }
-
-    /* Grab subpara span elements */
     for (let i = 0; i < this.segments_.length; i++) {
       const segment = this.segments_[i];
       const srcSubparaSpans = document.getElementsByClassName(
@@ -3894,8 +4215,15 @@ class AntheaEval {
       for (let t = 0; t < segment.tgtSubparas.length; t++) {
         segment.tgtSubparas[t].subparaSpan = tgtSubparaSpans[t];
       }
+      if (config.SIDE_BY_SIDE) {
+        const tgtSubparaSpans2 = document.getElementsByClassName(
+          'anthea-target2-segment-' + i);
+        console.assert(tgtSubparaSpans2.length === segment.tgtSubparas2.length);
+        for (let t = 0; t < segment.tgtSubparas2.length; t++) {
+          segment.tgtSubparas2[t].subparaSpan = tgtSubparaSpans2[t];
+        }
+      }
     }
-
     const controlPanel = document.createElement('div');
     controlPanel.id = 'anthea-control-panel';
     evalDiv.append(controlPanel);
@@ -3933,9 +4261,12 @@ class AntheaEval {
     this.docs_[presentationOrder[0]].row.style.display = '';
 
     this.cursor = new AntheaCursor(
-        this.segments_, !!config.TARGET_SIDE_ONLY,
+        this.segments_,
+        !!config.TARGET_SIDE_ONLY,
         !!config.TARGET_SIDE_FIRST,
-        this.updateProgressForSegment.bind(this), presentationOrder);
+        !!config.SIDE_BY_SIDE,
+        this.updateProgressForSegment.bind(this),
+        presentationOrder);
 
     if (noteToRaters) {
       this.config.instructions +=
