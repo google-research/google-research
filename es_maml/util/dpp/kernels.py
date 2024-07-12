@@ -17,13 +17,12 @@
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-import scipy
 from scipy.spatial.distance import pdist, squareform
 
 
 def rbf(X, sigma=0.5):
   pairwise_dists = squareform(pdist(X, 'euclidean'))
-  A = scipy.exp(-pairwise_dists**2 / (2. * sigma**2))
+  A = np.exp(-pairwise_dists**2 / (2. * sigma**2))
   return A
 
 
