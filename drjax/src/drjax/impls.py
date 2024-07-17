@@ -13,14 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sketching one potential interface."""
+"""Implementations of MapReduce primitives in JAX."""
 
+from collections.abc import Mapping
 from typing import Any
 
+from absl import logging
 import jax
+from jax import numpy as jnp
 from jax.experimental.shard_alike import shard_alike
 from jax.interpreters import pxla
-import jax.numpy as jnp
 from jax.sharding import PartitionSpec as P
 
 
@@ -40,9 +42,6 @@ SequenceArray = jnp.ndarray
 PyTreeUnplaced = Any
 PyTreePlaced = Any
 PyTreeSequence = Any
-
-
-SERVER_PLACEMENT = 'server'
 
 
 def call_jaxpr(fn, arg):
@@ -68,12 +67,26 @@ def _global_mesh_defined():
   return maps_env.physical_mesh.devices.shape != ()  # pylint: disable=g-explicit-bool-comparison
 
 
+def _mesh_axis_names():
+  mesh = pxla.thread_resources.env.physical_mesh
+  return mesh.axis_names
+
+
 def _placement_axis_in_mesh(placement):
-  """Checks if a clients axis is present in the global mesh."""
+  """Checks if a placements axis is present in the global mesh."""
   if not _global_mesh_defined():
     return False
-  mesh = pxla.thread_resources.env.physical_mesh
-  return placement in mesh.axis_names
+  placement_is_in_mesh = placement in _mesh_axis_names()
+  if not placement_is_in_mesh:
+    logging.log_first_n(
+        logging.WARNING,
+        'No mesh axis named "%s" found in the current mesh, which had names'
+        ' %s. DrJax will not inject sharding constraints.',
+        10,
+        placement,
+        _mesh_axis_names(),
+    )
+  return placement_is_in_mesh
 
 
 def _constrain_if_mesh(x, pspec):
@@ -88,8 +101,10 @@ class PlacedComputations:
   def __init__(
       self,
       placements_to_n_elements,
+      use_spmd_axis_name = True,
   ):
     self._placements_to_n_elements = placements_to_n_elements
+    self._use_spmd_axis_name = use_spmd_axis_name
 
   def broadcast_to_placement(
       self,
@@ -126,7 +141,7 @@ class PlacedComputations:
     if _placement_axis_in_mesh(placement):
       pspec = P(placement, *([P.UNCONSTRAINED] * len(arg.shape)))
     else:
-      # Without a clients axis in the mesh, we simply explicitly tell the
+      # Without a placements axis in the mesh, we simply explicitly tell the
       # compiler that there are no constraints on this tensor. This will leave
       # the choices in the hands of the compiler.
       pspec = P(*([P.UNCONSTRAINED] * (len(arg.shape) + 1)))
@@ -200,39 +215,61 @@ class PlacedComputations:
 
     Args:
       fn: Function to be mapped.
-      arg: PyTree of arrays for which to map leading axis. If `placement` is not
-        `'server'`, each array in the structure is assumed to have a leading
-        axis of the same size, the number of elements at `placement`.
+      arg: PyTree of arrays for which to map leading axis. Each array in the
+        structure is assumed to have a leading axis of the same size, the number
+        of elements at `placement`.
       placement: String representing the placement of input and output arrays to
         this map.
 
     Returns:
-      The result of mapping `fn` over the leading axis (if `'placement'` is
-      not `'server'`), satisfying the sharding requirements specified above.
+      The result of mapping `fn` over the leading axis, satisfying the sharding
+      requirements specified above.
     """
-    # For server-placed values, there is no xmap/vmap dimension to speak of.
-    # Attempting to use these on a non-existent dimension can lead to some
-    # corner cases, when all we want is to evaluate the original fn.
-    if placement == SERVER_PLACEMENT:
-      mapped_fn = fn
-    else:
-      # `spmd_axis_name`` causes the `vmap`` to respect the sharding along this
-      # axis name.
-      if _placement_axis_in_mesh(placement):
+
+    def _constrain_at_placement_with_slices_like(x, y):
+      pspec = P(placement, *([P.UNCONSTRAINED] * (len(x.shape) - 1)))
+      placement_constrained = _constrain_if_mesh(x, pspec)
+
+      def _shard_slice(s):
+        s_sharded, _ = shard_alike(s, y[0])
+        return s_sharded
+
+      return jax.vmap(_shard_slice, in_axes=0)(placement_constrained)
+
+    # `spmd_axis_name`` causes any internal with_sharding_constraints or
+    # shard_map calls inside the `vmapped` function to respect the
+    # sharding along this axis name. But it doesn't enrich annotations on
+    # input / output tensors. Since we have a very limited mapping semantic
+    # here, adding these annotations is always safe for us, as long as
+    # `placement` is in the current mesh.
+    if _placement_axis_in_mesh(placement):
+      arg = jax.tree_util.tree_map(
+          _constrain_at_placement_with_slices_like, arg, arg
+      )
+      if self._use_spmd_axis_name:
         mapped_fn = jax.vmap(
-            fn, axis_name=placement, in_axes=0, spmd_axis_name=placement
+            # We must not have an `axis_name` argument here in order to work
+            # with any potential `shard_map` inside of `fn`.
+            fn,
+            in_axes=0,
+            out_axes=0,
+            spmd_axis_name=placement,
         )
       else:
-        # Users should be free to use whatever mesh their model needs without
-        # _necessarily_ registering a mesh-dimension for every placement with
-        # which they are programming.
         mapped_fn = jax.vmap(
             fn,
-            axis_name=placement,
             in_axes=0,
+            out_axes=0,
         )
 
-    return call_jaxpr(
-        mapped_fn,
-        arg,
-    )
+      return call_jaxpr(mapped_fn, arg)
+    else:
+      # Users should be free to use whatever mesh their model needs without
+      # _necessarily_ registering a mesh-dimension for every placement with
+      # which they are programming.
+      mapped_fn = jax.vmap(
+          fn,
+          axis_name=placement,
+          in_axes=0,
+      )
+      return call_jaxpr(mapped_fn, arg)

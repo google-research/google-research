@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for the sharding behavior of the implementation of FAX primitives."""
+"""Tests for the sharding behavior of the implementation of DrJAX primitives."""
 
+import functools
 import math
 import unittest
 
@@ -22,13 +23,14 @@ from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 from jax import numpy as jnp
+from jax.experimental.shard_map import shard_map
+from jax.sharding import PartitionSpec as PSpec
 import numpy as np
 
 from . import impls
 
-
-# We program FAX to expect a mesh axis named _CLIENTS_AXIS. Consider defining +
-# exporting a constant to help make mesh construction easier and guarantees
+# We program drjax to expect a mesh axis named _CLIENTS_AXIS. Consider defining
+# and exporting a constant to help make mesh construction easier and guarantees
 # cleaner. Other constants defined here are intended to help make the operations
 # of the assertions in the tests below more transparent.
 _CLIENTS_AXIS = 'clients'
@@ -99,7 +101,7 @@ class BroadcastShardingBehaviorTest(parameterized.TestCase):
         placements_to_n_elements=self._placements,
     )
     with create_global_mesh([_DATA_AXIS_SIZE], [_DATA_AXIS]) as mesh:
-      arg_spec = jax.sharding.PartitionSpec('data')
+      arg_spec = PSpec(_DATA_AXIS)
       sharded_arg = jax.device_put(
           arg, device=jax.sharding.NamedSharding(mesh, arg_spec)
       )
@@ -113,7 +115,7 @@ class BroadcastShardingBehaviorTest(parameterized.TestCase):
     self.assertFalse(sharding.is_fully_replicated)
     # The resulting broadcast array should have the same sharding as its input
     # for the non-injected dimensions, and replication on the clients dimension.
-    self.assertEqual(sharding.spec, jax.sharding.PartitionSpec(None, 'data'))
+    self.assertEqual(sharding.spec, PSpec(None, _DATA_AXIS))
     # Here, the clients axis should be replicated on each set of chips;
     # however,the data making up the broadcasted array should be split along
     # the 'data' dimension; thus only the second dimension of the tensor should
@@ -128,7 +130,7 @@ class BroadcastShardingBehaviorTest(parameterized.TestCase):
     with create_global_mesh(
         [_CLIENTS_AXIS_SIZE, _DATA_AXIS_SIZE], [_CLIENTS_AXIS, _DATA_AXIS]
     ) as mesh:
-      arg_spec = jax.sharding.PartitionSpec('data')
+      arg_spec = PSpec(_DATA_AXIS)
       sharded_arg = jax.device_put(
           arg, device=jax.sharding.NamedSharding(mesh, arg_spec)
       )
@@ -142,9 +144,7 @@ class BroadcastShardingBehaviorTest(parameterized.TestCase):
     self.assertFalse(sharding.is_fully_replicated)
     # The resulting broadcast array should have the same sharding as its input
     # for the non-injected dimensions, and replication on the clients dimension.
-    self.assertEqual(
-        sharding.spec, jax.sharding.PartitionSpec(_CLIENTS_AXIS, _DATA_AXIS)
-    )
+    self.assertEqual(sharding.spec, PSpec(_CLIENTS_AXIS, _DATA_AXIS))
     # Similarly to the above, the clients dimension should be 'split' across the
     # two sets of chips making up the clients axis of the mesh. However, in this
     # case the data making up the broadcasted array should *also* be split along
@@ -206,7 +206,7 @@ class MapFnShardingTest(parameterized.TestCase):
     )
 
   def test_map_respects_non_clients_sharding(self):
-    arg_spec = jax.sharding.PartitionSpec('data')
+    arg_spec = PSpec(_DATA_AXIS)
     with create_global_mesh(
         [_CLIENTS_AXIS_SIZE, _DATA_AXIS_SIZE], [_CLIENTS_AXIS, _DATA_AXIS]
     ) as mesh:
@@ -233,9 +233,7 @@ class MapFnShardingTest(parameterized.TestCase):
     self.assertFalse(sharding.is_fully_replicated)
     # The resulting array here should be fully sharded, just like the argument,
     # by computation-follows-data semantics.
-    self.assertEqual(
-        sharding.spec, jax.sharding.PartitionSpec(_CLIENTS_AXIS, 'data')
-    )
+    self.assertEqual(sharding.spec, PSpec(_CLIENTS_AXIS, _DATA_AXIS))
     # Since the argument was fully split across the data and clients axes, the
     # result should be too: each of the 4 chips hosts a sub-array slice of data,
     # of shape (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE //
@@ -243,7 +241,104 @@ class MapFnShardingTest(parameterized.TestCase):
     # _DATA_SIZE).
     self.assertEqual(
         sharding.shard_shape(result.shape),
-        (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE / _DATA_AXIS_SIZE),
+        (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE // _DATA_AXIS_SIZE),
+    )
+
+  def test_map_forces_clients_sharding_with_model_parallelism(self):
+    arg_spec = PSpec(_DATA_AXIS)
+    with create_global_mesh(
+        [_CLIENTS_AXIS_SIZE, _DATA_AXIS_SIZE], [_CLIENTS_AXIS, _DATA_AXIS]
+    ) as mesh:
+      sharded_arg1 = jax.device_put(
+          jnp.zeros(shape=[_DATA_SIZE]),
+          device=jax.sharding.NamedSharding(mesh, arg_spec),
+      )
+      sharded_arg2 = jax.device_put(
+          jnp.ones(shape=[_DATA_SIZE]),
+          device=jax.sharding.NamedSharding(mesh, arg_spec),
+      )
+      sharded_arg1 = jnp.tile(sharded_arg1, reps=[_NUM_CLIENTS, 1])
+      sharded_arg2 = jnp.tile(sharded_arg2, reps=[_NUM_CLIENTS, 1])
+      result = self._comp_factory.map_to_placement(
+          add, (sharded_arg1, sharded_arg2), _CLIENTS_AXIS
+      )
+
+    # Our arguments should _not_ be sharded across the clients axis.
+    self.assertEqual(
+        sharded_arg1.sharding.shard_shape(sharded_arg1.shape),
+        (_NUM_CLIENTS, _DATA_SIZE // _DATA_AXIS_SIZE),
+    )
+    self.assertEqual(
+        sharded_arg2.sharding.shard_shape(sharded_arg2.shape),
+        (_NUM_CLIENTS, _DATA_SIZE // _DATA_AXIS_SIZE),
+    )
+    # But the result should be fully partitioned across chips.
+    self.assertEqual(result.shape, (_NUM_CLIENTS, _DATA_SIZE))
+    sharding = result.sharding
+    self.assertIsInstance(sharding, jax.sharding.NamedSharding)
+    self.assertFalse(sharding.is_fully_replicated)
+    # The resulting array here should be fully sharded, _even though the
+    # argument was not_, because our vmap impl inserts sharding constraints on
+    # the placement dimension on its arguments.
+    self.assertEqual(sharding.spec, PSpec(_CLIENTS_AXIS, _DATA_AXIS))
+    # Since the argument was fully split across the data and clients axes, the
+    # result should be too: each of the 4 chips hosts a sub-array slice of data,
+    # of shape (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE //
+    # _DATA_AXIS_SIZE), so that the entire (global) shape is (_NUM_CLIENTS,
+    # _DATA_SIZE).
+    self.assertEqual(
+        sharding.shard_shape(result.shape),
+        (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE // _DATA_AXIS_SIZE),
+    )
+
+  def test_map_of_shard_map_fully_shards_result(self):
+    arg_spec = PSpec(_DATA_AXIS)
+
+    with create_global_mesh(
+        [_CLIENTS_AXIS_SIZE, _DATA_AXIS_SIZE], [_CLIENTS_AXIS, _DATA_AXIS]
+    ) as mesh:
+
+      @functools.partial(
+          shard_map,
+          mesh=mesh,
+          in_specs=(arg_spec, arg_spec),
+          out_specs=arg_spec,
+      )
+      def shard_map_add(x, y):
+        return x + y
+
+      sharded_arg1 = jax.device_put(
+          jnp.zeros(shape=[_DATA_SIZE]),
+          device=jax.sharding.NamedSharding(mesh, arg_spec),
+      )
+      sharded_arg2 = jax.device_put(
+          jnp.ones(shape=[_DATA_SIZE]),
+          device=jax.sharding.NamedSharding(mesh, arg_spec),
+      )
+      sharded_arg1 = jnp.tile(sharded_arg1, reps=[_NUM_CLIENTS, 1])
+      sharded_arg2 = jnp.tile(sharded_arg2, reps=[_NUM_CLIENTS, 1])
+      result = self._comp_factory.map_to_placement(
+          shard_map_add, (sharded_arg1, sharded_arg2), _CLIENTS_AXIS
+      )
+
+    # The result should be fully partitioned across chips, regardless of input
+    # sharding.
+    self.assertEqual(result.shape, (_NUM_CLIENTS, _DATA_SIZE))
+    sharding = result.sharding
+    self.assertIsInstance(sharding, jax.sharding.NamedSharding)
+    self.assertFalse(sharding.is_fully_replicated)
+    # The resulting array here should be fully sharded, since the fed_map
+    # implementation respects the _CLIENTS_AXIS sharding and the shard_map
+    # respects the 'data' sharding.
+    self.assertEqual(sharding.spec, PSpec(_CLIENTS_AXIS, _DATA_AXIS))
+    # Since the argument was fully split across the data and clients axes, the
+    # result should be too: each of the 4 chips hosts a sub-array slice of data,
+    # of shape (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE //
+    # _DATA_AXIS_SIZE), so that the entire (global) shape is (_NUM_CLIENTS,
+    # _DATA_SIZE).
+    self.assertEqual(
+        sharding.shard_shape(result.shape),
+        (_NUM_CLIENTS // _CLIENTS_AXIS_SIZE, _DATA_SIZE // _DATA_AXIS_SIZE),
     )
 
 

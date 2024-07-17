@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""A library of federated primitives defined as JAX primitives."""
-from collections.abc import Callable
+"""A library of MapReduce primitives defined as JAX primitives."""
+
+from collections.abc import Callable, Mapping, MutableMapping
 from typing import Protocol, Union
 
 import jax
@@ -104,7 +105,7 @@ def _register_broadcast_impls(
       # therefore, has the right shape and dtype for the Zero we generate.
       return (jax.interpreters.ad.Zero(primals_in.aval),)
     # This implementation *must* use the sum_prim_fn, rather than the array
-    # implementation of summation, to result in a federated_sum in the Jaxpr.
+    # implementation of summation, to result in a reduce_sum in the Jaxpr.
     return (sum_prim_fn(cotangents_out),)
 
   ad.primitive_transposes[broadcast_p] = broadcast_vjp

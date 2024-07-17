@@ -22,18 +22,19 @@ from . import api as _api
 
 
 # Import the public API.
-federated_broadcast = _api.federated_broadcast
-federated_map_clients = _api.federated_map_clients
-federated_map_server = _api.federated_map_server
-federated_mean = _api.federated_mean
-federated_sum = _api.federated_sum
-federated_weighted_mean = _api.federated_weighted_mean
+broadcast = _api.broadcast
+map_fn = _api.map_fn
+reduce_mean = _api.reduce_mean
+reduce_sum = _api.reduce_sum
+reduce_weighted_mean = _api.reduce_weighted_mean
 
 
-@_functools.wraps(_api.fax_program)
-def fax_program(*, placements):
+@_functools.wraps(_api.drjax_program)
+def program(*, placements, use_spmd_axis_name = True):
   # We wrap here and send in this module as the one to be modified, as it
   # will be the one that users interact with and requires the API changes.
-  return _api.fax_program(
-      placements=placements, self_module=_sys.modules[__name__]
+  return _api.drjax_program(
+      placements=placements,
+      self_module=_sys.modules[__name__],
+      use_spmd_axis_name=use_spmd_axis_name,
   )

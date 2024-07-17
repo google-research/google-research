@@ -3,9 +3,9 @@ requires = ['setuptools']
 build-backend = 'setuptools.build_meta'
 
 [project]
-name = 'google-fax'
-version = '0.0.2'
-description = 'FAX is an implementation of federated operations using Jax primitives.'
+name = 'drjax'
+version = '0.0.1'
+description = 'DrJAX - Differentiable MapReduce Primitives in JAX'
 readme = {file = "README.md", content-type = "text/markdown"}
 license = {text = "Apache-2.0"}
 requires-python = ">=3.9"
@@ -14,7 +14,7 @@ authors = [
   {name = "Zachary Charles", email = "zachcharles@google.com"},
   {name = "Zachary Garrett", email = "zachgarrett@google.com"},
 ]
-keywords = ["federated", "machine", "learning", "jax"]
+keywords = ["mapreduce", "parallel", "distributed", "federated", "machine", "learning", "jax"]
 dependencies = [
     'absl-py~=1.0',
     'jax~=0.4.24',

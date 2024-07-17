@@ -17,7 +17,7 @@
 set -x  # Print extra debugging
 set -e  # exit on any non-zero status
 
-python -m src.fax.impls_test
-python -m src.fax.impls_sharding_test
-python -m src.fax.primitives_test
-python -m src.fax.api_test
+python -m src.drjax.impls_test
+python -m src.drjax.impls_sharding_test
+python -m src.drjax.primitives_test
+python -m src.drjax.api_test
