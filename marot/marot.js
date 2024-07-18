@@ -4218,6 +4218,26 @@ class Marot {
   }
 
   /**
+   * Escapes HTML to safely render as text.
+   * @param {string} unescapedHtml
+   * @return {string}
+   */
+  escapeHtml(unescapedHtml) {
+    const div = document.createElement('div');
+    div.innerText = unescapedHtml;
+    return div.innerHTML;
+  }
+
+  /**
+   * Convenience function to escape html in each token.
+   * @param {!Array<string>} tokens
+   * @return {!Array<string>}
+   */
+  escapeHtmlInTokens(tokens) {
+    return tokens.map(token => this.escapeHtml(token));
+  }
+
+  /**
    * Shows the segment data according to the current filters.
    * @param {?Object=} viewingConstraints Optional dict of doc:seg or
    *     doc:sys:seg to view. When not null, only these segments are shown.
@@ -4303,8 +4323,10 @@ class Marot {
               segmentMetadata = metadata.segment;
               scoringUnits = this.getScoringUnits(segmentMetadata);
               /** Copy source/target tokens as we'll wrap them in spans. */
-              sourceTokens = segmentMetadata.source_tokens.slice();
-              targetTokens = segmentMetadata.target_tokens.slice();
+              sourceTokens = this.escapeHtmlInTokens(
+                  segmentMetadata.source_tokens.slice());
+              targetTokens = this.escapeHtmlInTokens(
+                  segmentMetadata.target_tokens.slice());
               sourceSents = segmentMetadata.source_sentence_splits;
               targetSents = segmentMetadata.target_sentence_splits;
             }
@@ -4377,7 +4399,8 @@ class Marot {
               refRowHTML += '<td><div>' + doc + '</div></td>';
               refRowHTML += '<td><div>' + docSegId + '</div></td>';
               refRowHTML += '<td><div><b>Ref</b>: ' + ref + '</div></td>';
-              const sourceTokensForRef = aggrDocSeg.source_tokens || [];
+              const sourceTokensForRef =
+                  this.escapeHtmlInTokens(aggrDocSeg.source_tokens || []);
               const sourceHashKey = 'src';
               const sourceAlignmentStruct = this.getAlignmentStruct(
                   docsegHashKey, sourceHashKey, sourceSents);
@@ -4386,7 +4409,8 @@ class Marot {
                       sourceTokensForRef, sourceAlignmentStruct,
                       docsegHashKey, sourceHashKey) +
                   '</div></td>';
-              const refTokens = aggrDocSeg.reference_tokens[ref] ?? [];
+              const refTokens = this.escapeHtmlInTokens(
+                  aggrDocSeg.reference_tokens[ref] ?? []);
               const refSents = aggrDocSeg.reference_sentence_splits[ref] ?? [];
               const refHashKey = 'ref-' + MarotUtils.javaHashKey(ref);
               const refAlignmentStruct = this.getAlignmentStruct(
