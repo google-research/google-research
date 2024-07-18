@@ -26,6 +26,31 @@ with compression type `'GZIP'` with the following fields:
 *   `actions`: a list of actions represented as JSON dictionaries. The actions are performed between consecutive screenshots, so there are **len(screenshots) - 1** of them.
 *   `step_instructions`: a list of the step instructions describing each step to complete the task. The number of step instructions equals the number of actions, but it's important to note that each step instruction does not necessarily describe a single action. A step instruction can require more than one action to complete, and in these cases the step instruction is repeated to maintain a one-to-one mapping from step instructions to actions.
 
+### Parsing the accessibility tree
+To parse the trees from their serialized strings, you must clone/install the [android_env repository](https://github.com/google-deepmind/android_env/tree/main/android_env) using the methods they describe. To access the proto in Colab we used the following
+
+```
+!git clone https://github.com/deepmind/android_env/
+!cd android_env; pip install .
+```
+
+Once it's installed, you can import the proto and instantiate the forest object. Here’s an example of how to do that
+
+```
+import tensorflow as tf
+from android_env.proto.a11y import android_accessibility_forest_pb2
+
+filenames = tf.io.gfile.glob('gs://gresearch/android_control/android_control*')
+raw_dataset = tf.data.TFRecordDataset(filenames, compression_type='GZIP')
+dataset_iterator = tf.compat.v1.data.make_one_shot_iterator(raw_dataset)
+
+example = tf.train.Example.FromString(dataset_iterator.get_next().numpy())
+
+forest = android_accessibility_forest_pb2.AndroidAccessibilityForest().FromString(example.features.feature['accessibility_trees'].bytes_list.value[0])
+print(forest)
+```
+
+
 ## Action space
 
 Our actions are represented as JSON dictionaries with an `action_type` key. The other fields in the action dictionary are unique for each `action_type` and  store parameter values for that action (e.g., "open_app" actions have an "app_name" key, but no "x" or "y" keys). The `action_type` field will have one of the following values:
