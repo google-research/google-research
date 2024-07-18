@@ -40,7 +40,7 @@ of these loanwords are multi-word expressions in English.
     curl \
         --silent \
         --output "${TEMPDATA}/pairs.tsv" \
-        "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fb0e66d31e021fca7adec4c2104ffea0e879f2e4/pairs.tsv"
+        "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fef45022cd11a6f4ddeb4569be48797638a036f8/pairs.tsv"
     curl \
         --silent \
         --output "${TEMPDATA}/lexicon.txt" \
@@ -65,12 +65,14 @@ of these loanwords are multi-word expressions in English.
 
     ```bash
     python -m train \
+        --tsv "${TEMPDATA}/train.tsv" \
+        --insertions 2 \
+        --deletions 1 \
         --seed 10037 \
         --batch_size 128 \
         --max_iters 10 \
         --order 6 \
         --size 100000 \
-        --tsv "${TEMPDATA}/train.tsv" \
         --fst "${TEMPDATA}/plm.fst"
     ```
 
