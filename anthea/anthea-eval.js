@@ -984,10 +984,11 @@ class AntheaEval {
    * doc0
    *    seg0 [srcErrors, tgtErrors (loc = 'translation'), tgtHotw (w/o loc info)]
    *    seg1 [srcErrors, tgtErrors (loc = 'translation'), tgtHotw (w/o loc info)]
-   *    ...
+   * doc1 (source is the same as doc0)
    *    seg0 [srcErrors, tgt2Errors (loc = 'translation'), tgt2Hotw (w/o loc info)]
    *    seg1 [srcErrors, tgt2Errors (loc = 'translation'), tgt2Hotw (w/o loc info)]
-   * doc1 ...
+   * doc2 (previously doc1) ...
+   * doc3 (source is the same as doc2)
    * @param {!Array<number>} segStartIdxArray
    * @param {!Array<!Object>} evalResults
    * @return {!Array<!Object>}
@@ -1018,11 +1019,14 @@ class AntheaEval {
           evalResultCopy.hotw_list = evalResultCopy.hotw_list.filter(
               (hotwError) => validErrorLists[j].includes(hotwError.location)
               );
+          // Change the doc value based on the side which matters for Marot's
+          // error result parsing.
+          evalResultCopy.doc = evalResults[s].doc * 2 + j;
           splitEvalResults.push(evalResultCopy);
         }
       }
     }
-  // Change the location of translation2 errors back to translation.
+    // Change the location of translation2 errors back to translation.
     for (let i = 0; i < splitEvalResults.length; i++) {
       splitEvalResults[i].errors = splitEvalResults[i].errors.map((error) => {
         const errorCopy = { ...error };
@@ -1176,7 +1180,10 @@ class AntheaEval {
       for (let j = 0; j < numSegs; j++) {
         const splitOne = projectResults[2*startIdx + j];
         const splitTwo = projectResults[2*startIdx + numSegs + j];
-
+        // Change the doc value back to non-doubled one.
+        // See splitSideBySideEvalResults().
+        splitOne.doc = splitOne.doc / 2;
+        splitTwo.doc = (splitTwo.doc - 1) / 2;
         // Merge the errors.
         for (let error of splitTwo.errors) {
           if (error.location !== 'source') {
