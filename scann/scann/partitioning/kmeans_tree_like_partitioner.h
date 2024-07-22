@@ -49,7 +49,8 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
 
   virtual Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<pair<DatapointIndex, float>>> results) const = 0;
+      MutableSpan<std::vector<pair<DatapointIndex, float>>> results,
+      ThreadPool* pool = nullptr) const = 0;
 
   virtual Status TokenForDatapoint(
       const DatapointPtr<T>& dptr,

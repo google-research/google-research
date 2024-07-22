@@ -68,6 +68,8 @@ class FP8SimdBlockTransposedDatabase {
                                           : 0};
   }
 
+  Datapoint<int8_t> ReconstructDatapoint(DatapointIndex idx) const;
+
  private:
   void TransposeOneBlock(const int8_t* src, size_t block_size, int8_t* dest);
 

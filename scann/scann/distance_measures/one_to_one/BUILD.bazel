@@ -53,6 +53,7 @@ cc_library(
         ":common",
         ":dot_product_avx1",
         ":dot_product_avx2",
+        ":dot_product_highway",
         ":dot_product_sse4",
         "//scann/distance_measures:distance_measure_base",
         "//scann/utils:reduction",
@@ -101,12 +102,27 @@ cc_library(
 )
 
 cc_library(
+    name = "dot_product_highway",
+    srcs = ["dot_product_highway.cc"],
+    hdrs = ["dot_product_highway.h"],
+    tags = ["local"],
+    deps = [
+        ":dot_product_impl",
+        "//scann/data_format:datapoint",
+        "//scann/utils/intrinsics:attributes",
+        "@com_google_highway//:hwy",
+    ],
+    alwayslink = 1,
+)
+
+cc_library(
     name = "dot_product_sse4",
     srcs = ["dot_product_sse4.cc"],
     hdrs = ["dot_product_sse4.h"],
     tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
+        "//scann/utils:common",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:sse4",
     ],
@@ -167,6 +183,7 @@ cc_library(
     tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
+        "//scann/utils:common",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:sse4",
     ],
@@ -210,6 +227,7 @@ cc_library(
     tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
+        "//scann/utils:common",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:sse4",
     ],

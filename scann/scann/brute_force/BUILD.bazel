@@ -25,6 +25,8 @@ cc_library(
         "//scann/distance_measures/one_to_many",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:scann_threadpool",
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
@@ -35,6 +37,7 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
     ],
 )
@@ -53,6 +56,7 @@ cc_library(
         "//scann/base:single_machine_factory_options",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/data_format:docid_collection",
         "//scann/distance_measures",
         "//scann/distance_measures/one_to_many",
         "//scann/distance_measures/one_to_one:dot_product",
@@ -69,6 +73,7 @@ cc_library(
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -81,8 +86,11 @@ cc_library(
     hdrs = ["bfloat16_brute_force.h"],
     tags = ["local"],
     deps = [
+        "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
+        "//scann/base:single_machine_factory_options",
         "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/distance_measures/one_to_many",
         "//scann/oss_wrappers:scann_status",

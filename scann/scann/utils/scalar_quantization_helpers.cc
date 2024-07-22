@@ -242,4 +242,36 @@ unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
   return result;
 }
 
+std::vector<float> Int8ToInt4Multipliers(
+    const std::vector<float>& multipliers) {
+  std::vector<float> result;
+  result.reserve(multipliers.size());
+  for (float m : multipliers) {
+    result.push_back(m * (kFP4Max / kFP8Max));
+  }
+  return result;
+}
+
+std::vector<float> InverseInt8ToInt4Multipliers(
+    const std::vector<float>& multipliers) {
+  std::vector<float> result;
+  result.reserve(multipliers.size());
+  for (float m : multipliers) {
+    result.push_back(m * (kFP8Max / kFP4Max));
+  }
+  return result;
+}
+
+void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
+                                    absl::Span<const float> multipliers,
+                                    MutableSpan<uint8_t> packed) {
+  const size_t dimensionality = dptr.dimensionality();
+  DCHECK_EQ(multipliers.size(), dimensionality);
+  std::vector<uint8_t> quantized(dimensionality);
+  for (size_t i : Seq(dimensionality)) {
+    quantized[i] = Int4Quantize(dptr.values()[i] * multipliers[i]);
+  }
+  PackNibblesDatapoint(quantized, packed);
+}
+
 }  // namespace research_scann

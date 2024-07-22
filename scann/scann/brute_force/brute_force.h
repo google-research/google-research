@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "scann/base/search_parameters.h"
@@ -26,6 +27,9 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/utils/common.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -64,6 +68,7 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
     Mutator(const Mutator&) = delete;
     Mutator& operator=(const Mutator&) = delete;
     ~Mutator() final {}
+    absl::StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex i) const final;
     StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<T>& dptr,
                                           string_view docid,
                                           const MutationOptions& mo) final;

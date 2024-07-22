@@ -110,6 +110,7 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
   }
 
   enum TokenizationType {
+
     FLOAT = 1,
 
     FIXED_POINT_INT8 = 2,
@@ -123,6 +124,10 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
 
   void SetDatabaseTokenizationType(TokenizationType type) {
     database_tokenization_type_ = type;
+  }
+
+  void SetNumTokenizedBranch(int32_t num_tokenized_branch) {
+    num_tokenized_branch_ = num_tokenized_branch;
   }
 
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
@@ -154,18 +159,20 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
       std::vector<pair<DatapointIndex, float>>* result) const final;
 
   Status TokensForDatapointWithSpillingBatched(
-      const TypedDataset<T>& queries,
-      MutableSpan<std::vector<int32_t>> results) const final {
+      const TypedDataset<T>& queries, MutableSpan<std::vector<int32_t>> results,
+      ThreadPool* pool = nullptr) const final {
     return TokensForDatapointWithSpillingBatchedAndOverride(
-        queries, vector<int32_t>(), results);
+        queries, vector<int32_t>(), results, pool);
   }
   Status TokensForDatapointWithSpillingBatchedAndOverride(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<int32_t>> results) const;
+      MutableSpan<std::vector<int32_t>> results,
+      ThreadPool* pool = nullptr) const;
 
   Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<vector<pair<DatapointIndex, float>>> results) const final;
+      MutableSpan<vector<pair<DatapointIndex, float>>> results,
+      ThreadPool* pool = nullptr) const final;
 
   StatusOr<vector<std::vector<DatapointIndex>>> TokenizeDatabase(
       const TypedDataset<T>& database, ThreadPool* pool_or_null) const final;
@@ -174,6 +181,8 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
     bool avq_after_primary = false;
 
     float avq_eta = NAN;
+
+    bool skip_secondary_tokenization = false;
   };
   StatusOr<vector<std::vector<DatapointIndex>>> TokenizeDatabase(
       const TypedDataset<T>& database, ThreadPool* pool_or_null,
@@ -288,6 +297,8 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
   TokenizationType query_tokenization_type_ = FLOAT;
 
   TokenizationType database_tokenization_type_ = FLOAT;
+
+  int num_tokenized_branch_ = 1;
 
   shared_ptr<const SingleMachineSearcherBase<float>>
       database_tokenization_searcher_ = nullptr;

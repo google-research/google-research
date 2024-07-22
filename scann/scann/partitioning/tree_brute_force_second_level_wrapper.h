@@ -34,11 +34,9 @@ class TreeBruteForceSecondLevelWrapper final
     : public KMeansTreeLikePartitioner<T> {
  public:
   TreeBruteForceSecondLevelWrapper(
-      unique_ptr<KMeansTreeLikePartitioner<T>> base,
-      DatapointIndex top_level_centroids,
-      DatapointIndex top_level_centroids_to_search, float avq_eta,
-      float orthogonality_amplification_lambda,
-      float spilling_overretrieve_factor);
+      unique_ptr<KMeansTreeLikePartitioner<T>> base);
+
+  Status CreatePartitioning(const BottomUpTopLevelPartitioner& config);
 
   const shared_ptr<const DistanceMeasure>& query_tokenization_distance()
       const final {
@@ -60,8 +58,8 @@ class TreeBruteForceSecondLevelWrapper final
 
   Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<pair<DatapointIndex, float>>> results)
-      const final;
+      MutableSpan<std::vector<pair<DatapointIndex, float>>> results,
+      ThreadPool* pool = nullptr) const final;
 
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
                            pair<DatapointIndex, float>* result) const final {
@@ -122,10 +120,7 @@ class TreeBruteForceSecondLevelWrapper final
   TreeBruteForceSecondLevelWrapper() = default;
   static StatusOrPtr<TreeXHybridSMMD<float>> CreateTopLevel(
       const KMeansTreeLikePartitioner<T>& base,
-      DatapointIndex top_level_centroids,
-      DatapointIndex top_level_centroids_to_search, float avq_eta,
-      float orthogonality_amplification_lambda,
-      float spilling_overretrieve_factor);
+      const BottomUpTopLevelPartitioner& config);
 
   unique_ptr<KMeansTreeLikePartitioner<T>> base_;
   unique_ptr<TreeXHybridSMMD<float>> top_level_;

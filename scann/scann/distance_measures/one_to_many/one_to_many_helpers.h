@@ -17,6 +17,8 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_HELPERS_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_HELPERS_H_
 
+#include <atomic>
+
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 

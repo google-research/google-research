@@ -29,6 +29,7 @@
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/zip_sort.h"
 
 namespace research_scann {
@@ -146,20 +147,24 @@ namespace avx2 {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx2
 
-namespace sse4 {
-#define SCANN_SIMD_ATTRIBUTE SCANN_SSE4
-#include "scann/utils/fast_top_neighbors_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace sse4
-
 #endif
 
-namespace fallback {
+#if HWY_HAVE_SCALABLE == 0
+HWY_BEFORE_NAMESPACE();
+namespace highway {
 #define SCANN_SIMD_ATTRIBUTE
 
 #include "scann/utils/fast_top_neighbors_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
+}  // namespace highway
+HWY_AFTER_NAMESPACE();
+#else
+namespace fallback {
+#define SCANN_SIMD_ATTRIBUTE
+#include "scann/utils/fast_top_neighbors_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
 }  // namespace fallback
+#endif
 
 template <typename DistT, typename DatapointIndexT>
 size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
@@ -169,12 +174,10 @@ size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
 #ifdef __x86_64__
   if (RuntimeSupportsAvx2()) {
     return avx2::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
-  } else if (RuntimeSupportsSse4()) {
-    return sse4::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
   }
 #endif
 
-  return fallback::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
+  return highway::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
 }
 
 template <typename DistT, typename DatapointIndexT>

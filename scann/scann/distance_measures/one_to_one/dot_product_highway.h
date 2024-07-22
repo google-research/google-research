@@ -12,16 +12,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef SCANN_UTILS_INTRINSICS_SIMD_H_
-#define SCANN_UTILS_INTRINSICS_SIMD_H_
+#ifndef SCANN_DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_HIGHWAY_H_
+#define SCANN_DISTANCE_MEASURES_ONE_TO_ONE_DOT_PRODUCT_HIGHWAY_H_
+#include <cstdint>
 
+#include "scann/data_format/datapoint.h"
 #include "scann/utils/intrinsics/attributes.h"
-#include "scann/utils/intrinsics/avx1.h"
-#include "scann/utils/intrinsics/avx2.h"
-#include "scann/utils/intrinsics/avx512.h"
-#include "scann/utils/intrinsics/fallback.h"
-#include "scann/utils/intrinsics/flags.h"
-#include "scann/utils/intrinsics/highway.h"
-#include "scann/utils/intrinsics/sse4.h"
+
+namespace research_scann {
+namespace dp_internal {
+
+SCANN_HIGHWAY_OUTLINE double DenseDotProductHighway(
+    const DatapointPtr<int8_t>& a, const DatapointPtr<float>& b);
+
+SCANN_HIGHWAY_OUTLINE double DenseDotProductHighway(
+    const DatapointPtr<int16_t>& a, const DatapointPtr<float>& b);
+
+}  // namespace dp_internal
+}  // namespace research_scann
 
 #endif

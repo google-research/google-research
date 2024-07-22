@@ -17,6 +17,8 @@
 #ifndef SCANN_PARTITIONING_PARTITIONER_FACTORY_BASE_H_
 #define SCANN_PARTITIONING_PARTITIONER_FACTORY_BASE_H_
 
+#include <utility>
+
 #include "scann/data_format/dataset.h"
 #include "scann/partitioning/kmeans_tree_partitioner_utils.h"
 #include "scann/partitioning/partitioner_base.h"

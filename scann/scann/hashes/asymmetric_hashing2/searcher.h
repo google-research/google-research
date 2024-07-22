@@ -18,10 +18,12 @@
 #define SCANN_HASHES_ASYMMETRIC_HASHING2_SEARCHER_H_
 
 #include <cstdint>
+#include <functional>
 #include <utility>
 
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -30,6 +32,8 @@
 #include "scann/hashes/asymmetric_hashing2/training.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/tree_x_hybrid/leaf_searcher_optional_parameter_creator.h"
+#include "scann/utils/common.h"
+#include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -132,7 +136,7 @@ class Searcher final : public SingleMachineSearcherBase<T> {
     unique_ptr<PrecomputedMutationArtifacts>
     ComputePrecomputedMutationArtifacts(
         const DatapointPtr<T>& dptr) const final;
-
+    StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex i) const final;
     StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<T>& dptr,
                                           string_view docid,
                                           const MutationOptions& mo) final;

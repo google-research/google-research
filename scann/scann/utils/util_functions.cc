@@ -220,7 +220,7 @@ void MergeNeighborListsSwapImpl(MutableSpan<NearestNeighbors*> neighbor_lists,
     PartiallyConsumedNeighborList pc_list;
     if (list->neighbor_size() > 0) {
       pc_list.neighbor_list.Swap(list->mutable_neighbor());
-      heap.push_back(pc_list);
+      heap.push_back(std::move(pc_list));
     }
   }
 
@@ -360,7 +360,7 @@ void UnpackNibblesDatapoint(ConstSpan<uint8_t> packed,
     hash[i * 2 + 1] = packed[i] >> 4;
   }
   if (hash_size & 1) {
-    hash[hash_size - 1] = packed[hash_size / 2];
+    hash[hash_size - 1] = packed[hash_size / 2] & 0x0f;
   }
 }
 

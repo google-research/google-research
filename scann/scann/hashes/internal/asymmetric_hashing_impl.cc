@@ -440,11 +440,11 @@ Status AhImpl<T>::IndexDatapointNoiseShaped(
   SCANN_RET_CHECK_EQ(result.size(), centers.size());
   SCANN_RET_CHECK_EQ(maybe_residual_dptr.dimensionality(),
                      original_dptr.dimensionality());
+  SCANN_RETURN_IF_ERROR(ValidateNoiseShapingParams(threshold, eta));
   TF_ASSIGN_OR_RETURN(auto residual_stats,
                       ComputeResidualStats(maybe_residual_dptr, original_dptr,
                                            centers, projection));
 
-  SCANN_RETURN_IF_ERROR(ValidateNoiseShapingParams(threshold, eta));
   const double parallel_cost_multiplier =
       std::isnan(eta) ? ComputeParallelCostMultiplier(
                             threshold, SquaredL2Norm(original_dptr),

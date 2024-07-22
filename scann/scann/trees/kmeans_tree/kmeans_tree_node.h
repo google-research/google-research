@@ -50,6 +50,8 @@ class KMeansTreeNode {
 
   explicit KMeansTreeNode(int32_t leaf_id) { leaf_id_ = leaf_id; }
 
+  static KMeansTreeNode CreateFlat(DenseDataset<float> centers);
+
   void Reset();
 
   bool IsLeaf() const { return children_.empty(); }

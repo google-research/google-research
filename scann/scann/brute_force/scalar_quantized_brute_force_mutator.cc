@@ -17,9 +17,11 @@
 #include <utility>
 
 #include "scann/brute_force/scalar_quantized_brute_force.h"
+#include "scann/data_format/docid_collection.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -31,6 +33,12 @@ ScalarQuantizedBruteForceSearcher::Mutator::Create(
   vector<float> multipliers(searcher->inverse_multiplier_by_dimension_.size());
   for (auto i : Seq(multipliers.size())) {
     multipliers[i] = 1.0f / searcher->inverse_multiplier_by_dimension_[i];
+  }
+  if (!searcher->docids()) {
+    SCANN_RETURN_IF_ERROR(
+        searcher->set_docids(make_unique<VariableLengthDocidCollection>(
+            VariableLengthDocidCollection::CreateWithEmptyDocids(
+                searcher->quantized_dataset_.size()))));
   }
 
   return absl::WrapUnique<ScalarQuantizedBruteForceSearcher::Mutator>(
@@ -62,6 +70,7 @@ StatusOr<DatapointIndex>
 ScalarQuantizedBruteForceSearcher::Mutator::AddDatapoint(
     const DatapointPtr<float>& dptr, string_view docid,
     const MutationOptions& mo) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForAdd(dptr, docid, mo));
   const DatapointIndex result = searcher_->quantized_dataset_.size();
   SCANN_RETURN_IF_ERROR(
       quantized_dataset_mutator_->AddDatapoint(ScalarQuantize(dptr), ""));
@@ -77,6 +86,7 @@ ScalarQuantizedBruteForceSearcher::Mutator::AddDatapoint(
 
 Status ScalarQuantizedBruteForceSearcher::Mutator::RemoveDatapoint(
     DatapointIndex index) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForRemove(index));
   SCANN_RETURN_IF_ERROR(quantized_dataset_mutator_->RemoveDatapoint(index));
   if (searcher_->distance_->specially_optimized_distance_tag() ==
       DistanceMeasure::SQUARED_L2) {
@@ -108,6 +118,8 @@ StatusOr<DatapointIndex>
 ScalarQuantizedBruteForceSearcher::Mutator::UpdateDatapoint(
     const DatapointPtr<float>& dptr, DatapointIndex index,
     const MutationOptions& mo) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForUpdate(dptr, index, mo));
+
   const bool mutate_values_vector = true;
   if (mutate_values_vector) {
     SCANN_RETURN_IF_ERROR(quantized_dataset_mutator_->UpdateDatapoint(

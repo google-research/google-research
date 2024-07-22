@@ -62,6 +62,7 @@ cc_library(
         "//scann/oss_wrappers:scann_bits",
         "//scann/utils/intrinsics:attributes",
         "//scann/utils/intrinsics:flags",
+        "//scann/utils/intrinsics:highway",
         "//scann/utils/intrinsics:simd",
         "//scann/utils/intrinsics:sse4",
         "@com_google_absl//absl/base:core_headers",
@@ -280,6 +281,7 @@ cc_library(
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
         "@com_google_absl//absl/synchronization",
+        "@com_google_absl//absl/types:span",
     ],
 )
 

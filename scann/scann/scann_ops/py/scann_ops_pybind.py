@@ -15,14 +15,13 @@
 
 """Wrapper around pybind module that provides convenience functions for instantiating ScaNN searchers."""
 
-# pylint: disable=g-import-not-at-top,g-bad-import-order,unused-import
-import pickle as pkl
 import os
+import pickle as pkl
+import numpy as np
+# needed because of C++ dependency on TF headers
+import tensorflow as _tf
 import sys
 
-# needed because of C++ dependency on TF headers
-import numpy as np
-import tensorflow as _tf
 sys.path.append(
     os.path.join(
         os.path.dirname(os.path.dirname(os.path.abspath(__file__))),

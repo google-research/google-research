@@ -55,6 +55,7 @@ class GmmUtils {
     shared_ptr<ThreadPool> parallelization_pool;
 
     enum PartitionAssignmentType {
+
       UNBALANCED,
 
       GREEDY_BALANCED,
@@ -67,6 +68,7 @@ class GmmUtils {
     PartitionAssignmentType partition_assignment_type = UNBALANCED_FLOAT32;
 
     enum CenterReassignmentType {
+
       RANDOM_REASSIGNMENT,
 
       SPLIT_LARGEST_CLUSTERS,
@@ -77,6 +79,7 @@ class GmmUtils {
     CenterReassignmentType center_reassignment_type = RANDOM_REASSIGNMENT;
 
     enum CenterInitializationType {
+
       MEAN_DISTANCE_INITIALIZATION,
 
       KMEANS_PLUS_PLUS,

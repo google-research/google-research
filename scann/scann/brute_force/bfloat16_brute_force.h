@@ -15,9 +15,16 @@
 #ifndef SCANN_BRUTE_FORCE_BFLOAT16_BRUTE_FORCE_H_
 #define SCANN_BRUTE_FORCE_BFLOAT16_BRUTE_FORCE_H_
 
+#include <cmath>
+
+#include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/base/single_machine_factory_options.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/utils/common.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -52,6 +59,8 @@ class Bfloat16BruteForceSearcher final
     Mutator(const Mutator&) = delete;
     Mutator& operator=(const Mutator&) = delete;
     ~Mutator() final = default;
+
+    StatusOr<Datapoint<float>> GetDatapoint(DatapointIndex i) const final;
     StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<float>& dptr,
                                           string_view docid,
                                           const MutationOptions&) final;

@@ -24,6 +24,7 @@
 #include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
+#include "absl/types/span.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -102,7 +103,7 @@ ScalarQuantizedBruteForceSearcher::ScalarQuantizedBruteForceSearcher(
 StatusOr<vector<float>>
 ScalarQuantizedBruteForceSearcher::ComputeSquaredL2NormsFromQuantizedDataset(
     const DenseDataset<int8_t>& quantized,
-    const vector<float>& inverse_multipliers) {
+    absl::Span<const float> inverse_multipliers) {
   if (quantized.dimensionality() != inverse_multipliers.size())
     return InvalidArgumentError(absl::StrCat(
         "The dimension of quantized dataset ", quantized.dimensionality(),

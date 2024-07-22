@@ -6,7 +6,7 @@ load("//build_deps/tf_dependency:tf_configure.bzl", "tf_configure")
 # Needed for highway's config_setting_group
 http_archive(
     name = "bazel_skylib",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.3.0/bazel-skylib-1.3.0.tar.gz"],
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/1.7.1/bazel-skylib-1.7.1.tar.gz"],
 )
 
 load("@bazel_skylib//:workspace.bzl", "bazel_skylib_workspace")
@@ -106,7 +106,7 @@ git_repository(
 git_repository(
     name = "com_google_highway",
     remote = "https://github.com/google/highway.git",
-    tag = "1.0.1",
+    tag = "1.2.0",
 )
 
 git_repository(

@@ -156,10 +156,7 @@ Status SetOverretrievalFactor(const PartitioningConfig& pconfig,
 template <typename T, template <typename> typename Partitioner>
 Status MaybeAddTopLevelPartitioner(unique_ptr<Partitioner<T>>& partitioner,
                                    const ScannConfig& config) {
-  const char* const top_partitioner_prefix =
-      "experimental_top_level_partitioner:";
-  if (!absl::StartsWith(config.custom_search_method(),
-                        top_partitioner_prefix)) {
+  if (!config.partitioning().bottom_up_top_level_partitioner().enabled()) {
     return OkStatus();
   }
   if (!dynamic_cast<KMeansTreeLikePartitioner<T>*>(partitioner.get())) {
@@ -169,25 +166,11 @@ Status MaybeAddTopLevelPartitioner(unique_ptr<Partitioner<T>>& partitioner,
   }
   unique_ptr<KMeansTreeLikePartitioner<T>> kmeans_tree_partitioner(
       static_cast<KMeansTreeLikePartitioner<T>*>(partitioner.release()));
-  string_view top_partitioner_params =
-      absl::StripPrefix(config.custom_search_method(), top_partitioner_prefix);
-  vector<string> split = absl::StrSplit(top_partitioner_params, ',');
-  SCANN_RET_CHECK(split.size() == 4 || split.size() == 5) << split.size();
-  int32_t top_level_centroids, top_level_centroids_to_search;
-  SCANN_RET_CHECK(absl::SimpleAtoi(split[0], &top_level_centroids));
-  SCANN_RET_CHECK(absl::SimpleAtoi(split[1], &top_level_centroids_to_search));
-  float avq_eta, orthogonality_amplification_lambda;
-  SCANN_RET_CHECK(absl::SimpleAtof(split[2], &avq_eta));
-  SCANN_RET_CHECK(
-      absl::SimpleAtof(split[3], &orthogonality_amplification_lambda));
-  float overretrieve_factor = 2.0;
-  if (split.size() == 5) {
-    SCANN_RET_CHECK(absl::SimpleAtof(split[4], &overretrieve_factor));
-  }
-  partitioner = make_unique<TreeBruteForceSecondLevelWrapper<T>>(
-      std::move(kmeans_tree_partitioner), top_level_centroids,
-      top_level_centroids_to_search, avq_eta,
-      orthogonality_amplification_lambda, overretrieve_factor);
+  auto top_level_partitioner = make_unique<TreeBruteForceSecondLevelWrapper<T>>(
+      std::move(kmeans_tree_partitioner));
+  SCANN_RETURN_IF_ERROR(top_level_partitioner->CreatePartitioning(
+      config.partitioning().bottom_up_top_level_partitioner()));
+  partitioner = std::move(top_level_partitioner);
   return OkStatus();
 }
 }  // namespace

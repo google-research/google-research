@@ -16,12 +16,12 @@
 import os
 import tempfile
 
-from absl.testing import absltest
-from absl.testing import parameterized
 import numpy as np
 
 from scann.scann_ops.py import scann_builder
 from scann.scann_ops.py import scann_ops_pybind
+from absl.testing import absltest
+from absl.testing import parameterized
 
 
 class ScannTest(parameterized.TestCase):

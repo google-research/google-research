@@ -14,10 +14,13 @@
 
 #include <optional>
 
+#include "absl/strings/str_cat.h"
 #include "scann/brute_force/brute_force.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/utils/common.h"
 #include "scann/utils/single_machine_autopilot.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -34,8 +37,15 @@ void BruteForceSearcher<T>::Mutator::Reserve(size_t size) {
 }
 
 template <typename T>
+StatusOr<Datapoint<T>> BruteForceSearcher<T>::Mutator::GetDatapoint(
+    DatapointIndex i) const {
+  return this->GetDatapointFromBase(i);
+}
+
+template <typename T>
 StatusOr<DatapointIndex> BruteForceSearcher<T>::Mutator::AddDatapoint(
     const DatapointPtr<T>& dptr, string_view docid, const MutationOptions& mo) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForAdd(dptr, docid, mo));
   TF_ASSIGN_OR_RETURN(
       const DatapointIndex result,
       this->AddDatapointToBase(dptr, docid, MutateBaseOptions{}));
@@ -44,6 +54,7 @@ StatusOr<DatapointIndex> BruteForceSearcher<T>::Mutator::AddDatapoint(
 
 template <typename T>
 Status BruteForceSearcher<T>::Mutator::RemoveDatapoint(DatapointIndex index) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForRemove(index));
   TF_ASSIGN_OR_RETURN(const DatapointIndex swapped_in,
                       this->RemoveDatapointFromBase(index));
   this->OnDatapointIndexRename(swapped_in, index);
@@ -67,6 +78,7 @@ template <typename T>
 StatusOr<DatapointIndex> BruteForceSearcher<T>::Mutator::UpdateDatapoint(
     const DatapointPtr<T>& dptr, DatapointIndex index,
     const MutationOptions& mo) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForUpdate(dptr, index, mo));
   SCANN_RETURN_IF_ERROR(
       this->UpdateDatapointInBase(dptr, index, MutateBaseOptions{}));
   return index;

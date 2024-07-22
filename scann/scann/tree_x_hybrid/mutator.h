@@ -23,6 +23,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
+#include <limits>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -104,6 +105,7 @@ class TreeXHybridMutator
 
   ComputePrecomputedMutationArtifacts(const TypedDataset<T>& batch) const final;
 
+  absl::StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex i) const override;
   DatapointPtr<T> GetDatapointPtr(DatapointIndex i, Datapoint<T>* storage,
                                   bool always_copy = false) const;
 
@@ -308,6 +310,33 @@ std::vector<float> gradient_update(DatapointPtr<float> w, DatapointPtr<T> x,
 }
 
 template <typename Searcher>
+absl::StatusOr<Datapoint<typename Searcher::DataType>>
+TreeXHybridMutator<Searcher>::GetDatapoint(DatapointIndex i) const {
+  size_t size = 0;
+  if (searcher_->shared_dataset()) {
+    size = searcher_->shared_dataset()->size();
+  } else if (searcher_->reordering_enabled()) {
+    size = searcher_->reordering_helper().dataset()->size();
+  } else {
+    if (std::holds_alternative<GlobalToLocal1>(global_to_local_)) {
+      auto& global_to_local = std::get<GlobalToLocal1>(global_to_local_);
+      size = global_to_local.size();
+    } else {
+      auto& global_to_local = std::get<GlobalToLocal2>(global_to_local_);
+      size = global_to_local.size();
+    }
+  }
+  if (i >= size) {
+    return OutOfRangeError(
+        "Datapoint index out of bound: index = %d, but size = %d.", i, size);
+  }
+
+  Datapoint<T> dp;
+  GetDatapointPtr(i, &dp, true);
+  return dp;
+}
+
+template <typename Searcher>
 DatapointPtr<typename Searcher::DataType>
 TreeXHybridMutator<Searcher>::GetDatapointPtr(
     DatapointIndex i, Datapoint<typename Searcher::DataType>* storage,
@@ -330,7 +359,7 @@ TreeXHybridMutator<Searcher>::GetDatapointPtr(
       auto idx = global_to_local[i][0];
       x = searcher_->leaf_searchers_[idx.first]->GetDatapointPtr(idx.second);
     } else {
-      auto& global_to_local = std::get<GlobalToLocal1>(global_to_local_);
+      auto& global_to_local = std::get<GlobalToLocal2>(global_to_local_);
       auto idx = global_to_local[i][0];
       x = searcher_->leaf_searchers_[idx.first]->GetDatapointPtr(idx.second);
     }
@@ -816,6 +845,7 @@ TreeXHybridMutator<Searcher>::ComputePrecomputedMutationArtifacts(
 template <typename Searcher>
 StatusOr<DatapointIndex> TreeXHybridMutator<Searcher>::AddDatapoint(
     const DatapointPtr<T>& dptr, string_view docid, const MutationOptions& mo) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForAdd(dptr, docid, mo));
   DCHECK(searcher_);
   PrecomputedMutationArtifacts* ma = mo.precomputed_mutation_artifacts;
   unique_ptr<PrecomputedMutationArtifacts> ma_storage;
@@ -912,6 +942,7 @@ template <typename Searcher>
 StatusOr<DatapointIndex> TreeXHybridMutator<Searcher>::UpdateDatapoint(
     const DatapointPtr<T>& dptr, DatapointIndex index,
     const MutationOptions& mo) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForUpdate(dptr, index, mo));
   DCHECK(searcher_);
   const bool mutate_values = true;
   vector<int32_t> tokens_storage;
@@ -1048,6 +1079,7 @@ Status TreeXHybridMutator<Searcher>::RemoveDatapoint(string_view docid) {
 
 template <typename Searcher>
 Status TreeXHybridMutator<Searcher>::RemoveDatapoint(DatapointIndex dp_idx) {
+  SCANN_RETURN_IF_ERROR(this->ValidateForRemove(dp_idx));
   return SCANN_DISPATCH_ON_GLOBAL_TO_LOCAL(RemoveDatapointImpl, dp_idx);
 }
 

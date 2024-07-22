@@ -21,28 +21,28 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <limits>
 #include <optional>
 #include <tuple>
 #include <type_traits>
 #include <utility>
 #include <vector>
 
-#include "absl/flags/flag.h"
-#include "absl/types/span.h"
-#include "scann/base/restrict_allowlist.h"
+#include "absl/strings/str_cat.h"
 #include "scann/base/search_parameters.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
-#include "scann/hashes/asymmetric_hashing2/training.h"
-#include "scann/hashes/asymmetric_hashing2/training_options.h"
+#include "scann/hashes/asymmetric_hashing2/training_model.h"
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 #include "scann/hashes/internal/asymmetric_hashing_lut16.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
+#include "scann/hashes/internal/lut16_args.h"
+#include "scann/hashes/internal/lut16_interface.h"
 #include "scann/projection/chunking_projection.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/restricts/restrict_allowlist.h"
 #include "scann/utils/common.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -63,6 +63,9 @@ struct LookupTable {
   float fixed_point_multiplier = NAN;
 
   bool can_use_int16_accumulator = false;
+
+  absl::StatusOr<std::vector<uint8_t>> ToBytes() const;
+  static absl::StatusOr<LookupTable> FromBytes(absl::Span<const uint8_t> bytes);
 };
 
 struct PackedDataset {

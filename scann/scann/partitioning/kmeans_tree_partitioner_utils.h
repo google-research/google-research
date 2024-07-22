@@ -97,6 +97,7 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
     result->SetDatabaseTokenizationType(
         KMeansTreePartitioner<T>::FIXED_POINT_INT8);
   }
+  result->SetNumTokenizedBranch(config.num_tokenized_branch());
 
   const absl::Time stop = absl::Now();
   LOG(INFO) << "PartitionerFactory ran in " << stop - start << ".";

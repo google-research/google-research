@@ -123,25 +123,26 @@ Status KMeansTreeProjectingDecorator<T>::TokenForDatapointBatched(
 
 template <typename T>
 Status KMeansTreeProjectingDecorator<T>::TokensForDatapointWithSpillingBatched(
-    const TypedDataset<T>& queries,
-    MutableSpan<std::vector<int32_t>> results) const {
+    const TypedDataset<T>& queries, MutableSpan<std::vector<int32_t>> results,
+    ThreadPool* pool) const {
   if (queries.empty()) return OkStatus();
   TF_ASSIGN_OR_RETURN(unique_ptr<TypedDataset<float>> projected_ds,
                       CreateProjectedDataset(queries));
   DLOG(INFO) << "projected_ds: " << projected_ds->dimensionality();
   return base_kmeans_tree_partitioner()->TokensForDatapointWithSpillingBatched(
-      *projected_ds, results);
+      *projected_ds, results, pool);
 }
 
 template <typename T>
 Status KMeansTreeProjectingDecorator<T>::TokensForDatapointWithSpillingBatched(
     const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-    MutableSpan<std::vector<pair<DatapointIndex, float>>> results) const {
+    MutableSpan<std::vector<pair<DatapointIndex, float>>> results,
+    ThreadPool* pool) const {
   if (queries.empty()) return OkStatus();
   TF_ASSIGN_OR_RETURN(unique_ptr<TypedDataset<float>> projected_ds,
                       CreateProjectedDataset(queries));
   return base_kmeans_tree_partitioner()->TokensForDatapointWithSpillingBatched(
-      *projected_ds, max_centers_override, results);
+      *projected_ds, max_centers_override, results, pool);
 }
 
 template <typename T>

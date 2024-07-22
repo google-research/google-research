@@ -37,6 +37,7 @@ struct ScalarQuantizationResults {
 
 SCANN_INLINE int8_t Int8Quantize(float value) {
   const float fp_val = std::round(value);
+  DCHECK(std::isfinite(fp_val)) << "Float value is not finite: " << value;
   if (ABSL_PREDICT_FALSE(fp_val > numeric_limits<int8_t>::max())) {
     return numeric_limits<int8_t>::max();
   }
@@ -108,6 +109,35 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
     const DatapointPtr<float>& query,
     ConstSpan<float> inverse_multiplier_by_dimension);
+
+static constexpr float kFP4Max = 7.5f;
+static constexpr float kFP8Max = numeric_limits<int8_t>::max();
+
+SCANN_INLINE uint8_t Int4Quantize(float value) {
+  value += kFP4Max;
+  const float fp_val = std::round(value);
+  DCHECK(std::isfinite(fp_val)) << "Float value is not finite: " << value;
+  if (ABSL_PREDICT_FALSE(fp_val > 15)) {
+    return 15;
+  }
+  if (ABSL_PREDICT_FALSE(fp_val < 0)) {
+    return 0;
+  }
+  return fp_val;
+}
+SCANN_INLINE float Int4Dequantize(uint8_t value) {
+  DCHECK_LE(value, 15);
+  float fp_value = value;
+  return fp_value - kFP4Max;
+}
+
+std::vector<float> Int8ToInt4Multipliers(const std::vector<float>& multipliers);
+std::vector<float> InverseInt8ToInt4Multipliers(
+    const std::vector<float>& multipliers);
+
+void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
+                                    absl::Span<const float> multipliers,
+                                    MutableSpan<uint8_t> packed);
 
 }  // namespace research_scann
 

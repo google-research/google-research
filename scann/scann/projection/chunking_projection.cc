@@ -91,6 +91,8 @@ StatusOr<unique_ptr<ChunkingProjection<T>>> BuildFromConfigImpl(
             "will consist entirely of zero-padding.",
             num_blocks, DivRoundUp(input_dim, dims_per_block)));
       }
+      if (num_blocks < DivRoundUp(input_dim, dims_per_block)) {
+      }
       if (num_blocks < 0) {
         return InvalidArgumentError("num_blocks mustn't be negative");
       }

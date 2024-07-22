@@ -1,5 +1,8 @@
 # ScaNN Release Notes
 
+### 1.3.3
+Updated to compile against TensorFlow 2.17; **not** backwards-compatible with earlier versions of TensorFlow.
+
 ### 1.3.2
 Bfloat16 improvements.
 

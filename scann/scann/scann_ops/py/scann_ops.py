@@ -14,11 +14,11 @@
 # limitations under the License.
 
 """Python API for ScaNN - single machine, dense vector similarity search."""
-import os
-import uuid
 
-from scann.scann_ops.py import scann_builder
+import uuid
 import tensorflow as tf
+import os
+from scann.scann_ops.py import scann_builder
 
 _scann_ops_so = tf.load_op_library(
     os.path.join(

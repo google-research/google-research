@@ -46,7 +46,16 @@
 
 namespace research_scann {
 
-KMeansTreeNode::KMeansTreeNode() {}
+KMeansTreeNode::KMeansTreeNode() = default;
+
+KMeansTreeNode KMeansTreeNode::CreateFlat(DenseDataset<float> centers) {
+  KMeansTreeNode root;
+  root.float_centers_ = std::move(centers);
+  root.children_ = vector<KMeansTreeNode>(root.float_centers_.size());
+  root.NumberLeaves(0);
+  root.MaybeInitializeThreadSharding();
+  return root;
+}
 
 void KMeansTreeNode::Reset() {
   leaf_id_ = -1;

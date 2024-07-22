@@ -18,9 +18,9 @@ import pickle
 import tempfile
 import time
 import numpy as np
+import tensorflow as tf
 
 from scann.scann_ops.py import scann_ops
-import tensorflow as tf
 
 
 class TestGraphMode(tf.test.TestCase):

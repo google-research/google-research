@@ -39,10 +39,12 @@ using DatapointIndex = uint64_t;
 using DatapointIndex = uint32_t;
 #endif
 enum : DatapointIndex {
+
   kInvalidDatapointIndex = std::numeric_limits<DatapointIndex>::max(),
 };
 
 enum : size_t {
+
   kMaxNumDatapoints = (kInvalidDatapointIndex >> 1) + 1
 };
 

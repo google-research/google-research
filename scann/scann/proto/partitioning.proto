@@ -20,7 +20,6 @@ package research_scann;
 
 import "scann/proto/distance_measure.proto";
 import "scann/proto/exact_reordering.proto";
-import "scann/proto/input_output.proto";
 import "scann/proto/projection.proto";
 
 message PartitioningConfig {
@@ -83,6 +82,8 @@ message PartitioningConfig {
   optional int32 max_clustering_iterations = 6 [default = 10];
 
   optional int32 num_mini_batches = 38 [default = 1];
+
+  optional bool ignore_empty_cluster_errors = 55 [default = false];
 
   optional float clustering_convergence_tolerance = 7 [default = 1e-5];
 
@@ -168,6 +169,10 @@ message PartitioningConfig {
   optional float avq = 51 [default = nan];
 
   optional IncrementalTrainingConfig incremental_training_config = 52;
+
+  optional int32 num_tokenized_branch = 53 [default = 1];
+
+  optional BottomUpTopLevelPartitioner bottom_up_top_level_partitioner = 54;
 
   optional bool use_float_centers_for_query_tokenization = 26
       [default = false, deprecated = true];
@@ -272,8 +277,34 @@ message TokenList {
   repeated int64 datapoint_index = 2;
 }
 
-message HierarchicalPartitionerConfig {
-  optional InputOutputConfig input_output = 1;
+message BottomUpTopLevelPartitioner {
+  optional bool enabled = 1 [default = false];
 
-  repeated PartitioningConfig partitioning = 2;
+  optional int32 num_centroids = 2;
+
+  optional int32 num_centroids_to_search = 3;
+
+  optional float avq = 4 [default = nan];
+
+  message SoarConfig {
+    optional bool enabled = 1 [default = false];
+
+    optional float lambda = 2 [default = 1.5];
+
+    optional float overretrieve_factor = 3 [default = 2.0];
+  }
+
+  optional SoarConfig soar = 5;
+
+  enum Quantization {
+    FLOAT32 = 0;
+
+    BFLOAT16 = 1;
+
+    FIXED8 = 2;
+  }
+
+  optional Quantization quantization = 6 [default = FLOAT32];
+
+  optional float noise_shaping_threshold = 7 [default = nan];
 }

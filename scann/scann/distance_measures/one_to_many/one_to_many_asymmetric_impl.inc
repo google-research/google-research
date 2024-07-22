@@ -279,12 +279,224 @@ SCANN_SIMD_INLINE float ComputeOneToOneScore(
   return dist;
 }
 
+template <bool kIsSquaredL2, bool kShouldPrefetch, size_t kUnrollBy,
+          typename DataT>
+SCANN_SIMD_INLINE void ComputeOneToManyScores(
+    const float* __restrict__ query, array<const DataT*, kUnrollBy> ptrs,
+    array<const DataT*, kUnrollBy> prefetch_ptrs,
+    const float* __restrict__ inv_multipliers_for_squared_l2,
+    size_t dimensionality, size_t num_outer_iters,
+    array<float, kUnrollBy>& results) {
+  Simd<float, kUnrollBy> accums = Zeros();
+
+  size_t dim = 0;
+  if constexpr (std::is_same_v<DataT, int8_t> ||
+                Simd<int16_t>::kRegisterBits >= 256) {
+    for (; dim + 16 <= dimensionality; dim += 16) {
+      if constexpr (kShouldPrefetch) {
+        for (size_t jj : Seq(kUnrollBy)) {
+          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
+              prefetch_ptrs[jj] + dim);
+        }
+      }
+      accums = HandleXDims<16, kIsSquaredL2>(
+          query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
+    }
+
+    if (dim + 8 <= dimensionality) {
+      accums = HandleXDims<8, kIsSquaredL2>(
+          query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
+      dim += 8;
+    }
+  } else {
+    for (; dim + 8 <= dimensionality; dim += 8) {
+      if constexpr (kShouldPrefetch) {
+        for (size_t jj : Seq(kUnrollBy)) {
+          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
+              prefetch_ptrs[jj] + dim);
+        }
+      }
+      accums = HandleXDims<8, kIsSquaredL2>(
+          query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
+    }
+  }
+
+  if (dim + 4 <= dimensionality) {
+    accums = HandleXDims<4, kIsSquaredL2>(
+        query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
+    dim += 4;
+  }
+
+  if constexpr (kUnrollBy == 4) {
+    HorizontalSum4X(accums[0], accums[1], accums[2], accums[3], &results[0],
+                    &results[1], &results[2], &results[3]);
+  } else if constexpr (kUnrollBy == 3) {
+    HorizontalSum3X(accums[0], accums[1], accums[2], &results[0], &results[1],
+                    &results[2]);
+  } else if constexpr (kUnrollBy == 2) {
+    HorizontalSum2X(accums[0], accums[1], &results[0], &results[1]);
+  } else {
+    for (size_t jj : Seq(kUnrollBy)) {
+      results[jj] = HorizontalSum(accums[jj]);
+    }
+  }
+
+  for (; dim < dimensionality; ++dim) {
+    for (size_t jj : Seq(kUnrollBy)) {
+      float mult;
+      if constexpr (kIsSquaredL2 && std::is_same_v<DataT, int8_t>) {
+        mult = inv_multipliers_for_squared_l2[dim];
+      } else {
+        mult = 0.0;
+      }
+      float decompressed;
+      if constexpr (std::is_same_v<DataT, int8_t>) {
+        decompressed = static_cast<float>(ptrs[jj][dim]);
+      } else {
+        decompressed = Bfloat16Decompress(ptrs[jj][dim]);
+      }
+      results[jj] = FusedMultiplyOp<kIsSquaredL2, DataT>(
+          query[dim], decompressed, mult, results[jj]);
+    }
+  }
+}
+
+SCANN_SIMD_INLINE Avx2<int16_t> MultiplyAndAddPacked(Avx2<uint8_t> a,
+                                                     Avx2<int8_t> b) {
+  return _mm256_maddubs_epi16(*a, *b);
+}
+SCANN_SIMD_INLINE Avx2<int32_t> MultiplyAndAddPacked(Avx2<uint16_t> a,
+                                                     Avx2<int16_t> b) {
+  return _mm256_madd_epi16(*a, *b);
+}
+
+SCANN_SIMD_INLINE Sse4<int16_t> MultiplyAndAddPacked(Sse4<uint8_t> a,
+                                                     Sse4<int8_t> b) {
+  return _mm_maddubs_epi16(*a, *b);
+}
+SCANN_SIMD_INLINE Sse4<int32_t> MultiplyAndAddPacked(Sse4<uint16_t> a,
+                                                     Sse4<int16_t> b) {
+  return _mm_madd_epi16(*a, *b);
+}
+
+template <typename T,
+          std::enable_if_t<!IsSameAny<T, Avx2<uint8_t>, Sse4<uint8_t>>(),
+                           bool> = true>
+SCANN_SIMD_INLINE Simd<int16_t> MultiplyAndAddPacked(T a, Simd<int8_t> b) {
+  LOG(FATAL) << "Unhandled " << SimdName();
+}
+template <typename T,
+          std::enable_if_t<!IsSameAny<T, Avx2<uint16_t>, Sse4<uint16_t>>(),
+                           bool> = true>
+SCANN_SIMD_INLINE Simd<int32_t> MultiplyAndAddPacked(T a, Simd<int16_t> b) {
+  LOG(FATAL) << "Unhandled " << SimdName();
+}
+
+template <bool kIsSquaredL2, bool kShouldPrefetch, size_t kUnrollBy>
+SCANN_SIMD_INLINE void ComputeOneToManyScores(
+    const int8_t* __restrict__ query, array<const uint8_t*, kUnrollBy> ptrs,
+    array<const uint8_t*, kUnrollBy> prefetch_ptrs,
+    const float* __restrict__ inv_multipliers_for_squared_l2,
+    size_t dimensionality, size_t num_outer_iters,
+    array<int32_t, kUnrollBy>& results) {
+  static_assert(!kIsSquaredL2, "Uint4Int8 doesn't support squared l2.");
+  static_assert(kUnrollBy == 1, "Uint4Int8 doesn't support unrolling.");
+  const uint8_t* ptr = ptrs[0];
+  const uint8_t* prefetch_ptr = prefetch_ptrs[0];
+
+  Simd<int16_t> result_16 = Zeros();
+  Simd<int32_t> result_32 = Zeros();
+  const Simd<uint8_t> kDMask(0x0f);
+  const Simd<uint16_t> kOnes16(1);
+  constexpr size_t kNumElements = Simd<int8_t>::kNumElements;
+  for (int i : Seq(DivRoundUp(dimensionality, kNumElements * 2))) {
+    if constexpr (kShouldPrefetch) {
+      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
+          prefetch_ptr);
+      prefetch_ptr += kNumElements;
+    }
+    if (i % 4 == 0) {
+      result_32 -= MultiplyAndAddPacked(kOnes16, result_16);
+      result_16 = Zeros();
+    }
+
+    Simd<int8_t> q_low = Simd<int8_t>::Load(query);
+    query += kNumElements;
+    Simd<int8_t> q_high = Simd<int8_t>::Load(query);
+    query += kNumElements;
+
+    ABSL_ANNOTATE_MEMORY_IS_INITIALIZED(ptr, kNumElements);
+    Simd<uint8_t> d_both = Simd<uint8_t>::Load(ptr);
+    ptr += kNumElements;
+    Simd<uint8_t> d_low = d_both & kDMask;
+    Simd<uint8_t> d_high =
+        Simd<uint8_t>((Simd<uint16_t>(d_both) >> 4)) & kDMask;
+    result_16 += MultiplyAndAddPacked(d_low, q_low) +
+                 MultiplyAndAddPacked(d_high, q_high);
+  }
+  result_32 -= MultiplyAndAddPacked(kOnes16, result_16);
+
+  int32_t result = 0;
+
+  for (int32_t v : result_32.Store()) {
+    result += v;
+  }
+  results[0] = result;
+}
+
+SCANN_SIMD_INLINE void PermuteQueryForUint4Int8(const int8_t* query,
+                                                int8_t* permuted_query,
+                                                size_t dimensionality) {
+  DCHECK_EQ(dimensionality % 64, 0);
+
+  if constexpr (std::is_same_v<Simd<int8_t>, Avx2<int8_t>>) {
+    const __m256i* q = reinterpret_cast<const __m256i*>(query);
+    __m256i* permuted_q = reinterpret_cast<__m256i*>(permuted_query);
+    __m128i kShuffle128 =
+        _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+    __m256i kShuffle256 = _mm256_set_m128i(kShuffle128, kShuffle128);
+    for (int i = 0; i < dimensionality / 32; i += 2) {
+      __m256i q_low = _mm256_permute4x64_epi64(
+          _mm256_shuffle_epi8(_mm256_loadu_si256(q + i), kShuffle256),
+          0b11011000);
+      __m256i q_high = _mm256_permute4x64_epi64(
+          _mm256_shuffle_epi8(_mm256_loadu_si256(q + i + 1), kShuffle256),
+          0b10001101);
+      _mm256_storeu_si256(permuted_q + i,
+                          _mm256_blend_epi32(q_low, q_high, 0b11110000));
+      _mm256_storeu_si256(permuted_q + i + 1,
+                          _mm256_permute2x128_si256(q_low, q_high, 0b00100001));
+    }
+    return;
+  } else if constexpr (std::is_same_v<Simd<int8_t>, Sse4<int8_t>>) {
+    const __m128i* q = reinterpret_cast<const __m128i*>(query);
+    __m128i* permuted_q = reinterpret_cast<__m128i*>(permuted_query);
+    __m128i kShuffleLow =
+        _mm_setr_epi8(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+    __m128i kShuffleHigh =
+        _mm_setr_epi8(1, 3, 5, 7, 9, 11, 13, 15, 0, 2, 4, 6, 8, 10, 12, 14);
+    for (int i = 0; i < dimensionality / 16; i += 2) {
+      __m128i q_low = _mm_shuffle_epi8(_mm_loadu_si128(q + i), kShuffleLow);
+      __m128i q_high =
+          _mm_shuffle_epi8(_mm_loadu_si128(q + i + 1), kShuffleHigh);
+      _mm_storeu_si128(permuted_q + i,
+                       _mm_blend_epi16(q_low, q_high, 0b11110000));
+      _mm_storeu_si128(
+          permuted_q + i + 1,
+          _mm_shuffle_epi32(_mm_blend_epi16(q_low, q_high, 0b00001111),
+                            0b01001110));
+    }
+    return;
+  }
+  LOG(FATAL) << "Unhandled " << SimdName();
+}
+
 template <int kDimensionality, size_t kUnrollBy, bool kHasIndices,
           bool kIsSquaredL2, bool kShouldPrefetch, typename DataT,
           typename DatasetViewT, typename IndexT, typename ResultElemT,
-          typename CallbackT>
+          typename CallbackT, typename QueryT>
 SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
-    const float* __restrict__ query, DatasetViewT dataset_view,
+    const QueryT* __restrict__ query, DatasetViewT dataset_view,
     const float* __restrict__ inv_multipliers_for_squared_l2,
     const IndexT* indices, MutableSpan<ResultElemT> result,
     CallbackT callback) {
@@ -297,8 +509,11 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
   constexpr size_t kMinPrefetchAheadBytes = 2304;
 
   constexpr size_t kCacheLine = 64;
+  const size_t datapoint_bytes = std::is_same_v<DataT, uint8_t>
+                                     ? DivRoundUp(dimensionality, 2)
+                                     : sizeof(DataT) * dimensionality;
   const size_t cache_lines_per_datapoint =
-      DivRoundUp(sizeof(DataT) * dimensionality, kCacheLine);
+      DivRoundUp(datapoint_bytes, kCacheLine);
   size_t num_prefetch_datapoints;
   if (kShouldPrefetch) {
     num_prefetch_datapoints = std::max<size_t>(
@@ -341,38 +556,59 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
     }
   }
 
-  std::array<float, kDimensionality> query_storage;
-  if constexpr (kDimensionality > 0) {
-    DCHECK_EQ(dimensionality, kDimensionality);
+  std::array<QueryT, kDimensionality> query_stack_storage;
+  std::unique_ptr<QueryT[]> permuted_query_heap_storage;
+  if constexpr (std::is_same_v<DataT, uint8_t>) {
+    QueryT* permuted_query;
 
-    std::copy(query, query + kDimensionality, query_storage.data());
-    query = query_storage.data();
+    const size_t round_up_dims = NextMultipleOf(dimensionality, 64);
+    if constexpr (kDimensionality > 0) {
+      DCHECK_EQ(round_up_dims, kDimensionality);
+      permuted_query = query_stack_storage.data();
+    } else {
+      permuted_query_heap_storage = std::make_unique<QueryT[]>(round_up_dims);
+      permuted_query = permuted_query_heap_storage.get();
+    }
+    std::unique_ptr<QueryT[]> query_heap_storage;
+    if (dimensionality != round_up_dims) {
+      query_heap_storage = std::make_unique<QueryT[]>(round_up_dims);
+      std::copy(query, query + dimensionality, query_heap_storage.get());
+      std::fill(query_heap_storage.get() + dimensionality,
+                query_heap_storage.get() + round_up_dims, 0);
+      query = query_heap_storage.get();
+    }
+
+    PermuteQueryForUint4Int8(query, permuted_query, round_up_dims);
+    query = permuted_query;
+  } else {
+    if constexpr (kDimensionality > 0) {
+      DCHECK_EQ(dimensionality, kDimensionality);
+
+      std::copy(query, query + kDimensionality, query_stack_storage.data());
+      query = query_stack_storage.data();
+    }
   }
 
-  for (size_t j = num_datapoints / kUnrollBy * kUnrollBy; j < num_datapoints;
-       j++) {
-    const DataT* ptr = get_db_ptr(j);
-    callback.invoke(
-        j, ComputeOneToOneScore<0, kIsSquaredL2>(
-               query, ptr, inv_multipliers_for_squared_l2, dimensionality));
+  if constexpr (kUnrollBy > 1) {
+    for (size_t j = num_datapoints / kUnrollBy * kUnrollBy; j < num_datapoints;
+         j++) {
+      const DataT* ptr = get_db_ptr(j);
+      callback.invoke(
+          j, ComputeOneToOneScore<0, kIsSquaredL2>(
+                 query, ptr, inv_multipliers_for_squared_l2, dimensionality));
+    }
   }
 
+  array<const DataT*, kUnrollBy> prefetch_ptrs;
   for (size_t j : Seq(num_outer_iters)) {
     if constexpr (kShouldPrefetch) {
       if (j + num_prefetch_datapoints < num_outer_iters) {
         const size_t prefetch_j = j + num_prefetch_datapoints;
-
-        array<const DataT*, kUnrollBy> prefetch_ptrs;
         for (size_t jj : Seq(kUnrollBy)) {
           prefetch_ptrs[jj] = get_db_ptr(prefetch_j + jj * num_outer_iters);
         }
-
-        for (size_t n : Seq(cache_lines_per_datapoint)) {
-          for (size_t jj : Seq(kUnrollBy)) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-                prefetch_ptrs[jj] + n * kCacheLine / sizeof(DataT));
-          }
-        }
+      } else {
+        std::fill(prefetch_ptrs.begin(), prefetch_ptrs.end(), get_db_ptr(0));
       }
     }
 
@@ -381,67 +617,12 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
       ptrs[jj] = get_db_ptr(j + jj * num_outer_iters);
     }
 
-    Simd<float, kUnrollBy> accums = Zeros();
-
-    size_t dim = 0;
-    if constexpr (std::is_same_v<DataT, int8_t> ||
-                  Simd<int16_t>::kRegisterBits >= 256) {
-      for (; dim + 16 <= dimensionality; dim += 16) {
-        accums = HandleXDims<16, kIsSquaredL2>(
-            query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
-      }
-
-      if (dim + 8 <= dimensionality) {
-        accums = HandleXDims<8, kIsSquaredL2>(
-            query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
-        dim += 8;
-      }
-    } else {
-      for (; dim + 8 <= dimensionality; dim += 8) {
-        accums = HandleXDims<8, kIsSquaredL2>(
-            query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
-      }
-    }
-
-    if (dim + 4 <= dimensionality) {
-      accums = HandleXDims<4, kIsSquaredL2>(
-          query, ptrs, inv_multipliers_for_squared_l2, dim, accums);
-      dim += 4;
-    }
-
-    array<float, kUnrollBy> results;
-    if constexpr (kUnrollBy == 4) {
-      HorizontalSum4X(accums[0], accums[1], accums[2], accums[3], &results[0],
-                      &results[1], &results[2], &results[3]);
-    } else if constexpr (kUnrollBy == 3) {
-      HorizontalSum3X(accums[0], accums[1], accums[2], &results[0], &results[1],
-                      &results[2]);
-    } else if constexpr (kUnrollBy == 2) {
-      HorizontalSum2X(accums[0], accums[1], &results[0], &results[1]);
-    } else {
-      for (size_t jj : Seq(kUnrollBy)) {
-        results[jj] = HorizontalSum(accums[jj]);
-      }
-    }
-
-    for (; dim < dimensionality; ++dim) {
-      for (size_t jj : Seq(kUnrollBy)) {
-        float mult;
-        if constexpr (kIsSquaredL2 && std::is_same_v<DataT, int8_t>) {
-          mult = inv_multipliers_for_squared_l2[dim];
-        } else {
-          mult = 0.0;
-        }
-        float decompressed;
-        if constexpr (std::is_same_v<DataT, int8_t>) {
-          decompressed = static_cast<float>(ptrs[jj][dim]);
-        } else {
-          decompressed = Bfloat16Decompress(ptrs[jj][dim]);
-        }
-        results[jj] = FusedMultiplyOp<kIsSquaredL2, DataT>(
-            query[dim], decompressed, mult, results[jj]);
-      }
-    }
+    using ResultT =
+        std::conditional_t<std::is_same_v<QueryT, int8_t>, int32_t, float>;
+    array<ResultT, kUnrollBy> results;
+    ComputeOneToManyScores<kIsSquaredL2, kShouldPrefetch>(
+        query, ptrs, prefetch_ptrs, inv_multipliers_for_squared_l2,
+        dimensionality, num_outer_iters, results);
 
     for (size_t jj : Seq(kUnrollBy)) {
       callback.invoke(j + jj * num_outer_iters, results[jj]);
@@ -496,5 +677,32 @@ SCANN_SIMD_OUTLINE void OneToManyBf16FloatImpl(const float* __restrict__ query,
     OneToManyAsymmetricTemplate<0, 3, kHasIndices, kIsSquaredL2, true, int16_t>(
         query, std::move(dataset_view), kNoMultipliersForBfloat16, indices,
         result, std::move(callback));
+  }
+}
+
+template <bool kHasIndices, typename DatasetViewT, typename IndexT,
+          typename ResultElemT, typename CallbackT>
+SCANN_SIMD_OUTLINE void OneToManyUint4Int8Impl(const int8_t* __restrict__ query,
+                                               DatasetViewT dataset_view,
+                                               const IndexT* indices,
+                                               MutableSpan<ResultElemT> result,
+                                               CallbackT callback) {
+  const size_t dims = dataset_view.dimensionality();
+  if (dims == 256) {
+    OneToManyAsymmetricTemplate<256, 1, kHasIndices, false, true, uint8_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
+  } else if (dims == 128) {
+    OneToManyAsymmetricTemplate<128, 1, kHasIndices, false, true, uint8_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
+  } else if (dims == 64) {
+    OneToManyAsymmetricTemplate<64, 1, kHasIndices, false, true, uint8_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
+  } else {
+    OneToManyAsymmetricTemplate<0, 1, kHasIndices, false, true, uint8_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
   }
 }

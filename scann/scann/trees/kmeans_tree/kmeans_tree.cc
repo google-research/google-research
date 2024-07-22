@@ -40,7 +40,7 @@ int32_t CountLeaves(const KMeansTreeNode& node) {
 
 }  // namespace
 
-KMeansTree::KMeansTree() {}
+KMeansTree::KMeansTree() = default;
 
 KMeansTree::KMeansTree(const SerializedKMeansTree& serialized) {
   learned_spilling_type_ = serialized.learned_spilling_type();
@@ -50,6 +50,17 @@ KMeansTree::KMeansTree(const SerializedKMeansTree& serialized) {
   root_.PopulateCurNodeCenters();
   root_.CreateFixedPointCenters();
   CheckIfFlat();
+}
+
+KMeansTree KMeansTree::CreateFlat(DenseDataset<float> centers) {
+  KMeansTree result;
+  result.root_ = KMeansTreeNode::CreateFlat(std::move(centers));
+  result.n_tokens_ = CountLeaves(result.root_);
+  result.root_.PopulateCurNodeCenters();
+  result.root_.CreateFixedPointCenters();
+  result.CheckIfFlat();
+  CHECK(result.is_flat_);
+  return result;
 }
 
 Status KMeansTree::Train(const Dataset& training_data,

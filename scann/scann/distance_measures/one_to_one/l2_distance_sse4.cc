@@ -18,6 +18,7 @@
 #include <utility>
 #ifdef __x86_64__
 
+#include "scann/utils/common.h"
 #include "scann/utils/intrinsics/sse4.h"
 
 namespace research_scann {
@@ -77,8 +78,8 @@ SCANN_SSE4_INLINE double DenseSquaredL2DistanceByteImpl(const Byte* aptr,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
-      __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
+      __m128i bvals = _mm_cvtsi32_si128(UnalignedLoad<int>(bptr));
       __m128i diff = SseFuncs::AbsDiff(avals, bvals);
       __m128i lower = _mm_unpacklo_epi8(diff, _mm_setzero_si128());
       lower = _mm_mullo_epi16(lower, lower);

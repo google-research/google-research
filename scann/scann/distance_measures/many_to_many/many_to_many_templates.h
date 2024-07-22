@@ -24,6 +24,7 @@
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/utils/intrinsics/fma.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
@@ -97,12 +98,6 @@ namespace research_scann {
 
 #ifdef __x86_64__
 
-namespace sse4 {
-#define SCANN_SIMD_ATTRIBUTE SCANN_SSE4
-#include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
-#undef SCANN_SIMD_ATTRIBUTE
-}  // namespace sse4
-
 namespace avx1 {
 #define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
 #include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
@@ -121,15 +116,13 @@ namespace avx512 {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx512
 
-#else
+#endif
 
-namespace fallback {
+namespace highway {
 #define SCANN_SIMD_ATTRIBUTE
 #include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
-}  // namespace fallback
-
-#endif
+}  // namespace highway
 
 namespace mm_internal {
 
@@ -182,17 +175,11 @@ SCANN_INLINE void DenseDistanceManyToManyImpl2(
   } else if (RuntimeSupportsAvx1()) {
     return avx1::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                              std::move(callback));
-  } else if (RuntimeSupportsSse4()) {
-    return sse4::DenseDistanceManyToManyImpl(dist, queries, database, pool,
-                                             std::move(callback));
-  } else {
-    LOG(FATAL) << "Pre-SSE4 hardware is not supported on x64.";
   }
 
-#else
-  return fallback::DenseDistanceManyToManyImpl(dist, queries, database, pool,
-                                               std::move(callback));
 #endif
+  return highway::DenseDistanceManyToManyImpl(dist, queries, database, pool,
+                                              std::move(callback));
 }
 
 template <typename DatabaseT, typename CallbackT>
@@ -213,19 +200,13 @@ void DenseManyToManyOrthogonalityAmplifiedImpl(
     return avx1::DenseManyToManyOrthogonalityAmplifiedImpl(
         queries, normalized_residuals, lambda, database, pool,
         std::move(callback));
-  } else if (RuntimeSupportsSse4()) {
-    return sse4::DenseManyToManyOrthogonalityAmplifiedImpl(
-        queries, normalized_residuals, lambda, database, pool,
-        std::move(callback));
-  } else {
-    LOG(FATAL) << "Pre-SSE4 hardware is not supported on x64.";
   }
 
-#else
-  return fallback::DenseManyToManyOrthogonalityAmplifiedImpl(
+#endif
+
+  return highway::DenseManyToManyOrthogonalityAmplifiedImpl(
       queries, normalized_residuals, lambda, database, pool,
       std::move(callback));
-#endif
 }
 
 template <typename CallbackT>
@@ -247,17 +228,12 @@ SCANN_INLINE void DenseDistanceManyToManyFP8PretransposedImpl2(
   } else if (RuntimeSupportsAvx1()) {
     return avx1::DenseManyToManyFP8PretransposedImpl(dist, queries, database,
                                                      pool, std::move(callback));
-  } else if (RuntimeSupportsSse4()) {
-    return sse4::DenseManyToManyFP8PretransposedImpl(dist, queries, database,
-                                                     pool, std::move(callback));
-  } else {
-    LOG(FATAL) << "Pre-SSE4 hardware is not supported on x64.";
   }
 
-#else
-  return fallback::DenseManyToManyFP8PretransposedImpl(
-      dist, queries, database, pool, std::move(callback));
 #endif
+
+  return highway::DenseManyToManyFP8PretransposedImpl(
+      dist, queries, database, pool, std::move(callback));
 }
 
 template <typename FloatT, typename CallbackT>

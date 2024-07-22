@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "absl/memory/memory.h"
@@ -148,12 +149,12 @@ class KMeansTreeProjectingDecorator final
       const DatapointPtr<T>& dptr, int32_t max_centers_override,
       vector<pair<DatapointIndex, float>>* result) const final;
   Status TokensForDatapointWithSpillingBatched(
-      const TypedDataset<T>& queries,
-      MutableSpan<std::vector<int32_t>> results) const final;
+      const TypedDataset<T>& queries, MutableSpan<std::vector<int32_t>> results,
+      ThreadPool* pool = nullptr) const final;
   Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<pair<DatapointIndex, float>>> results)
-      const final;
+      MutableSpan<std::vector<pair<DatapointIndex, float>>> results,
+      ThreadPool* pool = nullptr) const final;
   Status TokenForDatapoint(const DatapointPtr<T>& dptr,
                            pair<DatapointIndex, float>* result) const final;
   Status TokenForDatapointBatched(

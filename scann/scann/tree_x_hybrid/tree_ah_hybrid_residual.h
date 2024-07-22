@@ -35,7 +35,9 @@
 #include "scann/tree_x_hybrid/internal/utils.h"
 #include "scann/tree_x_hybrid/mutator.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -168,6 +170,8 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   SCANN_INLINE uint8_t GlobalTopNShift() const {
     if (!enable_global_topn_) return 0;
+
+    if (datapoints_by_token_.size() <= 1) return 0;
 
     int inner_leaf_bits = 32 - bits::Log2Ceiling(datapoints_by_token_.size());
     if (leaf_size_upper_bound_ <= (1ull << inner_leaf_bits)) {

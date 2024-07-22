@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -72,7 +73,7 @@ class ScalarQuantizedBruteForceSearcher final
 
   static StatusOr<vector<float>> ComputeSquaredL2NormsFromQuantizedDataset(
       const DenseDataset<int8_t>& quantized,
-      const vector<float>& inverse_multipliers);
+      absl::Span<const float> inverse_multipliers);
 
   static StatusOr<unique_ptr<ScalarQuantizedBruteForceSearcher>>
   CreateFromQuantizedDatasetAndInverseMultipliers(

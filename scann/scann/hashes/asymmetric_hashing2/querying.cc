@@ -14,17 +14,158 @@
 
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <utility>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
 #include "absl/types/span.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
+#include "scann/hashes/asymmetric_hashing2/training_model.h"
+#include "scann/hashes/internal/asymmetric_hashing_impl.h"
+#include "scann/projection/chunking_projection.h"
 #include "scann/utils/common.h"
-#include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/types.h"
 
 using std::shared_ptr;
 
 namespace research_scann {
 namespace asymmetric_hashing2 {
+
+namespace {
+
+enum LookupTableType : uint8_t {
+  kNone = 0,
+  kFloat = 1,
+  kInt16 = 2,
+  kInt8 = 3,
+};
+
+}
+
+absl::StatusOr<std::vector<uint8_t>> LookupTable::ToBytes() const {
+  std::vector<uint8_t> bytes;
+  size_t extra;
+
+  const int non_empty_lookup_tables = !float_lookup_table.empty() +
+                                      !int16_lookup_table.empty() +
+                                      !int8_lookup_table.empty();
+  if (non_empty_lookup_tables != 1) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "exactly one of float/int16/int8 lookup_table must be populated: ",
+        non_empty_lookup_tables));
+  }
+
+  LookupTableType table_type = kNone;
+  if (!float_lookup_table.empty()) {
+    table_type = kFloat;
+  } else if (!int16_lookup_table.empty()) {
+    table_type = kInt16;
+  } else if (!int8_lookup_table.empty()) {
+    table_type = kInt8;
+  }
+  bytes.push_back(table_type);
+
+  uint32_t table_size = 0;
+  if (table_type == kFloat) {
+    table_size = float_lookup_table.size();
+  } else if (table_type == kInt16) {
+    table_size = int16_lookup_table.size();
+  } else if (table_type == kInt8) {
+    table_size = int8_lookup_table.size();
+  }
+  extra = sizeof(table_size);
+  bytes.resize(bytes.size() + extra);
+  std::memcpy(bytes.data() + bytes.size() - extra, &table_size, extra);
+
+  if (table_type == kFloat) {
+    extra = float_lookup_table.size() * sizeof(float);
+    bytes.resize(bytes.size() + extra);
+    std::memcpy(bytes.data() + bytes.size() - extra, float_lookup_table.data(),
+                extra);
+  } else if (table_type == kInt16) {
+    extra = int16_lookup_table.size() * sizeof(uint16_t);
+    bytes.resize(bytes.size() + extra);
+    std::memcpy(bytes.data() + bytes.size() - extra, int16_lookup_table.data(),
+                extra);
+  } else if (table_type == kInt8) {
+    bytes.insert(bytes.end(), int8_lookup_table.begin(),
+                 int8_lookup_table.end());
+  }
+
+  bool is_nan = std::isnan(fixed_point_multiplier);
+  bytes.push_back(static_cast<uint8_t>(is_nan));
+
+  if (!is_nan) {
+    extra = sizeof(fixed_point_multiplier);
+    bytes.resize(bytes.size() + extra);
+    std::memcpy(bytes.data() + bytes.size() - extra, &fixed_point_multiplier,
+                extra);
+  }
+
+  bytes.push_back(static_cast<uint8_t>(can_use_int16_accumulator));
+
+  return bytes;
+}
+
+absl::StatusOr<LookupTable> LookupTable::FromBytes(
+    absl::Span<const uint8_t> bytes) {
+  LookupTable table;
+  size_t offset = 0;
+  size_t extra;
+
+  LookupTableType table_type = static_cast<LookupTableType>(bytes[offset++]);
+  if (!(table_type == kFloat || table_type == kInt16 || table_type == kInt8)) {
+    return absl::InvalidArgumentError(absl::StrCat(
+        "invalid table type encountered during deserialization: ", table_type));
+  }
+
+  uint32_t table_size;
+  extra = sizeof(table_size);
+  std::memcpy(&table_size, bytes.data() + offset, extra);
+  offset += extra;
+  if (table_size == 0) {
+    return absl::InvalidArgumentError(
+        "one of float/int16/int8 lookup_table must be populated");
+  }
+
+  if (table_type == kFloat) {
+    table.float_lookup_table.resize(table_size);
+    extra = table_size * sizeof(float);
+    std::memcpy(table.float_lookup_table.data(), bytes.data() + offset, extra);
+    offset += extra;
+  } else if (table_type == kInt16) {
+    table.int16_lookup_table.resize(table_size);
+    extra = table_size * sizeof(uint16_t);
+    std::memcpy(table.int16_lookup_table.data(), bytes.data() + offset, extra);
+    offset += extra;
+  } else if (table_type == kInt8) {
+    table.int8_lookup_table.resize(table_size);
+    std::memcpy(table.int8_lookup_table.data(), bytes.data() + offset,
+                table_size);
+    offset += table_size;
+  }
+
+  bool is_nan = static_cast<bool>(bytes[offset]);
+  offset++;
+
+  if (is_nan) {
+    table.fixed_point_multiplier = std::numeric_limits<float>::quiet_NaN();
+  } else {
+    extra = sizeof(table.fixed_point_multiplier);
+    std::memcpy(&table.fixed_point_multiplier, bytes.data() + offset, extra);
+    offset += extra;
+  }
+
+  table.can_use_int16_accumulator = static_cast<bool>(bytes[offset]);
+
+  return table;
+}
 
 PackedDataset CreatePackedDataset(
     const DenseDataset<uint8_t>& hashed_database) {

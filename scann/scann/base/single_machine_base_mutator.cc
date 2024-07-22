@@ -12,9 +12,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <cmath>
 #include <utility>
 
+#include "absl/base/optimization.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/data_format/docid_collection_interface.h"
+#include "scann/utils/common.h"
+#include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -78,6 +86,68 @@ SingleMachineSearcherBase<T>::Mutator::GetNextDatapointIndex() const {
 }
 
 template <typename T>
+Status SingleMachineSearcherBase<T>::Mutator::ValidateForUpdateOrAdd(
+    const DatapointPtr<T>& dptr, string_view docid,
+    const MutationOptions& mo) const {
+  if constexpr (std::is_floating_point_v<T>) {
+    auto vs = dptr.values_span();
+    for (size_t i : IndicesOf(vs)) {
+      if (!ABSL_PREDICT_TRUE(std::isfinite(vs[i]))) {
+        return InvalidArgumentError(absl::StrCat(
+            "NaN or infinity found in ScaNN update.   value = ", vs[i],
+            " dim idx = ", (dptr.indices()) ? dptr.indices()[i] : i,
+            " Docid = ", docid));
+      }
+    }
+  }
+
+  return OkStatus();
+}
+
+template <typename T>
+Status SingleMachineSearcherBase<T>::Mutator::ValidateForUpdate(
+    const DatapointPtr<T>& dptr, DatapointIndex idx,
+    const MutationOptions& mo) const {
+  TF_ASSIGN_OR_RETURN(DatapointIndex next_idx, GetNextDatapointIndex());
+  if (idx >= next_idx) {
+    return InvalidArgumentError(absl::StrCat(
+        "Datapoint index ", idx,
+        " is out of range for update.  This index's size is ", next_idx, "."));
+  }
+
+  StatusOr<string_view> docid = searcher_->GetDocid(idx);
+
+  return ValidateForUpdateOrAdd(dptr, docid.ok() ? *docid : "<UNKNOWN DOCID>",
+                                mo);
+}
+
+template <typename T>
+Status SingleMachineSearcherBase<T>::Mutator::ValidateForAdd(
+    const DatapointPtr<T>& dptr, string_view docid,
+    const MutationOptions& mo) const {
+  DatapointIndex dp_idx = kInvalidDatapointIndex;
+  if (LookupDatapointIndex(docid, &dp_idx)) {
+    return FailedPreconditionError(
+        absl::StrCat("Cannot add docid that already exists: ", docid));
+  }
+
+  SCANN_RETURN_IF_ERROR(GetNextDatapointIndex().status());
+  return ValidateForUpdateOrAdd(dptr, docid, mo);
+}
+
+template <typename T>
+Status SingleMachineSearcherBase<T>::Mutator::ValidateForRemove(
+    DatapointIndex idx) const {
+  TF_ASSIGN_OR_RETURN(DatapointIndex next_idx, GetNextDatapointIndex());
+  if (idx >= next_idx) {
+    return InvalidArgumentError(absl::StrCat(
+        "Datapoint index ", idx,
+        " is out of range for removal.  This index's size is ", next_idx, "."));
+  }
+  return OkStatus();
+}
+
+template <typename T>
 Status SingleMachineSearcherBase<T>::Mutator::CheckAddDatapointToBaseOptions(
     const MutateBaseOptions& opts) const {
   if (hashed_dataset_mutator_ && !opts.hashed) {
@@ -86,6 +156,20 @@ Status SingleMachineSearcherBase<T>::Mutator::CheckAddDatapointToBaseOptions(
         "dataset exists in the searcher.");
   }
   return OkStatus();
+}
+
+template <typename T>
+absl::StatusOr<Datapoint<T>>
+SingleMachineSearcherBase<T>::Mutator::GetDatapointFromBase(
+    DatapointIndex i) const {
+  if (dataset_mutator_) {
+    return dataset_mutator_->GetDatapoint(i);
+  }
+  if (hashed_dataset_mutator_) {
+    return UnimplementedError(
+        "GetDatapointFromBase not implemented for hashed dataset.");
+  }
+  return UnimplementedError("GetDatapointFromBase not implemented.");
 }
 
 template <typename T>

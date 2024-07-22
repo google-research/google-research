@@ -20,11 +20,13 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/docid_collection.h"
+#include "scann/data_format/docid_collection_interface.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/sparse_low_level.h"
 #include "scann/distance_measures/distance_measure_base.h"
@@ -194,7 +196,7 @@ class TypedDataset : public Dataset {
  public:
   SCANN_DECLARE_MOVE_ONLY_CLASS(TypedDataset);
 
-  TypedDataset() {}
+  TypedDataset() = default;
 
   explicit TypedDataset(unique_ptr<DocidCollectionInterface> docids)
       : Dataset(std::move(docids)) {}
@@ -249,6 +251,8 @@ class TypedDataset : public Dataset {
 template <typename T>
 class TypedDataset<T>::Mutator : public Dataset::Mutator {
  public:
+  virtual StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex index) const = 0;
+
   virtual Status AddDatapoint(const DatapointPtr<T>& dptr,
                               string_view docid) = 0;
 
@@ -358,6 +362,8 @@ class DenseDataset final : public TypedDataset<T> {
         DenseDataset<T>* dataset);
 
     ~Mutator() final {}
+
+    StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex index) const final;
 
     Status AddDatapoint(const DatapointPtr<T>& dptr, string_view docid) final;
 

@@ -16,6 +16,7 @@
 #define SCANN_UTILS_INTRINSICS_FMA_H_
 
 #include "scann/utils/index_sequence.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/simd.h"
 
 namespace research_scann {
@@ -54,6 +55,14 @@ namespace fallback {
 #include "scann/utils/intrinsics/fma.inc"
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace fallback
+
+HWY_BEFORE_NAMESPACE();
+namespace highway {
+#define SCANN_SIMD_ATTRIBUTE
+#include "scann/utils/intrinsics/fma.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace highway
+HWY_AFTER_NAMESPACE();
 
 }  // namespace research_scann
 

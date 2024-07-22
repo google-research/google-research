@@ -14,8 +14,11 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/substitute.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -97,6 +100,21 @@ Status DenseDataset<T>::Mutator::UpdateDatapoint(const DatapointPtr<T>& dptr,
   std::copy(dp.values().begin(), dp.values().end(),
             dataset_->data_.begin() + index * dataset_->stride_);
   return OkStatus();
+}
+
+template <typename T>
+StatusOr<Datapoint<T>> DenseDataset<T>::Mutator::GetDatapoint(
+    DatapointIndex index) const {
+  if (index >= dataset_->size()) {
+    return OutOfRangeError(
+        "Datapoint index out of bound: index = %d, but size = %d.", index,
+        dataset_->size());
+  }
+
+  auto dptr = dataset_->at(index);
+  Datapoint<T> dp;
+  CopyToDatapoint(dptr, &dp);
+  return dp;
 }
 
 SCANN_INSTANTIATE_TYPED_CLASS(, DenseDataset);

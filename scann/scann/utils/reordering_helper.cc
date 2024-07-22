@@ -31,6 +31,7 @@
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/synchronization/mutex.h"
+#include "absl/types/span.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
@@ -389,7 +390,7 @@ FixedPointFloatDenseDotProductReorderingHelper::
 FixedPointFloatDenseDotProductReorderingHelper::
     FixedPointFloatDenseDotProductReorderingHelper(
         shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
-        const std::vector<float>& multiplier_by_dimension,
+        absl::Span<const float> multiplier_by_dimension,
         float noise_shaping_threshold)
     : fixed_point_dataset_(std::move(fixed_point_dataset)),
       noise_shaping_threshold_(noise_shaping_threshold) {

@@ -19,7 +19,9 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <utility>
+#include <vector>
 
 #include "gtest/gtest_prod.h"
 #include "scann/base/search_parameters.h"

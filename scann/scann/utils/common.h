@@ -543,6 +543,13 @@ static_assert(IsSame<pair<int, float>,
                      RecursivelyRemoveCV<pair<const int, volatile float>>>(),
               "");
 
+template <typename T>
+T ABSL_ATTRIBUTE_NO_SANITIZE_MEMORY UnalignedLoad(const void* p) {
+  T t;
+  memcpy(&t, p, sizeof(T));
+  return t;
+}
+
 }  // namespace research_scann
 
 #endif

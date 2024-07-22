@@ -429,6 +429,10 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
       mutation_threadpool_ = pool;
     }
 
+    virtual StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex i) const {
+      return UnimplementedError("GetDatapoint not implemented.");
+    }
+
     virtual StatusOr<DatapointIndex> AddDatapoint(
         const DatapointPtr<T>& dptr, string_view docid,
         const MutationOptions& mo) = 0;
@@ -465,7 +469,14 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
       return std::nullopt;
     }
 
+    Status ValidateForAdd(const DatapointPtr<T>& dptr, string_view docid,
+                          const MutationOptions& mo) const;
+    Status ValidateForUpdate(const DatapointPtr<T>& dptr, DatapointIndex idx,
+                             const MutationOptions& mo) const;
+    Status ValidateForRemove(DatapointIndex idx) const;
+
    protected:
+    StatusOr<Datapoint<T>> GetDatapointFromBase(DatapointIndex i) const;
     StatusOr<DatapointIndex> AddDatapointToBase(const DatapointPtr<T>& dptr,
                                                 string_view docid,
                                                 const MutateBaseOptions& opts);
@@ -479,6 +490,10 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
     StatusOr<DatapointIndex> GetNextDatapointIndex() const;
 
     Status CheckAddDatapointToBaseOptions(const MutateBaseOptions& opts) const;
+
+    Status ValidateForUpdateOrAdd(const DatapointPtr<T>& dptr,
+                                  string_view docid,
+                                  const MutationOptions& mo) const;
 
     SingleMachineSearcherBase<T>* searcher_ = nullptr;
 
