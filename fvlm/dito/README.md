@@ -1,6 +1,6 @@
-# Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection
+# Region-Centric Image-Language Pretraining for Open-Vocabulary Detection
 
-This is a JAX/Flax implementation of DITO [Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection](https://arxiv.org/abs/2310.00161). The model is also supported on the Cloud Vertex API [here](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/150), where you can predict with this model on Google Cloud Vertex AI Prediction service using the provided notebook at the top of the model card.
+This is a JAX/Flax implementation of DITO [Region-Centric Image-Language Pretraining for Open-Vocabulary Detection](https://arxiv.org/abs/2310.00161). The model is also supported on the Cloud Vertex API [here](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/150), where you can predict with this model on Google Cloud Vertex AI Prediction service using the provided notebook at the top of the model card.
 
 ## Installation
 We use the Python built-in virtual env to set up the environment. Run the following commands:
@@ -70,11 +70,12 @@ Here we describe the specific changes needed in ./dito/configs/dito_train_and_ev
 
 ## Citation
 ```
-@article{kim2023dito,
-  title={Detection-Oriented Image-Text Pretraining for Open-Vocabulary Detection},
+@article{kim2024dito,
+  title={Region-Centric Image-Language Pretraining for Open-Vocabulary Detection},
   author={Dahun Kim and Anelia Angelova and Weicheng Kuo},
-  journal={arXiv preprint arXiv:2310.00161},
-  year={2023}
+  booktitle={European conference on computer vision},
+  year={2024},
+  organization={Springer}
 }
 ```
 
