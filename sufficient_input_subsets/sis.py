@@ -538,7 +538,7 @@ def find_sis(f, threshold, current_input, current_mask, fully_masked_input):
       ordering_over_entire_backselect=np.array(
           ordering_over_entire_backselect, dtype=np.int_),
       values_over_entire_backselect=np.array(
-          values_over_entire_backselect, dtype=np.float_),
+          values_over_entire_backselect, dtype=np.float64),
       mask=mask,
   )
 

@@ -129,7 +129,7 @@ class NextProductionRuleInfoBatchTextSummaryTest(tf.test.TestCase):
             unmasked_probabilities_batch=[],
             masked_probabilities_batch=[],
             grammar=self.grammar),
-        np.asarray([], dtype=np.unicode_))
+        np.asarray([], dtype=np.str_))
 
 
 class MaskByPartialSequenceLengthTest(parameterized.TestCase, tf.test.TestCase):

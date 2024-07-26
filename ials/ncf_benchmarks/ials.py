@@ -77,7 +77,7 @@ class Recommender():
       A tuple of (Recall@20, Recall@50 and nDCG@100).
     """
     scores = self.score(user_history)
-    scores[exclude] = -np.infty
+    scores[exclude] = -np.inf
     topk = np.argsort(scores)[::-1]
 
     def recall(k, gt_set, topk):

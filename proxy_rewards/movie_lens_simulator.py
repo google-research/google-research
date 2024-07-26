@@ -138,8 +138,8 @@ class Response(user.AbstractResponse):
     # Ratings are cast into numpy floats to be consistent with the space
     # described by `spaces.Box` (see the response_space description below).
     return {
-        'rating': np.float_(self.rating),
-        'diversity': np.float_(self.diversity),
+        'rating': np.float64(self.rating),
+        'diversity': np.float64(self.diversity),
         'doc_id': np.int_(self.doc_id),
     }
 

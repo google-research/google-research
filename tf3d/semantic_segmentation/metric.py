@@ -151,9 +151,9 @@ class SemanticSegmentationMetric(tf.keras.metrics.Metric):
       class_recall = tp / (tp + fn)
       class_precision = tf.where(
           tf.greater(tp + fn, 0.0), _safe_div(tp, (tp + fp)),
-          tf.constant(np.NaN))
+          tf.constant(np.nan))
       class_iou = tf.where(
-          tf.greater(tp + fn, 0.0), tp / (tp + fn + fp), tf.constant(np.NaN))
+          tf.greater(tp + fn, 0.0), tp / (tp + fn + fp), tf.constant(np.nan))
       class_recall_list.append(class_recall)
       class_iou_list.append(class_iou)
       class_name = _get_class_name(class_id=c, label_map=self.label_map)

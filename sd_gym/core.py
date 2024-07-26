@@ -114,7 +114,7 @@ class GymEncoder(json.JSONEncoder):
       return int(o)
     if isinstance(o, (bool, np.bool_)):
       return str(o)
-    if isinstance(o, (np.float_, np.float16, np.float32, np.float64)):
+    if isinstance(o, (np.float16, np.float32, np.float64)):
       return float(o)
     if isinstance(o, np.random.RandomState):
       state = o.get_state()

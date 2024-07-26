@@ -159,7 +159,7 @@ class SinTestCase(Simulation):
 
     TEST_SIZE = 1000
     x_test = np.linspace(-1, 1, num=TEST_SIZE)
-    old_preds = np.full(x_test.shape, np.NINF)
+    old_preds = np.full(x_test.shape, -np.inf)
     mono_violations = np.full(x_test.shape, False)
     for q in np.linspace(0.01, 0.99, num=99):
       if not gasthaus:
@@ -266,7 +266,7 @@ class GriewankTestCase(Simulation):
     x1_test = np.repeat(np.linspace(-5, 5, num=SQRT_TEST_SIZE), SQRT_TEST_SIZE)
     x2_test = np.tile(np.linspace(-3, 3, num=SQRT_TEST_SIZE), SQRT_TEST_SIZE)
 
-    old_preds = np.full(x1_test.shape, np.NINF)
+    old_preds = np.full(x1_test.shape, -np.inf)
     mono_violations = np.full(x1_test.shape, False)
     for q in np.linspace(0.01, 0.99, num=99):
       y_pred = model([x1_test, x2_test, np.full(x1_test.shape, q)]).numpy().flatten()
@@ -364,7 +364,7 @@ class MichalewiczTestCase(Simulation):
 
     TEST_SIZE = 4000
     x1 = np.linspace(0, 4, TEST_SIZE)
-    old_preds = np.full(x1.shape, np.NINF)
+    old_preds = np.full(x1.shape, -np.inf)
     mono_violations = np.full(x1.shape, False)
     for q in np.linspace(0.01, 0.99, num=99):
       y_pred = model([x1, np.full(x1.shape, q)]).numpy().flatten()
@@ -549,7 +549,7 @@ class AckleyTestCase(Simulation):
     x7 = np.random.uniform(-0.1, 0, TEST_SIZE)
     x8 = np.random.uniform(0, 0.1, TEST_SIZE)
     x9 = np.random.uniform(0, 0.8, TEST_SIZE)
-    old_preds = np.full(x1.shape, np.NINF)
+    old_preds = np.full(x1.shape, -np.inf)
     mono_violations = np.full(x1.shape, False)
     for q in np.linspace(0.01, 0.99, num=99):
       y_pred = model([x1, x2, x3, x4, x5, x6, x7, x8, x9, np.full(x1.shape, q)]).numpy().flatten()

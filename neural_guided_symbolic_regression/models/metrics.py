@@ -255,7 +255,7 @@ def next_production_rule_info_batch(
         unmasked_probabilities=unmasked_probabilities_batch[i],
         masked_probabilities=masked_probabilities_batch[i],
         grammar=grammar))
-  return np.asarray(output_info, dtype=np.unicode_)
+  return np.asarray(output_info, dtype=np.str_)
 
 
 def next_production_rule_info_batch_text_summary(

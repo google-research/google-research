@@ -111,7 +111,7 @@ def main(expt_name,
   for k in params:
     print("{}: {}".format(k, params[k]))
 
-  best_loss = np.Inf
+  best_loss = np.inf
   for _ in range(num_repeats):
 
     tf.reset_default_graph()

@@ -78,7 +78,7 @@ def get_spectral_matrix(n, num_spec_bins=256, use_mel_scale=True,
                                     num_spec_bins)
 
   time_col_vec = (tf.reshape(tf.range(n, dtype=tf.float32), [n, 1])
-                  * np.cast[np.float32](2. * np.pi / sample_rate))
+                  * np.asarray(2. * np.pi / sample_rate, dtype=np.float32))
   tmat = tf.reshape(hertz_frequencies, [1, num_spec_bins]) * time_col_vec
   dct_mat = tf.math.cos(tmat)
   dst_mat = tf.math.sin(tmat)

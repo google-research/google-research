@@ -308,7 +308,7 @@ def train_step(model, threshold, loss_op, constraint_op, optimizer,
     grad_th_w = [None] * len(grad_constraint_w)
     for gi, grad_cons_w_layer in enumerate(grad_constraint_w):
       grad_constraint_th_clip = tf.sign(grad_constraint_th) * tf.clip_by_value(
-          tf.abs(grad_constraint_th), FLAGS.clip_grad_min, np.infty)
+          tf.abs(grad_constraint_th), FLAGS.clip_grad_min, np.inf)
       grad_th_w[gi] = -1 * tf.math.divide_no_nan(grad_cons_w_layer,
                                                  grad_constraint_th_clip)
     # grad_th_w = [

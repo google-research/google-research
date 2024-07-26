@@ -344,7 +344,7 @@ def run_blackbox(config, train_tasks, test_tasks, init_current_input, stubs):
       'Test median (size ' + str(len(test_tasks['tasks'])) + ')', 'Test min'
   ]]
   best_params = None
-  best_value = -np.Inf
+  best_value = -np.inf
 
   while True:
     print(iteration)

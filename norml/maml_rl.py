@@ -531,7 +531,7 @@ class MAMLReinforcementLearning(object):
     """
     inner_tasks = random.sample(self.task_env_modifiers, self.tasks_batch_size)
     done = False
-    avg_test_reward = np.NaN
+    avg_test_reward = np.nan
     for step in range(self.current_step,
                       self.current_step + num_outer_iterations):
       if ignore_termination:
