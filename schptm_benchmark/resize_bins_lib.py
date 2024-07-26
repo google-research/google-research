@@ -64,7 +64,7 @@ def bins_from_annotation(adata,
         if region in valid_bins:
           acc.append(region)
       if acc:
-        annot_rows.append(adata[:, acc].X.sum(axis=1))
+        annot_rows.append(adata[:, acc].X.sum(axis=1))  # pytype: disable=attribute-error  # scipy
         annot_index.append(grange(chrom, gene_start, gene_end))
 
   new_adata = anndata.AnnData(scipy.sparse.csr_matrix(np.hstack(annot_rows)))

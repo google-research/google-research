@@ -1,0 +1,30 @@
+[project]
+name = "sparse_deferred"
+version = "0.0.1"
+authors = [
+  { name="Sami Abu-El-Haija", email="haija@google.com" },
+  { name="Hasan Awais", email="hasanawais@google.com" },
+  { name="Aditya Mishra", email="mishraaditya@google.com" },
+  { name="Mangpo Phothilimthana", email="mangpo@google.com" },
+  { name="Bryan Perozzi", email="bperozzi@google.com" }
+]
+description = "Linear algebra library for sparse and deferred operations."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+]
+
+[project.urls]
+Homepage = "https://github.com/google-research/google-research/tree/master/sparse_deferred"
+
+
+[tool.setuptools.package-dir]
+"sparse_deferred" = ""
+"sparse_deferred.np" = "np"
+"sparse_deferred.tf" = "tf"
+"sparse_deferred.jax" = "jax"
+"sparse_deferred.tfgnn" = "tfgnn"
+"sparse_deferred.structs" = "structs"
+"sparse_deferred.implicit" = "implicit"
+"sparse_deferred.algorithms" = "algorithms"

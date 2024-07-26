@@ -58,7 +58,7 @@
 
 namespace research_scann {
 
-Status AnnotateStatus(const Status& s, absl::string_view msg);
+absl::Status AnnotateStatus(const absl::Status& s, absl::string_view msg);
 
 StatusBuilder RetCheckFail(absl::string_view msg);
 

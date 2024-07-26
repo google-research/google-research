@@ -21,6 +21,7 @@
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -36,6 +37,7 @@ struct ScalarQuantizationResults {
 
 SCANN_INLINE int8_t Int8Quantize(float value) {
   const float fp_val = std::round(value);
+  DCHECK(std::isfinite(fp_val)) << "Float value is not finite: " << value;
   if (ABSL_PREDICT_FALSE(fp_val > numeric_limits<int8_t>::max())) {
     return numeric_limits<int8_t>::max();
   }
@@ -53,11 +55,21 @@ std::vector<float> ComputeQuantiledQuantizationMultipliers(
 
 ScalarQuantizationResults ScalarQuantizeFloatDataset(
     const DenseDataset<float>& dataset, float multiplier_quantile = 1.0f,
-    double noise_shaping_threshold = NAN);
+    double noise_shaping_threshold = NAN, ThreadPool* pool = nullptr);
 
 ScalarQuantizationResults ScalarQuantizeFloatDatasetWithMultipliers(
-    const DenseDataset<float>& dataset, std::vector<float> multipliers,
-    double noise_shaping_threshold = NAN);
+    DenseDatasetView<float>&& dataset, std::vector<float> multipliers,
+    double noise_shaping_threshold = NAN, ThreadPool* pool = nullptr);
+
+SCANN_INLINE ScalarQuantizationResults
+ScalarQuantizeFloatDatasetWithMultipliers(const DenseDataset<float>& dataset,
+                                          std::vector<float> multipliers,
+                                          double noise_shaping_threshold = NAN,
+                                          ThreadPool* pool = nullptr) {
+  return ScalarQuantizeFloatDatasetWithMultipliers(
+      DefaultDenseDatasetView<float>(dataset), multipliers,
+      noise_shaping_threshold, pool);
+}
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
@@ -69,13 +81,20 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    const double noise_shaping_threshold, vector<int8_t>* quantized_storage,
+    double noise_shaping_threshold, vector<int8_t>* quantized_storage,
     int* num_changes = nullptr, double* residual_ptr = nullptr,
     double* parallel_residual_ptr = nullptr);
 
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    const double noise_shaping_threshold, MutableSpan<int8_t> quantized,
+    double noise_shaping_threshold, MutableSpan<int8_t> quantized,
+    int* num_changes = nullptr, double* residual_ptr = nullptr,
+    double* parallel_residual_ptr = nullptr);
+
+DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    double noise_shaping_threshold, MutableSpan<int8_t> quantized,
+    MutableSpan<float> residuals, MutableSpan<uint32_t> dims,
     int* num_changes = nullptr, double* residual_ptr = nullptr,
     double* parallel_residual_ptr = nullptr);
 
@@ -90,6 +109,35 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapoint(
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
     const DatapointPtr<float>& query,
     ConstSpan<float> inverse_multiplier_by_dimension);
+
+static constexpr float kFP4Max = 7.5f;
+static constexpr float kFP8Max = numeric_limits<int8_t>::max();
+
+SCANN_INLINE uint8_t Int4Quantize(float value) {
+  value += kFP4Max;
+  const float fp_val = std::round(value);
+  DCHECK(std::isfinite(fp_val)) << "Float value is not finite: " << value;
+  if (ABSL_PREDICT_FALSE(fp_val > 15)) {
+    return 15;
+  }
+  if (ABSL_PREDICT_FALSE(fp_val < 0)) {
+    return 0;
+  }
+  return fp_val;
+}
+SCANN_INLINE float Int4Dequantize(uint8_t value) {
+  DCHECK_LE(value, 15);
+  float fp_value = value;
+  return fp_value - kFP4Max;
+}
+
+std::vector<float> Int8ToInt4Multipliers(const std::vector<float>& multipliers);
+std::vector<float> InverseInt8ToInt4Multipliers(
+    const std::vector<float>& multipliers);
+
+void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
+                                    absl::Span<const float> multipliers,
+                                    MutableSpan<uint8_t> packed);
 
 }  // namespace research_scann
 

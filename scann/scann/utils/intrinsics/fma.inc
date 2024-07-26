@@ -14,6 +14,9 @@ SCANN_SIMD_INLINE T FusedMultiplyAdd(T a, T b, T acc) {
   if constexpr (IsSame<T, Avx512<double>>()) {
     return _mm512_fmadd_pd(*a, *b, *acc);
   }
+  if constexpr (IsSame<T, Highway<float>>() || IsSame<T, Highway<double>>()) {
+    return hwy::HWY_NAMESPACE::MulAdd(*a, *b, *acc);
+  }
 
   return acc + (a * b);
 }
@@ -36,6 +39,9 @@ SCANN_SIMD_INLINE T FusedMultiplySubtract(T a, T b, T acc) {
   }
   if constexpr (IsSame<T, Avx512<double>>()) {
     return _mm512_fnmadd_pd(*a, *b, *acc);
+  }
+  if constexpr (IsSame<T, Highway<float>>() || IsSame<T, Highway<double>>()) {
+    return hwy::HWY_NAMESPACE::NegMulAdd(*a, *b, *acc);
   }
 
   return acc - (a * b);

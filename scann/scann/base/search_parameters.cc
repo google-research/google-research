@@ -16,23 +16,31 @@
 
 #include <cmath>
 
-#include "scann/base/restrict_allowlist.h"
+#include "absl/strings/str_cat.h"
 
 namespace research_scann {
 
+using absl::StrCat;
+
 Status SearchParameters::Validate(bool reordering_enabled) const {
   if (pre_reordering_num_neighbors() <= 0) {
-    return InvalidArgumentError("pre_reordering_num_neighbors must be > 0.");
+    return InvalidArgumentError(
+        StrCat("pre_reordering_num_neighbors must be > 0.  (Got:  ",
+               pre_reordering_num_neighbors(), ")"));
   }
 
   if (per_crowding_attribute_pre_reordering_num_neighbors() <= 0) {
     return InvalidArgumentError(
-        "per_crowding_attribute_pre_reordering_num_neighbors must be > 0.");
+        StrCat("per_crowding_attribute_pre_reordering_num_neighbors must be > "
+               "0.  (Got:  ",
+               per_crowding_attribute_pre_reordering_num_neighbors(), ")"));
   }
 
   if (per_crowding_attribute_post_reordering_num_neighbors() <= 0) {
-    return InvalidArgumentError(
-        "per_crowding_attribute_post_reordering_num_neighbors must be > 0.");
+    return InvalidArgumentError(StrCat(
+        "per_crowding_attribute_post_reordering_num_neighbors must be > 0.  "
+        "(Got:  ",
+        per_crowding_attribute_post_reordering_num_neighbors(), ")"));
   }
 
   if (std::isnan(pre_reordering_epsilon())) {
@@ -43,8 +51,9 @@ Status SearchParameters::Validate(bool reordering_enabled) const {
   if (reordering_enabled) {
     if (post_reordering_num_neighbors() <= 0) {
       return InvalidArgumentError(
-          "post_reordering_num_neighbors must be > 0 if reordering is "
-          "enabled.");
+          StrCat("post_reordering_num_neighbors must be > 0 if reordering is "
+                 "enabled.  (Got:  ",
+                 post_reordering_num_neighbors(), ")"));
     }
 
     if (std::isnan(post_reordering_epsilon())) {

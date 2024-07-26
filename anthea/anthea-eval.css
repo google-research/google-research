@@ -135,18 +135,28 @@
   border: 1px solid black;
   box-sizing: border-box;
 }
-.anthea-document-text-table > tr > td:nth-of-type(1),
-.anthea-document-text-table > tr > td:nth-of-type(2) {
+.anthea-document-text-table > tr > td:nth-of-type(1):nth-last-of-type(3),
+.anthea-document-text-table > tr > td:nth-of-type(2):nth-last-of-type(2) {
   max-width: 100ch;
   width: 40%;
+}
+.anthea-document-text-table > tr > td:nth-of-type(1):nth-last-of-type(4),
+.anthea-document-text-table > tr > td:nth-of-type(2):nth-last-of-type(3),
+.anthea-document-text-table > tr > td:nth-of-type(3):nth-last-of-type(2), {
+  max-width: 100ch;
+  width: 28%;
 }
 .anthea-document-text-table > tr:nth-of-type(2),
 .anthea-document-text-table > tr:nth-of-type(2) > td {
   border-bottom: 0 solid;
 }
-.anthea-document-text-table > tr > td:nth-of-type(3) {
+.anthea-document-text-table > tr > td:nth-of-type(3):nth-last-of-type(1) {
   max-width: 320px;
   width: 20%;
+}
+.anthea-document-text-table > tr > td:nth-of-type(4):nth-last-of-type(1) {
+  max-width: 320px;
+  width: 16%;
 }
 .anthea-document-text-table > tr:nth-of-type(3),
 .anthea-document-text-table > tr:nth-of-type(3) > td {
@@ -352,6 +362,15 @@
   right: 0;
   top: 6ex;
   z-index: 3;
+}
+.anthea-note-to-raters {
+  font-weight: bold;
+  color: black;
+}
+.anthea-note-to-raters:before {
+  content: "PLEASE NOTE: ";
+  font-weight: bold;
+  color: red;
 }
 .anthea-mqm-instructions li {
   line-height: 1.2;

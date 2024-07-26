@@ -14,10 +14,13 @@
 # limitations under the License.
 
 """Loss functions."""
+
 from typing import Callable
 
+from network import CustomModelRegression
 import tensorflow as tf
 import tensorflow_probability as tfp
+
 
 tfk = tf.keras
 tfkl = tf.keras.layers
@@ -290,3 +293,108 @@ def sim_llp_loss(
   y_pred_rand = tf.gather(y_pred, indices, axis=0)
   x_rand = tf.gather(x, indices, axis=0)
   return sim_loss(repl, x_rand, y_pred_rand) + lbd * bag_loss(x, y, y_pred)
+
+
+def dllp_loss_graph_regression(
+    batch_size,
+    instance_loss,
+    x_categ,
+    x_numer,
+    y,
+    y_pred,
+):
+  """DLLP loss for graph execution."""
+  del x_categ, x_numer
+  y_sg = tf.stop_gradient(y)
+  loss = tf.zeros((), dtype=tf.float32)
+  start = tf.zeros((), dtype=tf.int32)
+  for _ in range(batch_size):
+    bag_size = tf.cast(tf.gather(y_sg, start, axis=0)[0], dtype=tf.int32)
+    avg_true_label = tf.gather(y_sg, start + 1, axis=0)[0]
+    avg_pred_label = tf.reduce_mean(
+        tf.gather(y_pred, tf.range(start, start + bag_size), axis=0)
+    )
+    loss += instance_loss(
+        tf.convert_to_tensor([avg_true_label]),
+        tf.convert_to_tensor([avg_pred_label]),
+    )
+    start += bag_size
+  return loss / batch_size
+
+
+def genbags_loss_regression(
+    mean,
+    covariance_mat,
+    batch_size,
+    block_size,
+    num_gen_bags_per_block,
+    x_categ,
+    x_numer,
+    y,
+    y_pred,
+):
+  """Genbags loss."""
+  del x_categ, x_numer
+  loss = tf.zeros((), dtype=tf.float32)
+  start = tf.zeros((), dtype=tf.int32)
+  for _ in range(batch_size // block_size):
+    wts = tfp.distributions.MultivariateNormalFullCovariance(
+        loc=mean, covariance_matrix=covariance_mat
+    ).sample(num_gen_bags_per_block)
+    list_of_diffs = []
+    for _ in range(block_size):
+      bag_size = tf.cast(tf.gather(y, start, axis=0)[0], dtype=tf.int32)
+      avg_true_label = tf.gather(y, start + 1, axis=0)[0]
+      avg_pred_label = tf.reduce_mean(
+          tf.gather(y_pred, tf.range(start, start + bag_size), axis=0)
+      )
+      list_of_diffs.append(avg_pred_label - avg_true_label)
+      start = start + bag_size
+    loss = loss + tf.square(
+        tf.norm(
+            tf.linalg.matvec(wts, tf.convert_to_tensor(list_of_diffs)), ord=2
+        )
+    )
+  return loss
+
+
+def sim_loss_regression(
+    repl,
+    x_categ,
+    x_numer,
+    y_pred,
+):
+  """Similarity loss."""
+  x_rep = repl.penultimate_rep(x_categ, x_numer)
+  sigmoid_y_pred = tf.math.sigmoid(y_pred)
+  diff_sq = tf.math.square(
+      sigmoid_y_pred[:, tf.newaxis] - sigmoid_y_pred[tf.newaxis, :]
+  )
+  dot_prod_mat = tf.linalg.matmul(
+      x_rep, x_rep, transpose_a=False, transpose_b=True
+  )
+  sq_norm = tf.linalg.diag_part(dot_prod_mat)
+  coeff_mat = tf.math.exp(
+      2.0 * dot_prod_mat - sq_norm[:, tf.newaxis] - sq_norm[tf.newaxis, :]
+  )
+  return tf.reduce_mean(coeff_mat * diff_sq)
+
+
+def sim_llp_loss_regression(
+    sim_loss_size,
+    bag_loss,
+    lbd,
+    repl,
+    x_categ,
+    x_numer,
+    y,
+    y_pred,
+):
+  """Sim-LLP loss."""
+  indices = tf.random.shuffle(tf.range(tf.shape(y_pred)[0]))[:sim_loss_size]
+  y_pred_rand = tf.gather(y_pred, indices, axis=0)
+  x_categ_rand = tf.gather(x_categ, indices, axis=0)
+  x_numer_rand = tf.gather(x_numer, indices, axis=0)
+  return sim_loss_regression(
+      repl, x_categ_rand, x_numer_rand, y_pred_rand
+  ) + lbd * bag_loss(x_categ, x_numer, y, y_pred)

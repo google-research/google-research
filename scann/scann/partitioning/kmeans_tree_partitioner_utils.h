@@ -76,6 +76,10 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
       DatabaseSpillingConfig::FIXED_NUMBER_OF_CENTERS) {
     result->set_database_spilling_fixed_number_of_centers(
         config.database_spilling().max_spill_centers());
+  } else if (config.database_spilling().spilling_type() ==
+             DatabaseSpillingConfig::TWO_CENTER_ORTHOGONALITY_AMPLIFIED) {
+    result->set_orthogonality_amplification_lambda(
+        config.database_spilling().orthogonality_amplification_lambda());
   }
 
   if (config.query_tokenization_type() == PartitioningConfig::FLOAT) {
@@ -93,6 +97,7 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
     result->SetDatabaseTokenizationType(
         KMeansTreePartitioner<T>::FIXED_POINT_INT8);
   }
+  result->SetNumTokenizedBranch(config.num_tokenized_branch());
 
   const absl::Time stop = absl::Now();
   LOG(INFO) << "PartitionerFactory ran in " << stop - start << ".";

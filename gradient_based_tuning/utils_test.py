@@ -158,7 +158,7 @@ class ComputeMetricsTest(absltest.TestCase):
         [1., 1.],
     ])
     output = utils.compute_metrics(logits, labels, weights)
-    output = jax.tree_map(float, output)
+    output = jax.tree.map(float, output)
     loss_out = output.pop('loss')
     self.assertAlmostEqual(loss_out, 2.737448, delta=1e-5)
     self.assertEqual(output, {'accuracy': 8, 'denominator': 8})

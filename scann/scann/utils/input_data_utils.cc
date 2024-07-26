@@ -23,10 +23,13 @@ namespace research_scann {
 StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
+    const DenseDataset<int16_t>* bfloat16_dataset,
     const vector<int64_t>* crowding_attributes) {
-  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point) {
+  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point &&
+      !bfloat16_dataset) {
     return InvalidArgumentError(
-        "dataset, hashed_dataset and pre_quantized_fixed_point are all null.");
+        "dataset, hashed_dataset, pre_quantized_fixed_point, and "
+        "bfloat16_dataset are all null.");
   }
 
   DatapointIndex sz = kInvalidDatapointIndex;
@@ -55,6 +58,17 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     }
   }
 
+  if (bfloat16_dataset) {
+    if (sz == kInvalidDatapointIndex) {
+      sz = bfloat16_dataset->size();
+    } else {
+      SCANN_RET_CHECK_EQ(sz, bfloat16_dataset->size())
+              .SetErrorCode(error::INVALID_ARGUMENT)
+          << "Mismatch between original/hashed/int8 database and bfloat16 "
+             "database sizes.";
+    }
+  }
+
   if (crowding_attributes && !crowding_attributes->empty() &&
       sz != kInvalidDatapointIndex) {
     SCANN_RET_CHECK_EQ(crowding_attributes->size(), sz);
@@ -68,10 +82,13 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
 StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     const HashConfig& config, const Dataset* dataset,
     const DenseDataset<uint8_t>* hashed_dataset,
-    const PreQuantizedFixedPoint* pre_quantized_fixed_point) {
-  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point) {
+    const PreQuantizedFixedPoint* pre_quantized_fixed_point,
+    const DenseDataset<int16_t>* bfloat16_dataset) {
+  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point &&
+      !bfloat16_dataset) {
     return InvalidArgumentError(
-        "dataset, hashed_dataset and pre_quantized_fixed_point are all null.");
+        "dataset, hashed_dataset, pre_quantized_fixed_point, and "
+        "bfloat16_dataset are all null.");
   }
 
   DimensionIndex dims = kInvalidDimension;
@@ -89,6 +106,17 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     }
   }
 
+  if (bfloat16_dataset) {
+    DimensionIndex d = bfloat16_dataset->dimensionality();
+    if (dims == kInvalidDimension) {
+      dims = d;
+    } else {
+      SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
+          << "Mismatch between original/fixed-point database and bfloat16 "
+             "database dimensionalities.";
+    }
+  }
+
   auto projection_check = [&dims](const ProjectionConfig& proj) -> Status {
     if (proj.has_input_dim()) {
       DimensionIndex d = proj.input_dim();
@@ -96,8 +124,8 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
         dims = d;
       } else {
         SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
-            << "Mismatch between original/fixed-point and hash projection "
-               "dimensionalities.";
+            << "Mismatch between original/fixed-point/bfloat16 and hash "
+               "projection dimensionalities.";
       }
     }
     return OkStatus();

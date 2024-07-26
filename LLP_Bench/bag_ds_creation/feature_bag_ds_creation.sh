@@ -25,5 +25,23 @@ declare -a c1_c2_list=(
 
 for c1_c2 in "${c1_c2_list[@]}"; do
     read -a strarr <<< "$c1_c2"  # uses default whitespace IFS
-    python3 bag_ds_creation/feature_bag_ds_creation.py --c1=${strarr[0]} --c2=${strarr[1]}
+    python3 bag_ds_creation/feature_bag_ds_creation.py --c1=${strarr[0]} --c2=${strarr[1]} --which_dataset=criteo_ctr
+done
+
+declare -a c1_c2_list_sscl=(
+    '2 5'
+    '3 5'
+    '3 8'
+    '3 16'
+    '5 6'
+    '5 7'
+    '5 8'
+    '5 9'
+    '5 16'
+    '8 16'
+)
+
+for c1_c2 in "${c1_c2_list_sscl[@]}"; do
+    read -a strarr <<< "$c1_c2"  # uses default whitespace IFS
+    python3 bag_ds_creation/feature_bag_ds_creation.py --c1=${strarr[0]} --c2=${strarr[1]} --which_dataset=criteo_sscl
 done

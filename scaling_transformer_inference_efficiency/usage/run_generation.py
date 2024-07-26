@@ -53,7 +53,7 @@ def run(model, quantized):
       cs = checkpoint.CheckpointSpec.PALM_540B
 
   loaded_cs = ckpt.load_unsharded_to_host(cs)
-  print(jax.tree_map(jnp.shape, loaded_cs))
+  print(jax.tree.map(jnp.shape, loaded_cs))
 
   the_model = incremental.JittedModel(
       cs.hparams, the_vocab.eos_id,

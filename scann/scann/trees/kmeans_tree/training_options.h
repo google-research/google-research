@@ -35,7 +35,7 @@ struct KMeansTreeTrainingOptions {
       PartitioningConfig::GENERIC;
 
   GmmUtils::Options::PartitionAssignmentType balancing_type =
-      GmmUtils::Options::UNBALANCED;
+      GmmUtils::Options::UNBALANCED_FLOAT32;
 
   GmmUtils::Options::CenterReassignmentType reassignment_type =
       GmmUtils::Options::RANDOM_REASSIGNMENT;

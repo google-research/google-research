@@ -230,24 +230,24 @@ def infer_template(
   # Match static values with actual cache
 
   # if a dimension is insufficient to be sharded, replicate
-  cache_sharding = jax.tree_map(
+  cache_sharding = jax.tree.map(
       partial(partitioning.safe_sharding, mesh=sharding_config.mesh),
       kv_caches,
       cache_sharding,
   )
 
   logit_logical = P('logit_batch', 'time', 'vocab')
-  logit_sharding = jax.tree_map(
+  logit_sharding = jax.tree.map(
       partitioning.logical_to_physical, logit_logical
   )
 
   # input/output cache, where we write the per layer kv cache results
-  in_cache_sharding = jax.tree_map(
+  in_cache_sharding = jax.tree.map(
       partitioning.logical_to_physical,
       P('prefix_layers', 'prefix_time', 'attn_batch', 'prefix_qkv'),
   )
 
-  embedding_sharding = jax.tree_map(
+  embedding_sharding = jax.tree.map(
       partitioning.logical_to_physical,
       P('residual_batch', 'residual_time', 'residual_embed'),
   )

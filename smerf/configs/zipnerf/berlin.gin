@@ -1,0 +1,12 @@
+# berlin
+smerf.internal.configs.Config.data_dir = "datasets/berlin"
+smerf.internal.configs.Config.distill_teacher_ckpt_dir = "teachers/berlin"
+
+# Downsample pixels
+smerf.internal.configs.Config.factor = 2
+
+# Render path config
+camp_zipnerf.internal.configs.Config.render_path_file = 'render_path_file.npy'
+camp_zipnerf.internal.configs.Config.render_resolution = (2000, 1140)  # (width, height)
+camp_zipnerf.internal.configs.Config.render_focal = 879.45548616  # in pixels
+camp_zipnerf.internal.configs.Config.render_camtype = 'perspective'

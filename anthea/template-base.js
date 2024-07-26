@@ -585,10 +585,21 @@ const antheaTemplateBase = {
                 knowing another person B, but the English translation says
                 "A was intimate with B." (2) The source text states that
                 something never happens, whereas the translation says it happens
-                "often" or "rarely." (3) Incorrectly gendered pronouns not
-                warranted by the context, such as "Mary slammed the door as he
-                left." Misgendering errors typically have a major severity as
-                they significantly alter the meaning of the source text.
+                "often" or "rarely."
+              </li>
+              <li>
+                <b>Gender Mismatch</b>.
+                Given the context, the gender is incorrect (incorrect pronouns,
+                noun/adjective endings, etc). Misgendering errors typically have
+                a major severity as they significantly alter the meaning of the
+                source text. If the correct gender is not clear from the source
+                context, assume the first instance of gender is correct and mark
+                subsequent gender inconsistencies as errors. Examples: (1) "Mary
+                slammed the door as he left." (2) Given the source text "My
+                friend is an engineer. She is great at coding.", if its
+                translation used a male form for the term "engineer", it would
+                be incorrect, as we know the subject is female from the source
+                context.
               </li>
               <li>
                 <b>Source language fragment</b>.
@@ -753,6 +764,25 @@ const antheaTemplateBase = {
                 better as a single sentence that makes it clearer who accepted
                 the reward. This example is a minor error, without additional
                 contextual information.
+              </li>
+              <li>
+                <b>Archaic or obscure word choice</b>.
+                The text contains archaic or obscure words that an average
+                speaker of the target language may find hard to understand. This
+                includes cases where obscure translations of terms are used,
+                where instead transliterating or copying the source language
+                would be more natural. (Archaic/formal terms may be okay in
+                certain contexts such as government or historical documents,
+                academic papers, etc.) Examples: (1) "He was transparently evil"
+                gets translated to "वह पारदर्शी रूप से दुष्ट था।" in Hindi which uses an
+                obscure term for "transparently" instead of the more common
+                "स्पष्ट". (2) The term "computer" is translated into Hindi as
+                "संगणक" (saṅgaṇaka) but the transliterated version "कंप्यूटर"
+                (kampyootar) is much more common and easily understood. (3) In
+                the sentence "Last night we went to a bar and drank a homerkin
+                of beer", the term 'homerkin' (meaning 'several gallons') is
+                unnecessarily obscure. It would be much more colloquial to say
+                'we drank a ton of beer', or similar.
               </li>
             </ul>
           </details>

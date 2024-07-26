@@ -27,6 +27,12 @@ from sklearn.model_selection import KFold
 
 _C1 = flags.DEFINE_integer('c1', 1, 'c1?')
 _C2 = flags.DEFINE_integer('c2', 2, 'c2?')
+_WHICH_DATASET = flags.DEFINE_enum(
+    'which_dataset',
+    'criteo_ctr',
+    ['criteo_ctr', 'criteo_sscl'],
+    'Which dataset to preprocess.',
+)
 
 
 def main(argv):
@@ -34,43 +40,65 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
   logging.info('Program Started')
-  list_of_cols_test = creation_constants.LIST_OF_COLS_TEST
-  offsets = creation_constants.OFFSETS
-  feature_cols = creation_constants.FEATURE_COLS
-  criteo_df = pd.read_csv(
-      '../data/preprocessed_dataset/preprocessed_criteo.csv',
-      usecols=list_of_cols_test,
-  )
-  logging.info('DataFrame Loaded')
-  logging.info('Number of rows in criteo df : %d', len(criteo_df))
   c1 = creation_constants.C + str(_C1.value)
   c2 = creation_constants.C + str(_C2.value)
-  criteo_df = (
-      criteo_df.groupby([c1, c2])
+  if _WHICH_DATASET.value == 'criteo_ctr':
+    list_of_cols_test = creation_constants.LIST_OF_COLS_TEST
+    data_df = pd.read_csv(
+        '../data/preprocessed_dataset/preprocessed_criteo.csv',
+        usecols=list_of_cols_test,
+    )
+  else:
+    data_df = pd.read_csv(
+        '../data/preprocessed_dataset/preprocessed_criteo_sscl.csv'
+    )
+  logging.info('DataFrame Loaded')
+  logging.info('Number of rows in criteo df : %d', len(data_df))
+  data_df = (
+      data_df.groupby([c1, c2])
       .filter(lambda x: ((len(x) >= 50) and (len(x) <= 2500)))
       .reset_index(drop=True)
   )
   logging.info('All bags of size <50 and >2500 removed from the DataFrame')
   logging.info(
       'Number of rows in after removing groupings of size < 50 and >2500 : %d',
-      len(criteo_df),
+      len(data_df),
   )
-  for i, col in enumerate(feature_cols):
-    criteo_df[col] = criteo_df[col] + offsets[i] + i
-  logging.info('Offsets added to the columns')
+  if _WHICH_DATASET.value == 'criteo_ctr':
+    offsets = creation_constants.OFFSETS
+    feature_cols = creation_constants.FEATURE_COLS
+    for i, col in enumerate(feature_cols):
+      data_df[col] = data_df[col] + offsets[i] + i
+    logging.info('Offsets added to the columns')
   results_dir = '../data/bag_ds/split_'
+  if _WHICH_DATASET.value == 'criteo_ctr':
+    label = 'label'
+  else:
+    label = 'Y'
   kf = KFold(n_splits=5, shuffle=True, random_state=42)
-  for idx, (train_index, test_index) in enumerate(kf.split(criteo_df)):
-    train, test = criteo_df.iloc[train_index].reset_index(
+  for idx, (train_index, test_index) in enumerate(kf.split(data_df)):
+    train, test = data_df.iloc[train_index].reset_index(
         drop=True
-    ), criteo_df.iloc[test_index].reset_index(drop=True)
+    ), data_df.iloc[test_index].reset_index(drop=True)
     logging.info('Number of rows in train df : %d', len(train))
     logging.info('Number of rows in test df : %d', len(test))
-    test_file_path = results_dir + str(idx) + '/test/' + c1 + '_' + c2 + '.csv'
-    train_file_path = (
-        results_dir + str(idx) + '/train/' + c1 + '_' + c2 + '.ftr'
-    )
-    test[list_of_cols_test].to_csv(test_file_path, index=False)
+    if _WHICH_DATASET.value == 'criteo_ctr':
+      test_file_path = (
+          results_dir + str(idx) + '/test/' + c1 + '_' + c2 + '.csv'
+      )
+      train_file_path = (
+          results_dir + str(idx) + '/train/' + c1 + '_' + c2 + '.ftr'
+      )
+      list_of_cols_test = creation_constants.LIST_OF_COLS_TEST
+      test[list_of_cols_test].to_csv(test_file_path, index=False)
+    else:
+      test_file_path = (
+          results_dir + str(idx) + '/test/sscl_' + c1 + '_' + c2 + '.csv'
+      )
+      train_file_path = (
+          results_dir + str(idx) + '/train/sscl_' + c1 + '_' + c2 + '.ftr'
+      )
+      test.to_csv(test_file_path, index=False)
     logging.info('Test DataFrame stored at : %s', test_file_path)
     train[c1 + '_copy'] = train[c1]
     train[c2 + '_copy'] = train[c2]
@@ -78,10 +106,15 @@ def main(argv):
         train.groupby([c1 + '_copy', c2 + '_copy']).agg(list).reset_index()
     )
     # pylint: disable=unnecessary-lambda
-    df_aggregated['bag_size'] = df_aggregated['label'].apply(lambda x: len(x))
-    df_aggregated['label_count'] = df_aggregated['label'].apply(
-        lambda x: np.sum(x)
-    )
+    df_aggregated['bag_size'] = df_aggregated[label].apply(lambda x: len(x))
+    if _WHICH_DATASET.value == 'criteo_ctr':
+      df_aggregated['label_count'] = df_aggregated[label].apply(
+          lambda x: np.sum(x)
+      )
+    else:
+      df_aggregated['mean_label'] = df_aggregated[label].apply(
+          lambda x: np.mean(x)
+      )
     df_aggregated.sort_values(
         by=['bag_size', c1 + '_copy', c2 + '_copy'],
         ascending=False,

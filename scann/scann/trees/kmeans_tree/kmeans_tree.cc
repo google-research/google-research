@@ -40,7 +40,7 @@ int32_t CountLeaves(const KMeansTreeNode& node) {
 
 }  // namespace
 
-KMeansTree::KMeansTree() {}
+KMeansTree::KMeansTree() = default;
 
 KMeansTree::KMeansTree(const SerializedKMeansTree& serialized) {
   learned_spilling_type_ = serialized.learned_spilling_type();
@@ -49,6 +49,18 @@ KMeansTree::KMeansTree(const SerializedKMeansTree& serialized) {
   n_tokens_ = CountLeaves(root_);
   root_.PopulateCurNodeCenters();
   root_.CreateFixedPointCenters();
+  CheckIfFlat();
+}
+
+KMeansTree KMeansTree::CreateFlat(DenseDataset<float> centers) {
+  KMeansTree result;
+  result.root_ = KMeansTreeNode::CreateFlat(std::move(centers));
+  result.n_tokens_ = CountLeaves(result.root_);
+  result.root_.PopulateCurNodeCenters();
+  result.root_.CreateFixedPointCenters();
+  result.CheckIfFlat();
+  CHECK(result.is_flat_);
+  return result;
 }
 
 Status KMeansTree::Train(const Dataset& training_data,
@@ -67,6 +79,7 @@ Status KMeansTree::Train(const Dataset& training_data,
   learned_spilling_type_ = training_options->learned_spilling_type;
   max_spill_centers_ = training_options->max_spill_centers;
   root_.CreateFixedPointCenters();
+  CheckIfFlat();
   return status;
 }
 
@@ -80,6 +93,16 @@ void KMeansTree::SerializeWithoutIndices(SerializedKMeansTree* result) const {
   CHECK(result != nullptr);
   result->set_learned_spilling_type(learned_spilling_type_);
   root_.CopyToProto(result->mutable_root(), false);
+}
+
+void KMeansTree::CheckIfFlat() {
+  if (root_.IsLeaf()) return;
+
+  bool all_children_are_leaves = true;
+  for (const KMeansTreeNode& node : root_.Children()) {
+    all_children_are_leaves = all_children_are_leaves && node.IsLeaf();
+  }
+  if (all_children_are_leaves) is_flat_ = true;
 }
 
 }  // namespace research_scann

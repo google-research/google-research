@@ -133,7 +133,7 @@ def compute_embeddings_for_dir(
 
   all_embs = []
   for batch in tqdm.tqdm(dataset, total=count // batch_size):
-    image_batch = jax.tree_map(np.asarray, batch)
+    image_batch = jax.tree.map(np.asarray, batch)
 
     # Normalize to the [0, 1] range.
     image_batch = image_batch / 255.0

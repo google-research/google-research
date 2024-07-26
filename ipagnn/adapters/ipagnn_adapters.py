@@ -26,7 +26,7 @@ class IPAGNNAdapter(common_adapters.SequenceAdapter):
   """Adapter for IPAGNN model."""
 
   def as_example(self, dataset_item):
-    inputs = jax.tree_map(lambda x: x.numpy(), dataset_item)
+    inputs = jax.tree.map(lambda x: x.numpy(), dataset_item)
     example = {
         'true_branch_nodes': inputs['cfg']['true_branch_nodes'],
         'false_branch_nodes': inputs['cfg']['false_branch_nodes'],

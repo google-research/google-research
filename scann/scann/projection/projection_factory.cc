@@ -16,10 +16,13 @@
 
 #include <cstdint>
 #include <memory>
+#include <utility>
 
-#include "scann/projection/chunking_projection.h"
+#include "scann/data_format/dataset.h"
 #include "scann/projection/identity_projection.h"
+#include "scann/projection/projection_base.h"
 #include "scann/proto/projection.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -50,6 +53,30 @@ Status FixRemainderDims(const DimensionIndex input_dim,
   return OkStatus();
 }
 
+Status ValidateDimension(ProjectionConfig::ProjectionType projection_type,
+                         const DimensionIndex input_dim,
+                         const DimensionIndex projected_dim) {
+  constexpr DimensionIndex kMaxDimensionality = numeric_limits<int32_t>::max();
+  if (projected_dim > kMaxDimensionality) {
+    if (projection_type == ProjectionConfig::RANDOM_ORTHOGONAL ||
+        projection_type == ProjectionConfig::RANDOM_BINARY ||
+        projection_type == ProjectionConfig::RANDOM_BINARY_DYNAMIC ||
+        projection_type == ProjectionConfig::RANDOM_SPARSE_BINARY ||
+        projection_type == ProjectionConfig::RANDOM_GAUSS ||
+        projection_type == ProjectionConfig::RANDOM_BINARY) {
+      return InvalidArgumentError(
+          "num_blocks * num_dims_per_block must fit in a signed 32-bit "
+          "integer.");
+    }
+  }
+  if (input_dim > kMaxDimensionality &&
+      projection_type != ProjectionConfig::NONE) {
+    return InvalidArgumentError(
+        "input_dim must fit in a signed 32-bit integer");
+  }
+  return OkStatus();
+}
+
 template <typename T>
 StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
     const ProjectionConfig& config, const TypedDataset<T>* dataset,
@@ -62,14 +89,19 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
   const DimensionIndex input_dim = config.input_dim();
 
   if (!config.has_num_dims_per_block() &&
-      config.projection_type() != ProjectionConfig::NONE) {
+      config.projection_type() != ProjectionConfig::NONE &&
+      (config.projection_type() != ProjectionConfig::PCA &&
+       !config.has_pca_significance_threshold())) {
     return InvalidArgumentError(
         "num_dims_per_block must be specified for ProjectionFactory unless "
-        "projection type NONE is being used.");
+        "projection type NONE or PCA is being used.");
   }
 
   DimensionIndex projected_dim =
-      config.num_blocks() * config.num_dims_per_block();
+      static_cast<DimensionIndex>(config.num_blocks()) *
+      config.num_dims_per_block();
+  SCANN_RETURN_IF_ERROR(
+      ValidateDimension(config.projection_type(), input_dim, projected_dim));
 
   auto fix_remainder_dims = [input_dim, &projected_dim, &config]() -> Status {
     return FixRemainderDims(input_dim, config, &projected_dim);

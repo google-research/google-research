@@ -56,9 +56,9 @@ def get_mfvi_model_fn(net_fn, params, net_state, seed=0, sigma_init=0.):
       Gaussians.
   """
   #  net_fn(params, net_state, None, batch, is_training)
-  mean_params = jax.tree_map(lambda p: p.copy(), params)
+  mean_params = jax.tree.map(lambda p: p.copy(), params)
   sigma_isp = inv_softplus(sigma_init)
-  std_params = jax.tree_map(lambda p: jnp.ones_like(p) * sigma_isp, params)
+  std_params = jax.tree.map(lambda p: jnp.ones_like(p) * sigma_isp, params)
   mfvi_params = {"mean": mean_params, "inv_softplus_std": std_params}
   mfvi_state = {
       "net_state": copy.deepcopy(net_state),
@@ -67,9 +67,9 @@ def get_mfvi_model_fn(net_fn, params, net_state, seed=0, sigma_init=0.):
 
   def sample_parms_fn(params, state):
     mean = params["mean"]
-    std = jax.tree_map(jax.nn.softplus, params["inv_softplus_std"])
+    std = jax.tree.map(jax.nn.softplus, params["inv_softplus_std"])
     noise, new_key = tree_utils.normal_like_tree(mean, state["mfvi_key"])
-    params_sampled = jax.tree_map(lambda m, s, n: m + n * s, mean, std, noise)
+    params_sampled = jax.tree.map(lambda m, s, n: m + n * s, mean, std, noise)
     new_mfvi_state = {
         "net_state": copy.deepcopy(state["net_state"]),
         "mfvi_key": new_key
@@ -113,18 +113,18 @@ def make_kl_with_gaussian_prior(weight_decay, temperature=1.):
   """
 
   def kl_fn(params):
-    n_params = sum([p.size for p in jax.tree_leaves(params)])
+    n_params = sum([p.size for p in jax.tree.leaves(params)])
     sigma_prior = jnp.sqrt(1 / weight_decay)
 
     mu_vi_tree = params["mean"]
-    sigma_vi_tree = jax.tree_map(jax.nn.softplus, params["inv_softplus_std"])
+    sigma_vi_tree = jax.tree.map(jax.nn.softplus, params["inv_softplus_std"])
 
     def get_parameter_kl(mu_vi, sigma_vi):
       return (jnp.log(sigma_prior / sigma_vi) +
               (sigma_vi**2 + mu_vi**2) / 2 / sigma_prior**2 - 1 / 2)
 
-    kl_tree = jax.tree_map(get_parameter_kl, mu_vi_tree, sigma_vi_tree)
-    kl = sum([p_kl.sum() for p_kl in jax.tree_leaves(kl_tree)])
+    kl_tree = jax.tree.map(get_parameter_kl, mu_vi_tree, sigma_vi_tree)
+    kl = sum([p_kl.sum() for p_kl in jax.tree.leaves(kl_tree)])
 
     return -kl * temperature
 

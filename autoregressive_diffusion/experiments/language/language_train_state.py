@@ -71,7 +71,7 @@ class TrainState(struct.PyTreeNode):  # pytype: disable=invalid-function-definit
     def update_ema(ema, p):
       return ema_momentum * ema + (1. - ema_momentum) * p
 
-    new_ema_params = jax.tree_map(update_ema, self.ema_params, new_params)
+    new_ema_params = jax.tree.map(update_ema, self.ema_params, new_params)
 
     return self.replace(
         step=self.step + 1,

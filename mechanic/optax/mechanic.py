@@ -55,7 +55,7 @@ def tree_sum(tree):
 
 @jax.jit
 def tree_norm(tree):
-  return jnp.sqrt(tree_sum(jax.tree_map(lambda x: jnp.sum(x**2), tree)))
+  return jnp.sqrt(tree_sum(jax.tree.map(lambda x: jnp.sum(x**2), tree)))
 
 
 class MechanicState(NamedTuple):

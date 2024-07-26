@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Model class."""
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import tensorflow as tf
 
@@ -154,5 +154,79 @@ class CustomModel(tfk.Model):
     """Test step."""
     x, y = batch
     y_pred = self(x)
+    self.compiled_metrics.update_state(y, y_pred)
+    return {m.name: m.result() for m in self.metrics}
+
+
+class CustomModelRegression(tfk.Model):
+  """Custom model with access to penultimate layer."""
+
+  def __init__(
+      self, n_catg, embed_size, vocab_sizes
+  ):
+    """Constructor."""
+    super().__init__()
+    self.n_catg = n_catg
+    self.embedding_layers = []
+    for i in range(n_catg):
+      self.embedding_layers.append(tfkl.Embedding(vocab_sizes[i], embed_size))
+    self.sequential_layers = tfk.Sequential()
+    self.sequential_layers.add(tfkl.Dense(128, activation='relu'))
+    self.sequential_layers.add(tfkl.Dense(64, activation='relu'))
+    self.final_layer = tfkl.Dense(units=1, activation=None)
+
+  def compile(
+      self,
+      bag_loss = lambda x, y, z, w: 0,
+      optimizer = 'adam',
+      metrics = None,
+      run_eagerly = False,
+  ):
+    """Compile."""
+    super().compile(
+        optimizer=optimizer, loss=None, metrics=metrics, run_eagerly=run_eagerly
+    )
+    self.bag_loss = bag_loss
+
+  def get_rep(self):
+    """Get penultimate layer representation model."""
+    self.sequential_layers.trainable = False
+    return self.embedding_layers
+
+  def penultimate_rep(self, x_catg, x_numer):
+    embeddings = [x_numer]
+    for i in range(self.n_catg):
+      embeddings.append(self.embedding_layers[i](x_catg[:, i]))
+    x = tf.concat(embeddings, axis=-1)
+    return self.sequential_layers(x)
+
+  def call(self, inp):
+    """Call."""
+    x_catg, x_numer = inp
+    embeddings = [x_numer]
+    for i in range(self.n_catg):
+      embeddings.append(self.embedding_layers[i](x_catg[:, i]))
+    x = tf.concat(embeddings, axis=-1)
+    return self.final_layer(self.sequential_layers(x))
+
+  def train_step(
+      self, batch
+  ):
+    """Train step."""
+    x_catg, x_numer, y = batch
+    with tf.GradientTape() as tape:
+      y_pred = self((x_catg, x_numer))
+      loss = self.bag_loss(x_catg, x_numer, y, y_pred)
+    gradients = tape.gradient(loss, self.trainable_variables)
+    self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
+    self.compiled_metrics.update_state(y, y_pred)
+    return {m.name: m.result() for m in self.metrics}
+
+  def test_step(
+      self, batch
+  ):
+    """Test step."""
+    x_catg, x_numer, y = batch
+    y_pred = self((x_catg, x_numer))
     self.compiled_metrics.update_state(y, y_pred)
     return {m.name: m.result() for m in self.metrics}

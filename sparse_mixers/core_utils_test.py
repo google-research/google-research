@@ -80,7 +80,7 @@ class TreeTest(absltest.TestCase):
 
     # Check that values match regular JAX tree_flatten.
     self.assertEqual([x for _, x in names_and_values],
-                     jax.tree_flatten(tree)[0])
+                     jax.tree.flatten(tree)[0])
 
   def test_tree_map_with_names(self):
     tree = {"a": 1, "b": 2}

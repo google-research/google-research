@@ -123,7 +123,7 @@ class MinibatchSampler(metaclass=abc.ABCMeta):
       key = random.PRNGKey(0)
 
     indices = jnp.where(indicator)[0]
-    indices = random.shuffle(key, indices)
+    indices = random.permutation(key, indices)
     selected_indices = indices[0:jnp.minimum(indices.size, num_samples)]
     selected_indicator = indices_to_dense_vector(
         selected_indices, jnp.shape(indicator)[0]) == 1.
@@ -304,7 +304,7 @@ class BalancedPositiveNegativeSampler(MinibatchSampler):
 
     # Shuffle indicator and label. Need to store the permutation to restore the
     # order post sampling.
-    permutation = random.shuffle(key, jnp.arange(input_length))
+    permutation = random.permutation(key, input_length)
     indicator = indicator[permutation]
     labels = labels[permutation]
 

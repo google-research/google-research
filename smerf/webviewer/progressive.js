@@ -427,8 +427,8 @@ function renderProgressively() {
   // With more subsampling we need to average more aggressively over time. This
   // is controled by emaAlpha (exponential moving average), which averages more
   // when the value gets smaller. This formula for setting emaAlpha was hand-
-  // tuned to work well in gardenvase.
-  let emaAlpha = Math.min(1.0, Math.sqrt(0.1 / samples_x.length));
+  // tuned to work well in bicycle.
+  let emaAlpha = Math.min(1.0, 0.7 / samples_x.length);
   if (cameraMoved) {
     gFrameIndex = 0;
     emaAlpha = 1.0;

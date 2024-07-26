@@ -88,6 +88,8 @@ class AdamWeightDecayOptimizer(tf.train.AdamOptimizer):
 
   def _apply_dense(self, grad, var):
     """Adds ops to apply dense gradients to `var`."""
+    if self._decay_vars is None:
+      raise ValueError('_decay_vars is None in _apply_dense.')
     if var.ref() in self._decay_vars:
       beta1_power, beta2_power = self._get_beta_accumulators()
       beta1_power = tf.cast(beta1_power, var.dtype.base_dtype)

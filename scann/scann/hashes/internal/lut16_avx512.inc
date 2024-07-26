@@ -699,7 +699,13 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
           push_mask &= (push_mask - 1);
           const size_t dp_idx = first_dp_index + 64 * mm + offset;
           const T distance = distances_buffer[64 * mm + offset];
-          const bool needs_collection = topn_mutators[j].Push(dp_idx, distance);
+
+          if (kNumQueriesFloat > 0) {
+            DCHECK_LE(distance,
+                      topn_mutators[j].epsilon() + (*simd_inv_mults[j])[0]);
+          }
+          const bool needs_collection =
+              topn_mutators[j].PushNoEpsilonCheck(dp_idx, distance);
           if (ABSL_PREDICT_FALSE(needs_collection)) {
             topn_mutators[j].GarbageCollect();
 
@@ -754,7 +760,13 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
         push_mask &= (push_mask - 1);
         const size_t dp_idx = first_dp_index + 32 * k + offset;
         const T distance = distances_buffer[offset];
-        const bool needs_collection = topn_mutators[j].Push(dp_idx, distance);
+
+        if (kNumQueriesFloat > 0) {
+          DCHECK_LE(distance,
+                    topn_mutators[j].epsilon() + (*simd_inv_mults[j])[0]);
+        }
+        const bool needs_collection =
+            topn_mutators[j].PushNoEpsilonCheck(dp_idx, distance);
         if (ABSL_PREDICT_FALSE(needs_collection)) {
           topn_mutators[j].GarbageCollect();
 

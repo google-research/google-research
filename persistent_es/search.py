@@ -323,10 +323,10 @@ def unroll(key, theta, state, T, K):
 
     # Gradient clipping
     # =================
-    grads = jax.tree_map(lambda g: jnp.nan_to_num(g), grads)
+    grads = jax.tree.map(lambda g: jnp.nan_to_num(g), grads)
 
     if args.inner_clip > 0:
-      grads = jax.tree_map(
+      grads = jax.tree.map(
           lambda g: jnp.clip(g, a_min=-args.inner_clip, a_max=args.inner_clip),
           grads)
     # =================
@@ -464,7 +464,7 @@ for setting in args.tune_params:
     idx_dict[param] = jnp.array([idx, idx + 1])
     idx += 2
   elif sched == 'fixed-pl':
-    hparam_tree = jax.tree_map(lambda x: jnp.array(default), params)
+    hparam_tree = jax.tree.map(lambda x: jnp.array(default), params)
     hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
         hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
@@ -472,7 +472,7 @@ for setting in args.tune_params:
     idx_dict[param] = jnp.array(list(range(idx, idx + len(hparam_vector))))
     idx += len(hparam_vector)
   elif sched == 'linear-pl':
-    hparam_tree = jax.tree_map(lambda x: jnp.array([default, default]), params)
+    hparam_tree = jax.tree.map(lambda x: jnp.array([default, default]), params)
     hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
         hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
@@ -480,7 +480,7 @@ for setting in args.tune_params:
     idx_dict[param] = jnp.array(list(range(idx, idx + len(hparam_vector))))
     idx += len(hparam_vector)
   elif sched == 'inverse-time-decay-pl':
-    hparam_tree = jax.tree_map(lambda x: jnp.array([default, 0.0]), params)
+    hparam_tree = jax.tree.map(lambda x: jnp.array([default, 0.0]), params)
     hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
         hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
@@ -527,7 +527,7 @@ def to_constrained(theta_unconstrained):
   return onp.concatenate(theta_constrained)
 
 
-num_leaves = len(jax.tree_leaves(params))
+num_leaves = len(jax.tree.leaves(params))
 key = jax.random.PRNGKey(args.seed)
 
 hparam_names = [setting['param'] for setting in args.tune_params]

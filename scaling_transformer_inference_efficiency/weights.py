@@ -167,7 +167,7 @@ class Weights:
   @classmethod
   def physical_axes(cls):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(
+    return jax.tree.map(
         partitioning.logical_to_physical, Weights.logical_axes()
     )
 
@@ -451,7 +451,7 @@ class QuantizedWeights:
   @classmethod
   def physical_axes(cls):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(
+    return jax.tree.map(
         partitioning.logical_to_physical, QuantizedWeights.logical_axes()
     )
 

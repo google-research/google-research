@@ -34,7 +34,6 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 namespace asymmetric_hashing2 {
@@ -174,13 +173,26 @@ Status Indexer<T>::HashWithNoiseShaping(
     return UnimplementedError(
         "Noised-shaped hashing only works with dense inputs for now.");
   }
-  if (model_->quantization_scheme() != AsymmetricHasherConfig::PRODUCT) {
+  if (model_->quantization_scheme() == AsymmetricHasherConfig::PRODUCT) {
+    return asymmetric_hashing_internal::AhImpl<T>::IndexDatapointNoiseShaped(
+        maybe_residual, original, *projector_, model_->centers(),
+        noise_shaping_param.threshold, noise_shaping_param.eta, hashed);
+  } else if (model_->quantization_scheme() == AsymmetricHasherConfig::STACKED) {
+    SCANN_RETURN_IF_ERROR(
+        asymmetric_hashing_internal::StackedQuantizers<T>::Hash(
+            maybe_residual, *projector_, *quantization_distance_,
+            model_->centers(), hashed));
+    asymmetric_hashing_internal::StackedQuantizers<
+        T>::NoiseShapeQuantizedVector(maybe_residual, original,
+                                      model_->centers(),
+                                      noise_shaping_param.threshold,
+                                      noise_shaping_param.eta, hashed);
+  } else {
     return UnimplementedError(
-        "Noise-shaped hashing only works with product quantization for now.");
+        "Noise shaping only works with PRODUCT and STACKED quantization for "
+        "now.");
   }
-  return asymmetric_hashing_internal::AhImpl<T>::IndexDatapointNoiseShaped(
-      maybe_residual, original, *projector_, model_->centers(),
-      noise_shaping_param.threshold, noise_shaping_param.eta, hashed);
+  return OkStatus();
 }
 
 template <typename T>

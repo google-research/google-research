@@ -226,7 +226,7 @@ class DreamField:
         last_augs = aux['augs'][-1]
 
       # Average each type of loss over substeps
-      mean_losses = jax.tree_map(np.mean, aux['losses'])
+      mean_losses = jax.tree.map(np.mean, aux['losses'])
       return state, last_augs, mean_losses, aux['scene_origin']
 
     train_pstep = jax.pmap(
@@ -360,7 +360,7 @@ class DreamField:
       rays = camera_ray_batch_base(pose, focal_mult)
       rays_in = shard_rays_jit(rays)
       # Select rays for this process
-      rays_in = jax.tree_map(lambda x: x[pid], rays_in)
+      rays_in = jax.tree.map(lambda x: x[pid], rays_in)
 
       substeps = np.arange(start=step, stop=step + config.substeps, step=1)
 
@@ -426,7 +426,7 @@ class DreamField:
           state, rays_in, keys_pstep, lrs, scs, sns, mrs, betas, accts, acclams)
 
       # Reduce across devices
-      mean_losses = jax.tree_map(np.mean, mean_losses)
+      mean_losses = jax.tree.map(np.mean, mean_losses)
 
       # Gradient skipping if nan.
       if (helpers.all_finite_tree(mean_losses) and
@@ -753,7 +753,7 @@ class DreamField:
       }
 
     metrics = {
-        'renders_by_width': jax.tree_map(onp.array, dict(all_renders_by_width)),
+        'renders_by_width': jax.tree.map(onp.array, dict(all_renders_by_width)),
         'work_unit_configs': work_unit_configs,
         'work_unit_queries': work_unit_queries,
     }

@@ -33,8 +33,8 @@ from scaling_transformer_inference_efficiency import partitioning
 @struct.dataclass
 class SamplingHyperParams:
   temperature: Any
-  top_k: Optional[Any] = None
-  top_p: Optional[Any] = None
+  top_k: Optional[Any] = struct.field(pytree_node=False, default=None)
+  top_p: Optional[Any] = struct.field(pytree_node=False, default=None)
 
   @classmethod
   def physical_axes(cls):

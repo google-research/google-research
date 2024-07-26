@@ -47,28 +47,34 @@ class SACConvNetwork(nn.Module):
   action_limits: Optional[Tuple[Tuple[float, Ellipsis], Tuple[float, Ellipsis]]] = None
 
   def setup(self):
-    self._sac_network = continuous_networks.SACNetwork(
-        self.action_shape, self.num_layers,
-        self.hidden_units, self.action_limits)
+    self._sac_network = continuous_networks.ActorCriticNetwork(
+        self.action_shape,
+        self.num_layers,
+        self.hidden_units,
+        self.action_limits,
+    )
 
-  def __call__(self,
-               z,
-               key,
-               mean_action = True):
+  def __call__(
+      self, z, key, mean_action = True
+  ):
     """Calls the SAC actor/critic networks."""
     actor_output = self._sac_network.actor(z, key)
-    action = actor_output.mean_action if mean_action else actor_output.sampled_action
+    action = (
+        actor_output.mean_action if mean_action else actor_output.sampled_action
+    )
     critic_output = self._sac_network.critic(z, action)
 
-    return continuous_networks.SacOutput(actor_output, critic_output)
+    return continuous_networks.ActorCriticOutput(actor_output, critic_output)
 
-  def actor(self, z,
-            key):
+  def actor(
+      self, z, key
+  ):
     """Calls the SAC actor network."""
     return self._sac_network.actor(z, key)
 
-  def critic(self, z,
-             action):
+  def critic(
+      self, z, action
+  ):
     """Calls the SAC critic network."""
     return self._sac_network.critic(z, action)
 
@@ -224,8 +230,7 @@ def train(encoder_network_def,
         fixed_encoded_states, actions, brng)
     learned_z = jax.vmap(encoder_online_critic)(states)
     # We shuffle the batch element IDs.
-    shuffled_idx = jnp.array(list(range(batch_size)))
-    shuffled_idx = jax.random.shuffle(rng12, shuffled_idx)
+    shuffled_idx = jax.random.permutation(rng12, batch_size)
     shuffled_z = learned_z[shuffled_idx]
     if use_mico:
       base_distances = jax.vmap(metric_utils.cosine_distance)(learned_z,
@@ -487,9 +492,9 @@ class DBCAgent(sac_agent.SACAgent):
       return (self.target_smoothing_coefficient * online_p +
               (1 - self.target_smoothing_coefficient) * target_p)
 
-    self.target_params = jax.tree_map(_sync_weights, self.target_params,
+    self.target_params = jax.tree.map(_sync_weights, self.target_params,
                                            self.network_params)
-    self.encoder_target_params = jax.tree_map(_sync_weights,
+    self.encoder_target_params = jax.tree.map(_sync_weights,
                                                    self.encoder_target_params,
                                                    self.encoder_params)
 

@@ -117,14 +117,14 @@ class FWModule(nn.Module):
   """A flax module using fast weights."""
 
   def replicated_params(self, x):
-    return jax.tree_map(
+    return jax.tree.map(
         lambda v: jnp.tile(v, (x.shape[0], x.shape[1], 1)), self.variables)
 
   def get_perturbation(self, x):
-    return jax.tree_map(jnp.zeros_like, self.replicated_params(x))
+    return jax.tree.map(jnp.zeros_like, self.replicated_params(x))
 
   def fwd_with_perturbation(self, x, perturbation):
-    new_params = jax.tree_map(
+    new_params = jax.tree.map(
         lambda v, p: v + p, self.replicated_params(x), perturbation)
     return jax.vmap(jax.vmap(self.apply))(new_params, x)
 

@@ -297,7 +297,7 @@ class MultiEnvDomainAdverserial(multi_env_trainer.MultiEnvTrainer):
       self.train_state, t_metrics = self.pmapped_train_step(
           self.train_state, labeled_batches, unlabeled_batches)
 
-      t_metrics = jax.tree_map(lambda x: x[0], t_metrics)
+      t_metrics = jax.tree.map(lambda x: x[0], t_metrics)
       train_metrics.append(t_metrics)
 
       (eval_summary, train_metrics, train_summary,

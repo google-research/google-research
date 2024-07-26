@@ -204,7 +204,7 @@ class GraphBundleTest(absltest.TestCase):
       self.assertEqual(x.shape, y.shape)
       self.assertEqual(x.dtype, y.dtype)
 
-    jax.tree_map(_check, generated, padded_example)
+    jax.tree.map(_check, generated, padded_example)
 
 
 if __name__ == "__main__":

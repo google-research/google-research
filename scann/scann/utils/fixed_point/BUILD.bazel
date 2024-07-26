@@ -12,5 +12,6 @@ cc_library(
     deps = [
         "//scann/data_format:dataset",
         "//scann/utils:types",
+        "@com_google_absl//absl/types:span",
     ],
 )

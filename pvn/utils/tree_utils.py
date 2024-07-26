@@ -35,7 +35,7 @@ def _traverse_with_names(tree):
     tree = flax.serialization.to_state_dict(tree)
   # Don't output the non-leaf nodes. If the optimizer doesn't have a state
   # the tree leaves can be Nones which was interpreted as a leaf by this
-  # function but not by the other functions (like jax.tree_map).
+  # function but not by the other functions (like jax.tree.map).
   if tree is None:
     return
   elif isinstance(tree, Mapping):
@@ -81,7 +81,7 @@ def tree_flatten_with_names(tree):
 
 
 def tree_map_with_names(f, tree, *rest):
-  """Like jax.tree_map but with a filter on the leaf path name.
+  """Like jax.tree.map but with a filter on the leaf path name.
 
   Args:
     f: A function with first parameter `name` (path-like "a/b/c") and remaining

@@ -1,0 +1,27 @@
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+cc_library(
+    name = "eigen_utils",
+    srcs = ["eigen_utils.cc"],
+    hdrs = ["eigen_utils.h"],
+    tags = ["local"],
+    deps = [
+        ":types",
+        "//scann/data_format:dataset",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:tf_dependency",
+        "//scann/utils:common",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/strings:str_format",
+    ],
+)
+
+cc_library(
+    name = "types",
+    hdrs = ["types.h"],
+    tags = ["local"],
+    deps = ["//scann/oss_wrappers:tf_dependency"],
+)

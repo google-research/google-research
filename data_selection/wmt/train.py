@@ -356,7 +356,7 @@ def main(argv):
         with jax.profiler.StepTraceAnnotation('train', step_num=step):
           try:
             batch = common_utils.shard(
-                jax.tree_map(np.asarray, next(train_iter)))
+                jax.tree.map(np.asarray, next(train_iter)))
             optimizer, metrics = p_train_step(
                 optimizer, batch, dropout_rng=dropout_rngs)
             train_metrics.append(metrics)
@@ -375,9 +375,9 @@ def main(argv):
             logging.info('Gathering training metrics.')
             train_metrics = common_utils.get_metrics(train_metrics)
             lr = train_metrics.pop('learning_rate').mean()
-            metrics_sums = jax.tree_map(jnp.sum, train_metrics)
+            metrics_sums = jax.tree.map(jnp.sum, train_metrics)
             denominator = metrics_sums.pop('denominator')
-            summary = jax.tree_map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
+            summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
             summary['learning_rate'] = lr
             summary = {'train_' + k: v for k, v in summary.items()}
             writer.write_scalars(step, summary)
@@ -471,7 +471,7 @@ def get_new_distribution(p_get_diag_grads, p_get_bucket_score, eval_ds,
       diag_iter = train_ds_mgr.get_bucket(bucket_id)
 
     diag_batch = next(diag_iter)
-    diag_batch = common_utils.shard(jax.tree_map(
+    diag_batch = common_utils.shard(jax.tree.map(
         lambda x: x._numpy(), diag_batch))  # pylint: disable=protected-access
 
     if bucket_id == -2:
@@ -500,7 +500,7 @@ def get_new_distribution(p_get_diag_grads, p_get_bucket_score, eval_ds,
 
       print('compute bucket scores')
       score = p_get_bucket_score(val_grad, ft_grad, curr_grad)
-      device_score = jax.tree_map(lambda x: x[0], score)
+      device_score = jax.tree.map(lambda x: x[0], score)
       score_np = jax.device_get(device_score)
       new_distribution[bucket_id] = score_np
   logging.info(new_distribution)
@@ -541,7 +541,7 @@ def get_macro_distribution(p_get_diag_grads, p_get_bucket_score, eval_ds,
       diag_iter = build_split(train_ds_mgr, splits[bucket_id])
 
     diag_batch = next(diag_iter)
-    diag_batch = common_utils.shard(jax.tree_map(
+    diag_batch = common_utils.shard(jax.tree.map(
         lambda x: x._numpy(), diag_batch))  # pylint: disable=protected-access
 
     if bucket_id == -2:
@@ -570,7 +570,7 @@ def get_macro_distribution(p_get_diag_grads, p_get_bucket_score, eval_ds,
 
       print('compute bucket scores')
       score = p_get_bucket_score(val_grad, ft_grad, curr_grad)
-      device_score = jax.tree_map(lambda x: x[0], score)
+      device_score = jax.tree.map(lambda x: x[0], score)
       score_np = jax.device_get(device_score)
       options[bucket_id] = score_np
   logging.info(options)

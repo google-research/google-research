@@ -63,7 +63,8 @@
   <p>
     The TSV file must have a header line. The header line should be the JSON encoding of an
     object that identifies the "source_language" and "target_language". It may include other
-    metadata fields as needed. Example:
+    metadata fields as needed, including "note_to_raters" (a plain text string that will be
+    displayed at the bottom of the instructions). Example:
     <blockquote>
       <code>
       {"source_language": "[language-code-BCP47]", "target_language": "[language-code-BCP47]"}

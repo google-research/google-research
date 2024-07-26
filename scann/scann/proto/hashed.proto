@@ -23,6 +23,10 @@ message HashedItem {
 
   required bytes indicator_vars = 2;
 
+  optional bytes soar_indicator_vars = 6;
+
+  optional int32 soar_partition_idx = 7 [default = -1];
+
   reserved 4;
 
   repeated int64 deprecated_token_membership = 3;

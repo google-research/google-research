@@ -65,7 +65,7 @@ def save_anndata(adata, output_dir,
   """Saves AnnData object in 10X format."""
   tf.io.gfile.makedirs(output_dir)
   with tf.io.gfile.GFile(os.path.join(output_dir, 'matrix.mtx'), mode='w') as f:
-    scipy.io.mmwrite(f, adata.X.transpose())
+    scipy.io.mmwrite(f, adata.X.transpose())  # pytype: disable=attribute-error  # scipy
   new_bins = pd.DataFrame(adata.var_names, columns=['var_names'])
   with tf.io.gfile.GFile(os.path.join(output_dir, 'bins.tsv'), mode='w') as f:
     new_bins.to_csv(

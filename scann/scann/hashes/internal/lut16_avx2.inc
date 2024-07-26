@@ -489,8 +489,10 @@ SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
           }
         }
 
-        const bool needs_gc =
-            topn_mutators[j].Push(dp_idx, distances_buffer[offset]);
+        DCHECK_LE(distances_buffer[offset],
+                  topn_mutators[j].epsilon() + (*inv_mults[j])[0]);
+        const bool needs_gc = topn_mutators[j].PushNoEpsilonCheck(
+            dp_idx, distances_buffer[offset]);
         if (ABSL_PREDICT_FALSE(needs_gc)) {
           topn_mutators[j].GarbageCollect();
 

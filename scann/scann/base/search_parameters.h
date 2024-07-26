@@ -15,7 +15,7 @@
 #ifndef SCANN_BASE_SEARCH_PARAMETERS_H_
 #define SCANN_BASE_SEARCH_PARAMETERS_H_
 
-#include <cstddef>
+#include <cmath>
 #include <cstdint>
 #include <optional>
 #include <utility>
@@ -23,6 +23,7 @@
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/prefetch.h"
 
@@ -34,7 +35,7 @@ class SearchParameters {
  public:
   SCANN_DECLARE_MOVE_ONLY_CLASS(SearchParameters);
 
-  SearchParameters() {}
+  SearchParameters() = default;
 
   SearchParameters(
       int32_t pre_reordering_num_neighbors, float pre_reordering_epsilon,

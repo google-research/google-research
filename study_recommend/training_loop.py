@@ -599,7 +599,7 @@ def training_loop(
         ckptr = orbax.checkpoint.Checkpointer(
             orbax.checkpoint.PyTreeCheckpointHandler()
         )
-        payload = jax.tree_map(
+        payload = jax.tree.map(
             utils.convert_host_local_array_to_global_array,
             state,
         )

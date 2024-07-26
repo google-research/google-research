@@ -88,7 +88,7 @@ def main(_):
         data['avg_gap'].append(run.avg_gap)
         data['max_gap'].append(run.max_gap)
   df = pd.DataFrame(data=data)
-  plt.style.use('seaborn-colorblind')
+  plt.style.use('seaborn-v0_8-colorblind')
   # First generate plots for each state-action pair.
   for ns in total_num_states:
     for na in total_num_actions:

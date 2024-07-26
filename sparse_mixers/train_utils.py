@@ -145,7 +145,7 @@ def collect_metrics(stats):
   stats_np = jax.device_get(stats)
   concat_args = lambda *args: np.concatenate(args) if isinstance(  # pylint: disable=g-long-lambda
       args, list) else np.asarray(args)
-  result = jax.tree_map(concat_args, *stats_np)
+  result = jax.tree.map(concat_args, *stats_np)
   return result
 
 
@@ -368,7 +368,7 @@ def pmap_train_step(
 
   # Record L2 norm of gradients.
   metrics = metrics.replace(
-      grad_l2_sum=sum([jnp.sum(x**2) for x in jax.tree_leaves(grads)]))
+      grad_l2_sum=sum([jnp.sum(x**2) for x in jax.tree.leaves(grads)]))
 
   new_train_state = train_state.apply_gradients(grads=grads)
 
@@ -386,7 +386,7 @@ def _accumulate_gradient(
   if accum_steps and accum_steps > 1:
     split_fn = functools.partial(
         jnp.split, indices_or_sections=accum_steps, axis=0)
-    mini_batches = jax.tree_map(lambda x: jnp.asarray(split_fn(x)), batch)
+    mini_batches = jax.tree.map(lambda x: jnp.asarray(split_fn(x)), batch)
 
     def get_mini_batch(big_batch, step):
       """Extracts mini-batch for specified step."""
@@ -397,15 +397,15 @@ def _accumulate_gradient(
       mini_grad, mini_metrics = grad_fn(
           params, batch=get_mini_batch(mini_batches, step))
       old_grad, old_metrics = state
-      new_grad = jax.tree_map(jnp.add, old_grad, mini_grad)
-      new_metrics = jax.tree_map(jnp.add, old_metrics, mini_metrics)
+      new_grad = jax.tree.map(jnp.add, old_grad, mini_grad)
+      new_metrics = jax.tree.map(jnp.add, old_metrics, mini_metrics)
       return new_grad, new_metrics
 
     start_grad, start_metrics = grad_fn(
         params, batch=get_mini_batch(mini_batches, 0))
     accumulated_state = jax.lax.fori_loop(1, accum_steps, accumulate,
                                           (start_grad, start_metrics))
-    return jax.tree_map(lambda x: x / accum_steps, accumulated_state)
+    return jax.tree.map(lambda x: x / accum_steps, accumulated_state)
   else:
     return grad_fn(params, batch)
 

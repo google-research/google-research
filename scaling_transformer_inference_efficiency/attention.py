@@ -114,7 +114,7 @@ class KVCache:
   @classmethod
   def physical_axes(cls, circular=False):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(
+    return jax.tree.map(
         partitioning.logical_to_physical, KVCache.logical_axes(circular)
     )
 

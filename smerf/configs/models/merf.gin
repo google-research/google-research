@@ -1,0 +1,65 @@
+# MERF
+#
+# This config is our implementation of MERF as closely as published.
+#
+
+# Where data & checkpoints are stored.
+smerf.internal.configs.Config.data_dir = "REQUIRED"
+smerf.internal.configs.Config.checkpoint_dir = "REQUIRED"
+
+# Dataset
+# ------------------------------------------------------------------------------
+# Default near/far bounds. May be overriden per-dataset.
+smerf.internal.configs.Config.near = 0.0
+smerf.internal.configs.Config.far = 1_000_000.0
+
+# Training
+# ------------------------------------------------------------------------------
+# Batch size accumulated over multiple steps.
+smerf.internal.configs.Config.batch_size = 65_536
+smerf.internal.configs.Config.render_chunk_size = 65_536
+smerf.internal.configs.Config.gradient_accumulation_steps = 2
+
+# Train for 25k steps.
+smerf.internal.configs.Config.max_steps = 25_000
+smerf.internal.configs.Config.alpha_threshold = @v0/smerf.internal.schedule.LogLerpSchedule()
+v0/smerf.internal.schedule.LogLerpSchedule.start = 10_000
+v0/smerf.internal.schedule.LogLerpSchedule.end = 20_000
+v0/smerf.internal.schedule.LogLerpSchedule.v0 = 0.0005
+v0/smerf.internal.schedule.LogLerpSchedule.v1 = 0.005
+v0/smerf.internal.schedule.LogLerpSchedule.zero_before_start = True
+
+# Model
+# ------------------------------------------------------------------------------
+# Use SNeRG-style deferred rendering.
+smerf.internal.configs.Config.deferred_rendering_mode = 'snerg'
+
+# Spatial resolution up to 2048^3
+smerf.internal.configs.Config.triplane_resolution = 2048
+smerf.internal.configs.Config.sparse_grid_resolution = 512
+
+# Don't use teacher at rendering time.
+smerf.internal.configs.Config.distill_use_teacher_tdist = False
+smerf.internal.configs.Config.distill_use_teacher_exposure = False
+
+# Control flow
+# ------------------------------------------------------------------------------
+# Render a single test image every few steps.
+smerf.internal.configs.Config.train_render_every = 2500
+
+# Export
+# ------------------------------------------------------------------------------
+# Store arrays as gzip'd byte streams.
+smerf.internal.configs.Config.export_array_format = 'raw.gz'
+
+# Slice occupancy, distance grids.
+smerf.internal.configs.Config.export_slice_occupancy_and_distance_grids = True
+
+# Don't pad occupancy and distance grids for RGBA.
+smerf.internal.configs.Config.export_pad_occupancy_and_distance_grids = False
+
+# Store DeferredMLP weights in deferred_mlp.json.gz
+smerf.internal.configs.Config.export_store_deferred_mlp_separately = True
+
+# Store rgb and density as ready-to-upload WebGL texture slices.
+smerf.internal.configs.Config.export_store_rgb_and_density_separately = True

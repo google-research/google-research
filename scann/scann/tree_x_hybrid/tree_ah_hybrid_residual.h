@@ -22,6 +22,7 @@
 #include <memory>
 #include <utility>
 
+#include "absl/log/check.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/datapoint.h"
@@ -31,8 +32,12 @@
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/tree_x_hybrid/internal/utils.h"
+#include "scann/tree_x_hybrid/mutator.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
+#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -47,6 +52,8 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   struct BuildLeafSearchersOptions {
     const DenseDataset<uint8_t>* hashed_dataset = nullptr;
+
+    const DenseDataset<uint8_t>* soar_hashed_dataset = nullptr;
 
     ThreadPool* pool = nullptr;
   };
@@ -65,6 +72,9 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
   bool supports_crowding() const final { return true; }
 
+  StatusOr<typename SingleMachineSearcherBase<float>::Mutator*> GetMutator()
+      const final;
+
   static StatusOr<DenseDataset<float>> ComputeResiduals(
       const DenseDataset<float>& dataset,
       const KMeansTreeLikePartitioner<float>* partitioner,
@@ -75,9 +85,6 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       const DenseDataset<float>& kmeans_centers,
       ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
 
-  static StatusOr<uint8_t> ComputeGlobalTopNShift(
-      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
-
   Status PreprocessQueryIntoParamsUnlocked(
       const DatapointPtr<float>& query,
       SearchParameters& search_params) const final;
@@ -85,7 +92,21 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
 
-  void AttemptEnableGlobalTopN();
+  vector<uint32_t> SizeByPartition() const final;
+
+  float spilling_overretrieve_factor() const {
+    return spilling_overretrieve_factor_;
+  }
+  void set_spilling_overretrieve_factor(float factor) {
+    DCHECK_GE(factor, 1.0);
+    DCHECK_LE(factor, 2.0);
+    spilling_overretrieve_factor_ = factor;
+  }
+
+  void set_fixed_point_lut_conversion_options(
+      AsymmetricHasherConfig::FixedPointLUTConversionOptions opts) {
+    fixed_point_lut_conversion_options_ = std::move(opts);
+  }
 
  protected:
   bool impl_needs_dataset() const final { return leaf_searchers_.empty(); }
@@ -111,7 +132,7 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       : public SearchParameters::UnlockedQueryPreprocessingResults {
    public:
     UnlockedTreeAHHybridResidualPreprocessingResults(
-        vector<KMeansTreeSearchResult> centers_to_search,
+        vector<pair<DatapointIndex, float>> centers_to_search,
         asymmetric_hashing2::LookupTable lookup_table)
         : centers_to_search_(std::move(centers_to_search)),
           lookup_table_(
@@ -119,7 +140,7 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
                   asymmetric_hashing2::AsymmetricHashingOptionalParameters>(
                   std::move(lookup_table))) {}
 
-    ConstSpan<KMeansTreeSearchResult> centers_to_search() const {
+    ConstSpan<pair<DatapointIndex, float>> centers_to_search() const {
       return centers_to_search_;
     }
 
@@ -129,54 +150,97 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
     }
 
    private:
-    vector<KMeansTreeSearchResult> centers_to_search_;
+    vector<pair<DatapointIndex, float>> centers_to_search_;
     shared_ptr<asymmetric_hashing2::AsymmetricHashingOptionalParameters>
         lookup_table_;
   };
 
   Status FindNeighborsInternal1(
       const DatapointPtr<float>& query, const SearchParameters& params,
-      ConstSpan<KMeansTreeSearchResult> centers_to_search,
+      ConstSpan<pair<DatapointIndex, float>> centers_to_search,
       NNResultsVector* result) const;
 
   template <typename TopN>
   Status FindNeighborsInternal2(
       const DatapointPtr<float>& query, const SearchParameters& params,
-      ConstSpan<KMeansTreeSearchResult> centers_to_search, TopN top_n,
-      NNResultsVector* result) const;
+      ConstSpan<pair<DatapointIndex, float>> centers_to_search, TopN top_n,
+      NNResultsVector* result,
+      shared_ptr<asymmetric_hashing2::AsymmetricHashingOptionalParameters>
+          lookup_table) const;
+
+  SCANN_INLINE uint8_t GlobalTopNShift() const {
+    if (!enable_global_topn_) return 0;
+
+    if (datapoints_by_token_.size() <= 1) return 0;
+
+    int inner_leaf_bits = 32 - bits::Log2Ceiling(datapoints_by_token_.size());
+    if (leaf_size_upper_bound_ <= (1ull << inner_leaf_bits)) {
+      SCANN_LOG_NOOP(3) << "Global top-N enabled for query.";
+      return inner_leaf_bits;
+    } else {
+      SCANN_LOG_NOOP(3) << "Leaf too big, global top-N disabled for query.";
+      return 0;
+    }
+  }
 
   Status CheckBuildLeafSearchersPreconditions(
       const AsymmetricHasherConfig& config,
       const KMeansTreeLikePartitioner<float>& partitioner) const;
 
-  int spilling_multiplier() const {
-    return datapoints_by_token_disjoint_ ? 1 : 2;
+  using MutationArtifacts = TreeXHybridMutator<
+      TreeAHHybridResidual>::TreeXPrecomputedMutationArtifacts;
+
+  StatusOr<MutationArtifacts> TokenizeAndMaybeResidualize(
+      const DatapointPtr<float>& dptr);
+
+  StatusOr<vector<MutationArtifacts>> TokenizeAndMaybeResidualize(
+      const TypedDataset<float>& dps);
+
+  int32_t NumNeighborsWithSpillingMultiplier(int32_t num_neighbors) const {
+    return datapoints_by_token_disjoint_
+               ? num_neighbors
+               : SafeIntFloatMul(num_neighbors, spilling_overretrieve_factor_);
   }
+
+  Status AddLeafSearcher();
 
   vector<unique_ptr<asymmetric_hashing2::Searcher<float>>> leaf_searchers_;
 
   shared_ptr<const asymmetric_hashing2::AsymmetricQueryer<float>>
       asymmetric_queryer_;
 
-  unique_ptr<KMeansTreeLikePartitioner<float>> query_tokenizer_;
+  shared_ptr<KMeansTreeLikePartitioner<float>> query_tokenizer_;
   shared_ptr<const KMeansTreeLikePartitioner<float>> database_tokenizer_;
 
   vector<std::vector<DatapointIndex>> datapoints_by_token_;
 
-  bool datapoints_by_token_disjoint_ = true;
+  vector<uint32_t> leaf_tokens_by_norm_;
 
   DatapointIndex num_datapoints_ = 0;
-
-  vector<uint32_t> leaf_tokens_by_norm_;
 
   AsymmetricHasherConfig::LookupType lookup_type_tag_ =
       AsymmetricHasherConfig::FLOAT;
 
+  AsymmetricHasherConfig::FixedPointLUTConversionOptions
+      fixed_point_lut_conversion_options_;
+
+  mutable unique_ptr<TreeXHybridMutator<TreeAHHybridResidual>> mutator_;
+  friend class TreeXHybridMutator<TreeAHHybridResidual>;
+
+  unique_ptr<asymmetric_hashing2::SearcherOptions<float>> searcher_options_ =
+      nullptr;
+
+  uint32_t leaf_size_upper_bound_ = 0;
+
+  bool datapoints_by_token_disjoint_ = true;
+
   bool enable_global_topn_ = false;
 
-  uint8_t global_topn_shift_ = 0;
+  float spilling_overretrieve_factor_ = 2.0f;
 
   FRIEND_TEST(TreeAHHybridResidualTest, CrowdingMutation);
+
+  FRIEND_TEST(TreeAHHybridResidualTest, GlobalTopNManyUpdates);
 };
 
 }  // namespace research_scann

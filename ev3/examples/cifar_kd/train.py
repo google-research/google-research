@@ -491,7 +491,7 @@ def train(config, workdir):
           'resnet_num_filters': model.graph.nn_model.num_filters,
           'resnet_stage_size': model.graph.nn_model.stage_sizes[0],
           'resnet_num_params': sum(
-              x.size for x in jax.tree_leaves(model.params)
+              x.size for x in jax.tree.leaves(model.params)
           ),
           'pass_idx': pass_idx,
       }

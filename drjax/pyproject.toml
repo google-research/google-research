@@ -1,0 +1,26 @@
+[build-system]
+requires = ['setuptools']
+build-backend = 'setuptools.build_meta'
+
+[project]
+name = 'drjax'
+version = '0.0.1'
+description = 'DrJAX - Differentiable MapReduce Primitives in JAX'
+readme = {file = "README.md", content-type = "text/markdown"}
+license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+authors = [
+  {name = "Keith Rush", email = "krush@google.com"},
+  {name = "Zachary Charles", email = "zachcharles@google.com"},
+  {name = "Zachary Garrett", email = "zachgarrett@google.com"},
+]
+keywords = ["mapreduce", "parallel", "distributed", "federated", "machine", "learning", "jax"]
+dependencies = [
+    'absl-py~=1.0',
+    'jax~=0.4.24',
+    'jaxlib~=0.4.24',
+]
+
+[project.urls]
+Repository = "https://github.com/google-research/google-research"
+

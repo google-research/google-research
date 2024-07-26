@@ -1081,7 +1081,7 @@ def make_encoder_decoder(config,
 
 
 def expand_dims(*args):
-  return jax.tree_map(lambda x: x[None], args)
+  return jax.tree.map(lambda x: x[None], args)
 
 
 @gin.configurable(denylist=['train'])

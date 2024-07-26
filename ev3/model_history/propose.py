@@ -55,7 +55,7 @@ def generate_an_update(
     parameter space connecting model.params to the end of the SGD trajectory and
     opt_state is the updated SGD state.
   """
-  new_params = jax.tree_map(lambda a: a + 0.0, model.params)
+  new_params = jax.tree.map(lambda a: a + 0.0, model.params)
   grad_fn = state.grad_fn_list[loss_ind]
   loss_state = state.loss_states[loss_ind]
   tx = state.tx_list[tx_ind]
@@ -82,7 +82,7 @@ def generate_an_update(
     batch = get_batch_fn(state)
     grad = grad_fn(new_params, model.graph, loss_state, batch)
     params_update, opt_state = tx.update(grad, opt_state, model.params)
-    new_params = jax.tree_map(lambda p, u: p + u, new_params, params_update)
+    new_params = jax.tree.map(lambda p, u: p + u, new_params, params_update)
   return new_params, opt_state
 
 
@@ -116,7 +116,7 @@ def generate_an_update_bn(
     parameter space connecting model.params to the end of the SGD trajectory and
     opt_state is the updated SGD state.
   """
-  new_params = jax.tree_map(lambda a: a + 0.0, model.params)
+  new_params = jax.tree.map(lambda a: a + 0.0, model.params)
   grad_fn = state.grad_fn_list[loss_ind]
   loss_state = state.loss_states[loss_ind]
   tx = state.tx_list[tx_ind]
@@ -145,7 +145,7 @@ def generate_an_update_bn(
         new_params, model.graph, loss_state, batch
     )
     params_update, opt_state = tx.update(params_grad, opt_state, new_params)
-    new_params = jax.tree_map(lambda p, u: p + u, new_params, params_update)
+    new_params = jax.tree.map(lambda p, u: p + u, new_params, params_update)
     new_params = {
         'params': new_params['params'],
         'batch_stats': batch_stats['batch_stats'],

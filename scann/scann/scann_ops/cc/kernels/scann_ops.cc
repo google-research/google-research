@@ -234,7 +234,7 @@ class ScannToTensorsOp : public OpKernel {
 
     auto options_or_status = scann_resource->scann_->ExtractOptions();
     OP_REQUIRES_OK(context, ConvertStatus(options_or_status.status()));
-    auto opts = options_or_status.value();
+    const auto& opts = options_or_status.value();
 
     TensorFromProtoRequireOk(context, "scann_config",
                              scann_resource->scann_->config());
@@ -305,7 +305,8 @@ void CreateSearcherFromSerialized(OpKernelContext* context,
   GetTensorRequireOk(context, "int8_multipliers", &int8_multipliers);
   GetTensorRequireOk(context, "dp_norms", &dp_norms);
 
-  uint32_t n_points = research_scann::kInvalidDatapointIndex;
+  research_scann::DatapointIndex n_points =
+      research_scann::kInvalidDatapointIndex;
   research_scann::ConstSpan<float> dataset;
   if (db_tensor->dims() != 0) {
     OP_REQUIRES(context, db_tensor->dims() == 2,

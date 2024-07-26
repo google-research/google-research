@@ -194,7 +194,7 @@ class SNRLearner(acme.Learner):
     def compute_kernel_features(params, X0):
       rest_params, last_layer_params = params[:-1], params[-1]
       dQ_dX0 = dQ_dX(last_layer_params, rest_params, X0)
-      dQ_dX0 = jax.tree_map(
+      dQ_dX0 = jax.tree.map(
           lambda x: jnp.reshape(x, [x.shape[0], -1]),
           dQ_dX0)
       dQ_dX0 = jnp.concatenate(dQ_dX0, axis=-1)
@@ -241,7 +241,7 @@ class SNRLearner(acme.Learner):
     def compute_full_norm(p):
       """Compute the global norm across a nested structure of tensors."""
       return jnp.sqrt(
-          sum([jnp.sum(jnp.square(x)) for x in jax.tree_leaves(p)]))
+          sum([jnp.sum(jnp.square(x)) for x in jax.tree.leaves(p)]))
 
     def total_actor_loss_fn(policy_params,
                             q_params,
@@ -381,7 +381,7 @@ class SNRLearner(acme.Learner):
           critic_grads, state.q_optimizer_state)
       q_params = optax.apply_updates(state.q_params, critic_update)
 
-      # new_target_q_params = jax.tree_map(
+      # new_target_q_params = jax.tree.map(
       #     lambda x, y: x * (1 - tau) + y * tau, state.target_q_params, q_params)
       new_target_q_params = q_params
 

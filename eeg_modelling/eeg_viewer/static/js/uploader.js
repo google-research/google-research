@@ -20,9 +20,8 @@ goog.module('eeg_modelling.eeg_viewer.Uploader');
 
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Downloader = goog.require('eeg_modelling.eeg_viewer.Downloader');
-const HtmlSanitizer = goog.require('goog.html.sanitizer.HtmlSanitizer');
 const utils = goog.require('eeg_modelling.eeg_viewer.utils');
-const {unwrapHtml} = goog.require('safevalues');
+const {sanitizeHtml, unwrapHtml} = goog.require('safevalues');
 
 
 class Uploader {
@@ -69,11 +68,9 @@ class Uploader {
         // Note that the string can't be escaped to prevent injections, since
         // that would escape the quotes and break the JSON.
 
-        const sanitizer = new HtmlSanitizer();
-
         let fileData;
         const text = /** @type {string} */ (reader.result);
-        const safeText = unwrapHtml(sanitizer.sanitize(text)).toString();
+        const safeText = unwrapHtml(sanitizeHtml(text)).toString();
 
         try {
           fileData = JSON.parse(safeText);

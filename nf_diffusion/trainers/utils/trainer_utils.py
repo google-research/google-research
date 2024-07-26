@@ -50,6 +50,6 @@ def compute_grad_norm(grad):
 def global_norm(pytree):
   return jnp.sqrt(
       jnp.sum(
-          jnp.asarray([jnp.sum(jnp.square(x)) for x in jax.tree_leaves(pytree)])
+          jnp.asarray([jnp.sum(jnp.square(x)) for x in jax.tree.leaves(pytree)])
       )
   )

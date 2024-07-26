@@ -160,11 +160,11 @@ inline Status& Status::operator=(const Status& that) noexcept {
 }
 
 inline Status::Status(Status&& that) noexcept
-    : rep_(absl::exchange(that.rep_, nullptr)) {}
+    : rep_(std::exchange(that.rep_, nullptr)) {}
 
 inline Status& Status::operator=(Status&& that) noexcept {
   Rep* const old_rep = rep_;
-  rep_ = absl::exchange(that.rep_, nullptr);
+  rep_ = std::exchange(that.rep_, nullptr);
   if (old_rep != nullptr) old_rep->Unref();
   return *this;
 }

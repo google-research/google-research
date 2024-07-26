@@ -122,9 +122,9 @@ def run_train(run_configuration):
     if summary_freq and step % summary_freq == 0 and step > 0:
       metrics_all = common_utils.get_metrics(metrics_all)
       lr = metrics_all.pop('learning_rate').mean()
-      metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+      metrics_sums = jax.tree.map(jnp.sum, metrics_all)
       denominator = metrics_sums.pop('denominator')
-      summary = jax.tree_map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
+      summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
       summary['learning_rate'] = lr
       # Calculate (clipped) perplexity after averaging log-perplexities:
       summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
@@ -295,9 +295,9 @@ def eval_once(run_configuration, checkpoint_path, optimizer=None):
 
   # Write results.
   metrics_all = common_utils.get_metrics(metrics_all)
-  metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+  metrics_sums = jax.tree.map(jnp.sum, metrics_all)
   denominator = metrics_sums.pop('denominator')
-  summary = jax.tree_map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
+  summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
   summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
   logging.info('eval @ train step: %d, loss: %.4f', step, summary['loss'])
   if jax.host_id() == 0:
@@ -339,5 +339,5 @@ def predict_once(run_configuration, optimizer=None):
     adapter.handle_predict(metrics, logits, state)
     metrics_all.append(metrics)
   metrics_all = common_utils.get_metrics(metrics_all)
-  metrics = jax.tree_map(jnp.sum, metrics_all)
+  metrics = jax.tree.map(jnp.sum, metrics_all)
   return metrics

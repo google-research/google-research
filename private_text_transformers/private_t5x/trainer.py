@@ -88,20 +88,20 @@ def clip_grad_norm(grads, l2_norm_clip):
   """Clip grad."""
   logging.info("We are clipping the grads to %f", l2_norm_clip)
 
-  nonempty_grads, tree_def = jax.tree_flatten(grads)
+  nonempty_grads, tree_def = jax.tree.flatten(grads)
   total_grad_norm = jnp.linalg.norm(
       [jnp.linalg.norm(neg.ravel()) for neg in nonempty_grads])
 
   divisor = jnp.maximum(total_grad_norm / l2_norm_clip, 1.)
   normalized_nonempty_grads = [g / divisor for g in nonempty_grads]
-  return jax.tree_unflatten(tree_def, normalized_nonempty_grads)
+  return jax.tree.unflatten(tree_def, normalized_nonempty_grads)
 
 
 def add_grad_noise(rng, grads, noise_multiplier, l2_norm_clip,
                    global_batch_size):
   """Adds random noise to the clipped, averaged grads."""
   logging.info("We are adding the noise %f", noise_multiplier)
-  grads_flat, grads_treedef = jax.tree_flatten(grads)
+  grads_flat, grads_treedef = jax.tree.flatten(grads)
   rngs = jax.random.split(rng, len(grads_flat))
   # The grads are already normalized by the batch size (because for DP we
   # should use loss with normalize_loss_by_num_nonpadding_tokens=True.
@@ -110,13 +110,13 @@ def add_grad_noise(rng, grads, noise_multiplier, l2_norm_clip,
       g + factor * jax.random.normal(r, g.shape)
       for r, g in zip(rngs, grads_flat)
   ]
-  return jax.tree_unflatten(grads_treedef, noised_grads)
+  return jax.tree.unflatten(grads_treedef, noised_grads)
 
 
 def add_grad_noise_and_normalize(rng, grads, noise_multiplier,
                                  l2_norm_clip, global_batch_size):
   """Adds noise to the summed clipped grads and normalizes by batch size."""
-  grads_flat, grads_treedef = jax.tree_flatten(grads)
+  grads_flat, grads_treedef = jax.tree.flatten(grads)
   rngs = jax.random.split(rng, len(grads_flat))
   factor = l2_norm_clip * noise_multiplier
   noised_grads = [
@@ -124,7 +124,7 @@ def add_grad_noise_and_normalize(rng, grads, noise_multiplier,
       for r, g in zip(rngs, grads_flat)
   ]
   normalized_noised_grads = [g / global_batch_size for g in noised_grads]
-  return jax.tree_unflatten(grads_treedef, normalized_noised_grads)
+  return jax.tree.unflatten(grads_treedef, normalized_noised_grads)
 
 
 def accumulate_grads_microbatched(
@@ -178,7 +178,7 @@ def accumulate_grads_microbatched(
       def grad_fn_with_clipping(params, batch, rng):
         """Wrapper to add grad clipping to grad_fn."""
         # Adding batch dimension since this code is run inside vmap
-        batch = jax.tree_map(lambda x: jnp.expand_dims(x, axis=0), batch)
+        batch = jax.tree.map(lambda x: jnp.expand_dims(x, axis=0), batch)
         aux, grads = grad_fn(params, batch, rng)
         grads = clip_grad_norm(grads, dp_l2_clip_norm)
         return aux, grads
@@ -196,10 +196,10 @@ def accumulate_grads_microbatched(
                                                         batch, dropout_rng)
 
       # Sum per-example metrics to become batch metrics (as if without vmap).
-      metrics = jax.tree_map(lambda metric: jnp.sum(metric, axis=0), metrics)
+      metrics = jax.tree.map(lambda metric: jnp.sum(metric, axis=0), metrics)
 
       # Sum per-example clipped gradients.
-      grad_accum = jax.tree_map(functools.partial(jnp.sum, axis=0), grad_accum)
+      grad_accum = jax.tree.map(functools.partial(jnp.sum, axis=0), grad_accum)
 
       # Add DP noise and normalize by global batch size.
       assert batch_size > 0, "batch size <= 0 error"
@@ -237,7 +237,7 @@ def accumulate_grads_microbatched(
       mbatch = get_microbatch(batch, loop_cnt)
 
       # We need to annotate the microbatch sharding as we would a batch.
-      mbatch = jax.tree_map(
+      mbatch = jax.tree.map(
           lambda x: partitioning.with_sharding_constraint(  # pylint: disable=g-long-lambda
               x, partitioning.PartitionSpec("data")),
           mbatch)
@@ -258,7 +258,7 @@ def accumulate_grads_microbatched(
     ):
       (dropout_rng, grad_accum, prev_metrics) = state
       metrics, grad = metrics_and_grad(loop_cnt, dropout_rng)
-      grad_accum = jax.tree_map(jnp.add, grad_accum, grad)
+      grad_accum = jax.tree.map(jnp.add, grad_accum, grad)
       metrics = jax.lax.cond(
           loop_cnt == 0, lambda _: metrics,
           lambda _: t5x_trainer.merge_metrics(prev_metrics, metrics), None)
@@ -266,7 +266,7 @@ def accumulate_grads_microbatched(
 
     # Initialize gradient accumulation loop state.
     accum_dtype = jnp.float32
-    grad_accum_init = jax.tree_map(lambda x: jnp.zeros(x.shape, accum_dtype),
+    grad_accum_init = jax.tree.map(lambda x: jnp.zeros(x.shape, accum_dtype),
                                    train_state.params)
     initial_metrics_shape, _ = jax.eval_shape(
         metrics_and_grad, loop_cnt=0, dropout_rng=dropout_rng)
@@ -281,9 +281,9 @@ def accumulate_grads_microbatched(
     del new_dropout_rng
 
     # Divide the grads by the num of microbatches.
-    grad_accum_flat, tree_def = jax.tree_flatten(grad_accum)
+    grad_accum_flat, tree_def = jax.tree.flatten(grad_accum)
     grad_accum_flat = [g / num_microbatches for g in grad_accum_flat]
-    grad_accum = jax.tree_unflatten(tree_def, grad_accum_flat)
+    grad_accum = jax.tree.unflatten(tree_def, grad_accum_flat)
 
     if use_dp:  # Add DP noise to accumulated grad from microbatches.
       noise_rng = jax.random.fold_in(jax.random.PRNGKey(0), train_state.step)  # pytype: disable=wrong-arg-types  # jax-ndarray

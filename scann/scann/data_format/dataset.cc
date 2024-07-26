@@ -37,8 +37,6 @@
 
 namespace research_scann {
 
-void Dataset::UnusedKeyMethod() {}
-
 shared_ptr<DocidCollectionInterface> Dataset::ReleaseDocids() {
   auto result = std::move(docids_);
   docids_ = make_unique<VariableLengthDocidCollection>(
@@ -310,6 +308,18 @@ inline void ToDoubleAlwaysCopy(const DatapointPtr<double>& dptr,
                                Datapoint<double>* dp) {
   CopyToDatapoint(dptr, dp);
 }
+
+template <typename T>
+inline void ToFloatAlwaysCopy(const DatapointPtr<T>& dptr,
+                              Datapoint<float>* dp) {
+  ToFloat(dptr, dp);
+}
+
+template <>
+inline void ToFloatAlwaysCopy(const DatapointPtr<float>& dptr,
+                              Datapoint<float>* dp) {
+  CopyToDatapoint(dptr, dp);
+}
 }  // namespace
 
 template <typename T>
@@ -319,6 +329,16 @@ void TypedDataset<T>::GetDatapoint(size_t index,
   result->clear();
   auto unconverted = (*this)[index];
   ToDoubleAlwaysCopy(unconverted, result);
+  result->set_normalization(this->normalization());
+}
+
+template <typename T>
+void TypedDataset<T>::GetDatapoint(size_t index,
+                                   Datapoint<float>* result) const {
+  DCHECK(result);
+  result->clear();
+  auto unconverted = (*this)[index];
+  ToFloatAlwaysCopy(unconverted, result);
   result->set_normalization(this->normalization());
 }
 
@@ -368,6 +388,12 @@ void DenseDataset<T>::GetDenseDatapoint(size_t index,
 }
 
 template <typename T>
+void DenseDataset<T>::GetDenseDatapoint(size_t index,
+                                        Datapoint<float>* result) const {
+  this->GetDatapoint(index, result);
+}
+
+template <typename T>
 double DenseDataset<T>::GetDistance(const DistanceMeasure& dist,
                                     size_t vec1_index,
                                     size_t vec2_index) const {
@@ -396,13 +422,14 @@ Status DenseDataset<T>::Append(const DatapointPtr<T>& dptr, string_view docid) {
         "parameter.");
   }
 
-  if (this->dimensionality() == 0) {
-    this->set_dimensionality(dptr_dim);
-
+  if (this->size() == 0) {
+    if (this->dimensionality() == 0) this->set_dimensionality(dptr_dim);
     if (this->packing_strategy() == HashedItem::NONE) {
       set_is_binary(dptr_is_binary);
     }
-  } else if (this->dimensionality() != dptr_dim) {
+  }
+
+  if (this->dimensionality() != dptr_dim) {
     return FailedPreconditionError(
         StrFormat("Dimensionality mismatch:  Appending a %u dimensional "
                   "datapoint to a %u dimensional dataset.",
@@ -507,7 +534,11 @@ size_t DenseDataset<T>::MemoryUsageExcludingDocids() const {
 template <typename T>
 StatusOr<typename TypedDataset<T>::Mutator*> DenseDataset<T>::GetMutator()
     const {
-  return UnimplementedError("No mutator supported.");
+  if (!mutator_) {
+    TF_ASSIGN_OR_RETURN(mutator_, DenseDataset<T>::Mutator::Create(
+                                      const_cast<DenseDataset<T>*>(this)));
+  }
+  return {mutator_.get()};
 }
 
 template <typename T>
@@ -521,8 +552,9 @@ void SparseDataset<T>::set_dimensionality(DimensionIndex dimensionality) {
 }
 
 template <typename T>
-void SparseDataset<T>::GetDenseDatapoint(size_t index,
-                                         Datapoint<double>* result) const {
+template <typename OutT>
+void SparseDataset<T>::GetDenseDatapointImpl(size_t index,
+                                             Datapoint<OutT>* result) const {
   DCHECK(result);
   result->clear();
   auto unconverted = (*this)[index];
@@ -538,6 +570,18 @@ void SparseDataset<T>::GetDenseDatapoint(size_t index,
     }
   }
   result->set_normalization(this->normalization());
+}
+
+template <typename T>
+void SparseDataset<T>::GetDenseDatapoint(size_t index,
+                                         Datapoint<double>* result) const {
+  GetDenseDatapointImpl(index, result);
+}
+
+template <typename T>
+void SparseDataset<T>::GetDenseDatapoint(size_t index,
+                                         Datapoint<float>* result) const {
+  GetDenseDatapointImpl(index, result);
 }
 
 template <typename T>

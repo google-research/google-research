@@ -364,8 +364,8 @@ def build_validation_fn(
                                                num_edge_types)
       loss, batch_metrics = loss_fn(output_logits, targets, valid_mask,
                                     num_nodes, captured)
-    batch_metrics_non_nan = jax.tree_map(jnp.nan_to_num, batch_metrics)
-    batch_metrics_non_nan_counts = jax.tree_map(
+    batch_metrics_non_nan = jax.tree.map(jnp.nan_to_num, batch_metrics)
+    batch_metrics_non_nan_counts = jax.tree.map(
         lambda x: jnp.count_nonzero(~jnp.isnan(x)), batch_metrics)
     # Compute additional metrics by counting how many predictions cross our
     # thresholds.
@@ -389,11 +389,11 @@ def build_validation_fn(
   def batch_helper(model, batched_examples, batch_mask):
     # Map our metrics over the examples.
     values = jax.vmap(example_helper, (None, 0))(model, batched_examples)
-    values = jax.tree_map(
+    values = jax.tree.map(
         lambda x: jax.vmap(jnp.where)(batch_mask, x, jnp.zeros_like(x)), values)
     # Sum everything together.
     values = jax.lax.psum(
-        jax.tree_map(lambda x: jnp.sum(x, axis=0), values), "devices")
+        jax.tree.map(lambda x: jnp.sum(x, axis=0), values), "devices")
     return values
 
   def validation_fn(model):
@@ -406,7 +406,7 @@ def build_validation_fn(
       if accumulator is None:
         accumulator = new_values
       else:
-        accumulator = jax.tree_map(operator.add, accumulator, new_values)
+        accumulator = jax.tree.map(operator.add, accumulator, new_values)
 
     (
         loss_sum,
@@ -616,7 +616,7 @@ def train(
       # Set up a dummy stochastic scope for random perturbations.
       with flax.deprecated.nn.stochastic(jax.random.PRNGKey(0)):
         ex = graph_bundle.zeros_like_padded_example(padding_config)
-        ex = jax.tree_map(jnp.array, ex)
+        ex = jax.tree.map(jnp.array, ex)
         _, initial_params = model_def.init(rng, ex)
       return initial_params
 
@@ -646,7 +646,7 @@ def train(
       metrics["example_count"] = validation_example_count
 
       array_types = (np.ndarray, jnp.ndarray)
-      metrics = jax.tree_map(
+      metrics = jax.tree.map(
           lambda x: x.tolist() if isinstance(x, array_types) else x, metrics)
 
       gfile.makedirs(os.path.dirname(evaluation_save_path))

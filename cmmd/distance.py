@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Memory-efficient MMD implementation in JAX."""
+"""A memory-efficient MMD implementation in JAX."""
 
 import jax
 import jax.numpy as jnp
@@ -30,7 +30,7 @@ _SCALE = 1000
 
 @jax.jit
 def mmd(x, y):
-  """Memory-efficient MMD implementation in JAX.
+  """A memory-efficient MMD implementation in JAX.
 
   This implements the minimum-variance/biased version of the estimator described
   in Eq.(5) of

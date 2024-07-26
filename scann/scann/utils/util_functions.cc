@@ -25,6 +25,7 @@
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
+#include "absl/strings/string_view.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
@@ -219,7 +220,7 @@ void MergeNeighborListsSwapImpl(MutableSpan<NearestNeighbors*> neighbor_lists,
     PartiallyConsumedNeighborList pc_list;
     if (list->neighbor_size() > 0) {
       pc_list.neighbor_list.Swap(list->mutable_neighbor());
-      heap.push_back(pc_list);
+      heap.push_back(std::move(pc_list));
     }
   }
 
@@ -359,7 +360,7 @@ void UnpackNibblesDatapoint(ConstSpan<uint8_t> packed,
     hash[i * 2 + 1] = packed[i] >> 4;
   }
   if (hash_size & 1) {
-    hash[hash_size - 1] = packed[hash_size / 2];
+    hash[hash_size - 1] = packed[hash_size / 2] & 0x0f;
   }
 }
 

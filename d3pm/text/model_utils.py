@@ -347,7 +347,7 @@ def get_nearest_neighbors(embeddings,
     arr = arr[:embeddings.shape[0]]
     return arr
 
-  return jax.tree_map(_reshape, result)
+  return jax.tree.map(_reshape, result)
 
 
 def naive_expm(matrix, iterations=10):

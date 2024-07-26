@@ -19,12 +19,14 @@
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
+#include "scann/proto/min_distance.pb.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
 
 Status GenericSearchParameters::PopulateValuesFromScannConfig(
     const ScannConfig& config) {
+  min_distance = config.min_distance().min_distance();
   if (!config.has_num_neighbors() && !config.has_epsilon_distance()) {
     return InvalidArgumentError(
         "Must specify num_neighbors and/or epsilon_distance.");

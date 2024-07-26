@@ -1,0 +1,10 @@
+absl-py=2.1.0
+keras=2.12.0
+numpy=1.23.5
+pandas=2.2.1
+pyarrow=11.0.0
+scikit-learn=1.4.2
+tensorflow=2.12.0
+tensorflow-probability=0.14.0
+tqdm=4.66.4
+

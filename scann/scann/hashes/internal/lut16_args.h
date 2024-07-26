@@ -28,6 +28,7 @@ namespace asymmetric_hashing_internal {
 inline constexpr size_t kPrefetchBytesAhead = 768;
 
 enum class PrefetchStrategy {
+
   kOff,
 
   kSeq,

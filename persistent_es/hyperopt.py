@@ -229,10 +229,10 @@ def unroll(key, theta, inner_state, T, K):
 
     # Gradient clipping
     # =================
-    grads = jax.tree_map(lambda g: jnp.nan_to_num(g), grads)
+    grads = jax.tree.map(lambda g: jnp.nan_to_num(g), grads)
 
     if args.inner_clip > 0:
-      grads = jax.tree_map(
+      grads = jax.tree.map(
           lambda g: jnp.clip(g, a_min=-args.inner_clip, a_max=args.inner_clip),
           grads)
     # =================
@@ -495,13 +495,13 @@ for setting in args.tune_params:
     idx += 2
   elif sched == 'fixed-pl':
     if args.random_hparam_init:
-      leaves, treedef = jax.tree_flatten(temp_params)
+      leaves, treedef = jax.tree.flatten(temp_params)
       random_values = jax.random.uniform(
           skey, (len(leaves),)) * (max_range - min_range) + min_range
       random_values = [random_values[i] for i in range(len(random_values))]
-      hparam_tree = jax.tree_unflatten(treedef, random_values)
+      hparam_tree = jax.tree.unflatten(treedef, random_values)
     else:
-      hparam_tree = jax.tree_map(lambda x: jnp.array(default), temp_params)
+      hparam_tree = jax.tree.map(lambda x: jnp.array(default), temp_params)
     hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
         hparam_tree)
     unflatten_func_dict[param] = hparam_unravel_pytree
@@ -511,13 +511,13 @@ for setting in args.tune_params:
     idx += len(hparam_vector)
   elif sched in ['linear-pl', 'inverse-time-decay-pl']:
     if args.random_hparam_init:
-      leaves, treedef = jax.tree_flatten(temp_params)
+      leaves, treedef = jax.tree.flatten(temp_params)
       random_values = jax.random.uniform(
           skey, (len(leaves), 2)) * (max_range - min_range) + min_range
       random_values = [random_values[i] for i in range(len(random_values))]
-      hparam_tree = jax.tree_unflatten(treedef, random_values)
+      hparam_tree = jax.tree.unflatten(treedef, random_values)
     else:
-      hparam_tree = jax.tree_map(lambda x: jnp.array([default, default]),
+      hparam_tree = jax.tree.map(lambda x: jnp.array([default, default]),
                                  temp_params)
     hparam_vector, hparam_unravel_pytree = flatten_util.ravel_pytree(
         hparam_tree)
@@ -558,7 +558,7 @@ for outer_iteration in range(args.outer_iterations):
   outer_grad = estimator.grad_estimate(theta)
 
   if args.outer_clip > 0:
-    outer_grad = jax.tree_map(
+    outer_grad = jax.tree.map(
         lambda g: jnp.clip(g, a_min=-args.outer_clip, a_max=args.outer_clip),
         outer_grad)
 

@@ -27,7 +27,7 @@ from abstract_nas.zoo import efficientnet
 
 
 def compute_num_params(params_cpu):
-  return sum(p.size for p in jax.tree_flatten(params_cpu)[0])
+  return sum(p.size for p in jax.tree.flatten(params_cpu)[0])
 
 
 # From //learning/faster_training/sidewinder/efficientnet/efficientnet_test.py

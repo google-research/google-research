@@ -120,7 +120,7 @@ def _make_perdevice_minibatch_log_prob_and_grad(
     likelihood_grad = jax.lax.psum(likelihood_grad, axis_name="i")
 
     log_prob = likelihood * num_batches + prior
-    grad = jax.tree_map(lambda gl, gp: gl * num_batches + gp,
+    grad = jax.tree.map(lambda gl, gp: gl * num_batches + gp,
                              likelihood_grad, prior_grad)
     return log_prob, grad, net_state
 
@@ -235,11 +235,11 @@ def make_sgd_train_epoch(net_apply, log_likelihood_fn, log_prior_fn, optimizer,
     n_data = train_set[0].shape[0]
     batch_size = n_data // num_batches
     indices = jax.random.permutation(key, jnp.arange(n_data))
-    indices = jax.tree_map(lambda x: x.reshape((num_batches, batch_size)),
+    indices = jax.tree.map(lambda x: x.reshape((num_batches, batch_size)),
                            indices)
 
     def train_step(carry, batch_indices):
-      batch = jax.tree_map(lambda x: x[batch_indices], train_set)
+      batch = jax.tree.map(lambda x: x[batch_indices], train_set)
       params_, net_state_, opt_state_ = carry
       loss, grad, net_state_ = _perdevice_log_prob_and_grad(
           batch, params_, net_state_)
@@ -281,7 +281,7 @@ def make_get_predictions(activation_fn, num_batches=1, is_training=False):
       ))
   def get_predictions(net_apply, params, net_state, dataset):
     batch_size = dataset[0].shape[0] // num_batches
-    dataset = jax.tree_map(
+    dataset = jax.tree.map(
         lambda x: x.reshape((num_batches, batch_size, *x.shape[1:])), dataset)
 
     def get_batch_predictions(current_net_state, x):

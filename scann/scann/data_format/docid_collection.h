@@ -36,8 +36,8 @@ namespace research_scann {
 
 class VariableLengthDocidCollection final : public DocidCollectionInterface {
  public:
-  VariableLengthDocidCollection() {}
-  ~VariableLengthDocidCollection() final {}
+  VariableLengthDocidCollection() = default;
+  ~VariableLengthDocidCollection() final = default;
 
   VariableLengthDocidCollection(const VariableLengthDocidCollection& rhs);
   VariableLengthDocidCollection& operator=(
@@ -128,7 +128,7 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
       default;
 
   explicit FixedLengthDocidCollection(size_t length) : docid_length_(length) {}
-  ~FixedLengthDocidCollection() final {}
+  ~FixedLengthDocidCollection() final = default;
 
   static StatusOr<FixedLengthDocidCollection> Iota(uint32_t length) {
     FixedLengthDocidCollection docids(sizeof(uint32_t));

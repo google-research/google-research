@@ -85,13 +85,13 @@ class SparseOperatorTest(parameterized.TestCase):
 
   def test_sparse_coord_operator_is_a_pytree(self):
     """Tests that jax tree operations work on SparseCoordOperators."""
-    op_with_zeros = jax.tree_map(jnp.zeros_like, self.operator)
+    op_with_zeros = jax.tree.map(jnp.zeros_like, self.operator)
     expected = sparse_operator.SparseCoordOperator(
         input_indices=jnp.zeros([5, 2], dtype=int),
         output_indices=jnp.zeros([5, 1], dtype=int),
         values=jnp.zeros([5], dtype=jnp.float32),
     )
-    jax.tree_map(np.testing.assert_allclose, op_with_zeros, expected)
+    jax.tree.map(np.testing.assert_allclose, op_with_zeros, expected)
 
   @parameterized.named_parameters(
       {

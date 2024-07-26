@@ -123,7 +123,7 @@ def construct_soft_target_params_update_fn(
   ):
     # The current step is unused as we just EMA the params.
     ema = lambda new, old: (1.0 - tau) * new + tau * old
-    return jax.tree_map(ema, new_params, old_params)
+    return jax.tree.map(ema, new_params, old_params)
 
   return wrapper
 

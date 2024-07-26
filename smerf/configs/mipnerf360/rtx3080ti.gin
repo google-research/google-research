@@ -1,0 +1,10 @@
+# Additional configuration for single GPU Training
+#
+# Use this config to ensure that training works on a local machine.
+#
+
+# Training
+# ------------------------------------------------------------------------------
+# Accumulate gradients over 128 steps. Batch size will automatically be reduced
+# accordingly. This will be very slow.
+smerf.internal.configs.Config.gradient_accumulation_steps = 128

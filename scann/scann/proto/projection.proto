@@ -30,13 +30,14 @@ message ProjectionConfig {
     RANDOM_ORTHOGONAL = 7;
     PCA = 8;
     RANDOM_BILINEAR = 9;
-    CKMEANS_PROJECTION = 11;
     MEANSTD_PROJECTION = 12;
     IDENTITY_CHUNK = 13;
     TRUNCATE = 14;
+
+    reserved 11;
   }
 
-  required ProjectionType projection_type = 1;
+  optional ProjectionType projection_type = 1;
 
   optional uint64 input_dim = 9;
 
@@ -57,6 +58,9 @@ message ProjectionConfig {
   optional bool is_dense = 7 [default = true];
 
   optional bool build_covariance = 8 [default = true];
+
+  optional float pca_significance_threshold = 13 [default = inf];
+  optional float pca_truncation_threshold = 14 [default = inf];
 
   optional RandomBilinearConfig random_bilinear_config = 10;
 

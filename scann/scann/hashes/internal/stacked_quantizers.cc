@@ -15,6 +15,7 @@
 #include "scann/hashes/internal/stacked_quantizers.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -22,8 +23,11 @@
 #include <utility>
 
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/data_format/docid_collection.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
+#include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/dataset_sampling.h"
@@ -218,7 +222,7 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   const auto num_datapoints = dataset.size();
   const auto num_codebooks = opts.projector()->num_blocks();
   const auto num_centers = opts.config().num_clusters_per_block();
-  const auto quantization_distance = opts.quantization_distance();
+  const auto& quantization_distance = opts.quantization_distance();
   const auto& sq_config = opts.config().stacked_quantizers_config();
 
   DenseDataset<double> buffer;
@@ -335,14 +339,14 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
                                          int num_codebooks,
                                          shared_ptr<ThreadPool> pool) {
   const auto num_centers = opts.config().num_clusters_per_block();
-
   GmmUtils::Options gmm_opts;
   gmm_opts.seed = opts.config().clustering_seed();
   gmm_opts.max_iterations = opts.config().max_clustering_iterations();
   gmm_opts.epsilon = opts.config().clustering_convergence_tolerance();
   gmm_opts.parallelization_pool = std::move(pool);
+  gmm_opts.center_initialization_type =
+      GmmUtils::Options::RANDOM_INITIALIZATION;
   GmmUtils gmm(opts.quantization_distance(), gmm_opts);
-
   CodebookList<double> codebook_list;
   codebook_list.reserve(num_codebooks);
   auto residual = CopyDenseDatasetIntoNewType<double>(dataset);
@@ -368,7 +372,6 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
       }
     }
   }
-
   return std::move(codebook_list);
 }
 

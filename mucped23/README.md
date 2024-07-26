@@ -48,15 +48,16 @@ The exact images used can be downloaded at
 
 The evaluations use the same methodology as [CLIC](http://compression.cc/).
 
-It consists in requiring a choice between two different distortions of the same
-image, and computes an [Elo](https://en.wikipedia.org/wiki/Elo_rating_system)
-ranking (an estimate of the probability of each method being considered higher
-quality by the raters) of distortions based on that. Compared to traditional
-Opinion Score methods, it avoids requiring test subjects to calibrate their
-scores.
+It consists of the rater being shown an original image and two distortions, and
+asked to choose the distortion that is closest to the original. The test subject
+is able to flip between the two distortions, and has the original image
+available on the side for comparison at all times.
 
-The test subject is able to flip between the two distortions, and has the
-original image available on the side for comparison at all times.
+We then compute an [Elo](https://en.wikipedia.org/wiki/Elo_rating_system)
+ranking (an estimate of the probability of each method being considered closer
+to the original by the raters) of distortions based on that. Compared to
+traditional Opinion Score methods, it avoids having to calibrate scores between
+questions or subjects.
 
 The distortions used are encoding and decoding using
 [MozJPEG](https://github.com/mozilla/mozjpeg),
@@ -85,7 +86,10 @@ distortions `/mucped23/[methodA]/[originalName].png` and
 `/mucped23/originals/[originalName].png` inside
 [mucped23.zip](https://cloudinary.com/labs/cid22/mucped23.zip).
 
+### Analysis
 
+An analysis of the results can be found at [Users prefer Jpegli over same-sized
+libjpeg-turbo or MozJPEG](report/jpegli.pdf).
 
 ## Computing the Elo scores
 
@@ -94,3 +98,7 @@ compute the Elo scores based on [answers.csv](answers.csv). This code does not
 contain the complete algorithm to compute the
 [Elo](https://en.wikipedia.org/wiki/Elo_rating_system) including rater agreement
 and golden question response.
+
+Complete code to compute the Elo scores, including credible intervals and rater
+reliability, can be found in
+[elo_rater_model](https://github.com/google-research/google-research/tree/master/elo_rater_model).

@@ -15,6 +15,8 @@
 
 """Builder to create ScaNN searchers of various configurations."""
 
+import enum
+
 
 def _factory_decorator(key):
   """Wraps a function that produces a portion of the ScaNN config proto."""
@@ -33,6 +35,18 @@ def _factory_decorator(key):
     return inner
 
   return func_taker
+
+
+class ReorderType(enum.Enum):
+  FLOAT32 = 1
+  INT8 = 2
+  BFLOAT16 = 3
+
+
+class IncrementalMode(enum.Enum):
+  NONE = 1
+  ONLINE = 2
+  ONLINE_INCREMENTAL = 3
 
 
 class ScannBuilder(object):
@@ -57,6 +71,7 @@ class ScannBuilder(object):
       builder_lambda: a function that takes a dataset, ScaNN config text proto,
         number of training threads, and optional kwargs as arguments, and
         returns a ScaNN searcher.
+
     Returns:
       The builder object itself, as expected from the builder pattern.
     """
@@ -74,9 +89,40 @@ class ScannBuilder(object):
       spherical=False,
       quantize_centroids=False,
       random_init=True,
+      incremental_threshold=None,
+      avq=None,
+      soar_lambda=None,
+      overretrieve_factor=None,
       # the following are set automatically
-      distance_measure=None):
+      distance_measure=None,
+  ):
     """Configure partitioning. If not called, no partitioning is performed."""
+    incremental_stanza = ""
+    if isinstance(incremental_threshold, int):
+      incremental_stanza = ("incremental_training_config { "
+                            f"number_of_datapoints: {incremental_threshold} }}")
+    elif isinstance(incremental_threshold, float):
+      incremental_stanza = (
+          f"incremental_training_config {{ fraction: {incremental_threshold} }}"
+      )
+
+    avq_stanza = f"avq: {avq}" if avq is not None else ""
+    if avq is not None and self.distance_measure != "dot_product":
+      raise ValueError("AVQ only applies to dot product distance.")
+
+    soar_stanza = ""
+    if soar_lambda is not None:
+      if self.distance_measure != "dot_product":
+        raise ValueError("SOAR requires dot product distance.")
+      overretrieve_factor_stanza = (
+          f"overretrieve_factor: {overretrieve_factor}"
+          if overretrieve_factor is not None else "")
+      soar_stanza = f"""database_spilling {{
+        spilling_type: TWO_CENTER_ORTHOGONALITY_AMPLIFIED
+        orthogonality_amplification_lambda: {soar_lambda}
+        {overretrieve_factor_stanza}
+      }}"""
+
     return f"""
       partitioning {{
         num_children: {num_leaves}
@@ -96,6 +142,9 @@ class ScannBuilder(object):
         query_tokenization_distance_override {distance_measure}
         partitioning_type: {"SPHERICAL" if spherical else "GENERIC"}
         query_tokenization_type: {"FIXED_POINT_INT8" if quantize_centroids else "FLOAT"}
+        {incremental_stanza}
+        {avq_stanza}
+        {soar_stanza}
       }}
     """
 
@@ -110,7 +159,8 @@ class ScannBuilder(object):
       training_iterations=10,
       # the following are set automatically
       residual_quantization=None,
-      n_dims=None):
+      n_dims=None,
+  ):
     """Configure asymmetric hashing. Must call this or score_brute_force."""
     del min_cluster_size  # Deprecated field.
     hash_types = ["lut16", "lut256"]
@@ -122,7 +172,7 @@ class ScannBuilder(object):
       lookup_type = "INT8"
     else:
       raise ValueError(f"hash_type must be one of {hash_types}")
-    full_blocks, partial_block_dims = divmod(n_dims, dimensions_per_block)
+    full_blocks, partial_block_dims = divmod(n_dims, dimensions_per_block)  # pytype: disable=wrong-arg-types
     if partial_block_dims == 0:
       proj_config = f"""
         projection_type: CHUNK
@@ -141,11 +191,14 @@ class ScannBuilder(object):
           num_dims_per_block: {partial_block_dims}
         }}
       """
-    # global top-N requires LUT16, int16 accumulators, and residual quantization
+    # global top-N requires:
+    # (1) LUT16, (2) int16 accumulators, (3) residual quantization
+    # and (4) immutable searcher.
     global_topn = (
         hash_type == hash_types[0] and
         (full_blocks + (partial_block_dims > 0)) <= 256 and
-        residual_quantization)
+        residual_quantization and
+        not ("extra" in self.params and self.params["extra"]["mutable"]))
     return f"""
       hash {{
         asymmetric_hash {{
@@ -167,25 +220,58 @@ class ScannBuilder(object):
       }} """
 
   @_factory_decorator("score_bf")
-  def score_brute_force(self, quantize=False):
+  def score_brute_force(self, quantize=ReorderType.FLOAT32):
+    # Backwards-compatibility shims for when quantize was a bool parameter.
+    if quantize is True:  # pylint: disable=g-bool-id-comparison
+      quantize = ReorderType.INT8
+    elif quantize is False:  # pylint: disable=g-bool-id-comparison
+      quantize = ReorderType.FLOAT32
     return f"""
       brute_force {{
-        fixed_point {{
-          enabled: {quantize}
+        {"bfloat16" if quantize == ReorderType.BFLOAT16 else "fixed_point"} {{
+          enabled: {quantize != ReorderType.FLOAT32}
         }}
       }}
     """
 
   @_factory_decorator("reorder")
-  def reorder(self, reordering_num_neighbors, quantize=False):
+  def reorder(self, reordering_num_neighbors, quantize=ReorderType.FLOAT32):
+    """Configure reordering (more accurate scoring after AH scoring)."""
+    # Backwards-compatibility shims for when quantize was a bool parameter.
+    if quantize is True:  # pylint: disable=g-bool-id-comparison
+      quantize = ReorderType.INT8
+    elif quantize is False:  # pylint: disable=g-bool-id-comparison
+      quantize = ReorderType.FLOAT32
     return f"""
       exact_reordering {{
         approx_num_neighbors: {reordering_num_neighbors}
-        fixed_point {{
-          enabled: {quantize}
+        {"bfloat16" if quantize == ReorderType.BFLOAT16 else "fixed_point"} {{
+          enabled: {quantize != ReorderType.FLOAT32}
         }}
       }}
     """
+
+  @_factory_decorator("autopilot")
+  def autopilot(self, mode=IncrementalMode.NONE, quantize=ReorderType.FLOAT32):
+    """Configure autopilot."""
+    mode_string = {
+        IncrementalMode.NONE: "NONE",
+        IncrementalMode.ONLINE: "ONLINE",
+        IncrementalMode.ONLINE_INCREMENTAL: "ONLINE_INCREMENTAL",
+    }
+    reorder_string = {
+        ReorderType.FLOAT32: "FLOAT32",
+        ReorderType.INT8: "INT8",
+        ReorderType.BFLOAT16: "BFLOAT16",
+    }
+    return f"""
+    autopilot {{
+      tree_ah {{
+        incremental_mode: {mode_string[mode]}
+        reordering_dtype: {reorder_string[quantize]}
+      }}
+    }}
+  """
 
   def create_config(self):
     """Returns a text ScaNN config matching the specification in self.params."""
@@ -195,12 +281,19 @@ class ScannBuilder(object):
     }
     distance_measure = allowed_measures.get(self.distance_measure)
     if distance_measure is None:
-      raise ValueError(
-          f"distance_measure must be one of {list(allowed_measures.keys())}")
+      allowed = list(allowed_measures.keys())
+      raise ValueError(f"distance_measure must be one of {allowed}")
     config = f"""
       num_neighbors: {self.num_neighbors}
       distance_measure {distance_measure}
     """
+
+    autopilot_params = self.params.get("autopilot")
+    if autopilot_params is not None:
+      config += self.autopilot.proto_maker(self, **autopilot_params)
+      # We will return return the config directly since the autopilot stanza
+      # is all we need.
+      return config
 
     tree_params = self.params.get("tree")
     if tree_params is not None:
@@ -210,21 +303,22 @@ class ScannBuilder(object):
     ah = self.params.get("score_ah")
     bf = self.params.get("score_bf")
     if ah is not None and bf is None:
-      ah["residual_quantization"] = tree_params is not None and self.distance_measure == "dot_product"
+      if "residual_quantization" not in ah:
+        ah["residual_quantization"] = (
+            tree_params is not None and self.distance_measure == "dot_product")
       ah["n_dims"] = self.db.shape[1]
       config += self.score_ah.proto_maker(self, **ah)
     elif bf is not None and ah is None:
       config += self.score_brute_force.proto_maker(self, **bf)
     else:
-      raise Exception(
-          "Exactly one of score_ah or score_brute_force must be used")
+      raise ValueError("Exactly 1 of score_ah or score_brute_force must be set")
 
     reorder_params = self.params.get("reorder")
     if reorder_params is not None:
       config += self.reorder.proto_maker(self, **reorder_params)
     return config
 
-  def build(self, **kwargs):
+  def build(self, docids=None, **kwargs):
     """Calls builder_lambda to return a ScaNN searcher with the built config.
 
     The type of the returned searcher (pybind or TensorFlow) is configured
@@ -232,7 +326,12 @@ class ScannBuilder(object):
     scann_ops_pybind.py for their respective builder_lambda's.
 
     Args:
+      docids: if docids are present, they must be a list of strings with the
+        same size as the database. docids are required in order to update the
+        searcher (add, remove and delete).  In addition, docids must not be
+        duplicated and should uniquely indicate the datapoint.
       **kwargs: additional, optional parameters to pass to builder_lambda.
+
     Returns:
       The returned value from builder_lambda(), which is a ScaNN searcher.
     Raises:
@@ -240,5 +339,9 @@ class ScannBuilder(object):
     """
     if self.builder_lambda is None:
       raise Exception("build() called but no builder lambda was set.")
+
+    # Set additional parameters.
+    self.params["extra"] = {"mutable": docids is not None}
     config = self.create_config()
-    return self.builder_lambda(self.db, config, self.training_threads, **kwargs)
+    return self.builder_lambda(
+        self.db, config, self.training_threads, docids=docids, **kwargs)

@@ -44,7 +44,10 @@ inline bool RuntimeSupportsAvx512() {
 }
 
 enum PlatformGeneration {
+
   kFallbackForNonX86 = 99,
+
+  kHighway = 98,
 
   kBaselineSse4 = 0,
 

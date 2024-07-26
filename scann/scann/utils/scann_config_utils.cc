@@ -21,9 +21,9 @@
 
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/string_view.h"
 #include "absl/strings/substitute.h"
 #include "scann/data_format/features.pb.h"
-#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/brute_force.pb.h"
@@ -39,7 +39,6 @@
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 
 using absl::StartsWith;
 
@@ -114,12 +113,6 @@ Status CanonicalizeScannConfigImpl(ScannConfig* config,
     }
   }
 
-  const bool db_spilling_and_residual =
-      config->partitioning().database_spilling().spilling_type() !=
-          DatabaseSpillingConfig::NO_SPILLING &&
-      config->hash().asymmetric_hash().use_residual_quantization();
-  if (db_spilling_and_residual) io->clear_hashed_database_wildcard();
-
   if (!io->has_database_wildcard()) {
     return CanonicalizeRecallCurves(config);
   }
@@ -190,6 +183,39 @@ Status CanonicalizeScannConfigForRetrieval(ScannConfig* config) {
   return OkStatus();
 }
 
+void StripPreprocessedArtifacts(ScannConfig* config) {
+  if (config->has_input_output()) {
+    InputOutputConfig* io = config->mutable_input_output();
+    io->clear_preprocessed_artifacts_dir();
+    io->clear_hashed_database_wildcard();
+    io->clear_fixed_point_database_wildcard();
+    io->clear_fixed_point_database_wildcard();
+    io->clear_tokenized_database_wildcard();
+    io->clear_memory_consumption_estimate_filename();
+  }
+
+  if (config->has_partitioning()) {
+    config->mutable_partitioning()->clear_partitioner_prefix();
+    config->mutable_partitioning()->clear_resharded_prefix();
+  }
+
+  if (config->hash().has_asymmetric_hash()) {
+    config->mutable_hash()->mutable_asymmetric_hash()->clear_centers_filename();
+  }
+
+  if (config->exact_reordering().fixed_point().has_multipliers_filename()) {
+    config->mutable_exact_reordering()
+        ->mutable_fixed_point()
+        ->clear_multipliers_filename();
+  }
+
+  if (config->brute_force().fixed_point().has_multipliers_filename()) {
+    config->mutable_brute_force()
+        ->mutable_fixed_point()
+        ->clear_multipliers_filename();
+  }
+}
+
 StatusOr<InputOutputConfig::InMemoryTypes> TagFromGFVFeatureType(
     const GenericFeatureVector::FeatureType& feature_type) {
   switch (feature_type) {
@@ -234,7 +260,7 @@ StatusOr<InputOutputConfig::InMemoryTypes> DetectInMemoryTypeFromDisk(
 }
 
 StatusOr<Normalization> NormalizationRequired(
-    const std::string& distance_measure_name) {
+    absl::string_view distance_measure_name) {
   TF_ASSIGN_OR_RETURN(auto distance, GetDistanceMeasure(distance_measure_name));
   return distance->NormalizationRequired();
 }
@@ -279,7 +305,7 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
     StatusOr<InputOutputConfig::InMemoryTypes> in_memory_type_or_error =
         DetectInMemoryTypeFromDisk(*config);
     if (in_memory_type_or_error.ok()) {
-      auto in_memory_type = in_memory_type_or_error.value();
+      auto in_memory_type = *in_memory_type_or_error;
       if (in_memory_type != InputOutputConfig::FLOAT &&
           in_memory_type != InputOutputConfig::DOUBLE) {
         return InvalidArgumentError(
@@ -289,7 +315,7 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
     }
   }
 
-  auto verify_consistency = [&](const std::string& secondary_distance_measure,
+  auto verify_consistency = [&](absl::string_view secondary_distance_measure,
                                 const std::string& param_name) -> Status {
     TF_ASSIGN_OR_RETURN(const Normalization secondary_expected,
                         NormalizationRequired(secondary_distance_measure));

@@ -22,6 +22,7 @@
 #include <memory>
 #include <typeinfo>
 
+#include "absl/status/status.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/dataset.h"
@@ -34,7 +35,6 @@
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
 #include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
@@ -123,7 +123,7 @@ Searcher<T>::Searcher(shared_ptr<TypedDataset<T>> dataset,
   }
 
   if (opts_.quantization_scheme() == AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
-    bias_.reserve(hashed_dataset->size());
+    norm_inv_or_bias_.reserve(hashed_dataset->size());
     if (!hashed_dataset->empty()) {
       const int dim = hashed_dataset->at(0).nonzero_entries();
       for (int i = 0; i < hashed_dataset->size(); i++) {
@@ -132,19 +132,18 @@ Searcher<T>::Searcher(shared_ptr<TypedDataset<T>> dataset,
                                           sizeof(float)),
             sizeof(float)));
 
-        bias_.push_back(-bias);
+        norm_inv_or_bias_.push_back(-bias);
       }
     }
-  }
-
-  if (limited_inner_product_) {
+  } else if (limited_inner_product_) {
     CHECK(opts_.indexer_) << "Indexer must be non-null if "
                              "limited inner product searcher is being used.";
     for (DatapointIndex dp_idx : Seq(hashed_dataset->size())) {
       Datapoint<FloatingTypeFor<T>> dp;
       TF_CHECK_OK(opts_.indexer_->Reconstruct((*hashed_dataset)[dp_idx], &dp));
       double norm = SquaredL2Norm(dp.ToPtr());
-      norm_inv_.push_back(static_cast<float>(norm == 0 ? 0 : 1 / sqrt(norm)));
+      norm_inv_or_bias_.push_back(
+          static_cast<float>(norm == 0 ? 0 : 1 / sqrt(norm)));
     }
   }
 }
@@ -157,14 +156,14 @@ Status Searcher<T>::VerifyLimitedInnerProductNormsSize() const {
   SCANN_RET_CHECK(limited_inner_product_);
 
   if (lut16_) {
-    SCANN_RET_CHECK_EQ(norm_inv_.size(), packed_dataset_.num_datapoints)
+    SCANN_RET_CHECK_EQ(norm_inv_or_bias_.size(), packed_dataset_.num_datapoints)
         << "Database size does not equal limited inner product norm size.";
     return OkStatus();
   }
   const DenseDataset<uint8_t>* hashed_dataset = this->hashed_dataset();
   SCANN_RET_CHECK(hashed_dataset)
       << "Hashed dataset must be non-null if LUT16 is not enabled.";
-  SCANN_RET_CHECK_EQ(norm_inv_.size(), hashed_dataset->size())
+  SCANN_RET_CHECK_EQ(norm_inv_or_bias_.size(), hashed_dataset->size())
       << "Database size does not equal limited inner product norm size.";
   return OkStatus();
 }
@@ -175,16 +174,22 @@ Status Searcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
                                       NNResultsVector* result) const {
   if (limited_inner_product_) {
     SCANN_RETURN_IF_ERROR(VerifyLimitedInnerProductNormsSize());
+    if (opts_.quantization_scheme() ==
+        AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
+      return UnimplementedError(
+          "Limited inner product and PRODUCT_AND_BIAS quantization are not "
+          "supported together.");
+    }
     float query_norm = static_cast<float>(sqrt(SquaredL2Norm(query)));
     asymmetric_hashing_internal::LimitedInnerFunctor functor(query_norm,
-                                                             norm_inv_);
+                                                             norm_inv_or_bias_);
     return FindNeighborsTopNDispatcher<
         asymmetric_hashing_internal::LimitedInnerFunctor>(query, params,
                                                           functor, result);
   } else if (opts_.quantization_scheme() ==
              AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     asymmetric_hashing_internal::AddBiasFunctor functor(
-        bias_, query.values_span().back());
+        norm_inv_or_bias_, query.values_span().back());
     return FindNeighborsTopNDispatcher<
         asymmetric_hashing_internal::AddBiasFunctor>(query, params, functor,
                                                      result);
@@ -250,20 +255,10 @@ Status Searcher<T>::FindNeighborsTopNDispatcher(
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
-    auto ah_optional_params = params.searcher_specific_optional_parameters<
-        AsymmetricHashingOptionalParameters>();
-    if (ah_optional_params && ah_optional_params->top_n()) {
-      queryer_options.first_dp_index = ah_optional_params->starting_dp_idx_;
-      queryer_options.lut16_bias = ah_optional_params->lut16_bias_;
-      SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
-          *lookup_table, params, std::move(queryer_options),
-          ah_optional_params->top_n_));
-    } else {
-      TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
-      SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
-          *lookup_table, params, std::move(queryer_options), &top_n));
-      *result = top_n.TakeUnsorted();
-    }
+    TopNeighbors<float> top_n(params.pre_reordering_num_neighbors());
+    SCANN_RETURN_IF_ERROR(AsymmetricQueryer<T>::FindApproximateNeighbors(
+        *lookup_table, params, std::move(queryer_options), &top_n));
+    *result = top_n.TakeUnsorted();
   }
   return OkStatus();
 }
@@ -281,7 +276,10 @@ QueryerOptions<PostprocessFunctor> Searcher<T>::GetQueryerOptions(
   }
   queryer_options.hashed_dataset = hashed_dataset_view;
   queryer_options.postprocessing_functor = std::move(postprocessing_functor);
-  if (lut16_) queryer_options.lut16_packed_dataset = &packed_dataset_;
+  if (lut16_) {
+    queryer_options.lut16_packed_dataset =
+        CreatePackedDatasetView(packed_dataset_);
+  }
   return queryer_options;
 }
 
@@ -301,17 +299,18 @@ Status Searcher<T>::FindNeighborsBatchedInternal(
             *this->hashed_dataset());
   }
   queryer_options.postprocessing_functor = std::move(postprocessing_functor);
-  queryer_options.lut16_packed_dataset = &packed_dataset_;
+  queryer_options.lut16_packed_dataset =
+      CreatePackedDatasetView(packed_dataset_);
   const size_t num_queries = params.size();
   size_t low_level_batch_start = 0;
 
   while (low_level_batch_start < num_queries) {
-    const size_t low_level_batch_size = [&] {
+    const size_t low_level_batch_size = [&]() -> size_t {
       const size_t queries_left = num_queries - low_level_batch_start;
 
       if (queries_left <= max_low_level_batch_size_) return queries_left;
 
-      if (queries_left >= 2 * max_low_level_batch_size_) {
+      if (queries_left >= 2 * size_t{max_low_level_batch_size_}) {
         return optimal_low_level_batch_size_;
       }
 
@@ -413,6 +412,26 @@ PrecomputedAsymmetricLookupTableCreator<T>::
                       queryer_->CreateLookupTable(query, lookup_type_));
   return unique_ptr<SearcherSpecificOptionalParameters>(
       new AsymmetricHashingOptionalParameters(std::move(lookup_table)));
+}
+
+template <typename T>
+StatusOr<typename SingleMachineSearcherBase<T>::Mutator*>
+Searcher<T>::GetMutator() const {
+  if (opts_.quantization_scheme() == AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
+    return UnimplementedError(
+        "Mutation with PRODUCT_AND_BIAS is not implemented.");
+  }
+  if (limited_inner_product_) {
+    return UnimplementedError(
+        "Mutation with LimitedInnerProductDistance is not implemented.");
+  }
+  if (!mutator_) {
+    auto mutable_this = const_cast<Searcher<T>*>(this);
+    TF_ASSIGN_OR_RETURN(mutator_, Searcher<T>::Mutator::Create(mutable_this));
+    SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
+  }
+  return static_cast<typename SingleMachineSearcherBase<T>::Mutator*>(
+      mutator_.get());
 }
 
 template <typename T>

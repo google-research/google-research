@@ -1,0 +1,6 @@
+# stump
+smerf.internal.configs.Config.data_dir = "datasets/stump"
+smerf.internal.configs.Config.distill_teacher_ckpt_dir = "teachers/stump"
+smerf.internal.configs.Config.factor = 4
+smerf.internal.configs.Config.near = 0.2
+smerf.internal.configs.Config.far = 1000000.0

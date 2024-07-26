@@ -1,0 +1,45 @@
+# Additional configuration for Zip-NeRF Large scenes
+
+# Up to 5^3 submodels.
+smerf.internal.configs.Config.submodel_grid_resolution = 5
+
+# Accelerate baking.
+smerf.internal.configs.Config.baking_enable_ray_jitter = True
+smerf.internal.configs.Config.baking_subsample_factor = 2
+smerf.internal.configs.Config.baking_max_distance_to_submodel_origin = 0.3
+
+# Reduce peak VRAM usage. This avoids OOMs when training with V100s.
+smerf.internal.configs.Config.gradient_accumulation_steps = 4
+
+# Larger hash maps.
+smerf.internal.hash_encoding.MultiHashEncoding.hash_map_size = 2_097_152  # 2^21
+
+# Enable anti-flicker loss.
+smerf.internal.configs.Config.antiflicker_rgb_loss_mult = 1.0
+
+# Don't render turntable videos.
+smerf.internal.configs.Config.enable_video = False
+
+# Skip every other frame in video rendering. This avoids OOMs when training
+# with V100s on duckworthd_apartment.
+smerf.internal.configs.Config.render_path_video_every = 2
+smerf.internal.configs.Config.baked_render_path_video_every = 2
+
+# Each submodel should only render its own video frames.
+smerf.internal.configs.Config.baked_render_path_all_cameras = False
+
+# Add some buffer space in submodel coordinates
+smerf.internal.configs.Config.submodel_scale_factor = 0.8
+
+# Model exposure in this dataset.
+smerf.internal.configs.Config.use_exposure_in_deferred_mlp = True
+
+# Train for 100,000 steps
+smerf.internal.configs.Config.max_steps = 100_000
+v0/smerf.internal.schedule.LogLerpSchedule.start = 40_000
+v0/smerf.internal.schedule.LogLerpSchedule.end = 80_000
+
+# When baking a submodel, use cameras whose origin are within 0.3 world units
+# of the submodel region's origin. When submodel_grid_resolution = 5, each
+# submodel region has a length of 2/5=0.4 world units.
+smerf.internal.configs.Config.baking_max_distance_to_submodel_origin = 0.3

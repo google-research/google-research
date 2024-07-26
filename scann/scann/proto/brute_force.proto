@@ -23,7 +23,11 @@ import "scann/proto/exact_reordering.proto";
 message BruteForceConfig {
   optional bool scalar_quantized = 1 [default = false, deprecated = true];
 
-  optional FixedPoint fixed_point = 4;
+  oneof Quantization {
+    FixedPoint fixed_point = 4;
+
+    Bfloat16 bfloat16 = 5;
+  }
 
   optional float scalar_quantization_multiplier_quantile = 2
       [default = 1.0, deprecated = true];

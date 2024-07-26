@@ -120,9 +120,10 @@ normalization to that data.
 The fuel channel contains a discrete id in it.  The code below is a snippet
 from our pipeline that contains the specifics of how the fuel channel is set
 up.  Basically, every pixel in the fuel channel contains a number between 0 and
-len(FUEL_LIST), and the FUEL_LIST specifies which values belong to which fuel
-ids.  I.e., all values of 0 in the fuel channel correspond to fuel GR1 (short
-grass) with id 101, whereas values of 6 belong to fuel id 107, GR7.
+len(FUEL_LIST) + 1, and the FUEL_MAP specifies which values belong to which
+fuel ids.  I.e., all values of 1 in the fuel channel correspond to fuel GR1
+(short grass) with id 101, whereas values of 7 belong to fuel id 107, GR7.
+Note that this means that values with id 0 do not map to any fuel types.
 
 # A list of the fuel types that appear in the data.  These fuel types are mapped
 # to a sequence of ints that can be used in one-hot-encoding.
@@ -177,6 +178,11 @@ FUEL_LIST = [101, 102, 103, 104, 105, 106, 107, 108, 109, 121, 122, 123, 124,
              141, 142, 143, 144, 145, 146, 147, 148, 149, 161, 162, 163, 164,
              165, 181, 182, 183, 184, 185, 186, 187, 188, 189, 201, 202, 203,
              204, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99]
+FUEL_MAP = {float(i): float(x+1) for x, i in enumerate(FUEL_LIST)}
+FUEL_MAP_INVERSE = {value: key for key, value in FUEL_MAP.items()}
+FUEL_UPDATER_FUNC = np.vectorize(lambda x: FUEL_MAP[x])
+FUEL_NAME_MAP = {
+    value: _get_fuel_name(value) for _, value in FUEL_MAP_INVERSE.items()}
 
 --- Process for transforming FARSITE output files into data files. ---
 
@@ -206,8 +212,9 @@ $INPUT_DIR should contain:
   * density.npy
   * elevation.npy
   * fuel.npy -- The fuel id for each pixel, where each id is a member of
-    FUEL_LIST (e.g. 102). This will need to be converted to an index into
-    FUEL_LIST.
+    FUEL_LIST.  Each fuel id needs to be converted into a new id via the
+    FUEL_MAP, which simply remaps all the types to a 1-index. E.g., 101 -> 1,
+    102 -> 2, etc.
   * height.npy
   * moisture_100_hour.npy
   * moisture_10_hour.npy
@@ -224,7 +231,7 @@ Process for prepping data.
 * Load the (H, W, T) numpy array from the wind files.
 * Load the (H, W) from all other channels.
 * Convert the fuel channel from raw fuel ids (e.g. 102) to their corresponding
-  indices into FUEL_LIST (e.g. 1).
+  mappings in FUEL_MAP.
 * Normalize all data that needs it (all channels except for the vegetation
   channels).
 * Build up the channel 0 (veg), channel 1 (prev_front) and channel 2

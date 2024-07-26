@@ -22,6 +22,7 @@
 #include "scann/distance_measures/one_to_one/common.h"
 #include "scann/distance_measures/one_to_one/dot_product_avx1.h"
 #include "scann/distance_measures/one_to_one/dot_product_avx2.h"
+#include "scann/distance_measures/one_to_one/dot_product_highway.h"
 #include "scann/distance_measures/one_to_one/dot_product_sse4.h"
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/reduction.h"

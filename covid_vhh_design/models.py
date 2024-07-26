@@ -74,7 +74,7 @@ class LGBMBoosterRegressor(sk_base.RegressorMixin, sk_base.BaseEstimator):
     return True
 
   def predict(self, *args, **kwargs):
-    return self.booster.predict(*args, **kwargs)
+    return self.booster.predict(*args, **kwargs)  # pytype: disable=bad-return-type  # scipy
 
 
 class LGBMBoosterClassifier(sk_base.ClassifierMixin, sk_base.BaseEstimator):

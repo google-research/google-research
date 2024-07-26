@@ -13,10 +13,12 @@
 # limitations under the License.
 
 #!/bin/bash
-python3 data_preprocessing/preprocess.py
+python3 data_preprocessing/preprocess.py --which_dataset=criteo_ctr
+python3 data_preprocessing/preprocess.py --which_dataset=criteo_sscl
 
 #script to generate analysis
 python3 bag_ds_analysis/autoint_embedding_generator.py
+python3 bag_ds_analysis/sscl_embedding_generator.py
 source bag_ds_analysis/label_analysis.sh
 source bag_ds_analysis/feature_analysis.sh
 
@@ -29,14 +31,8 @@ source bag_ds_creation/random_bag_ds_creation.sh
 #script to generate fixed size feature bag datasets
 source bag_ds_creation/fixed_size_feature_bag_ds_creation.sh
 
-#script to generate mean map vectors for feature bag datasets
-source mean_map_comp/feature_bags_ds/feat_bags_mean_map.sh
-
-#script to generate mean map vectors for random bag datasets
-source mean_map_comp/random_bags_ds/random_bags_mean_map.sh
-
-#script to generate mean map vectors for fixed size feature bag datasets
-source mean_map_comp/fixed_size_feature_bags_ds/fixed_size_feature_bags_mean_map.sh
+#script to generate mean map vectors for all datasets
+source mean_map_comp/mean_map.sh
 
 #script to train all baselines on feature bags datasets
 source model_training/feature_bags_train.sh

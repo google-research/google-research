@@ -1,11 +1,5 @@
 ## LLP-Bench: A Large Scale Tabular Benchmark for Learning from Label Proportions
 
-Aurhors: Anand Brahmbhatt, Mohith Pokala, Rishi Saket, Aravindan Raghuveer  
-
-
-Full Paper: https://arxiv.org/abs/2310.10096  
-
-
 Inside the ```data/bag_ds``` directory create the following directory structure.
 
 ```

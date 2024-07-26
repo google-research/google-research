@@ -89,7 +89,7 @@ class TrainingLoopTest(unittest.TestCase):
     state, _ = training_loop.training_loop(
         config=cfg, train_datasource=datasource, valid_datasource=datasource
     )
-    isfinite = jax.tree_map(lambda x: jnp.isfinite(x).all(), state)
+    isfinite = jax.tree.map(lambda x: jnp.isfinite(x).all(), state)
     isfinite_leaves = [
         leaf for (_, leaf) in jax.tree_util.tree_flatten_with_path(isfinite)[0]
     ]
@@ -103,7 +103,7 @@ class TrainingLoopTest(unittest.TestCase):
     state, _ = training_loop.training_loop(
         config=cfg, train_datasource=datasource, valid_datasource=datasource
     )
-    isfinite = jax.tree_map(lambda x: jnp.isfinite(x).all(), state)
+    isfinite = jax.tree.map(lambda x: jnp.isfinite(x).all(), state)
     isfinite_leaves = [
         leaf for (_, leaf) in jax.tree_util.tree_flatten_with_path(isfinite)[0]
     ]

@@ -16,26 +16,33 @@
 
 #include "scann/base/single_machine_base.h"
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <string>
 #include <typeinfo>
 #include <utility>
 
-#include "absl/flags/flag.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/strings/match.h"
 #include "absl/strings/substitute.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/docid_collection_interface.h"
+#include "scann/metadata/metadata_getter.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/proto/results.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
 #include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
 
@@ -120,6 +127,10 @@ StatusOr<DatapointIndex> UntypedSingleMachineSearcherBase::DatasetSize() const {
   }
 }
 
+vector<uint32_t> UntypedSingleMachineSearcherBase::SizeByPartition() const {
+  return {};
+}
+
 bool UntypedSingleMachineSearcherBase::impl_needs_dataset() const {
   return true;
 }
@@ -134,8 +145,8 @@ DatapointIndex UntypedSingleMachineSearcherBase::optimal_batch_size() const {
 
 UntypedSingleMachineSearcherBase::UntypedSingleMachineSearcherBase(
     shared_ptr<const DenseDataset<uint8_t>> hashed_dataset,
-    const int32_t default_pre_reordering_num_neighbors,
-    const float default_pre_reordering_epsilon)
+    int32_t default_pre_reordering_num_neighbors,
+    float default_pre_reordering_epsilon)
     : hashed_dataset_(hashed_dataset),
       default_search_parameters_(default_pre_reordering_num_neighbors,
                                  default_pre_reordering_epsilon,
@@ -284,6 +295,18 @@ SingleMachineSearcherBase<T>::SharedFloatDatasetIfNeeded() {
   return dataset;
 }
 
+template <typename T>
+StatusOr<shared_ptr<const DenseDataset<float>>>
+SingleMachineSearcherBase<T>::ReconstructFloatDataset() {
+  TF_ASSIGN_OR_RETURN(auto dataset, SharedFloatDatasetIfNeeded());
+  if (dataset != nullptr) {
+    return dataset;
+  } else if (reordering_enabled()) {
+    return reordering_helper().ReconstructFloatDataset();
+  }
+  return shared_ptr<const DenseDataset<float>>(nullptr);
+}
+
 bool UntypedSingleMachineSearcherBase::needs_hashed_dataset() const {
   return impl_needs_hashed_dataset() ||
 
@@ -368,13 +391,17 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatched(
 }
 
 template <typename T>
-Status SingleMachineSearcherBase<T>::FindNeighborsBatchedNoSortNoExactReorder(
+template <typename ResultElem>
+Status SingleMachineSearcherBase<T>::ValidateFindNeighborsBatched(
     const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
-    MutableSpan<NNResultsVector> results) const {
-  if (queries.size() != params.size()) {
-    return InvalidArgumentError(
-        "queries.size != params.size in FindNeighbors batched (%d vs. %d).",
-        queries.size(), params.size());
+    MutableSpan<ResultElem> results) const {
+  if (!params.empty() ||
+      !std::is_same_v<ResultElem, FastTopNeighbors<float>*>) {
+    if (queries.size() != params.size()) {
+      return InvalidArgumentError(
+          "queries.size != params.size in FindNeighbors batched (%d vs. %d).",
+          queries.size(), params.size());
+    }
   }
 
   if (queries.size() != results.size()) {
@@ -408,13 +435,30 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatchedNoSortNoExactReorder(
         "Query dimensionality (%u) does not match database dimensionality (%u)",
         queries.dimensionality(), dataset()->dimensionality());
   }
+  return OkStatus();
+}
 
+template <typename T>
+Status SingleMachineSearcherBase<T>::FindNeighborsBatchedNoSortNoExactReorder(
+    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+    MutableSpan<NNResultsVector> results) const {
+  SCANN_RETURN_IF_ERROR(ValidateFindNeighborsBatched(queries, params, results));
   return FindNeighborsBatchedImpl(queries, params, results);
 }
 
 template <typename T>
+Status SingleMachineSearcherBase<T>::FindNeighborsBatchedNoSortNoExactReorder(
+    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+    MutableSpan<FastTopNeighbors<float>*> results,
+    ConstSpan<DatapointIndex> datapoint_index_lookup) const {
+  SCANN_RETURN_IF_ERROR(ValidateFindNeighborsBatched(queries, params, results));
+  return FindNeighborsBatchedImpl(queries, params, results,
+                                  datapoint_index_lookup);
+}
+
+template <typename T>
 Status SingleMachineSearcherBase<T>::GetNeighborProto(
-    const pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
+    pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
     NearestNeighbors::Neighbor* result) const {
   SCANN_RETURN_IF_ERROR(GetNeighborProtoNoMetadata(neighbor, query, result));
   if (!metadata_enabled()) return OkStatus();
@@ -427,7 +471,7 @@ Status SingleMachineSearcherBase<T>::GetNeighborProto(
 
 template <typename T>
 Status SingleMachineSearcherBase<T>::GetNeighborProtoNoMetadata(
-    const pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
+    pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
     NearestNeighbors::Neighbor* result) const {
   DCHECK(result);
   result->Clear();
@@ -486,6 +530,57 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatchedImpl(
         FindNeighborsImpl(queries[i], params[i], &results[i]));
   }
 
+  return OkStatus();
+}
+
+template <typename T>
+Status SingleMachineSearcherBase<T>::FindNeighborsBatchedImpl(
+    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+    MutableSpan<FastTopNeighbors<float>*> results,
+    ConstSpan<DatapointIndex> datapoint_index_mapping) const {
+  if (!params.empty()) SCANN_RET_CHECK_EQ(queries.size(), params.size());
+  SCANN_RET_CHECK_EQ(queries.size(), results.size());
+  vector<NNResultsVector> vec_results(queries.size());
+  vector<SearchParameters> default_params_storage;
+  if (params.empty()) {
+    default_params_storage.resize(queries.size());
+    params = default_params_storage;
+    for (size_t i : IndicesOf(results)) {
+      const size_t max_results = results[i]->max_results();
+      SCANN_RET_CHECK_GT(max_results, 0);
+      default_params_storage[i].set_pre_reordering_epsilon(
+          results[i]->epsilon());
+      default_params_storage[i].set_pre_reordering_num_neighbors(max_results);
+    }
+  }
+  SCANN_RETURN_IF_ERROR(
+      FindNeighborsBatchedImpl(queries, params, MakeMutableSpan(vec_results)));
+
+  auto do_push = [&](auto map_datapoint_index) SCANN_INLINE_LAMBDA {
+    for (DatapointIndex q_idx : IndicesOf(vec_results)) {
+      DCHECK(!params[q_idx].pre_reordering_crowding_enabled());
+      DCHECK(results[q_idx]);
+      FastTopNeighbors<float>::Mutator mut;
+      results[q_idx]->AcquireMutator(&mut);
+      float eps =
+          std::min(params[q_idx].pre_reordering_epsilon(), mut.epsilon());
+      for (const auto& elem : vec_results[q_idx]) {
+        if (elem.second <= eps &&
+            mut.Push(map_datapoint_index(elem.first), elem.second)) {
+          mut.GarbageCollect();
+          eps = mut.epsilon();
+        }
+      }
+    }
+  };
+  if (datapoint_index_mapping.empty()) {
+    do_push([](DatapointIndex dp_idx) { return dp_idx; });
+  } else {
+    do_push([&datapoint_index_mapping](DatapointIndex dp_idx) {
+      DCHECK_LT(dp_idx, datapoint_index_mapping.size());
+      return datapoint_index_mapping[dp_idx];
+    });
+  }
   return OkStatus();
 }
 

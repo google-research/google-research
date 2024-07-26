@@ -332,10 +332,10 @@ def init_state(
       for key in input_sample_cls:
         sample_cls[key + "_cls"] = input_sample_cls[key]
 
-    sample_det = jax.tree_map(
+    sample_det = jax.tree.map(
         lambda x: jnp.zeros((real_bs_det, *x.shape[1:]), dtype=x.dtype),
         sample_det)
-    sample_cls = jax.tree_map(
+    sample_cls = jax.tree.map(
         lambda x: jnp.zeros((real_bs_cls, *x.shape[1:]), dtype=x.dtype),
         sample_cls)
 
@@ -401,7 +401,7 @@ def init_cls_state(
       for key in input_sample_cls:
         sample_cls[key] = input_sample_cls[key]
 
-    sample_cls = jax.tree_map(
+    sample_cls = jax.tree.map(
         lambda x: jnp.zeros((real_bs_cls, *x.shape[1:]), dtype=x.dtype),
         sample_cls)
 
@@ -458,7 +458,7 @@ def make_dataset_iterator(dataset):
         a = x
       return a
 
-    return jax.tree_map(lambda x: jnp.asarray(trans(x)), data)
+    return jax.tree.map(lambda x: jnp.asarray(trans(x)), data)
 
   ds_iter = iter(dataset)
   ds_iter = map(to_numpy, ds_iter)
@@ -489,7 +489,7 @@ def tree_shape_dtype_struct(tree):
     dtype = dtype.as_numpy_dtype if hasattr(dtype, "as_numpy_dtype") else dtype
     return jax.ShapeDtypeStruct(shape=shape, dtype=dtype)
 
-  return jax.tree_map(fn, tree)
+  return jax.tree.map(fn, tree)
 
 
 @gin.configurable(denylist=["output_dir", "mesh"])
@@ -538,9 +538,9 @@ def _train_vmoe_mtl(
       sample_cls[key + "_cls"] = batch_cls[key]
   def generate_partition_spec(_):
     return partitioning.parse_partition_spec((mesh.axis_names,))
-  resources_det = jax.tree_map(
+  resources_det = jax.tree.map(
       generate_partition_spec, sample_det)
-  resources_cls = jax.tree_map(
+  resources_cls = jax.tree.map(
       generate_partition_spec, sample_cls)
   train_state_rngs = utils.make_rngs(("params", "gating_cls", "gating_det",
                                       "dropout_cls", "dropout_det", "rng",
@@ -566,7 +566,7 @@ def _train_vmoe_mtl(
   if cls_model_checkpoints is not None:
     cls_train_state_rngs = utils.make_rngs(
         ("params", "gating", "dropout", "rng"), rng_seed)
-    resources_cls_load = jax.tree_map(
+    resources_cls_load = jax.tree.map(
         generate_partition_spec, batch_cls)
     cls_state_init_fn = init_cls_state(
         cls_model_fn,
@@ -669,7 +669,7 @@ def _train_vmoe_mtl(
       optimizer = train_state.optimizer
       model_state = train_state.model_state
       rngs = train_state.rngs
-      new_ema_target = jax.tree_map(lambda x, y: 1 * x + 0 * y,
+      new_ema_target = jax.tree.map(lambda x, y: 1 * x + 0 * y,
                                     optimizer.target, old_ema_target)
       new_train_state = train_state.replace(  # pytype: disable=attribute-error
           step=init_step,
@@ -778,7 +778,7 @@ def _train_vmoe_mtl(
     lrs = aux_output["lr"]
     losses.update(lrs)
     old_ema_target = train_state.ema_target
-    new_ema_target = jax.tree_map(lambda x, y: 0.1 * x + 0.9 * y,
+    new_ema_target = jax.tree.map(lambda x, y: 0.1 * x + 0.9 * y,
                                   new_optimizer.target, old_ema_target)
     new_train_state = train_state.replace(  # pytype: disable=attribute-error
         step=step + 1,
@@ -821,7 +821,7 @@ def _train_vmoe_mtl(
   with metric_writers.ensure_flushes(writer):
     # Explicitly compile train_step here and report the compilation time.
     t0 = time.time()
-    # logging.info(jax.tree_map(lambda x: x.shape, batch))
+    # logging.info(jax.tree.map(lambda x: x.shape, batch))
     train_step_pjit = train_step_pjit.lower(
         *tree_shape_dtype_struct((train_state, sample_det, sample_cls))
     ).compile()
@@ -989,9 +989,9 @@ def _evaluate_vmoe_mtl(
       sample_cls[key + "_cls"] = batch_cls[key]
   def generate_partition_spec(_):
     return partitioning.parse_partition_spec((mesh.axis_names,))
-  input_axis_resources_cls = jax.tree_map(
+  input_axis_resources_cls = jax.tree.map(
       generate_partition_spec, sample_cls)
-  input_axis_resources_det = jax.tree_map(
+  input_axis_resources_det = jax.tree.map(
       generate_partition_spec, sample_det)
 
   logging.info("Building model.")
@@ -1151,9 +1151,9 @@ def _evaluate_vmoe_mtl_with_aes(
       sample_cls[key + "_cls"] = batch_cls[key]
   def generate_partition_spec(_):
     return partitioning.parse_partition_spec((mesh.axis_names,))
-  input_axis_resources_cls = jax.tree_map(
+  input_axis_resources_cls = jax.tree.map(
       generate_partition_spec, sample_cls)
-  input_axis_resources_det = jax.tree_map(
+  input_axis_resources_det = jax.tree.map(
       generate_partition_spec, sample_det)
 
   logging.info("Building model.")
@@ -1376,9 +1376,9 @@ def _train_and_validate_vmoe_mtl(
       sample_cls[key + "_cls"] = batch_cls[key]
   def generate_partition_spec(_):
     return partitioning.parse_partition_spec((mesh.axis_names,))
-  resources_det = jax.tree_map(
+  resources_det = jax.tree.map(
       generate_partition_spec, sample_det)
-  resources_cls = jax.tree_map(
+  resources_cls = jax.tree.map(
       generate_partition_spec, sample_cls)
   train_state_rngs = utils.make_rngs(("params", "gating_cls", "gating_det",
                                       "dropout_cls", "dropout_det", "rng",
@@ -1404,7 +1404,7 @@ def _train_and_validate_vmoe_mtl(
   if cls_model_checkpoints is not None:
     cls_train_state_rngs = utils.make_rngs(
         ("params", "gating", "dropout", "rng"), rng_seed)
-    resources_cls_load = jax.tree_map(
+    resources_cls_load = jax.tree.map(
         generate_partition_spec, batch_cls)
     cls_state_init_fn = init_cls_state(
         cls_model_fn,
@@ -1507,7 +1507,7 @@ def _train_and_validate_vmoe_mtl(
       optimizer = train_state.optimizer
       model_state = train_state.model_state
       rngs = train_state.rngs
-      new_ema_target = jax.tree_map(lambda x, y: 1 * x + 0 * y,
+      new_ema_target = jax.tree.map(lambda x, y: 1 * x + 0 * y,
                                     optimizer.target, old_ema_target)
       new_train_state = train_state.replace(  # pytype: disable=attribute-error
           step=init_step,
@@ -1617,7 +1617,7 @@ def _train_and_validate_vmoe_mtl(
     lrs = aux_output["lr"]
     losses.update(lrs)
     old_ema_target = train_state.ema_target
-    new_ema_target = jax.tree_map(lambda x, y: 0.1 * x + 0.9 * y,
+    new_ema_target = jax.tree.map(lambda x, y: 0.1 * x + 0.9 * y,
                                   new_optimizer.target, old_ema_target)
     new_train_state = train_state.replace(  # pytype: disable=attribute-error
         step=step + 1,
@@ -1709,7 +1709,7 @@ def _train_and_validate_vmoe_mtl(
   with metric_writers.ensure_flushes(writer):
     # Explicitly compile train_step here and report the compilation time.
     t0 = time.time()
-    # logging.info(jax.tree_map(lambda x: x.shape, batch))
+    # logging.info(jax.tree.map(lambda x: x.shape, batch))
     train_step_pjit = train_step_pjit.lower(
         *tree_shape_dtype_struct((train_state, sample_det, sample_cls))
     ).compile()

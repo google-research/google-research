@@ -49,4 +49,4 @@ def summarize_tree(tree):
     else:
       return x
 
-  return jax.tree_map(_describe, tree)
+  return jax.tree.map(_describe, tree)

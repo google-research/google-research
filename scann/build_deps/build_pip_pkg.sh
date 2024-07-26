@@ -39,7 +39,8 @@ cp ${BAZEL_PREFIX}requirements.txt "${TMPDIR}"
 cp ${BAZEL_PREFIX}setup.py "${TMPDIR}"
 rsync -avm -L --exclude='*_test.py' ${BAZEL_PREFIX}scann "${TMPDIR}"
 
-echo "from scann.scann_ops.py.scann_builder import ScannBuilder" > "${TMPDIR}"/scann/__init__.py
+echo "from scann.scann_ops.py.scann_builder import ReorderType" >> "${TMPDIR}"/scann/__init__.py
+echo "from scann.scann_ops.py.scann_builder import ScannBuilder" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops_pybind" >> "${TMPDIR}"/scann/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/__init__.py

@@ -17,6 +17,7 @@
 #include <cstdint>
 #ifdef __x86_64__
 
+#include "scann/utils/common.h"
 #include "scann/utils/intrinsics/sse4.h"
 
 namespace research_scann {
@@ -68,8 +69,8 @@ SCANN_SSE4_INLINE double DenseDotProductByteImpl(const Byte* aptr,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
-      __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
+      __m128i bvals = _mm_cvtsi32_si128(UnalignedLoad<int>(bptr));
       __m128i avals_low = SseFuncs::ExtendLower8To16(avals);
       __m128i bvals_low = SseFuncs::ExtendLower8To16(bvals);
       do_accumulations(_mm_mullo_epi16(avals_low, bvals_low));
@@ -409,7 +410,7 @@ SCANN_SSE4_OUTLINE double DenseDotProductSse4(const DatapointPtr<int8_t>& a,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
       __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
       __m128 bvals0 = _mm_loadu_ps(bptr);
       __m128 cvals0 = _mm_loadu_ps(cptr);
@@ -513,9 +514,9 @@ SCANN_SSE4_OUTLINE double DenseDotProductSse4(const DatapointPtr<int8_t>& a,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
       __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
-      __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+      __m128i bvals = _mm_cvtsi32_si128(UnalignedLoad<int>(bptr));
       __m128 bvals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(bvals));
       __m128 cvals0 = _mm_loadu_ps(cptr);
       __m128 prod0 = _mm_mul_ps(_mm_mul_ps(avals0, bvals0), cvals0);

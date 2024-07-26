@@ -181,11 +181,11 @@ def local_devices_split(
   local_device_count = jax.local_device_count()
   split_by_device = lambda x: x.reshape(
       (local_device_count, per_device_batch) + x.shape[1:])
-  features = jax.tree_map(split_by_device, features)
+  features = jax.tree.map(split_by_device, features)
   if label_names is None:
     return features
   labels = {label_name: batch[label_name] for label_name in label_names}
-  labels = jax.tree_map(split_by_device, labels)
+  labels = jax.tree.map(split_by_device, labels)
   return features, labels
 
 

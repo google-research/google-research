@@ -145,7 +145,7 @@ def evaluate(config, workdir):
         if idx == 10:
           break
       logging.info("Evaluating [%d / %d].", idx, eval_ds.cardinality())
-      batch = jax.tree_map(np.asarray, batch)
+      batch = jax.tree.map(np.asarray, batch)
       out_pred = flax_utils.unreplicate(p_eval_step(state=state, batch=batch))
 
       viz_batch = jax.tree_util.tree_map(lambda x: x[0], batch)

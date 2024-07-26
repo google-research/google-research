@@ -105,7 +105,7 @@ def update_queue(new_embs, queue):
 @jax.jit
 def _update_ema_params(ema_params, new_params, tau):
   """Returns new EMA params."""
-  return jax.tree_map(lambda x, y: x * tau + (1. - tau) * y, ema_params,
+  return jax.tree.map(lambda x, y: x * tau + (1. - tau) * y, ema_params,
                       new_params)
 
 

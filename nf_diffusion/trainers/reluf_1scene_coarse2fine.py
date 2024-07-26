@@ -287,7 +287,7 @@ def evaluate(
   render_loop = reluf_utils.make_render_loop(state.params, config)
   with utils.StepTraceContextHelper("eval", 0) as trace_context:
     for step, batch in enumerate(eval_ds):  # pytype: disable=wrong-arg-types
-      data = jax.tree_map(jnp.asarray, batch)
+      data = jax.tree.map(jnp.asarray, batch)
       render_poses = data["c2w"]
       hwf = data["hwf"]
       rng = jax.random.fold_in(rng, step)

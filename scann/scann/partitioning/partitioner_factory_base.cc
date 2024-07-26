@@ -117,8 +117,8 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
   TF_ASSIGN_OR_RETURN(
       auto raw_partitioner,
       PartitionerFactoryPreSampledAndProjected(sampled, config, pool));
-  return MakeProjectingDecorator<T, float>(std::move(projection),
-                                           std::move(raw_partitioner));
+  return MakeProjectingDecorator<T>(std::move(projection),
+                                    std::move(raw_partitioner));
 }
 }  // namespace
 

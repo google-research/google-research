@@ -35,27 +35,9 @@ void EmptyTensorRequireOk(OpKernelContext* context, absl::string_view name);
 
 Status ConvertStatus(const Status& status);
 
-template <typename T>
-Status PopulateDatapointFromTensor(const Tensor& tensor,
-                                   research_scann::DatapointPtr<T>* datapoint);
-
 template <typename DstType, typename SrcType = DstType>
 Status PopulateDenseDatasetFromTensor(
     const Tensor& tensor, research_scann::DenseDataset<DstType>* dataset);
-
-template <typename T>
-Status PopulateDatapointFromTensor(const Tensor& tensor,
-                                   research_scann::DatapointPtr<T>* datapoint) {
-  if (tensor.dims() != 1) {
-    return errors::InvalidArgument("Dataset must be 1-dimensional",
-                                   tensor.DebugString());
-  }
-  auto tensor_flat = tensor.flat<T>();
-  int dims = tensor.NumElements();
-  *datapoint =
-      research_scann::DatapointPtr<T>(nullptr, tensor_flat.data(), dims, dims);
-  return OkStatus();
-}
 
 template <typename DstType, typename SrcType>
 Status PopulateDenseDatasetFromTensor(
@@ -90,8 +72,8 @@ Status TensorFromDenseDataset(OpKernelContext* context, absl::string_view name,
   Tensor* tensor;
   TF_RETURN_IF_ERROR(context->allocate_output(
       name,
-      TensorShape(
-          {dataset->size(), static_cast<int64_t>(dataset->dimensionality())}),
+      TensorShape({static_cast<int64_t>(dataset->size()),
+                   static_cast<int64_t>(dataset->dimensionality())}),
       &tensor));
   auto tensor_flat = tensor->flat<T>();
   std::copy(dataset->data().begin(), dataset->data().end(), tensor_flat.data());
@@ -126,11 +108,6 @@ void TensorFromSpanRequireOk(OpKernelContext* context, absl::string_view name,
 template <typename T>
 research_scann::ConstSpan<T> TensorToConstSpan(const Tensor* t) {
   return absl::MakeConstSpan(t->flat<T>().data(), t->NumElements());
-}
-
-template <typename T>
-research_scann::MutableSpan<T> TensorToMutableSpan(const Tensor* t) {
-  return absl::MakeSpan(t->flat<T>().data(), t->NumElements());
 }
 
 }  // namespace scann_ops

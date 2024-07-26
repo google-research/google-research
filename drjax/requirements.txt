@@ -1,0 +1,5 @@
+absl-py~=1.0
+jax~=0.4.30
+jaxlib~=0.4.30
+tensorflow~=2.15
+chex~=0.1.81

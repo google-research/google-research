@@ -15,13 +15,26 @@
 #!/bin/bash
 for c in $(seq 1 26)
 do
-  python3 bag_ds_analysis/label_analysis_grp_key_1.py --c=$c
+  python3 bag_ds_analysis/label_analysis.py --c1=$c --c2=0 --grp_key_size_one=True --which_dataset=criteo_ctr
 done
 
 for c1 in $(seq 1 26)
 do
   for c2 in $(seq $(($c1+1)) 26)
   do
-    python3 bag_ds_analysis/label_analysis_grp_key_2.py --c1=$c1 --c2=$c2
+    python3 bag_ds_analysis/label_analysis.py --c1=$c1 --c2=$c2 --grp_key_size_one=False --which_dataset=criteo_ctr
+  done
+done
+
+for c in $(seq 1 17)
+do
+  python3 bag_ds_analysis/label_analysis.py --c1=$c --c2=0 --grp_key_size_one=True --which_dataset=criteo_sscl
+done
+
+for c1 in $(seq 1 17)
+do
+  for c2 in $(seq $(($c1+1)) 17)
+  do
+    python3 bag_ds_analysis/label_analysis.py --c1=$c1 --c2=$c2 --grp_key_size_one=False --which_dataset=criteo_sscl
   done
 done

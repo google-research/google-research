@@ -21,6 +21,7 @@
 #include "scann/utils/intrinsics/avx512.h"
 #include "scann/utils/intrinsics/fallback.h"
 #include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/sse4.h"
 
 #endif

@@ -417,9 +417,9 @@ def per_host_sum_pmap(in_tree):
   devices = [host2devices[k][0] for k in host2devices]
   host_psum = jax.pmap(lambda x: jax.lax.psum(x, 'i'), 'i', devices=devices)
   def pre_pmap(xs):
-    return jax.tree_map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
+    return jax.tree.map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
   def post_pmap(xs):
-    return jax.tree_map(lambda x: x[0], xs)
+    return jax.tree.map(lambda x: x[0], xs)
   return post_pmap(host_psum(pre_pmap(in_tree)))
 
 
@@ -845,9 +845,9 @@ def main(_):
       logging.info('Gathering training metrics.')
       metrics_all = common_utils.get_metrics(metrics_all)
       lr = metrics_all.pop('learning_rate').mean()
-      metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+      metrics_sums = jax.tree.map(jnp.sum, metrics_all)
       denominator = metrics_sums.pop('denominator')
-      summary = jax.tree_map(
+      summary = jax.tree.map(
           lambda x: x / denominator,  # pylint: disable=cell-var-from-loop
           metrics_sums)
       summary['learning_rate'] = lr
@@ -878,9 +878,9 @@ def main(_):
         eval_metrics.append(metrics)
 
       eval_metrics = common_utils.get_metrics(eval_metrics)
-      eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+      eval_metrics_sums = jax.tree.map(jnp.sum, eval_metrics)
       eval_denominator = eval_metrics_sums.pop('denominator')
-      eval_summary = jax.tree_map(
+      eval_summary = jax.tree.map(
           lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
           eval_metrics_sums)
 
@@ -915,7 +915,7 @@ def main(_):
               padded_size = int(
                   np.ceil(cur_pred_batch_size / n_devices) * n_devices)
               # pylint: disable=cell-var-from-loop
-              pred_batch = jax.tree_map(
+              pred_batch = jax.tree.map(
                   lambda x: pad_examples(x, padded_size), pred_batch)
             inputs, outputs, programs = common_utils.shard(pred_batch)
 
@@ -962,9 +962,9 @@ def main(_):
               top_of_beams.append('\n\n'.join(top_of_beam))
 
           all_total_successes, all_total_denominator = per_host_sum_pmap(
-              jax.tree_map(np.array, (total_successes, total_denominator)))
+              jax.tree.map(np.array, (total_successes, total_denominator)))
           all_pred_successes, all_pred_denominators = per_host_sum_pmap(
-              jax.tree_map(np.array, (pred_successes, pred_denominators)))
+              jax.tree.map(np.array, (pred_successes, pred_denominators)))
 
           # Record beam search results as text summaries.
           message = []

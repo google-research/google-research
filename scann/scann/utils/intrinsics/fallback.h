@@ -392,7 +392,6 @@ class Simd<T, kNumElementsArg> {
   }
 
   static SCANN_INLINE bool LessThan(IntelType a, IntelType b) {
-    LOG(INFO) << StrFormat("Called: %s < %s", StrCat(a.val), StrCat(b.val));
     return a.val < b.val;
   }
 

@@ -21,6 +21,24 @@
  *
  */
 
+importScripts("deps/zlib.js");
+importScripts("deps/png.js");
+
+let gWorkQueue = [];
+let gLiveRequests = {};
+let kMaxLiveRequests = 100;
+let kNumSleepMilliseconds = 250;
+
+
+/**
+ * Return a promise that sleeps for a given number of milliseconds.
+ * @param {number} ms ...
+ * @return {!Promise} ...
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 /**
  * Safe fetching. Some servers restrict the number of requests and
  * respond with status code 429 ("Too Many Requests") when a threshold
@@ -29,23 +47,40 @@
  * @return {!Promise} Returns fetchFn's response.
  */
 async function fetchAndRetryIfNecessary(fetchFn) {
-  const response = await fetchFn();
-  if (response.status === 429) {
-    await sleep(500);
-    return fetchAndRetryIfNecessary(fetchFn);
+  let response;
+  while (true) {
+    response = await fetchFn();
+    if (response.status === 429) {
+      await sleep(kNumSleepMilliseconds);
+      continue;
+    }
+    break;
   }
   return response;
 }
 
 /**
- * Fetches and decodes a PNG image.
- * @param {*} e  Event payload. The data attribute must contain the `i` to
- *               identify which callback to use and `url` to know which PNG to
- *               load.
+ * Decode a PNG file.
+ *
+ * @param {!Uint8Array} array Bytes to decode.
+ * @return {!object} ...
  */
-self.onmessage = function(e) {
+function parsePNG(array) {
+  let pngDecoder = new PNG(array);
+  let pixels = pngDecoder.decodePixels();
+  return pixels;
+}
+
+
+/**
+ * Process a request by fetching a URL, decoding its contents, and sending the
+ * result back to the main thread.
+ * @param {!object} e ...
+ * @return {!object} ...
+ */
+function processRequest(e) {
   const i = e.data.i;
-  let url = e.data.url;
+  let { url } = e.data.request;
 
   // Trim *.gz and trust the browser to take care of gzip decoding.
   if (url.endsWith('.gz')) {
@@ -53,24 +88,68 @@ self.onmessage = function(e) {
   }
 
   // The following promise runs freely till the computation chain completes.
-  fetchAndRetryIfNecessary(() => {
+  const promise =
+      fetchAndRetryIfNecessary(() => {
         return fetch(url, {method: 'GET', mode: 'cors'});
       })
-      .then(response => { return response.arrayBuffer(); })
+      .then(response => {
+        return response.arrayBuffer();
+      })
       .then(buffer => {
         let content = new Uint8Array(buffer);
         if (url.endsWith('.raw')) {
           return content;  // no further processing required.
+        } else if (url.endsWith('.png')) {
+          return parsePNG(content);
         } else {
           console.error(`Unrecognized filetype for ${url}`);
           return null;
         }
       })
-      .then(buffer => {
-        self.postMessage({i: i, result: buffer});
+      .then(array => {
+        self.postMessage({i: i, result: array}, [array.buffer]);
+        // Ensure that the array was handed off to the main thread.
+        console.assert(array.byteLength == 0);
+
+        // self.postMessage({i: i, result: array});
       })
       .catch(error => {
-        console.error(`Could not load assert from: ${url}, error: ${error}`);
+        console.error(`Could not load asset from: ${url}, error: ${error}`);
         return null;
       });
+
+  return promise;
+}
+
+/**
+ * Main loop.
+ */
+async function main() {
+  while (true) {
+    let numLiveRequests = Object.keys(gLiveRequests).length;
+    if (numLiveRequests >= kMaxLiveRequests) {
+      await sleep(kNumSleepMilliseconds);
+      continue;
+    }
+    if (gWorkQueue.length == 0) {
+      await sleep(kNumSleepMilliseconds);
+      continue;
+    }
+    let request = gWorkQueue.shift();
+    gLiveRequests[request.data.i] = request;
+    processRequest(request).finally(() => {
+      delete gLiveRequests[request.data.i];
+    });
+  }
+}
+
+/**
+ * Push a work item onto the queue.
+ * @param {!object} e ...
+ */
+self.onmessage = function(e) {
+  gWorkQueue.push(e);
 };
+
+
+main();
