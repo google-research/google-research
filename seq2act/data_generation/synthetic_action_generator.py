@@ -964,7 +964,7 @@ def get_synthetic_feature_dict(synthetic_action_list,
 
   phrase_count = feature['instruction_str'].shape[0]
   feature_padding_info = {
-      'instruction_str': [phrase_count, np.string_, ''],
+      'instruction_str': [phrase_count, np.bytes_, ''],
       'instruction_rule_id': [(phrase_count), np.int64, 0],
       'instruction_word_id_seq': [(phrase_count, max_word_num), np.int64, 0],
       'verb_id_seq': [(phrase_count), np.int64, 0],
