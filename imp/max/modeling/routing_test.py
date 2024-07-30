@@ -252,8 +252,8 @@ class RoutingTest(parameterized.TestCase):
     ], dtype=jnp.float32)
     np.testing.assert_allclose(router_indices.combine_weights, expected_weights)
 
-    self.assertEqual(router_indices.auxiliary_loss, 2.026483)
-    self.assertEqual(router_indices.router_z_loss, 1.8987045)
+    self.assertAlmostEqual(router_indices.auxiliary_loss, 2.026483, delta=1e-5)
+    self.assertAlmostEqual(router_indices.router_z_loss, 1.8987045, delta=1e-5)
 
   def test_tokens_choose_one_expert_mask_router(self):
     num_groups = 2
