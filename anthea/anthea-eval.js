@@ -978,6 +978,21 @@ class AntheaEval {
   }
 
   /**
+   * Get the error subtype information using the annotated error's
+   * type and subtype.
+   * @param {!AntheaError} error
+   * @return {!Array<!Object>}
+   */
+  getErrorSubtypeInfo(error) {
+    let errorInfo = this.config.errors[error.type];
+    if (error.subtype &&
+      errorInfo.subtypes && errorInfo.subtypes[error.subtype]) {
+      errorInfo = errorInfo.subtypes[error.subtype];
+    }
+    return errorInfo;
+  }
+
+  /**
    * Split the eval results for target and target2 in the sideBySide mode.
    * The number of segments will be doubled after splitting and formatted
    * as follows:
@@ -1001,25 +1016,34 @@ class AntheaEval {
           segStartIdxArray[i + 1] :
           evalResults.length;
       // Loop through each doc twice.
-      // 1st time only keep (src, translation) errors.
-      // 2nd time only keep (src, translation2) errors.
+      // 1st time only keep (src, translation, 1) errors.
+      // 2nd time only keep (src, translation2, 2) errors.
+      // number 1 and 2 refer to which_translation_side of omission errors.
+      // Other errors marked on the source side are not affected.
       const validErrorLists = [
-        ['source', 'translation'],
-        ['source', 'translation2']
+        ['source', 'translation', 1],
+        ['source', 'translation2', 2]
       ];
       for (let j = 0; j < validErrorLists.length; j++) {
         // Loop through each segment in a doc.
         for (let s = startIdx; s < endIdx; s++) {
           const evalResultCopy = JSON.parse(JSON.stringify(evalResults[s]));
-          // Split the errors based on their location.
-          evalResultCopy.errors = evalResults[s].errors.filter(
-              (error) => validErrorLists[j].includes(error.location)
-              );
+          evalResultCopy.errors = evalResults[s].errors.filter((error) => {
+            // For omission errors, split based on which_translation_side
+            // in the error subtype information.
+            const errorSubtypeInfo = this.getErrorSubtypeInfo(error);
+            if (errorSubtypeInfo &&
+                errorSubtypeInfo.hasOwnProperty('which_translation_side')) {
+              return errorSubtypeInfo.which_translation_side ===
+                  validErrorLists[j][2];
+            }
+            // For other errors, split based on error.location.
+            return validErrorLists[j].includes(error.location);
+          });
           // Split the hotw_list based on their injection location.
           evalResultCopy.hotw_list = evalResultCopy.hotw_list.filter(
               (hotwError) => validErrorLists[j].includes(hotwError.location)
               );
-          // Change the doc value based on the side which matters for Marot's
           // error result parsing.
           evalResultCopy.doc = evalResults[s].doc * 2 + j;
           splitEvalResults.push(evalResultCopy);
@@ -1186,9 +1210,15 @@ class AntheaEval {
         splitTwo.doc = (splitTwo.doc - 1) / 2;
         // Merge the errors.
         for (let error of splitTwo.errors) {
-          if (error.location !== 'source') {
-            // Non-source errors should be added into splitOne.
-            // Change translation to translation2 in splitTwo.
+          if (error.location === 'source') {
+            // Only add the omission error which is split
+            // based on which_translation_side.
+            const errorSubtypeInfo = this.getErrorSubtypeInfo(error);
+            if (errorSubtypeInfo &&
+                errorSubtypeInfo.hasOwnProperty('which_translation_side')) {
+              splitOne.errors.push(error);
+            }
+          } else {
             error.location = 'translation2';
             splitOne.errors.push(error);
           }

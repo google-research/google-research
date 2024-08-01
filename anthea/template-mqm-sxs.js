@@ -123,10 +123,17 @@ antheaTemplates['MQM-SxS'] = {
           display: 'Addition',
           description: 'The target text includes information not present in the source.',
         },
-        omission: {
-          display: 'Omission',
-          description: 'Content is missing from the translation that is present in the source.',
+        omission_translation: {
+          display: 'Omission (Translation)',
+          description: 'Content is missing from the first (left) translation that is present in the source.',
           source_side_only: true,
+          which_translation_side: 1
+        },
+        omission_translation_2: {
+          display: 'Omission (Translation 2)',
+          description: 'Content is missing from the second (right) translation that is present in the source.',
+          source_side_only: true,
+          which_translation_side: 2
         },
       },
     },
