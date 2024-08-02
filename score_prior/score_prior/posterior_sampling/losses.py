@@ -280,7 +280,7 @@ def get_train_step_fn(
     # Prior loss gradient.
     if use_score_fn:
       grad_prior_covector = -score_fn(samples, t0_batch)
-      loss_prior = np.NAN
+      loss_prior = np.nan
     else:
       rng, logp_rng = jax.random.split(rng)
       loss_prior, grad_prior_covector = jax.value_and_grad(
