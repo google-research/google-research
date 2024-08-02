@@ -342,6 +342,9 @@ antheaTemplates['MQM-SxS'] = {
               or between “called” and “up”, should not be included in the span
               if the issue is with the verb only (“aufteilen”, “call up”).
           </li>
+          <li>If the same error is present in both translations, please make
+              sure to mark the error in both translations.
+          </li>
           <li>Note: issues can appear either in the translations, or
               rarely, for the "Source issue" type, in the source. When
               the error is an omission, the error span must be selected in the

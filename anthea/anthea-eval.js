@@ -978,8 +978,8 @@ class AntheaEval {
   }
 
   /**
-   * Get the error subtype information using the annotated error's
-   * type and subtype.
+   * Retrieves the error subtype information of an error
+   * using the type and subtype information.
    * @param {!AntheaError} error
    * @return {!Array<!Object>}
    */
@@ -1034,7 +1034,8 @@ class AntheaEval {
             const errorSubtypeInfo = this.getErrorSubtypeInfo(error);
             if (errorSubtypeInfo &&
                 errorSubtypeInfo.hasOwnProperty('which_translation_side')) {
-              return errorSubtypeInfo.which_translation_side ===
+              const translationSide = errorSubtypeInfo.which_translation_side;
+              return this.cursor.sideOrder[translationSide] ===
                   validErrorLists[j][2];
             }
             // For other errors, split based on error.location.
@@ -1044,6 +1045,7 @@ class AntheaEval {
           evalResultCopy.hotw_list = evalResultCopy.hotw_list.filter(
               (hotwError) => validErrorLists[j].includes(hotwError.location)
               );
+          // Change the doc value based on the side which matters for Marot's
           // error result parsing.
           evalResultCopy.doc = evalResults[s].doc * 2 + j;
           splitEvalResults.push(evalResultCopy);
