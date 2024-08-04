@@ -5,10 +5,6 @@ Each training instance is a SQL query represented as an annotated graph. By runn
 
 CardBench includes two training datasets, Single Table and Binary Join. The two datasets differ in the operations their queries include. Single Table contains queries that apply 1-4 filter predicates on one table, Binary Join contains queries that join two tables and apply 1-3 filter predicates per table.
 
-<span style="color:red">
-The training datasets are undergoing a review process and will be released soon.
-</span>
-
 Example Single Table Query:
 
 ```
@@ -44,18 +40,30 @@ The picture below illustrates the graph structure. On the right of the figure we
 
 The training data are encoded using the Graph Struct defined by the [Sparse Deferred](https://github.com/google-research/google-research/tree/master/sparse_deferred). Sparse Deferred provides an easy way to write, read and store the training data and also serialized them in a TF/JAX friendly format.
 
-The following code provides an example on how to read the npz files and how to access nodes, node featured and top level information (cardinality, query, etc).
+The following code provides an example on how to read the npz files and how to access nodes, node featured and top level information (cardinality, query, etc). 
+To run the code you need python >= 3.10, tpqm, glob and numpy.
 
 ```
+  import glob
+  import tqdm
+
   from sparse_deferred.structs import graph_struct
 
   GraphStruct = graph_struct.GraphStruct
   InMemoryDB = graph_struct.InMemoryDB
 
-  # the filename will be the filename without the shard numbers
+  # the filename is the filename without the shard numbers
   # here consumer_single_table.npz instead of consumer_single_table.npz-0-to-800
-  file_path = "consumer_single_table.npz"
-  db = InMemoryDB.from_sharded_files(file_path)
+  filename = "single_table/consumer_single_table.npz"
+  filenames = glob.glob(filename + '-*')
+  filenames.sort(key=lambda f: int(f.split('-')[-1]))
+  db = InMemoryDB()
+
+  for file in tqdm.tqdm(filenames):
+    db_temp = InMemoryDB.from_file(file)
+    for i in range(db_temp.size):
+      db.add(db_temp.get_item(i))
+  db.finalize()
 
   # print the number of training instances
   print("Number of training instances:", db.size)
@@ -103,4 +111,5 @@ The schema of the annotated graphs as printed by the code above shows the types 
 
 ### Notes
 
-Depending on the type of an attribute the corresponding feature is populated. For example percentiles_str are populated for an attributes with type string and percentiles_num are populated for numeric attributes. The empty feature is filled with the value -1.
+* Depending on the type of an attribute the corresponding feature is populated. For example percentiles_str are populated for an attributes with type string and percentiles_num are populated for numeric attributes. The empty feature is filled with the value -1.
+* To download the training datasets please follow the [instructions here](https://github.com/google-research/google-research/tree/master?tab=readme-ov-file#google-research)
