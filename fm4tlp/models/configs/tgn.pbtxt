@@ -1,0 +1,8 @@
+# proto-file: third_party/google_research/google_research/fm4tlp/models/model_configs.proto
+# proto-message: TlpModelConfig
+model_name: "tgn"
+model_class: "TGN"
+memory_dimension: 100
+time_dimension: 100
+embedding_dimension: 100
+learning_rate: 0.0001

@@ -1,0 +1,4 @@
+# proto-file: third_party/google_research/google_research/fm4tlp/models/model_configs.proto
+# proto-message: TlpModelConfig
+model_name: "edgebank"
+model_class: "EdgeBank"
