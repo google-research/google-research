@@ -29,9 +29,9 @@ import os
 
 from absl.testing import absltest
 from absl.testing import parameterized
-from rouge import rouge_scorer
-from rouge import test_util
-from rouge import tokenizers
+from rouge_score import rouge_scorer
+from rouge_score import test_util
+from rouge_score import tokenizers
 
 
 class RougeScorerTest(parameterized.TestCase):

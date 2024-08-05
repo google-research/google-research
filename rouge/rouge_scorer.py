@@ -43,8 +43,8 @@ import numpy as np
 import six
 from six.moves import map
 from six.moves import range
-from rouge import scoring
-from rouge import tokenizers
+from rouge_score import scoring
+from rouge_score import tokenizers
 
 
 class RougeScorer(scoring.BaseScorer):

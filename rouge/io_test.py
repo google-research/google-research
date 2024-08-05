@@ -22,10 +22,10 @@ from __future__ import print_function
 import tempfile
 
 from absl.testing import absltest
-from rouge import io
-from rouge import rouge_scorer
-from rouge import scoring
-from rouge import test_util
+from rouge_score import io
+from rouge_score import rouge_scorer
+from rouge_score import scoring
+from rouge_score import test_util
 
 
 class IoTest(absltest.TestCase):

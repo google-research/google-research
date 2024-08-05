@@ -34,8 +34,8 @@ from absl import flags
 from absl import logging
 from six.moves import range
 
-from rouge import rouge_scorer
-from rouge import scoring
+from rouge_score import rouge_scorer
+from rouge_score import scoring
 
 FLAGS = flags.FLAGS
 

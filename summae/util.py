@@ -28,7 +28,7 @@ import six
 from six.moves import range
 import tensorflow.compat.v1 as tf  # tf
 
-from rouge import rouge_scorer
+from rouge_score import rouge_scorer
 from summae import text_encoder
 
 _ROCSTORIES_BASE = 'rocstories_springwintertrain.all'

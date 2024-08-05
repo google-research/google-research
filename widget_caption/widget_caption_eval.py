@@ -19,7 +19,7 @@ from typing import Dict, List
 
 from nltk.translate import bleu_score
 
-from rouge import rouge_scorer
+from rouge_score import rouge_scorer
 
 
 def coco_evaluate(references, hypothesis):

@@ -23,7 +23,7 @@ from nltk.tokenize import word_tokenize
 from nltk.translate import meteor_score
 import sacrebleu
 
-from rouge import rouge_scorer
+from rouge_score import rouge_scorer
 
 
 class MatchingFunction(metaclass=abc.ABCMeta):

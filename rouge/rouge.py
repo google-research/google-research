@@ -41,9 +41,9 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
-from rouge import io
-from rouge import rouge_scorer
-from rouge import scoring
+from rouge_score import io
+from rouge_score import rouge_scorer
+from rouge_score import scoring
 
 flags.DEFINE_string("target_filepattern", None,
                     "Files containing target text.")

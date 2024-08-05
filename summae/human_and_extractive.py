@@ -33,8 +33,8 @@ import six
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
-from rouge import rouge_scorer
-from rouge import scoring
+from rouge_score import rouge_scorer
+from rouge_score import scoring
 from summae import p2s_eval
 from summae import util
 

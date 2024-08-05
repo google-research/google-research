@@ -29,9 +29,9 @@ from absl.testing import absltest
 import numpy as np
 from six.moves import range
 from six.moves import zip
-from rouge import rouge_scorer
-from rouge import scoring
-from rouge import test_util
+from rouge_score import rouge_scorer
+from rouge_score import scoring
+from rouge_score import test_util
 
 # Delta for matching against ground truth rouge values. Must be relatively
 # high compared to the individual rouge tests since bootstrap sampling

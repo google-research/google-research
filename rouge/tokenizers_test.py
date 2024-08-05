@@ -16,7 +16,7 @@
 """Tests for tokenizers."""
 
 from absl.testing import absltest
-from rouge import tokenizers
+from rouge_score import tokenizers
 
 
 class TokenizersTest(absltest.TestCase):
