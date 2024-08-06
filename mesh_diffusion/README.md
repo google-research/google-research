@@ -28,8 +28,8 @@ Specify the paths to the<br>
 (1) FLVAE checkpoint directory. *A pretrained model will be provided soon.*<br>
 (2) FLDM checkpoint directory.<br>
 (3) Base directory where individual preprocessed mesh subdirectories are
-stored. *The format of preprocessed meshes and some downloadable examples will be
-provided soon.*<br>
+stored. *The instructions and code for preprocessing meshes is [available
+here](https://github.com/twmitchel/field_latent_preprocess/tree/main).*<br>
 (4) Mesh (subdirectory) name.<br>
 (5) Path to ply file that contains the labels.<br>
 (6) Path to output directory where generated textures should be saved.
