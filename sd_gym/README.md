@@ -1,6 +1,8 @@
-# [WIP] SDGym: A Reinforcement Learning Gym using System Dynamics models
+# SDGym: A Reinforcement Learning Gym using System Dynamics models
 
-This repository contains the code for an upcoming paper.
+This repository contains the code for the paper "[SDGym: Low-Code Reinforcement Learning Environments using System Dynamics Models](https://arxiv.org/abs/2310.12494)" which will be presented at ISDC 2024.
+
+Citation TBA.
 
 ## Installation
 Install via pip from github:
