@@ -47,5 +47,6 @@ test:
   n_class: 81
   num_chunks: 1
   chunk_index: 0
+  ignore_background: False
 
 save_path: "./outputs"

@@ -78,7 +78,7 @@ def get_dataset(cfg, ds_name, split, transform, data_root=None):
         **data_args,
     )
 
-  elif ds_name == 'cocostuff':
+  elif ds_name == 'coco':
     ds = COCODataset(transform=transform, **data_args)
 
   elif ds_name == 'context':
@@ -261,7 +261,7 @@ def evaluate(
 
   if (
       test_cfg.ds_name
-      not in ['voc', 'cocostuff', 'context', 'ade', 'pascal_459', 'ade_847']
+      not in ['voc', 'coco', 'context', 'ade', 'pascal_459', 'ade_847']
       and test_cfg.seg_mode == 'semantic'
   ):
     raise ValueError((
@@ -291,7 +291,7 @@ def evaluate(
 
   if use_tensorboard:
     writer = tensorboard.SummaryWriter(log_dir=cfg.test.output_path)
-  for data in metric_logger.log_every(data_loader, 1, header):
+  for data in metric_logger.log_every(data_loader, 10, header):
     _, image_paths, target_list, sentences_list = data
     # print(type(target_lis))
 

@@ -128,6 +128,7 @@ def visualize_segmentation(
   image[binary_final_mask > 0] = image[binary_final_mask > 0] * (1 - alpha)
   final_image = image + final_mask * alpha
   final_image = final_image.astype(np.uint8)
+  plt.subplots_adjust(left=0, right=1, top=1, bottom=0, wspace=0, hspace=0)
   ax.imshow(final_image)
   # Remove axis ticks and labels
   ax.axis("off")
@@ -220,7 +221,7 @@ def generate(
   class_names = class_names.split(",")
   sentences = class_names
 
-  pseudo_masks, _, _ = car_model(img, sentences, 1)
+  pseudo_masks, _ = car_model(img, sentences, 1)
 
   if post_process == "SAM":
     pipeline = load_sam(cfg, device)
@@ -260,8 +261,8 @@ if __name__ == "__main__":
   args = parser.parse_args()
 
   demo = gr.Interface(
-      generate,
-      inputs=[
+    generate,
+    inputs=[
           gr.Image(label="upload an image", type="pil"),
           "text",
           gr.Slider(
@@ -305,17 +306,13 @@ if __name__ == "__main__":
               minimum=0,
               maximum=1,
               value=0.95,
-              step=0.1,
-          ),
+              step=0.1),
           gr.Slider(
-              label=(
-                  "box nms thresh for SAM mask proposal \n(only when SAM is"
-                  " chosen for post process)"
-              ),
-              minimum=0,
-              maximum=1,
-              value=0.7,
-              step=0.1,
+            label="box nms thresh for SAM mask proposal \n(only when SAM is chosen for post process)",
+            minimum=0,
+            maximum=1,
+            value=0.7,
+            step=0.1
           ),
           gr.Slider(
               label=(
@@ -352,36 +349,36 @@ if __name__ == "__main__":
       ),
       examples=[
           [
-              "demo/pokemon1.jpg",
-              "Charmander,Bulbasaur,Squirtle",
+              "demo/pokemon.jpg",
+              "Pikachu,Eevee",
               0.6,
               0.6,
               0,
-              "SAM",
+              "CRF",
               0.95,
               0.7,
               0.6,
               0.01,
           ],
           [
-              "demo/batman.jpg",
-              "Batman,Joker,Cat Woman",
+              "demo/Eiffel_tower.jpg",
+              "Eiffel Tower",
               0.6,
               0.6,
               0,
-              "SAM",
+              "CRF",
               0.95,
               0.7,
               0.6,
               0.01,
           ],
           [
-              "demo/avengers1.jpg",
-              "Thor,Captain America,Hulk,Iron Man",
+              "demo/superhero.jpeg",
+              "Batman,Superman,Wonder Woman,Flash,Cyborg",
               0.6,
               0.6,
               0,
-              "SAM",
+              "CRF",
               0.89,
               0.65,
               0.5,
