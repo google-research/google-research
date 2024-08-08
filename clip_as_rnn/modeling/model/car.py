@@ -162,8 +162,7 @@ class CaR(nn.Module):
     if torch.sum(mask).item() <= 1:
       return image
     image_array = np.array(image)
-    img_h = image_array.shape[0]
-    img_w = image_array.shape[1]
+    img_h, img_w = image_array.shape[0:2]
     mask = (
         F.interpolate(mask[None][None], size=(img_h, img_w), mode="nearest")
         .squeeze()
@@ -190,13 +189,18 @@ class CaR(nn.Module):
     )
     return text_prediction
 
-  def _filter_texts(self, ori_mask_id, sem_scores, prompt_text):
+  def _filter_texts(
+      self, ori_mask_id, sem_scores, prompt_text, semantic_prompt_text
+  ):
     """Remove false positive masks by score filtering and recall the backbone to get the CAM maps for the filtered texts."""
     if not ori_mask_id:
       max_id = np.argmax(sem_scores)
       ori_mask_id.append(max_id)
     filtered_text = [prompt_text[i] for i in ori_mask_id]
-    return filtered_text
+    filtered_clip_text = [
+        [spt[i] for i in ori_mask_id] for spt in semantic_prompt_text
+    ]
+    return filtered_text, filtered_clip_text
 
   def _forward_stage(self, ori_img, cam_text, clip_text, semantic_prompt_text):
     mask_proposals = self.get_mask_proposals(ori_img, cam_text)
@@ -215,9 +219,12 @@ class CaR(nn.Module):
         ori_mask_id.append(mask_idx)
       sem_scores[mask_idx] = mask_score
     sem_scores = sem_scores.cpu().detach().numpy()
-    filtered_texts = self._filter_texts(ori_mask_id, sem_scores, clip_text)
-    # if isinstance(ori_img, list):
-    #   ori_img = [ori_img[i] for i in ori_mask_id]
+    filtered_texts, semantic_prompt_text = self._filter_texts(
+        ori_mask_id,
+        sem_scores,
+        clip_text,
+        semantic_prompt_text=semantic_prompt_text,
+    )
 
     all_scores = torch.zeros((num_texts,), device=self.device).float()
     sem_scores = torch.from_numpy(sem_scores).to(self.device)
@@ -226,7 +233,7 @@ class CaR(nn.Module):
         # the mask is filtered out.
         continue
       all_scores[ori_id] = sem_scores[ori_id]
-    return filtered_texts, all_scores, mask_proposals
+    return filtered_texts, all_scores, mask_proposals, semantic_prompt_text
 
   def _get_save_path(self, text):
     folder_name = "_".join([t.replace(" ", "_") for t in text])
@@ -271,15 +278,22 @@ class CaR(nn.Module):
 
     num_positive_last = 0
     run = 0
+    prev_mask_proposals = None
     while True:
       run += 1
-      cur_texts, all_scores, mask_proposals = self._forward_stage(
-          ori_img, cam_text, clip_text, semantic_prompt_text
+      cur_texts, all_scores, mask_proposals, semantic_prompt_text = (
+          self._forward_stage(
+              ori_img, cam_text, clip_text, semantic_prompt_text
+          )
       )
       if cur_texts:  # if there is no text, skip the refinement
         cam_text = cur_texts
         clip_text = cur_texts
 
+      if run > 0 and (torch.max(mask_proposals) == 0).item():
+        mask_proposals = prev_mask_proposals
+
+      prev_mask_proposals = mask_proposals
       num_positive = (all_scores > 0).sum().item()
       if num_positive == num_positive_last:
         # stop the refinement if the number of positive masks
