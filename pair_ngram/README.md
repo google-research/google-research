@@ -113,16 +113,9 @@ of these loanwords are multi-word expressions in English.
         --hypo "${TEMPDATA}/hypo.txt"
     ```
 
-With the random seeds used in the [demo](run.sh), we obtain an error rate of
-36.01 on the development set.
-
-A better model can be had by constraining the output to consist of known English
-words. For this, see [`predict_lexicon`](predict_lexicon.py). With
-the random seeds used in the [demo](run.sh), we obtain an error rate of 31.50 on
-the development set.
-
 Naturally, we would normally use the development set to tune hyperparameters,
-such as the model order (here, 6).
+such as the model order (here, 6) and the number of insertions and deletions
+permitted.
 
 Authors
 -------

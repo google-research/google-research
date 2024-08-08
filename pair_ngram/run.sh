@@ -77,7 +77,7 @@ train() {
   echo "Training pair LM..."
   python -m train \
        --tsv "${TRAIN}" \
-       --insertions 2 \
+       --insertions 1 \
        --deletions 1 \
        --seed "${SEED}" \
        --batch_size "${BATCH_SIZE}" \
