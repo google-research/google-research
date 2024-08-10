@@ -47,6 +47,11 @@ def add_common_flags(parser):
       default=15.,
       help="Weight decay, equivalent to setting prior std")
   parser.add_argument(
+      "--pretrained_prior_checkpoint",
+      type=str,
+      required=False,
+      help="Pretrained mean-field Gaussian prior on the parameters, in the VI dict format")
+  parser.add_argument(
       "--temperature",
       type=float,
       default=1.,

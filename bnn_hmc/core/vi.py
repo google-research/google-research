@@ -129,3 +129,34 @@ def make_kl_with_gaussian_prior(weight_decay, temperature=1.):
     return -kl * temperature
 
   return kl_fn
+
+def make_kl_with_pretrained_gaussian_prior(pretrained_params, temperature=1.):
+  """Implements the prior KL term in the ELBO.
+
+  Args:
+    pretrained_params: params from previous VI run to use as prior in the current run.
+    temperature: temperature of the posterior, corresponds to the weight of the
+      KL term in the ELBO.  Returns a function that takes the MFVI parameters
+      and returns the KL divergence between the posterior and the prior weighted
+      by the temperature.
+  """
+  if temperature != 1.0:
+    raise NotImplementedError()
+
+  def kl_fn(params):
+    n_params = sum([p.size for p in jax.tree_leaves(params)])
+    sigma_prior = jnp.sqrt(1 / weight_decay)
+
+    mu_vi_tree = params["mean"]
+    sigma_vi_tree = jax.tree_map(jax.nn.softplus, params["inv_softplus_std"])
+
+    def get_parameter_kl(mu_vi, sigma_vi):
+      return (jnp.log(sigma_prior / sigma_vi) +
+              (sigma_vi**2 + mu_vi**2) / 2 / sigma_prior**2 - 1 / 2)
+
+    kl_tree = jax.tree_map(get_parameter_kl, mu_vi_tree, sigma_vi_tree)
+    kl = sum([p_kl.sum() for p_kl in jax.tree_leaves(kl_tree)])
+
+    return -kl * temperature
+
+  return kl_fn

@@ -28,6 +28,7 @@
 # limitations under the License.
 """Likelihood and prior functions."""
 import math
+import operator
 
 import jax
 import jax.numpy as jnp
@@ -69,6 +70,29 @@ def make_gaussian_log_prior(weight_decay, temperature):
         for p1, p2 in zip(jax.tree_leaves(params1), jax.tree_leaves(params2))
     ])
     return -0.5 * weight_decay * diff / temperature
+
+  return log_prior, log_prior_diff
+
+
+def make_pretrained_gaussian_log_prior(pretrained_params, temperature=1.0):
+  if temperature != 1.0:
+    raise NotImplementedError()
+
+  pretrained_means = pretrained_params["mean"]
+  pretrained_stds = jax.tree_map(jax.nn.softplus,
+                                 pretrained_params["inv_softplus_std"])
+
+  def log_prior(params):
+    def per_param_log_prior(param, mu, sigma):
+      return -jnp.sum(0.5 * (param - mu)**2 / sigma**2 +
+                      0.5 * jnp.log(2 * math.pi * sigma**2))
+
+    log_priors = jax.tree_map(per_param_log_prior, params, pretrained_means, pretrained_stds)
+    return jax.tree.reduce(operator.add, log_priors)
+
+  def log_prior_diff(params1, params2):
+    # TODO implement more efficiently
+    return log_prior(params1) - log_prior(params2)
 
   return log_prior, log_prior_diff
 
