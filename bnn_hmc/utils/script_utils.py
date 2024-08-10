@@ -76,7 +76,18 @@ def get_data_model_fns(args):
   (likelihood_factory, predict_fn, ensemble_upd_fn, metrics_fns,
    tabulate_metrics) = train_utils.get_task_specific_fns(task, data_info)
   log_likelihood_fn = likelihood_factory(args.temperature)
-  log_prior_fn, log_prior_diff_fn = losses.make_gaussian_log_prior(
+  if args.pretrained_prior_checkpoint:
+    print("Using pretrained prior")
+    try:
+      pretrained_checkpoint = checkpoint_utils.load_checkpoint(
+        args.pretrained_prior_checkpoint)
+    except Exception as e:
+      print(f"Could not load checkpoint {args.pretrained_prior_checkpoint}")
+      raise e
+    log_prior_fn, log_prior_diff_fn = losses.make_pretrained_gaussian_log_prior(
+      pretrained_checkpoint["params"], args.temperature)
+  else:
+    log_prior_fn, log_prior_diff_fn = losses.make_gaussian_log_prior(
       args.weight_decay, args.temperature)
 
   key, net_init_key = jax.random.split(jax.random.PRNGKey(args.seed), 2)
