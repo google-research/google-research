@@ -58,7 +58,7 @@ def mnist_dataset(num_channels=1):
     with np.load(f, allow_pickle=True) as npf:
       x_train = npf['x_train']
 
-  x_train = np.lib.pad(x_train, ((0, 0), (2, 2), (2, 2)), 'minimum')
+  x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2)), 'minimum')
   x_train = x_train[Ellipsis, tf.newaxis]
   x_train = np.repeat(x_train, num_channels, axis=3)
 
