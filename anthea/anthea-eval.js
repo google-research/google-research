@@ -1119,13 +1119,10 @@ class AntheaEval {
             subpara.hotwType = '';
           }
         }
-        // Recover visited hotw_list.
         const result = this.evalResults_[seg];
         for (let hotw of result.hotw_list || []) {
-          let side = 1;
-          if (hotw.hasOwnProperty('location')) {
-            side = (hotw.location === 'translation' ? 1 : 2);
-          }
+          const side = (hotw.hasOwnProperty('location') &&
+                        hotw.location !== 'translation') ? 2 : 1;
           const subpara = this.getSubpara(seg, side, hotw.para);
           subpara.hotw = hotw;
           subpara.hotwSpanHTML = hotw.hotw_html;
@@ -3857,19 +3854,12 @@ class AntheaEval {
 
   /**
    * Validates the input format of the SIDE_BY_SIDE mode.
-   * The outputs of sys1 and 2 of the same doc should be adjacent.
    * The adjacent docsys should have the same source segments.
    * @param {!Array<!Object>} projectData The input data.
    * @return {boolean}
    */
   validateSideBySideData(projectData) {
     for (let i = 0; i < projectData.length; i += 2) {
-      if (i + 1 < projectData.length && projectData[i].doc !== projectData[i + 1].doc) {
-        this.manager_.log(this.manager_.ERROR,
-                          "The output of system1 and system2 of " +
-                          "the same doc are NOT adjacent in the input!");
-        return false;
-      }
       const docsys = projectData[i];
       const docsys2 = projectData[i + 1];
       if (docsys.srcSegments.length !== docsys2.srcSegments.length) {
@@ -3886,6 +3876,54 @@ class AntheaEval {
       }
     }
     return true;
+  }
+
+  /**
+   * Builds HTML for target subparagraphs.
+   * Iterates over the provided target subparagraphs, constructs HTML for each,
+   * and accumulates the result in `tgtSpannified`. Also updates the `segment` object
+   * with relevant information, including word count and potential hotword data.
+   * @param {!Element} segment The segment to add the subpara to.
+   * @param {!Array<!Object>} tgtSubparas The target subparas.
+   * @param {string} tgtSpannified The target span HTML.
+   * @param {string} tgtSegmentClass The segment class.
+   * @param {string} tgtParaBreak The target paragraph break.
+   * @param {!Object} evalResult The eval result object.
+   * @param {number} lastTimestampMS The last timestamp.
+   * @param {string} tgtSubparaClassName The target subpara class name.
+   * @return {string} The updated tgtSpannified.
+   */
+  buildTargetSubparaHTML(segment, tgtSubparas, tgtSpannified,
+                         tgtSegmentClass, tgtParaBreak, evalResult,
+                         lastTimestampMS, tgtSubparaClassName) {
+    for (let t = 0; t < tgtSubparas.length; t++) {
+      const tgtSubpara = tgtSubparas[t];
+      tgtSpannified += tgtSubparaClassName + tgtSegmentClass + '">' +
+                      (tgtSubpara.hotwSpanHTML || tgtSubpara.spanHTML) +
+                      '</span>';
+      if (tgtSubpara.ends_with_para_break) {
+        tgtSpannified += tgtParaBreak;
+      }
+      segment.numTgtWords += tgtSubpara.num_words;
+      if (tgtSubpara.hotwError) {
+        tgtSubpara.hotw = {
+          timestamp: lastTimestampMS,
+          injected_error: tgtSubpara.hotwError,
+          hotw_html: tgtSubpara.hotwSpanHTML,
+          hotw_type: tgtSubpara.hotwType,
+          para: t,
+          // Add in the location of where hotw is injected.
+          // It is removed when merging/splitting the saved results.
+          location: tgtSubparaClassName.includes("-target2-") ?
+              'translation2' :
+              'translation',
+          done: false,
+          found: false,
+        };
+        evalResult['hotw_list'].push(tgtSubpara.hotw);
+      }
+    }
+    return tgtSpannified;
   }
 
   /**
@@ -4156,40 +4194,10 @@ class AntheaEval {
             srcSpannified += srcParaBreak;
           }
         }
-        function buildTargetSubparaHTML(segment, tgtSubparas, tgtSpannified, tgtSegmentClass,
-                                        tgtParaBreak, evalResult, lastTimestampMS, tgtSubparaClassName) {
-          for (let t = 0; t < tgtSubparas.length; t++) {
-            const tgtSubpara = tgtSubparas[t];
-            tgtSpannified += tgtSubparaClassName + tgtSegmentClass + '">' +
-                            (tgtSubpara.hotwSpanHTML || tgtSubpara.spanHTML) +
-                            '</span>';
-            if (tgtSubpara.ends_with_para_break) {
-              tgtSpannified += tgtParaBreak;
-            }
-            segment.numTgtWords += tgtSubpara.num_words;
-            if (tgtSubpara.hotwError) {
-              tgtSubpara.hotw = {
-                timestamp: lastTimestampMS,
-                injected_error: tgtSubpara.hotwError,
-                hotw_html: tgtSubpara.hotwSpanHTML,
-                hotw_type: tgtSubpara.hotwType,
-                para: t,
-                // Add in the location of where hotw is injected.
-                // It is removed when merging/splitting the saved results.
-                location: tgtSubparaClassName.includes("-target2-") ?
-                    'translation2' :
-                    'translation',
-                done: false,
-                found: false,
-              };
-              evalResult['hotw_list'].push(tgtSubpara.hotw);
-            }
-          }
-          return tgtSpannified;
-        }
+
         const tgtSegmentClass = 'anthea-target-segment-' + segIndex;
         const tgtSegmentClass2 = 'anthea-target2-segment-' + segIndex;
-        tgtSpannified = buildTargetSubparaHTML(segment,
+        tgtSpannified = this.buildTargetSubparaHTML(segment,
                                                segment.tgtSubparas,
                                                tgtSpannified,
                                                tgtSegmentClass,
@@ -4198,7 +4206,7 @@ class AntheaEval {
                                                this.lastTimestampMS_,
                                                '<span class="anthea-target-subpara ');
         if (config.SIDE_BY_SIDE) {
-          tgtSpannified2 = buildTargetSubparaHTML(segment,
+          tgtSpannified2 = this.buildTargetSubparaHTML(segment,
                                                   segment.tgtSubparas2,
                                                   tgtSpannified2,
                                                   tgtSegmentClass2,
