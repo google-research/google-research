@@ -43,8 +43,11 @@ As this step requires some effort to replicate, we will also release the collect
 </span>
 
 ### Generate Queries
+TODO
 
 ### Execute Queries
+TODO
 
 ### Generate Annotated Query Graphs
+TODO
 
