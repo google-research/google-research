@@ -1,0 +1,5 @@
+tensorflow_text>=2.16.1
+tensorflow>=2.16.1
+transformers>=4.34.1
+numpy>=1.23.5
+absl-py>=1.2.0
