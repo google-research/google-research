@@ -341,8 +341,6 @@ def _ensure_dir(log_dir):
 
 def main(_):
   flags_obj = flags.FLAGS
-  if flags_obj.enable_mlir_bridge:
-    tf.config.experimental.enable_mlir_bridge()
   task = TransformerTask(flags_obj)
 
   if flags_obj.mode == "train":
