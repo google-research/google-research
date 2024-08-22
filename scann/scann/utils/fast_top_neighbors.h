@@ -63,7 +63,8 @@ class FastTopNeighbors {
     CHECK(!mutator_held_);
     sz_ = 0;
     epsilon_.store(epsilon, std::memory_order_relaxed);
-    if (max_results_ == max_results && indices_) {
+    if (max_results_ >= max_results && indices_) {
+      max_results_ = max_results;
       return;
     }
 
@@ -263,11 +264,11 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
   SCANN_INLINE bool PushNoEpsilonCheck(DatapointIndexT dp_idx, DistT distance) {
     DCHECK(!std::isnan(distance));
     if constexpr (std::is_same_v<DatapointIndexT, pair<uint64_t, uint64_t>>) {
-      SCANN_LOG_NOOP(1) << StrFormat("Pushing {%d, %f}", dp_idx.first,
-                                     static_cast<double>(distance));
+      DVLOG(1) << StrFormat("Pushing {%d, %f}", dp_idx.first,
+                            static_cast<double>(distance));
     } else {
-      SCANN_LOG_NOOP(1) << StrFormat("Pushing {%d, %f}", dp_idx,
-                                     static_cast<double>(distance));
+      DVLOG(1) << StrFormat("Pushing {%d, %f}", dp_idx,
+                            static_cast<double>(distance));
     }
     DCHECK_LT(pushes_remaining_negated_, 0);
     indices_end_[pushes_remaining_negated_] = dp_idx;

@@ -26,7 +26,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BAZEL_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
+BAZEL_PREFIX="bazel-bin/build_pip_pkg.runfiles/_main/"
 TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
 # set variable equal to "python" by default
 : ${PYTHON:=python}

@@ -22,19 +22,24 @@
 #include <memory>
 #include <typeinfo>
 
-#include "absl/status/status.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/base/single_machine_factory_options.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/hashes/asymmetric_hashing2/serialization.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/oss_wrappers/scann_serialize.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/proto/centers.pb.h"
+#include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
-#include "scann/utils/datapoint_utils.h"
+#include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
+#include "scann/utils/util_functions.h"
 #include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
@@ -57,7 +62,7 @@ shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
     for (const auto& dp : *hashed_dataset) {
       auto dptr =
           MakeDatapointPtr(dp.values(), dp.nonzero_entries() - sizeof(float));
-      TF_CHECK_OK(dataset_no_bias->Append(dptr, ""));
+      CHECK_OK(dataset_no_bias->Append(dptr, ""));
     }
     return dataset_no_bias;
   } else if (quantization_scheme == AsymmetricHasherConfig::PRODUCT_AND_PACK) {
@@ -67,7 +72,7 @@ shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
     Datapoint<uint8_t> unpacked_dp;
     for (const auto& dptr : *hashed_dataset) {
       UnpackNibblesDatapoint(dptr, &unpacked_dp);
-      TF_CHECK_OK(dataset_unpacked->Append(unpacked_dp.ToPtr(), ""));
+      CHECK_OK(dataset_unpacked->Append(unpacked_dp.ToPtr(), ""));
     }
     return dataset_unpacked;
   }
@@ -140,13 +145,28 @@ Searcher<T>::Searcher(shared_ptr<TypedDataset<T>> dataset,
                              "limited inner product searcher is being used.";
     for (DatapointIndex dp_idx : Seq(hashed_dataset->size())) {
       Datapoint<FloatingTypeFor<T>> dp;
-      TF_CHECK_OK(opts_.indexer_->Reconstruct((*hashed_dataset)[dp_idx], &dp));
+      CHECK_OK(opts_.indexer_->Reconstruct((*hashed_dataset)[dp_idx], &dp));
       double norm = SquaredL2Norm(dp.ToPtr());
       norm_inv_or_bias_.push_back(
           static_cast<float>(norm == 0 ? 0 : 1 / sqrt(norm)));
     }
   }
 }
+
+template <typename T>
+Searcher<T>::Searcher(SearcherOptions<T> opts,
+                      int32_t default_pre_reordering_num_neighbors,
+                      float default_pre_reordering_epsilon)
+    : SingleMachineSearcherBase<T>(default_pre_reordering_num_neighbors,
+                                   default_pre_reordering_epsilon),
+      opts_(std::move(opts)),
+      limited_inner_product_(
+          (opts_.asymmetric_queryer_ &&
+           dynamic_cast<const LimitedInnerProductDistance*>(
+               opts_.asymmetric_queryer_->lookup_distance().get()) != nullptr)),
+      lut16_(opts_.asymmetric_lookup_type_ ==
+                 AsymmetricHasherConfig::INT8_LUT16 &&
+             opts_.asymmetric_queryer_) {}
 
 template <typename T>
 Searcher<T>::~Searcher() {}
@@ -234,10 +254,10 @@ StatusOr<const LookupTable*> Searcher<T>::GetOrCreateLookupTable(
   if (per_query_opts && !per_query_opts->precomputed_lookup_table_.empty()) {
     return &per_query_opts->precomputed_lookup_table_;
   } else {
-    TF_ASSIGN_OR_RETURN(*created_lookup_table_storage,
-                        opts_.asymmetric_queryer_->CreateLookupTable(
-                            query, opts_.asymmetric_lookup_type_,
-                            opts_.fixed_point_lut_conversion_options_));
+    SCANN_ASSIGN_OR_RETURN(*created_lookup_table_storage,
+                           opts_.asymmetric_queryer_->CreateLookupTable(
+                               query, opts_.asymmetric_lookup_type_,
+                               opts_.fixed_point_lut_conversion_options_));
     return created_lookup_table_storage;
   }
 }
@@ -249,7 +269,7 @@ Status Searcher<T>::FindNeighborsTopNDispatcher(
     PostprocessFunctor postprocessing_functor, NNResultsVector* result) const {
   auto queryer_options = GetQueryerOptions(postprocessing_functor);
   LookupTable lookup_table_storage;
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       const LookupTable* lookup_table,
       GetOrCreateLookupTable(query, params, &lookup_table_storage));
   if (params.pre_reordering_crowding_enabled()) {
@@ -384,7 +404,7 @@ Status Searcher<T>::FindOneLowLevelBatchOfNeighbors(
   std::array<TopNeighbors<float>*, kNumQueries> top_ns;
   std::array<const SearchParameters*, kNumQueries> cur_batch_params;
   for (size_t batch_idx = 0; batch_idx < kNumQueries; ++batch_idx) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         lookup_ptrs[batch_idx],
         GetOrCreateLookupTable(get_query(low_level_batch_start + batch_idx),
                                params[low_level_batch_start + batch_idx],
@@ -408,8 +428,10 @@ template <typename T>
 StatusOr<unique_ptr<SearcherSpecificOptionalParameters>>
 PrecomputedAsymmetricLookupTableCreator<T>::
     CreateLeafSearcherOptionalParameters(const DatapointPtr<T>& query) const {
-  TF_ASSIGN_OR_RETURN(auto lookup_table,
-                      queryer_->CreateLookupTable(query, lookup_type_));
+  SCANN_ASSIGN_OR_RETURN(
+      LookupTable lookup_table,
+      queryer_->CreateLookupTable(query, lookup_type_,
+                                  fixed_point_lut_conversion_options_));
   return unique_ptr<SearcherSpecificOptionalParameters>(
       new AsymmetricHashingOptionalParameters(std::move(lookup_table)));
 }
@@ -427,7 +449,8 @@ Searcher<T>::GetMutator() const {
   }
   if (!mutator_) {
     auto mutable_this = const_cast<Searcher<T>*>(this);
-    TF_ASSIGN_OR_RETURN(mutator_, Searcher<T>::Mutator::Create(mutable_this));
+    SCANN_ASSIGN_OR_RETURN(mutator_,
+                           Searcher<T>::Mutator::Create(mutable_this));
     SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
   }
   return static_cast<typename SingleMachineSearcherBase<T>::Mutator*>(
@@ -437,7 +460,7 @@ Searcher<T>::GetMutator() const {
 template <typename T>
 StatusOr<SingleMachineFactoryOptions>
 Searcher<T>::ExtractSingleMachineFactoryOptions() {
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto opts,
       SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions());
   if (opts_.asymmetric_queryer_) {
@@ -446,8 +469,8 @@ Searcher<T>::ExtractSingleMachineFactoryOptions() {
     *opts.ah_codebook =
         DatasetSpanToCentersProto(centers, opts_.quantization_scheme());
     if (opts_.asymmetric_lookup_type_ == AsymmetricHasherConfig::INT8_LUT16)
-      opts.hashed_dataset =
-          make_shared<DenseDataset<uint8_t>>(UnpackDataset(packed_dataset_));
+      opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
+          UnpackDataset(CreatePackedDatasetView(packed_dataset_)));
   }
   return opts;
 }

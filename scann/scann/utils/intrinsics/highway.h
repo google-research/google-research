@@ -17,6 +17,10 @@
 #ifndef SCANN_UTILS_INTRINSICS_HIGHWAY_H_
 #define SCANN_UTILS_INTRINSICS_HIGHWAY_H_
 
+#ifndef HWY_DISABLED_TARGETS
+#define HWY_DISABLED_TARGETS HWY_ALL_SVE
+#endif
+
 #include <algorithm>
 #include <cstdint>
 #include <utility>
@@ -634,15 +638,24 @@ SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<int16_t, 2> a) {
   return GetComparisonMask(a[0], a[1]);
 }
 
+SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<int16_t> a) {
+  return Highway<int16_t>::BitsFromMask(*a);
+}
+
 SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<int16_t> a,
                                             Highway<int16_t> b,
                                             Highway<int16_t> c,
                                             Highway<int16_t> d) {
-  constexpr int kLanes = hn::Lanes(hn::ScalableTag<int16_t>());
-  using ResultT = std::conditional_t<kLanes <= 8, uint32_t, uint64_t>;
-  const ResultT m00 = GetComparisonMask(a, b);
-  const ResultT m16 = GetComparisonMask(c, d);
-  return m00 + (m16 << (kLanes * 2));
+  if constexpr (hn::Lanes(hn::ScalableTag<int16_t>()) <= 16) {
+    constexpr int kLanes = hn::Lanes(hn::ScalableTag<int16_t>());
+    using ResultT = std::conditional_t<kLanes <= 8, uint32_t, uint64_t>;
+    const ResultT m00 = GetComparisonMask(a, b);
+    const ResultT m16 = GetComparisonMask(c, d);
+    return m00 + (m16 << (kLanes * 2));
+  } else {
+    LOG(FATAL) << "This GetComparisonMask overload is not implemented for >256 "
+                  "bit SIMD.";
+  }
 }
 
 SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<int16_t, 4> cmp) {
@@ -670,16 +683,30 @@ SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<float> v00,
   return m00 + (m04 << kLanes) + (m08 << (2 * kLanes)) + (m12 << (3 * kLanes));
 }
 
+SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<float, 2> cmp) {
+  constexpr int kLanes = hn::Lanes(hn::ScalableTag<float>());
+  using ResultT = std::conditional_t<kLanes <= 8, uint32_t, uint64_t>;
+  const ResultT m0 = GetComparisonMask(cmp[0]);
+  const ResultT m1 = GetComparisonMask(cmp[1]);
+  return m0 + (m1 << kLanes);
+}
+
 SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<float, 4> cmp) {
   return GetComparisonMask(cmp[0], cmp[1], cmp[2], cmp[3]);
 }
 
 SCANN_HIGHWAY_INLINE auto GetComparisonMask(Highway<float, 8> cmp) {
   constexpr int kLanes = hn::Lanes(hn::ScalableTag<float>());
-  using ResultT = std::conditional_t<kLanes <= 4, uint32_t, uint64_t>;
-  ResultT mask0 = GetComparisonMask(cmp[0], cmp[1], cmp[2], cmp[3]);
-  ResultT mask1 = GetComparisonMask(cmp[4], cmp[5], cmp[6], cmp[7]);
-  return mask0 + (mask1 << (kLanes * 4));
+  if constexpr (kLanes <= 8) {
+    using ResultT = std::conditional_t<kLanes <= 4, uint32_t, uint64_t>;
+    ResultT mask0 = GetComparisonMask(cmp[0], cmp[1], cmp[2], cmp[3]);
+    ResultT mask1 = GetComparisonMask(cmp[4], cmp[5], cmp[6], cmp[7]);
+    return mask0 + (mask1 << (kLanes * 4));
+  } else {
+    LOG(FATAL)
+        << "This GetComparisonMask overload is not implemented for >256 bit "
+           "SIMD.";
+  }
 }
 
 namespace highway {

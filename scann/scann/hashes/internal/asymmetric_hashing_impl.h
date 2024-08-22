@@ -32,7 +32,6 @@
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {

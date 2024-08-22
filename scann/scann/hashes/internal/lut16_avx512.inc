@@ -8,10 +8,10 @@
 
 #ifdef __x86_64__
 
+#include "absl/base/prefetch.h"
 #include "scann/hashes/internal/lut16_avx512_swizzle.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/intrinsics/avx512.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace avx512 {
@@ -40,7 +40,7 @@ SCANN_AVX512_INLINE Avx512<uint8_t, 2> LoadDatabaseCodes(
     DCHECK(IsCacheAligned(data_start));
   }
   if constexpr (Tuning::kPrefetch != PrefetchStrategy::kOff) {
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+    absl::PrefetchToLocalCache(
         data_start + asymmetric_hashing_internal::kPrefetchBytesAhead);
   }
   Avx512<uint8_t> interleaved_codes =

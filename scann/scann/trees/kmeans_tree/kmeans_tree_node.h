@@ -31,7 +31,9 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_castops.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/anisotropic.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
@@ -305,7 +307,7 @@ Status KMeansTreeNode::ApplyAvq(
 
   double rescale_numerator = 0, rescale_denominator = 0;
   absl::Mutex rescaling_mutex;
-  TF_ASSIGN_OR_RETURN(auto mutator, new_centers.GetMutator());
+  SCANN_ASSIGN_OR_RETURN(auto mutator, new_centers.GetMutator());
   Status status = ParallelForWithStatus<1>(
       Seq(children_.size()), pool_or_null, [&](size_t child_idx) -> Status {
         auto& child = children_[child_idx];
@@ -317,7 +319,7 @@ Status KMeansTreeNode::ApplyAvq(
             SCANN_RETURN_IF_ERROR(
                 mutator->UpdateDatapoint(float_centers_[child_idx], child_idx));
           } else {
-            TF_ASSIGN_OR_RETURN(
+            SCANN_ASSIGN_OR_RETURN(
                 DenseDataset<float> child_dps,
                 create_child_dataset(dataset, child_datapoint_idxs));
             auto eigen_center = ComputeAVQPartition(

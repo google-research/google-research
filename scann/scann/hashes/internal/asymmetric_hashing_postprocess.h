@@ -20,7 +20,6 @@
 
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 

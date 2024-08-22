@@ -7,7 +7,6 @@ cc_library(
     name = "single_machine_factory_scann",
     srcs = ["single_machine_factory_scann.cc"],
     hdrs = ["single_machine_factory_scann.h"],
-    tags = ["local"],
     deps = [
         ":reordering_helper_factory",
         ":single_machine_base",
@@ -54,7 +53,6 @@ cc_library(
     name = "reordering_helper_factory",
     srcs = ["reordering_helper_factory.cc"],
     hdrs = ["reordering_helper_factory.h"],
-    tags = ["local"],
     deps = [
         ":single_machine_factory_options",
         "//scann/data_format:dataset",
@@ -78,7 +76,6 @@ cc_library(
     name = "single_machine_factory_options",
     srcs = ["single_machine_factory_options.cc"],
     hdrs = ["single_machine_factory_options.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:scann_threadpool",
@@ -99,8 +96,8 @@ cc_library(
         "single_machine_base_mutator.cc",
     ],
     hdrs = ["single_machine_base.h"],
-    tags = ["local"],
     deps = [
+        ":health_stats_collector",
         ":search_parameters",
         ":single_machine_factory_options",
         "//scann/data_format:datapoint",
@@ -137,7 +134,6 @@ cc_library(
     name = "search_parameters",
     srcs = ["search_parameters.cc"],
     hdrs = ["search_parameters.h"],
-    tags = ["local"],
     deps = [
         ":restrict_allowlist",
         "//scann/data_format:features_cc_proto",
@@ -153,8 +149,23 @@ cc_library(
     # Backcompat shim
     name = "restrict_allowlist",
     hdrs = ["restrict_allowlist.h"],
-    tags = ["local"],
     deps = [
         "//scann/restricts:restrict_allowlist",
+    ],
+)
+
+cc_library(
+    name = "health_stats_collector",
+    hdrs = ["health_stats_collector.h"],
+    deps = [
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures/one_to_one:l2_distance",
+        "//scann/oss_wrappers:scann_status",
+        "//scann/utils:common",
+        "//scann/utils:types",
+        "@com_google_absl//absl/status",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/types:span",
     ],
 )

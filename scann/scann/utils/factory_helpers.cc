@@ -59,14 +59,14 @@ Status GenericSearchParameters::PopulateValuesFromScannConfig(
     return InvalidArgumentError("num_neighbors must be > 0.");
   }
 
-  TF_ASSIGN_OR_RETURN(reordering_dist,
-                      GetDistanceMeasure(config.distance_measure()));
+  SCANN_ASSIGN_OR_RETURN(reordering_dist,
+                         GetDistanceMeasure(config.distance_measure()));
 
   if (config.has_exact_reordering()) {
     const auto& er = config.exact_reordering();
     if (er.has_approx_distance_measure()) {
-      TF_ASSIGN_OR_RETURN(pre_reordering_dist,
-                          GetDistanceMeasure(er.approx_distance_measure()));
+      SCANN_ASSIGN_OR_RETURN(pre_reordering_dist,
+                             GetDistanceMeasure(er.approx_distance_measure()));
     } else {
       pre_reordering_dist = reordering_dist;
     }

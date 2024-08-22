@@ -67,11 +67,11 @@ information.
 ## Building from source
 
 To build ScaNN from source, first install the build tool
-[bazel](https://bazel.build), Clang 17, and libstdc++ headers for C++17 (which
-are provided with GCC 9). Additionally, ScaNN requires a modern version of
-Python (3.9.x or later) and Tensorflow 2.17 installed on that version of Python.
-Once these prerequisites are satisfied, run the following command in the root
-directory of the repository:
+[bazel](https://bazel.build) (use version 7.x), Clang 17, and libstdc++ headers
+for C++17 (which are provided with GCC 9). Additionally, ScaNN requires a modern
+version of Python (3.9.x or later) and Tensorflow 2.17 installed on that version
+of Python. Once these prerequisites are satisfied, run the following command in
+the root directory of the repository:
 
 ```
 python configure.py

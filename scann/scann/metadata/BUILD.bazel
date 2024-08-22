@@ -14,7 +14,6 @@ cc_library(
     name = "metadata_getter",
     srcs = ["metadata_getter.cc"],
     hdrs = ["metadata_getter.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",

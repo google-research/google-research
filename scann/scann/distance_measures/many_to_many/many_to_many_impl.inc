@@ -1,5 +1,11 @@
 
 
+#ifdef __aarch64__
+constexpr bool kArmAggressiveUnrolling = true;
+#else
+constexpr bool kArmAggressiveUnrolling = false;
+#endif
+
 template <typename T, size_t... kNumElements>
 SCANN_SIMD_INLINE Simd<T, index_sequence_sum_v<kNumElements...>> SimdConcat(
     const Simd<T, kNumElements>&... inputs) {
@@ -174,8 +180,7 @@ class M2MTransposer {
       const FloatT* prefetch = database_ptr + 0 * dimensionality;
       const FloatT* prefetch_end = database_ptr + 4 * dimensionality;
       for (; prefetch < prefetch_end; prefetch += kCacheLineElements) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-            prefetch);
+        absl::PrefetchToLocalCache(prefetch);
       }
 
       const FloatT* ptr_begin = database_ptr + 1 * dimensionality;
@@ -261,7 +266,7 @@ class DenseManyToManyTransposedBase : public VirtualDestructor {
  public:
   static constexpr size_t kElementsPerRegister =
       Simd<FloatT>::kElementsPerRegister;
-  constexpr static size_t kSmallQueryStride = 6;
+  constexpr static size_t kSmallQueryStride = kArmAggressiveUnrolling ? 10 : 6;
   constexpr static size_t kResultsSize =
       2 * kSmallQueryStride * kElementsPerRegister;
 
@@ -453,8 +458,8 @@ class DenseManyToManyTransposed final
     }
 
     const size_t final_batch_size = q_idx_end - args.first_q_idx;
-    SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_6(final_batch_size, BottomLevelBatch,
-                                           args);
+    SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE(kSmallQueryStride, final_batch_size,
+                                         BottomLevelBatch, args);
   }
 
   struct BottomLevelBatchArgs {
@@ -588,7 +593,7 @@ class DenseManyToManyOrthogonalityAmplified final
   using Base::kElementsPerRegister;
   using Base::kResultsSize;
 
-  static constexpr size_t kSmallQueryStride = 3;
+  static constexpr size_t kSmallQueryStride = Base::kSmallQueryStride / 2;
 
   SCANN_INLINE DenseManyToManyOrthogonalityAmplified(
       const DenseDataset<FloatT>& queries,
@@ -652,8 +657,8 @@ class DenseManyToManyOrthogonalityAmplified final
     }
 
     const size_t final_batch_size = q_idx_end - args.first_q_idx;
-    SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_3(final_batch_size, BottomLevelBatch,
-                                           args);
+    SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE(kSmallQueryStride, final_batch_size,
+                                         BottomLevelBatch, args);
   }
 
   struct BottomLevelBatchArgs {
@@ -777,7 +782,7 @@ class DenseManyToManyUntransposedBase : public VirtualDestructor {
 
   constexpr static size_t kFloatDivisor = sizeof(FloatT) / sizeof(float);
 
-  constexpr static size_t kSmallQueryStride = 5;
+  constexpr static size_t kSmallQueryStride = kArmAggressiveUnrolling ? 10 : 5;
 
   constexpr static size_t kMaxDbChunk = 256;
 
@@ -897,8 +902,8 @@ class DenseManyToManyUntransposed final
     }
 
     const size_t final_batch_size = q_idx_end - args.first_q_idx;
-    SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE_5(final_batch_size, BottomLevelBatch,
-                                           args);
+    SCANN_CALL_FUNCTION_BY_MM_BATCH_SIZE(kSmallQueryStride, final_batch_size,
+                                         BottomLevelBatch, args);
   }
 
   struct BottomLevelBatchArgs {

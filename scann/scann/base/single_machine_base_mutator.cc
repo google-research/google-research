@@ -20,9 +20,9 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/data_format/docid_collection_interface.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -44,21 +44,21 @@ Status SingleMachineSearcherBase<T>::Mutator::PrepareForBaseMutation(
   searcher_ = searcher;
   searcher_->mutator_outstanding_ = true;
   if (searcher->dataset_) {
-    TF_ASSIGN_OR_RETURN(dataset_mutator_, searcher->dataset_->GetMutator());
+    SCANN_ASSIGN_OR_RETURN(dataset_mutator_, searcher->dataset_->GetMutator());
   }
   if (searcher->hashed_dataset_) {
-    TF_ASSIGN_OR_RETURN(hashed_dataset_mutator_,
-                        searcher->hashed_dataset_->GetMutator());
+    SCANN_ASSIGN_OR_RETURN(hashed_dataset_mutator_,
+                           searcher->hashed_dataset_->GetMutator());
   }
   if (searcher_->reordering_helper_ &&
       searcher_->reordering_helper_->owns_mutation_data_structures()) {
-    TF_ASSIGN_OR_RETURN(reordering_mutator_,
-                        searcher->reordering_helper_->GetMutator());
+    SCANN_ASSIGN_OR_RETURN(reordering_mutator_,
+                           searcher->reordering_helper_->GetMutator());
   }
   if (searcher->docids_ &&
       !SameDocidsInstance(searcher->docids_, searcher->dataset_.get()) &&
       !SameDocidsInstance(searcher->docids_, searcher->hashed_dataset_.get())) {
-    TF_ASSIGN_OR_RETURN(docid_mutator_, searcher->docids_->GetMutator());
+    SCANN_ASSIGN_OR_RETURN(docid_mutator_, searcher->docids_->GetMutator());
   }
   return OkStatus();
 }
@@ -108,7 +108,7 @@ template <typename T>
 Status SingleMachineSearcherBase<T>::Mutator::ValidateForUpdate(
     const DatapointPtr<T>& dptr, DatapointIndex idx,
     const MutationOptions& mo) const {
-  TF_ASSIGN_OR_RETURN(DatapointIndex next_idx, GetNextDatapointIndex());
+  SCANN_ASSIGN_OR_RETURN(DatapointIndex next_idx, GetNextDatapointIndex());
   if (idx >= next_idx) {
     return InvalidArgumentError(absl::StrCat(
         "Datapoint index ", idx,
@@ -138,7 +138,7 @@ Status SingleMachineSearcherBase<T>::Mutator::ValidateForAdd(
 template <typename T>
 Status SingleMachineSearcherBase<T>::Mutator::ValidateForRemove(
     DatapointIndex idx) const {
-  TF_ASSIGN_OR_RETURN(DatapointIndex next_idx, GetNextDatapointIndex());
+  SCANN_ASSIGN_OR_RETURN(DatapointIndex next_idx, GetNextDatapointIndex());
   if (idx >= next_idx) {
     return InvalidArgumentError(absl::StrCat(
         "Datapoint index ", idx,
@@ -178,7 +178,7 @@ SingleMachineSearcherBase<T>::Mutator::AddDatapointToBase(
     const DatapointPtr<T>& dptr, string_view docid,
     const MutateBaseOptions& opts) {
   SCANN_RETURN_IF_ERROR(CheckAddDatapointToBaseOptions(opts));
-  TF_ASSIGN_OR_RETURN(const DatapointIndex result, GetNextDatapointIndex());
+  SCANN_ASSIGN_OR_RETURN(const DatapointIndex result, GetNextDatapointIndex());
   if (dataset_mutator_) {
     SCANN_RETURN_IF_ERROR(dataset_mutator_->AddDatapoint(dptr, docid));
   }
@@ -190,7 +190,7 @@ SingleMachineSearcherBase<T>::Mutator::AddDatapointToBase(
     SCANN_RETURN_IF_ERROR(docid_mutator_->AddDatapoint(docid));
   }
   if (reordering_mutator_) {
-    TF_ASSIGN_OR_RETURN(auto idx, reordering_mutator_->AddDatapoint(dptr));
+    SCANN_ASSIGN_OR_RETURN(auto idx, reordering_mutator_->AddDatapoint(dptr));
     SCANN_RET_CHECK_EQ(result, idx);
   }
   return result;
@@ -235,8 +235,8 @@ SingleMachineSearcherBase<T>::Mutator::RemoveDatapointFromBase(
     result = searcher_->docids_->size();
   }
   if (reordering_mutator_) {
-    TF_ASSIGN_OR_RETURN(auto swapped_from,
-                        reordering_mutator_->RemoveDatapoint(idx));
+    SCANN_ASSIGN_OR_RETURN(auto swapped_from,
+                           reordering_mutator_->RemoveDatapoint(idx));
     if (result != kInvalidDatapointIndex) {
       SCANN_RET_CHECK_EQ(swapped_from, result);
     }

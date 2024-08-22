@@ -47,7 +47,6 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -225,7 +224,7 @@ class GenericDatasetWithSubset : public GmmUtilsImplInterface {
           for (size_t offset : Seq(batch_size)) {
             const DatapointIndex dp_index = subset_[subset_idx + offset];
             dataset_.GetDenseDatapoint(dp_index, &dp);
-            TF_CHECK_OK(dataset_batch.Append(dp.ToPtr(), ""));
+            CHECK_OK(dataset_batch.Append(dp.ToPtr(), ""));
           }
 
           callback(subset_idx, dataset_batch);
@@ -280,7 +279,7 @@ class DenseDatasetWrapper : public GmmUtilsImplInterface {
           Datapoint<DataT> storage;
           for (size_t j : Seq(batch_size)) {
             auto dptr = MaybeConvertDatapoint(dataset_[offset + j], &storage);
-            TF_CHECK_OK(dataset_batch.Append(dptr, ""));
+            CHECK_OK(dataset_batch.Append(dptr, ""));
           }
 
           callback(offset, dataset_batch);

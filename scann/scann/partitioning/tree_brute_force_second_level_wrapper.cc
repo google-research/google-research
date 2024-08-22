@@ -22,7 +22,6 @@
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -34,7 +33,7 @@ TreeBruteForceSecondLevelWrapper<T>::TreeBruteForceSecondLevelWrapper(
 template <typename T>
 Status TreeBruteForceSecondLevelWrapper<T>::CreatePartitioning(
     const BottomUpTopLevelPartitioner& config) {
-  TF_ASSIGN_OR_RETURN(top_level_, CreateTopLevel(*base_, config));
+  SCANN_ASSIGN_OR_RETURN(top_level_, CreateTopLevel(*base_, config));
   return OkStatus();
 }
 

@@ -226,10 +226,10 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   const auto& sq_config = opts.config().stacked_quantizers_config();
 
   DenseDataset<double> buffer;
-  TF_ASSIGN_OR_RETURN(const auto* converted,
-                      SampledDataset(dataset, opts, &buffer));
+  SCANN_ASSIGN_OR_RETURN(const auto* converted,
+                         SampledDataset(dataset, opts, &buffer));
   VLOG(1) << "SQ training, sampled training set size = " << converted->size();
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto codebook_list,
       HierarchicalKMeans(*converted, opts, num_codebooks, pool));
   CodesList codes_list(num_datapoints, num_codebooks);
@@ -237,7 +237,7 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   SCANN_RETURN_IF_ERROR(InitializeCodes(*converted, *quantization_distance,
                                         codebook_list, &codes_list, &residual,
                                         pool.get()));
-  TF_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
+  SCANN_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
 
   auto mse = AverageSquaredL2Norm(residual);
   VLOG(1) << "SQ training, initial mse = " << mse;
@@ -245,7 +245,7 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   for (int iter = 0; iter < sq_config.max_num_iterations(); ++iter) {
     for (int codebook_i = 0; codebook_i < num_codebooks; ++codebook_i) {
       auto& codebook = codebook_list[codebook_i];
-      TF_ASSIGN_OR_RETURN(auto* codebook_mutator, codebook.GetMutator());
+      SCANN_ASSIGN_OR_RETURN(auto* codebook_mutator, codebook.GetMutator());
       const auto deltas = ComputeUpdatesToCodebook(
           codebook_i, dataset.dimensionality(), num_centers,
           *quantization_distance, codes_list, residual);
@@ -317,7 +317,7 @@ StatusOr<const DenseDataset<double>*> StackedQuantizers<T>::SampledDataset(
     const auto max_sample_size = opts.config().max_sample_size()
                                      ? opts.config().max_sample_size()
                                      : dataset_size;
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto sampled_indices,
         internal::CreateSampledIndexList<DatapointIndex>(
             dataset_size, opts.config().sampling_seed(),
@@ -350,7 +350,7 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
   CodebookList<double> codebook_list;
   codebook_list.reserve(num_codebooks);
   auto residual = CopyDenseDatasetIntoNewType<double>(dataset);
-  TF_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
+  SCANN_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
 
   for (auto _ : Seq(num_codebooks)) {
     DenseDataset<double> centers;

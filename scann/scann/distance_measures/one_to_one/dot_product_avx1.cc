@@ -16,11 +16,13 @@
 
 #include <cstdint>
 
+#include "absl/log/check.h"
+#include "scann/utils/intrinsics/attributes.h"
+
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/internal/avx_funcs.h"
-#include "scann/utils/intrinsics/avx1.h"
 
 namespace research_scann {
 namespace dp_internal {

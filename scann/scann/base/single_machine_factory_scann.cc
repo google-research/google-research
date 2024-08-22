@@ -237,8 +237,8 @@ StatusOr<unique_ptr<SingleMachineSearcherBase<T>>> SingleMachineFactoryScann(
     const ScannConfig& config, shared_ptr<TypedDataset<T>> dataset,
     SingleMachineFactoryOptions opts) {
   opts.type_tag = TagForType<T>();
-  TF_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryUntypedScann(
-                                         config, dataset, std::move(opts)));
+  SCANN_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryUntypedScann(
+                                            config, dataset, std::move(opts)));
   return {
       unique_cast_unsafe<SingleMachineSearcherBase<T>>(std::move(searcher))};
 }

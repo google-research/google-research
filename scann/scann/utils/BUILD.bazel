@@ -13,7 +13,6 @@ cc_library(
     name = "alignment",
     srcs = ["alignment.cc"],
     hdrs = ["alignment.h"],
-    tags = ["local"],
     deps = [
         ":common",
     ],
@@ -23,7 +22,6 @@ cc_library(
     name = "types",
     srcs = ["types.cc"],
     hdrs = ["types.h"],
-    tags = ["local"],
     deps = [
         ":common",
         "//scann/proto:input_output_cc_proto",
@@ -35,7 +33,6 @@ cc_library(
 cc_library(
     name = "datapoint_utils",
     hdrs = ["datapoint_utils.h"],
-    tags = ["local"],
     deps = [
         ":reduction",
         ":types",
@@ -51,7 +48,6 @@ cc_library(
     name = "fast_top_neighbors",
     srcs = ["fast_top_neighbors.cc"],
     hdrs = ["fast_top_neighbors.h"],
-    tags = ["local"],
     textual_hdrs = ["fast_top_neighbors_impl.inc"],
     deps = [
         ":bits",
@@ -77,7 +73,6 @@ cc_library(
     name = "gmm_utils",
     srcs = ["gmm_utils.cc"],
     hdrs = ["gmm_utils.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":datapoint_utils",
@@ -110,16 +105,15 @@ cc_library(
 cc_library(
     name = "infinite_one_array",
     hdrs = ["infinite_one_array.h"],
-    tags = ["local"],
     deps = [":types"],
 )
 
 cc_library(
     name = "bits",
     hdrs = ["bits.h"],
-    tags = ["local"],
     deps = [
         ":types",
+        "//scann/oss_wrappers:scann_bits",
         "@com_google_absl//absl/numeric:bits",
     ],
 )
@@ -127,13 +121,11 @@ cc_library(
 cc_library(
     name = "index_sequence",
     hdrs = ["index_sequence.h"],
-    tags = ["local"],
 )
 
 cc_library(
     name = "reduction",
     hdrs = ["reduction.h"],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/data_format:datapoint",
@@ -150,7 +142,6 @@ cc_library(
     name = "util_functions",
     srcs = ["util_functions.cc"],
     hdrs = ["util_functions.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":parallel_for",
@@ -178,7 +169,6 @@ cc_library(
     name = "scann_config_utils",
     srcs = ["scann_config_utils.cc"],
     hdrs = ["scann_config_utils.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":types",
@@ -208,7 +198,6 @@ cc_library(
     name = "threads",
     srcs = ["threads.cc"],
     hdrs = ["threads.h"],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/oss_wrappers:scann_threadpool",
@@ -223,7 +212,6 @@ cc_library(
     name = "memory_logging",
     srcs = ["memory_logging.cc"],
     hdrs = ["memory_logging.h"],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/data_format:datapoint",
@@ -242,7 +230,6 @@ cc_library(
 cc_library(
     name = "bit_iterator",
     hdrs = ["bit_iterator.h"],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/oss_wrappers:scann_bits",
@@ -253,7 +240,6 @@ cc_library(
     name = "reordering_helper",
     srcs = ["reordering_helper.cc"],
     hdrs = ["reordering_helper.h"],
-    tags = ["local"],
     deps = [
         ":bfloat16_helpers",
         ":common",
@@ -275,6 +261,7 @@ cc_library(
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
@@ -288,7 +275,6 @@ cc_library(
 cc_library(
     name = "reordering_helper_interface",
     hdrs = ["reordering_helper_interface.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":types",
@@ -303,7 +289,6 @@ cc_library(
     name = "factory_helpers",
     srcs = ["factory_helpers.cc"],
     hdrs = ["factory_helpers.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":types",
@@ -319,7 +304,6 @@ cc_library(
     name = "hash_leaf_helpers",
     srcs = ["hash_leaf_helpers.cc"],
     hdrs = ["hash_leaf_helpers.h"],
-    tags = ["local"],
     deps = [
         ":factory_helpers",
         ":types",
@@ -341,7 +325,6 @@ cc_library(
     name = "io_oss_wrapper",
     srcs = ["io_oss_wrapper.cc"],
     hdrs = ["io_oss_wrapper.h"],
-    tags = ["local"],
     deps = [
         ":common",
         "@com_google_protobuf//:protobuf",
@@ -352,7 +335,6 @@ cc_library(
     name = "io_npy",
     srcs = ["io_npy.cc"],
     hdrs = ["io_npy.h"],
-    tags = ["local"],
     deps = [
         ":io_oss_wrapper",
         ":types",
@@ -367,7 +349,6 @@ cc_library(
     name = "input_data_utils",
     srcs = ["input_data_utils.cc"],
     hdrs = ["input_data_utils.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
         "//scann/proto:hash_cc_proto",
@@ -382,12 +363,12 @@ cc_library(
         "zip_sort.h",
         "zip_sort_impl.h",
     ],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_bits",
         "//scann/oss_wrappers:tf_dependency",
+        "@com_google_absl//absl/base:prefetch",
     ],
 )
 
@@ -395,7 +376,6 @@ cc_library(
     name = "top_n_amortized_constant",
     srcs = ["top_n_amortized_constant.cc"],
     hdrs = ["top_n_amortized_constant.h"],
-    tags = ["local"],
     deps = [
         ":types",
         ":util_functions",
@@ -406,13 +386,13 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
 cc_library(
     name = "parallel_for",
     hdrs = ["parallel_for.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":threads",
@@ -433,7 +413,6 @@ cc_library(
         "dataset_sampling.h",
         "sampled_index_list.h",
     ],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/data_format:dataset",
@@ -453,7 +432,6 @@ cc_library(
 cc_library(
     name = "iterators",
     hdrs = ["iterators.h"],
-    tags = ["local"],
     deps = [
         ":types",
     ],
@@ -463,7 +441,6 @@ cc_library(
     name = "scalar_quantization_helpers",
     srcs = ["scalar_quantization_helpers.cc"],
     hdrs = ["scalar_quantization_helpers.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":datapoint_utils",
@@ -484,7 +461,6 @@ cc_library(
     name = "bfloat16_helpers",
     srcs = ["bfloat16_helpers.cc"],
     hdrs = ["bfloat16_helpers.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":noise_shaping_utils",
@@ -504,7 +480,6 @@ cc_library(
     name = "common",
     srcs = ["common.cc"],
     hdrs = ["common.h"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
@@ -513,6 +488,7 @@ cc_library(
         "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/container:node_hash_map",
@@ -532,7 +508,6 @@ cc_library(
 cc_library(
     name = "noise_shaping_utils",
     hdrs = ["noise_shaping_utils.h"],
-    tags = ["local"],
     deps = [
         ":datapoint_utils",
         ":types",
@@ -543,7 +518,6 @@ cc_library(
 cc_library(
     name = "weak_ptr_cache",
     hdrs = ["weak_ptr_cache.h"],
-    tags = ["local"],
     deps = [
         ":types",
         "@com_google_absl//absl/base:core_headers",
@@ -556,7 +530,6 @@ cc_library(
     name = "single_machine_retraining",
     srcs = ["single_machine_retraining.cc"],
     hdrs = ["single_machine_retraining.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":scann_config_utils",
@@ -586,7 +559,6 @@ cc_library(
     name = "single_machine_autopilot",
     srcs = ["single_machine_autopilot.cc"],
     hdrs = ["single_machine_autopilot.h"],
-    tags = ["local"],
     deps = [
         ":common",
         ":types",

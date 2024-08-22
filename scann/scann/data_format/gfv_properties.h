@@ -20,6 +20,7 @@
 #include <string>
 
 #include "scann/data_format/features.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

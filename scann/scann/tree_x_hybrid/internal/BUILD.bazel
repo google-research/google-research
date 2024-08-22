@@ -9,7 +9,6 @@ cc_library(
     name = "utils",
     srcs = ["utils.cc"],
     hdrs = ["utils.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:restrict_allowlist",
         "//scann/base:search_parameters",
@@ -33,7 +32,6 @@ cc_library(
 cc_library(
     name = "batching",
     hdrs = ["batching.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/data_format:dataset",

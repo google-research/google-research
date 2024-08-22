@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 
+#include "scann/distance_measures/one_to_one/common.h"
+
 namespace research_scann {
 
 SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(SquaredL2Distance,

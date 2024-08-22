@@ -219,6 +219,29 @@ class Fixed8NoiseShapingLambdas {
   ConstSpan<float> multipliers_;
 };
 
+class Fixed4NoiseShapingLambdas {
+ public:
+  explicit Fixed4NoiseShapingLambdas(ConstSpan<float> multipliers)
+      : multipliers_(multipliers) {}
+
+  uint8_t QuantizeSingleDim(float f, DimensionIndex dim_idx) const {
+    return Int4Quantize(f * multipliers_[dim_idx]);
+  }
+
+  float DequantizeSingleDim(uint8_t f, DimensionIndex dim_idx) const {
+    return Int4Dequantize(f) / multipliers_[dim_idx];
+  }
+
+  bool AtMaximum(uint8_t i) const { return i == 15; }
+  bool AtMinimum(uint8_t i) const { return i == 0; }
+
+  uint8_t NextLargerDelta(uint8_t) const { return 1; }
+  uint8_t NextSmallerDelta(uint8_t) const { return -1; }
+
+ private:
+  ConstSpan<float> multipliers_;
+};
+
 DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     double noise_shaping_threshold, MutableSpan<int8_t> quantized,
@@ -271,6 +294,21 @@ void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
   for (size_t i : Seq(dimensionality)) {
     quantized[i] = Int4Quantize(dptr.values()[i] * multipliers[i]);
   }
+  PackNibblesDatapoint(quantized, packed);
+}
+
+void Int4QuantizePackFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    double noise_shaping_threshold, MutableSpan<uint8_t> packed,
+    int* num_changes, double* residual_ptr, double* parallel_residual_ptr) {
+  vector<uint8_t> quantized(dptr.dimensionality());
+  vector<float> residuals(dptr.dimensionality());
+  vector<uint32_t> dims(dptr.dimensionality());
+  ScalarQuantizeFloatDatapointWithNoiseShapingImpl(
+      dptr, noise_shaping_threshold, MakeMutableSpan(quantized),
+      MakeMutableSpan(residuals), MakeMutableSpan(dims),
+      Fixed4NoiseShapingLambdas(multipliers), num_changes, residual_ptr,
+      parallel_residual_ptr);
   PackNibblesDatapoint(quantized, packed);
 }
 

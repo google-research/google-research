@@ -13,7 +13,6 @@ cc_library(
     name = "projection_base",
     srcs = ["projection_base.cc"],
     hdrs = ["projection_base.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
@@ -32,7 +31,6 @@ cc_library(
     name = "chunking_projection",
     srcs = ["chunking_projection.cc"],
     hdrs = ["chunking_projection.h"],
-    tags = ["local"],
     deps = [
         ":identity_projection",
         ":projection_base",
@@ -51,7 +49,6 @@ cc_library(
     name = "identity_projection",
     srcs = ["identity_projection.cc"],
     hdrs = ["identity_projection.h"],
-    tags = ["local"],
     deps = [
         ":projection_base",
         "//scann/data_format:datapoint",
@@ -65,7 +62,6 @@ cc_library(
         "//conditions:default": ["projection_factory.cc"],
     }),
     hdrs = ["projection_factory.h"],
-    tags = ["local"],
     deps = select({
         "//conditions:default": [
         ],

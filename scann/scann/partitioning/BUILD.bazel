@@ -18,7 +18,6 @@ cc_library(
     name = "anisotropic",
     srcs = ["anisotropic.cc"],
     hdrs = ["anisotropic.h"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
@@ -31,7 +30,6 @@ cc_library(
     name = "partitioner_base",
     srcs = ["partitioner_base.cc"],
     hdrs = ["partitioner_base.h"],
-    tags = ["local"],
     deps = [
         ":partitioner_cc_proto",
         "//scann/data_format:datapoint",
@@ -48,7 +46,6 @@ cc_library(
 cc_library(
     name = "orthogonality_amplification_utils",
     hdrs = ["orthogonality_amplification_utils.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/utils:types",
@@ -58,7 +55,6 @@ cc_library(
 cc_library(
     name = "kmeans_tree_like_partitioner",
     hdrs = ["kmeans_tree_like_partitioner.h"],
-    tags = ["local"],
     deps = [
         ":partitioner_base",
         "//scann/data_format:datapoint",
@@ -77,7 +73,6 @@ cc_library(
         "kmeans_tree_partitioner_helper.cc",
     ],
     hdrs = ["kmeans_tree_partitioner.h"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_like_partitioner",
         ":kmeans_tree_partitioner_cc_proto",
@@ -122,7 +117,6 @@ cc_library(
     name = "tree_brute_force_second_level_wrapper",
     srcs = ["tree_brute_force_second_level_wrapper.cc"],
     hdrs = ["tree_brute_force_second_level_wrapper.h"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_like_partitioner",
         "//scann/brute_force",
@@ -142,7 +136,6 @@ cc_library(
 cc_library(
     name = "kmeans_tree_partitioner_utils",
     hdrs = ["kmeans_tree_partitioner_utils.h"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_partitioner",
         ":partitioner_base",
@@ -154,7 +147,6 @@ cc_library(
     name = "projecting_decorator",
     srcs = ["projecting_decorator.cc"],
     hdrs = ["projecting_decorator.h"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_like_partitioner",
         ":partitioner_base",
@@ -172,7 +164,6 @@ cc_library(
     name = "partitioner_factory_base",
     srcs = ["partitioner_factory_base.cc"],
     hdrs = ["partitioner_factory_base.h"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_partitioner_utils",
         ":partitioner_base",
@@ -196,7 +187,6 @@ cc_library(
     name = "partitioner_factory",
     srcs = ["partitioner_factory.cc"],
     hdrs = ["partitioner_factory.h"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_partitioner_cc_proto",
         ":kmeans_tree_partitioner_utils",
@@ -228,7 +218,6 @@ cc_library(
 proto_library(
     name = "partitioner_proto",
     srcs = ["partitioner.proto"],
-    tags = ["local"],
     deps = [
         ":kmeans_tree_partitioner_proto",
         ":linear_projection_tree_proto",
@@ -238,7 +227,6 @@ proto_library(
 
 cc_proto_library(
     name = "partitioner_cc_proto",
-    tags = ["local"],
     deps = [":partitioner_proto"],
 )
 
@@ -250,13 +238,11 @@ scann_py_proto_library(
         ":kmeans_tree_partitioner_py_pb2",
         ":linear_projection_tree_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "kmeans_tree_partitioner_proto",
     srcs = ["kmeans_tree_partitioner.proto"],
-    tags = ["local"],
     deps = [
         "//scann/proto:partitioning_proto",
         "//scann/trees/kmeans_tree:kmeans_tree_proto",
@@ -265,7 +251,6 @@ proto_library(
 
 cc_proto_library(
     name = "kmeans_tree_partitioner_cc_proto",
-    tags = ["local"],
     deps = [":kmeans_tree_partitioner_proto"],
 )
 
@@ -277,13 +262,11 @@ scann_py_proto_library(
         "//scann/proto:partitioning_py_pb2",
         "//scann/trees/kmeans_tree:kmeans_tree_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "linear_projection_tree_proto",
     srcs = ["linear_projection_tree.proto"],
-    tags = ["local"],
     deps = [
     ],
 )
@@ -292,7 +275,6 @@ scann_py_proto_library(
     name = "linear_projection_tree_py_pb2",
     srcs = ["linear_projection_tree.proto"],
     proto_deps = [":linear_projection_tree_proto"],
-    tags = ["local"],
 )
 
 # Tests

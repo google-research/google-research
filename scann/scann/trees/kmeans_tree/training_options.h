@@ -19,8 +19,10 @@
 
 #include <cstdint>
 
+#include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/partitioning.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/gmm_utils.h"
 #include "scann/utils/types.h"
 

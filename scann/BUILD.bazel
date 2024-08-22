@@ -18,8 +18,5 @@ sh_binary(
         "//scann/proto:scann_py_pb2",
         "//scann/scann_ops/py:scann",
     ],
-    tags = [
-        "local",
-        "notap",
-    ],
+    tags = ["notap"],
 )

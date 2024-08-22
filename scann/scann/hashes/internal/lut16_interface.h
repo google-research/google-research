@@ -21,6 +21,7 @@
 #include "scann/hashes/internal/lut16_args.h"
 #include "scann/hashes/internal/lut16_avx2.h"
 #include "scann/hashes/internal/lut16_avx512.h"
+#include "scann/hashes/internal/lut16_highway.h"
 #include "scann/hashes/internal/lut16_sse4.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/alignment.h"
@@ -252,28 +253,62 @@ void LUT16Interface::GetTopFloatDistances(LUT16ArgsTopN<float, TopN> args) {
 }
 
 #else
+#define SCANN_CALL_LUT16_FUNCTION(batch_size, prefetch_strategy, Function, \
+                                  ...)                                     \
+  if (prefetch_strategy == PrefetchStrategy::kOff) {                       \
+    SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kOff,        \
+                                LUT16Highway, Function, __VA_ARGS__);      \
+  } else if (prefetch_strategy == PrefetchStrategy::kSeq) {                \
+    SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSeq,        \
+                                LUT16Highway, Function, __VA_ARGS__);      \
+  } else {                                                                 \
+    SCANN_CALL_LUT16_FUNCTION_1(batch_size, PrefetchStrategy::kSmart,      \
+                                LUT16Highway, Function, __VA_ARGS__);      \
+  }
 
 void LUT16Interface::GetDistances(LUT16Args<int16_t> args) {
-  LOG(FATAL) << "LUT16 is only supported on x86!";
+  const size_t batch_size = args.lookups.size();
+  const auto prefetch_strategy = args.prefetch_strategy;
+  DCHECK_EQ(batch_size, args.distances.size());
+  SCANN_CALL_LUT16_FUNCTION(batch_size, prefetch_strategy, GetInt16Distances,
+                            std::move(args));
 }
 
 void LUT16Interface::GetDistances(LUT16Args<int32_t> args) {
-  LOG(FATAL) << "LUT16 is only supported on x86!";
+  const size_t batch_size = args.lookups.size();
+  const auto prefetch_strategy = args.prefetch_strategy;
+  DCHECK_EQ(batch_size, args.distances.size());
+  SCANN_CALL_LUT16_FUNCTION(batch_size, prefetch_strategy, GetInt32Distances,
+                            std::move(args));
 }
 
 void LUT16Interface::GetFloatDistances(LUT16Args<float> args,
                                        ConstSpan<float> inv_fp_multipliers) {
-  LOG(FATAL) << "LUT16 is only supported on x86!";
+  const size_t batch_size = args.lookups.size();
+  const auto prefetch_strategy = args.prefetch_strategy;
+  DCHECK_EQ(batch_size, args.distances.size());
+  DCHECK_EQ(batch_size, inv_fp_multipliers.size());
+  SCANN_CALL_LUT16_FUNCTION(batch_size, prefetch_strategy, GetFloatDistances,
+                            std::move(args), inv_fp_multipliers);
 }
 
 template <typename TopN>
 void LUT16Interface::GetTopDistances(LUT16ArgsTopN<int16_t, TopN> args) {
-  LOG(FATAL) << "LUT16 is only supported on x86!";
+  const size_t batch_size = args.lookups.size();
+  const auto prefetch_strategy = args.prefetch_strategy;
+  DCHECK_EQ(batch_size, args.fast_topns.size());
+  SCANN_CALL_LUT16_FUNCTION(batch_size, prefetch_strategy, GetTopInt16Distances,
+                            std::move(args));
 }
 
 template <typename TopN>
 void LUT16Interface::GetTopFloatDistances(LUT16ArgsTopN<float, TopN> args) {
-  LOG(FATAL) << "LUT16 is only supported on x86!";
+  const size_t batch_size = args.lookups.size();
+  const auto prefetch_strategy = args.prefetch_strategy;
+  DCHECK_EQ(batch_size, args.fast_topns.size());
+  DCHECK_EQ(batch_size, args.biases.size());
+  SCANN_CALL_LUT16_FUNCTION(batch_size, prefetch_strategy, GetTopFloatDistances,
+                            std::move(args));
 }
 
 #endif

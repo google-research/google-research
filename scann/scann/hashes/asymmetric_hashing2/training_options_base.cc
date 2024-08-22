@@ -14,6 +14,8 @@
 
 #include "scann/hashes/asymmetric_hashing2/training_options_base.h"
 
+#include "scann/utils/types.h"
+
 namespace research_scann {
 namespace asymmetric_hashing2 {
 

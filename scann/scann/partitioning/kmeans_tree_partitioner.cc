@@ -41,7 +41,6 @@
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -162,8 +161,8 @@ Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
       !kmeans_tree_->is_flat()) {
     return Partitioner<T>::TokenForDatapointBatched(queries, results);
   }
-  TF_ASSIGN_OR_RETURN(auto top1_results,
-                      TokenForDatapointBatchedImpl(queries, pool));
+  SCANN_ASSIGN_OR_RETURN(auto top1_results,
+                         TokenForDatapointBatchedImpl(queries, pool));
   results->resize(queries.size());
   for (size_t j : Seq(queries.size())) {
     (*results)[j] = static_cast<int32_t>(top1_results[j].first);
@@ -182,7 +181,7 @@ Status KMeansTreePartitioner<T>::TokenForDatapointBatched(
       SCANN_RETURN_IF_ERROR(TokenForDatapoint(queries[i], &results->at(i)));
     }
   }
-  TF_ASSIGN_OR_RETURN(*results, TokenForDatapointBatchedImpl(queries, pool));
+  SCANN_ASSIGN_OR_RETURN(*results, TokenForDatapointBatchedImpl(queries, pool));
   return OkStatus();
 }
 
@@ -540,8 +539,8 @@ KMeansTreePartitioner<T>::TokenizeDatabase(const TypedDataset<T>& database,
                  DatabaseSpillingConfig::NO_SPILLING &&
              (IsSame<T, float>() || IsSame<T, double>()) &&
              (database_tokenization_type_ == FLOAT)) {
-    TF_ASSIGN_OR_RETURN(auto datapoint_index_to_result,
-                        TokenizeDatabaseImplFastPath(dense(), pool_or_null));
+    SCANN_ASSIGN_OR_RETURN(auto datapoint_index_to_result,
+                           TokenizeDatabaseImplFastPath(dense(), pool_or_null));
     vector<std::vector<DatapointIndex>> token_to_datapoint_index(
         this->n_tokens());
     for (DatapointIndex dp_index : IndicesOf(datapoint_index_to_result)) {
@@ -557,7 +556,7 @@ KMeansTreePartitioner<T>::TokenizeDatabase(const TypedDataset<T>& database,
     }
     return std::move(token_to_datapoint_index);
   } else {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto result, Partitioner<T>::TokenizeDatabase(database, pool_or_null));
     if (avq_opts.avq_after_primary) {
       SCANN_RETURN_IF_ERROR(ApplyAvq(dense(), result, avq_opts.avq_eta));
@@ -577,7 +576,7 @@ KMeansTreePartitioner<T>::TokenizeDatabaseImplFastPath(
   }
 
   DCHECK_EQ(database_tokenization_type_, FLOAT);
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       datapoint_index_to_result,
       TokenizeDatabaseImplFastPath(database, kmeans_tree_->root()->Centers(),
                                    pool_or_null));
@@ -859,7 +858,7 @@ KMeansTreePartitioner<T>::CreateAsymmetricHashingSearcherForQueryTokenization(
   auto centers = std::make_unique<DenseDataset<float>>();
   original_centers.ConvertType(centers.get());
 
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       query_tokenization_searcher_,
       internal::CreateRecommendedAsymmetricSearcher(
           std::move(centers), query_tokenization_dist_,
@@ -890,10 +889,10 @@ Status KMeansTreePartitioner<
   auto centers = std::make_unique<DenseDataset<float>>();
   original_centers.ConvertType(centers.get());
 
-  TF_ASSIGN_OR_RETURN(database_tokenization_searcher_,
-                      internal::CreateRecommendedAsymmetricSearcher(
-                          std::move(centers), database_tokenization_dist_, 1,
-                          numeric_limits<float>::infinity()));
+  SCANN_ASSIGN_OR_RETURN(database_tokenization_searcher_,
+                         internal::CreateRecommendedAsymmetricSearcher(
+                             std::move(centers), database_tokenization_dist_, 1,
+                             numeric_limits<float>::infinity()));
   return OkStatus();
 }
 
@@ -964,7 +963,7 @@ Status KMeansTreePartitioner<T>::OrthogonalityAmplifiedTokenForDatapointBatched(
       std::copy(dptr.values(), dptr.values() + dptr.dimensionality(),
                 result.begin() + (i - start) * queries.dimensionality());
     }
-    return DenseDataset<float>(result, end - start);
+    return DenseDataset<float>(std::move(result), end - start);
   };
 
   constexpr size_t kMaxBatchSize = 256;

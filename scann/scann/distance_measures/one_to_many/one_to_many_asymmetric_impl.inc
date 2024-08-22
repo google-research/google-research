@@ -295,8 +295,7 @@ SCANN_SIMD_INLINE void ComputeOneToManyScores(
     for (; dim + 16 <= dimensionality; dim += 16) {
       if constexpr (kShouldPrefetch) {
         for (size_t jj : Seq(kUnrollBy)) {
-          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-              prefetch_ptrs[jj] + dim);
+          absl::PrefetchToLocalCacheNta(prefetch_ptrs[jj] + dim);
         }
       }
       accums = HandleXDims<16, kIsSquaredL2>(
@@ -312,8 +311,7 @@ SCANN_SIMD_INLINE void ComputeOneToManyScores(
     for (; dim + 8 <= dimensionality; dim += 8) {
       if constexpr (kShouldPrefetch) {
         for (size_t jj : Seq(kUnrollBy)) {
-          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-              prefetch_ptrs[jj] + dim);
+          absl::PrefetchToLocalCacheNta(prefetch_ptrs[jj] + dim);
         }
       }
       accums = HandleXDims<8, kIsSquaredL2>(
@@ -411,8 +409,7 @@ SCANN_SIMD_INLINE void ComputeOneToManyScores(
   constexpr size_t kNumElements = Simd<int8_t>::kNumElements;
   for (int i : Seq(DivRoundUp(dimensionality, kNumElements * 2))) {
     if constexpr (kShouldPrefetch) {
-      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-          prefetch_ptr);
+      absl::PrefetchToLocalCacheNta(prefetch_ptr);
       prefetch_ptr += kNumElements;
     }
     if (i % 4 == 0) {
@@ -536,8 +533,8 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
          j++) {
       const DataT* prefetch_ptr = get_db_ptr(j);
       for (size_t n : Seq(cache_lines_per_datapoint)) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-            prefetch_ptr + n * kCacheLine / sizeof(DataT));
+        absl::PrefetchToLocalCacheNta(prefetch_ptr +
+                                      n * kCacheLine / sizeof(DataT));
       }
     }
 
@@ -549,8 +546,8 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
 
       for (size_t n : Seq(cache_lines_per_datapoint)) {
         for (size_t jj : Seq(kUnrollBy)) {
-          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-              prefetch_ptrs[jj] + n * kCacheLine / sizeof(DataT));
+          absl::PrefetchToLocalCacheNta(prefetch_ptrs[jj] +
+                                        n * kCacheLine / sizeof(DataT));
         }
       }
     }

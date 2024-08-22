@@ -560,8 +560,8 @@ BruteForceSearcher<T>::GetMutator() const {
   }
   if (!mutator_) {
     auto mutable_this = const_cast<BruteForceSearcher<T>*>(this);
-    TF_ASSIGN_OR_RETURN(mutator_,
-                        BruteForceSearcher<T>::Mutator::Create(mutable_this));
+    SCANN_ASSIGN_OR_RETURN(
+        mutator_, BruteForceSearcher<T>::Mutator::Create(mutable_this));
     SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
   }
   return static_cast<typename SingleMachineSearcherBase<T>::Mutator*>(

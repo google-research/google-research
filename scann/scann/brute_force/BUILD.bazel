@@ -13,7 +13,6 @@ cc_library(
         "brute_force_mutator.cc",
     ],
     hdrs = ["brute_force.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:restrict_allowlist",
         "//scann/base:search_parameters",
@@ -49,7 +48,6 @@ cc_library(
         "scalar_quantized_brute_force_mutator.cc",
     ],
     hdrs = ["scalar_quantized_brute_force.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
@@ -84,7 +82,6 @@ cc_library(
         "bfloat16_brute_force_mutator.cc",
     ],
     hdrs = ["bfloat16_brute_force.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",

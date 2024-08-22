@@ -40,7 +40,7 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
       sz = hashed_dataset->size();
     } else {
       SCANN_RET_CHECK_EQ(sz, hashed_dataset->size())
-              .SetErrorCode(error::INVALID_ARGUMENT)
+              .SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original and hashed database sizes.";
     }
   }
@@ -52,7 +52,7 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     } else {
       SCANN_RET_CHECK_EQ(sz,
                          pre_quantized_fixed_point->fixed_point_dataset->size())
-              .SetErrorCode(error::INVALID_ARGUMENT)
+              .SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original/hashed database and fixed-point "
              "database sizes.";
     }
@@ -63,7 +63,7 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
       sz = bfloat16_dataset->size();
     } else {
       SCANN_RET_CHECK_EQ(sz, bfloat16_dataset->size())
-              .SetErrorCode(error::INVALID_ARGUMENT)
+              .SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original/hashed/int8 database and bfloat16 "
              "database sizes.";
     }
@@ -100,7 +100,7 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     if (dims == kInvalidDimension) {
       dims = d;
     } else {
-      SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
+      SCANN_RET_CHECK_EQ(dims, d).SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original and fixed-point database "
              "dimensionalities.";
     }
@@ -111,7 +111,7 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     if (dims == kInvalidDimension) {
       dims = d;
     } else {
-      SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
+      SCANN_RET_CHECK_EQ(dims, d).SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original/fixed-point database and bfloat16 "
              "database dimensionalities.";
     }
@@ -123,7 +123,7 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
       if (dims == kInvalidDimension) {
         dims = d;
       } else {
-        SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
+        SCANN_RET_CHECK_EQ(dims, d).SetCode(absl::StatusCode::kInvalidArgument)
             << "Mismatch between original/fixed-point/bfloat16 and hash "
                "projection dimensionalities.";
       }

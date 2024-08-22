@@ -17,6 +17,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include "absl/log/check.h"
 #include "hwy/highway.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/intrinsics/attributes.h"

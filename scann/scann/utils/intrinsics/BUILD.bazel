@@ -10,7 +10,6 @@ package(
 cc_library(
     name = "simd",
     hdrs = ["simd.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":avx1",
@@ -30,7 +29,6 @@ cc_library(
 cc_library(
     name = "fma",
     hdrs = ["fma.h"],
-    tags = ["local"],
     textual_hdrs = ["fma.inc"],
     deps = [
         ":highway",
@@ -46,7 +44,6 @@ cc_library(
 cc_library(
     name = "horizontal_sum",
     hdrs = ["horizontal_sum.h"],
-    tags = ["local"],
     deps = [
         ":highway",
         ":simd",
@@ -62,7 +59,6 @@ cc_library(
     name = "flags",
     srcs = ["flags.cc"],
     hdrs = ["flags.h"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
@@ -75,7 +71,6 @@ cc_library(
 cc_library(
     name = "attributes",
     hdrs = ["attributes.h"],
-    tags = ["local"],
 )
 
 ################################################################################
@@ -85,7 +80,6 @@ cc_library(
 cc_library(
     name = "fallback",
     hdrs = ["fallback.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":flags",
@@ -101,7 +95,6 @@ cc_library(
 cc_library(
     name = "sse4",
     hdrs = ["sse4.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":flags",
@@ -117,7 +110,6 @@ cc_library(
 cc_library(
     name = "avx1",
     hdrs = ["avx1.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":flags",
@@ -134,7 +126,6 @@ cc_library(
 cc_library(
     name = "avx2",
     hdrs = ["avx2.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":avx1",
@@ -151,7 +142,6 @@ cc_library(
 cc_library(
     name = "avx512",
     hdrs = ["avx512.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":avx2",
@@ -168,7 +158,6 @@ cc_library(
 cc_library(
     name = "highway",
     hdrs = ["highway.h"],
-    tags = ["local"],
     deps = [
         ":attributes",
         ":flags",

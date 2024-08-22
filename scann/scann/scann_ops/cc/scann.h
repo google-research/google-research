@@ -97,6 +97,9 @@ class ScannInterface {
     parallel_query_pool_ = StartThreadPool("ScannQueryingPool", num_threads);
   }
 
+  using ScannHealthStats = SingleMachineSearcherBase<float>::HealthStats;
+  ScannHealthStats GetHealthStats() const;
+
  private:
   SearchParameters GetSearchParameters(int final_nn, int pre_reorder_nn,
                                        int leaves) const;

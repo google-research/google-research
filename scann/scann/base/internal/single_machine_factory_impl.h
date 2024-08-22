@@ -19,20 +19,27 @@
 
 #include <memory>
 
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/strings/match.h"
 #include "scann/base/reordering_helper_factory.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/crowding.pb.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
+#include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
 #include "scann/utils/hash_leaf_helpers.h"
 #include "scann/utils/scann_config_utils.h"
 #include "scann/utils/single_machine_autopilot.h"
-#include "tensorflow/core/lib/core/errors.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -67,13 +74,13 @@ class SingleMachineFactoryImplClass {
       return InvalidArgumentError("Dataset is the wrong type");
     }
 
-    TF_ASSIGN_OR_RETURN(auto searcher,
-                        LeafSearcherT::SingleMachineFactoryLeafSearcher(
-                            config, typed_dataset, params, opts));
+    SCANN_ASSIGN_OR_RETURN(auto searcher,
+                           LeafSearcherT::SingleMachineFactoryLeafSearcher(
+                               config, typed_dataset, params, opts));
     auto* typed_searcher =
         down_cast<SingleMachineSearcherBase<T>*>(searcher.get());
 
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto reordering_helper,
         ReorderingHelperFactory<T>::Build(config, params.reordering_dist,
                                           typed_dataset, opts));
@@ -83,7 +90,7 @@ class SingleMachineFactoryImplClass {
 
     if (config.partitioning().has_incremental_training_config()) {
       searcher->MaybeReleaseDataset();
-      TF_ASSIGN_OR_RETURN(auto mutator, typed_searcher->GetMutator());
+      SCANN_ASSIGN_OR_RETURN(auto mutator, typed_searcher->GetMutator());
       SCANN_RETURN_IF_ERROR(mutator->EnableIncrementalTraining(config));
     }
     return {std::move(searcher)};
@@ -102,7 +109,7 @@ StatusOrSearcherUntyped SingleMachineFactoryUntypedImpl(
     if (opts.pre_quantized_fixed_point &&
         opts.pre_quantized_fixed_point->fixed_point_dataset)
       autopilot_dataset = opts.pre_quantized_fixed_point->fixed_point_dataset;
-    TF_ASSIGN_OR_RETURN(config, Autopilot(orig_config, autopilot_dataset));
+    SCANN_ASSIGN_OR_RETURN(config, Autopilot(orig_config, autopilot_dataset));
   }
 
   GenericSearchParameters params;
@@ -127,12 +134,12 @@ StatusOrSearcherUntyped SingleMachineFactoryUntypedImpl(
     opts.type_tag = dataset->TypeTag();
   }
 
-  TF_ASSIGN_OR_RETURN(auto searcher,
-                      SCANN_CALL_FUNCTION_BY_TAG(
-                          opts.type_tag,
-                          SingleMachineFactoryImplClass<
-                              LeafSearcherT>::template SingleMachineFactoryImpl,
-                          config, dataset, params, &opts));
+  SCANN_ASSIGN_OR_RETURN(
+      auto searcher, SCANN_CALL_FUNCTION_BY_TAG(
+                         opts.type_tag,
+                         SingleMachineFactoryImplClass<
+                             LeafSearcherT>::template SingleMachineFactoryImpl,
+                         config, dataset, params, &opts));
   CHECK(searcher) << "Returning nullptr instead of Status is a bug";
 
   if (config.crowding().enabled() && opts.crowding_attributes) {
@@ -154,8 +161,9 @@ StatusOrSearcherUntyped AsymmetricHasherFactory(
   shared_ptr<const DistanceMeasure> quantization_distance;
   std::shared_ptr<ThreadPool> pool = opts->parallelization_pool;
   if (ah_config.has_quantization_distance()) {
-    TF_ASSIGN_OR_RETURN(quantization_distance,
-                        GetDistanceMeasure(ah_config.quantization_distance()));
+    SCANN_ASSIGN_OR_RETURN(
+        quantization_distance,
+        GetDistanceMeasure(ah_config.quantization_distance()));
   } else {
     quantization_distance = params.pre_reordering_dist;
   }
@@ -163,7 +171,7 @@ StatusOrSearcherUntyped AsymmetricHasherFactory(
   internal::TrainedAsymmetricHashingResults<T> training_results;
   if (config.hash().asymmetric_hash().has_centers_filename() ||
       opts->ah_codebook.get()) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         training_results,
         internal::HashLeafHelpers<T>::LoadAsymmetricHashingModel(
             ah_config, params, pool, opts->ah_codebook.get()));
@@ -183,7 +191,7 @@ StatusOrSearcherUntyped AsymmetricHasherFactory(
     LOG(INFO) << "Single-machine AH training with dataset size = "
               << dataset->size() << ", " << num_workers + 1 << " thread(s).";
 
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         training_results,
         internal::HashLeafHelpers<T>::TrainAsymmetricHashingModel(
             dataset, ah_config, params, pool));

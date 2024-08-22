@@ -33,7 +33,6 @@
 #include "scann/utils/common.h"
 #include "scann/utils/scann_config_utils.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -46,7 +45,7 @@ StatusOrSearcherUntyped RetrainAndReindexSearcherImpl(
   SingleMachineSearcherBase<T>* searcher =
       down_cast<SingleMachineSearcherBase<T>*>(untyped_searcher);
 
-  TF_ASSIGN_OR_RETURN(auto dataset, searcher->ReconstructFloatDataset());
+  SCANN_ASSIGN_OR_RETURN(auto dataset, searcher->ReconstructFloatDataset());
   if (!dataset) {
     return FailedPreconditionError(
         "Searchers passed to RetrainAndReindexSearcher must contain the "
@@ -58,7 +57,7 @@ StatusOrSearcherUntyped RetrainAndReindexSearcherImpl(
   StripPreprocessedArtifacts(&config);
   SingleMachineFactoryOptions opts;
   opts.parallelization_pool = std::move(parallelization_pool);
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto result,
       SingleMachineFactoryScann<T>(
           config, std::const_pointer_cast<TypedDataset<T>>(searcher->dataset_),

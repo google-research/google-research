@@ -25,8 +25,7 @@ StatusBuilder::StatusBuilder(const absl::Status& status) : status_(status) {}
 
 StatusBuilder::StatusBuilder(absl::Status&& status) : status_(status) {}
 
-StatusBuilder::StatusBuilder(tensorflow::error::Code code)
-    : status_(static_cast<absl::StatusCode>(code), "") {}
+StatusBuilder::StatusBuilder(absl::StatusCode code) : status_(code, "") {}
 
 StatusBuilder::StatusBuilder(const StatusBuilder& sb) : status_(sb.status_) {
   if (sb.streamptr_ != nullptr) {
@@ -41,7 +40,7 @@ absl::Status StatusBuilder::CreateStatus() && {
         absl::StrCat(status_.message(), "; ", streamptr_->str());
     return absl::Status(status_.code(), new_msg);
   }();
-  status_ = errors::Unknown("");
+  status_ = absl::UnknownError("");
   streamptr_ = nullptr;
   return result;
 }
@@ -59,33 +58,41 @@ StatusBuilder::operator absl::Status() && {
   return std::move(*this).CreateStatus();
 }
 
-StatusBuilder AbortedErrorBuilder() { return StatusBuilder(error::ABORTED); }
+StatusBuilder AbortedErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kAborted);
+}
 StatusBuilder AlreadyExistsErrorBuilder() {
-  return StatusBuilder(error::ALREADY_EXISTS);
+  return StatusBuilder(absl::StatusCode::kAlreadyExists);
 }
 StatusBuilder CancelledErrorBuilder() {
-  return StatusBuilder(error::CANCELLED);
+  return StatusBuilder(absl::StatusCode::kCancelled);
 }
 StatusBuilder FailedPreconditionErrorBuilder() {
-  return StatusBuilder(error::FAILED_PRECONDITION);
+  return StatusBuilder(absl::StatusCode::kFailedPrecondition);
 }
-StatusBuilder InternalErrorBuilder() { return StatusBuilder(error::INTERNAL); }
+StatusBuilder InternalErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kInternal);
+}
 StatusBuilder InvalidArgumentErrorBuilder() {
-  return StatusBuilder(error::INVALID_ARGUMENT);
+  return StatusBuilder(absl::StatusCode::kInvalidArgument);
 }
-StatusBuilder NotFoundErrorBuilder() { return StatusBuilder(error::NOT_FOUND); }
+StatusBuilder NotFoundErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kNotFound);
+}
 StatusBuilder OutOfRangeErrorBuilder() {
-  return StatusBuilder(error::OUT_OF_RANGE);
+  return StatusBuilder(absl::StatusCode::kOutOfRange);
 }
 StatusBuilder UnauthenticatedErrorBuilder() {
-  return StatusBuilder(error::UNAUTHENTICATED);
+  return StatusBuilder(absl::StatusCode::kUnauthenticated);
 }
 StatusBuilder UnavailableErrorBuilder() {
-  return StatusBuilder(error::UNAVAILABLE);
+  return StatusBuilder(absl::StatusCode::kUnavailable);
 }
 StatusBuilder UnimplementedErrorBuilder() {
-  return StatusBuilder(error::UNIMPLEMENTED);
+  return StatusBuilder(absl::StatusCode::kUnimplemented);
 }
-StatusBuilder UnknownErrorBuilder() { return StatusBuilder(error::UNKNOWN); }
+StatusBuilder UnknownErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kUnknown);
+}
 
 }  // namespace research_scann

@@ -29,6 +29,7 @@
 #include "scann/data_format/dataset.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/proto/hash.pb.h"
@@ -37,7 +38,6 @@
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -49,6 +49,12 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       : SingleMachineSearcherBase<float>(std::move(dataset),
                                          default_pre_reordering_num_neighbors,
                                          default_pre_reordering_epsilon) {}
+
+  TreeAHHybridResidual(int32_t default_pre_reordering_num_neighbors,
+                       float default_pre_reordering_epsilon)
+      : SingleMachineSearcherBase<float>(default_pre_reordering_num_neighbors,
+                                         default_pre_reordering_epsilon),
+        is_streaming_input_data_(true) {}
 
   struct BuildLeafSearchersOptions {
     const DenseDataset<uint8_t>* hashed_dataset = nullptr;
@@ -64,6 +70,17 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       shared_ptr<const asymmetric_hashing2::Model<float>> ah_model,
       vector<std::vector<DatapointIndex>> datapoints_by_token,
       BuildLeafSearchersOptions opts);
+
+  Status BuildStreamingLeafSearchers(
+      const AsymmetricHasherConfig& config, size_t n_tokens,
+      ConstSpan<pair<DatapointIndex, float>> query_tokens,
+      shared_ptr<KMeansTreeLikePartitioner<float>> partitioner,
+      shared_ptr<const asymmetric_hashing2::Model<float>> ah_model,
+      bool streaming_result,
+      std::function<StatusOr<unique_ptr<asymmetric_hashing2::Searcher<float>>>(
+          int token, float distance_to_center,
+          asymmetric_hashing2::SearcherOptions<float> opts)>
+          leaf_searcher_builder);
 
   void set_database_tokenizer(
       shared_ptr<const KMeansTreeLikePartitioner<float>> database_tokenizer) {
@@ -89,10 +106,24 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       const DatapointPtr<float>& query,
       SearchParameters& search_params) const final;
 
+  Status PreprocessQueryIntoParamsUnlocked(
+      const DatapointPtr<float>& query,
+      vector<pair<DatapointIndex, float>>& tokens_to_search,
+      SearchParameters& search_params) const;
+
   StatusOr<SingleMachineFactoryOptions> ExtractSingleMachineFactoryOptions()
       override;
 
+  HealthStats GetHealthStats() const override;
+  void InitializeHealthStats() override;
+
   vector<uint32_t> SizeByPartition() const final;
+
+  uint32_t NumPartitions() const final { return datapoints_by_token_.size(); }
+
+  ConstSpan<std::vector<DatapointIndex>> datapoints_by_token() const {
+    return ConstSpan<std::vector<DatapointIndex>>(datapoints_by_token_);
+  }
 
   float spilling_overretrieve_factor() const {
     return spilling_overretrieve_factor_;
@@ -128,6 +159,37 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   void DisableCrowdingImpl() final;
 
  private:
+  struct HealthStatsMutation {
+    double sum_squared_quantization_error = 0;
+    double partition_avg_relative_imbalance = 0;
+    uint64_t sum_partition_sizes = 0;
+
+    void ComputeAvgRelativeImbalance(
+        const vector<std::vector<DatapointIndex>>& datapoints_by_token) {
+      partition_avg_relative_imbalance = 0;
+      if (sum_partition_sizes == 0) return;
+
+      for (const auto& dps : datapoints_by_token) {
+        partition_avg_relative_imbalance +=
+            1.0 * dps.size() / sum_partition_sizes * dps.size();
+      }
+      partition_avg_relative_imbalance /=
+          1.0 * sum_partition_sizes / datapoints_by_token.size();
+      partition_avg_relative_imbalance -= 1.0;
+    }
+
+    void Add(double quantize_err) {
+      sum_squared_quantization_error += quantize_err;
+      ++sum_partition_sizes;
+    }
+
+    void Subtract(double quantize_err) {
+      sum_squared_quantization_error -= quantize_err;
+      --sum_partition_sizes;
+    }
+  };
+  mutable HealthStatsMutation stats_mutation_;
+
   class UnlockedTreeAHHybridResidualPreprocessingResults
       : public SearchParameters::UnlockedQueryPreprocessingResults {
    public:
@@ -155,6 +217,10 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
         lookup_table_;
   };
 
+  Status ValidateTokenList(
+      ConstSpan<pair<DatapointIndex, float>> centers_to_search,
+      bool check_oob) const;
+
   Status FindNeighborsInternal1(
       const DatapointPtr<float>& query, const SearchParameters& params,
       ConstSpan<pair<DatapointIndex, float>> centers_to_search,
@@ -175,10 +241,10 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
 
     int inner_leaf_bits = 32 - bits::Log2Ceiling(datapoints_by_token_.size());
     if (leaf_size_upper_bound_ <= (1ull << inner_leaf_bits)) {
-      SCANN_LOG_NOOP(3) << "Global top-N enabled for query.";
+      DVLOG(3) << "Global top-N enabled for query.";
       return inner_leaf_bits;
     } else {
-      SCANN_LOG_NOOP(3) << "Leaf too big, global top-N disabled for query.";
+      DVLOG(3) << "Leaf too big, global top-N disabled for query.";
       return 0;
     }
   }
@@ -212,7 +278,12 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   shared_ptr<KMeansTreeLikePartitioner<float>> query_tokenizer_;
   shared_ptr<const KMeansTreeLikePartitioner<float>> database_tokenizer_;
 
+ public:
   vector<std::vector<DatapointIndex>> datapoints_by_token_;
+
+  bool is_streaming_input_data_ = false;
+
+  bool is_streaming_result_ = false;
 
   vector<uint32_t> leaf_tokens_by_norm_;
 

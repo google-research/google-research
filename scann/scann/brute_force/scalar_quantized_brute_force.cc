@@ -34,13 +34,13 @@
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/fixed_point/pre_quantized_fixed_point.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -97,7 +97,7 @@ ScalarQuantizedBruteForceSearcher::ScalarQuantizedBruteForceSearcher(
       quantized_dataset_(std::move(quantized_dataset)),
       inverse_multiplier_by_dimension_(
           std::move(inverse_multiplier_by_dimension)) {
-  TF_CHECK_OK(this->set_docids(quantized_dataset_.ReleaseDocids()));
+  QCHECK_OK(this->set_docids(quantized_dataset_.ReleaseDocids()));
 }
 
 StatusOr<vector<float>>
@@ -135,9 +135,9 @@ ScalarQuantizedBruteForceSearcher::
       squared_l2_norms.empty()) {
     LOG_FIRST_N(INFO, 1)
         << "squared_l2_norms are not loaded, and they will be computed.";
-    TF_ASSIGN_OR_RETURN(squared_l2_norms,
-                        ComputeSquaredL2NormsFromQuantizedDataset(
-                            quantized, inverse_multipliers));
+    SCANN_ASSIGN_OR_RETURN(squared_l2_norms,
+                           ComputeSquaredL2NormsFromQuantizedDataset(
+                               quantized, inverse_multipliers));
   }
 
   return std::make_unique<ScalarQuantizedBruteForceSearcher>(
@@ -169,7 +169,7 @@ ScalarQuantizedBruteForceSearcher::CreateWithFixedRange(
 
   vector<float> squared_l2_norms;
   if (distance_tag == DistanceMeasure::SQUARED_L2 && !dataset->empty()) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         squared_l2_norms,
         ComputeSquaredL2NormsFromQuantizedDataset(
             quantization_results.quantized_dataset,
@@ -385,7 +385,7 @@ StatusOr<SingleMachineSearcherBase<float>::Mutator*>
 ScalarQuantizedBruteForceSearcher::GetMutator() const {
   if (!mutator_) {
     auto mutable_this = const_cast<ScalarQuantizedBruteForceSearcher*>(this);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_,
         ScalarQuantizedBruteForceSearcher::Mutator::Create(mutable_this));
     SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
@@ -395,7 +395,7 @@ ScalarQuantizedBruteForceSearcher::GetMutator() const {
 
 StatusOr<SingleMachineFactoryOptions>
 ScalarQuantizedBruteForceSearcher::ExtractSingleMachineFactoryOptions() {
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto opts,
       SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
   if (opts.pre_quantized_fixed_point != nullptr) {

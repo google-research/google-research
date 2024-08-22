@@ -6,9 +6,9 @@
 
 #ifdef __x86_64__
 
+#include "absl/base/prefetch.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/intrinsics/sse4.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {
@@ -33,8 +33,7 @@ SCANN_SSE4_INLINE Sse4<int16_t, kNumQueries, 4> Sse4LUT16BottomLoop(
   const Sse4<int16_t> total_bias = num_blocks * 128;
   for (; num_blocks != 0; --num_blocks, data_start += 16) {
     if (kPrefetch != PrefetchStrategy::kOff) {
-      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-          data_start + kPrefetchBytesAhead);
+      absl::PrefetchToLocalCacheNta(data_start + kPrefetchBytesAhead);
     }
 
     auto mask = Sse4<uint8_t>::Load(data_start);

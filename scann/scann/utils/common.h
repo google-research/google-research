@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/base/prefetch.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_map.h"
@@ -38,6 +39,7 @@
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -45,8 +47,6 @@
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/oss_wrappers/scann_status.h"
-#include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 
@@ -88,25 +88,15 @@ using ::absl::OkStatus;
 using ::absl::Status;
 using ::absl::StatusOr;
 
-#define MAKE_TF_ERROR_FORWARDER(ERRNAME)                                      \
-  ABSL_MUST_USE_RESULT inline Status ERRNAME##Error(absl::string_view s) {    \
-    return ::tensorflow::errors::ERRNAME(std::forward<absl::string_view>(s)); \
-  }
-
-MAKE_TF_ERROR_FORWARDER(Aborted);
-MAKE_TF_ERROR_FORWARDER(AlreadyExists);
-MAKE_TF_ERROR_FORWARDER(Cancelled);
-MAKE_TF_ERROR_FORWARDER(FailedPrecondition);
-MAKE_TF_ERROR_FORWARDER(Internal);
-MAKE_TF_ERROR_FORWARDER(InvalidArgument);
-MAKE_TF_ERROR_FORWARDER(NotFound);
-MAKE_TF_ERROR_FORWARDER(OutOfRange);
-MAKE_TF_ERROR_FORWARDER(Unauthenticated);
-MAKE_TF_ERROR_FORWARDER(Unavailable);
-MAKE_TF_ERROR_FORWARDER(Unimplemented);
-MAKE_TF_ERROR_FORWARDER(Unknown);
-
-#undef MAKE_TF_ERROR_FORWARDER
+using ::absl::AlreadyExistsError;
+using ::absl::FailedPreconditionError;
+using ::absl::InternalError;
+using ::absl::InvalidArgumentError;
+using ::absl::NotFoundError;
+using ::absl::OutOfRangeError;
+using ::absl::UnavailableError;
+using ::absl::UnimplementedError;
+using ::absl::UnknownError;
 
 template <typename T>
 using ConstSpan = absl::Span<const T>;

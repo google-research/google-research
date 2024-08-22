@@ -34,6 +34,7 @@
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
@@ -41,7 +42,6 @@
 #include "scann/utils/reordering_helper_interface.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -156,10 +156,14 @@ class UntypedSingleMachineSearcherBase {
 
   virtual vector<uint32_t> SizeByPartition() const;
 
+  virtual uint32_t NumPartitions() const { return 0; }
+
   class PrecomputedMutationArtifacts : public VirtualDestructor {};
 
   struct MutationOptions {
     PrecomputedMutationArtifacts* precomputed_mutation_artifacts = nullptr;
+
+    bool reassignment_in_flight = false;
   };
 
   class UntypedMutator {
@@ -514,9 +518,23 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   }
   StatusOr<typename UntypedSingleMachineSearcherBase::UntypedMutator*>
   GetUntypedMutator() const final {
-    TF_ASSIGN_OR_RETURN(auto mutator, GetMutator());
+    SCANN_ASSIGN_OR_RETURN(auto mutator, GetMutator());
     return mutator;
   }
+
+  struct HealthStats {
+    double partition_avg_relative_imbalance = 0;
+
+    double avg_quantization_error = 0;
+
+    uint64_t sum_partition_sizes = 0;
+
+    bool operator==(const HealthStats&) const = default;
+  };
+
+  virtual HealthStats GetHealthStats() const { return HealthStats(); }
+
+  virtual void InitializeHealthStats() {}
 
  protected:
   SingleMachineSearcherBase() {}

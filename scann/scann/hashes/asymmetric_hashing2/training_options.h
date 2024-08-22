@@ -27,6 +27,7 @@
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/projection/chunking_projection.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

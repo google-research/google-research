@@ -15,10 +15,13 @@
 #include "scann/distance_measures/one_to_one/dot_product_sse4.h"
 
 #include <cstdint>
+
+#include "scann/data_format/datapoint.h"
+#include "scann/oss_wrappers/scann_aligned_malloc.h"
+#include "scann/utils/intrinsics/attributes.h"
 #ifdef __x86_64__
 
 #include "scann/utils/common.h"
-#include "scann/utils/intrinsics/sse4.h"
 
 namespace research_scann {
 namespace dp_internal {

@@ -30,7 +30,9 @@
 #include "absl/time/time.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
@@ -39,6 +41,7 @@
 #include "scann/hashes/asymmetric_hashing2/training_options.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_serialize.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_status_builder.h"
 #include "scann/projection/projection_factory.h"
 #include "scann/proto/centers.pb.h"
@@ -49,7 +52,6 @@
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -148,7 +150,7 @@ StatusOr<DenseDataset<float>> ComputeResidualsImpl(
 
   for (size_t dp_idx : Seq(dataset.size())) {
     const uint32_t token = tokens_by_datapoint[dp_idx];
-    TF_ASSIGN_OR_RETURN(auto residual, get_residual(dataset[dp_idx], token));
+    SCANN_ASSIGN_OR_RETURN(auto residual, get_residual(dataset[dp_idx], token));
     residuals.AppendOrDie(residual, "");
   }
 
@@ -190,7 +192,8 @@ StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
   auto get_residual =
       [&](const DatapointPtr<float>& dptr,
           const int32_t token) -> StatusOr<DatapointPtr<float>> {
-    TF_ASSIGN_OR_RETURN(residual, partitioner->ResidualizeToFloat(dptr, token));
+    SCANN_ASSIGN_OR_RETURN(residual,
+                           partitioner->ResidualizeToFloat(dptr, token));
     return residual.ToPtr();
   };
   return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token);
@@ -216,7 +219,7 @@ Status TreeAHHybridResidual::PreprocessQueryIntoParamsUnlocked(
         query, max_centers_override, &centers_to_search));
   }
 
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto shared_lookup_table,
       asymmetric_queryer_->CreateLookupTable(
           query, lookup_type_tag_, fixed_point_lut_conversion_options_));
@@ -237,6 +240,19 @@ Status TreeAHHybridResidual::AddLeafSearcher() {
   return OkStatus();
 }
 
+Status TreeAHHybridResidual::PreprocessQueryIntoParamsUnlocked(
+    const DatapointPtr<float>& query,
+    vector<pair<DatapointIndex, float>>& tokens_to_search,
+    SearchParameters& search_params) const {
+  SCANN_ASSIGN_OR_RETURN(
+      asymmetric_hashing2::LookupTable shared_lookup_table,
+      asymmetric_queryer_->CreateLookupTable(query, lookup_type_tag_));
+  search_params.set_unlocked_query_preprocessing_results(
+      {make_unique<UnlockedTreeAHHybridResidualPreprocessingResults>(
+          std::move(tokens_to_search), std::move(shared_lookup_table))});
+  return OkStatus();
+}
+
 Status TreeAHHybridResidual::BuildLeafSearchers(
     const AsymmetricHasherConfig& config,
     unique_ptr<KMeansTreeLikePartitioner<float>> partitioner,
@@ -252,10 +268,10 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
         "Cannot learn ckmeans when building a TreeAHHybridResidual with "
         "pre-training.");
   }
-  TF_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<float>> projector,
-                      ChunkingProjectionFactory<float>(config.projection()));
-  TF_ASSIGN_OR_RETURN(auto quantization_distance,
-                      GetDistanceMeasure(config.quantization_distance()));
+  SCANN_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<float>> projector,
+                         ChunkingProjectionFactory<float>(config.projection()));
+  SCANN_ASSIGN_OR_RETURN(auto quantization_distance,
+                         GetDistanceMeasure(config.quantization_distance()));
   lookup_type_tag_ = config.lookup_type();
   std::function<StatusOr<DatapointPtr<uint8_t>>(DatapointIndex, int32_t,
                                                 Datapoint<uint8_t>*)>
@@ -273,7 +289,7 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     leaf_size_upper_bound_ =
         std::max<uint32_t>(leaf_size_upper_bound_, vec.size());
   }
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       datapoints_by_token_disjoint_,
       ValidateDatapointsByToken(datapoints_by_token, num_datapoints_));
 
@@ -317,8 +333,8 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
             Datapoint<uint8_t>* storage) -> StatusOr<DatapointPtr<uint8_t>> {
       DCHECK(dataset);
       DatapointPtr<float> original = (*dataset)[i];
-      TF_ASSIGN_OR_RETURN(Datapoint<float> residual,
-                          partitioner->ResidualizeToFloat(original, token));
+      SCANN_ASSIGN_OR_RETURN(Datapoint<float> residual,
+                             partitioner->ResidualizeToFloat(original, token));
       if (std::isnan(config.noise_shaping_threshold())) {
         SCANN_RETURN_IF_ERROR(indexer->Hash(residual.ToPtr(), storage));
       } else {
@@ -356,7 +372,7 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     for (DatapointIndex dp_index : datapoints_by_token[token]) {
       auto status_or_hashed_dptr =
           get_hashed_datapoint(dp_index, token, &hashed_storage);
-      TF_ASSIGN_OR_RETURN(auto hashed_dptr, status_or_hashed_dptr);
+      SCANN_ASSIGN_OR_RETURN(auto hashed_dptr, status_or_hashed_dptr);
       auto local_status = hashed_partition->Append(hashed_dptr, "");
       SCANN_RETURN_IF_ERROR(local_status);
     }
@@ -387,7 +403,7 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
   }
   if (config.use_global_topn() &&
       config.lookup_type() == AsymmetricHasherConfig::INT8_LUT16 &&
-      !config.use_normalized_residual_quantization() && RuntimeSupportsSse4()) {
+      !config.use_normalized_residual_quantization()) {
     enable_global_topn_ = true;
   }
   return OkStatus();
@@ -400,6 +416,9 @@ Status TreeAHHybridResidual::FindNeighborsImpl(const DatapointPtr<float>& query,
       params.unlocked_query_preprocessing_results<
           UnlockedTreeAHHybridResidualPreprocessingResults>();
   if (query_preprocessing_results) {
+    SCANN_RETURN_IF_ERROR(
+        ValidateTokenList(query_preprocessing_results->centers_to_search(),
+                          query_tokenizer_ != nullptr));
     return FindNeighborsInternal1(
         query, params, query_preprocessing_results->centers_to_search(),
         result);
@@ -417,12 +436,78 @@ Status TreeAHHybridResidual::FindNeighborsImpl(const DatapointPtr<float>& query,
   if (tree_x_params &&
       tree_x_params->pre_tokenization_with_distances_enabled()) {
     centers_to_search = tree_x_params->centers_to_search();
+    SCANN_RETURN_IF_ERROR(
+        ValidateTokenList(centers_to_search, query_tokenizer_ != nullptr));
   } else {
     SCANN_RETURN_IF_ERROR(query_tokenizer_->TokensForDatapointWithSpilling(
         query, num_centers, &centers_to_search_storage));
     centers_to_search = centers_to_search_storage;
   }
   return FindNeighborsInternal1(query, params, centers_to_search, result);
+}
+
+Status TreeAHHybridResidual::BuildStreamingLeafSearchers(
+    const AsymmetricHasherConfig& config, size_t n_tokens,
+    ConstSpan<pair<DatapointIndex, float>> query_tokens,
+    shared_ptr<KMeansTreeLikePartitioner<float>> partitioner,
+    shared_ptr<const asymmetric_hashing2::Model<float>> ah_model,
+    bool streaming_result,
+    std::function<
+        StatusOr<std::unique_ptr<asymmetric_hashing2::Searcher<float>>>(
+            int token, float distance_to_center,
+            asymmetric_hashing2::SearcherOptions<float> opts)>
+        leaf_searcher_builder) {
+  DCHECK(partitioner);
+  SCANN_RETURN_IF_ERROR(
+      CheckBuildLeafSearchersPreconditions(config, *partitioner));
+  if (config.projection().has_ckmeans_config() &&
+      config.projection().ckmeans_config().need_learning()) {
+    return InvalidArgumentError(
+        "Cannot learn ckmeans when building a TreeAHHybridResidual with "
+        "pre-training.");
+  }
+
+  SCANN_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<float>> projector,
+                         ChunkingProjectionFactory<float>(config.projection()));
+  lookup_type_tag_ = config.lookup_type();
+  SCANN_ASSIGN_OR_RETURN(shared_ptr<DistanceMeasure> quantization_distance,
+                         GetDistanceMeasure(config.quantization_distance()));
+  auto indexer = make_shared<asymmetric_hashing2::Indexer<float>>(
+      projector, quantization_distance, ah_model);
+  shared_ptr<DistanceMeasure> lookup_distance =
+      std::make_shared<DotProductDistance>();
+  asymmetric_queryer_ =
+      std::make_shared<asymmetric_hashing2::AsymmetricQueryer<float>>(
+          projector, lookup_distance, ah_model);
+
+  searcher_options_ = make_unique<asymmetric_hashing2::SearcherOptions<float>>(
+      asymmetric_queryer_, indexer);
+  searcher_options_->set_asymmetric_lookup_type(lookup_type_tag_);
+  searcher_options_->set_noise_shaping_threshold(
+      config.noise_shaping_threshold());
+
+  leaf_searchers_.resize(n_tokens);
+  for (auto [token, distance_to_center] : query_tokens) {
+    const auto token_start_time = absl::Now();
+
+    SCANN_RET_CHECK_LT(token, n_tokens);
+    SCANN_ASSIGN_OR_RETURN(
+        leaf_searchers_[token],
+        leaf_searcher_builder(token, distance_to_center, *searcher_options_));
+
+    VLOG(1) << "Built leaf searcher " << token + 1 << " of " << n_tokens
+            << " in " << absl::ToDoubleSeconds(absl::Now() - token_start_time)
+            << " sec.";
+  }
+  is_streaming_result_ = streaming_result;
+
+  partitioner->set_tokenization_mode(UntypedPartitioner::QUERY);
+  query_tokenizer_ = std::move(partitioner);
+  if (this->crowding_enabled()) {
+    return EnableCrowdingImpl(this->datapoint_index_to_crowding_attribute());
+  }
+
+  return OkStatus();
 }
 
 namespace {
@@ -502,9 +587,10 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
     bool int16_accum_ok = true;
 
     for (const auto& [i, p] : Enumerate(params)) {
-      TF_ASSIGN_OR_RETURN(auto lut, asymmetric_queryer_->CreateLookupTable(
-                                        queries[i], lookup_type_tag_,
-                                        fixed_point_lut_conversion_options_));
+      SCANN_ASSIGN_OR_RETURN(auto lut,
+                             asymmetric_queryer_->CreateLookupTable(
+                                 queries[i], lookup_type_tag_,
+                                 fixed_point_lut_conversion_options_));
       lookup_tables[i] = std::move(lut.int8_lookup_table);
       lookup_addrs[i] = lookup_tables[i].data();
       multipliers[i] = lut.fixed_point_multiplier;
@@ -594,9 +680,9 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
   vector<shared_ptr<const SearcherSpecificOptionalParameters>> lookup_tables(
       queries.size());
   for (size_t i : IndicesOf(queries)) {
-    TF_ASSIGN_OR_RETURN(auto lut, asymmetric_queryer_->CreateLookupTable(
-                                      queries[i], lookup_type_tag_,
-                                      fixed_point_lut_conversion_options_));
+    SCANN_ASSIGN_OR_RETURN(auto lut, asymmetric_queryer_->CreateLookupTable(
+                                         queries[i], lookup_type_tag_,
+                                         fixed_point_lut_conversion_options_));
     lookup_tables[i] =
         make_shared<AsymmetricHashingOptionalParameters>(std::move(lut));
   }
@@ -650,6 +736,28 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
           params[query_index].pre_reordering_num_neighbors());
     }
   }
+  return OkStatus();
+}
+
+Status TreeAHHybridResidual::ValidateTokenList(
+    ConstSpan<pair<DatapointIndex, float>> centers_to_search,
+    bool check_oob) const {
+  absl::flat_hash_set<int32_t> duplicate_checker;
+
+  for (const auto& [token, distance] : centers_to_search) {
+    if (!duplicate_checker.insert(token).second) {
+      return InvalidArgumentError(
+          absl::StrCat("Duplicate token:  ", token, "."));
+    }
+
+    if (check_oob && token >= leaf_searchers_.size()) {
+      return InvalidArgumentError(
+          "Query token out of range of database tokens (got %d, "
+          "expected in the range [0, %d).",
+          static_cast<int>(token), static_cast<int>(leaf_searchers_.size()));
+    }
+  }
+
   return OkStatus();
 }
 
@@ -794,13 +902,18 @@ Status TreeAHHybridResidual::FindNeighborsInternal2(
     SCANN_RETURN_IF_ERROR(
         leaf_searchers_[token]->FindNeighborsNoSortNoExactReorder(
             query, leaf_params, &leaf_results));
-    tree_x_internal::AddLeafResultsToTopN(datapoints_by_token_[token],
-                                          distance_to_center, leaf_results,
-                                          &mutator);
+
+    if (!is_streaming_result_) {
+      tree_x_internal::AddLeafResultsToTopN(datapoints_by_token_[token],
+                                            distance_to_center, leaf_results,
+                                            &mutator);
+    }
   }
   mutator.Release();
 
-  AssignResults(&top_n, result);
+  if (!is_streaming_result_) {
+    AssignResults(&top_n, result);
+  }
   return OkStatus();
 }
 
@@ -812,7 +925,7 @@ TreeAHHybridResidual::GetMutator() const {
            "TreeAHHybridResidual::GetMutator since the hashed dataset is not "
            "used once the tree-X hybrid is built and can't be easily updated.";
     auto mutable_this = const_cast<TreeAHHybridResidual*>(this);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_,
         TreeXHybridMutator<TreeAHHybridResidual>::Create(mutable_this));
   }
@@ -881,15 +994,15 @@ TreeAHHybridResidual::TokenizeAndMaybeResidualize(
 
 StatusOr<SingleMachineFactoryOptions>
 TreeAHHybridResidual::ExtractSingleMachineFactoryOptions() {
-  TF_ASSIGN_OR_RETURN(const int dataset_size,
-                      UntypedSingleMachineSearcherBase::DatasetSize());
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(const int dataset_size,
+                         UntypedSingleMachineSearcherBase::DatasetSize());
+  SCANN_ASSIGN_OR_RETURN(
       SingleMachineFactoryOptions leaf_opts,
       MergeAHLeafOptions(leaf_searchers_, datapoints_by_token_, dataset_size,
                          datapoints_by_token_disjoint_
                              ? 1.0f
                              : spilling_overretrieve_factor_));
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto opts,
       SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
   opts.datapoints_by_token =
@@ -904,6 +1017,47 @@ TreeAHHybridResidual::ExtractSingleMachineFactoryOptions() {
     opts.soar_hashed_dataset = leaf_opts.soar_hashed_dataset;
   }
   return opts;
+}
+
+void TreeAHHybridResidual::InitializeHealthStats() {
+  stats_mutation_ = HealthStatsMutation();
+  auto& sm = stats_mutation_;
+
+  sm.sum_partition_sizes = 0;
+  for (const auto& dps : datapoints_by_token_) {
+    sm.sum_partition_sizes += dps.size();
+  }
+
+  sm.ComputeAvgRelativeImbalance(datapoints_by_token_);
+
+  auto dataset = dynamic_cast<const DenseDataset<float>*>(this->dataset());
+  if (dataset) {
+    const auto& ds = *dataset;
+    double v = 0.0;
+    const auto& centroids = query_tokenizer_->LeafCenters();
+    for (const auto& [token, dps] : Enumerate(datapoints_by_token_)) {
+      for (auto dp_idx : dps) {
+        v += SquaredL2DistanceBetween(ds[dp_idx], centroids[token]);
+      }
+    }
+    sm.sum_squared_quantization_error = v;
+  }
+}
+
+TreeAHHybridResidual::HealthStats TreeAHHybridResidual::GetHealthStats() const {
+  HealthStats r;
+  if (stats_mutation_.sum_partition_sizes > 0) {
+    r.avg_quantization_error =
+        sqrt(stats_mutation_.sum_squared_quantization_error /
+             stats_mutation_.sum_partition_sizes);
+  }
+
+  r.sum_partition_sizes = stats_mutation_.sum_partition_sizes;
+
+  stats_mutation_.ComputeAvgRelativeImbalance(datapoints_by_token_);
+  r.partition_avg_relative_imbalance =
+      stats_mutation_.partition_avg_relative_imbalance;
+  return r;
 }
 
 vector<uint32_t> TreeAHHybridResidual::SizeByPartition() const {

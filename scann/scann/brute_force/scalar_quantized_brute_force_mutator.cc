@@ -18,18 +18,18 @@
 
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 #include "scann/data_format/docid_collection.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
 StatusOr<unique_ptr<ScalarQuantizedBruteForceSearcher::Mutator>>
 ScalarQuantizedBruteForceSearcher::Mutator::Create(
     ScalarQuantizedBruteForceSearcher* searcher) {
-  TF_ASSIGN_OR_RETURN(auto quantized_dataset_mutator,
-                      searcher->quantized_dataset_.GetMutator());
+  SCANN_ASSIGN_OR_RETURN(auto quantized_dataset_mutator,
+                         searcher->quantized_dataset_.GetMutator());
   vector<float> multipliers(searcher->inverse_multiplier_by_dimension_.size());
   for (auto i : Seq(multipliers.size())) {
     multipliers[i] = 1.0f / searcher->inverse_multiplier_by_dimension_[i];
@@ -78,7 +78,7 @@ ScalarQuantizedBruteForceSearcher::Mutator::AddDatapoint(
       DistanceMeasure::SQUARED_L2) {
     searcher_->squared_l2_norms_.push_back(SquaredL2Norm(dptr));
   }
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto result2, this->AddDatapointToBase(dptr, docid, MutateBaseOptions{}));
   SCANN_RET_CHECK_EQ(result, result2);
   return result;
@@ -94,7 +94,8 @@ Status ScalarQuantizedBruteForceSearcher::Mutator::RemoveDatapoint(
               searcher_->squared_l2_norms_.back());
     searcher_->squared_l2_norms_.pop_back();
   }
-  TF_ASSIGN_OR_RETURN(auto swapped_from, this->RemoveDatapointFromBase(index));
+  SCANN_ASSIGN_OR_RETURN(auto swapped_from,
+                         this->RemoveDatapointFromBase(index));
   SCANN_RET_CHECK_EQ(swapped_from, searcher_->quantized_dataset_.size());
   OnDatapointIndexRename(swapped_from, index);
   return OkStatus();
@@ -102,7 +103,8 @@ Status ScalarQuantizedBruteForceSearcher::Mutator::RemoveDatapoint(
 
 Status ScalarQuantizedBruteForceSearcher::Mutator::RemoveDatapoint(
     string_view docid) {
-  TF_ASSIGN_OR_RETURN(DatapointIndex index, LookupDatapointIndexOrError(docid));
+  SCANN_ASSIGN_OR_RETURN(DatapointIndex index,
+                         LookupDatapointIndexOrError(docid));
   return RemoveDatapoint(index);
 }
 
@@ -110,7 +112,8 @@ StatusOr<DatapointIndex>
 ScalarQuantizedBruteForceSearcher::Mutator::UpdateDatapoint(
     const DatapointPtr<float>& dptr, string_view docid,
     const MutationOptions& mo) {
-  TF_ASSIGN_OR_RETURN(DatapointIndex index, LookupDatapointIndexOrError(docid));
+  SCANN_ASSIGN_OR_RETURN(DatapointIndex index,
+                         LookupDatapointIndexOrError(docid));
   return UpdateDatapoint(dptr, index, mo);
 }
 

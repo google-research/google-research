@@ -8,11 +8,11 @@ SCANN_SIMD_INLINE size_t CalculateSwapMasks(const DistT* values,
                                             DistT threshold) {
   size_t n_kept = 0;
   const auto simd_threshold = Simd<DistT>::Broadcast(threshold);
+  constexpr size_t kNumLanes = 32;
   for (size_t j : Seq(n_masks)) {
-    auto vals = SimdFor<DistT, 32>::Load(values + 32 * j);
-    const uint32_t mask = kIsEquality
-                              ? GetComparisonMask(vals == simd_threshold)
-                              : GetComparisonMask(vals < simd_threshold);
+    auto vals = SimdFor<DistT, kNumLanes>::Load(values + kNumLanes * j);
+    const auto mask = kIsEquality ? GetComparisonMask(vals == simd_threshold)
+                                  : GetComparisonMask(vals < simd_threshold);
     n_kept += absl::popcount(mask);
     masks[j] = mask;
   }

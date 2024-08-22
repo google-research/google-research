@@ -29,6 +29,7 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
@@ -39,7 +40,6 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 

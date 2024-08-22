@@ -21,19 +21,23 @@
 #include <vector>
 
 #include "absl/base/optimization.h"
+#include "absl/types/span.h"
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/distance_measures/one_to_one/l1_distance.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/hashes/asymmetric_hashing2/training_model.h"
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 #include "scann/hashes/internal/stacked_quantizers.h"
 #include "scann/oss_wrappers/scann_serialize.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/projection/chunking_projection.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 namespace asymmetric_hashing2 {
@@ -221,7 +225,7 @@ namespace {
 template <typename FloatT>
 SCANN_INLINE void ReconstructProductQuantized(
     const std::vector<FloatT>& flattend_model,
-    const std::vector<std::pair<uint32_t, uint32_t>>& subspace_sizes,
+    absl::Span<const std::pair<uint32_t, uint32_t>> subspace_sizes,
     ConstSpan<uint8_t> input, MutableSpan<FloatT> reconstructed) {
   DCHECK_LE(subspace_sizes.size(), input.size());
 
@@ -243,11 +247,11 @@ SCANN_INLINE void ReconstructProductQuantized(
 }
 
 template <typename FloatT, typename Reduce>
-SCANN_INLINE FloatT ComputeDistance(
-    ConstSpan<FloatT>& original, ConstSpan<uint8_t> hashed,
-    const std::vector<FloatT>& flattend_model,
-    const std::vector<std::pair<uint32_t, uint32_t>>& subspace_sizes,
-    Reduce reduce) {
+SCANN_INLINE FloatT
+ComputeDistance(ConstSpan<FloatT>& original, ConstSpan<uint8_t> hashed,
+                const std::vector<FloatT>& flattend_model,
+                absl::Span<const std::pair<uint32_t, uint32_t>> subspace_sizes,
+                Reduce reduce) {
   const FloatT* codebook_ptr = flattend_model.data();
   const FloatT* original_ptr = original.data();
   const uint8_t* code_ptr = hashed.data();

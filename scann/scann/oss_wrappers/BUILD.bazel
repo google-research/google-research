@@ -5,7 +5,6 @@ package(
 
 cc_library(
     name = "tf_dependency",
-    tags = ["local"],
     deps = [
         "@local_config_tf//:libtensorflow_framework",
         "@local_config_tf//:tf_header_lib",
@@ -16,13 +15,11 @@ cc_library(
     name = "scann_aligned_malloc",
     srcs = ["scann_aligned_malloc.cc"],
     hdrs = ["scann_aligned_malloc.h"],
-    tags = ["local"],
 )
 
 cc_library(
     name = "scann_down_cast",
     hdrs = ["scann_down_cast.h"],
-    tags = ["local"],
     deps = [
         "@com_google_absl//absl/base",
     ],
@@ -31,7 +28,6 @@ cc_library(
 cc_library(
     name = "scann_castops",
     hdrs = ["scann_castops.h"],
-    tags = ["local"],
     deps = [
     ],
 )
@@ -40,7 +36,6 @@ cc_library(
     name = "scann_bits",
     srcs = ["scann_bits.cc"],
     hdrs = ["scann_bits.h"],
-    tags = ["local"],
     deps = [
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/numeric:bits",
@@ -50,7 +45,6 @@ cc_library(
 cc_library(
     name = "scann_malloc_extension",
     hdrs = ["scann_malloc_extension.h"],
-    tags = ["local"],
     deps = [
         "@com_google_absl//absl/strings",
         "@com_google_absl//absl/types:optional",
@@ -60,17 +54,14 @@ cc_library(
 cc_library(
     name = "scann_random",
     hdrs = ["scann_random.h"],
-    tags = ["local"],
 )
 
 cc_library(
     name = "scann_status",
     srcs = ["scann_status.cc"],
     hdrs = ["scann_status.h"],
-    tags = ["local"],
     deps = [
         ":scann_status_builder",
-        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -79,9 +70,7 @@ cc_library(
     name = "scann_status_builder",
     srcs = ["scann_status_builder.cc"],
     hdrs = ["scann_status_builder.h"],
-    tags = ["local"],
     deps = [
-        "//scann/oss_wrappers:tf_dependency",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",
@@ -94,7 +83,6 @@ cc_library(
     name = "scann_serialize",
     srcs = ["scann_serialize.cc"],
     hdrs = ["scann_serialize.h"],
-    tags = ["local"],
     deps = [
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:endian",
@@ -105,7 +93,6 @@ cc_library(
 cc_library(
     name = "scann_threadpool",
     hdrs = ["scann_threadpool.h"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:tf_dependency",
     ],

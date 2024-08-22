@@ -17,9 +17,14 @@
 #include <cstdint>
 #include <numeric>
 
-#include "scann/oss_wrappers/scann_aligned_malloc.h"
-#include "scann/utils/zip_sort.h"
-#include "tensorflow/core/platform/prefetch.h"
+#include "absl/log/check.h"
+#include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
+#include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
+#include "scann/trees/kmeans_tree/kmeans_tree_node.h"
+#include "scann/trees/kmeans_tree/training_options.h"
+#include "scann/utils/common.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 

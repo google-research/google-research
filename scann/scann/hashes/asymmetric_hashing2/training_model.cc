@@ -21,10 +21,11 @@
 #include "absl/strings/str_cat.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 namespace asymmetric_hashing2 {

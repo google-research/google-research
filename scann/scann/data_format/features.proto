@@ -72,8 +72,6 @@ message GenericFeatureVector {
 
   optional bytes userinfo = 17 [ctype = CORD];
 
-  optional google.protobuf.Timestamp insertion_timestamp = 25;
-
   optional google.protobuf.Timestamp expiration_timestamp = 20;
 
   optional uint64 feature_dim = 10 [default = 0xFFFFFFFFFFFFFFFF];

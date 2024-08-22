@@ -56,6 +56,23 @@
 #define SCANN_LOG_NOOP(...) \
   while (false) LOG(ERROR)
 
+#define VLOG SCANN_LOG_NOOP
+#define DVLOG SCANN_LOG_NOOP
+
+#define SCANN_ASSIGN_OR_RETURN(lhs, rexpr) \
+  SCANN_ASSIGN_OR_RETURN_IMPL(             \
+      SCANN_MACROS_CONCAT_NAME(_status_or_value, __COUNTER__), lhs, rexpr)
+
+#define SCANN_ASSIGN_OR_RETURN_IMPL(statusor, lhs, rexpr) \
+  auto statusor = (rexpr);                                \
+  if (ABSL_PREDICT_FALSE(!statusor.ok())) {               \
+    return statusor.status();                             \
+  }                                                       \
+  lhs = std::move(statusor).value()
+
+#define SCANN_MACROS_CONCAT_NAME(x, y) SCANN_MACROS_CONCAT_IMPL(x, y)
+#define SCANN_MACROS_CONCAT_IMPL(x, y) x##y
+
 namespace research_scann {
 
 absl::Status AnnotateStatus(const absl::Status& s, absl::string_view msg);

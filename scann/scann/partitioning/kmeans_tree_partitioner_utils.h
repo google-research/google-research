@@ -29,12 +29,12 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
   DCHECK(dataset);
   const absl::Time start = absl::Now();
 
-  TF_ASSIGN_OR_RETURN(auto training_dist,
-                      GetDistanceMeasure(config.partitioning_distance()));
+  SCANN_ASSIGN_OR_RETURN(auto training_dist,
+                         GetDistanceMeasure(config.partitioning_distance()));
 
   shared_ptr<const DistanceMeasure> database_tokenization_dist;
   if (config.has_database_tokenization_distance_override()) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         database_tokenization_dist,
         GetDistanceMeasure(config.database_tokenization_distance_override()));
   } else {
@@ -43,7 +43,7 @@ KMeansTreePartitionerFactoryPreSampledAndProjected(
 
   shared_ptr<const DistanceMeasure> query_tokenization_dist;
   if (config.has_query_tokenization_distance_override()) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         query_tokenization_dist,
         GetDistanceMeasure(config.query_tokenization_distance_override()));
   } else {

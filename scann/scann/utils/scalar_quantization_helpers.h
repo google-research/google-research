@@ -139,6 +139,12 @@ void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
                                     absl::Span<const float> multipliers,
                                     MutableSpan<uint8_t> packed);
 
+void Int4QuantizePackFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    double noise_shaping_threshold, MutableSpan<uint8_t> packed,
+    int* num_changes = nullptr, double* residual_ptr = nullptr,
+    double* parallel_residual_ptr = nullptr);
+
 }  // namespace research_scann
 
 #endif

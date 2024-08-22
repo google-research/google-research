@@ -20,9 +20,13 @@
 #include <cstdint>
 #include <utility>
 
+#include "absl/base/attributes.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_conversion.h"
 #include "scann/proto/hashed.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/infinite_one_array.h"
 #include "scann/utils/types.h"
 

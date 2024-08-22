@@ -60,6 +60,12 @@ struct HashLeafHelpers {
       const AsymmetricHasherConfig& config,
       const GenericSearchParameters& params, shared_ptr<ThreadPool> pool,
       CentersForAllSubspaces* preloaded_codebook = nullptr);
+
+  static StatusOr<TrainedAsymmetricHashingResults<T>>
+  LoadAsymmetricHashingModel(
+      const AsymmetricHasherConfig& config,
+      const GenericSearchParameters& params,
+      shared_ptr<const asymmetric_hashing2::Model<T>> model);
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, TrainedAsymmetricHashingResults);

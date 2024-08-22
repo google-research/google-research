@@ -197,8 +197,11 @@ ScannNumpy::Search(const np_row_major_arr<float>& query, int final_nn,
 
   DatapointPtr<float> ptr(nullptr, query.data(), query.size(), query.size());
   NNResultsVector res;
-  auto status = scann_.Search(ptr, &res, final_nn, pre_reorder_nn, leaves);
-  RuntimeErrorIfNotOk("Error during search: ", status);
+  {
+    pybind11::gil_scoped_release gil_release;
+    auto status = scann_.Search(ptr, &res, final_nn, pre_reorder_nn, leaves);
+    RuntimeErrorIfNotOk("Error during search: ", status);
+  }
 
   pybind11::array_t<DatapointIndex> indices(res.size());
   pybind11::array_t<float> distances(res.size());
@@ -216,18 +219,22 @@ ScannNumpy::SearchBatched(const np_row_major_arr<float>& queries, int final_nn,
     throw std::invalid_argument("Queries must be in two-dimensional array");
 
   vector<float> queries_vec(queries.data(), queries.data() + queries.size());
-  auto query_dataset = DenseDataset<float>(queries_vec, queries.shape()[0]);
+  auto query_dataset =
+      DenseDataset<float>(std::move(queries_vec), queries.shape()[0]);
 
   std::vector<NNResultsVector> res(query_dataset.size());
-  Status status;
-  if (parallel)
-    status = scann_.SearchBatchedParallel(query_dataset, MakeMutableSpan(res),
-                                          final_nn, pre_reorder_nn, leaves,
-                                          batch_size);
-  else
-    status = scann_.SearchBatched(query_dataset, MakeMutableSpan(res), final_nn,
-                                  pre_reorder_nn, leaves);
-  RuntimeErrorIfNotOk("Error during search: ", status);
+  {
+    pybind11::gil_scoped_release gil_release;
+    Status status;
+    if (parallel)
+      status = scann_.SearchBatchedParallel(query_dataset, MakeMutableSpan(res),
+                                            final_nn, pre_reorder_nn, leaves,
+                                            batch_size);
+    else
+      status = scann_.SearchBatched(query_dataset, MakeMutableSpan(res),
+                                    final_nn, pre_reorder_nn, leaves);
+    RuntimeErrorIfNotOk("Error during search: ", status);
+  }
 
   for (const auto& nn_res : res)
     final_nn = std::max<int>(final_nn, nn_res.size());

@@ -130,9 +130,9 @@ class SparseDatasetLowLevel {
 
   void Prefetch(size_t i) const {
     const StartOffsetT start_offset = start_offsets_[i];
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
+    absl::PrefetchToLocalCacheNta(
         reinterpret_cast<const char*>(indices_.data() + start_offset));
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
+    absl::PrefetchToLocalCacheNta(
         reinterpret_cast<const char*>(values_.data() + start_offset));
   }
 

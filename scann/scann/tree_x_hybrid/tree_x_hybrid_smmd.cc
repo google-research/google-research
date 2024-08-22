@@ -43,6 +43,7 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/partitioning/partitioner.pb.h"
@@ -56,7 +57,6 @@
 #include "scann/utils/hash_leaf_helpers.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -130,7 +130,7 @@ Status TreeXHybridSMMD<T>::BuildLeafSearchers(
 
   VLOG(1) << "Tokenizing database...";
   const absl::Time tokenization_start = absl::Now();
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto datapoints_by_token,
       database_tokenizer.TokenizeDatabase(*this->dataset(), thread_pool.get()));
   VLOG(1) << "Done tokenizing database in " << absl::Now() - tokenization_start
@@ -161,8 +161,9 @@ Status TreeXHybridSMMD<T>::BuildLeafSearchers(
     }
   }
 
-  TF_ASSIGN_OR_RETURN(const DatapointIndex dataset_size, this->DatasetSize());
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(const DatapointIndex dataset_size,
+                         this->DatasetSize());
+  SCANN_ASSIGN_OR_RETURN(
       datapoints_by_token_disjoint_,
       ValidateDatapointsByToken(datapoints_by_token, dataset_size));
 
@@ -175,7 +176,7 @@ Status TreeXHybridSMMD<T>::BuildLeafSearchers(
     if (!hashed_dataset) {
       shared_ptr<TypedDataset<T>> dataset_partition(
           PartitionDataset(*dataset, datapoints_by_token[token]));
-      TF_ASSIGN_OR_RETURN(
+      SCANN_ASSIGN_OR_RETURN(
           unique_ptr<SingleMachineSearcherBase<T>> leaf_searcher,
           leaf_searcher_builder(dataset_partition, nullptr, token));
 
@@ -188,7 +189,7 @@ Status TreeXHybridSMMD<T>::BuildLeafSearchers(
       shared_ptr<DenseDataset<uint8_t>> hashed_dataset_partition(
           down_cast<DenseDataset<uint8_t>*>(
               PartitionDataset(*hashed_dataset, datapoints_by_token[token])));
-      TF_ASSIGN_OR_RETURN(
+      SCANN_ASSIGN_OR_RETURN(
           unique_ptr<SingleMachineSearcherBase<T>> leaf_searcher,
           leaf_searcher_builder(nullptr, hashed_dataset_partition, token));
       if (!leaf_searcher->needs_hashed_dataset()) {
@@ -227,12 +228,12 @@ Status TreeXHybridSMMD<T>::AddLeafSearcher() {
     hashed_database = nullptr;
   unique_ptr<SingleMachineSearcherBase<T>> leaf_searcher;
   if (leaf_searcher_builder_) {
-    TF_ASSIGN_OR_RETURN(leaf_searcher,
-                        leaf_searcher_builder_(database, hashed_database, -1));
+    SCANN_ASSIGN_OR_RETURN(
+        leaf_searcher, leaf_searcher_builder_(database, hashed_database, -1));
   } else if (sq_leaf_searcher_builder_) {
     DenseDataset<int8_t> sq_database;
     vector<float> squared_l2_norms;
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         leaf_searcher,
         sq_leaf_searcher_builder_(std::move(sq_database), squared_l2_norms));
   } else {
@@ -245,6 +246,35 @@ Status TreeXHybridSMMD<T>::AddLeafSearcher() {
     leaf_searcher->ReleaseHashedDataset();
   leaf_searchers_.push_back(std::move(leaf_searcher));
   datapoints_by_token_.push_back(std::vector<DatapointIndex>());
+
+  return OkStatus();
+}
+
+template <typename T>
+Status TreeXHybridSMMD<T>::BuildStreamingAsymmetricHashingLeafSearchers(
+    size_t n_tokens, ConstSpan<int32_t> query_tokens,
+    const internal::TrainedAsymmetricHashingResults<T>& training_results,
+    bool streaming_result,
+    std::function<StatusOrSearcher(
+        int32_t token,
+        const internal::TrainedAsymmetricHashingResults<T>& training_results)>
+        leaf_searcher_builder) {
+  leaf_searchers_.resize(n_tokens);
+  for (int32_t token : query_tokens) {
+    const absl::Time token_start_time = absl::Now();
+    SCANN_RET_CHECK_LT(token, n_tokens);
+    SCANN_ASSIGN_OR_RETURN(leaf_searchers_[token],
+                           leaf_searcher_builder(token, training_results));
+
+    VLOG(1) << "Built leaf searcher " << token + 1 << " of " << n_tokens
+            << " in " << absl::ToDoubleSeconds(absl::Now() - token_start_time)
+            << " sec.";
+  }
+  is_streaming_result_ = streaming_result;
+
+  if (this->crowding_enabled()) {
+    return EnableCrowdingImpl(this->datapoint_index_to_crowding_attribute());
+  }
 
   return OkStatus();
 }
@@ -265,7 +295,7 @@ Status TreeXHybridSMMD<T>::BuildPretrainedScalarQuantizationLeafSearchers(
           std::max(num_datapoints_, *absl::c_max_element(dp_list) + 1);
     }
   }
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       datapoints_by_token_disjoint_,
       ValidateDatapointsByToken(datapoints_by_token, num_datapoints_));
 
@@ -277,7 +307,7 @@ Status TreeXHybridSMMD<T>::BuildPretrainedScalarQuantizationLeafSearchers(
     vector<float> squared_l2_norms;
     if (!partitioned_squared_l2_norms.empty())
       squared_l2_norms = std::move(partitioned_squared_l2_norms[token]);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto leaf_searcher,
         leaf_searcher_builder(std::move(partitioned_datasets[token]),
                               std::move(squared_l2_norms)));
@@ -298,7 +328,7 @@ Status TreeXHybridSMMD<T>::BuildPretrainedScalarQuantizationLeafSearchers(
 
 template <typename T>
 Status TreeXHybridSMMD<T>::BuildStreamingScalarQuantizationLeafSearchers(
-    size_t n_tokens, const vector<int32_t>& query_tokens,
+    size_t n_tokens, absl::Span<const int32_t> query_tokens,
     std::shared_ptr<const DistanceMeasure> distance,
     ConstSpan<float> inverse_multiplier_by_dimension, bool streaming_result,
     std::function<StatusOrSearcher(
@@ -311,9 +341,10 @@ Status TreeXHybridSMMD<T>::BuildStreamingScalarQuantizationLeafSearchers(
 
     int32_t token = query_tokens[i];
     SCANN_RET_CHECK_LT(token, n_tokens);
-    TF_ASSIGN_OR_RETURN(auto leaf_searcher,
-                        leaf_searcher_builder(token, distance,
-                                              inverse_multiplier_by_dimension));
+    SCANN_ASSIGN_OR_RETURN(
+        auto leaf_searcher,
+        leaf_searcher_builder(token, distance,
+                              inverse_multiplier_by_dimension));
     leaf_searchers_[token] = std::move(leaf_searcher);
 
     VLOG(1) << "Built leaf searcher " << token + 1 << " of " << n_tokens
@@ -331,7 +362,7 @@ Status TreeXHybridSMMD<T>::BuildStreamingScalarQuantizationLeafSearchers(
 
 template <typename T>
 Status TreeXHybridSMMD<T>::BuildStreamingLeafSearchers(
-    size_t n_tokens, const vector<int32_t>& query_tokens,
+    size_t n_tokens, absl::Span<const int32_t> query_tokens,
     std::shared_ptr<const DistanceMeasure> distance, bool streaming_result,
     std::function<StatusOrSearcher(
         int token, std::shared_ptr<const DistanceMeasure> distance)>
@@ -342,8 +373,8 @@ Status TreeXHybridSMMD<T>::BuildStreamingLeafSearchers(
 
     int32_t token = query_tokens[i];
     SCANN_RET_CHECK_LT(token, n_tokens);
-    TF_ASSIGN_OR_RETURN(auto leaf_searcher,
-                        leaf_searcher_builder(token, distance));
+    SCANN_ASSIGN_OR_RETURN(auto leaf_searcher,
+                           leaf_searcher_builder(token, distance));
     leaf_searchers_[token] = std::move(leaf_searcher);
 
     VLOG(1) << "Built leaf searcher " << token + 1 << " of " << n_tokens
@@ -658,7 +689,7 @@ Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedBatchedOptimizedImpl(
     top_ns.emplace_back(
         NumNeighborsWithSpillingMultiplier(p.pre_reordering_num_neighbors()),
         p.pre_reordering_epsilon());
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         leaf_optional_params[query_idx],
         CreateLeafOptionalParameters(queries[query_idx], params[query_idx]));
     leaf_optional_params_all_null &= leaf_optional_params[query_idx] == nullptr;
@@ -818,8 +849,8 @@ Status TreeXHybridSMMD<T>::FindNeighborsPreTokenizedImpl(
   }
 
   SearchParameters leaf_params;
-  TF_ASSIGN_OR_RETURN(auto leaf_optional_params,
-                      CreateLeafOptionalParameters(query, params));
+  SCANN_ASSIGN_OR_RETURN(auto leaf_optional_params,
+                         CreateLeafOptionalParameters(query, params));
   leaf_params.set_pre_reordering_num_neighbors(
       params.pre_reordering_num_neighbors());
   leaf_params.set_pre_reordering_epsilon(params.pre_reordering_epsilon());
@@ -904,7 +935,7 @@ TreeXHybridSMMD<T>::GetMutator() const {
            "TreeXHybridSMMD::GetMutator since the hashed dataset is not used "
            "once the tree-X hybrid is built and can't be easily updated.";
     auto mutable_this = const_cast<TreeXHybridSMMD<T>*>(this);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_, TreeXHybridMutator<TreeXHybridSMMD<T>>::Create(mutable_this));
   }
   return static_cast<typename SingleMachineSearcherBase<T>::Mutator*>(
@@ -938,8 +969,8 @@ TreeXHybridSMMD<T>::TokenizeAndMaybeResidualize(const TypedDataset<T>& dps) {
 template <typename T>
 StatusOr<SingleMachineFactoryOptions>
 TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
-  TF_ASSIGN_OR_RETURN(const int dataset_size,
-                      UntypedSingleMachineSearcherBase::DatasetSize());
+  SCANN_ASSIGN_OR_RETURN(const int dataset_size,
+                         UntypedSingleMachineSearcherBase::DatasetSize());
   auto int8_query_processor = std::dynamic_pointer_cast<
       const TreeScalarQuantizationPreprocessedQueryCreator>(
       leaf_searcher_optional_parameter_creator_);
@@ -947,11 +978,12 @@ TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
   if (int8_query_processor)
     int8_multipliers = int8_query_processor->inverse_multipliers();
 
-  TF_ASSIGN_OR_RETURN(SingleMachineFactoryOptions leaf_opts,
-                      MergeAHLeafOptions(leaf_searchers_, datapoints_by_token_,
-                                         dataset_size, 1));
+  SCANN_ASSIGN_OR_RETURN(
+      SingleMachineFactoryOptions leaf_opts,
+      MergeAHLeafOptions(leaf_searchers_, datapoints_by_token_, dataset_size,
+                         1));
 
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto opts,
       SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions());
   opts.datapoints_by_token =
@@ -980,7 +1012,7 @@ TreeXHybridSMMD<T>::ExtractSingleMachineFactoryOptions() {
 template <typename T>
 StatusOr<shared_ptr<const DenseDataset<float>>>
 TreeXHybridSMMD<T>::SharedFloatDatasetIfNeeded() {
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       shared_ptr<const DenseDataset<float>> inherited_res,
       SingleMachineSearcherBase<T>::SharedFloatDatasetIfNeeded());
   if (inherited_res != nullptr) return inherited_res;
@@ -991,16 +1023,17 @@ TreeXHybridSMMD<T>::SharedFloatDatasetIfNeeded() {
     SCANN_RETURN_IF_ERROR(ptr_or.status());
     datasets[i] = ptr_or->get();
   }
-  TF_ASSIGN_OR_RETURN(const int dataset_size,
-                      UntypedSingleMachineSearcherBase::DatasetSize());
+  SCANN_ASSIGN_OR_RETURN(const int dataset_size,
+                         UntypedSingleMachineSearcherBase::DatasetSize());
   const auto get_dataset = [&](int leaf_idx) { return datasets[leaf_idx]; };
 
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       vector<float> storage,
       CombineLeafDatasets<float>(dataset_size, "float32", datapoints_by_token_,
                                  get_dataset));
   if (storage.empty()) return shared_ptr<const DenseDataset<float>>(nullptr);
-  return std::make_shared<const DenseDataset<float>>(storage, dataset_size);
+  return std::make_shared<const DenseDataset<float>>(std::move(storage),
+                                                     dataset_size);
 }
 
 template <typename T>

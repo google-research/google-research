@@ -35,6 +35,7 @@
 #include "scann/oss_wrappers/scann_castops.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/proto/partitioning.pb.h"
+#include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
 #include "scann/trees/kmeans_tree/training_options.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
@@ -141,7 +142,7 @@ Status PostprocessDistancesForSpilling(
 
     float spill_thresh = std::nextafter(DoubleToFloat(spilling_threshold),
                                         std::numeric_limits<float>::infinity());
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         float max_dist_to_consider,
         ComputeThreshold(nearest_center_distance, spill_thresh, spilling_type));
     epsilon = std::nextafter(max_dist_to_consider,
@@ -195,7 +196,7 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
       opts->learned_spilling_type;
   if (spilling_type != DatabaseSpillingConfig::NO_SPILLING &&
       opts->per_node_spilling_factor > 1.0) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         learned_spilling_threshold_,
         gmm.ComputeSpillingThreshold(
             training_data, indices_, centers, opts->learned_spilling_type,

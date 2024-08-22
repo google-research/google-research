@@ -30,6 +30,7 @@
 #include "absl/synchronization/mutex.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/brute_force.pb.h"
 #include "scann/proto/centers.pb.h"
@@ -41,7 +42,6 @@
 #include "scann/utils/single_machine_retraining.h"
 #include "scann/utils/threads.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 namespace {
@@ -61,7 +61,8 @@ unique_ptr<DenseDataset<float>> InitDataset(
   if (dataset.empty() && n_dim == kInvalidDimension) return nullptr;
 
   vector<float> dataset_vec(dataset.data(), dataset.data() + dataset.size());
-  auto ds = std::make_unique<DenseDataset<float>>(dataset_vec, n_points);
+  auto ds =
+      std::make_unique<DenseDataset<float>>(std::move(dataset_vec), n_points);
   if (n_dim != kInvalidDimension) {
     ds->set_dimensionality(n_dim);
   }
@@ -125,8 +126,8 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
             asset_path, opts.serialized_partitioner.get()));
         break;
       case ScannAsset::TOKENIZATION_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<int32_t>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<int32_t>(asset_path));
         const int spilling_mult = HasSoar(config_) ? 2 : 1;
         SCANN_RETURN_IF_ERROR(AddTokenizationToOptions(
             opts, vector_and_shape.first, spilling_mult));
@@ -142,8 +143,8 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
         break;
       }
       case ScannAsset::AH_DATASET_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<uint8_t>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<uint8_t>(asset_path));
         opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
             std::move(vector_and_shape.first), vector_and_shape.second[0]);
         break;
@@ -151,15 +152,15 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
       case ScannAsset::AH_DATASET_SOAR_NPY: {
         DCHECK(HasSoar(config_));
         DCHECK_NE(docids, nullptr);
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<uint8_t>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<uint8_t>(asset_path));
         opts.soar_hashed_dataset = make_shared<DenseDataset<uint8_t>>(
             std::move(vector_and_shape.first), std::move(docids));
         break;
       }
       case ScannAsset::DATASET_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<float>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<float>(asset_path));
         dataset = make_shared<DenseDataset<float>>(
             std::move(vector_and_shape.first), vector_and_shape.second[0]);
 
@@ -168,8 +169,8 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
         break;
       }
       case ScannAsset::INT8_DATASET_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<int8_t>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<int8_t>(asset_path));
         fp->fixed_point_dataset = make_shared<DenseDataset<int8_t>>(
             std::move(vector_and_shape.first), vector_and_shape.second[0]);
 
@@ -179,22 +180,22 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
         break;
       }
       case ScannAsset::INT8_MULTIPLIERS_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<float>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<float>(asset_path));
         fp->multiplier_by_dimension =
             make_shared<vector<float>>(std::move(vector_and_shape.first));
         break;
       }
       case ScannAsset::INT8_NORMS_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<float>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<float>(asset_path));
         fp->squared_l2_norm_by_datapoint =
             make_shared<vector<float>>(std::move(vector_and_shape.first));
         break;
       }
       case ScannAsset::BF16_DATASET_NPY: {
-        TF_ASSIGN_OR_RETURN(auto vector_and_shape,
-                            NumpyToVectorAndShape<int16_t>(asset_path));
+        SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
+                               NumpyToVectorAndShape<int16_t>(asset_path));
         opts.bfloat16_dataset = make_shared<DenseDataset<int16_t>>(
             std::move(vector_and_shape.first), vector_and_shape.second[0]);
         break;
@@ -232,7 +233,7 @@ Status ScannInterface::Initialize(
     vector<int8_t> int8_vec(int8_dataset.data(),
                             int8_dataset.data() + int8_dataset.size());
     int8_data->fixed_point_dataset =
-        std::make_shared<DenseDataset<int8_t>>(int8_vec, n_points);
+        std::make_shared<DenseDataset<int8_t>>(std::move(int8_vec), n_points);
 
     int8_data->multiplier_by_dimension = make_shared<vector<float>>(
         int8_multipliers.begin(), int8_multipliers.end());
@@ -269,15 +270,15 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
 
 Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
                                   SingleMachineFactoryOptions opts) {
-  TF_ASSIGN_OR_RETURN(dimensionality_, opts.ComputeConsistentDimensionality(
-                                           config_.hash(), dataset.get()));
+  SCANN_ASSIGN_OR_RETURN(dimensionality_, opts.ComputeConsistentDimensionality(
+                                              config_.hash(), dataset.get()));
 
   if (dataset && config_.has_partitioning() &&
       config_.partitioning().partitioning_type() ==
           PartitioningConfig::SPHERICAL)
     dataset->set_normalization_tag(research_scann::UNITL2NORM);
-  TF_ASSIGN_OR_RETURN(scann_, SingleMachineFactoryScann<float>(
-                                  config_, dataset, std::move(opts)));
+  SCANN_ASSIGN_OR_RETURN(scann_, SingleMachineFactoryScann<float>(
+                                     config_, dataset, std::move(opts)));
   if (scann_->config().has_value()) config_ = scann_->config().value();
 
   const std::string& distance = config_.distance_measure().distance_measure();
@@ -392,6 +393,7 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
                                              MutableSpan<NNResultsVector> res,
                                              int final_nn, int pre_reorder_nn,
                                              int leaves, int batch_size) const {
+  SCANN_RET_CHECK_EQ(queries.dimensionality(), dimensionality_);
   const size_t numQueries = queries.size();
   const size_t numCPUs = parallel_query_pool_->NumThreads();
 
@@ -406,14 +408,15 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
         vector<float> queryCopy(
             queries.data().begin() + begin * dimensionality_,
             queries.data().begin() + (begin + curSize) * dimensionality_);
-        DenseDataset<float> curQueryDataset(queryCopy, curSize);
+        DenseDataset<float> curQueryDataset(std::move(queryCopy), curSize);
         return SearchBatched(curQueryDataset, res.subspan(begin, curSize),
                              final_nn, pre_reorder_nn, leaves);
       });
 }
 
 StatusOr<ScannAssets> ScannInterface::Serialize(std::string path) {
-  TF_ASSIGN_OR_RETURN(auto opts, scann_->ExtractSingleMachineFactoryOptions());
+  SCANN_ASSIGN_OR_RETURN(auto opts,
+                         scann_->ExtractSingleMachineFactoryOptions());
   ScannAssets assets;
   const auto add_asset = [&assets](const std::string& fpath,
                                    ScannAsset::AssetType type) {
@@ -495,13 +498,17 @@ StatusOr<ScannAssets> ScannInterface::Serialize(std::string path) {
       SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, *norms));
     }
   }
-  TF_ASSIGN_OR_RETURN(auto dataset, Float32DatasetIfNeeded());
+  SCANN_ASSIGN_OR_RETURN(auto dataset, Float32DatasetIfNeeded());
   if (dataset != nullptr) {
     std::string fpath = path + "/dataset.npy";
     add_asset(fpath, ScannAsset::DATASET_NPY);
     SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *dataset));
   }
   return assets;
+}
+
+ScannInterface::ScannHealthStats ScannInterface::GetHealthStats() const {
+  return scann_->GetHealthStats();
 }
 
 StatusOr<SingleMachineFactoryOptions> ScannInterface::ExtractOptions() {

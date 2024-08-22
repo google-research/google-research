@@ -17,6 +17,10 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_SYMMETRIC_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_SYMMETRIC_H_
 
+#ifndef HWY_DISABLED_TARGETS
+#define HWY_DISABLED_TARGETS HWY_ALL_SVE
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <cmath>
@@ -25,6 +29,7 @@
 #include <type_traits>
 
 #include "absl/base/optimization.h"
+#include "absl/base/prefetch.h"
 #include "absl/synchronization/mutex.h"
 #include "hwy/highway.h"
 #include "scann/data_format/datapoint.h"
@@ -36,10 +41,10 @@
 #include "scann/utils/internal/avx2_funcs.h"
 #include "scann/utils/internal/avx_funcs.h"
 #include "scann/utils/intrinsics/fma.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/horizontal_sum.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 
@@ -293,17 +298,14 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       __m256 v2 = _mm256_loadu_ps(f2 + j);
 
       if (kShouldPrefetch && p0) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
-                                                                           j);
+        absl::PrefetchToLocalCache(p0 + j);
+        absl::PrefetchToLocalCache(p1 + j);
+        absl::PrefetchToLocalCache(p2 + j);
       }
 
-      a0_256 = _mm256_add_ps(a0_256, lambdas_vec[0].GetTerm(q, v0));
-      a1_256 = _mm256_add_ps(a1_256, lambdas_vec[1].GetTerm(q, v1));
-      a2_256 = _mm256_add_ps(a2_256, lambdas_vec[2].GetTerm(q, v2));
+      a0_256 = lambdas_vec[0].AccTerm(a0_256, q, v0);
+      a1_256 = lambdas_vec[1].AccTerm(a1_256, q, v1);
+      a2_256 = lambdas_vec[2].AccTerm(a2_256, q, v2);
     }
 
     __m128 a0 = SumTopBottomAvx(a0_256);
@@ -317,17 +319,14 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       __m128 v2 = _mm_loadu_ps(f2 + j);
 
       if (kShouldPrefetch && p0) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
-                                                                           j);
+        absl::PrefetchToLocalCache(p0 + j);
+        absl::PrefetchToLocalCache(p1 + j);
+        absl::PrefetchToLocalCache(p2 + j);
       }
 
-      a0 = _mm_add_ps(a0, lambdas_vec[0].GetTerm(q, v0));
-      a1 = _mm_add_ps(a1, lambdas_vec[1].GetTerm(q, v1));
-      a2 = _mm_add_ps(a2, lambdas_vec[2].GetTerm(q, v2));
+      a0 = lambdas_vec[0].AccTerm(a0, q, v0);
+      a1 = lambdas_vec[1].AccTerm(a1, q, v1);
+      a2 = lambdas_vec[2].AccTerm(a2, q, v2);
       j += 4;
     }
 
@@ -340,9 +339,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
       v0 = _mm_loadh_pi(v0, reinterpret_cast<const __m64*>(f0 + j));
       v1 = _mm_loadh_pi(v1, reinterpret_cast<const __m64*>(f1 + j));
       v2 = _mm_loadh_pi(v2, reinterpret_cast<const __m64*>(f2 + j));
-      a0 = _mm_add_ps(a0, lambdas_vec[0].GetTerm(q, v0));
-      a1 = _mm_add_ps(a1, lambdas_vec[1].GetTerm(q, v1));
-      a2 = _mm_add_ps(a2, lambdas_vec[2].GetTerm(q, v2));
+      a0 = lambdas_vec[0].AccTerm(a0, q, v0);
+      a1 = lambdas_vec[1].AccTerm(a1, q, v1);
+      a2 = lambdas_vec[2].AccTerm(a2, q, v2);
       j += 2;
     }
 
@@ -352,9 +351,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
 
     if (j < dims) {
       DCHECK_EQ(j + 1, dims);
-      result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
-      result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
-      result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
+      result0 = lambdas_vec[0].AccTerm(result0, query.values()[j], f0[j]);
+      result1 = lambdas_vec[1].AccTerm(result1, query.values()[j], f1[j]);
+      result2 = lambdas_vec[2].AccTerm(result2, query.values()[j], f2[j]);
     }
 
     callback->invoke(i, lambdas_vec[0].Postprocess(result0));
@@ -431,12 +430,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
       __m256 v2 = _mm256_loadu_ps(f2 + j);
 
       if (kShouldPrefetch && p0) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
-                                                                           j);
+        absl::PrefetchToLocalCache(p0 + j);
+        absl::PrefetchToLocalCache(p1 + j);
+        absl::PrefetchToLocalCache(p2 + j);
       }
 
       a0_256 = lambdas_vec[0].FmaTerm(a0_256, q, v0);
@@ -455,12 +451,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
       __m128 v2 = _mm_loadu_ps(f2 + j);
 
       if (kShouldPrefetch && p0) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p0 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p1 +
-                                                                           j);
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(p2 +
-                                                                           j);
+        absl::PrefetchToLocalCache(p0 + j);
+        absl::PrefetchToLocalCache(p1 + j);
+        absl::PrefetchToLocalCache(p2 + j);
       }
 
       a0 = lambdas_vec[0].FmaTerm(a0, q, v0);
@@ -490,9 +483,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
 
     if (j < dims) {
       DCHECK_EQ(j + 1, dims);
-      result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
-      result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
-      result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
+      result0 = lambdas_vec[0].AccTerm(result0, query.values()[j], f0[j]);
+      result1 = lambdas_vec[1].AccTerm(result1, query.values()[j], f1[j]);
+      result2 = lambdas_vec[2].AccTerm(result2, query.values()[j], f2[j]);
     }
 
     callback->invoke(i, lambdas_vec[0].Postprocess(result0));
@@ -572,12 +565,9 @@ void DenseGeneralHammingDistanceMeasureOneToManyInternal(
               _mm_loadu_si128(reinterpret_cast<const __m128i*>(i2 + j));
 
           if (kShouldPrefetch && p0) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
+            absl::PrefetchToLocalCache(p0 + j);
+            absl::PrefetchToLocalCache(p1 + j);
+            absl::PrefetchToLocalCache(p2 + j);
           }
 
           a0 = _mm_sub_epi32(a0, _mm_cmpeq_epi32(q, v0));
@@ -748,9 +738,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           p2 = get_db_ptr(i + 2 * num_outer_iters + num_prefetch_datapoints);
         }
 
-        auto a0 = hn::Zero(d);
-        auto a1 = hn::Zero(d);
-        auto a2 = hn::Zero(d);
+        hn::Vec<D> a0 = hn::Zero(d);
+        hn::Vec<D> a1 = hn::Zero(d);
+        hn::Vec<D> a2 = hn::Zero(d);
         size_t j = 0;
 
         for (; j + hn::Lanes(d) <= dims; j += hn::Lanes(d)) {
@@ -760,17 +750,14 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           auto v2 = hn::LoadU(d, f2 + j);
 
           if (kShouldPrefetch && p0) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
+            absl::PrefetchToLocalCache(p0 + j);
+            absl::PrefetchToLocalCache(p1 + j);
+            absl::PrefetchToLocalCache(p2 + j);
           }
 
-          a0 += lambdas_vec[0].template GetTerm<D>(q, v0);
-          a1 += lambdas_vec[1].template GetTerm<D>(q, v1);
-          a2 += lambdas_vec[2].template GetTerm<D>(q, v2);
+          a0 = lambdas_vec[0].template AccTerm<D>(a0, q, v0);
+          a1 = lambdas_vec[1].template AccTerm<D>(a1, q, v1);
+          a2 = lambdas_vec[2].template AccTerm<D>(a2, q, v2);
         }
 
         if (j + hn::Lanes(d2) <= dims) {
@@ -778,9 +765,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           auto v0 = hn::ZeroExtendVector(d, hn::LoadU(d2, f0 + j));
           auto v1 = hn::ZeroExtendVector(d, hn::LoadU(d2, f1 + j));
           auto v2 = hn::ZeroExtendVector(d, hn::LoadU(d2, f2 + j));
-          a0 += lambdas_vec[0].template GetTerm<D>(q, v0);
-          a1 += lambdas_vec[1].template GetTerm<D>(q, v1);
-          a2 += lambdas_vec[2].template GetTerm<D>(q, v2);
+          a0 = lambdas_vec[0].template AccTerm<D>(a0, q, v0);
+          a1 = lambdas_vec[1].template AccTerm<D>(a1, q, v1);
+          a2 = lambdas_vec[2].template AccTerm<D>(a2, q, v2);
           j += hn::Lanes(d2);
         }
 
@@ -789,9 +776,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
         float result2 = hn::ReduceSum(d, a2);
 
         for (; j < dims; ++j) {
-          result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
-          result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
-          result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
+          result0 = lambdas_vec[0].AccTerm(result0, query.values()[j], f0[j]);
+          result1 = lambdas_vec[1].AccTerm(result1, query.values()[j], f1[j]);
+          result2 = lambdas_vec[2].AccTerm(result2, query.values()[j], f2[j]);
 
           if (hn::Lanes(d) <= 4) break;
         }
@@ -871,17 +858,14 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
           auto v2 = hn::LoadU(d, f2 + j);
 
           if (kShouldPrefetch && p0) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p0 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p1 + j);
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-                p2 + j);
+            absl::PrefetchToLocalCache(p0 + j);
+            absl::PrefetchToLocalCache(p1 + j);
+            absl::PrefetchToLocalCache(p2 + j);
           }
 
-          a0 += lambdas_vec[0].template GetTerm<D>(q, v0);
-          a1 += lambdas_vec[1].template GetTerm<D>(q, v1);
-          a2 += lambdas_vec[2].template GetTerm<D>(q, v2);
+          a0 = lambdas_vec[0].template AccTerm<D>(a0, q, v0);
+          a1 = lambdas_vec[1].template AccTerm<D>(a1, q, v1);
+          a2 = lambdas_vec[2].template AccTerm<D>(a2, q, v2);
         }
 
         double result0 = hn::ReduceSum(d, a0);
@@ -889,9 +873,9 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
         double result2 = hn::ReduceSum(d, a2);
 
         for (; j < dims; ++j) {
-          result0 += lambdas_vec[0].GetTerm(query.values()[j], f0[j]);
-          result1 += lambdas_vec[1].GetTerm(query.values()[j], f1[j]);
-          result2 += lambdas_vec[2].GetTerm(query.values()[j], f2[j]);
+          result0 = lambdas_vec[0].AccTerm(result0, query.values()[j], f0[j]);
+          result1 = lambdas_vec[1].AccTerm(result1, query.values()[j], f1[j]);
+          result2 = lambdas_vec[2].AccTerm(result2, query.values()[j], f2[j]);
 
           if (kLanes <= 2) break;
         }
@@ -949,10 +933,10 @@ template <typename T>
 class DotProductDistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) { return -_mm_mul_ps(a, b); }
+  static __m128 AccTerm(__m128 acc, __m128 a, __m128 b) { return acc - a * b; }
 
-  static SCANN_AVX1_INLINE __m256 GetTerm(__m256 a, __m256 b) {
-    return -_mm256_mul_ps(a, b);
+  static SCANN_AVX1_INLINE __m256 AccTerm(__m256 acc, __m256 a, __m256 b) {
+    return acc - a * b;
   }
 
   static SCANN_AVX2_INLINE __m256 FmaTerm(__m256 acc, __m256 a, __m256 b) {
@@ -963,17 +947,20 @@ class DotProductDistanceLambdas {
     return _mm_fnmadd_ps(a, b, acc);
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) { return -_mm_mul_pd(a, b); }
+  static __m128d AccTerm(__m128d acc, __m128d a, __m128d b) {
+    return acc - a * b;
+  }
 #endif
 
   template <typename D>
-  static hwy::HWY_NAMESPACE::Vec<D> GetTerm(hwy::HWY_NAMESPACE::Vec<D> a,
+  static hwy::HWY_NAMESPACE::Vec<D> AccTerm(hwy::HWY_NAMESPACE::Vec<D> acc,
+                                            hwy::HWY_NAMESPACE::Vec<D> a,
                                             hwy::HWY_NAMESPACE::Vec<D> b) {
-    return hwy::HWY_NAMESPACE::Neg(hwy::HWY_NAMESPACE::Mul(a, b));
+    return hwy::HWY_NAMESPACE::NegMulAdd(a, b, acc);
   }
 
-  static float GetTerm(float a, float b) { return -a * b; }
-  static double GetTerm(double a, double b) { return -a * b; }
+  static float AccTerm(float acc, float a, float b) { return acc - a * b; }
+  static double AccTerm(double acc, double a, double b) { return acc - a * b; }
   static float Postprocess(float val) { return val; }
   static double Postprocess(double val) { return val; }
 
@@ -990,14 +977,14 @@ template <typename T>
 class SquaredL2DistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) {
-    __m128 tmp = _mm_sub_ps(a, b);
-    return _mm_mul_ps(tmp, tmp);
+  static __m128 AccTerm(__m128 acc, __m128 a, __m128 b) {
+    __m128 tmp = a - b;
+    return acc + tmp * tmp;
   }
 
-  SCANN_AVX1_INLINE static __m256 GetTerm(__m256 a, __m256 b) {
-    __m256 tmp = _mm256_sub_ps(a, b);
-    return _mm256_mul_ps(tmp, tmp);
+  SCANN_AVX1_INLINE static __m256 AccTerm(__m256 acc, __m256 a, __m256 b) {
+    __m256 tmp = a - b;
+    return acc + tmp * tmp;
   }
 
   static SCANN_AVX2_INLINE __m256 FmaTerm(__m256 acc, __m256 a, __m256 b) {
@@ -1010,27 +997,28 @@ class SquaredL2DistanceLambdas {
     return _mm_fmadd_ps(tmp, tmp, acc);
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) {
-    __m128d tmp = _mm_sub_pd(a, b);
-    return _mm_mul_pd(tmp, tmp);
+  static __m128d AccTerm(__m128d acc, __m128d a, __m128d b) {
+    __m128d tmp = a - b;
+    return acc + tmp * tmp;
   }
 #endif
 
   template <typename D>
-  static hwy::HWY_NAMESPACE::Vec<D> GetTerm(hwy::HWY_NAMESPACE::Vec<D> a,
+  static hwy::HWY_NAMESPACE::Vec<D> AccTerm(hwy::HWY_NAMESPACE::Vec<D> acc,
+                                            hwy::HWY_NAMESPACE::Vec<D> a,
                                             hwy::HWY_NAMESPACE::Vec<D> b) {
     auto diff = a - b;
-    return diff * diff;
+    return hwy::HWY_NAMESPACE::MulAdd(diff, diff, acc);
   }
 
-  static float GetTerm(float a, float b) {
+  static float AccTerm(float acc, float a, float b) {
     const float tmp = a - b;
-    return tmp * tmp;
+    return acc + tmp * tmp;
   }
 
-  static double GetTerm(double a, double b) {
+  static double AccTerm(double acc, double a, double b) {
     const double tmp = a - b;
-    return tmp * tmp;
+    return acc + tmp * tmp;
   }
 
   static float Postprocess(float val) { return val; }
@@ -1077,10 +1065,10 @@ template <typename T>
 class AbsDotProductDistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) { return _mm_mul_ps(a, b); }
+  static __m128 AccTerm(__m128 acc, __m128 a, __m128 b) { return acc + a * b; }
 
-  static SCANN_AVX1_INLINE __m256 GetTerm(__m256 a, __m256 b) {
-    return _mm256_mul_ps(a, b);
+  static SCANN_AVX1_INLINE __m256 AccTerm(__m256 acc, __m256 a, __m256 b) {
+    return acc + a * b;
   }
 
   static SCANN_AVX2_INLINE __m256 FmaTerm(__m256 acc, __m256 a, __m256 b) {
@@ -1091,17 +1079,20 @@ class AbsDotProductDistanceLambdas {
     return _mm_fmadd_ps(a, b, acc);
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) { return _mm_mul_pd(a, b); }
+  static __m128d AccTerm(__m128d acc, __m128d a, __m128d b) {
+    return acc + a * b;
+  }
 #endif
 
   template <typename D>
-  static hwy::HWY_NAMESPACE::Vec<D> GetTerm(hwy::HWY_NAMESPACE::Vec<D> a,
+  static hwy::HWY_NAMESPACE::Vec<D> AccTerm(hwy::HWY_NAMESPACE::Vec<D> acc,
+                                            hwy::HWY_NAMESPACE::Vec<D> a,
                                             hwy::HWY_NAMESPACE::Vec<D> b) {
-    return hwy::HWY_NAMESPACE::Mul(a, b);
+    return hwy::HWY_NAMESPACE::MulAdd(a, b, acc);
   }
 
-  static float GetTerm(float a, float b) { return a * b; }
-  static double GetTerm(double a, double b) { return a * b; }
+  static float AccTerm(double acc, float a, float b) { return acc + a * b; }
+  static double AccTerm(double acc, double a, double b) { return acc + a * b; }
   static float Postprocess(float val) { return -std::abs(val); }
   static double Postprocess(double val) { return -std::abs(val); }
 
@@ -1143,10 +1134,10 @@ template <typename T>
 class CosineDistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) { return _mm_mul_ps(a, b); }
+  static __m128 AccTerm(__m128 acc, __m128 a, __m128 b) { return acc + a * b; }
 
-  static SCANN_AVX1_INLINE __m256 GetTerm(__m256 a, __m256 b) {
-    return _mm256_mul_ps(a, b);
+  static SCANN_AVX1_INLINE __m256 AccTerm(__m256 acc, __m256 a, __m256 b) {
+    return acc + a * b;
   }
 
   static SCANN_AVX2_INLINE __m256 FmaTerm(__m256 acc, __m256 a, __m256 b) {
@@ -1157,17 +1148,20 @@ class CosineDistanceLambdas {
     return _mm_fmadd_ps(a, b, acc);
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) { return _mm_mul_pd(a, b); }
+  static __m128d AccTerm(__m128d acc, __m128d a, __m128d b) {
+    return acc + a * b;
+  }
 #endif
 
   template <typename D>
-  static hwy::HWY_NAMESPACE::Vec<D> GetTerm(hwy::HWY_NAMESPACE::Vec<D> a,
+  static hwy::HWY_NAMESPACE::Vec<D> AccTerm(hwy::HWY_NAMESPACE::Vec<D> acc,
+                                            hwy::HWY_NAMESPACE::Vec<D> a,
                                             hwy::HWY_NAMESPACE::Vec<D> b) {
-    return hwy::HWY_NAMESPACE::Mul(a, b);
+    return hwy::HWY_NAMESPACE::MulAdd(a, b, acc);
   }
 
-  static float GetTerm(float a, float b) { return a * b; }
-  static double GetTerm(double a, double b) { return a * b; }
+  static float AccTerm(float acc, float a, float b) { return acc + a * b; }
+  static double AccTerm(double acc, double a, double b) { return acc + a * b; }
   static float Postprocess(float val) { return 1.0f - val; }
   static double Postprocess(double val) { return 1.0 - val; }
 
@@ -1234,14 +1228,14 @@ template <typename T>
 class L2DistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) {
+  static __m128 AccTerm(__m128 acc, __m128 a, __m128 b) {
     __m128 tmp = _mm_sub_ps(a, b);
-    return _mm_mul_ps(tmp, tmp);
+    return acc + tmp * tmp;
   }
 
-  SCANN_AVX1_INLINE static __m256 GetTerm(__m256 a, __m256 b) {
+  SCANN_AVX1_INLINE static __m256 AccTerm(__m256 acc, __m256 a, __m256 b) {
     __m256 tmp = _mm256_sub_ps(a, b);
-    return _mm256_mul_ps(tmp, tmp);
+    return acc + tmp * tmp;
   }
 
   static SCANN_AVX2_INLINE __m256 FmaTerm(__m256 acc, __m256 a, __m256 b) {
@@ -1254,27 +1248,28 @@ class L2DistanceLambdas {
     return _mm_fmadd_ps(tmp, tmp, acc);
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) {
+  static __m128d AccTerm(__m128d acc, __m128d a, __m128d b) {
     __m128d tmp = _mm_sub_pd(a, b);
-    return _mm_mul_pd(tmp, tmp);
+    return acc + tmp * tmp;
   }
 #endif
 
   template <typename D>
-  static hwy::HWY_NAMESPACE::Vec<D> GetTerm(hwy::HWY_NAMESPACE::Vec<D> a,
+  static hwy::HWY_NAMESPACE::Vec<D> AccTerm(hwy::HWY_NAMESPACE::Vec<D> acc,
+                                            hwy::HWY_NAMESPACE::Vec<D> a,
                                             hwy::HWY_NAMESPACE::Vec<D> b) {
     auto diff = a - b;
-    return diff * diff;
+    return hwy::HWY_NAMESPACE::MulAdd(diff, diff, acc);
   }
 
-  static float GetTerm(float a, float b) {
+  static float AccTerm(float acc, float a, float b) {
     const float tmp = a - b;
-    return tmp * tmp;
+    return acc + tmp * tmp;
   }
 
-  static double GetTerm(double a, double b) {
+  static double AccTerm(double acc, double a, double b) {
     const double tmp = a - b;
-    return tmp * tmp;
+    return acc + tmp * tmp;
   }
 
   static float Postprocess(float val) { return std::sqrt(val); }
@@ -1322,26 +1317,33 @@ template <typename T>
 class L1DistanceLambdas {
  public:
 #ifdef __SSE3__
-  static __m128 GetTerm(__m128 a, __m128 b) { return AbsPs(_mm_sub_ps(a, b)); }
-
-  SCANN_AVX1_INLINE static __m256 GetTerm(__m256 a, __m256 b) {
-    return AbsPs(_mm256_sub_ps(a, b));
+  static __m128 AccTerm(__m128 acc, __m128 a, __m128 b) {
+    return acc + AbsPs(_mm_sub_ps(a, b));
   }
 
-  static __m128d GetTerm(__m128d a, __m128d b) {
-    return AbsPd(_mm_sub_pd(a, b));
+  SCANN_AVX1_INLINE static __m256 AccTerm(__m256 acc, __m256 a, __m256 b) {
+    return acc + AbsPs(_mm256_sub_ps(a, b));
+  }
+
+  static __m128d AccTerm(__m128d acc, __m128d a, __m128d b) {
+    return acc + AbsPd(_mm_sub_pd(a, b));
   }
 #endif
 
   template <typename D>
-  static hwy::HWY_NAMESPACE::Vec<D> GetTerm(hwy::HWY_NAMESPACE::Vec<D> a,
+  static hwy::HWY_NAMESPACE::Vec<D> AccTerm(hwy::HWY_NAMESPACE::Vec<D> acc,
+                                            hwy::HWY_NAMESPACE::Vec<D> a,
                                             hwy::HWY_NAMESPACE::Vec<D> b) {
-    return hwy::HWY_NAMESPACE::Abs(a - b);
+    return acc + hwy::HWY_NAMESPACE::Abs(a - b);
   }
 
-  static float GetTerm(float a, float b) { return std::abs(a - b); }
+  static float AccTerm(double acc, float a, float b) {
+    return acc + std::abs(a - b);
+  }
 
-  static double GetTerm(double a, double b) { return std::abs(a - b); }
+  static double AccTerm(double acc, double a, double b) {
+    return acc + std::abs(a - b);
+  }
 
   static float Postprocess(float val) { return val; }
   static double Postprocess(double val) { return val; }
@@ -1426,18 +1428,18 @@ class LimitedInnerProductDistanceLambdas {
       : norm_a2_(norm_query2) {}
 
   template <typename D>
-  hn::Vec<D> GetTerm(hn::Vec<D> a, hn::Vec<D> b) {
-    return GetTermImpl(a, b);
+  hn::Vec<D> AccTerm(hn::Vec<D> acc, hn::Vec<D> a, hn::Vec<D> b) {
+    return AccTermImpl(acc, a, b);
   }
 
-  float GetTerm(float a, float b) {
+  float AccTerm(float acc, float a, float b) {
     norm_b2_s_ += b * b;
-    return a * b;
+    return acc + a * b;
   }
 
-  double GetTerm(double a, double b) {
+  double AccTerm(double acc, double a, double b) {
     norm_b2_d_ += b * b;
-    return a * b;
+    return acc + a * b;
   }
 
   float Postprocess(float val) {
@@ -1475,14 +1477,14 @@ class LimitedInnerProductDistanceLambdas {
   }
 
  private:
-  HwyFloats GetTermImpl(HwyFloats a, HwyFloats b) {
-    norm_b2_ps_ += b * b;
-    return a * b;
+  HwyFloats AccTermImpl(HwyFloats acc, HwyFloats a, HwyFloats b) {
+    norm_b2_ps_ = hn::MulAdd(b, b, norm_b2_ps_);
+    return hn::MulAdd(a, b, acc);
   }
 
-  HwyDoubles GetTermImpl(HwyDoubles a, HwyDoubles b) {
-    norm_b2_pd_ += b * b;
-    return a * b;
+  HwyDoubles AccTermImpl(HwyDoubles acc, HwyDoubles a, HwyDoubles b) {
+    norm_b2_pd_ = hn::MulAdd(b, b, norm_b2_pd_);
+    return hn::MulAdd(a, b, acc);
   }
 
   LimitedInnerProductDistance dist_;

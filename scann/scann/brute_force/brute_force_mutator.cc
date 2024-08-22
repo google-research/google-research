@@ -17,10 +17,10 @@
 #include "absl/strings/str_cat.h"
 #include "scann/brute_force/brute_force.h"
 #include "scann/data_format/datapoint.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/single_machine_autopilot.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -46,7 +46,7 @@ template <typename T>
 StatusOr<DatapointIndex> BruteForceSearcher<T>::Mutator::AddDatapoint(
     const DatapointPtr<T>& dptr, string_view docid, const MutationOptions& mo) {
   SCANN_RETURN_IF_ERROR(this->ValidateForAdd(dptr, docid, mo));
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       const DatapointIndex result,
       this->AddDatapointToBase(dptr, docid, MutateBaseOptions{}));
   return result;
@@ -55,22 +55,24 @@ StatusOr<DatapointIndex> BruteForceSearcher<T>::Mutator::AddDatapoint(
 template <typename T>
 Status BruteForceSearcher<T>::Mutator::RemoveDatapoint(DatapointIndex index) {
   SCANN_RETURN_IF_ERROR(this->ValidateForRemove(index));
-  TF_ASSIGN_OR_RETURN(const DatapointIndex swapped_in,
-                      this->RemoveDatapointFromBase(index));
+  SCANN_ASSIGN_OR_RETURN(const DatapointIndex swapped_in,
+                         this->RemoveDatapointFromBase(index));
   this->OnDatapointIndexRename(swapped_in, index);
   return OkStatus();
 }
 
 template <typename T>
 Status BruteForceSearcher<T>::Mutator::RemoveDatapoint(string_view docid) {
-  TF_ASSIGN_OR_RETURN(DatapointIndex index, LookupDatapointIndexOrError(docid));
+  SCANN_ASSIGN_OR_RETURN(DatapointIndex index,
+                         LookupDatapointIndexOrError(docid));
   return RemoveDatapoint(index);
 }
 
 template <typename T>
 StatusOr<DatapointIndex> BruteForceSearcher<T>::Mutator::UpdateDatapoint(
     const DatapointPtr<T>& dptr, string_view docid, const MutationOptions& mo) {
-  TF_ASSIGN_OR_RETURN(DatapointIndex index, LookupDatapointIndexOrError(docid));
+  SCANN_ASSIGN_OR_RETURN(DatapointIndex index,
+                         LookupDatapointIndexOrError(docid));
   return UpdateDatapoint(dptr, index, mo);
 }
 
@@ -103,7 +105,7 @@ BruteForceSearcher<T>::Mutator::IncrementalMaintenance() {
     auto shared_dataset = searcher_->shared_dataset()
                               ? searcher_->shared_dataset()
                               : searcher_->reordering_helper().dataset();
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto config,
         Autopilot(this->searcher_->config().value(), shared_dataset,
                   kInvalidDatapointIndex, kInvalidDimension));

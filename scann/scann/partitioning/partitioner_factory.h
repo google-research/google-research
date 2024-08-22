@@ -22,6 +22,7 @@
 #include <string>
 
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/partitioning/partitioner_factory_base.h"
@@ -29,7 +30,6 @@
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -88,8 +88,8 @@ template <typename T>
 StatusOr<unique_ptr<Partitioner<T>>> LoadSinglePartitioner(
     const PartitioningConfig& config, int32_t epoch,
     int32_t projection_seed_offset) {
-  TF_ASSIGN_OR_RETURN(SerializedPartitioner sp,
-                      ReadSerializedPartitioner(config));
+  SCANN_ASSIGN_OR_RETURN(SerializedPartitioner sp,
+                         ReadSerializedPartitioner(config));
   return PartitionerFromSerialized<T>(sp, config, projection_seed_offset);
 }
 

@@ -16,6 +16,9 @@
 
 #include <cstdint>
 
+#include "absl/log/log.h"
+#include "scann/data_format/datapoint.h"
+
 namespace research_scann {
 
 #define LOG_FATAL_CRASH_OK LOG(FATAL)

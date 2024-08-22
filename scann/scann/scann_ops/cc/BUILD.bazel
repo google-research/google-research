@@ -11,7 +11,6 @@ cc_binary(
         "-pthread",
     ],
     linkshared = 1,
-    tags = ["local"],
     deps = [
         ":scann_ops",
         ":scann_ops_kernels",
@@ -21,7 +20,6 @@ cc_binary(
 cc_library(
     name = "scann_ops",
     srcs = ["ops/scann_ops.cc"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:tf_dependency",
     ],
@@ -33,7 +31,6 @@ cc_library(
     srcs = [
         "kernels/scann_ops.cc",
     ],
-    tags = ["local"],
     deps = [
         ":scann",
         ":scann_ops_utils",
@@ -50,7 +47,6 @@ cc_library(
     name = "scann_ops_utils",
     srcs = ["kernels/scann_ops_utils.cc"],
     hdrs = ["kernels/scann_ops_utils.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:tf_dependency",
@@ -63,7 +59,6 @@ cc_library(
     name = "scann",
     srcs = ["scann.cc"],
     hdrs = ["scann.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
@@ -99,7 +94,6 @@ pybind_library(
     name = "scann_npy",
     srcs = ["scann_npy.cc"],
     hdrs = ["scann_npy.h"],
-    tags = ["local"],
     deps = [
         ":scann",
         "//scann/base:single_machine_base",

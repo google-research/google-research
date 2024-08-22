@@ -16,10 +16,12 @@
 
 #include <cstdint>
 #include <utility>
+
+#include "scann/data_format/datapoint.h"
+#include "scann/utils/intrinsics/attributes.h"
 #ifdef __x86_64__
 
 #include "scann/utils/common.h"
-#include "scann/utils/intrinsics/sse4.h"
 
 namespace research_scann {
 namespace l2_internal {

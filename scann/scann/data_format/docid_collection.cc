@@ -264,7 +264,7 @@ class ImmutableMemoryOptCollection : public DocidCollectionInterface {
       const char* ptr = chunk.data();
       while (ptr != chunk.data() + chunk.size()) {
         absl::string_view payload = LoadPayload(ptr);
-        TF_CHECK_OK(result->Append(payload));
+        CHECK_OK(result->Append(payload));
         ptr = payload.data() + payload.size();
       }
       std::exchange(chunk, {});
@@ -396,7 +396,7 @@ VariableLengthDocidCollection::GetMutator() const {
         mutable_this->impl_ = std::move(*ptr).ToMutable();
       }
     }
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_, VariableLengthDocidCollection::Mutator::Create(mutable_this));
   }
   return static_cast<DocidCollectionInterface::Mutator*>(mutator_.get());
@@ -514,7 +514,7 @@ namespace {
 
 ImmutableCollection::ImmutableCollection(size_t size) {
   for (size_t i = 0; i < size; ++i) {
-    TF_CHECK_OK(Append(""));
+    CHECK_OK(Append(""));
   }
 }
 
@@ -570,7 +570,7 @@ StatusOr<DocidCollectionInterface::Mutator*> ImmutableCollection::GetMutator()
 MutableCollection::MutableCollection(size_t size) {
   Reserve(size);
   for (size_t i = 0; i < size; ++i) {
-    TF_CHECK_OK(Append(""));
+    CHECK_OK(Append(""));
   }
 }
 
@@ -600,7 +600,7 @@ unique_ptr<MutableCollection> MutableCollection::FromImmutableDestructive(
   result->Reserve(static_impl->size());
   for (auto& chunk : static_impl->chunks_) {
     for (size_t i : IndicesOf(chunk.payload_offsets)) {
-      TF_CHECK_OK(result->Append(chunk.Get(i)));
+      CHECK_OK(result->Append(chunk.Get(i)));
     }
     FreeBackingStorage(&chunk.payload_offsets);
     FreeBackingStorage(&chunk.payloads);
@@ -706,7 +706,7 @@ StatusOr<DocidCollectionInterface::Mutator*>
 FixedLengthDocidCollection::GetMutator() const {
   if (!mutator_) {
     auto mutable_this = const_cast<FixedLengthDocidCollection*>(this);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_, FixedLengthDocidCollection::Mutator::Create(mutable_this));
   }
   return static_cast<DocidCollectionInterface::Mutator*>(mutator_.get());

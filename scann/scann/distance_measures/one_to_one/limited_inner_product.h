@@ -18,10 +18,12 @@
 #include <algorithm>
 #include <cmath>
 
+#include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/common.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

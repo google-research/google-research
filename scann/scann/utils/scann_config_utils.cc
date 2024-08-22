@@ -25,6 +25,7 @@
 #include "absl/strings/substitute.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/brute_force.pb.h"
 #include "scann/proto/distance_measure.pb.h"
@@ -38,7 +39,6 @@
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 using absl::StartsWith;
 
@@ -234,7 +234,7 @@ StatusOr<InputOutputConfig::InMemoryTypes> TagFromGFVFeatureType(
 
 StatusOr<InputOutputConfig::InMemoryTypes> DetectInMemoryTypeFromGfv(
     const GenericFeatureVector& gfv) {
-  TF_ASSIGN_OR_RETURN(auto ret, TagFromGFVFeatureType(gfv.feature_type()));
+  SCANN_ASSIGN_OR_RETURN(auto ret, TagFromGFVFeatureType(gfv.feature_type()));
   return ret;
 }
 
@@ -261,7 +261,8 @@ StatusOr<InputOutputConfig::InMemoryTypes> DetectInMemoryTypeFromDisk(
 
 StatusOr<Normalization> NormalizationRequired(
     absl::string_view distance_measure_name) {
-  TF_ASSIGN_OR_RETURN(auto distance, GetDistanceMeasure(distance_measure_name));
+  SCANN_ASSIGN_OR_RETURN(auto distance,
+                         GetDistanceMeasure(distance_measure_name));
   return distance->NormalizationRequired();
 }
 
@@ -279,8 +280,8 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
   } else {
     return OkStatus();
   }
-  TF_ASSIGN_OR_RETURN(const Normalization expected_normalization,
-                      NormalizationRequired(main_distance_measure));
+  SCANN_ASSIGN_OR_RETURN(const Normalization expected_normalization,
+                         NormalizationRequired(main_distance_measure));
   const bool normalization_user_specified =
       config->input_output().has_norm_type();
 
@@ -317,8 +318,8 @@ Status EnsureCorrectNormalizationForDistanceMeasure(ScannConfig* config) {
 
   auto verify_consistency = [&](absl::string_view secondary_distance_measure,
                                 const std::string& param_name) -> Status {
-    TF_ASSIGN_OR_RETURN(const Normalization secondary_expected,
-                        NormalizationRequired(secondary_distance_measure));
+    SCANN_ASSIGN_OR_RETURN(const Normalization secondary_expected,
+                           NormalizationRequired(secondary_distance_measure));
     if (secondary_expected != expected_normalization &&
         !(normalization_user_specified && secondary_expected == NONE)) {
       return InvalidArgumentError(

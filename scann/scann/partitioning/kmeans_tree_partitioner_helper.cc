@@ -24,6 +24,7 @@
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
 #include "scann/hashes/asymmetric_hashing2/training.h"
 #include "scann/hashes/asymmetric_hashing2/training_options.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/hash.pb.h"
@@ -31,7 +32,6 @@
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/reordering_helper.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -74,9 +74,9 @@ CreateRecommendedAsymmetricSearcher(
       std::string(quantization_distance->name()));
   asymmetric_hashing2::TrainingOptions<float> training_opts(
       hasher_config, quantization_distance, *dataset);
-  TF_ASSIGN_OR_RETURN(shared_ptr<asymmetric_hashing2::Model<float>> model,
-                      asymmetric_hashing2::TrainSingleMachine<float>(
-                          *dataset, training_opts, pool));
+  SCANN_ASSIGN_OR_RETURN(shared_ptr<asymmetric_hashing2::Model<float>> model,
+                         asymmetric_hashing2::TrainSingleMachine<float>(
+                             *dataset, training_opts, pool));
   auto indexer = make_unique<asymmetric_hashing2::Indexer<float>>(
       training_opts.projector(), quantization_distance, model);
 

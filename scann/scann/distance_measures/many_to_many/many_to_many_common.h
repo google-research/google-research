@@ -19,6 +19,7 @@
 #include <atomic>
 
 #include "absl/base/internal/spinlock.h"
+#include "absl/base/prefetch.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -29,7 +30,6 @@
 #include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 
@@ -154,9 +154,8 @@ class ManyToManyTop1Callback {
     auto& top1 = top1_result_by_query_[query_idx];
     const size_t mutex_idx = query_idx & (kNumSpinLocks - 1);
     auto mutex_ptr = &(*mutexes_)[mutex_idx];
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(&top1);
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-        mutex_ptr);
+    absl::PrefetchToLocalCache(&top1);
+    absl::PrefetchToLocalCache(mutex_ptr);
 
     FloatT best_dist = block[0];
     DCHECK(!std::isnan(best_dist)) << "NAN at DP idx 0";

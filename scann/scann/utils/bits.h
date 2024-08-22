@@ -15,8 +15,10 @@
 #ifndef SCANN_UTILS_BITS_H_
 #define SCANN_UTILS_BITS_H_
 
+#include <climits>
 #include <cstddef>
 #include <cstdint>
+#include <type_traits>
 
 #include "absl/numeric/bits.h"
 #include "scann/utils/types.h"
@@ -44,6 +46,12 @@ inline bool IsPowerOfTwo(uint64_t x) { return x && ((x & (x - 1)) == 0); }
 SCANN_INLINE uint32_t GetFinalMask32(size_t num_datapoints) {
   const size_t remainder_bits = num_datapoints % 32;
   return remainder_bits ? (1u << remainder_bits) - 1 : 0xFFFFFFFF;
+}
+
+template <typename T, std::enable_if_t<std::is_unsigned_v<T>, int> = 0>
+SCANN_INLINE T GetLowBits(T src, int nbits) {
+  constexpr T all_ones = ~static_cast<T>(0);
+  return src & (all_ones >> (sizeof(T) * CHAR_BIT - nbits));
 }
 
 }  // namespace research_scann

@@ -15,13 +15,14 @@ cc_library(
     name = "training_options_base",
     srcs = ["training_options_base.cc"],
     hdrs = ["training_options_base.h"],
-    tags = ["local"],
     deps = [
+        "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/projection:chunking_projection",
         "//scann/proto:hash_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:types",
     ],
 )
@@ -30,17 +31,19 @@ cc_library(
     name = "training_options",
     srcs = ["training_options.cc"],
     hdrs = ["training_options.h"],
-    tags = ["local"],
     deps = [
         ":training_options_base",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
+        "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/projection:chunking_projection",
         "//scann/projection:projection_factory",
         "//scann/proto:hash_cc_proto",
         "//scann/proto:projection_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:types",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -48,7 +51,6 @@ cc_library(
     name = "training_model",
     srcs = ["training_model.cc"],
     hdrs = ["training_model.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
@@ -64,7 +66,6 @@ cc_library(
 cc_library(
     name = "training",
     hdrs = ["training.h"],
-    tags = ["local"],
     deps = [
         ":training_model",
         ":training_options",
@@ -86,10 +87,10 @@ cc_library(
     name = "indexing",
     srcs = ["indexing.cc"],
     hdrs = ["indexing.h"],
-    tags = ["local"],
     deps = [
         ":training_model",
         "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/distance_measures/one_to_one:dot_product",
         "//scann/distance_measures/one_to_one:l1_distance",
@@ -101,10 +102,10 @@ cc_library(
         "//scann/projection:chunking_projection",
         "//scann/proto:hash_cc_proto",
         "//scann/utils:common",
-        "//scann/utils:reduction",
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -112,7 +113,6 @@ cc_library(
     name = "querying",
     srcs = ["querying.cc"],
     hdrs = ["querying.h"],
-    tags = ["local"],
     deps = [
         ":training_model",
         "//scann/base:search_parameters",
@@ -145,7 +145,6 @@ cc_library(
         "searcher_mutator.cc",
     ],
     hdrs = ["searcher.h"],
-    tags = ["local"],
     deps = [
         ":indexing",
         ":querying",
@@ -161,16 +160,15 @@ cc_library(
         "//scann/oss_wrappers:scann_serialize",
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:tf_dependency",
+        "//scann/proto:centers_cc_proto",
         "//scann/proto:hash_cc_proto",
         "//scann/tree_x_hybrid:leaf_searcher_optional_parameter_creator",
         "//scann/utils:common",
-        "//scann/utils:datapoint_utils",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
         "//scann/utils:util_functions",
         "//scann/utils/intrinsics:flags",
         "@com_google_absl//absl/base",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -178,7 +176,6 @@ cc_library(
 cc_library(
     name = "serialization",
     hdrs = ["serialization.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",

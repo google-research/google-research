@@ -10,7 +10,6 @@ package(
 cc_library(
     name = "short_string_optimized_string",
     hdrs = ["short_string_optimized_string.h"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
@@ -27,7 +26,6 @@ cc_library(
 cc_library(
     name = "string_view32",
     hdrs = ["string_view32.h"],
-    tags = ["local"],
     deps = [
         "//scann/utils:types",
     ],

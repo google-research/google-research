@@ -21,8 +21,8 @@
 #include "absl/status/status.h"
 #include "absl/strings/str_format.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 

@@ -15,9 +15,11 @@
 #include "scann/distance_measures/one_to_one/l1_distance_sse4.h"
 
 #include <cstdint>
-#ifdef __x86_64__
 
-#include "scann/utils/intrinsics/sse4.h"
+#include "absl/log/check.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/utils/intrinsics/attributes.h"
+#ifdef __x86_64__
 
 namespace research_scann {
 namespace l1_internal {

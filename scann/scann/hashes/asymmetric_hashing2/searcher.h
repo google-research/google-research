@@ -79,6 +79,18 @@ class SearcherOptions {
 
   void set_noise_shaping_threshold(double t) { noise_shaping_threshold_ = t; }
 
+  shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer() const {
+    return asymmetric_queryer_;
+  }
+
+  AsymmetricHasherConfig::LookupType asymmetric_lookup_type() const {
+    return asymmetric_lookup_type_;
+  }
+
+  FixedPointLUTConversionOptions fixed_point_lut_conversion_options() const {
+    return fixed_point_lut_conversion_options_;
+  }
+
  private:
   shared_ptr<const Indexer<T>> indexer_ = nullptr;
 
@@ -96,7 +108,7 @@ class SearcherOptions {
 };
 
 template <typename T>
-class Searcher final : public SingleMachineSearcherBase<T> {
+class Searcher : public SingleMachineSearcherBase<T> {
  public:
   Searcher(shared_ptr<TypedDataset<T>> dataset,
            shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
@@ -104,7 +116,7 @@ class Searcher final : public SingleMachineSearcherBase<T> {
            int32_t default_pre_reordering_num_neighbors,
            float default_pre_reordering_epsilon);
 
-  ~Searcher() final;
+  ~Searcher() override;
 
   SCANN_DECLARE_IMMOBILE_CLASS(Searcher);
 
@@ -179,19 +191,22 @@ class Searcher final : public SingleMachineSearcherBase<T> {
       override;
 
  protected:
+  explicit Searcher(SearcherOptions<T> opts,
+                    int32_t default_pre_reordering_num_neighbors,
+                    float default_pre_reordering_epsilon);
+
   Status FindNeighborsImpl(const DatapointPtr<T>& query,
                            const SearchParameters& params,
-                           NNResultsVector* result) const final;
+                           NNResultsVector* result) const override;
 
   Status FindNeighborsBatchedImpl(
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
-      MutableSpan<NNResultsVector> results) const final;
+      MutableSpan<NNResultsVector> results) const override;
 
- private:
   bool impl_needs_dataset() const final { return false; }
 
   bool impl_needs_hashed_dataset() const final {
-    return !(RuntimeSupportsSse4() && lut16_ &&
+    return !(lut16_ &&
              opts_.asymmetric_queryer_->num_clusters_per_block() == 16);
   }
 
@@ -267,10 +282,16 @@ template <typename T>
 class PrecomputedAsymmetricLookupTableCreator final
     : public LeafSearcherOptionalParameterCreator<T> {
  public:
-  PrecomputedAsymmetricLookupTableCreator(
+  explicit PrecomputedAsymmetricLookupTableCreator(
       shared_ptr<const AsymmetricQueryer<T>> queryer,
-      AsymmetricHasherConfig::LookupType lookup_type)
-      : queryer_(std::move(queryer)), lookup_type_(lookup_type) {}
+      AsymmetricHasherConfig::LookupType lookup_type,
+      AsymmetricHasherConfig::FixedPointLUTConversionOptions
+          fixed_point_lut_conversion_options =
+              AsymmetricHasherConfig::FixedPointLUTConversionOptions())
+      : queryer_(std::move(queryer)),
+        lookup_type_(lookup_type),
+        fixed_point_lut_conversion_options_(
+            fixed_point_lut_conversion_options) {}
 
   StatusOr<unique_ptr<SearcherSpecificOptionalParameters>>
   CreateLeafSearcherOptionalParameters(
@@ -279,6 +300,8 @@ class PrecomputedAsymmetricLookupTableCreator final
  private:
   shared_ptr<const AsymmetricQueryer<T>> queryer_;
   AsymmetricHasherConfig::LookupType lookup_type_;
+  AsymmetricHasherConfig::FixedPointLUTConversionOptions
+      fixed_point_lut_conversion_options_;
 };
 
 extern template Status Searcher<float>::FindNeighborsBatchedInternal<

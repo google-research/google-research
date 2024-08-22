@@ -22,7 +22,6 @@ cc_library(
         "-O3",
         "-Wno-pass-failed",
     ],
-    tags = ["local"],
     textual_hdrs = ["many_to_many_impl.inc"],
     deps = [
         ":fp8_transposed",
@@ -47,7 +46,6 @@ cc_library(
     name = "many_to_many_flags",
     srcs = ["many_to_many_flags.cc"],
     hdrs = ["many_to_many_flags.h"],
-    tags = ["local"],
     deps = [
         "@com_google_absl//absl/flags:flag",
     ],
@@ -56,19 +54,18 @@ cc_library(
 cc_library(
     name = "many_to_many_common",
     hdrs = ["many_to_many_common.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_threadpool",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
         "//scann/utils/intrinsics:highway",
         "//scann/utils/intrinsics:simd",
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/synchronization",
     ],
 )
@@ -77,7 +74,6 @@ cc_library(
     name = "fp8_transposed",
     srcs = ["fp8_transposed.cc"],
     hdrs = ["fp8_transposed.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
         "//scann/utils:types",

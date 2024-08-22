@@ -17,6 +17,8 @@
 
 #ifdef __x86_64__
 
+#include <x86intrin.h>
+
 #define SCANN_SSE4
 #define SCANN_AVX1 __attribute((target("avx")))
 #define SCANN_AVX2 __attribute((target("avx,avx2,fma")))

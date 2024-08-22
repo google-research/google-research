@@ -16,7 +16,10 @@
 
 #include "scann/trees/kmeans_tree/training_options.h"
 
+#include "absl/log/log.h"
+#include "absl/time/time.h"
 #include "scann/proto/partitioning.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/gmm_utils.h"
 
 namespace research_scann {

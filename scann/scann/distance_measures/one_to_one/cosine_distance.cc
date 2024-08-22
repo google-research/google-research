@@ -16,8 +16,13 @@
 
 #include <cstdint>
 
+#include "absl/log/check.h"
 #include "absl/numeric/bits.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/distance_measures/one_to_one/common.h"
+#include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/oss_wrappers/scann_bits.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 

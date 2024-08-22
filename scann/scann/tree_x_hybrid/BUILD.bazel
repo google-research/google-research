@@ -10,7 +10,6 @@ cc_library(
     name = "tree_x_params",
     srcs = ["tree_x_params.cc"],
     hdrs = ["tree_x_params.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/utils:common",
@@ -21,7 +20,6 @@ cc_library(
 cc_library(
     name = "leaf_searcher_optional_parameter_creator",
     hdrs = ["leaf_searcher_optional_parameter_creator.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/data_format:datapoint",
@@ -32,11 +30,11 @@ cc_library(
 cc_library(
     name = "mutator",
     hdrs = ["mutator.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:single_machine_base",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/distance_measures/one_to_one:l2_distance",
         "//scann/hashes/asymmetric_hashing2:searcher",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
@@ -58,6 +56,7 @@ cc_library(
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
     ],
 )
 
@@ -65,7 +64,6 @@ cc_library(
     name = "tree_x_hybrid_smmd",
     srcs = ["tree_x_hybrid_smmd.cc"],
     hdrs = ["tree_x_hybrid_smmd.h"],
-    tags = ["local"],
     deps = [
         ":leaf_searcher_optional_parameter_creator",
         ":mutator",
@@ -111,7 +109,6 @@ cc_library(
     name = "tree_ah_hybrid_residual",
     srcs = ["tree_ah_hybrid_residual.cc"],
     hdrs = ["tree_ah_hybrid_residual.h"],
-    tags = ["local"],
     deps = [
         ":mutator",
         ":tree_x_params",
@@ -120,6 +117,7 @@ cc_library(
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
+        "//scann/distance_measures/one_to_one:l2_distance",
         "//scann/hashes/asymmetric_hashing2:indexing",
         "//scann/hashes/asymmetric_hashing2:querying",
         "//scann/hashes/asymmetric_hashing2:searcher",

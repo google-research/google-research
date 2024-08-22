@@ -7,7 +7,6 @@ cc_library(
     name = "eigen_utils",
     srcs = ["eigen_utils.cc"],
     hdrs = ["eigen_utils.h"],
-    tags = ["local"],
     deps = [
         ":types",
         "//scann/data_format:dataset",
@@ -22,6 +21,5 @@ cc_library(
 cc_library(
     name = "types",
     hdrs = ["types.h"],
-    tags = ["local"],
     deps = ["//scann/oss_wrappers:tf_dependency"],
 )

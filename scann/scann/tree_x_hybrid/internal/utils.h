@@ -115,7 +115,7 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
   DCHECK_EQ(datapoints_by_token.size(), n_leaves);
   std::vector<SingleMachineFactoryOptions> leaf_opts(n_leaves);
   for (int i = 0; i < n_leaves; i++) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         leaf_opts[i], leaf_searchers[i]->ExtractSingleMachineFactoryOptions());
   }
   SingleMachineFactoryOptions opts;
@@ -125,9 +125,10 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
   };
   if (spilling_mult > 1) {
     using PairOfVectors = pair<vector<uint8_t>, vector<uint8_t>>;
-    TF_ASSIGN_OR_RETURN(PairOfVectors ah_datasets,
-                        (CombineLeafDatasets<uint8_t, true>(
-                            expected_size, "AH", datapoints_by_token, get_ah)));
+    SCANN_ASSIGN_OR_RETURN(
+        PairOfVectors ah_datasets,
+        (CombineLeafDatasets<uint8_t, true>(expected_size, "AH",
+                                            datapoints_by_token, get_ah)));
     if (!ah_datasets.first.empty()) {
       opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
           std::move(ah_datasets.first), expected_size);
@@ -135,9 +136,10 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
           std::move(ah_datasets.second), expected_size);
     }
   } else {
-    TF_ASSIGN_OR_RETURN(vector<uint8_t> ah_dataset,
-                        (CombineLeafDatasets<uint8_t>(
-                            expected_size, "AH", datapoints_by_token, get_ah)));
+    SCANN_ASSIGN_OR_RETURN(
+        vector<uint8_t> ah_dataset,
+        (CombineLeafDatasets<uint8_t>(expected_size, "AH", datapoints_by_token,
+                                      get_ah)));
     if (!ah_dataset.empty()) {
       opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
           std::move(ah_dataset), expected_size);
@@ -163,14 +165,15 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
     if (fp == nullptr) return nullptr;
     return fp->fixed_point_dataset.get();
   };
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       vector<int8_t> int8_dataset,
       (CombineLeafDatasets<int8_t>(expected_size, "INT8", datapoints_by_token,
                                    get_int8)));
   if (!int8_dataset.empty()) {
     opts.pre_quantized_fixed_point = make_shared<PreQuantizedFixedPoint>();
     opts.pre_quantized_fixed_point->fixed_point_dataset =
-        make_shared<DenseDataset<int8_t>>(int8_dataset, expected_size);
+        make_shared<DenseDataset<int8_t>>(std::move(int8_dataset),
+                                          expected_size);
 
     bool int8_has_norms = false;
     for (int i = 0; i < n_leaves; i++) {

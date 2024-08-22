@@ -12,23 +12,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "scann/distance_measures/one_to_one/hamming_distance.h"
-
-#include <cstdint>
-
-#include "scann/data_format/datapoint.h"
-#include "scann/distance_measures/one_to_one/common.h"
+#include "scann/hashes/internal/lut16_highway.inc"
 
 namespace research_scann {
+namespace asymmetric_hashing_internal {
 
-SCANN_DEFINE_DISTANCE_MEASURE_VIRTUAL_METHODS(GeneralHammingDistance, 32)
-SCANN_REGISTER_DISTANCE_MEASURE(GeneralHammingDistance)
+template class LUT16Highway<{BATCH_SIZE}, PrefetchStrategy::kOff>;
+template class LUT16Highway<{BATCH_SIZE}, PrefetchStrategy::kSeq>;
+template class LUT16Highway<{BATCH_SIZE}, PrefetchStrategy::kSmart>;
 
-double BinaryHammingDistance::GetDistanceDense(
-    const DatapointPtr<uint8_t>& a, const DatapointPtr<uint8_t>& b) const {
-  return static_cast<double>(DenseBinaryHammingDistance(a, b));
-}
-
-SCANN_REGISTER_DISTANCE_MEASURE(BinaryHammingDistance);
-
+}  // namespace asymmetric_hashing_internal
 }  // namespace research_scann

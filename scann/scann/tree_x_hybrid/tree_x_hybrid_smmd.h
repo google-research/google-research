@@ -23,6 +23,7 @@
 #include <utility>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "gtest/gtest_prod.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
@@ -90,6 +91,15 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
 
   Status AddLeafSearcher();
 
+  Status BuildStreamingAsymmetricHashingLeafSearchers(
+      size_t n_tokens, ConstSpan<int32_t> query_tokens,
+      const internal::TrainedAsymmetricHashingResults<T>& training_results,
+      bool streaming_result,
+      std::function<StatusOrSearcher(
+          int32_t token,
+          const internal::TrainedAsymmetricHashingResults<T>& training_results)>
+          leaf_searcher_builder);
+
   Status BuildPretrainedScalarQuantizationLeafSearchers(
       vector<std::vector<DatapointIndex>> datapoints_by_token,
       vector<DenseDataset<int8_t>> partitioned_datasets,
@@ -100,7 +110,7 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
           leaf_searcher_builder);
 
   Status BuildStreamingScalarQuantizationLeafSearchers(
-      size_t n_tokens, const std::vector<int32_t>& query_tokens,
+      size_t n_tokens, absl::Span<const int32_t> query_tokens,
       std::shared_ptr<const DistanceMeasure> distance,
       ConstSpan<float> inverse_multiplier_by_dimension, bool streaming_result,
       std::function<StatusOrSearcher(
@@ -109,7 +119,7 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
           leaf_searcher_builder);
 
   Status BuildStreamingLeafSearchers(
-      size_t n_tokens, const std::vector<int32_t>& query_tokens,
+      size_t n_tokens, absl::Span<const int32_t> query_tokens,
       std::shared_ptr<const DistanceMeasure> distance, bool streaming_result,
       std::function<StatusOrSearcher(
           int token, std::shared_ptr<const DistanceMeasure> distance)>

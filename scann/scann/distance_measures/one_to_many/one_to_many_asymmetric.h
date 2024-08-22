@@ -17,12 +17,17 @@
 #ifndef SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_ASYMMETRIC_H_
 #define SCANN_DISTANCE_MEASURES_ONE_TO_MANY_ONE_TO_MANY_ASYMMETRIC_H_
 
+#ifndef HWY_DISABLED_TARGETS
+#define HWY_DISABLED_TARGETS HWY_ALL_SVE
+#endif
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <type_traits>
 
 #include "absl/base/optimization.h"
+#include "absl/base/prefetch.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measures.h"
@@ -39,7 +44,6 @@
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "tensorflow/core/platform/cpu_info.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 
@@ -365,7 +369,7 @@ SCANN_INLINE void DenseDotProductDistanceOneToManyInt8Float(
   using one_to_many_low_level::GetCopyableDatasetView;
   using one_to_many_low_level::SetDistanceFunctor;
   one_to_many_low_level::OneToManyInt8FloatDispatch<false, false>(
-      query, GetCopyableDatasetView(database),
+      query.values(), GetCopyableDatasetView(database),
       kNoMultipliersForDotProductDistance, kNoIndices, result,
       SetDistanceFunctor<float>(result));
 }

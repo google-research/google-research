@@ -23,9 +23,10 @@
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 namespace asymmetric_hashing2 {
@@ -178,7 +179,7 @@ StatusOr<DatapointIndex> Searcher<T>::Mutator::AddDatapoint(
   }
   hashed = EnsureDatapointUnpacked(hashed);
 
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto result2,
       this->AddDatapointToBase(dptr, docid,
                                MutateBaseOptions{.hashed = hashed.ToPtr()}));
@@ -231,8 +232,8 @@ Status Searcher<T>::Mutator::RemoveDatapoint(DatapointIndex index) {
     }
     call_on_datapont_index_rename(new_size, index);
   }
-  TF_ASSIGN_OR_RETURN(const DatapointIndex swapped_in,
-                      this->RemoveDatapointFromBase(index));
+  SCANN_ASSIGN_OR_RETURN(const DatapointIndex swapped_in,
+                         this->RemoveDatapointFromBase(index));
   call_on_datapont_index_rename(swapped_in, index);
   SCANN_RET_CHECK(on_datapoint_index_rename_called);
   return OkStatus();

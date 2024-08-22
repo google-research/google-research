@@ -27,10 +27,10 @@
 #include "scann/data_format/internal/short_string_optimized_string.h"
 #include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_serialize.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 

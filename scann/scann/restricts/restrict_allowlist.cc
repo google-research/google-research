@@ -22,6 +22,7 @@
 #include <utility>
 #include <vector>
 
+#include "scann/utils/bits.h"
 #include "scann/utils/common.h"
 
 namespace research_scann {
@@ -29,14 +30,13 @@ namespace {
 
 void ClearRemainderBits(MutableSpan<size_t> allowlist_array,
                         size_t num_points) {
-  const uint8_t num_leftover_bits =
-      RestrictAllowlist::kBitsPerWord -
+  const uint8_t num_used_bits_in_last_word =
       num_points % RestrictAllowlist::kBitsPerWord;
 
-  if (num_leftover_bits == RestrictAllowlist::kBitsPerWord) return;
+  if (num_used_bits_in_last_word == 0) return;
   DCHECK(!allowlist_array.empty());
-  allowlist_array[allowlist_array.size() - 1] &=
-      RestrictAllowlist::kAllOnes >> num_leftover_bits;
+  allowlist_array[allowlist_array.size() - 1] = research_scann::GetLowBits(
+      allowlist_array[allowlist_array.size() - 1], num_used_bits_in_last_word);
 }
 
 void SetRemainderBits(MutableSpan<size_t> allowlist_array, size_t num_points) {

@@ -19,20 +19,17 @@
 #include <sstream>
 
 #include "absl/memory/memory.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/str_cat.h"
-#include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/tsl/platform/statusor.h"
 
 namespace research_scann {
-
-namespace error = tensorflow::error;
-namespace errors = tensorflow::errors;
 
 class ABSL_MUST_USE_RESULT StatusBuilder {
  public:
   explicit StatusBuilder(const absl::Status& status);
   explicit StatusBuilder(absl::Status&& status);
-  explicit StatusBuilder(tensorflow::error::Code code);
+  explicit StatusBuilder(absl::StatusCode code);
   StatusBuilder(const StatusBuilder& sb);
 
   template <typename T>
@@ -67,16 +64,13 @@ class ABSL_MUST_USE_RESULT StatusBuilder {
     return absl::StatusOr<T>(StatusBuilder(*this).CreateStatus());
   }
 
-  template <typename Enum>
-  StatusBuilder& SetErrorCode(Enum code) & {
-    status_ =
-        absl::Status(static_cast<absl::StatusCode>(code), status_.message());
+  inline StatusBuilder& SetCode(absl::StatusCode code) & {
+    status_ = absl::Status(code, status_.message());
     return *this;
   }
 
-  template <typename Enum>
-  StatusBuilder&& SetErrorCode(Enum code) && {
-    return std::move(SetErrorCode(code));
+  inline StatusBuilder&& SetCode(absl::StatusCode code) && {
+    return std::move(SetCode(code));
   }
 
   absl::Status CreateStatus() &&;

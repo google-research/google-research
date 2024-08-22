@@ -676,8 +676,7 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
          j++) {
       const IntT* prefetch_ptr = get_db_ptr(j);
       for (size_t n : Seq(cache_lines_per_datapoint)) {
-        ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-            prefetch_ptr + n * kCacheLine);
+        absl::PrefetchToLocalCacheNta(prefetch_ptr + n * kCacheLine);
       }
     }
 
@@ -689,8 +688,7 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
 
       for (size_t n : Seq(cache_lines_per_datapoint)) {
         for (size_t jj : Seq(kUnrollBy)) {
-          ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-              prefetch_ptrs[jj] + n * kCacheLine);
+          absl::PrefetchToLocalCacheNta(prefetch_ptrs[jj] + n * kCacheLine);
         }
       }
     }
@@ -730,8 +728,7 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
 
         for (size_t n : Seq(cache_lines_per_datapoint)) {
           for (size_t jj : Seq(kUnrollBy)) {
-            ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-                prefetch_ptrs[jj] + n * kCacheLine);
+            absl::PrefetchToLocalCacheNta(prefetch_ptrs[jj] + n * kCacheLine);
           }
         }
       }

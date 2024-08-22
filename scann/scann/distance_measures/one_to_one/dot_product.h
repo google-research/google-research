@@ -17,6 +17,10 @@
 
 #include <cstdint>
 
+#include "absl/base/optimization.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/binary_distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/common.h"
@@ -24,6 +28,7 @@
 #include "scann/distance_measures/one_to_one/dot_product_avx2.h"
 #include "scann/distance_measures/one_to_one/dot_product_highway.h"
 #include "scann/distance_measures/one_to_one/dot_product_sse4.h"
+#include "scann/utils/common.h"
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/reduction.h"
 #include "scann/utils/types.h"

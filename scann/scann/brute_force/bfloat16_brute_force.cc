@@ -16,10 +16,10 @@
 
 #include "scann/base/single_machine_base.h"
 #include "scann/distance_measures/one_to_many/one_to_many_asymmetric.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/bfloat16_helpers.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -60,7 +60,7 @@ Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
     LOG(FATAL) << "Bfloat16 brute force only supports dot product and squared "
                   "L2 distance.";
   }
-  TF_CHECK_OK(this->set_docids(bfloat16_dataset_.ReleaseDocids()));
+  QCHECK_OK(this->set_docids(bfloat16_dataset_.ReleaseDocids()));
 }
 
 Status Bfloat16BruteForceSearcher::EnableCrowdingImpl(
@@ -121,7 +121,7 @@ StatusOr<SingleMachineSearcherBase<float>::Mutator*>
 Bfloat16BruteForceSearcher::GetMutator() const {
   if (!mutator_) {
     auto mutable_this = const_cast<Bfloat16BruteForceSearcher*>(this);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_, Bfloat16BruteForceSearcher::Mutator::Create(mutable_this));
     SCANN_RETURN_IF_ERROR(mutator_->PrepareForBaseMutation(mutable_this));
   }
@@ -130,7 +130,7 @@ Bfloat16BruteForceSearcher::GetMutator() const {
 
 StatusOr<SingleMachineFactoryOptions>
 Bfloat16BruteForceSearcher::ExtractSingleMachineFactoryOptions() {
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto opts,
       SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
   opts.bfloat16_dataset =

@@ -29,6 +29,7 @@
 #include "scann/hashes/asymmetric_hashing2/training_model.h"
 #include "scann/hashes/internal/asymmetric_hashing_impl.h"
 #include "scann/projection/chunking_projection.h"
+#include "scann/proto/hash.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -178,35 +179,41 @@ PackedDataset CreatePackedDataset(
   return result;
 }
 
-DenseDataset<uint8_t> UnpackDataset(const PackedDataset& packed) {
+DenseDataset<uint8_t> UnpackDataset(const PackedDatasetView& packed) {
   const size_t num_dim = packed.num_blocks, num_dp = packed.num_datapoints;
 
   vector<uint8_t> unpacked(num_dim * num_dp);
 
   int idx = 0;
-  for (int dp_block = 0; dp_block < num_dp / 32; dp_block++) {
-    const int out_idx = 32 * dp_block;
+  for (int dp_block = 0; dp_block < num_dp / kNumDatapointsPerBlock;
+       dp_block++) {
+    const int out_idx = kNumDatapointsPerBlock * dp_block;
     for (int dim = 0; dim < num_dim; dim++) {
-      for (int offset = 0; offset < 16; offset++) {
+      for (int offset = 0; offset < kPackedDatasetBlockSize; offset++) {
         uint8_t data = packed.bit_packed_data[idx++];
-        unpacked[(out_idx | offset) * num_dim + dim] = data & 15;
-        unpacked[(out_idx | 16 | offset) * num_dim + dim] = data >> 4;
+        unpacked[(out_idx | offset) * num_dim + dim] =
+            data & (kPackedDatasetBlockSize - 1);
+        unpacked[(out_idx | 16 | offset) * num_dim + dim] =
+            data >> kPackedDataSetBlockSizeBits;
       }
     }
   }
 
-  if (num_dp % 32 != 0) {
-    const int out_idx = num_dp - (num_dp % 32);
+  if (num_dp % kNumDatapointsPerBlock != 0) {
+    const int out_idx = num_dp - (num_dp % kNumDatapointsPerBlock);
     for (int dim = 0; dim < num_dim; dim++) {
-      for (int offset = 0; offset < 16; offset++) {
+      for (int offset = 0; offset < kPackedDatasetBlockSize; offset++) {
         uint8_t data = packed.bit_packed_data[idx++];
-        int idx1 = out_idx | offset, idx2 = out_idx | 16 | offset;
-        if (idx1 < num_dp) unpacked[idx1 * num_dim + dim] = data & 15;
-        if (idx2 < num_dp) unpacked[idx2 * num_dim + dim] = data >> 4;
+        int idx1 = out_idx | offset,
+            idx2 = out_idx | kPackedDatasetBlockSize | offset;
+        if (idx1 < num_dp)
+          unpacked[idx1 * num_dim + dim] = data & (kPackedDatasetBlockSize - 1);
+        if (idx2 < num_dp)
+          unpacked[idx2 * num_dim + dim] = data >> kPackedDataSetBlockSizeBits;
       }
     }
   }
-  return DenseDataset<uint8_t>(unpacked, packed.num_datapoints);
+  return DenseDataset<uint8_t>(std::move(unpacked), packed.num_datapoints);
 }
 
 PackedDatasetView CreatePackedDatasetView(const PackedDataset& packed_dataset) {

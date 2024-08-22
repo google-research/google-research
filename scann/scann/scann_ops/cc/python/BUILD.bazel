@@ -8,7 +8,6 @@ package(
 pybind_extension(
     name = "scann_pybind",
     srcs = ["scann_pybind.cc"],
-    tags = ["local"],
     deps = [
         "//scann/scann_ops/cc:scann_npy",
         "@com_google_absl//absl/types:optional",

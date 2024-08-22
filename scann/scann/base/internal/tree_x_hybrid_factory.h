@@ -19,7 +19,9 @@
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/dataset.h"
 #include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 

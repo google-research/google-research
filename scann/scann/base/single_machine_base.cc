@@ -42,7 +42,6 @@
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -172,7 +171,7 @@ SingleMachineSearcherBase<T>::SingleMachineSearcherBase(
                                        default_pre_reordering_num_neighbors,
                                        default_pre_reordering_epsilon),
       dataset_(dataset) {
-  TF_CHECK_OK(BaseInitImpl());
+  CHECK_OK(BaseInitImpl());
 }
 
 template <typename T>
@@ -298,7 +297,7 @@ SingleMachineSearcherBase<T>::SharedFloatDatasetIfNeeded() {
 template <typename T>
 StatusOr<shared_ptr<const DenseDataset<float>>>
 SingleMachineSearcherBase<T>::ReconstructFloatDataset() {
-  TF_ASSIGN_OR_RETURN(auto dataset, SharedFloatDatasetIfNeeded());
+  SCANN_ASSIGN_OR_RETURN(auto dataset, SharedFloatDatasetIfNeeded());
   if (dataset != nullptr) {
     return dataset;
   } else if (reordering_enabled()) {
@@ -475,7 +474,7 @@ Status SingleMachineSearcherBase<T>::GetNeighborProtoNoMetadata(
     NearestNeighbors::Neighbor* result) const {
   DCHECK(result);
   result->Clear();
-  TF_ASSIGN_OR_RETURN(auto docid, GetDocid(neighbor.first));
+  SCANN_ASSIGN_OR_RETURN(auto docid, GetDocid(neighbor.first));
   result->set_docid(std::string(docid));
   result->set_distance(neighbor.second);
   if (crowding_enabled()) {
@@ -589,7 +588,7 @@ Status SingleMachineSearcherBase<T>::ReorderResults(
     const DatapointPtr<T>& query, const SearchParameters& params,
     NNResultsVector* result) const {
   if (params.post_reordering_num_neighbors() == 1) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto top1,
         reordering_helper_->ComputeTop1ReorderingDistance(query, result));
     if (!result->empty() && top1.second < params.post_reordering_epsilon() &&

@@ -78,8 +78,6 @@ struct PackedDataset {
 
 PackedDataset CreatePackedDataset(const DenseDataset<uint8_t>& hashed_database);
 
-DenseDataset<uint8_t> UnpackDataset(const PackedDataset& packed);
-
 struct PackedDatasetView {
   ConstSpan<uint8_t> bit_packed_data = {};
 
@@ -87,6 +85,8 @@ struct PackedDatasetView {
 
   DimensionIndex num_blocks = 0;
 };
+
+DenseDataset<uint8_t> UnpackDataset(const PackedDatasetView& packed);
 
 PackedDatasetView CreatePackedDatasetView(const PackedDataset& packed_dataset);
 
@@ -249,10 +249,11 @@ StatusOr<LookupTable> AsymmetricQueryer<T>::CreateLookupTable(
       return query;
     }
   }();
-  TF_ASSIGN_OR_RETURN(auto raw_float_lookup,
-                      asymmetric_hashing_internal::CreateRawFloatLookupTable(
-                          query_no_bias, *projector_, lookup_distance,
-                          model_->centers(), model_->num_clusters_per_block()));
+  SCANN_ASSIGN_OR_RETURN(
+      auto raw_float_lookup,
+      asymmetric_hashing_internal::CreateRawFloatLookupTable(
+          query_no_bias, *projector_, lookup_distance, model_->centers(),
+          model_->num_clusters_per_block()));
 
   LookupTable result;
   if (IsIntegerType<LookupElement>() &&
@@ -317,7 +318,6 @@ Status AsymmetricQueryer<T>::FindApproximateNeighbors(
   }
 
   const bool can_use_lut16 =
-      RuntimeSupportsSse4() &&
       querying_options.lut16_packed_dataset.has_value() &&
       !lookup_table.int8_lookup_table.empty() &&
       lookup_table.int8_lookup_table.size() /
@@ -453,7 +453,6 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
 
   const bool can_use_lut16_for_all = [&] {
     if (!std::is_same_v<Functor, IdentityPostprocessFunctor>) return false;
-    if (!RuntimeSupportsSse4()) return false;
     if (!querying_options.lut16_packed_dataset.has_value()) return false;
     for (const LookupTable* lt : lookup_tables) {
       if (lt->int8_lookup_table.empty()) return false;

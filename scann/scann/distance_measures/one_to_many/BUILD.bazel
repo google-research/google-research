@@ -12,7 +12,6 @@ cc_library(
         "one_to_many_helpers.h",
         "one_to_many_symmetric.h",
     ],
-    tags = ["local"],
     textual_hdrs = [
         "one_to_many_asymmetric_impl.inc",
         "one_to_many_impl_highway.inc",
@@ -35,6 +34,7 @@ cc_library(
         "//scann/utils/intrinsics:simd",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/synchronization",
         "@com_google_highway//:hwy",
     ],

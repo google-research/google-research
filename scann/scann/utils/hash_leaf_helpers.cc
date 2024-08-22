@@ -96,12 +96,12 @@ HashLeafHelpers<T>::TrainAsymmetricHashingModel(
         "pre_reordering_dist in GenericSearchParameters is not "
         "set.");
   }
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto quantization_distance,
       CreateOrGetAymmetricHashingQuantizationDistance(config, params));
   asymmetric_hashing2::TrainingOptions<T> opts(config, quantization_distance,
                                                *dataset);
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       shared_ptr<const asymmetric_hashing2::Model<T>> model,
       asymmetric_hashing2::TrainSingleMachine<T>(*dataset, opts, pool));
   internal::TrainedAsymmetricHashingResults<T> result;
@@ -164,19 +164,28 @@ StatusOr<TrainedAsymmetricHashingResults<T>>
 HashLeafHelpers<T>::LoadAsymmetricHashingModel(
     const AsymmetricHasherConfig& config, const GenericSearchParameters& params,
     shared_ptr<ThreadPool> pool, CentersForAllSubspaces* preloaded_codebook) {
-  TF_ASSIGN_OR_RETURN(
-      auto quantization_distance,
-      CreateOrGetAymmetricHashingQuantizationDistance(config, params));
   shared_ptr<const asymmetric_hashing2::Model<T>> model;
   if (preloaded_codebook) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         model, asymmetric_hashing2::Model<T>::FromProto(*preloaded_codebook));
   } else {
     return InvalidArgumentError("Centers files are not supported.");
   }
 
-  TF_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<T>> projector,
-                      ChunkingProjectionFactory<T>(config.projection()));
+  return LoadAsymmetricHashingModel(config, params, model);
+}
+
+template <typename T>
+StatusOr<TrainedAsymmetricHashingResults<T>>
+HashLeafHelpers<T>::LoadAsymmetricHashingModel(
+    const AsymmetricHasherConfig& config, const GenericSearchParameters& params,
+    shared_ptr<const asymmetric_hashing2::Model<T>> model) {
+  SCANN_ASSIGN_OR_RETURN(
+      shared_ptr<const DistanceMeasure> quantization_distance,
+      CreateOrGetAymmetricHashingQuantizationDistance(config, params));
+
+  SCANN_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<T>> projector,
+                         ChunkingProjectionFactory<T>(config.projection()));
   internal::TrainedAsymmetricHashingResults<T> result;
   result.indexer = std::make_shared<asymmetric_hashing2::Indexer<T>>(
       projector, quantization_distance, model);

@@ -25,13 +25,16 @@ namespace research_scann {
 
 namespace {
 uint8_t SimdBlockSize() {
+#ifdef __x86_64__
+
   if (RuntimeSupportsAvx512()) {
     return 16;
   } else if (RuntimeSupportsAvx1()) {
     return 8;
-  } else {
-    return Highway<float>::kElementsPerRegister;
   }
+#endif
+
+  return Highway<float>::kElementsPerRegister;
 }
 }  // namespace
 

@@ -463,6 +463,10 @@ constexpr T MaxOrInfinity() {
   }
 }
 
+static constexpr int kNumDatapointsPerBlock = 32;
+static constexpr int kPackedDataSetBlockSizeBits = 4;
+static constexpr int kPackedDatasetBlockSize = 1 << 4;
+
 }  // namespace research_scann
 
 #endif

@@ -109,7 +109,7 @@ StatusOrHelper<float> BuildFixedPointReorderingHelper<float>(
     SCANN_RET_CHECK_EQ(
         opts->pre_quantized_fixed_point->fixed_point_dataset->dimensionality(),
         opts->pre_quantized_fixed_point->multiplier_by_dimension->size())
-            .SetErrorCode(error::INVALID_ARGUMENT)
+            .SetCode(absl::StatusCode::kInvalidArgument)
         << "Multipliers for pre-quantized FP8 reordering must be of the same "
            "dimensionality as the pre-quantized dataset.";
     if (distance_type == typeid(const DotProductDistance)) {

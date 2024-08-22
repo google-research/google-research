@@ -137,10 +137,10 @@ StatusOr<shared_ptr<OutputDataset<T>>> SubsampleDatasetImpl(
     const TypedDataset<T>& dataset, uint32_t seed, float fraction,
     DatapointIndex min_number_samples, DatapointIndex max_number_samples,
     SubsamplingStrategy strategy) {
-  TF_ASSIGN_OR_RETURN(auto sampled,
-                      internal::CreateSampledIndexList<DatapointIndex>(
-                          dataset.size(), seed, fraction, min_number_samples,
-                          max_number_samples, strategy));
+  SCANN_ASSIGN_OR_RETURN(auto sampled,
+                         internal::CreateSampledIndexList<DatapointIndex>(
+                             dataset.size(), seed, fraction, min_number_samples,
+                             max_number_samples, strategy));
   auto result = std::make_shared<OutputDataset<T>>();
   DatapointIndex i;
   while (sampled.GetNextIndex(&i))
