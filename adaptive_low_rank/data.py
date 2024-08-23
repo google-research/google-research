@@ -172,6 +172,7 @@ def get_test_and_validation_dataset(
     target_key,
     validation_set_size = 256,
     test_set_size = 1024,
+    download_data = True,
 ):
   """Retrieves specified test and validation datasets."""
   try:
@@ -179,7 +180,7 @@ def get_test_and_validation_dataset(
         dataset_name,
         split="test",
         shuffle_files=False,
-        download=False,
+        download=download_data,
         data_dir=_DATA_DIR,
     )
   except ValueError:
@@ -187,7 +188,7 @@ def get_test_and_validation_dataset(
         dataset_name,
         split="train",
         shuffle_files=False,
-        download=False,
+        download=download_data,
         data_dir=_DATA_DIR,
     )
     test_ds = _carve_test_dataset(
@@ -233,13 +234,14 @@ def get_dataset(
     text_key,
     target_key,
     test_set_size = 1024,
+    download_data = True,
 ):
   """Retrieves specified train and test datasets."""
   train_ds = tfds.load(
       dataset_name,
       split="train",
       shuffle_files=True,
-      download=False,
+      download=download_data,
       data_dir=_DATA_DIR,
   )
   try:
@@ -247,7 +249,7 @@ def get_dataset(
         dataset_name,
         split="test",
         shuffle_files=False,
-        download=False,
+        download=download_data,
         data_dir=_DATA_DIR,
     )
   except ValueError:

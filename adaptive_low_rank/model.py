@@ -43,15 +43,26 @@ _MODEL_BASE_PATH = ""
 _TOKENIZER_BASE_PATH = ""
 
 
+def get_pretrained_tokenizer(
+    tokenizer_path,
+    local_files_only = False,
+):
+  """Obtains pretrained tokenizer."""
+  return transformers.AutoTokenizer.from_pretrained(
+      tokenizer_path,
+      local_files_only=local_files_only,
+  )
+
+
 def get_model_tokenizer_path_from_name(
     model_name, get_tokenizer = False
 ):
   """Gets model or tokenizer path from model name."""
   base_path = _TOKENIZER_BASE_PATH if get_tokenizer else _MODEL_BASE_PATH
   if model_name == "bert":
-    return base_path + "bert_base_cased"
+    return base_path + "bert-base-cased"
   elif model_name == "roberta":
-    return base_path + "roberta_base"
+    return base_path + "roberta-base"
   else:
     raise ValueError(f"Unsupported model: {model_name}")
 

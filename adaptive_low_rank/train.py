@@ -221,9 +221,8 @@ def train(strategy):
 
     trainable_weights = prediction_model.trainable_variables
     logging.info(
-        "***Model trainable weights***: %d, %s",
+        "***Number of Model trainable weights***: %d",
         len(trainable_weights),
-        trainable_weights,
     )
 
     @tf.function
