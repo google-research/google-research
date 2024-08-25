@@ -103,10 +103,15 @@ def _compute_total_structural_feature_mean_std(
   features_squared_sum = np.zeros(feature_dim)
   total_samples = 0
   for batch_index, batch_features in structural_features.items():
-    for node in batch_features[structural_feats_list[0]]:
+    present_structural_feats_list = [
+        feat_name for feat_name in structural_feats_list
+        if feat_name in batch_features
+    ]
+    assert present_structural_feats_list
+    for node in batch_features[present_structural_feats_list[0]]:
       node_feat = np.concatenate([
           batch_features[feature_key][node]
-          for feature_key in structural_feats_list
+          for feature_key in present_structural_feats_list
       ])
       features_sum += node_feat
       features_squared_sum += node_feat**2
