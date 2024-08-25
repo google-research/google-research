@@ -51,7 +51,7 @@ import tensorflow.compat.v1 as tf
 import torch
 from torch_geometric import loader as torch_geo_data_loader
 
-import experiment_config
+import model_config as model_config_lib
 from models import all_models
 from models import model_template
 from modules import early_stopping
@@ -255,7 +255,7 @@ def main(_):
       total_nodes, size=_NUM_NEIGHBORS.value, device=device
   )
 
-  model_config = experiment_config.get_model_config(_MODEL_NAME.value)
+  model_config = model_config_lib.get_model_config(_MODEL_NAME.value)
   test_feature_dim = 0
   test_structural_features = {}
   structural_feats_list = [

@@ -45,7 +45,7 @@ import tensorflow.compat.v1 as tf
 import torch
 import tqdm
 
-import experiment_config
+import model_config as model_config_lib
 from models import all_models
 from models import model_template
 from modules import early_stopping
@@ -169,7 +169,7 @@ def main(_):
   G.add_edges_from(zip(train_data.src.numpy(), train_data.dst.numpy()))
 
   # define model
-  model_config = experiment_config.get_model_config(_MODEL_NAME.value)
+  model_config = model_config_lib.get_model_config(_MODEL_NAME.value)
   model: model_template.TlpModel = getattr(
       all_models, model_config.model_class
   )(

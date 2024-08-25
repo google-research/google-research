@@ -53,7 +53,7 @@ import torch
 from torch_geometric import data as torch_geo_data
 from torch_geometric import loader as torch_geo_data_loader
 
-import experiment_config
+import model_config as model_config_lib
 from models import all_models
 from models import model_template
 from modules import early_stopping
@@ -286,7 +286,7 @@ def main(_):
       total_nodes, size=_NUM_NEIGHBORS.value, device=device
   )
 
-  model_config = experiment_config.get_model_config(_MODEL_NAME.value)
+  model_config = model_config_lib.get_model_config(_MODEL_NAME.value)
   train_feature_dim = 0
   train_structural_features = {}
   val_structural_features = {}
