@@ -48,6 +48,42 @@ def run_stream_inference(flags, model_stream, inp_audio):
   return stream_out
 
 
+def run_stream_inference_with_condition(
+    flags, model_stream, inp_audio, cond_input
+):
+  """Runs streaming inference with inp_audio and cond_input.
+
+  cond_input is assumed to be of the same length as inp_audio.
+
+  It is useful for speech filtering/enhancement
+  Args:
+    flags: model and data settings
+    model_stream: tf model in streaming mode
+    inp_audio: input audio data
+    cond_input: conditioning input data
+
+  Returns:
+    output sequence
+  """
+  step = flags.data_shape[0]
+  start = 0
+  end = step
+  stream_out = None
+
+  while end <= inp_audio.shape[1]:
+    stream_update = (inp_audio[:, start:end], cond_input[:, start:end])
+    stream_output_sample = model_stream.predict(stream_update)
+
+    if stream_out is None:
+      stream_out = stream_output_sample
+    else:
+      stream_out = np.concatenate((stream_out, stream_output_sample), axis=1)
+
+    start = end
+    end = start + step
+  return stream_out
+
+
 def run_stream_inference_classification(flags, model_stream, inp_audio):
   """Runs streaming inference classification with tf (with internal state).
 
