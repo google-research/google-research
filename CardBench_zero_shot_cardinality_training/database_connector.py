@@ -48,16 +48,23 @@ def create_database_connection(db_type):
     raise ValueError(f"Unknown database type: {type}")
 
 
-def run_query_bigquery(query, bqclient):
+def run_query_bigquery(
+    query, bqclient, timeout = -1
+):
   """Runs a query on BigQuery, the call is blocking."""
   job = bqclient.query(query)
-  job.result()
+  if timeout != -1:
+    job.result(timeout=timeout)
+  else:
+    job.result()
   return job
 
 
-def run_query(db_type, query, connection_context):
+def run_query(
+    db_type, query, connection_context, timeout = -1
+):
   """Runs a query on the database."""
   if db_type == DBType.BIGQUERY:
-    return run_query_bigquery(query, connection_context)
+    return run_query_bigquery(query, connection_context, timeout)
   else:
     raise ValueError(f"Unknown database type: {db_type}")

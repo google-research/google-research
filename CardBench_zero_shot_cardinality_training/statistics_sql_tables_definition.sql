@@ -205,3 +205,12 @@ CREATE TABLE `project_name.dataset_name.workload_definition`(
   queries_file_path STRING,
   creation_date TIMESTAMP
 );
+
+-- QUERY_RUN_INFORMATION
+CREATE TABLE `project_name.dataset_name.query_run_information`(
+  workload_id INT64,
+  query_run_id INT64,
+  query_string STRING,
+  database_query_id STRING,
+  cardinality INT64,
+);

@@ -72,6 +72,11 @@ DIRECTORY_PATH_JSON_FILES = "X"
 DIRECTORY_PATH_QUERY_FILES = "X"
 
 
+WORKLOAD_DEFINITION_TABLE = "project_name.dataset_name.workload_definition"
+
+QUERY_RUN_INFORMATION_TABLE = "project_name.dataset_name.query_run_information"
+
+TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = "project_name.dataset_name."
 ##############################################################################
 
 TYPES_TO_TABLES = {
