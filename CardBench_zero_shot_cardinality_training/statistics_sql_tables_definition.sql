@@ -194,3 +194,14 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.histograms_table`(
   approx_quantiles_100 ARRAY<STRING>,
   approx_quantiles_1000 ARRAY<STRING>,
   approx_quantiles_500 ARRAY<STRING>);
+
+-- WORKLOAD_DEFINITION_TABLE
+CREATE TABLE `project_name.dataset_name.workload_definition`(
+  project_name STRING,
+  dataset_name STRING,
+  workload_id INT64,
+  parameter_keys ARRAY<STRING>,
+  parameter_values ARRAY<STRING>,
+  queries_file_path STRING,
+  creation_date TIMESTAMP
+);

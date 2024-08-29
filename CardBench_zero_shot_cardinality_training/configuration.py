@@ -15,7 +15,7 @@
 
 """Table names that store statistics."""
 
-# Before using replae bq-cost-models-exp.chronis_oss with your project
+# Before using replae project_name.dataset_name with your project
 # and dataset names
 
 import enum
@@ -63,8 +63,16 @@ CORRELATION_TABLE = "project_name.dataset_name.columns_correlation"
 PK_FK_TABLE = "project_name.dataset_name.pk_fk"
 COLUMNS_HISTOGRAM_TABLE = "project_name.dataset_name.histograms_table"
 # 4k row tables
-SAMPLE_PROJECTNAME_DATASET_NAME_4K = "project_name.dataset_name_sampled_tables."
+SAMPLE_PROJECTNAME_DATASET_NAME_4K = "project_name.samples_tables_dataset_name."
 
+WORKLOAD_DEFINITION_TABLE = "project_name.dataset_name.workload_definition"
+
+DIRECTORY_PATH_JSON_FILES = "X"
+
+DIRECTORY_PATH_QUERY_FILES = "X"
+
+
+##############################################################################
 
 TYPES_TO_TABLES = {
     "INT64": COLUMNS_INT64_EXTRA_STATS_TABLE,
