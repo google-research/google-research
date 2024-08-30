@@ -16,7 +16,10 @@ syntax = "proto2";
 
 package eeg_modelling.protos;
 
+import "java/com/google/apps/jspb/jspb_generate_object_format.proto";
 import "protos/data.proto";
+
+option (.jspb.generate_object_format_accessors) = true;
 
 
 // Represent the part of a wave that is similar to another, with a given
