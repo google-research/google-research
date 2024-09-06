@@ -22,15 +22,18 @@ pip install -r requirements.txt
 chmod +x scripts
 
 # Download NQ dataset.
-bash scripts/download_nq.sh
+bash scripts/download-nq.sh
+
+# Download FID model.
+bash scripts/download-fid-model.sh
 
 # Create a smaller subset of the data (n = 10) for this minimal example.
-head psgs_w100.tsv > psgs_w100_subset.tsv
+wget https://dl.fbaipublicfiles.com/contriever/embeddings/contriever-msmarco/wikipedia_embeddings.tar -P contriever_msmarco_embeddings/
+tar xvf contriever_msmarco_embeddings/wikipedia_embeddings.tar -C contriever_msmarco_embeddings/
+bash scripts/run-nq-embedding-and-retrieval.sh psgs_w100.tsv 100
 
 # Generate embeddings for the NQ data subset and retrieve 1 document.
-bash scripts/run-nq-embedding-and-retrieval.sh psgs_w100_subset.tsv 1
-
-# Generate interpretability values for our small example.
-python minimal_fid_example.py
+mkdir textgenshap-data-json
+CUDA_VISIBLE_DEVICES=1 python saving_litm_interpretations_hf.py
 
 # Look at the README to see other scripts that will run larger experiments.

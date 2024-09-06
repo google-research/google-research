@@ -16,18 +16,13 @@
 
 # Generate the embeddings from “contriever-msmarco” (4 GPU hours)
 PASSAGES=$1
-python contriever/generate_passage_embeddings.py \
-    --model_name_or_path facebook/contriever-msmarco \
-    --output_dir contriever_msmarco_embeddings  \
-    --passages $PASSAGES \
-    --shard_id 0 --num_shards 1
 
 # Run the query-X-document retrieval using FAISS (40 minutes)
 NUM_DOCS=$2
 python contriever/passage_retrieval.py \
     --model_name_or_path facebook/contriever-msmarco \
     --passages $PASSAGES \
-    --passages_embeddings "contriever_msmarco_embeddings/*" \
+    --passages_embeddings "contriever_msmarco_embeddings/wikipedia_embeddings/*" \
     --data lost-in-the-middle/qa_data/nq-open-oracle.jsonl \
     --output_dir contriever_msmarco_nq \
     --n_docs $NUM_DOCS

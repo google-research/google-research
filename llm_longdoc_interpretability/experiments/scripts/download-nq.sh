@@ -18,7 +18,8 @@
 git clone https://github.com/nelson-liu/lost-in-the-middle.git
 
 # Decompress the data.
-gunzip lost-in-the-middle/qa_data/nq-open-oracle.jsonl.gz
+# gunzip lost-in-the-middle/qa_data/nq-open-oracle.jsonl.gz
+gunzip lost-in-the-middle/qa_data/30_total_documents/nq-open-30_total_documents_gold_at_0.jsonl.gz
 
 # The data to run the majority of the original experiments can be found in
 # /qa_data/ with the prefetched relevant and filtered documents in the three files
