@@ -744,7 +744,7 @@ class AntheaError {
 /**
  * A seeded random number generator based on C++ std::minstd_rand. Note that
  * using seed=0 is a special case that results in always returning 0. Because
- * this class is only used for shuffling (see AntheaEval.deterministicShuffle),
+ * this class is only used for shuffling (see AntheaEval.pseudoRandomShuffle),
  * using seed=0 effectively disables shuffling.
  */
 class AntheaDeterministicRandom {
@@ -913,16 +913,15 @@ class AntheaEval {
   }
 
   /**
-   * Shuffles an array deterministically using the given seed. Using seed=0
-   * results in no shuffling.
+   * Shuffles an array using the given pseudo-random number generator.
+   * If the generator always returns the same value, no shuffling occurs.
    * @param {!Array<!Object>} data
-   * @param {number} seed
+   * @param {!AntheaDeterministicRandom} pseudoRandNumGenerator
    * @return {!Array<!Object>}
    */
-  deterministicShuffle(data, seed) {
-    const prng = new AntheaDeterministicRandom(seed);
+  static pseudoRandomShuffle(data, pseudoRandNumGenerator) {
     const dataWithRandoms =
-        data.map((x) => ({element: x, random: prng.next()}));
+        data.map((x) => ({element: x, random: pseudoRandNumGenerator.next()}));
     dataWithRandoms.sort((a, b) => a.random - b.random);
     return dataWithRandoms.map((x) => x.element);
   }
@@ -3879,6 +3878,101 @@ class AntheaEval {
   }
 
   /**
+   * Checks whether all expected docsys indices are present. For SIDE_BY_SIDE
+   * templates, also checks that docsys pairs in the input are still adjacent
+   * in the given order.
+   * @param {number} dataLength The length of the input data.
+   * @param {!Array<number>} dataPresentationOrder A permutation of input data
+   *     indices.
+   * @param {number} groupSize The size of chunks that must remain contiguous.
+   * @return {boolean}
+   */
+  validateDataPresentationOrder(dataLength, dataPresentationOrder, groupSize) {
+    if (dataLength !== dataPresentationOrder.length) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          `Presentation order length (${
+              dataPresentationOrder
+                  .length}) does not match input data length (${
+              dataLength})!`);
+      return false;
+    }
+    const providedIndices = new Set(dataPresentationOrder);
+    const expectedIndices = Array.from({length: dataLength}, (v, i) => i);
+    const hasAllExpectedIndices = expectedIndices.every((v) => providedIndices.has(v));
+    if (!hasAllExpectedIndices) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          'Presentation order is missing one or more expected indices!');
+      return false;
+    }
+    if (groupSize > 1) {
+      if (dataPresentationOrder.length % groupSize !== 0) {
+        this.manager_.log(
+            this.manager_.ERROR,
+            `Input data length prevents forming groups of size ${groupSize}!`);
+        return false;
+      }
+      for (let i = 0; i < dataPresentationOrder.length; i += groupSize) {
+        const sortedDataGroup =
+            dataPresentationOrder.slice(i, i + groupSize).sort();
+        if (sortedDataGroup.at(-1) - sortedDataGroup[0] !== groupSize - 1) {
+          this.manager_.log(
+              this.manager_.ERROR, 'Presentation order separates some groups!');
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Creates a random presentation order, by shuffling the order of groups and
+   * the order of data within each group.
+   * @param {number} dataLength The length of the input data.
+   * @param {number} groupSize The size of groups that should remain contiguous.
+   * @param {!AntheaDeterministicRandom} pseudoRandNumGenerator A random number generator.
+   * @return {!Array<number>}
+   */
+  randomPresentationOrder(dataLength, groupSize, pseudoRandNumGenerator) {
+    const dataPresentationOrder = [];
+    // First decide the order in which to show each group.
+    const groupPresentationOrder = AntheaEval.pseudoRandomShuffle(
+        Array.from({length: dataLength / groupSize}, (v, i) => i),
+        pseudoRandNumGenerator);
+    if (groupSize === 1) {
+      return groupPresentationOrder;
+    }
+    // If groups have multiple items, shuffle within each group.
+    const groupOffsets = Array.from({length: groupSize}, (v, i) => i);
+    groupPresentationOrder.forEach(
+        (groupIdx) => dataPresentationOrder.push(...AntheaEval.pseudoRandomShuffle(
+            groupOffsets.map((offset) => offset + groupIdx * groupSize),
+            pseudoRandNumGenerator)));
+    return dataPresentationOrder;
+  }
+
+  /**
+   * If the JSON parameters provide a presentation order, returns
+   * it. If not but a non-zero shuffle_seed is provided, produces a random
+   * presentation order. Otherwise, returns an unshuffled presentation order.
+   * @param {!Jsonable} parameters The JSON parameters.
+   * @param {number} dataLength The length of the input data.
+   * @param {number} groupSize The size of groups that should remain contiguous.
+   * @return {!Array<number>}
+   */
+  getOrCreateDataPresentationOrder(parameters, dataLength, groupSize) {
+    // A seed of 0 will result in no shuffling.
+    const pseudoRandNumGenerator =
+        new AntheaDeterministicRandom(parameters.shuffle_seed || 0);
+    // If a presentation order is provided, the random number generator is not
+    // used.
+    const dataPresentationOrder = parameters.presentation_order ||
+        this.randomPresentationOrder(
+            dataLength, groupSize, pseudoRandNumGenerator);
+    return dataPresentationOrder;
+  }
+  /**
    * Builds HTML for target subparagraphs.
    * Iterates over the provided target subparagraphs, constructs HTML for each,
    * and accumulates the result in `tgtSpannified`. Also updates the `segment` object
@@ -4054,18 +4148,28 @@ class AntheaEval {
     let priorResults = [];
     let priorRaters = [];
 
-    const stepSize = config.SIDE_BY_SIDE ? 2 : 1;
-    if (config.SIDE_BY_SIDE) {
-      const validationResult = this.validateSideBySideData(projectData, stepSize);
-      if (!validationResult) {
-        return;
-      }
+    // The size of groups meant to be evaluated together. Shuffling will not
+    // break up these groups.
+    const groupSize = config.SIDE_BY_SIDE ? 2 : 1;
+    if (config.SIDE_BY_SIDE &&
+        !this.validateSideBySideData(projectData, groupSize)) {
+      return;
     }
 
-    // The order of the two targets in the side-by-side mode.
-    const tgtsShuffleSeed = parameters.shuffle_seed || 0;
-    const pseudoRandNumGenerator = new AntheaDeterministicRandom(tgtsShuffleSeed);
-    for (let i = 0; i < projectData.length; i += stepSize) {
+    const dataPresentationOrder = this.getOrCreateDataPresentationOrder(
+        parameters, projectData.length, groupSize);
+    if (!this.validateDataPresentationOrder(
+            projectData.length, dataPresentationOrder, groupSize)) {
+      return;
+    }
+    // Recover presentation order of docsys groups.
+    const groupPresentationOrder = [];
+    for (let i = 0; i < dataPresentationOrder.length; i += groupSize) {
+      groupPresentationOrder.push(
+          Math.floor(dataPresentationOrder[i] / groupSize));
+    }
+
+    for (let i = 0; i < projectData.length; i += groupSize) {
       const docsys = projectData[i];
       const doc = {'docsys': docsys};
       const docsys2 = config.SIDE_BY_SIDE ? projectData[i + 1] : null;
@@ -4085,7 +4189,9 @@ class AntheaEval {
       const tgtsOrder = [1];
       const tgtRows = [docTextTgtRow];
       if (config.SIDE_BY_SIDE) {
-        const tgt2SpliceIndex = pseudoRandNumGenerator.next() < 0.5 ? 1 : 0;
+        // Even indices mean that the first docsys should be on the left.
+        const tgt2SpliceIndex =
+            dataPresentationOrder.indexOf(i) % 2 === 0 ? 1 : 0;
         tgtsOrder.splice(tgt2SpliceIndex, 0, 2);
         tgtRows.splice(tgt2SpliceIndex, 0, docTextTgtRow2);
       }
@@ -4093,8 +4199,10 @@ class AntheaEval {
                                   null, docTextSrcRow,
                                   ...tgtRows,
                                   googdom.createDom('td', 'anthea-document-eval-cell', doc.eval));
-      // Hide all docs for now; we will un-hide the first one later.
-      doc.row.style.display = 'none';
+      // Hide all but the first group.
+      if (i !== groupSize * groupPresentationOrder[0]) {
+        doc.row.style.display = 'none';
+      }
       if (config.TARGET_SIDE_ONLY) {
         docTextSrcRow.style.display = 'none';
       }
@@ -4299,22 +4407,13 @@ class AntheaEval {
       }
     }
 
-    // If a non-zero seed is provided, deterministically shuffle the
-    // presentation order. Otherwise, present the documents in the input order.
-    const shuffle_seed = parameters.shuffle_seed || 0;
-    const presentationOrder = this.deterministicShuffle(
-        Array.from({length: this.docs_.length}, (v, i) => i), shuffle_seed);
-
-    // Show the first document.
-    this.docs_[presentationOrder[0]].row.style.display = '';
-
     this.cursor = new AntheaCursor(
         this.segments_,
         !!config.TARGET_SIDE_ONLY,
         !!config.TARGET_SIDE_FIRST,
         !!config.SIDE_BY_SIDE,
         this.updateProgressForSegment.bind(this),
-        presentationOrder);
+        groupPresentationOrder);
 
     if (noteToRaters) {
       this.config.instructions +=
