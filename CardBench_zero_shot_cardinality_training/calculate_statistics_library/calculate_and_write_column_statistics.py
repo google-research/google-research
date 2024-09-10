@@ -53,7 +53,7 @@ def calculate_and_write_column_statistics_internal(
       )
   )
   partitioned_predicate = build_partitioned_predicate(
-      is_partitioned, partition_column, partition_column_type
+      is_partitioned, tablename, partition_column, partition_column_type
   )
 
   # Find columns we need to collect stats for. These are the columns of the

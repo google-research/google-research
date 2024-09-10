@@ -71,14 +71,15 @@ sample_projectname_dataset_name_4k = (
 )
 
 
-def calculcate_and_write_statistics(_):
+def calculate_statistics_and_save_to_database(_):
   """Calculate statistics for a set of datasets and write them to the metadata database."""
 
   # The list of datasets of a project to calculate statistics for
   # The project name and dataset name are Big Query terminology. Each
   # dataset containes multiple tables.
-  projectname = "bq-cost-models-exp"
-  datasetnames = ["tpch_10G"]
+
+  datasetnames = configuration.DATASETNAMES
+  projectname = configuration.PROJECTNAME
 
   # The code is designed to work with BigQuery but to also be extensible to
   # other databases. Further the code uses two databases one that contains the
@@ -95,6 +96,7 @@ def calculcate_and_write_statistics(_):
   }
 
   for datasetname in datasetnames:
+    print("\n\n\n<><><><> Calculating statistics for dataset: ", datasetname)
     collect_and_write_table_information(projectname, datasetname, dbs)
     collect_and_write_column_information(projectname, datasetname, dbs)
     calculate_and_write_column_statistics(projectname, datasetname, dbs)
@@ -115,4 +117,4 @@ def calculcate_and_write_statistics(_):
 
 
 if __name__ == "__main__":
-  app.run(calculcate_and_write_statistics)
+  app.run(calculate_statistics_and_save_to_database)

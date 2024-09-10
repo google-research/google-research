@@ -38,6 +38,7 @@ DIRECTORY_PATH_JSON_FILES = configuration.DIRECTORY_PATH_JSON_FILES
 Operator = query_generator.Operator
 generate_queries = query_generator.generate_queries
 
+
 WOKRLOAD_DEFINITION_TABLE = configuration.WORKLOAD_DEFINITION_TABLE
 
 
@@ -123,24 +124,27 @@ def get_table_partitioning_predicates(
     partitioning_predidate_per_table[row["table_name"]] = (
         build_partitioned_predicate(
             row["is_partitioned"],
+            row["table_name"],
             row["partition_column"],
             row["partition_column_type"],
+            True
         )
     )
   return partitioning_predidate_per_table
 
 
-def generate_and_write_queries_to_file(_):
+def generate_queries_and_save_to_file(_):
   """Generate and write queries to file."""
-  projectnames_datasetnames = []
-  projectnames_datasetnames.append(["bq-cost-models-exp", "tpch_10G"])
+
+  projectname = configuration.PROJECTNAME
+  datasetnames = configuration.DATASETNAMES
 
   dbs = {
       "metadata_dbtype": DBType.BIGQUERY,
       "metadata_dbclient": create_database_connection(DBType.BIGQUERY),
   }
 
-  for projectname, datasetname in projectnames_datasetnames:
+  for datasetname in datasetnames:
     print(f"Generating queries for: {projectname}, {datasetname}")
 
     next_workload_id = get_next_workload_id(dbs)
@@ -164,16 +168,16 @@ def generate_and_write_queries_to_file(_):
             Operator.IS_NOT_NULL,
             Operator.IS_NULL,
         ],
-        "num_queries_to_generate": 1000,
+        "num_queries_to_generate": 100,
         "max_nunmber_joins": 3,
-        "max_number_filter_predicates": 2,
+        "max_number_filter_predicates": 4,
         "max_number_aggregates": 0,
         "max_number_group_by": 0,
         "max_cols_per_agg": 0,
         "group_by_threshold": 0,
         "int_neq_predicate_threshold": 100,
         "seed": 0,
-        "complex_predicates": False,
+        "complex_predicates": True,
         "recreate_query_file_if_exist": True,
         "always_create_the_maximum_number_of_joins": False,
         "always_create_the_maximum_number_of_aggregates": False,
@@ -253,4 +257,4 @@ def generate_and_write_queries_to_file(_):
 
 
 if __name__ == "__main__":
-  app.run(generate_and_write_queries_to_file)
+  app.run(generate_queries_and_save_to_file)

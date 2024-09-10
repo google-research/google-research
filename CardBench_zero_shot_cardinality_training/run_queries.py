@@ -104,7 +104,6 @@ def run_queries(argv):
     for line in lines:
       queries_to_run.append(line)
 
-  num_queries_run = 0
   if not INTERNAL:
     num_queries_run = run_queries_worker(
         insert_result_query_preamble,
@@ -164,7 +163,7 @@ def run_queries_worker(
       values = values + ", "
     cleaned_query_string = clean_query_string(query_strings[i])
     values = (
-        f"{values} ({workload_id}, {query_run_id}, '{cleaned_query_string}',"
+        f"{values} ({workload_id}, {query_run_id}, \"{cleaned_query_string}\","
         f" '{database_query_ids[i]}', {cardinalities[i]})"
     )
   query = insert_result_query_preamble + values

@@ -1,8 +1,8 @@
-# Before using replace project_name.dataset_name. with your project 
+# Before using replace project_name.table_name. with your project 
 # and dataset names. These shoud match the names in the configuration.py file.
 
 -- TABLES_INFO_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.tables_info`(
+CREATE OR REPLACE TABLE `project_name.table_name.tables_info`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -16,7 +16,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.tables_info`(
   partition_column_type STRING);
 
 -- COLUMNS_INFO_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_info`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_info`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -26,7 +26,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_info`(
   );
 
 -- COLUMNS_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -38,7 +38,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_stats`(
   );
 
 -- COLUMNS_INT64_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_int64_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_int64_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -52,7 +52,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_int64_extra_stats`(
   );
 
 -- COLUMNS_FLOAT64_EXTRA_STATS_TABLE 
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_float64_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_float64_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -67,7 +67,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_float64_extra_stats`(
 
 -- COLUMNS_NUMERIC_EXTRA_STATS_TABLE
 -- COLUMNS_DECIMAL_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_numeric_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_numeric_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -82,7 +82,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_numeric_extra_stats`(
 
 -- COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE
 -- COLUMNS_BIGDECIMAL_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_bignumeric_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_bignumeric_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -96,7 +96,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_bignumeric_extra_stat
   );
 
 -- COLUMNS_STRING_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_string_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_string_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -112,7 +112,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_string_extra_stats`(
   did_not_find_enough_for_freq_word_picked_200_at_random BOOL);
 
 -- COLUMNS_DATE_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_date_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_date_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -125,7 +125,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_date_extra_stats`(
   );
 
 -- COLUMNS_DATETIME_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_datetime_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_datetime_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -138,7 +138,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_datetime_extra_stats`
   );
 
 -- COLUMNS_TIME_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_time_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_time_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -151,7 +151,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_time_extra_stats`(
   );
 
 -- COLUMNS_TIMESTAMP_EXTRA_STATS_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_timestamp_extra_stats`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_timestamp_extra_stats`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -164,7 +164,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_timestamp_extra_stats
   );
 
 -- CORRELATION_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.columns_correlation`(
+CREATE OR REPLACE TABLE `project_name.table_name.columns_correlation`(
   project_name STRING,
   dataset_name STRING,
   table_name_a STRING,
@@ -174,7 +174,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.columns_correlation`(
   pearson_correlation FLOAT64);
 
 -- PK_FK_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.pk_fk`(
+CREATE OR REPLACE TABLE `project_name.table_name.pk_fk`(
   project_name STRING,
   dataset_name STRING,
   primary_key_table_name STRING,
@@ -184,7 +184,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.pk_fk`(
   column_type STRING);
 
 -- COLUMNS_HISTOGRAM_TABLE
-CREATE OR REPLACE TABLE `project_name.dataset_name.histograms_table`(
+CREATE OR REPLACE TABLE `project_name.table_name.histograms_table`(
   project_name STRING,
   dataset_name STRING,
   table_name STRING,
@@ -196,7 +196,7 @@ CREATE OR REPLACE TABLE `project_name.dataset_name.histograms_table`(
   approx_quantiles_500 ARRAY<STRING>);
 
 -- WORKLOAD_DEFINITION_TABLE
-CREATE TABLE `project_name.dataset_name.workload_definition`(
+CREATE OR REPLACE TABLE `project_name.table_name.workload_definition`(
   project_name STRING,
   dataset_name STRING,
   workload_id INT64,
@@ -207,7 +207,7 @@ CREATE TABLE `project_name.dataset_name.workload_definition`(
 );
 
 -- QUERY_RUN_INFORMATION
-CREATE TABLE `project_name.dataset_name.query_run_information`(
+CREATE OR REPLACE TABLE `project_name.table_name.query_run_information`(
   workload_id INT64,
   query_run_id INT64,
   query_string STRING,

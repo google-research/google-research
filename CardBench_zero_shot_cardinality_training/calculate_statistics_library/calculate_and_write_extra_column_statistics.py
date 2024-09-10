@@ -60,7 +60,7 @@ def calculate_and_write_extra_column_statistics_internal_string(
         )
     )
     partitioned_predicate = build_partitioned_predicate(
-        is_partitioned, partition_column, partition_column_type
+        is_partitioned, tablename, partition_column, partition_column_type
     )
     rowres = {}
     query = (
@@ -161,7 +161,7 @@ def calculate_and_write_extra_column_statistics_internal(
         )
     )
     partitioned_predicate = build_partitioned_predicate(
-        is_partitioned, partition_column, partition_column_type
+        is_partitioned, tablename, partition_column, partition_column_type
     )
     rowres = {}
     query = (
@@ -237,17 +237,20 @@ def calculate_and_write_extra_column_statistics_internal(
         or columntype == "NUMERIC"
     ):
       mean_val = rowres_firstquery["meanval"]
-      if mean_val in ["-inf", "inf", None] or math.isinf(mean_val):
+      if mean_val in ["-inf", "inf", None, "nan"] or math.isinf(mean_val):
         mean_val = "NULL"
       else:
         mean_val = str(mean_val)
-        if mean_val == "inf":
+        if mean_val in ["inf", "nan"]:
           mean_val = "NULL"
 
     allnulls = "false"
     if mean_val == "NULL" or max_val == "NULL" or min_val == "NULL":
       # if min, max or mean contains then the all null flag is set
       allnulls = "true"
+      mean_val = "NULL"
+      min_val = "NULL"
+      max_val = "NULL"
 
     if newvals:
       newvals = newvals + ", "
@@ -276,7 +279,7 @@ def calculate_and_write_extra_column_statistics_internal(
       else:
         newvals += ".0, "
       newvals += "" + mean_val
-    else:  # TODO(chronis): add casting
+    else:
       if columntype in ["DATE", "DATETIME", "TIMESTAMP", "TIME"]:
         newvals += "CAST('" + min_val + "' AS " + columntype + "), "
         newvals += "CAST('" + max_val + "' AS " + columntype + ") "

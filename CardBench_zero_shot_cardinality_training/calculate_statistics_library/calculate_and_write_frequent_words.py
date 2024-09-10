@@ -58,7 +58,7 @@ def calculate_and_write_frequent_words_internal_bq(
         )
     )
     partitioned_predicate = build_partitioned_predicate(
-        is_partitioned, partition_column, partition_column_type
+        is_partitioned, tablename, partition_column, partition_column_type
     )
     # get size of table
     query = (
@@ -86,8 +86,10 @@ def calculate_and_write_frequent_words_internal_bq(
         f" having cnt >=  {threshold} )"
     )
     success = False
+    tries_remaining = 2
     feqwords_array = []
-    while not success:
+    while not success and tries_remaining > 0:
+      tries_remaining -= 1
       try:
         queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
         feqwords_array = get_query_result_first_row(

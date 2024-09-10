@@ -57,7 +57,7 @@ def calculate_and_write_unique_values_internal(
         )
     )
     partitioning_predicate = build_partitioned_predicate(
-        is_partitioned, partition_column, partition_column_type
+        is_partitioned, tablename, partition_column, partition_column_type
     )
     queryjob = []
     query = (
@@ -79,7 +79,7 @@ def calculate_and_write_unique_values_internal(
         f"UPDATE `{extra_stats_table}` SET uniq_vals = (( SELECT"
         f" ARRAY_AGG(distinct  `{columnname}`) as val  FROM"
         f" `{projectname}.{datasetname}.{tablename}` WHERE"
-        f" {partitioning_predicate}))"
+        f" {partitioning_predicate} and `{columnname}` is not null))"
     )
 
     query = (

@@ -393,6 +393,7 @@ class GenQuery:
           return f'{t} {alias_t}'
       return f'{t}'
 
+    join_tables = set()
     if self.inner_groupby is not None:
       join_str = (
           f'({self.inner_groupby.generate_sql_query(table_identifier, partitioning_predicate_per_table, semicolon=False)})'
@@ -406,6 +407,7 @@ class GenQuery:
           f' {repl_alias(self.start_t)}'
       )
 
+      join_tables.add(self.start_t)
       for table_l, column_l, table_r, column_r, left_outer in self.joins:
         join_kw = 'JOIN'
         if left_outer:
@@ -420,23 +422,29 @@ class GenQuery:
             for col_l, col_r in zip(column_l, column_r)
         ])
         join_str += f' ON {join_cond}'
+        join_tables.add(table_l)
+        join_tables.add(table_r)
 
     limit_str = ''
     if self.limit is not None:
       limit_str = f' LIMIT {self.limit}'
 
-    bq_partitioning_preds = ''
-    if repl_alias(self.start_t) in partitioning_predicate_per_table:
-      if partitioning_predicate_per_table[repl_alias(self.start_t)]:
-        bq_partitioning_preds += (
-            ' AND '
-            + repl_alias(self.start_t)
-            + '.'
-            + partitioning_predicate_per_table[repl_alias(self.start_t)]
-        )
+    partitioning_preds = ''
+
+    for table in join_tables:
+      if repl_alias(table) in partitioning_predicate_per_table:
+        part_pred = partitioning_predicate_per_table[repl_alias(table)]
+        if part_pred is None:
+          continue
+        if part_pred in partitioning_preds:
+          continue
+        partitioning_preds += f' AND {part_pred}'
+    if partitioning_preds and not predicate_str:
+      predicate_str = 'WHERE '
+      partitioning_preds = partitioning_preds.replace('AND', '', 1)
     sql_query = (
         f'SELECT {aggregation_str} FROM'
-        f' {join_str} {predicate_str}{bq_partitioning_preds}{group_by_str}{having_str}{order_by_str}{limit_str}'
+        f' {join_str} {predicate_str}{partitioning_preds}{group_by_str}{having_str}{order_by_str}{limit_str}'
         .strip()
     )
 
@@ -1116,7 +1124,7 @@ def sample_predicate(
     allowed_predicate_operators,
     complex_predicate=False,
     p_like=0.5,
-    p_is_not_null=0.1,
+    p_is_not_null=0.01,
     p_in=0.5,
     p_between=0.0,
     p_not_like=0.5,
@@ -1322,12 +1330,11 @@ def sample_predicates(
   """
   if not possible_columns:
     return None
+
   # sample random predicates
   # weight the prob of being sampled by number of columns in table
   # make sure we do not just have conditions on one table with many columns
-  weights = np.array(
-      [1 / table_predicates[t] for t, _ in possible_columns]
-  )
+  weights = np.array([1 / table_predicates[t] for t, _ in possible_columns])
   weights /= np.sum(weights)
   # we cannot sample more predicates than available columns
   no_predicates = min(no_predicates, len(possible_columns))

@@ -24,7 +24,7 @@ from CardBench_zero_shot_cardinality_training import database_connector
 run_query = database_connector.run_query
 DBType = database_connector.DBType
 
-tables_info_table = configuration.TABLES_INFO_TABLE
+TABLES_INFO_TABLE = configuration.TABLES_INFO_TABLE
 
 
 def remove_anything_after_first_parenthesis(column_type):
@@ -69,23 +69,16 @@ def get_partitioning_info(
     dbtype,
 ):
   """Get partitioning infor stored in BQ tables_info_table."""
-  if not table_info_cache:
+  requested_key = f"{projectname}.{datasetname}.{tablename}"
+  if requested_key not in table_info_cache:
     query = (
         "SELECT project_name, dataset_name, table_name, row_count, "
         "is_partitioned, partition_column, partition_column_type "
-        "FROM `"
-        + tables_info_table
-        + "`"
+        f"FROM `{TABLES_INFO_TABLE}` where dataset_name = '{datasetname}'"
     )
     queryjob = run_query(dbtype, query, dbclient)
     for rowres in queryjob:
-      key = (
-          rowres["project_name"]
-          + "."
-          + rowres["dataset_name"]
-          + "."
-          + rowres["table_name"]
-      )
+      key = f"{rowres['project_name']}.{rowres['dataset_name']}.{rowres['table_name']}"
       table_info_cache[key] = {
           "project_name": projectname,
           "dataset_name": datasetname,
@@ -95,33 +88,49 @@ def get_partitioning_info(
           "partition_column": rowres["partition_column"],
           "partition_column_type": rowres["partition_column_type"],
       }
-  key = projectname + "." + datasetname + "." + tablename
   return (
-      table_info_cache[key]["is_partitioned"],
-      table_info_cache[key]["partition_column"],
-      table_info_cache[key]["partition_column_type"],
-      table_info_cache[key]["row_count"],
+      table_info_cache[requested_key]["is_partitioned"],
+      table_info_cache[requested_key]["partition_column"],
+      table_info_cache[requested_key]["partition_column_type"],
+      table_info_cache[requested_key]["row_count"],
   )
 
 
 def build_partitioned_predicate(
-    is_partitioned, part_col, part_col_type
+    is_partitioned,
+    table,
+    part_col,
+    part_col_type,
+    use_table_name = False,
 ):
   """Build predicate to bypass BQ partitioning restriction."""
   # When a table is partitioned BQ does allow querying without a predicate on
   # the partition column. This function builds a predicate that is always true.
-  if not bool(is_partitioned):
+  if not is_partitioned:
     return "1 = 1"
-  if part_col_type == "DATE":
-    pred = " " + part_col + " > '1000-01-01' "
+  elif part_col_type == "DATE":
+    if use_table_name:
+      pred = f"{table}.{part_col} > '1000-01-01' "
+    else:
+      pred = f"{part_col} > '1000-01-01' "
   elif part_col_type == "TIMESTAMP":
-    pred = " " + part_col + "  > '1000-01-01 00:00:00' "
+    if use_table_name:
+      pred = f"{table}.{part_col} > '1000-01-01 00:00:00' "
+    else:
+      pred = f"{part_col} > '1000-01-01 00:00:00' "
   elif part_col_type == "DATETIME":
-    pred = " " + part_col + "  > '1000-01-01 00:00:00' "
+    if use_table_name:
+      pred = f"{table}.{part_col} > '1000-01-01 00:00:00' "
+    else:
+      pred = f"{part_col} > '1000-01-01 00:00:00' "
   elif part_col_type in ["INT32", "INT64", "UINT32", "UINT64"]:
-    pred = " (" + part_col + " >= 0 OR " + part_col + " < 0)"
+    if use_table_name:
+      pred = f"{table}.{part_col}  <= cast('+inf' as float64) "
+    else:
+      pred = f"{part_col}  <= cast('+inf' as float64) "
   else:
     raise ValueError(
         "wrong coltype " + str(part_col) + " " + str(part_col_type)
     )
+
   return pred

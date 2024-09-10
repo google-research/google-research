@@ -15,8 +15,14 @@
 
 """Table names that store statistics."""
 
-# Before using replae project_name.dataset_name with your project
-# and dataset names
+# Before using replace:
+# 1) project_name.table_name with your project and dataset name
+# for the metadata database.
+# 2) project_name.table_name_sampled_tables with your project and dataset name
+# for the sample table database.
+# 3) the json, query and training querygraph paths
+# 4) the projectname and datasetnames of the data databases.
+
 
 import enum
 
@@ -25,58 +31,64 @@ BQ_INFO_SCHEMA_TABLES = ".INFORMATION_SCHEMA.TABLES"
 BQ_INFO_SCHEMA_COLUMNS = ".INFORMATION_SCHEMA.COLUMNS"
 
 # Tables names where calculated statistics are stored
-TABLES_INFO_TABLE = "project_name.dataset_name.tables_info"
-COLUMNS_INFO_TABLE = "project_name.dataset_name.columns_info"
-COLUMNS_STATS_TABLE = "project_name.dataset_name.columns_stats"
+TABLES_INFO_TABLE = "project_name.table_name.tables_info"
+COLUMNS_INFO_TABLE = "project_name.table_name.columns_info"
+COLUMNS_STATS_TABLE = "project_name.table_name.columns_stats"
 COLUMNS_INT64_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_int64_extra_stats"
+    "project_name.table_name.columns_int64_extra_stats"
 )
 COLUMNS_FLOAT64_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_float64_extra_stats"
+    "project_name.table_name.columns_float64_extra_stats"
 )
 COLUMNS_NUMERIC_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_numeric_extra_stats"
+    "project_name.table_name.columns_numeric_extra_stats"
 )
 # alias for numeric
 COLUMNS_DECIMAL_EXTRA_STATS_TABLE = COLUMNS_NUMERIC_EXTRA_STATS_TABLE
 COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_bignumeric_extra_stats"
+    "project_name.table_name.columns_bignumeric_extra_stats"
 )
 # alias for bignumeric
 COLUMNS_BIGDECIMAL_EXTRA_STATS_TABLE = COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE
 COLUMNS_STRING_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_string_extra_stats"
+    "project_name.table_name.columns_string_extra_stats"
 )
 COLUMNS_DATE_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_date_extra_stats"
+    "project_name.table_name.columns_date_extra_stats"
 )
 COLUMNS_DATETIME_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_datetime_extra_stats"
+    "project_name.table_name.columns_datetime_extra_stats"
 )
 COLUMNS_TIME_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_time_extra_stats"
+    "project_name.table_name.columns_time_extra_stats"
 )
 COLUMNS_TIMESTAMP_EXTRA_STATS_TABLE = (
-    "project_name.dataset_name.columns_timestamp_extra_stats"
+    "project_name.table_name.columns_timestamp_extra_stats"
 )
-CORRELATION_TABLE = "project_name.dataset_name.columns_correlation"
-PK_FK_TABLE = "project_name.dataset_name.pk_fk"
-COLUMNS_HISTOGRAM_TABLE = "project_name.dataset_name.histograms_table"
+CORRELATION_TABLE = "project_name.table_name.columns_correlation"
+PK_FK_TABLE = "project_name.table_name.pk_fk"
+COLUMNS_HISTOGRAM_TABLE = "project_name.table_name.histograms_table"
 # 4k row tables
-SAMPLE_PROJECTNAME_DATASET_NAME_4K = "project_name.samples_tables_dataset_name."
+SAMPLE_PROJECTNAME_DATASET_NAME_4K = "project_name.table_name_sampled_tables."
 
-WORKLOAD_DEFINITION_TABLE = "project_name.dataset_name.workload_definition"
+WORKLOAD_DEFINITION_TABLE = "project_name.table_name.workload_definition"
 
-DIRECTORY_PATH_JSON_FILES = "X"
+DIRECTORY_PATH_JSON_FILES = "json_files_path"
 
-DIRECTORY_PATH_QUERY_FILES = "X"
+DIRECTORY_PATH_QUERY_FILES = "query_files_path"
+
+DIRECTORY_TRAINING_QUERYGRAPH_OUTPUT = "training_querygraph_path"
+
+WORKLOAD_DEFINITION_TABLE = "project_name.table_name.workload_definition"
+
+QUERY_RUN_INFORMATION_TABLE = "project_name.table_name.query_run_information"
+
+TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = "project_name.table_name."
+
+PROJECTNAME = "project_name"
+DATASETNAMES = ["dataset_name_1", "dataset_name_2"]
 
 
-WORKLOAD_DEFINITION_TABLE = "project_name.dataset_name.workload_definition"
-
-QUERY_RUN_INFORMATION_TABLE = "project_name.dataset_name.query_run_information"
-
-TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = "project_name.dataset_name."
 ##############################################################################
 
 TYPES_TO_TABLES = {

@@ -48,8 +48,8 @@ def write_dataset_statistics_to_json_files(_):
   # dataset containes multiple tables. The json files are required by
   # the query generator as input.
 
-  projectname = "bq-cost-models-exp"
-  datasetnames = ["tpch_10G"]
+  projectname = configuration.PROJECTNAME
+  datasetnames = configuration.DATASETNAMES
 
   dbs = {
       "metadata_dbtype": DBType.BIGQUERY,

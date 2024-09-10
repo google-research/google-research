@@ -51,7 +51,7 @@ def create_table_samples_fixsize_internal_bq(
   """Calculates tabel sample, Big Query version."""
   try:
     partition_pred = build_partitioned_predicate(
-        is_partitioned, partition_column, partition_column_type
+        is_partitioned, tablename, partition_column, partition_column_type
     )
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(e)

@@ -54,7 +54,7 @@ def calculate_and_write_column_histograms_internal_bq(
   partition_column = columns[0]["partition_column"]
   partition_column_type = columns[0]["partition_column_type"]
   partitioned_predicate = build_partitioned_predicate(
-      is_partitioned, partition_column, partition_column_type
+      is_partitioned, tablename, partition_column, partition_column_type
   )
 
   # Generate approx quantitles for all columns.

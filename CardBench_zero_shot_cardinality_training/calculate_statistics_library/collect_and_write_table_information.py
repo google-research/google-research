@@ -58,12 +58,8 @@ def collect_and_write_table_information_bq(
     print(">>>> " + str(e))
     print(">>>> " + query)
   for row in queryjob:
-    ispart = "false"
-    if row["ispart"] == "YES":
-      ispart = "true"
-    isclust = "false"
-    if row["isclust"] != "null":
-      isclust = "true"
+    ispart = (row["ispart"] == "YES")
+    isclust = (row["isclust"] != "null")
 
     table_name = row["table_name"]
     query2 = (
@@ -75,7 +71,7 @@ def collect_and_write_table_information_bq(
 
     part_col_name = "empty"
     part_col_type = "empty"
-    if ispart == "true":
+    if ispart:
       query3 = f"""
           SELECT
             (CASE ((
@@ -83,14 +79,14 @@ def collect_and_write_table_information_bq(
                   FROM `{projectname}.{datasetname}.INFORMATION_SCHEMA.COLUMNS`
                   WHERE table_name = '{table_name}' AND is_partitioning_column = 'YES'))
              WHEN 1 THEN (( SELECT column_name FROM `{projectname}.{datasetname}.INFORMATION_SCHEMA.COLUMNS` WHERE table_name = '{table_name}' AND is_partitioning_column = 'YES'))
-             ELSE "empty"
+             ELSE NULL
              END) as part_col_name,
              (CASE ((
                   SELECT COUNT(*)
                   FROM `{projectname}.{datasetname}.INFORMATION_SCHEMA.COLUMNS`
                   WHERE table_name = '{table_name}' AND is_partitioning_column = 'YES'))
              WHEN 1 THEN (( SELECT data_type FROM `{projectname}.{datasetname}.INFORMATION_SCHEMA.COLUMNS` WHERE table_name = '{table_name}' AND is_partitioning_column = 'YES'))
-             ELSE "empty"
+             ELSE NULL
              END) as part_col_type
           """
       queryjob3 = run_query(dbtype, query3, dbclient)
