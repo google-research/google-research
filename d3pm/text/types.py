@@ -44,8 +44,7 @@ class DatasetInfo:
 
 
 def _convert_spec(spec):
-  return jax.ShapeDtypeStruct(
-      shape=spec.shape, dtype=spec.dtype.as_numpy_dtype, named_shape=spec.name)
+  return jax.ShapeDtypeStruct(shape=spec.shape, dtype=spec.dtype.as_numpy_dtype)
 
 
 def get_dataset_info(ds, vocab=None):
