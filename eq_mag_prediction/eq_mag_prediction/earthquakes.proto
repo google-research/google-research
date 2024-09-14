@@ -1,0 +1,410 @@
+// Copyright 2024 The Google Research Authors.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+edition = "2023";
+
+package eq_mag_prediction;
+
+// General types definitions
+message Date {
+  // Year of the date. Must be from 1 to 9999, or 0 to specify a date without
+  // a year.
+  optional int32 year = 1;
+  // Month of a year. Must be from 1 to 12, or 0 to specify a year without a
+  // month and day.
+  optional int32 month = 2;
+  // Day of a month. Must be from 1 to 31 and valid for the year and month, or 0
+  // to specify a year by itself or a year and month where the day isn't
+  // significant.
+  optional int32 day = 3;
+}
+
+message LatLng {
+  // The latitude in degrees. It must be in the range [-90.0, +90.0].
+  // (-- An API may allow a wider range and must convert them to normalized
+  //  values. --)
+  optional float latitude = 1;
+
+  // The longitude in degrees. It must be in the range [-180.0, +180.0].
+  // (-- An API may allow a wider range and must convert them to normalized
+  //  values. --)
+  optional float longitude = 2;
+}
+
+message TimeOfDay {
+  // Hours of day in 24 hour format. Should be from 0 to 23. An API may choose
+  // to allow the value "24:00:00" for scenarios like business closing time.
+  optional int32 hours = 1;
+  // Minutes of hour of day. Must be from 0 to 59.
+  optional int32 minutes = 2;
+  // Seconds of minutes of the time. Must normally be from 0 to 59. An API may
+  // allow the value 60 if it allows leap-seconds.
+  optional int32 seconds = 3;
+  // Fractions of seconds in nanoseconds. Must be from 0 to 999,999,999.
+  optional int32 nanos = 4;
+}
+
+// A record of a single earthquake event.
+// Next ID: 19
+message EarthquakeData {
+  // The data set this data came from.
+  string dataset = 1;
+
+  // An identifier of the agency which determined the record.
+  enum AgencyCode {
+    UNSPECIFIED = 0;
+    USGS = 1;
+    JMA = 2;
+  }
+
+  AgencyCode agency = 2;
+
+  // The origin time of the earthquake, in seconds since epoch. NOTE: The time
+  // is in UTC and not local time.
+  UncertainValue time = 3;
+
+  // The latitude of the hypocenter of the earthquake, in degrees.
+  UncertainValue latitude = 4;
+
+  // The longitude of the hypocenter of the earthquake, in degrees.
+  optional UncertainValue longitude = 5;
+  // The depth of the hypocenter, in kilometers. See additional details here:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  optional UncertainValue depth = 6;
+  repeated MagnitudeData magnitude = 7;
+
+  // The travel time table type, which provides some extra context for how the
+  // earthquake was located. See details in:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  enum TravelTimeTable {
+    UNSPECIFIED_TABLE = 0;
+    STANDARD_83A = 1;
+    SANRIKU = 2;
+    HOKKAIDO = 3;
+    KURILE_83A = 4;
+    STANDARD_JMA = 5;
+    KURILE_JMA = 6;
+  }
+
+  TravelTimeTable travel_time_table = 8;
+
+  // The method used to determine hypocenter location. See details in:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  enum HypocenterLocationPrecision {
+    UNSPECIFIED_PRECISION = 0;
+    DEPTH_FREE = 1;
+    DEPTH_SLICE = 2;
+    FIXED_DEPTH = 3;
+    DEPTH_PHASE = 4;
+    SP_TIME = 5;
+    POOR = 7;
+    HYPOCENTER_FIXED = 9;
+    MATCHED_FILTER = 10;
+  }
+
+  HypocenterLocationPrecision loc_precision = 9;
+
+  enum SubsidiaryInfo {
+    NONE = 0;
+    NATURAL_EARTHQUAKE = 1;
+    INSUFFICIENT_STATIONS = 2;
+    ARTIFICIAL_EVENT = 3;
+    ERUPTION_EARTHQUAKE = 4;
+    LOW_FEQUENCY_EARTHQUAKE = 5;
+  }
+
+  SubsidiaryInfo subsidiary_info = 10;
+
+  // A categorical maximum intensity field, which varied in different years. See
+  // details in:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  enum MaximumIntensity {
+    UNDEFINED = 0;
+    ONE = 1;
+    TWO = 2;
+    THREE = 3;
+    FOUR = 4;
+    FIVE = 5;
+    SIX = 6;
+    SEVEN = 7;
+    FIVE_LOWER = 8;
+    FIVE_UPPER = 9;
+    SIX_LOWER = 10;
+    SIX_UPPER = 11;
+    REMARKABLE = 12;
+    MODERATE = 13;
+    SMALL = 14;
+    LOCAL = 15;
+    FELT = 16;
+    SOME_PEOPLE = 17;
+  }
+
+  MaximumIntensity max_intensity = 11;
+
+  // The amount of damage of the earthquake. See details in:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  enum DamageClass {
+    UNKNOWN_DAMAGE = 0;
+    SLIGHT_DAMAGE = 1;
+    LIGHT_DAMAGE = 2;
+    TWO_FATALITIES = 3;
+    TWENTY_FATALITIES = 4;
+    TWO_HUNDRED_FATALITIES = 5;
+    TWO_THOUSANDS_FATALITIES = 6;
+    GRADE_INCLUDED = 7;
+  }
+
+  DamageClass damage_class = 12;
+
+  // The class of the tsunami generated (if generated). See details in:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  enum TsunamiClass {
+    UNKNOWN_TSUNAMI_DAMAGE = 0;
+    NO_TSUNAMI_DAMAGE = 1;
+    TSUNAMI_GENERATED = 2;
+    VERY_SLIGHT_TSUNAMI = 3;
+    SLIGHT_TSUNAMI = 4;
+    HUMAN_INJURY_TSUNAMI = 5;
+    OVER_400_KMS_TSUNAMI = 6;
+    OVER_500_KMS_TSUNAMI = 7;
+  }
+
+  TsunamiClass tsunami_class = 13;
+
+  // Number of the epicenter location district. See details in:
+  // https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+  int32 district_number = 14;
+
+  // Number of the epicenter location region.
+  int32 region_number = 15;
+
+  // Name of the epicenter location region.
+  string region_name = 16;
+
+  // Number of stations contributing to hypocenter determination.
+  int32 num_stations = 17;
+
+  enum HypocenterDeterminationPrecision {
+    UNKNOWN_PRECISION = 0;
+    HIGH = 1;
+    MEDIUM = 2;
+    AUTO_HIGHER = 3;
+    AUTO_INFERIOR = 4;
+    LOW = 5;
+    INFERIOR = 6;
+    FAR_FIELD = 7;
+  }
+
+  HypocenterDeterminationPrecision determination_precision = 18;
+}
+
+// A single record of a GPS device location.
+// Next ID: 7
+message GPSData {
+  // The time of the measurement, in seconds since epoch.
+  int64 time = 1;
+
+  // The longitude of the measurement device, in degrees. Note that since the
+  // device is moving, this is calculated as the mean longitude of the device
+  // throughout the measurement period. But since it moves in cms to meters and
+  // this is in degrees, that's good enough for us.
+  float longitude = 2;
+
+  // The latitude of the measurement device, in degrees. Note that since the
+  // device is moving, this is calculated as the mean latitude of the device
+  // throughout the measurement period. But since it moves in cms to meters and
+  // this is in degrees, that's good enough for us.
+  float latitude = 3;
+
+  // The device location (relative to its mean longitude) in meters along the
+  // east-west axis.
+  float x = 4;
+
+  // The device location (relative to its mean latitude) in meters along the
+  // north-south axis.
+  float y = 5;
+
+  // The device location (relative to mean height) in meters along the vertical
+  // axis.
+  float z = 6;
+}
+
+// A message including an float value, as well as its standard error.
+message UncertainValue {
+  // The best estimate of the value.
+  double value = 1;
+
+  // The standard error of the value.
+  double std = 2;
+}
+
+// Information about the magnitude of an earthquake.
+// See additional details in:
+// https://www.data.jma.go.jp/svd/eqev/data/bulletin/data/format/hypfmt_e.html
+// Next ID: 9
+message MagnitudeData {
+  // The magnitude, on the Richter magnitude scale.
+  double value = 1;
+
+  enum MagnitudeType {
+    UNSPECIFIED_MAGNITUDE = 0;
+    LOCAL_OFFICE = 1;
+    DISPLACEMENT = 2;
+    DISPLACEMENT_TWO_STATIONS = 3;
+    VELOCITY = 4;
+    VELOCITY_TWO_STATIONS = 5;
+
+    // Note that depending on the source agency this may be calculated
+    // differently.
+    MOMENT = 6;
+    USGS_BODY_WAVE = 7;
+    USGS_SURFACE_WAVE = 8;
+  }
+
+  MagnitudeType type = 2;
+}
+
+// A record of a single fault.
+// Next ID: 7
+message FaultData {
+  string dataset = 1;
+
+  // The name of the fault. Note that this name is not unique - i.e. different
+  // FaultData messages can belong to the same (larger) named fault. There may
+  // also be inconsistencies between which physical locations are called what
+  // between different data sets.
+  string name = 2;
+
+  // A sequence of vertices defining the polyline of the fault. This sequence is
+  // ordered, defining an edge between each two consecutive vertices.
+  repeated LatLng vertex = 3;
+  // The dip angle of the fault. Between 0 and 90.
+  float dip = 4;
+
+  // The rake angle of the fault. Between -180 and 180.
+  float rake = 5;
+
+  // The average slip rate along the fault, in mm per year.
+  float slip_rate = 6;
+}
+
+// A record of all data we have about a strain record.
+// Next ID: 47
+message StrainData {
+  // The data set this data came from.
+  string dataset = 1;
+
+  // A unique ID identifying the earthquake. Copied from the source data set.
+  string id = 2;
+
+  // A unique identifier of the site of the earthquake.
+  string site = 3;
+  float latitude = 4;
+  float longitude = 5;
+
+  // The azimut(?) of the earthquake???
+  optional int32 azimut = 6;
+  // has a small set of well-defined options. Perhaps find a more indicative
+  // name than type.
+  string type = 7;
+
+  // The depth of the source(?) of the earthquakes.
+  optional float depth = 8;
+  optional string quality = 9;
+  optional string regime = 10;
+  // Some description or identifier of the area. Not very standardized.
+  string locality = 11;
+  string country = 12;
+
+  // The date of the earthquake.
+  // a second number indicating uncertainty (if we only know the year, second,
+  // etc.
+  optional Date date = 13;
+  // The time of day of the earthquake. If some fields are filled (e.g. hours
+  // and minutes) while others are not (e.g. seconds), this means the time was
+  // only recorded at that accuracy.
+  optional TimeOfDay time_of_day = 14;
+  optional int32 number = 15;
+  optional int32 sd = 16;
+  optional string method = 17;
+  repeated S s = 18;
+  optional float pore_magin = 19;
+  optional float pore_slope = 20;
+  optional string magnitude_type = 21;
+  optional float earthquake_magnitude = 22;
+  // the exponent of this, and therefore both should be converged to a singe
+  // value?
+  optional float mom = 23;
+  optional float eq_avg = 24;
+  optional int32 tot_len = 25;
+  optional float sd_weight = 26;
+  optional float samp_int = 27;
+  optional float top = 28;
+  optional float bot = 29;
+  optional float no_mag_ven = 30;
+  optional float young = 31;
+  optional float poisson = 32;
+  optional string rock = 33;
+  optional float age = 34;
+  optional float ratio = 35;
+  optional float dipaz = 36;
+  optional float dip = 37;
+  repeated string ref = 38;
+  optional string comment = 39;
+  optional Date last_mod = 40;
+  // The tectonic plate affected.
+  optional string plate = 41;
+  optional string boundary = 42;
+  optional int32 dist = 43;
+  optional bool pbe = 44;
+  optional bool new = 45;
+  optional string iso = 46;
+}
+// Next ID: 5
+message S {
+  optional int32 az = 1;
+  optional int32 pl = 2;
+  optional float mag_int = 3;
+  optional float slopes = 4;
+}
+
+message PolyLine {
+  repeated LatLng vertex = 1;
+}
+
+// Next ID: 7
+message GeolocatedTimeSeries {
+  // Measurement values stored in time major order, then row major if containing
+  // images.
+  // May contain NaN, which means missing measurement.
+  repeated float value = 1;
+
+  // Shape of the 'value' array.
+  // For example the shape (1000, 10, 20) means we have 1000 measurements,
+  // each one is an image with shape 10x20. A shape of (1000,) means 1000
+  // float measurements.
+  repeated int32 shape = 2 [features.repeated_field_encoding = EXPANDED];
+
+  // The time the first measurement was taken (in seconds since epoch).
+  int32 first_timestamp_seconds_since_epoch = 3;
+
+  // The time difference (in seconds) between consecutive measurements.
+  int32 time_step_seconds = 4;
+
+  // location of measurement was taken.
+  LatLng location = 5;
+
+  // The site where the measurement was taken.
+  string site_id = 6;
+}

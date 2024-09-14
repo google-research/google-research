@@ -1,0 +1,58 @@
+# A Gin config that defines small values for the catalogs and other inputs, so
+# that tests run quickly.
+
+# The sample catalog is limited to lng/lat (141 - 145) x (36 - 42), mag >= 4.5,
+# depth <= 140, and time (1979 - 2011)
+
+grid_side_deg = 0.5
+window_size_seconds = 86400
+
+target_min_lng = 142
+target_max_lng = 143
+target_lng_range = (142, 143)
+target_min_lat = 37
+target_max_lat = 38.5
+target_lat_range = (37, 38.5)
+target_magnitude = 4.5
+target_depth = 100
+background_start_time = 1041346800  # 2003
+train_start_time = 1104505200  # 2005
+validation_start_time = 1167577200  # 2007
+test_start_time = 1230735600  # 2009
+test_end_time = 1293807600  # 2011
+
+Rectangle:
+  min_lng = %target_min_lng 
+  max_lng = %target_max_lng 
+  min_lat = %target_min_lat 
+  max_lat = %target_max_lat 
+RegularDomain:
+  rectangle = @Rectangle()
+  train_start_time = %train_start_time
+  validation_start_time = %validation_start_time
+  test_start_time = %test_start_time
+  test_end_time = %test_end_time
+  time_window_size_seconds = %window_size_seconds
+  grid_side_degrees = %grid_side_deg
+
+earthquake_criterion:
+  longitude_range = %target_lng_range
+  latitude_range = %target_lat_range
+  max_depth = %target_depth
+  min_magnitude = %target_magnitude
+  start_timestamp = %background_start_time
+
+feature_catalog:
+  catalog = @sample_catalog()
+  earthquake_criterion = @feature/earthquake_criterion
+
+target_catalog:
+  catalog = @sample_catalog()
+  earthquake_criterion = @target/earthquake_criterion
+
+SeismicityRateEncoder.catalog = @feature_catalog()
+RecentEarthquakesEncoder.catalog = @feature_catalog()
+RecentEarthquakesEncoder.magnitude_threshold = 5.5
+BiggestEarthquakesEncoder.catalog = @feature_catalog()
+
+_project_utm.projection = @japan_projection()

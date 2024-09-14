@@ -1,0 +1,111 @@
+# Data for experiment
+base_catalog = @hauksson_dataframe()
+_project_utm.projection = @california_projection()
+
+train_start_time = 347155200 # 0%, 1981
+validation_start_time = 1233664779 # 65%, February 3, 2009
+test_start_time = 1464044746 # 85%, May 23, 2016
+test_end_time = 1577832500 # 100%, January 1, 2020
+
+permute_train/earthquake_criterion.longitude_range = (-180, 180)
+permute_train/earthquake_criterion.latitude_range = (-180, 180)
+permute_train/earthquake_criterion.start_timestamp = %train_start_time
+permute_train/earthquake_criterion.end_timestamp = %validation_start_time
+permute_train/earthquake_criterion.max_depth = 1000
+permute_train/earthquake_criterion.min_magnitude = -10
+
+permute_val/earthquake_criterion.longitude_range = (-180, 180)
+permute_val/earthquake_criterion.latitude_range = (-180, 180)
+permute_val/earthquake_criterion.start_timestamp = %validation_start_time
+permute_val/earthquake_criterion.end_timestamp = %test_start_time
+permute_val/earthquake_criterion.max_depth = 1000
+permute_val/earthquake_criterion.min_magnitude = -10
+
+permute_test/earthquake_criterion.longitude_range = (-180, 180)
+permute_test/earthquake_criterion.latitude_range = (-180, 180)
+permute_test/earthquake_criterion.start_timestamp = %test_start_time
+permute_test/earthquake_criterion.end_timestamp = %test_end_time
+permute_test/earthquake_criterion.max_depth = 1000
+permute_test/earthquake_criterion.min_magnitude = -10
+
+
+
+permuted_catalog:
+  catalog = %base_catalog
+  earthquake_criterion =  @return_entire_catalog_criterion
+  columns_to_permute = ['magnitude']
+  permute_earthquake_criterion = [@permute_train/earthquake_criterion, @permute_val/earthquake_criterion, @permute_test/earthquake_criterion]
+  separate_permute = False
+
+catalog = @permuted_catalog()
+
+CatalogDomain:
+  train_start_time = %train_start_time
+  validation_start_time = %validation_start_time
+  test_start_time = %test_start_time
+  test_end_time = %test_end_time
+  earthquakes_catalog = %catalog
+
+# Configure the model (and feature) creation and training methods.
+
+build_encoders:
+  include_catalog_columns = True
+  include_recent_earthquakes = True
+  include_biggest_earthquakes = False
+  include_seismicity_rate = True
+
+_mock_earthquake.add_angles = True
+
+SeismicityRateEncoder.prepare_features:
+  grid_side_deg = 0.5
+  # lookback        = [1hr,12hr, 2d,    10d,   100d,   3yr,     10yr,     30yr]
+  lookback_seconds = [3600,43200,172800,864000,8640000,94610000,315400000,9461000008]
+  magnitudes = [2, 3, 4, 5, 6]
+SeismicityRateEncoder.build_model:
+  units = [32, 32]
+  kernel_regularization = @seismicity/tf.keras.regularizers.l1_l2()
+seismicity/tf.keras.regularizers.l1_l2.l1 = 0
+seismicity/tf.keras.regularizers.l1_l2.l2 = 2e-4
+
+RecentEarthquakesEncoder.prepare_features:
+  limit_lookback_seconds = 220752000  # 7 years. Why not.
+  max_earthquakes = 80
+RecentEarthquakesEncoder.build_model:
+  units = [24]
+  kernel_regularization = @recent/tf.keras.regularizers.l1_l2()
+recent/tf.keras.regularizers.l1_l2.l1 = 0
+recent/tf.keras.regularizers.l1_l2.l2 = 4e-4
+fully_connected_model:  # Spatial embedding
+  layer_sizes = [16]
+  activation = 'relu'
+  kernel_regularization = @static/tf.keras.regularizers.l1_l2()
+static/tf.keras.regularizers.l1_l2.l1 = 0
+static/tf.keras.regularizers.l1_l2.l2 = 4e-4
+
+BiggestEarthquakesEncoder.prepare_features:
+  limit_lookback_seconds = 1000
+  max_earthquakes = 50
+BiggestEarthquakesEncoder.build_model:
+  units = [24]
+  kernel_regularization = @biggest/tf.keras.regularizers.l1_l2()
+biggest/tf.keras.regularizers.l1_l2.l1 = 0
+biggest/tf.keras.regularizers.l1_l2.l2 = 4e-4
+
+
+magnitude_prediction_model:
+  n_model_parameters = 6 # n = (m kumarswamy)*(3 DOF per kumarswamy)
+  hidden_layer_sizes = [256, 64, 16]
+  hidden_activation = 'tanh'
+  output_activation = 'softplus'
+  output_shift = 0.0
+  kernel_regularization = @mag_head/tf.keras.regularizers.l1_l2()
+mag_head/tf.keras.regularizers.l1_l2.l1 = 0
+mag_head/tf.keras.regularizers.l1_l2.l2 = 2e-4
+
+average_precision_at_recall.delta = 0.001
+
+train_and_evaluate_magnitude_prediction_model:
+  learning_rate = 1e-4
+  batch_size = 128
+  epochs = 250
+  store_every_nth_epoch = 25
