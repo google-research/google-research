@@ -227,7 +227,7 @@ def _parse_uci_regression_dataset(name_str):
   return None, None
 
 
-def generate_test_regression_dataset(which='both', dataset='linear'):
+def generate_test_regression_dataset(which='both', dataset='one'):
   x_train = onp.array([[-1.], [+1.]])
   x_test = onp.linspace(-2, +2, num=5, endpoint=True).reshape((-1, 1))
   if dataset == "zero":
@@ -236,6 +236,9 @@ def generate_test_regression_dataset(which='both', dataset='linear'):
   elif dataset == "linear":
     y_train = -x_train
     y_test = -x_test
+  elif dataset == "one":
+    y_train = 2*onp.ones((2, 1))
+    y_test = 2*onp.ones((5, 1))
 
   data_info = {"y_scale": 0.1}
 
