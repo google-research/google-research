@@ -159,4 +159,6 @@ def make_kl_with_pretrained_gaussian_prior(pretrained_params, temperature=1.):
 
     return -kl * temperature
 
+  raise NotImplementedError("To implement KL div from pretrained prior distribution like for log prior")
+
   return kl_fn
