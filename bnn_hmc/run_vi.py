@@ -34,6 +34,7 @@ from jax import numpy as jnp
 import jax
 import tensorflow.compat.v2 as tf
 import argparse
+import logging
 
 from bnn_hmc.utils import checkpoint_utils
 from bnn_hmc.utils import cmd_args_utils
@@ -42,6 +43,10 @@ from bnn_hmc.utils import train_utils
 from bnn_hmc.utils import optim_utils
 from bnn_hmc.utils import script_utils
 from bnn_hmc.core import vi
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 parser = argparse.ArgumentParser(description="Run MFVI training")
 cmd_args_utils.add_common_flags(parser)
@@ -93,8 +98,11 @@ def get_dirname_tfwriter(args):
   elif args.optimizer == "Adam":
     optimizer_name = "opt_adam"
   lr_schedule_name = "lr_sch_i_{}".format(args.init_step_size)
-  hypers_name = "_epochs_{}_wd_{}_batchsize_{}_temp_{}".format(
-      args.num_epochs, args.weight_decay, args.batch_size, args.temperature)
+  prior_name = "wd_{}".format(args.weight_decay) \
+               if not args.pretrained_prior_checkpoint else \
+               "pretr_{:.0f}".format(hash(args.pretrained_prior_checkpoint) % 1e7)
+  hypers_name = "_epochs_{}_{}_batchsize_{}_temp_{}".format(
+      args.num_epochs, prior_name, args.batch_size, args.temperature)
   subdirname = "{}__{}__{}__{}__seed_{}".format(method_name, optimizer_name,
                                                 lr_schedule_name, hypers_name,
                                                 args.seed)
@@ -158,7 +166,7 @@ def train_model():
 
   # Loading mean checkpoint
   if args.mean_init_checkpoint:
-    print("Initializing VI mean from the provided checkpoint")
+    logger.info("Initializing VI mean from the provided checkpoint")
     ckpt_dict = checkpoint_utils.load_checkpoint(args.mean_init_checkpoint)
     mean_params = checkpoint_utils.parse_sgd_checkpoint_dict(ckpt_dict)[1]
     params["mean"] = mean_params

@@ -31,6 +31,7 @@
 
 import os
 import jax
+import logging
 import time
 import numpy as onp
 from jax import numpy as jnp
@@ -47,10 +48,14 @@ from bnn_hmc.utils import precision_utils  # pytype: disable=import-error
 from bnn_hmc.utils import train_utils  # pytype: disable=import-error
 from bnn_hmc.utils import tree_utils  # pytype: disable=import-error
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def print_visible_devices():
-  print("JAX sees the following devices:", jax.devices())
-  print("TF sees the following devices:", tf.config.get_visible_devices())
+  logger.info("JAX sees the following devices: " + str(jax.devices()))
+  logger.info("TF sees the following devices: " + str(tf.config.get_visible_devices()))
 
 
 def prepare_logging(subdirname, args):
@@ -77,12 +82,12 @@ def get_data_model_fns(args):
    tabulate_metrics) = train_utils.get_task_specific_fns(task, data_info)
   log_likelihood_fn = likelihood_factory(args.temperature)
   if args.pretrained_prior_checkpoint:
-    print("Using pretrained prior")
+    logger.info("Using pretrained prior")
     try:
       pretrained_checkpoint = checkpoint_utils.load_checkpoint(
         args.pretrained_prior_checkpoint)
     except Exception as e:
-      print(f"Could not load checkpoint {args.pretrained_prior_checkpoint}")
+      logger.error(f"Could not load checkpoint {args.pretrained_prior_checkpoint}")
       raise e
     log_prior_fn, log_prior_diff_fn = losses.make_pretrained_gaussian_log_prior(
       pretrained_checkpoint["params"], args.temperature)
@@ -131,13 +136,13 @@ def get_initialization_dict(dirname, args, init_dict):
   checkpoint_dict, status = checkpoint_utils.initialize(dirname,
                                                         args.init_checkpoint)
   if status == checkpoint_utils.InitStatus.LOADED_PREEMPTED:
-    print("Continuing the run from the last saved checkpoint")
+    logger.info("Continuing the run from the last saved checkpoint")
     return checkpoint_dict
   if status == checkpoint_utils.InitStatus.INIT_RANDOM:
-    print("Starting from random initialization with provided seed")
+    logger.info("Starting from random initialization with provided seed")
     return init_dict
   if status == checkpoint_utils.InitStatus.INIT_CKPT:
-    print("Starting the run from the provided init_checkpoint")
+    logger.info("Starting the run from the provided init_checkpoint")
     init_dict.update({"params": checkpoint_dict["params"]})
     init_dict.update({"net_state": checkpoint_dict["net_state"]})
     return init_dict
