@@ -1,0 +1,189 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SGD_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar10/test/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=500",
+                "--subset_train_to=40960",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_CIFAR100",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar100/",
+                "--dataset_name=cifar100",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-6",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=500",
+                "--subset_train_to=40960",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_REGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/regtest/",
+                "--dataset_name=regtest_-1",
+                "--model_name=bayesian_regression",
+                "--init_step_size=5e-4",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=1",
+                "--save_freq=500",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_SEQREGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                // "--weight_decay=10",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/vi/regtest2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.001___epochs_300_wd_0.5_batchsize_1_temp_1.0__seed_11/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/seqregtest/",
+                "--dataset_name=regtest_1",
+                "--model_name=bayesian_regression",
+                "--init_step_size=5e-4",
+                "--num_epochs=500",
+                "--eval_freq=50",
+                "--batch_size=1",
+                "--save_freq=500",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/cifar10/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=300",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_CIFAR100",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/cifar100/",
+                "--dataset_name=cifar100",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=300",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar100/sgd_mom_0.9__lr_sch_i_1e-06___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_REGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                "--weight_decay=0.5",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/regtest2/",
+                "--dataset_name=regtest_-1",
+                "--model_name=bayesian_regression",
+                "--init_step_size=1e-4",
+                "--num_epochs=1000",
+                "--eval_freq=1000",
+                "--batch_size=1",
+                "--save_freq=1000",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/regtest/sgd_mom_0.9__lr_sch_i_0.0005___epochs_500_wd_10.0_batchsize_1_temp_1.0__seed_1/model_step_499.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+    ]
+}
