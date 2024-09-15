@@ -141,7 +141,18 @@ def train_model():
   # Convert the model to MFVI parameterization
   net_apply, mean_apply, _, params, net_state = vi.get_mfvi_model_fn(
       net_apply, params, net_state, seed=0, sigma_init=args.vi_sigma_init)
-  prior_kl = vi.make_kl_with_gaussian_prior(args.weight_decay, args.temperature)
+  if args.pretrained_prior_checkpoint:
+    logger.info("Using pretrained prior")
+    try:
+      pretrained_checkpoint = checkpoint_utils.load_checkpoint(
+        args.pretrained_prior_checkpoint)
+    except Exception as e:
+      logger.error(f"Could not load checkpoint {args.pretrained_prior_checkpoint}")
+      raise e
+    prior_kl = vi.make_kl_with_pretrained_gaussian_prior(
+      pretrained_checkpoint["params"], args.temperature)
+  else:
+    prior_kl = vi.make_kl_with_gaussian_prior(args.weight_decay, args.temperature)
   vi_ensemble_predict_fn = make_vi_ensemble_predict_fn(predict_fn,
                                                        ensemble_upd_fn, args)
 
