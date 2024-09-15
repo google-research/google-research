@@ -279,8 +279,24 @@ def make_mlp_regression(data_info, output_dim=2, layer_dims=[100, 100]):
 def make_mlp_regression_small(data_info):
   return make_mlp([50], 2)
 
-def make_bayesian_regression(data_info):
-  return make_mlp([], 2)
+def make_bayesian_regression(data_info, const_noise_std=False):
+  def forward(batch, is_training):
+    x, _ = batch
+    x = hk.Flatten()(x)
+
+    if const_noise_std:
+      # Predict mean, use inv softplus -1 for noise level
+      x = hk.Linear(1, with_bias=True)(x)
+      return jnp.concatenate([x[:, [0]], -1 * jnp.ones_like(x[:, [0]])], axis=-1)
+
+    else:
+      # Predict mean, inv softplus std
+      x = hk.Linear(2, with_bias=True)(x)
+      return x
+
+  return forward
+
+  # return make_mlp([], 2)
 
 def make_mlp_classification(data_info, layer_dims=[256, 256]):
   num_classes = data_info["num_classes"]
@@ -311,7 +327,9 @@ def get_model(model_name, data_info, **kwargs):
       "mlp_regression_small":
           make_mlp_regression_small,
       "bayesian_regression":
-          make_bayesian_regression,
+          lambda data_info: make_bayesian_regression(data_info, const_noise_std=False),
+      "bayesian_regression_const_noise":
+          lambda data_info: make_bayesian_regression(data_info, const_noise_std=True),
       "mlp_classification":
           make_mlp_classification,
       "logistic_regression":
