@@ -185,5 +185,35 @@
                 "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
             }
         },
+        {
+            "name": "MFVI_SEQREGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                // "--weight_decay=10",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/vi/regtest_const_noise/mfvi_initsigma_0.1_meaninit__opt_adam__lr_sch_i_0.02___epochs_200_wd_0.1_batchsize_1_temp_1.0__seed_11/model_step_199.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/seqregtest/",
+                "--dataset_name=regtest_1",
+                "--model_name=bayesian_regression_const_noise",
+                "--init_step_size=5e-2",
+                "--num_epochs=200",
+                "--eval_freq=100",
+                "--batch_size=1",
+                "--save_freq=50",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                // "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/regtest_const_noise/sgd_mom_0.9__lr_sch_i_0.0005___epochs_500_wd_10.0_batchsize_1_temp_1.0__seed_1/model_step_499.pt"
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/seqregtest/sgd_mom_0.9__lr_sch_i_0.0005___epochs_500_wd_15.0_batchsize_1_temp_1.0__seed_1/model_step_499.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
     ]
 }
