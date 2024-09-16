@@ -17,6 +17,7 @@ cc_library(
         "one_to_many_impl_highway.inc",
     ],
     deps = [
+        ":scale_encoding_cc_proto",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
@@ -38,4 +39,14 @@ cc_library(
         "@com_google_absl//absl/synchronization",
         "@com_google_highway//:hwy",
     ],
+)
+
+proto_library(
+    name = "scale_encoding_proto",
+    srcs = ["scale_encoding.proto"],
+)
+
+cc_proto_library(
+    name = "scale_encoding_cc_proto",
+    deps = [":scale_encoding_proto"],
 )

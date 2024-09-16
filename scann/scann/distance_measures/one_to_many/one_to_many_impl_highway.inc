@@ -653,8 +653,9 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
   constexpr size_t kMinPrefetchAheadBytes = 2304;
 
   constexpr size_t kCacheLine = 64;
+  const size_t datapoint_bytes = dimensionality * sizeof(IntT);
   const size_t cache_lines_per_datapoint =
-      DivRoundUp(dimensionality * sizeof(IntT), kCacheLine);
+      DivRoundUp(datapoint_bytes, kCacheLine);
   size_t num_prefetch_datapoints;
   if (kShouldPrefetch) {
     num_prefetch_datapoints = std::max<size_t>(
@@ -705,15 +706,16 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
   for (size_t j = num_datapoints / kUnrollBy * kUnrollBy; j < num_datapoints;
        j++) {
     const IntT* ptr = get_db_ptr(j);
+    float result;
     if constexpr (kIsSquaredL2) {
-      callback.invoke(
-          j, HWY_DISPATCH(ComputeOneToOneScoreSquaredL2)(
-                 query, ptr, inv_multipliers_for_squared_l2, dimensionality));
+      result = HWY_DISPATCH(ComputeOneToOneScoreSquaredL2)(
+          query, ptr, inv_multipliers_for_squared_l2, dimensionality);
     } else {
-      callback.invoke(
-          j, HWY_DISPATCH(ComputeOneToOneScore)(
-                 query, ptr, inv_multipliers_for_squared_l2, dimensionality));
+      result = HWY_DISPATCH(ComputeOneToOneScore)(
+          query, ptr, inv_multipliers_for_squared_l2, dimensionality);
     }
+
+    InvokeCallback(callback, j, result, datapoint_bytes, ptr);
   }
 
   for (size_t j : Seq(num_outer_iters)) {
@@ -775,7 +777,8 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
     }
 
     for (size_t jj : Seq(kUnrollBy)) {
-      callback.invoke(j + jj * num_outer_iters, results[jj]);
+      InvokeCallback(callback, j + jj * num_outer_iters, results[jj],
+                     datapoint_bytes, ptrs[jj]);
     }
   }
 }

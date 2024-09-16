@@ -24,9 +24,11 @@
 #include <utility>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/noise_shaping_utils.h"
@@ -215,6 +217,10 @@ class Fixed8NoiseShapingLambdas {
   int8_t NextLargerDelta(int8_t) const { return 1; }
   int8_t NextSmallerDelta(int8_t) const { return -1; }
 
+  size_t BottomBitIndex(DimensionIndex dim_idx) const {
+    return dim_idx % kNumBottomBits;
+  }
+
  private:
   ConstSpan<float> multipliers_;
 };
@@ -238,6 +244,10 @@ class Fixed4NoiseShapingLambdas {
   uint8_t NextLargerDelta(uint8_t) const { return 1; }
   uint8_t NextSmallerDelta(uint8_t) const { return -1; }
 
+  size_t BottomBitIndex(DimensionIndex dim_idx) const {
+    return (dim_idx / 2) % kNumBottomBits;
+  }
+
  private:
   ConstSpan<float> multipliers_;
 };
@@ -251,6 +261,81 @@ DatapointPtr<int8_t> ScalarQuantizeFloatDatapointWithNoiseShaping(
       dptr, noise_shaping_threshold, quantized, residuals, dims,
       Fixed8NoiseShapingLambdas(multipliers), num_changes, residual_ptr,
       parallel_residual_ptr);
+}
+
+template <typename QuantizedT, typename Lambdas>
+absl::Status EncodeBottomBits(uint32_t bottom_bits_data,
+                              const DatapointPtr<float>& dptr,
+                              const Lambdas& lambdas,
+                              MutableSpan<QuantizedT> quantized) {
+  SCANN_RET_CHECK_GE(quantized.size(), kNumBottomBits);
+  struct PerBitData {
+    float error_diff = std::numeric_limits<float>::infinity();
+    int dim = -1;
+    QuantizedT new_val;
+    bool parity = false;
+  };
+  std::array<PerBitData, kNumBottomBits> per_bit_datas;
+  for (size_t dim : Seq(quantized.size())) {
+    PerBitData& per_bit_data = per_bit_datas[lambdas.BottomBitIndex(dim)];
+    const QuantizedT cur_val = quantized[dim];
+    per_bit_data.parity ^= cur_val & 1;
+    auto get_error = [&](QuantizedT val) {
+      return std::abs(lambdas.DequantizeSingleDim(val, dim) -
+                      dptr.values()[dim]);
+    };
+    const float cur_error = get_error(cur_val);
+    auto update_per_bit_data = [&](QuantizedT new_val) {
+      const float error_diff = get_error(new_val) - cur_error;
+      if (error_diff < per_bit_data.error_diff) {
+        per_bit_data.error_diff = error_diff;
+        per_bit_data.dim = dim;
+        per_bit_data.new_val = new_val;
+      }
+    };
+    if (!lambdas.AtMaximum(cur_val)) {
+      update_per_bit_data(cur_val + lambdas.NextLargerDelta(cur_val));
+    }
+    if (!lambdas.AtMinimum(cur_val)) {
+      update_per_bit_data(cur_val + lambdas.NextSmallerDelta(cur_val));
+    }
+  }
+
+  for (size_t bit : Seq(kNumBottomBits)) {
+    const PerBitData& per_bit_data = per_bit_datas[bit];
+    if (per_bit_data.parity != ((bottom_bits_data >> bit) & 1)) {
+      quantized[per_bit_data.dim] = per_bit_data.new_val;
+    }
+  }
+  return OkStatus();
+}
+
+absl::StatusOr<DatapointPtr<int8_t>> ScalarQuantizeFloatDatapoint(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    std::optional<uint32_t> bottom_bits_data, MutableSpan<int8_t> quantized) {
+  auto result = ScalarQuantizeFloatDatapoint(dptr, multipliers, quantized);
+  if (bottom_bits_data != std::nullopt) {
+    SCANN_RETURN_IF_ERROR(EncodeBottomBits(
+        *bottom_bits_data, dptr, Fixed8NoiseShapingLambdas(multipliers),
+        MakeMutableSpan(quantized)));
+  }
+  return result;
+}
+absl::StatusOr<DatapointPtr<int8_t>>
+ScalarQuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
+    MutableSpan<int8_t> quantized, int* num_changes, double* residual_ptr,
+    double* parallel_residual_ptr) {
+  auto result = ScalarQuantizeFloatDatapointWithNoiseShaping(
+      dptr, multipliers, noise_shaping_threshold, quantized, num_changes,
+      residual_ptr, parallel_residual_ptr);
+  if (bottom_bits_data != std::nullopt) {
+    SCANN_RETURN_IF_ERROR(EncodeBottomBits(
+        *bottom_bits_data, dptr, Fixed8NoiseShapingLambdas(multipliers),
+        MakeMutableSpan(quantized)));
+  }
+  return result;
 }
 
 unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
@@ -285,22 +370,29 @@ std::vector<float> InverseInt8ToInt4Multipliers(
   return result;
 }
 
-void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
-                                    absl::Span<const float> multipliers,
-                                    MutableSpan<uint8_t> packed) {
+absl::Status Int4QuantizePackFloatDatapoint(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    std::optional<uint32_t> bottom_bits_data, MutableSpan<uint8_t> packed) {
   const size_t dimensionality = dptr.dimensionality();
   DCHECK_EQ(multipliers.size(), dimensionality);
   std::vector<uint8_t> quantized(dimensionality);
   for (size_t i : Seq(dimensionality)) {
     quantized[i] = Int4Quantize(dptr.values()[i] * multipliers[i]);
   }
+  if (bottom_bits_data != std::nullopt) {
+    SCANN_RETURN_IF_ERROR(EncodeBottomBits(
+        *bottom_bits_data, dptr, Fixed4NoiseShapingLambdas(multipliers),
+        MakeMutableSpan(quantized)));
+  }
   PackNibblesDatapoint(quantized, packed);
+  return OkStatus();
 }
 
-void Int4QuantizePackFloatDatapointWithNoiseShaping(
+absl::Status Int4QuantizePackFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    double noise_shaping_threshold, MutableSpan<uint8_t> packed,
-    int* num_changes, double* residual_ptr, double* parallel_residual_ptr) {
+    std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
+    MutableSpan<uint8_t> packed, int* num_changes, double* residual_ptr,
+    double* parallel_residual_ptr) {
   vector<uint8_t> quantized(dptr.dimensionality());
   vector<float> residuals(dptr.dimensionality());
   vector<uint32_t> dims(dptr.dimensionality());
@@ -309,7 +401,33 @@ void Int4QuantizePackFloatDatapointWithNoiseShaping(
       MakeMutableSpan(residuals), MakeMutableSpan(dims),
       Fixed4NoiseShapingLambdas(multipliers), num_changes, residual_ptr,
       parallel_residual_ptr);
+  if (bottom_bits_data != std::nullopt) {
+    SCANN_RETURN_IF_ERROR(EncodeBottomBits(
+        *bottom_bits_data, dptr, Fixed4NoiseShapingLambdas(multipliers),
+        MakeMutableSpan(quantized)));
+  }
   PackNibblesDatapoint(quantized, packed);
+  return OkStatus();
+}
+
+uint32_t DecodeBottomBitsDataFromPackedInt4(ConstSpan<uint8_t> packed) {
+  DCHECK_GE(packed.size() * 2, kMinDimensionsForBottomBits);
+  uint32_t result = 0;
+  for (size_t i : Seq(packed.size())) {
+    uint32_t bottom_bit = (packed[i] ^ packed[i] >> 4) & 1;
+    result ^= bottom_bit << (i % kNumBottomBits);
+  }
+  return result;
+}
+
+uint32_t DecodeBottomBitsDataFromInt8(ConstSpan<int8_t> quantized) {
+  DCHECK_GE(quantized.size(), kMinDimensionsForBottomBits);
+  uint32_t result = 0;
+  for (size_t i : Seq(quantized.size())) {
+    uint32_t bottom_bit = quantized[i] & 1;
+    result ^= bottom_bit << (i % kNumBottomBits);
+  }
+  return result;
 }
 
 }  // namespace research_scann

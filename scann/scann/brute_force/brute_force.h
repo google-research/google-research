@@ -115,9 +115,9 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
 
  private:
   template <bool kUseMinDistance, typename TopN>
-  void FindNeighborsInternal(const DatapointPtr<T>& query,
-                             const SearchParameters& params,
-                             TopN* top_n_ptr) const;
+  Status FindNeighborsInternal(const DatapointPtr<T>& query,
+                               const SearchParameters& params,
+                               TopN* top_n_ptr) const;
 
   template <bool kUseMinDistance, typename WhitelistIterator, typename TopN>
   void FindNeighborsOneToOneInternal(const DatapointPtr<T>& query,

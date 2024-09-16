@@ -16,6 +16,7 @@
 
 #include <cstdint>
 
+#include "scann/distance_measures/one_to_many/scale_encoding.pb.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -133,8 +134,12 @@ namespace {
 
 class Int4DenseDatasetView {
  public:
-  Int4DenseDatasetView(const uint8_t* ptr, size_t dims)
-      : ptr_(ptr), dims_(dims), stride_(DivRoundUp(dims, 2)) {}
+  Int4DenseDatasetView(const uint8_t* ptr, size_t dims,
+                       ScaleEncoding scale_encoding)
+      : ptr_(ptr),
+        dims_(dims),
+        stride_(DivRoundUp(dims, 2) +
+                (scale_encoding == FLOAT32_SCALE_SUFFIX ? sizeof(float) : 0)) {}
 
   SCANN_INLINE const uint8_t* GetPtr(size_t i) const {
     return ptr_ + i * stride_;
@@ -156,8 +161,22 @@ void DenseDotProductDistanceOneToManyUint4Int8(
   DCHECK_EQ(indices.size(), result.size());
   using one_to_many_low_level::SetDistanceFunctor;
   one_to_many_low_level::OneToManyUint4Int8Dispatch<true>(
-      query.values(), Int4DenseDatasetView(dataset, query.dimensionality()),
+      query.values(),
+      Int4DenseDatasetView(dataset, query.dimensionality(),
+                           UNSPECIFIED_SCALE_ENCODING),
       indices.data(), result, SetDistanceFunctor<int32_t>(result));
+}
+
+void DenseDotProductDistanceOneToManyScaledUint4Float(
+    ScaleEncoding scale_encoding, const DatapointPtr<float>& query,
+    const uint8_t* dataset, ConstSpan<DatapointIndex> indices,
+    MutableSpan<float> result) {
+  DCHECK_EQ(indices.size(), result.size());
+  using one_to_many_low_level::SetDistanceFunctor;
+  one_to_many_low_level::OneToManyScaledUint4FloatDispatch<true>(
+      scale_encoding, query.values(),
+      Int4DenseDatasetView(dataset, query.dimensionality(), scale_encoding),
+      indices.data(), result, SetDistanceFunctor<float>(result));
 }
 
 }  // namespace research_scann

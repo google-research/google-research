@@ -19,8 +19,10 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <optional>
+#include <ostream>
 #include <vector>
 
 #include "absl/log/check.h"
@@ -529,12 +531,27 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
 
     uint64_t sum_partition_sizes = 0;
 
-    bool operator==(const HealthStats&) const = default;
+    bool operator==(const HealthStats& rhs) const {
+      return partition_avg_relative_imbalance ==
+                 rhs.partition_avg_relative_imbalance &&
+             sum_partition_sizes == rhs.sum_partition_sizes &&
+
+             abs(avg_quantization_error - rhs.avg_quantization_error) < 1e-5;
+    }
+
+    template <typename Sink>
+    friend void AbslStringify(Sink& sink, const HealthStats& s) {
+      absl::Format(&sink,
+                   "{partition_avg_relative_imbalance = %f; "
+                   "avg_quantization_error = %f; sum_partition_sizes = %u}",
+                   s.partition_avg_relative_imbalance, s.avg_quantization_error,
+                   s.sum_partition_sizes);
+    }
   };
 
-  virtual HealthStats GetHealthStats() const { return HealthStats(); }
+  virtual StatusOr<HealthStats> GetHealthStats() const { return HealthStats(); }
 
-  virtual void InitializeHealthStats() {}
+  virtual Status InitializeHealthStats() { return OkStatus(); }
 
  protected:
   SingleMachineSearcherBase() {}

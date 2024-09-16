@@ -59,6 +59,7 @@ py_library(
 py_test(
     name = "scann_ops_pybind_test",
     size = "medium",
+    timeout = "long",
     srcs = ["scann_ops_pybind_test.py"],
     python_version = "PY3",
     shard_count = 8,

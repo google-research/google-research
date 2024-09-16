@@ -17,6 +17,7 @@
 
 #include <cmath>
 #include <cstdint>
+#include <optional>
 #include <vector>
 
 #include "scann/data_format/datapoint.h"
@@ -135,15 +136,34 @@ std::vector<float> Int8ToInt4Multipliers(const std::vector<float>& multipliers);
 std::vector<float> InverseInt8ToInt4Multipliers(
     const std::vector<float>& multipliers);
 
-void Int4QuantizePackFloatDatapoint(const DatapointPtr<float>& dptr,
-                                    absl::Span<const float> multipliers,
-                                    MutableSpan<uint8_t> packed);
+constexpr size_t kNumBottomBits = 32;
 
-void Int4QuantizePackFloatDatapointWithNoiseShaping(
+constexpr size_t kMinDimensionsForBottomBits = 64;
+
+absl::StatusOr<DatapointPtr<int8_t>> ScalarQuantizeFloatDatapoint(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    double noise_shaping_threshold, MutableSpan<uint8_t> packed,
-    int* num_changes = nullptr, double* residual_ptr = nullptr,
-    double* parallel_residual_ptr = nullptr);
+    std::optional<uint32_t> bottom_bits_data, MutableSpan<int8_t> quantized);
+
+absl::StatusOr<DatapointPtr<int8_t>>
+ScalarQuantizeFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
+    MutableSpan<int8_t> quantized, int* num_changes = nullptr,
+    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
+
+absl::Status Int4QuantizePackFloatDatapoint(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    std::optional<uint32_t> bottom_bits_data, MutableSpan<uint8_t> packed);
+
+absl::Status Int4QuantizePackFloatDatapointWithNoiseShaping(
+    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
+    std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
+    MutableSpan<uint8_t> packed, int* num_changes = nullptr,
+    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
+
+uint32_t DecodeBottomBitsDataFromPackedInt4(ConstSpan<uint8_t> packed);
+
+uint32_t DecodeBottomBitsDataFromInt8(ConstSpan<int8_t> quantized);
 
 }  // namespace research_scann
 

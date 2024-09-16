@@ -52,14 +52,11 @@ T ValueOrRuntimeError(StatusOr<T> status_or, const char* prefix) {
 
 ScannNumpy::ScannNumpy(const std::string& artifacts_dir,
                        const std::string& scann_assets_pbtxt) {
-  ScannConfig config;
-  RuntimeErrorIfNotOk(
-      "Failed reading scann_config.pb: ",
-      ReadProtobufFromFile(artifacts_dir + "/scann_config.pb", &config));
-  std::string config_text;
-  google::protobuf::TextFormat::PrintToString(config, &config_text);
+  auto status_or =
+      ScannInterface::LoadArtifacts(artifacts_dir, scann_assets_pbtxt);
+  RuntimeErrorIfNotOk("Error loading artifacts: ", status_or.status());
   RuntimeErrorIfNotOk("Error initializing searcher: ",
-                      scann_.Initialize(config_text, scann_assets_pbtxt));
+                      scann_.Initialize(status_or.value()));
 }
 
 ScannNumpy::ScannNumpy(const np_row_major_arr<float>& np_dataset,
@@ -248,8 +245,8 @@ ScannNumpy::SearchBatched(const np_row_major_arr<float>& queries, int final_nn,
   return {indices, distances};
 }
 
-void ScannNumpy::Serialize(std::string path) {
-  StatusOr<ScannAssets> assets_or = scann_.Serialize(path);
+void ScannNumpy::Serialize(std::string path, bool relative_path) {
+  StatusOr<ScannAssets> assets_or = scann_.Serialize(path, relative_path);
   RuntimeErrorIfNotOk("Failed to extract SingleMachineFactoryOptions: ",
                       assets_or.status());
   std::string assets_or_text;

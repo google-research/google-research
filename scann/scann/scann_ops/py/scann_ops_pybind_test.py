@@ -26,9 +26,13 @@ from absl.testing import parameterized
 
 class ScannTest(parameterized.TestCase):
 
-  def verify_serialization(self, searcher, n_dims, n_queries):
+  def verify_serialization(self,
+                           searcher,
+                           n_dims,
+                           n_queries,
+                           relative_path=False):
     with tempfile.TemporaryDirectory() as tmpdir:
-      searcher.serialize(tmpdir)
+      searcher.serialize(tmpdir, relative_path=relative_path)
       queries = []
       indices = []
       distances = []
@@ -135,7 +139,10 @@ class ScannTest(parameterized.TestCase):
         ).score_ah(2))
     if reorder:
       builder = builder.reorder(20, quantize=reorder)
+    # Test absolute path serialization.
     self.verify_serialization(builder.build(), n_dims, 5)
+    # Test relative path serialization.
+    self.verify_serialization(builder.build(), n_dims, 5, relative_path=True)
 
   @parameterized.parameters(("squared_l2",), ("dot_product",))
   def test_pure_ah(self, dist):
@@ -143,6 +150,7 @@ class ScannTest(parameterized.TestCase):
     ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).score_ah(2).build()
     self.verify_serialization(s, n_dims, 5)
+    self.verify_serialization(s, n_dims, 5, relative_path=True)
 
   @parameterized.product(
       dist=["squared_l2", "dot_product"],
@@ -159,6 +167,7 @@ class ScannTest(parameterized.TestCase):
             100, 10, soar_lambda=1.5
             if soar else None).score_brute_force(quantize).build())
     self.verify_serialization(s, n_dims, 5)
+    self.verify_serialization(s, n_dims, 5, relative_path=True)
 
   def test_empty_partitions(self):
     n_dims = 100
@@ -169,6 +178,7 @@ class ScannTest(parameterized.TestCase):
         scann_ops_pybind.builder(ds, 10, "dot_product").tree(
             200, 10, min_partition_size=5).score_ah(1).build())
     self.verify_serialization(s, n_dims, 500)
+    self.verify_serialization(s, n_dims, 500, relative_path=True)
 
   @parameterized.product(
       dist=["squared_l2", "dot_product"],
@@ -182,6 +192,7 @@ class ScannTest(parameterized.TestCase):
     ds = np.random.rand(12345, n_dims).astype(np.float32)
     s = scann_ops_pybind.builder(ds, 10, dist).score_brute_force(quant).build()
     self.verify_serialization(s, n_dims, 5)
+    self.verify_serialization(s, n_dims, 5, relative_path=True)
 
   def test_shapes(self):
     n_dims = 128

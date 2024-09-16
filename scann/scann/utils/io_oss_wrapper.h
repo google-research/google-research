@@ -47,6 +47,7 @@ Status WriteProtobufToFile(absl::string_view filename,
                            google::protobuf::Message* message);
 Status ReadProtobufFromFile(absl::string_view filename,
                             google::protobuf::Message* message);
+absl::StatusOr<std::string> GetContents(absl::string_view filename);
 
 }  // namespace research_scann
 

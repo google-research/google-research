@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <memory>
@@ -34,6 +35,8 @@
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/brute_force.pb.h"
 #include "scann/proto/centers.pb.h"
+#include "scann/proto/scann.pb.h"
+#include "scann/scann_ops/scann_assets.pb.h"
 #include "scann/tree_x_hybrid/tree_x_params.h"
 #include "scann/utils/common.h"
 #include "scann/utils/io_npy.h"
@@ -89,13 +92,10 @@ Status AddTokenizationToOptions(SingleMachineFactoryOptions& opts,
 
 }  // namespace
 
-Status ScannInterface::Initialize(const std::string& config_pbtxt,
-                                  const std::string& scann_assets_pbtxt) {
-  SCANN_RETURN_IF_ERROR(ParseTextProto(&config_, config_pbtxt));
-
+StatusOr<ScannInterface::ScannArtifacts> ScannInterface::LoadArtifacts(
+    const ScannConfig& config, const ScannAssets& orig_assets) {
+  ScannAssets assets = orig_assets;
   SingleMachineFactoryOptions opts;
-  ScannAssets assets;
-  SCANN_RETURN_IF_ERROR(ParseTextProto(&assets, scann_assets_pbtxt));
 
   std::sort(assets.mutable_assets()->pointer_begin(),
             assets.mutable_assets()->pointer_end(),
@@ -128,10 +128,10 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
       case ScannAsset::TOKENIZATION_NPY: {
         SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
                                NumpyToVectorAndShape<int32_t>(asset_path));
-        const int spilling_mult = HasSoar(config_) ? 2 : 1;
+        const int spilling_mult = HasSoar(config) ? 2 : 1;
         SCANN_RETURN_IF_ERROR(AddTokenizationToOptions(
             opts, vector_and_shape.first, spilling_mult));
-        if (HasSoar(config_)) {
+        if (HasSoar(config)) {
           docids = std::make_unique<FixedLengthDocidCollection>(4);
           docids->Reserve(vector_and_shape.second[0] / 2);
 
@@ -150,7 +150,7 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
         break;
       }
       case ScannAsset::AH_DATASET_SOAR_NPY: {
-        DCHECK(HasSoar(config_));
+        DCHECK(HasSoar(config));
         DCHECK_NE(docids, nullptr);
         SCANN_ASSIGN_OR_RETURN(auto vector_and_shape,
                                NumpyToVectorAndShape<uint8_t>(asset_path));
@@ -209,7 +209,63 @@ Status ScannInterface::Initialize(const std::string& config_pbtxt,
       fp->squared_l2_norm_by_datapoint = make_shared<vector<float>>();
     opts.pre_quantized_fixed_point = fp;
   }
-  return Initialize(dataset, opts);
+  return std::make_tuple(config, std::move(dataset), std::move(opts));
+}
+
+std::string RewriteAssetFilenameIfRelative(const string& artifacts_dir,
+                                           const string& asset_path) {
+  std::filesystem::path path(asset_path);
+  if (path.is_relative()) {
+    return (artifacts_dir / path).string();
+  } else {
+    return asset_path;
+  }
+}
+
+StatusOr<ScannInterface::ScannArtifacts> ScannInterface::LoadArtifacts(
+    const std::string& artifacts_dir, const std::string& scann_assets_pbtxt) {
+  ScannConfig config;
+  SCANN_RETURN_IF_ERROR(
+      ReadProtobufFromFile(artifacts_dir + "/scann_config.pb", &config));
+  ScannAssets assets;
+  if (scann_assets_pbtxt.empty()) {
+    SCANN_ASSIGN_OR_RETURN(auto assets_pbtxt,
+                           GetContents(artifacts_dir + "/scann_assets.pbtxt"));
+    SCANN_RETURN_IF_ERROR(ParseTextProto(&assets, assets_pbtxt));
+  } else {
+    SCANN_RETURN_IF_ERROR(ParseTextProto(&assets, scann_assets_pbtxt));
+  }
+  for (auto i : Seq(assets.assets_size())) {
+    auto new_path = RewriteAssetFilenameIfRelative(
+        artifacts_dir, assets.assets(i).asset_path());
+    assets.mutable_assets(i)->set_asset_path(new_path);
+  }
+  return LoadArtifacts(config, assets);
+}
+
+StatusOr<std::unique_ptr<SingleMachineSearcherBase<float>>>
+ScannInterface::CreateSearcher(ScannArtifacts artifacts) {
+  auto [config, dataset, opts] = std::move(artifacts);
+
+  if (dataset && config.has_partitioning() &&
+      config.partitioning().partitioning_type() ==
+          PartitioningConfig::SPHERICAL)
+    dataset->set_normalization_tag(research_scann::UNITL2NORM);
+
+  SCANN_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryScann<float>(
+                                            config, dataset, std::move(opts)));
+  searcher->MaybeReleaseDataset();
+  return searcher;
+}
+
+Status ScannInterface::Initialize(const std::string& config_pbtxt,
+                                  const std::string& scann_assets_pbtxt) {
+  SCANN_RETURN_IF_ERROR(ParseTextProto(&config_, config_pbtxt));
+  ScannAssets assets;
+  SCANN_RETURN_IF_ERROR(ParseTextProto(&assets, scann_assets_pbtxt));
+  SCANN_ASSIGN_OR_RETURN(auto dataset_and_opts, LoadArtifacts(config_, assets));
+  auto [_, dataset, opts] = std::move(dataset_and_opts);
+  return Initialize(std::tie(config_, dataset, opts));
 }
 
 Status ScannInterface::Initialize(
@@ -246,7 +302,8 @@ Status ScannInterface::Initialize(
   DimensionIndex n_dim = kInvalidDimension;
   if (config.input_output().pure_dynamic_config().has_dimensionality())
     n_dim = config.input_output().pure_dynamic_config().dimensionality();
-  return Initialize(InitDataset(dataset, n_points, n_dim), opts);
+  return Initialize(std::make_tuple(
+      config_, InitDataset(dataset, n_points, n_dim), std::move(opts)));
 }
 
 Status ScannInterface::Initialize(ConstSpan<float> dataset,
@@ -265,20 +322,17 @@ Status ScannInterface::Initialize(ConstSpan<float> dataset,
   DimensionIndex n_dim = kInvalidDimension;
   if (config_.input_output().pure_dynamic_config().has_dimensionality())
     n_dim = config_.input_output().pure_dynamic_config().dimensionality();
-  return Initialize(InitDataset(dataset, n_points, n_dim), opts);
+  return Initialize(std::make_tuple(
+      config_, InitDataset(dataset, n_points, n_dim), std::move(opts)));
 }
 
-Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
-                                  SingleMachineFactoryOptions opts) {
+Status ScannInterface::Initialize(ScannInterface::ScannArtifacts artifacts) {
+  auto [config, dataset, opts] = std::move(artifacts);
+  config_ = config;
   SCANN_ASSIGN_OR_RETURN(dimensionality_, opts.ComputeConsistentDimensionality(
                                               config_.hash(), dataset.get()));
-
-  if (dataset && config_.has_partitioning() &&
-      config_.partitioning().partitioning_type() ==
-          PartitioningConfig::SPHERICAL)
-    dataset->set_normalization_tag(research_scann::UNITL2NORM);
-  SCANN_ASSIGN_OR_RETURN(scann_, SingleMachineFactoryScann<float>(
-                                     config_, dataset, std::move(opts)));
+  SCANN_ASSIGN_OR_RETURN(scann_,
+                         CreateSearcher(std::tie(config_, dataset, opts)));
   if (scann_->config().has_value()) config_ = scann_->config().value();
 
   const std::string& distance = config_.distance_measure().distance_measure();
@@ -297,7 +351,6 @@ Status ScannInterface::Initialize(shared_ptr<DenseDataset<float>> dataset,
       min_batch_size_ = 256;
   }
   parallel_query_pool_ = StartThreadPool("ScannQueryingPool", GetNumCPUs() - 1);
-  scann_->MaybeReleaseDataset();
   return OkStatus();
 }
 
@@ -414,7 +467,8 @@ Status ScannInterface::SearchBatchedParallel(const DenseDataset<float>& queries,
       });
 }
 
-StatusOr<ScannAssets> ScannInterface::Serialize(std::string path) {
+StatusOr<ScannAssets> ScannInterface::Serialize(std::string path,
+                                                bool relative_path) {
   SCANN_ASSIGN_OR_RETURN(auto opts,
                          scann_->ExtractSingleMachineFactoryOptions());
   ScannAssets assets;
@@ -425,16 +479,21 @@ StatusOr<ScannAssets> ScannInterface::Serialize(std::string path) {
     asset->set_asset_path(fpath);
   };
 
+  const auto convert_path = [&path, &relative_path](const std::string& fpath) {
+    std::string absolute_path = path + "/" + fpath;
+    return std::pair(relative_path ? fpath : absolute_path, absolute_path);
+  };
+
   SCANN_RETURN_IF_ERROR(
       WriteProtobufToFile(path + "/scann_config.pb", &config_));
   if (opts.ah_codebook != nullptr) {
-    std::string fpath = path + "/ah_codebook.pb";
-    add_asset(fpath, ScannAsset::AH_CENTERS);
+    auto [rpath, fpath] = convert_path("ah_codebook.pb");
+    add_asset(rpath, ScannAsset::AH_CENTERS);
     SCANN_RETURN_IF_ERROR(WriteProtobufToFile(fpath, opts.ah_codebook.get()));
   }
   if (opts.serialized_partitioner != nullptr) {
-    std::string fpath = path + "/serialized_partitioner.pb";
-    add_asset(fpath, ScannAsset::PARTITIONER);
+    auto [rpath, fpath] = convert_path("serialized_partitioner.pb");
+    add_asset(rpath, ScannAsset::PARTITIONER);
     SCANN_RETURN_IF_ERROR(
         WriteProtobufToFile(fpath, opts.serialized_partitioner.get()));
   }
@@ -456,58 +515,59 @@ StatusOr<ScannAssets> ScannInterface::Serialize(std::string path) {
       for (const auto& [token_idx, dps] : Enumerate(*opts.datapoints_by_token))
         for (auto dp_idx : dps) datapoint_to_token[dp_idx] = token_idx;
     }
-    std::string fpath = path + "/datapoint_to_token.npy";
-    add_asset(fpath, ScannAsset::TOKENIZATION_NPY);
+    auto [rpath, fpath] = convert_path("datapoint_to_token.npy");
+    add_asset(rpath, ScannAsset::TOKENIZATION_NPY);
     SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, datapoint_to_token));
   }
   if (opts.hashed_dataset != nullptr) {
-    std::string fpath = path + "/hashed_dataset.npy";
-    add_asset(fpath, ScannAsset::AH_DATASET_NPY);
+    auto [rpath, fpath] = convert_path("hashed_dataset.npy");
+    add_asset(rpath, ScannAsset::AH_DATASET_NPY);
     SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *(opts.hashed_dataset)));
 
     if (opts.soar_hashed_dataset != nullptr) {
       DCHECK(HasSoar(config_));
-      std::string fpath = path + "/hashed_dataset_soar.npy";
-      add_asset(fpath, ScannAsset::AH_DATASET_SOAR_NPY);
+      auto [rpath, fpath] = convert_path("hashed_dataset_soar.npy");
+      add_asset(rpath, ScannAsset::AH_DATASET_SOAR_NPY);
       SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *(opts.soar_hashed_dataset)));
     }
   }
   if (opts.bfloat16_dataset != nullptr) {
-    std::string fpath = path + "/bfloat16_dataset.npy";
-    add_asset(fpath, ScannAsset::BF16_DATASET_NPY);
+    auto [rpath, fpath] = convert_path("bfloat16_dataset.npy");
+    add_asset(rpath, ScannAsset::BF16_DATASET_NPY);
     SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *(opts.bfloat16_dataset)));
   }
   if (opts.pre_quantized_fixed_point != nullptr) {
     auto fixed_point = opts.pre_quantized_fixed_point;
     auto dataset = fixed_point->fixed_point_dataset;
     if (dataset != nullptr) {
-      std::string fpath = path + "/int8_dataset.npy";
-      add_asset(fpath, ScannAsset::INT8_DATASET_NPY);
+      auto [rpath, fpath] = convert_path("int8_dataset.npy");
+      add_asset(rpath, ScannAsset::INT8_DATASET_NPY);
       SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *dataset));
     }
     auto multipliers = fixed_point->multiplier_by_dimension;
     if (multipliers != nullptr) {
-      std::string fpath = path + "/int8_multipliers.npy";
-      add_asset(fpath, ScannAsset::INT8_MULTIPLIERS_NPY);
+      auto [rpath, fpath] = convert_path("int8_multipliers.npy");
+      add_asset(rpath, ScannAsset::INT8_MULTIPLIERS_NPY);
       SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, *multipliers));
     }
     auto norms = fixed_point->squared_l2_norm_by_datapoint;
     if (norms != nullptr) {
-      std::string fpath = path + "/dp_norms.npy";
-      add_asset(fpath, ScannAsset::INT8_NORMS_NPY);
+      auto [rpath, fpath] = convert_path("dp_norms.npy");
+      add_asset(rpath, ScannAsset::INT8_NORMS_NPY);
       SCANN_RETURN_IF_ERROR(VectorToNumpy(fpath, *norms));
     }
   }
   SCANN_ASSIGN_OR_RETURN(auto dataset, Float32DatasetIfNeeded());
   if (dataset != nullptr) {
-    std::string fpath = path + "/dataset.npy";
-    add_asset(fpath, ScannAsset::DATASET_NPY);
+    auto [rpath, fpath] = convert_path("dataset.npy");
+    add_asset(rpath, ScannAsset::DATASET_NPY);
     SCANN_RETURN_IF_ERROR(DatasetToNumpy(fpath, *dataset));
   }
   return assets;
 }
 
-ScannInterface::ScannHealthStats ScannInterface::GetHealthStats() const {
+StatusOr<ScannInterface::ScannHealthStats> ScannInterface::GetHealthStats()
+    const {
   return scann_->GetHealthStats();
 }
 

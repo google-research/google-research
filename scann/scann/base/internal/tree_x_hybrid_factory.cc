@@ -16,8 +16,10 @@
 
 #include <cmath>
 #include <functional>
+#include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 #include "absl/strings/str_cat.h"
 #include "scann/base/internal/single_machine_factory_impl.h"
@@ -32,11 +34,14 @@
 #include "scann/hashes/asymmetric_hashing2/training_options.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_status.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/partitioning/partitioner_factory.h"
+#include "scann/partitioning/projecting_decorator.h"
 #include "scann/partitioning/tree_brute_force_second_level_wrapper.h"
+#include "scann/projection/projection_base.h"
 #include "scann/proto/brute_force.pb.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
@@ -66,6 +71,46 @@ struct CreateTreeXPartitionerResult {
   unique_ptr<Partitioner<T>> partitioner;
   vector<std::vector<DatapointIndex>> datapoints_by_token;
 };
+
+namespace {
+template <typename T>
+StatusOr<vector<std::vector<DatapointIndex>>> TokenizeDatabaseWithAvq(
+    const PartitioningConfig& pconfig, const TypedDataset<T>& dataset,
+    Partitioner<T>* partitioner, ThreadPool* parallelization_pool) {
+  {
+    auto kmeans_tree_partitioner =
+        dynamic_cast<KMeansTreePartitioner<T>*>(partitioner);
+    if (kmeans_tree_partitioner) {
+      return kmeans_tree_partitioner->TokenizeDatabase(
+          dataset, parallelization_pool,
+          {.avq_after_primary = true, .avq_eta = pconfig.avq()});
+    }
+  }
+  auto projecting_partitioner =
+      dynamic_cast<KMeansTreeProjectingDecorator<T>*>(partitioner);
+  if (!projecting_partitioner) {
+    return UnimplementedError(
+        "AVQ is only defined for KMeans tree partitioners.");
+  }
+  auto kmeans_tree_partitioner = dynamic_cast<KMeansTreePartitioner<float>*>(
+      projecting_partitioner->base_partitioner());
+  if (!kmeans_tree_partitioner) {
+    return UnimplementedError(
+        "AVQ is only defined for KMeans tree partitioners.");
+  }
+
+  auto projection = projecting_partitioner->projection();
+  DenseDataset<float> projected_dataset;
+  Datapoint<float> projected_dp;
+  for (const auto& dptr : dataset) {
+    SCANN_RETURN_IF_ERROR(projection->ProjectInput(dptr, &projected_dp));
+    projected_dataset.AppendOrDie(projected_dp.ToGfv(), "");
+  }
+  return kmeans_tree_partitioner->TokenizeDatabase(
+      projected_dataset, parallelization_pool,
+      {.avq_after_primary = true, .avq_eta = pconfig.avq()});
+}
+}  // namespace
 
 template <typename T>
 StatusOr<CreateTreeXPartitionerResult<T>> CreateTreeXPartitioner(
@@ -111,18 +156,10 @@ StatusOr<CreateTreeXPartitionerResult<T>> CreateTreeXPartitioner(
 
   vector<std::vector<DatapointIndex>> token_to_datapoint_index;
   if (should_apply_avq) {
-    auto kmeans_tree_partitioner =
-        dynamic_cast<KMeansTreePartitioner<T>*>(partitioner.get());
-    if (!kmeans_tree_partitioner) {
-      return UnimplementedError(
-          "AVQ is only defined for KMeans tree partitioners and is not "
-          "currently supported when projection is enabled.");
-    }
     SCANN_ASSIGN_OR_RETURN(
         token_to_datapoint_index,
-        kmeans_tree_partitioner->TokenizeDatabase(
-            *dataset, opts->parallelization_pool.get(),
-            {.avq_after_primary = true, .avq_eta = pconfig.avq()}));
+        TokenizeDatabaseWithAvq(pconfig, *dataset, partitioner.get(),
+                                opts->parallelization_pool.get()));
   } else if (opts->datapoints_by_token) {
     token_to_datapoint_index = std::move(*opts->datapoints_by_token);
   } else {
@@ -163,27 +200,45 @@ Status MaybeAddTopLevelPartitioner(unique_ptr<Partitioner<T>>& partitioner,
         "Top-level partitioner is only supported if the base partitioner "
         "KMeansTreeLikePartitioner.");
   }
-  unique_ptr<KMeansTreeLikePartitioner<T>> kmeans_tree_partitioner(
-      static_cast<KMeansTreeLikePartitioner<T>*>(partitioner.release()));
-  auto top_level_partitioner = make_unique<TreeBruteForceSecondLevelWrapper<T>>(
-      std::move(kmeans_tree_partitioner));
-  SCANN_RETURN_IF_ERROR(top_level_partitioner->CreatePartitioning(
-      config.partitioning().bottom_up_top_level_partitioner()));
-  partitioner = std::move(top_level_partitioner);
+  const auto projected =
+      dynamic_cast<const KMeansTreeProjectingDecorator<T>*>(partitioner.get());
+  if (projected) {
+    unique_ptr<KMeansTreeLikePartitioner<float>> cloned_base(
+        dynamic_cast<KMeansTreeLikePartitioner<float>*>(
+            projected->base_partitioner()->Clone().release()));
+    SCANN_RET_CHECK(cloned_base);
+    auto top_level_partitioner =
+        make_unique<TreeBruteForceSecondLevelWrapper<float>>(
+            std::move(cloned_base));
+    SCANN_RETURN_IF_ERROR(top_level_partitioner->CreatePartitioning(
+        config.partitioning().bottom_up_top_level_partitioner()));
+    auto wrapped_top = make_unique<KMeansTreeProjectingDecorator<T>>(
+        projected->projection(), std::move(top_level_partitioner));
+    partitioner = std::move(wrapped_top);
+  } else {
+    unique_ptr<KMeansTreeLikePartitioner<T>> kmeans_tree_partitioner(
+        static_cast<KMeansTreeLikePartitioner<T>*>(partitioner.release()));
+    auto top_level_partitioner =
+        make_unique<TreeBruteForceSecondLevelWrapper<T>>(
+            std::move(kmeans_tree_partitioner));
+    SCANN_RETURN_IF_ERROR(top_level_partitioner->CreatePartitioning(
+        config.partitioning().bottom_up_top_level_partitioner()));
+    partitioner = std::move(top_level_partitioner);
+  }
   return OkStatus();
 }
 }  // namespace
 
 template <typename T>
 StatusOrSearcherUntyped TreeAhHybridResidualFactory(
-    const ScannConfig& config, const shared_ptr<TypedDataset<T>>& dataset,
+    ScannConfig config, const shared_ptr<TypedDataset<T>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
   return InvalidArgumentError(
       "Tree-AH with residual quantization only works with float data.");
 }
 template <>
 StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
-    const ScannConfig& config, const shared_ptr<TypedDataset<float>>& dataset,
+    ScannConfig config, const shared_ptr<TypedDataset<float>>& dataset,
     const GenericSearchParameters& params, SingleMachineFactoryOptions* opts) {
   unique_ptr<Partitioner<float>> partitioner;
   vector<std::vector<DatapointIndex>> datapoints_by_token;
@@ -203,6 +258,30 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
     return InvalidArgumentError(
         "Tree AH with residual quantization only works with KMeans tree as a "
         "partitioner.");
+  }
+
+  {
+    auto& hash_proj_config =
+        *config.mutable_hash()->mutable_asymmetric_hash()->mutable_projection();
+    if (!hash_proj_config.has_input_dim() &&
+        !hash_proj_config.has_num_blocks() &&
+        hash_proj_config.variable_blocks().empty() &&
+        hash_proj_config.projection_type() !=
+            ProjectionConfig::VARIABLE_CHUNK) {
+      hash_proj_config.set_input_dim(kmeans_tree_partitioner->kmeans_tree()
+                                         ->CenterForToken(0)
+                                         .dimensionality());
+      LOG(INFO)
+          << "input_dim and num_blocks were not explicitly specified in "
+             "TreeAhHybridResidualFactory AH config. Setting input_dim to "
+          << hash_proj_config.input_dim()
+          << " to match the dimensionality of the partitioning centroids.";
+
+      if (hash_proj_config.input_dim() <
+          hash_proj_config.num_dims_per_block()) {
+        hash_proj_config.set_num_dims_per_block(hash_proj_config.input_dim());
+      }
+    }
   }
 
   auto dense = std::dynamic_pointer_cast<const DenseDataset<float>>(dataset);
@@ -309,7 +388,6 @@ StatusOrSearcherUntyped TreeAhHybridResidualFactory<float>(
       SetOverretrievalFactor(config.partitioning(), result.get()));
   result->set_fixed_point_lut_conversion_options(
       config.hash().asymmetric_hash().fixed_point_lut_conversion_options());
-  result->InitializeHealthStats();
   return {std::move(result)};
 }
 

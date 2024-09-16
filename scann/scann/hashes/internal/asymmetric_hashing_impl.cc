@@ -23,6 +23,7 @@
 #include "absl/random/distributions.h"
 #include "absl/status/status.h"
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/oss_wrappers/scann_random.h"
@@ -663,14 +664,15 @@ vector<uint8_t> CreatePackedDataset(
   if (hashed_database.empty()) {
     return packed_dataset;
   }
+  const DatapointIndex data_size = hashed_database.size();
 
   DimensionIndex num_blocks = hashed_database[0].nonzero_entries();
   packed_dataset.resize(num_blocks *
-                        ((hashed_database.size() + kNumDatapointsPerBlock - 1) &
+                        ((data_size + kNumDatapointsPerBlock - 1) &
                          (~(kNumDatapointsPerBlock - 1))) /
                         2);
   DatapointIndex k = 0;
-  for (; k < hashed_database.size() / kNumDatapointsPerBlock; ++k) {
+  for (; k < data_size / kNumDatapointsPerBlock; ++k) {
     size_t start = k * kPackedDatasetBlockSize * num_blocks;
     for (size_t j = 0; j < num_blocks; ++j) {
       for (size_t m = 0; m < kPackedDatasetBlockSize; m++) {
@@ -685,18 +687,16 @@ vector<uint8_t> CreatePackedDataset(
     }
   }
 
-  if (k * kNumDatapointsPerBlock < hashed_database.size()) {
+  if (k * kNumDatapointsPerBlock < data_size) {
     size_t start = k * kPackedDatasetBlockSize * num_blocks;
     for (size_t j = 0; j < num_blocks; ++j) {
       for (size_t m = 0; m < kPackedDatasetBlockSize; m++) {
         DatapointIndex dp_idx = k * kNumDatapointsPerBlock + m;
-        dp_idx = dp_idx >= hashed_database.size() ? (hashed_database.size() - 1)
-                                                  : dp_idx;
+        dp_idx = dp_idx >= data_size ? (data_size - 1) : dp_idx;
         uint8_t u0 = hashed_database[dp_idx].values()[j];
 
         dp_idx = k * kNumDatapointsPerBlock + m + kPackedDatasetBlockSize;
-        dp_idx = dp_idx >= hashed_database.size() ? (hashed_database.size() - 1)
-                                                  : dp_idx;
+        dp_idx = dp_idx >= data_size ? (data_size - 1) : dp_idx;
         uint8_t u1 = hashed_database[dp_idx].values()[j];
         packed_dataset[start + j * kPackedDatasetBlockSize + m] =
             u1 * kPackedDatasetBlockSize + u0;

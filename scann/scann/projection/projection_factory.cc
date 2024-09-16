@@ -20,6 +20,7 @@
 
 #include "scann/data_format/dataset.h"
 #include "scann/projection/identity_projection.h"
+#include "scann/projection/pca_projection.h"
 #include "scann/projection/projection_base.h"
 #include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
@@ -119,6 +120,30 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
       return InvalidArgumentError(
           "Cannot return projection type VARIABLE_CHUNK from "
           "ProjectionFactory. Did you mean to call ChunkingProjectionFactory?");
+    case ProjectionConfig::PCA: {
+      SCANN_RETURN_IF_ERROR(fix_remainder_dims());
+      if (!dataset) {
+        return InvalidArgumentError(
+            "A dataset must be provided when constructing a PCA projection");
+      }
+      unique_ptr<PcaProjection<T>> result;
+      if (config.has_num_dims_per_block()) {
+        result = make_unique<PcaProjection<T>>(input_dim,
+                                               config.num_dims_per_block());
+        result->Create(*dataset, config.build_covariance());
+      } else {
+        if (config.has_pca_significance_threshold()) {
+          result = make_unique<PcaProjection<T>>(input_dim, input_dim);
+          result->Create(*dataset, config.pca_significance_threshold(),
+                         config.pca_truncation_threshold());
+        } else {
+          return InvalidArgumentError(
+              "Must specify num_dims_per_block or pca_significance_threshold "
+              "for PCA projection.");
+        }
+      }
+      return {std::move(result)};
+    }
 
     default:
       return UnimplementedError(

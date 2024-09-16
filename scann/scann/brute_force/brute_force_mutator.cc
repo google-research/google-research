@@ -94,6 +94,12 @@ BruteForceSearcher<T>::Mutator::LookupDatapointIndexOrError(
   if (!this->LookupDatapointIndex(docid, &index)) {
     return NotFoundError(absl::StrCat("Docid: ", docid, " is not found."));
   }
+  auto ds = searcher_->dataset();
+  SCANN_RET_CHECK(ds)
+      << "Dataset is null in BruteForceSearcher.  This is likely an "
+         "internal error.";
+  SCANN_RET_CHECK_LT(index, ds->size())
+      << "Docid: " << docid << " has an invalid (too-large) datapoint index.";
   return index;
 }
 

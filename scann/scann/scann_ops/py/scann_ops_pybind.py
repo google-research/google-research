@@ -108,8 +108,8 @@ class ScannSearcher(object):
         if self.docids is None else [[self.docids[j] for j in i] for i in idx])
     return idx, dist
 
-  def serialize(self, artifacts_dir):
-    self.searcher.serialize(artifacts_dir)
+  def serialize(self, artifacts_dir, relative_path=False):
+    self.searcher.serialize(artifacts_dir, relative_path)
     docids_fn = os.path.join(artifacts_dir, "scann_docids.pkl")
 
     if self.docids is not None:

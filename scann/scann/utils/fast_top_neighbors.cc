@@ -27,9 +27,9 @@
 #include "absl/strings/str_cat.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/common.h"
+#include "scann/utils/hwy-compact.h"
 #include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/flags.h"
-#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/zip_sort.h"
 
 namespace research_scann {

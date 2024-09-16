@@ -15,6 +15,7 @@
 #include "scann/utils/io_oss_wrapper.h"
 
 #include <algorithm>
+#include <fstream>
 #include <memory>
 #include <string>
 
@@ -57,6 +58,16 @@ Status ReadProtobufFromFile(absl::string_view filename,
   if (!message->ParseFromIstream(&fin))
     return InternalError("Failed to parse proto from " + std::string(filename));
   return OkStatus();
+}
+
+absl::StatusOr<std::string> GetContents(absl::string_view filename) {
+  std::ifstream input_stream{std::string(filename)};
+  if (!input_stream.is_open())
+    return absl::InternalError(
+        absl::StrFormat("Input file %s not opened successfully.", filename));
+  std::stringstream content;
+  content << input_stream.rdbuf();
+  return content.str();
 }
 
 }  // namespace research_scann

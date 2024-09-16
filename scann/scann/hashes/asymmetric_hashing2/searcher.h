@@ -21,6 +21,7 @@
 #include <functional>
 #include <utility>
 
+#include "absl/base/nullability.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -47,8 +48,8 @@ namespace asymmetric_hashing2 {
 template <typename T>
 class SearcherOptions {
  public:
-  explicit SearcherOptions(shared_ptr<const AsymmetricQueryer<T>> queryer,
-                           shared_ptr<const Indexer<T>> indexer = nullptr)
+  explicit SearcherOptions(std::shared_ptr<const AsymmetricQueryer<T>> queryer,
+                           std::shared_ptr<const Indexer<T>> indexer = nullptr)
       : indexer_(std::move(indexer)), asymmetric_queryer_(std::move(queryer)) {}
 
   void set_asymmetric_lookup_type(
@@ -79,7 +80,7 @@ class SearcherOptions {
 
   void set_noise_shaping_threshold(double t) { noise_shaping_threshold_ = t; }
 
-  shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer() const {
+  std::shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer() const {
     return asymmetric_queryer_;
   }
 
@@ -92,26 +93,85 @@ class SearcherOptions {
   }
 
  private:
-  shared_ptr<const Indexer<T>> indexer_ = nullptr;
+  std::shared_ptr<const Indexer<T>> indexer_ = nullptr;
 
   double noise_shaping_threshold_ = NAN;
 
   FixedPointLUTConversionOptions fixed_point_lut_conversion_options_;
 
-  shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer_ = nullptr;
+  std::shared_ptr<const AsymmetricQueryer<T>> asymmetric_queryer_ = nullptr;
 
   AsymmetricHasherConfig::LookupType asymmetric_lookup_type_ =
       AsymmetricHasherConfig::FLOAT;
 
   template <typename U>
+  friend class SearcherBase;
+  template <typename U>
   friend class Searcher;
 };
 
+inline constexpr int kNumClustersPerBlockForLUT16 = 16;
+
 template <typename T>
-class Searcher : public SingleMachineSearcherBase<T> {
+class SearcherBase : public SingleMachineSearcherBase<T> {
  public:
-  Searcher(shared_ptr<TypedDataset<T>> dataset,
-           shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
+  explicit SearcherBase(
+      absl::Nullable<std::shared_ptr<TypedDataset<T>>> dataset,
+      absl::Nonnull<std::shared_ptr<DenseDataset<uint8_t>>> hashed_dataset,
+      SearcherOptions<T> opts, int32_t default_pre_reordering_num_neighbors,
+      float default_pre_reordering_epsilon);
+
+  explicit SearcherBase(SearcherOptions<T> opts,
+                        int32_t default_pre_reordering_num_neighbors,
+                        float default_pre_reordering_epsilon);
+
+  ~SearcherBase() override = default;
+
+  DatapointIndex optimal_batch_size() const final {
+    return optimal_low_level_batch_size_;
+  }
+
+  const PackedDataset& packed_dataset() { return packed_dataset_; }
+
+  bool impl_needs_dataset() const final { return false; }
+
+  bool impl_needs_hashed_dataset() const final {
+    return !(lut16_ && opts_.asymmetric_queryer_->num_clusters_per_block() ==
+                           kNumClustersPerBlockForLUT16);
+  }
+
+ protected:
+  virtual Status FindNeighborsBatchedInternal(
+      std::function<DatapointPtr<T>(DatapointIndex)> get_query,
+      ConstSpan<SearchParameters> params,
+      MutableSpan<NNResultsVector> results) const = 0;
+
+  StatusOr<const LookupTable*> GetOrCreateLookupTable(
+      const DatapointPtr<T>& query, const SearchParameters& params,
+      LookupTable* created_lookup_table_storage) const;
+
+  SearcherOptions<T> opts_;
+
+  PackedDataset packed_dataset_;
+
+  const bool limited_inner_product_ : 1;
+
+  const bool lut16_ : 1;
+
+  uint8_t max_low_level_batch_size_ = 9;
+
+  uint8_t optimal_low_level_batch_size_ = 1;
+
+  std::vector<float> norm_inv_or_bias_ = {};
+
+  friend class ::research_scann::TreeAHHybridResidual;
+};
+
+template <typename T>
+class Searcher final : public SearcherBase<T> {
+ public:
+  Searcher(std::shared_ptr<TypedDataset<T>> dataset,
+           std::shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
            SearcherOptions<T> opts,
            int32_t default_pre_reordering_num_neighbors,
            float default_pre_reordering_epsilon);
@@ -122,12 +182,6 @@ class Searcher : public SingleMachineSearcherBase<T> {
 
   bool supports_crowding() const final { return true; }
 
-  DatapointIndex optimal_batch_size() const final {
-    return optimal_low_level_batch_size_;
-  }
-
-  const PackedDataset& packed_dataset() { return packed_dataset_; }
-
   using PrecomputedMutationArtifacts =
       UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;
   using MutationOptions = UntypedSingleMachineSearcherBase::MutationOptions;
@@ -137,7 +191,7 @@ class Searcher : public SingleMachineSearcherBase<T> {
     using MutateBaseOptions =
         UntypedSingleMachineSearcherBase::UntypedMutator::MutateBaseOptions;
 
-    static StatusOr<unique_ptr<typename Searcher<T>::Mutator>> Create(
+    static StatusOr<std::unique_ptr<typename Searcher<T>::Mutator>> Create(
         Searcher<T>* searcher);
     Mutator(const Mutator&) = delete;
     Mutator& operator=(const Mutator&) = delete;
@@ -145,7 +199,7 @@ class Searcher : public SingleMachineSearcherBase<T> {
 
     using SingleMachineSearcherBase<
         T>::Mutator::ComputePrecomputedMutationArtifacts;
-    unique_ptr<PrecomputedMutationArtifacts>
+    std::unique_ptr<PrecomputedMutationArtifacts>
     ComputePrecomputedMutationArtifacts(
         const DatapointPtr<T>& dptr) const final;
     StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex i) const final;
@@ -162,7 +216,7 @@ class Searcher : public SingleMachineSearcherBase<T> {
                                              DatapointIndex index,
                                              const MutationOptions& mo) final;
 
-    unique_ptr<PrecomputedMutationArtifacts>
+    std::unique_ptr<PrecomputedMutationArtifacts>
     ComputePrecomputedMutationArtifacts(const DatapointPtr<T>& maybe_residual,
                                         const DatapointPtr<T>& original) const;
 
@@ -203,18 +257,7 @@ class Searcher : public SingleMachineSearcherBase<T> {
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
       MutableSpan<NNResultsVector> results) const override;
 
-  bool impl_needs_dataset() const final { return false; }
-
-  bool impl_needs_hashed_dataset() const final {
-    return !(lut16_ &&
-             opts_.asymmetric_queryer_->num_clusters_per_block() == 16);
-  }
-
   Status VerifyLimitedInnerProductNormsSize() const;
-
-  StatusOr<const LookupTable*> GetOrCreateLookupTable(
-      const DatapointPtr<T>& query, const SearchParameters& params,
-      LookupTable* created_lookup_table_storage) const;
 
   template <typename PostprocessFunctor>
   QueryerOptions<PostprocessFunctor> GetQueryerOptions(
@@ -226,12 +269,10 @@ class Searcher : public SingleMachineSearcherBase<T> {
                                      PostprocessFunctor postprocessing_functor,
                                      NNResultsVector* result) const;
 
-  template <typename PostprocessFunctor>
   Status FindNeighborsBatchedInternal(
       std::function<DatapointPtr<T>(DatapointIndex)> get_query,
       ConstSpan<SearchParameters> params,
-      PostprocessFunctor postprocessing_functor,
-      MutableSpan<NNResultsVector> results) const;
+      MutableSpan<NNResultsVector> results) const override;
 
   template <size_t kNumQueries, typename PostprocessFunctor>
   Status FindOneLowLevelBatchOfNeighbors(
@@ -241,21 +282,7 @@ class Searcher : public SingleMachineSearcherBase<T> {
       const QueryerOptions<PostprocessFunctor>& queryer_options,
       MutableSpan<NNResultsVector> results) const;
 
-  SearcherOptions<T> opts_;
-
-  PackedDataset packed_dataset_;
-
-  const bool limited_inner_product_ : 1;
-
-  const bool lut16_ : 1;
-
-  uint8_t max_low_level_batch_size_ = 9;
-
-  uint8_t optimal_low_level_batch_size_ = 1;
-
-  std::vector<float> norm_inv_or_bias_ = {};
-
-  mutable unique_ptr<typename Searcher<T>::Mutator> mutator_ = nullptr;
+  mutable std::unique_ptr<typename Searcher<T>::Mutator> mutator_ = nullptr;
 
   friend class ::research_scann::TreeAHHybridResidual;
 };
@@ -275,6 +302,8 @@ class AsymmetricHashingOptionalParameters
   LookupTable precomputed_lookup_table_;
 
   template <typename U>
+  friend class SearcherBase;
+  template <typename U>
   friend class Searcher;
 };
 
@@ -283,7 +312,7 @@ class PrecomputedAsymmetricLookupTableCreator final
     : public LeafSearcherOptionalParameterCreator<T> {
  public:
   explicit PrecomputedAsymmetricLookupTableCreator(
-      shared_ptr<const AsymmetricQueryer<T>> queryer,
+      std::shared_ptr<const AsymmetricQueryer<T>> queryer,
       AsymmetricHasherConfig::LookupType lookup_type,
       AsymmetricHasherConfig::FixedPointLUTConversionOptions
           fixed_point_lut_conversion_options =
@@ -293,26 +322,19 @@ class PrecomputedAsymmetricLookupTableCreator final
         fixed_point_lut_conversion_options_(
             fixed_point_lut_conversion_options) {}
 
-  StatusOr<unique_ptr<SearcherSpecificOptionalParameters>>
+  StatusOr<std::unique_ptr<SearcherSpecificOptionalParameters>>
   CreateLeafSearcherOptionalParameters(
       const DatapointPtr<T>& query) const final;
 
  private:
-  shared_ptr<const AsymmetricQueryer<T>> queryer_;
+  std::shared_ptr<const AsymmetricQueryer<T>> queryer_;
   AsymmetricHasherConfig::LookupType lookup_type_;
   AsymmetricHasherConfig::FixedPointLUTConversionOptions
       fixed_point_lut_conversion_options_;
 };
 
-extern template Status Searcher<float>::FindNeighborsBatchedInternal<
-    asymmetric_hashing_internal::IdentityPostprocessFunctor>(
-    std::function<DatapointPtr<float>(DatapointIndex)> get_query,
-    ConstSpan<SearchParameters> params,
-    asymmetric_hashing_internal::IdentityPostprocessFunctor
-        postprocessing_functor,
-    MutableSpan<NNResultsVector> results) const;
-
 SCANN_INSTANTIATE_TYPED_CLASS(extern, SearcherOptions);
+SCANN_INSTANTIATE_TYPED_CLASS(extern, SearcherBase);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Searcher);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, PrecomputedAsymmetricLookupTableCreator);
 

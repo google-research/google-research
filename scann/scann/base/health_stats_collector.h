@@ -23,9 +23,9 @@
 #include "absl/status/statusor.h"
 #include "absl/types/span.h"
 #include "scann/data_format/datapoint.h"
-#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_status.h"
+#include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -33,7 +33,9 @@ namespace research_scann {
 
 template <typename Searcher, typename InDataType,
 
-          typename InAccamulationType = InDataType>
+          typename InAccamulationType = InDataType,
+          typename Partitioner =
+              KMeansTreePartitioner<typename Searcher::DataType>>
 class HealthStatsCollector {
  public:
   using DataType = InDataType;
@@ -79,7 +81,6 @@ class HealthStatsCollector {
                                DatapointPtr<DataType> old_centroid);
 
  private:
-  using Partitioner = typename Searcher::Partitioner;
   Status InitializeCentroids(const Searcher& searcher);
 
   enum class Op {
@@ -114,24 +115,22 @@ class HealthStatsCollector {
   double partition_avg_relative_imbalance_ = 0;
   uint64_t sum_partition_sizes_ = 0;
 
-  std::vector<Datapoint<InAccamulationType>> sum_dims_by_token_;
+  std::vector<Datapoint<InAccamulationType>> sum_qe_by_token_;
 
   std::vector<uint32_t> sizes_by_token_;
 
   std::vector<InAccamulationType> squared_quantization_error_by_token_;
   std::shared_ptr<Partitioner> centroids_;
   bool is_enabled_ = false;
+
+  static constexpr bool kCentroidAndDPAreSameType =
+      std::is_same_v<DataType, typename Searcher::DataType>;
 };
 
-template <typename T>
-concept HasMethodLeafCenters = requires(T&& t) {
-  {t.LeafCenters()};
-};
-
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-Status
-HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Initialize(
-    const Searcher& searcher) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+Status HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                            Partitioner>::Initialize(const Searcher& searcher) {
   *this = HealthStatsCollector();
   is_enabled_ = true;
   searcher_ = &searcher;
@@ -139,18 +138,20 @@ HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Initialize(
 
   ConstSpan<std::vector<DatapointIndex>> datapoints_by_token =
       searcher.datapoints_by_token();
+  Reserve(datapoints_by_token.size());
   for (const auto& dps : datapoints_by_token) {
     sum_partition_sizes_ += dps.size();
     sizes_by_token_.push_back(dps.size());
+    sum_qe_by_token_.emplace_back();
+    squared_quantization_error_by_token_.emplace_back();
   }
 
   const auto* dataset = searcher.dataset();
-  if constexpr (HasMethodLeafCenters<Partitioner>) {
+  if constexpr (kCentroidAndDPAreSameType) {
     if (dataset && !dataset->empty()) {
       const auto& ds = *dataset;
       InAccamulationType total_squared_qe = 0.0;
       const auto& centroids = centroids_->LeafCenters();
-      Reserve(datapoints_by_token.size());
       for (const auto& [token, dps] : Enumerate(datapoints_by_token)) {
         Datapoint<InAccamulationType> sum_dims;
         sum_dims.ZeroFill(ds.dimensionality());
@@ -162,8 +163,8 @@ HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Initialize(
           v += SquaredL2DistanceBetween(ds[dp_idx], centroid);
           AddDelta(sum_dims, ds[dp_idx], centroids[token]);
         }
-        squared_quantization_error_by_token_.push_back(v);
-        sum_dims_by_token_.push_back(std::move(sum_dims));
+        squared_quantization_error_by_token_[token] = v;
+        sum_qe_by_token_[token] = std::move(sum_dims);
         total_squared_qe += v;
       }
 
@@ -175,11 +176,12 @@ HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Initialize(
   return OkStatus();
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-absl::StatusOr<typename HealthStatsCollector<Searcher, InDataType,
-                                             InAccamulationType>::HealthStats>
-HealthStatsCollector<Searcher, InDataType,
-                     InAccamulationType>::GetHealthStats() {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+absl::StatusOr<typename HealthStatsCollector<
+    Searcher, InDataType, InAccamulationType, Partitioner>::HealthStats>
+HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                     Partitioner>::GetHealthStats() {
   HealthStats r;
   if (sum_partition_sizes_ > 0) {
     r.avg_quantization_error =
@@ -193,134 +195,156 @@ HealthStatsCollector<Searcher, InDataType,
   return r;
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType,
-                          InAccamulationType>::AddPartition() {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::AddPartition() {
   if (!is_enabled_) return;
-  sum_dims_by_token_.emplace_back();
+  sum_qe_by_token_.emplace_back();
   sizes_by_token_.push_back(0);
   squared_quantization_error_by_token_.push_back(0);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType,
-                          InAccamulationType>::SwapPartitions(int32_t token1,
-                                                              int32_t token2) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::SwapPartitions(int32_t token1,
+                                                       int32_t token2) {
   if (!is_enabled_) return;
-  std::swap(sum_dims_by_token_[token1], sum_dims_by_token_[token2]);
+  std::swap(sum_qe_by_token_[token1], sum_qe_by_token_[token2]);
   std::swap(sizes_by_token_[token1], sizes_by_token_[token2]);
   std::swap(squared_quantization_error_by_token_[token1],
             squared_quantization_error_by_token_[token2]);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType,
-                          InAccamulationType>::RemoveLastPartition() {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::RemoveLastPartition() {
   if (!is_enabled_) return;
-  sum_dims_by_token_.pop_back();
+  sum_qe_by_token_.pop_back();
   sizes_by_token_.pop_back();
   squared_quantization_error_by_token_.pop_back();
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Resize(
-    size_t n) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::Resize(size_t n) {
   if (!is_enabled_) return;
-  sum_dims_by_token_.resize(n);
+  sum_qe_by_token_.resize(n);
   sizes_by_token_.resize(n);
   squared_quantization_error_by_token_.resize(n);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Reserve(
-    size_t n) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::Reserve(size_t n) {
   if (!is_enabled_) return;
-  sum_dims_by_token_.reserve(n);
+  sum_qe_by_token_.reserve(n);
   sizes_by_token_.reserve(n);
   squared_quantization_error_by_token_.reserve(n);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
 template <typename Tokens>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::AddStats(
-    const Tokens& tokens, absl::Span<const DatapointIndex> datapoints) {
+void HealthStatsCollector<
+    Searcher, InDataType, InAccamulationType,
+    Partitioner>::AddStats(const Tokens& tokens,
+                           absl::Span<const DatapointIndex> datapoints) {
   if (!is_enabled_) return;
   StatsUpdate(tokens, Op::Add, datapoints);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
 template <typename Tokens>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::
-    SubtractStats(const Tokens& tokens,
-                  absl::Span<const DatapointIndex> datapoints) {
+void HealthStatsCollector<
+    Searcher, InDataType, InAccamulationType,
+    Partitioner>::SubtractStats(const Tokens& tokens,
+                                absl::Span<const DatapointIndex> datapoints) {
   if (!is_enabled_) return;
   StatsUpdate(tokens, Op::Subtract, datapoints);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::
-    SubtractPartition(int32_t token) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::SubtractPartition(int32_t token) {
   if (!is_enabled_) return;
 
   sum_squared_quantization_error_ -=
       squared_quantization_error_by_token_[token];
   sum_partition_sizes_ -= sizes_by_token_[token];
 
-  sum_dims_by_token_[token].ZeroFill(
-      sum_dims_by_token_[token].dimensionality());
+  sum_qe_by_token_[token].ZeroFill(sum_qe_by_token_[token].dimensionality());
   sizes_by_token_[token] = 0;
   squared_quantization_error_by_token_[token] = 0;
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::
-    UpdatePartitionCentroid(int32_t token, DatapointPtr<DataType> new_centroid,
-                            DatapointPtr<DataType> old_centroid) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<
+    Searcher, InDataType, InAccamulationType,
+    Partitioner>::UpdatePartitionCentroid(int32_t token,
+                                          DatapointPtr<DataType> new_centroid,
+                                          DatapointPtr<DataType> old_centroid) {
   if (!is_enabled_) return;
 
-  if (sum_dims_by_token_[token].dimensionality() == 0) {
-    sum_dims_by_token_[token].ZeroFill(new_centroid.dimensionality());
-  }
-  InAccamulationType delta = 0;
-  for (int dim = 0; dim < new_centroid.dimensionality(); ++dim) {
-    auto d = new_centroid.values_span()[dim] - old_centroid.values_span()[dim];
-    InAccamulationType v = sizes_by_token_[token] * d * d -
-                           2 * d * sum_dims_by_token_[token].values_span()[dim];
-    delta += v;
-  }
-  sum_squared_quantization_error_ += delta;
-  squared_quantization_error_by_token_[token] += delta;
+  if constexpr (kCentroidAndDPAreSameType) {
+    if (sizes_by_token_[token] == 0) return;
 
-  AddDelta(sum_dims_by_token_[token], old_centroid, new_centroid,
-           sizes_by_token_[token]);
+    if (sum_qe_by_token_[token].dimensionality() == 0) {
+      sum_qe_by_token_[token].ZeroFill(new_centroid.dimensionality());
+    }
+    InAccamulationType delta = 0;
+    for (int dim = 0; dim < new_centroid.dimensionality(); ++dim) {
+      auto d =
+          new_centroid.values_span()[dim] - old_centroid.values_span()[dim];
+      InAccamulationType v = sizes_by_token_[token] * d * d -
+                             2 * d * sum_qe_by_token_[token].values_span()[dim];
+      delta += v;
+    }
+    sum_squared_quantization_error_ += delta;
+    squared_quantization_error_by_token_[token] += delta;
+
+    AddDelta(sum_qe_by_token_[token], old_centroid, new_centroid,
+             sizes_by_token_[token]);
+  }
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-Status HealthStatsCollector<Searcher, InDataType, InAccamulationType>::
-    InitializeCentroids(const Searcher& searcher) {
-  if constexpr (HasMethodLeafCenters<Partitioner>) {
-    auto pd = searcher.query_tokenizer();
-    auto pq = searcher.database_tokenizer();
-    SCANN_RET_CHECK(pd != nullptr);
-    SCANN_RET_CHECK(pq != nullptr);
-    SCANN_RET_CHECK_EQ(pd->kmeans_tree(), pq->kmeans_tree())
-        << "Centroids in database partitioner and query partitioner must be "
-        << "identical";
-    SCANN_RET_CHECK(pq->kmeans_tree()->is_flat())
-        << "The query/database partitioner must contain a single flat "
-        << "KMeansTree.";
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+Status HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                            Partitioner>::InitializeCentroids(const Searcher&
+                                                                  searcher) {
+  auto pd = std::dynamic_pointer_cast<const Partitioner>(
+      searcher_->database_tokenizer());
+  auto pq = std::dynamic_pointer_cast<const Partitioner>(
+      searcher_->query_tokenizer());
+  SCANN_RET_CHECK(pd != nullptr);
+  SCANN_RET_CHECK(pq != nullptr);
+  SCANN_RET_CHECK_EQ(pd->kmeans_tree(), pq->kmeans_tree())
+      << "Centroids in database partitioner and query partitioner must be "
+      << "identical";
+  SCANN_RET_CHECK(pq->kmeans_tree()->is_flat())
+      << "The query/database partitioner must contain a single flat "
+      << "KMeansTree.";
 
-    centroids_ = std::const_pointer_cast<Partitioner>(pq);
-  }
+  centroids_ = std::const_pointer_cast<Partitioner>(pq);
   return OkStatus();
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
 template <typename Tokens>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::
-    StatsUpdate(const Tokens& tokens, Op op,
-                absl::Span<const DatapointIndex> datapoints) {
-  if constexpr (HasMethodLeafCenters<Partitioner>) {
+void HealthStatsCollector<
+    Searcher, InDataType, InAccamulationType,
+    Partitioner>::StatsUpdate(const Tokens& tokens, Op op,
+                              absl::Span<const DatapointIndex> datapoints) {
+  if constexpr (kCentroidAndDPAreSameType) {
     const auto& centroids = centroids_->LeafCenters();
     Datapoint<DataType> dp;
     for (int32_t token : tokens) {
@@ -345,48 +369,59 @@ void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::
   }
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Add(
-    int32_t token, DatapointPtr<DataType> dp_ptr,
-    DatapointPtr<DataType> center) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::Add(int32_t token,
+                                            DatapointPtr<DataType> dp_ptr,
+                                            DatapointPtr<DataType> center) {
   double quantize_err = SquaredL2DistanceBetween(dp_ptr, center);
   sum_squared_quantization_error_ += quantize_err;
 
-  AddDelta(sum_dims_by_token_[token], dp_ptr, center);
+  AddDelta(sum_qe_by_token_[token], dp_ptr, center);
   squared_quantization_error_by_token_[token] += quantize_err;
   Add(token);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Add(
-    int32_t token) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::Add(int32_t token) {
   ++sum_partition_sizes_;
   ++sizes_by_token_[token];
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Subtract(
-    int32_t token, DatapointPtr<DataType> dp_ptr,
-    DatapointPtr<DataType> center) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::Subtract(int32_t token,
+                                                 DatapointPtr<DataType> dp_ptr,
+                                                 DatapointPtr<DataType>
+                                                     center) {
   double quantize_err = SquaredL2DistanceBetween(dp_ptr, center);
   sum_squared_quantization_error_ -= quantize_err;
 
-  AddDelta(sum_dims_by_token_[token], center, dp_ptr);
+  AddDelta(sum_qe_by_token_[token], center, dp_ptr);
   squared_quantization_error_by_token_[token] -= quantize_err;
   Subtract(token);
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::Subtract(
-    int32_t token) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::Subtract(int32_t token) {
   --sum_partition_sizes_;
   --sizes_by_token_[token];
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::AddDelta(
-    Datapoint<InAccamulationType>& dst, DatapointPtr<DataType> new_dp,
-    DatapointPtr<DataType> old_dp, int times) {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::AddDelta(Datapoint<InAccamulationType>&
+                                                     dst,
+                                                 DatapointPtr<DataType> new_dp,
+                                                 DatapointPtr<DataType> old_dp,
+                                                 int times) {
   if (dst.dimensionality() == 0) dst.ZeroFill(new_dp.dimensionality());
   for (int dim = 0; dim < dst.dimensionality(); ++dim) {
     dst.mutable_values_span()[dim] +=
@@ -394,9 +429,10 @@ void HealthStatsCollector<Searcher, InDataType, InAccamulationType>::AddDelta(
   }
 }
 
-template <typename Searcher, typename InDataType, typename InAccamulationType>
-void HealthStatsCollector<Searcher, InDataType,
-                          InAccamulationType>::ComputeAvgRelativeImbalance() {
+template <typename Searcher, typename InDataType, typename InAccamulationType,
+          typename Partitioner>
+void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
+                          Partitioner>::ComputeAvgRelativeImbalance() {
   partition_avg_relative_imbalance_ = 0;
   if (sum_partition_sizes_ == 0) return;
 

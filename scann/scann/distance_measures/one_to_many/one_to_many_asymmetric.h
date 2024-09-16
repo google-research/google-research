@@ -33,6 +33,7 @@
 #include "scann/distance_measures/distance_measures.h"
 #include "scann/distance_measures/one_to_many/one_to_many_helpers.h"
 #include "scann/distance_measures/one_to_many/one_to_many_impl_highway.inc"
+#include "scann/distance_measures/one_to_many/scale_encoding.pb.h"
 #include "scann/utils/bfloat16_helpers.h"
 #include "scann/utils/common.h"
 #include "scann/utils/internal/avx2_funcs.h"
@@ -174,6 +175,7 @@ SCANN_OUTLINE void OneToManyUint4Int8Impl(const int8_t* __restrict__ query,
                                           MutableSpan<ResultElemT> result,
                                           CallbackT callback) {
   const DimensionIndex dims = dataset_view.dimensionality();
+  const size_t datapoint_bytes = DivRoundUp(dims, 2);
   for (size_t j : Seq(result.size())) {
     const size_t idx =
         kHasIndices ? indices[j]
@@ -194,7 +196,7 @@ SCANN_OUTLINE void OneToManyUint4Int8Impl(const int8_t* __restrict__ query,
       uint8_t val_pair = db_dptr[i / 2];
       add_val(i, val_pair % 16);
     }
-    callback.invoke(j, dist);
+    InvokeCallback(callback, j, dist, datapoint_bytes, db_dptr);
   }
 }
 
@@ -237,6 +239,24 @@ SCANN_INLINE void OneToManyInt8FloatDispatch(
 #endif
 }
 
+template <bool kHasIndices, bool kIsSquaredL2, typename DatasetViewT,
+          typename IndexT, typename ResultElemT, typename CallbackT,
+          typename = std::enable_if_t<!std::is_pointer_v<DatasetViewT>>,
+          typename = std::enable_if_t<!std::is_pointer_v<CallbackT>>>
+SCANN_INLINE void OneToManyScaledInt8FloatDispatch(
+    ScaleEncoding scale_encoding, const float* __restrict__ query,
+    DatasetViewT dataset_view,
+    const float* __restrict__ inv_multipliers_for_squared_l2,
+    const IndexT* indices, MutableSpan<ResultElemT> result,
+    CallbackT callback) {
+  WithScaleFunctor(
+      scale_encoding, callback, [&](auto functor) SCANN_INLINE_LAMBDA {
+        return OneToManyInt8FloatDispatch<kHasIndices, kIsSquaredL2>(
+            query, dataset_view, inv_multipliers_for_squared_l2, indices,
+            result, functor);
+      });
+}
+
 template <bool kHasIndices, typename DatasetViewT, typename IndexT,
           typename ResultElemT, typename CallbackT,
           typename = std::enable_if_t<!std::is_pointer_v<DatasetViewT>>,
@@ -260,6 +280,51 @@ SCANN_INLINE void OneToManyUint4Int8Dispatch(const int8_t* __restrict__ query,
   fallback::OneToManyUint4Int8Impl<kHasIndices>(query, dataset_view, indices,
                                                 result, callback);
 #endif
+}
+
+template <bool kHasIndices, typename DatasetViewT, typename IndexT,
+          typename ResultElemT, typename CallbackT,
+          typename = std::enable_if_t<!std::is_pointer_v<DatasetViewT>>,
+          typename = std::enable_if_t<!std::is_pointer_v<CallbackT>>>
+SCANN_INLINE void OneToManyUint4FloatDispatch(const float* __restrict__ query,
+                                              DatasetViewT dataset_view,
+                                              const IndexT* indices,
+                                              MutableSpan<ResultElemT> result,
+                                              CallbackT callback) {
+  const size_t dims = dataset_view.dimensionality();
+  vector<int8_t> int8_query(dims);
+  float query_max_abs = 0.0f;
+  float query_sum = 0.0f;
+  for (size_t j : Seq(dataset_view.dimensionality())) {
+    const float qval = query[j];
+    query_max_abs = std::max(query_max_abs, std::abs(qval));
+    query_sum += qval;
+  }
+  const float quantize_query_multiplier = kFP8Max / query_max_abs;
+  const float dequantize_query_multiplier = query_max_abs * (1.0f / kFP8Max);
+  for (size_t j : Seq(dims)) {
+    int8_query[j] = Int8Quantize(query[j] * quantize_query_multiplier);
+  }
+  const float query_offset = query_sum * kFP4Max;
+  OneToManyUint4Int8Dispatch<kHasIndices>(
+      int8_query.data(), std::move(dataset_view), indices, result,
+      MakeDequantizeFunctor(dequantize_query_multiplier, query_offset,
+                            callback));
+}
+
+template <bool kHasIndices, typename DatasetViewT, typename IndexT,
+          typename ResultElemT, typename CallbackT,
+          typename = std::enable_if_t<!std::is_pointer_v<DatasetViewT>>,
+          typename = std::enable_if_t<!std::is_pointer_v<CallbackT>>>
+SCANN_INLINE void OneToManyScaledUint4FloatDispatch(
+    ScaleEncoding scale_encoding, const float* __restrict__ query,
+    DatasetViewT dataset_view, const IndexT* indices,
+    MutableSpan<ResultElemT> result, CallbackT callback) {
+  WithScaleFunctor(scale_encoding, callback,
+                   [&](auto functor) SCANN_INLINE_LAMBDA {
+                     return OneToManyUint4FloatDispatch<kHasIndices>(
+                         query, dataset_view, indices, result, functor);
+                   });
 }
 
 template <bool kHasIndices, bool kIsSquaredL2, typename DatasetViewT,
@@ -441,6 +506,11 @@ constexpr size_t kOneToManyUint4Int8SlopBytes = 32;
 void DenseDotProductDistanceOneToManyUint4Int8(
     const DatapointPtr<int8_t>& query, const uint8_t* dataset,
     ConstSpan<DatapointIndex> indices, MutableSpan<int32_t> result);
+
+void DenseDotProductDistanceOneToManyScaledUint4Float(
+    ScaleEncoding scale_encoding, const DatapointPtr<float>& query,
+    const uint8_t* dataset, ConstSpan<DatapointIndex> indices,
+    MutableSpan<float> result);
 
 }  // namespace research_scann
 

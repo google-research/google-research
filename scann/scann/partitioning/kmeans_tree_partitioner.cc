@@ -385,7 +385,9 @@ Datapoint<FloatT> ResidualizeImpl(const DatapointPtr<T>& dptr,
 template <typename T>
 StatusOr<Datapoint<float>> KMeansTreePartitioner<T>::ResidualizeToFloat(
     const DatapointPtr<T>& dptr, int32_t token) const {
-  DatapointPtr<float> center = kmeans_tree()->CenterForToken(token);
+  const DatapointPtr<float> center = kmeans_tree()->is_flat()
+                                         ? LeafCenters()[token]
+                                         : kmeans_tree()->CenterForToken(token);
   return ResidualizeImpl<float>(dptr, center);
 }
 

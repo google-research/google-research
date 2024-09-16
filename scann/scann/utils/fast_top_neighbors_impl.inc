@@ -190,6 +190,11 @@ template <typename DistT, typename DatapointIndexT>
 SCANN_SIMD_INLINE size_t UseMasksToCompact(DatapointIndexT* indices,
                                            DistT* values, uint32_t* masks,
                                            size_t n_masks) {
+#if HWY_TARGET <= HWY_AVX2
+  if constexpr (IsSame<DatapointIndexT, uint32>() && IsSame<DistT, float>()) {
+    return HwyCompact(indices, values, masks, n_masks);
+  }
+#endif
   if (n_masks == 1) {
     return UseMaskToCompact(indices, values, masks[0]);
   }

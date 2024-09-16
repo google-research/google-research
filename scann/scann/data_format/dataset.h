@@ -284,7 +284,7 @@ class DenseDataset final : public TypedDataset<T> {
   DenseDataset(std::vector<T> datapoint_vec,
                unique_ptr<DocidCollectionInterface> docids);
 
-  DenseDataset(std::vector<T> datapoint_vec, size_t num_dp);
+  DenseDataset(std::vector<T>&& datapoint_vec, size_t num_dp);
 
   DenseDataset<T> Copy() const {
     auto result = DenseDataset<T>(data_, this->docids()->Copy());

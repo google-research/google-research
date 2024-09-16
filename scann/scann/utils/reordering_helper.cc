@@ -508,7 +508,7 @@ FixedPointFloatDenseCosineReorderingHelper::
 FixedPointFloatDenseCosineReorderingHelper::
     FixedPointFloatDenseCosineReorderingHelper(
         shared_ptr<DenseDataset<int8_t>> fixed_point_dataset,
-        const vector<float>& multiplier_by_dimension,
+        absl::Span<const float> multiplier_by_dimension,
         float noise_shaping_threshold)
     : dot_product_helper_(std::move(fixed_point_dataset),
                           multiplier_by_dimension, noise_shaping_threshold) {}

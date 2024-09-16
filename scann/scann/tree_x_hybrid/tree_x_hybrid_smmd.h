@@ -25,6 +25,7 @@
 
 #include "absl/types/span.h"
 #include "gtest/gtest_prod.h"
+#include "scann/base/health_stats_collector.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -49,6 +50,9 @@ class DisjointRestrictTokenSearcher;
 template <typename T>
 class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
  public:
+  using HealthStatsCollector =
+      HealthStatsCollector<TreeXHybridSMMD<T>, float, double>;
+
   TreeXHybridSMMD(shared_ptr<const TypedDataset<T>> dataset,
                   shared_ptr<const DenseDataset<uint8_t>> hashed_dataset,
                   int32_t default_pre_reordering_num_neighbors,
@@ -138,7 +142,7 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
     database_tokenizer_ = database_tokenizer;
   }
 
-  shared_ptr<const Partitioner<T>> database_tokenizer() {
+  shared_ptr<const Partitioner<T>> database_tokenizer() const {
     return database_tokenizer_;
   }
 
@@ -179,6 +183,10 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
     DCHECK_LE(factor, 2.0);
     spilling_overretrieve_factor_ = factor;
   }
+
+  using HealthStats = typename SingleMachineSearcherBase<T>::HealthStats;
+  StatusOr<HealthStats> GetHealthStats() const override;
+  Status InitializeHealthStats() override;
 
  protected:
   bool impl_needs_dataset() const final { return leaf_searchers_.empty(); }
@@ -232,6 +240,8 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
       ConstSpan<ConstSpan<int32_t>> query_tokens,
       MutableSpan<NNResultsVector> results) const;
+
+  friend class TreeXHybridMutator<TreeXHybridSMMD<T>>;
 
   using MutationArtifacts = typename TreeXHybridMutator<
       TreeXHybridSMMD<T>>::TreeXPrecomputedMutationArtifacts;
@@ -289,7 +299,8 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
   friend class DisjointRestrictTokenSearcher;
 
   mutable unique_ptr<TreeXHybridMutator<TreeXHybridSMMD<T>>> mutator_ = nullptr;
-  friend class TreeXHybridMutator<TreeXHybridSMMD<T>>;
+
+  mutable HealthStatsCollector stats_collector_;
 };
 
 #define SCANN_INSTANTIATE_TREE_X_HYBRID_SMMD_CROWDING(extern_keyword, data_type)

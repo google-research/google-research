@@ -1070,6 +1070,17 @@ vector<uint32_t> TreeXHybridSMMD<T>::SizeByPartition() const {
   return ::research_scann::SizeByPartition(datapoints_by_token_);
 }
 
+template <typename T>
+Status TreeXHybridSMMD<T>::InitializeHealthStats() {
+  return stats_collector_.Initialize(*this);
+}
+
+template <typename T>
+StatusOr<typename TreeXHybridSMMD<T>::HealthStats>
+TreeXHybridSMMD<T>::GetHealthStats() const {
+  return stats_collector_.GetHealthStats();
+}
+
 SCANN_INSTANTIATE_TREE_X_HYBRID_SMMD();
 
 }  // namespace research_scann

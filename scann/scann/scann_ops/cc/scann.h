@@ -31,12 +31,26 @@
 #include "scann/base/single_machine_factory_scann.h"
 #include "scann/data_format/dataset.h"
 #include "scann/scann_ops/scann_assets.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/threads.h"
 
 namespace research_scann {
 
 class ScannInterface {
  public:
+  using ScannArtifacts =
+      std::tuple<ScannConfig, shared_ptr<DenseDataset<float>>,
+                 SingleMachineFactoryOptions>;
+
+  static StatusOr<ScannArtifacts> LoadArtifacts(const ScannConfig& config,
+                                                const ScannAssets& orig_assets);
+  static StatusOr<ScannArtifacts> LoadArtifacts(
+      const std::string& artifacts_dir,
+      const std::string& scann_assets_pbtxt = "");
+
+  static StatusOr<std::unique_ptr<SingleMachineSearcherBase<float>>>
+  CreateSearcher(ScannArtifacts artifacts);
+
   Status Initialize(const std::string& config_pbtxt,
                     const std::string& scann_assets_pbtxt);
   Status Initialize(ScannConfig config, SingleMachineFactoryOptions opts,
@@ -48,9 +62,7 @@ class ScannInterface {
                     ConstSpan<float> dp_norms, DatapointIndex n_points);
   Status Initialize(ConstSpan<float> dataset, DatapointIndex n_points,
                     const std::string& config, int training_threads);
-  Status Initialize(
-      shared_ptr<DenseDataset<float>> dataset,
-      SingleMachineFactoryOptions opts = SingleMachineFactoryOptions());
+  Status Initialize(ScannArtifacts artifacts);
 
   StatusOr<typename SingleMachineSearcherBase<float>::Mutator*> GetMutator()
       const {
@@ -68,7 +80,7 @@ class ScannInterface {
                                MutableSpan<NNResultsVector> res, int final_nn,
                                int pre_reorder_nn, int leaves,
                                int batch_size = 256) const;
-  StatusOr<ScannAssets> Serialize(std::string path);
+  StatusOr<ScannAssets> Serialize(std::string path, bool relative_path = false);
   StatusOr<SingleMachineFactoryOptions> ExtractOptions();
 
   template <typename T_idx>
@@ -98,7 +110,7 @@ class ScannInterface {
   }
 
   using ScannHealthStats = SingleMachineSearcherBase<float>::HealthStats;
-  ScannHealthStats GetHealthStats() const;
+  StatusOr<ScannHealthStats> GetHealthStats() const;
 
  private:
   SearchParameters GetSearchParameters(int final_nn, int pre_reorder_nn,

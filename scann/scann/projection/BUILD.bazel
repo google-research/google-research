@@ -46,6 +46,20 @@ cc_library(
 )
 
 cc_library(
+    name = "pca_projection",
+    srcs = ["pca_projection.cc"],
+    hdrs = ["pca_projection.h"],
+    deps = [
+        ":projection_base",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/utils:datapoint_utils",
+        "//scann/utils:pca_utils",
+        "//scann/utils:types",
+    ],
+)
+
+cc_library(
     name = "identity_projection",
     srcs = ["identity_projection.cc"],
     hdrs = ["identity_projection.h"],
@@ -68,6 +82,7 @@ cc_library(
     }) + [
         ":chunking_projection",
         ":identity_projection",
+        ":pca_projection",
         ":projection_base",
         "//scann/data_format:dataset",
         "//scann/proto:projection_cc_proto",

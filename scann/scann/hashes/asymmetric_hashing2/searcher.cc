@@ -22,6 +22,7 @@
 #include <memory>
 #include <typeinfo>
 
+#include "absl/base/nullability.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
@@ -46,8 +47,8 @@ namespace research_scann {
 namespace asymmetric_hashing2 {
 namespace {
 
-shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
-    shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
+std::shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
+    std::shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
     const AsymmetricHasherConfig::QuantizationScheme quantization_scheme,
     const size_t num_blocks) {
   if (quantization_scheme == AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
@@ -81,11 +82,11 @@ shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
 }  // namespace
 
 template <typename T>
-Searcher<T>::Searcher(shared_ptr<TypedDataset<T>> dataset,
-                      shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
-                      SearcherOptions<T> opts,
-                      int32_t default_pre_reordering_num_neighbors,
-                      float default_pre_reordering_epsilon)
+SearcherBase<T>::SearcherBase(
+    absl::Nullable<std::shared_ptr<TypedDataset<T>>> dataset,
+    absl::Nonnull<std::shared_ptr<DenseDataset<uint8_t>>> hashed_dataset,
+    SearcherOptions<T> opts, int32_t default_pre_reordering_num_neighbors,
+    float default_pre_reordering_epsilon)
     : SingleMachineSearcherBase<T>(
           dataset,
           PreprocessHashedDataset(hashed_dataset, opts.quantization_scheme(),
@@ -154,9 +155,9 @@ Searcher<T>::Searcher(shared_ptr<TypedDataset<T>> dataset,
 }
 
 template <typename T>
-Searcher<T>::Searcher(SearcherOptions<T> opts,
-                      int32_t default_pre_reordering_num_neighbors,
-                      float default_pre_reordering_epsilon)
+SearcherBase<T>::SearcherBase(SearcherOptions<T> opts,
+                              int32_t default_pre_reordering_num_neighbors,
+                              float default_pre_reordering_epsilon)
     : SingleMachineSearcherBase<T>(default_pre_reordering_num_neighbors,
                                    default_pre_reordering_epsilon),
       opts_(std::move(opts)),
@@ -169,21 +170,51 @@ Searcher<T>::Searcher(SearcherOptions<T> opts,
              opts_.asymmetric_queryer_) {}
 
 template <typename T>
+StatusOr<const LookupTable*> SearcherBase<T>::GetOrCreateLookupTable(
+    const DatapointPtr<T>& query, const SearchParameters& params,
+    LookupTable* created_lookup_table_storage) const {
+  DCHECK(created_lookup_table_storage);
+  auto per_query_opts =
+      dynamic_cast<const AsymmetricHashingOptionalParameters*>(
+          params.searcher_specific_optional_parameters());
+  if (per_query_opts != nullptr &&
+      !per_query_opts->precomputed_lookup_table_.empty()) {
+    return &per_query_opts->precomputed_lookup_table_;
+  }
+  SCANN_ASSIGN_OR_RETURN(*created_lookup_table_storage,
+                         this->opts_.asymmetric_queryer_->CreateLookupTable(
+                             query, this->opts_.asymmetric_lookup_type_,
+                             this->opts_.fixed_point_lut_conversion_options_));
+  return created_lookup_table_storage;
+}
+
+template <typename T>
+Searcher<T>::Searcher(std::shared_ptr<TypedDataset<T>> dataset,
+                      std::shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
+                      SearcherOptions<T> opts,
+                      int32_t default_pre_reordering_num_neighbors,
+                      float default_pre_reordering_epsilon)
+    : SearcherBase<T>(dataset, hashed_dataset, opts,
+                      default_pre_reordering_num_neighbors,
+                      default_pre_reordering_epsilon) {}
+
+template <typename T>
 Searcher<T>::~Searcher() {}
 
 template <typename T>
 Status Searcher<T>::VerifyLimitedInnerProductNormsSize() const {
-  SCANN_RET_CHECK(limited_inner_product_);
+  SCANN_RET_CHECK(this->limited_inner_product_);
 
-  if (lut16_) {
-    SCANN_RET_CHECK_EQ(norm_inv_or_bias_.size(), packed_dataset_.num_datapoints)
+  if (this->lut16_) {
+    SCANN_RET_CHECK_EQ(this->norm_inv_or_bias_.size(),
+                       this->packed_dataset_.num_datapoints)
         << "Database size does not equal limited inner product norm size.";
     return OkStatus();
   }
   const DenseDataset<uint8_t>* hashed_dataset = this->hashed_dataset();
   SCANN_RET_CHECK(hashed_dataset)
       << "Hashed dataset must be non-null if LUT16 is not enabled.";
-  SCANN_RET_CHECK_EQ(norm_inv_or_bias_.size(), hashed_dataset->size())
+  SCANN_RET_CHECK_EQ(this->norm_inv_or_bias_.size(), hashed_dataset->size())
       << "Database size does not equal limited inner product norm size.";
   return OkStatus();
 }
@@ -192,24 +223,24 @@ template <typename T>
 Status Searcher<T>::FindNeighborsImpl(const DatapointPtr<T>& query,
                                       const SearchParameters& params,
                                       NNResultsVector* result) const {
-  if (limited_inner_product_) {
+  if (this->limited_inner_product_) {
     SCANN_RETURN_IF_ERROR(VerifyLimitedInnerProductNormsSize());
-    if (opts_.quantization_scheme() ==
+    if (this->opts_.quantization_scheme() ==
         AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
       return UnimplementedError(
           "Limited inner product and PRODUCT_AND_BIAS quantization are not "
           "supported together.");
     }
     float query_norm = static_cast<float>(sqrt(SquaredL2Norm(query)));
-    asymmetric_hashing_internal::LimitedInnerFunctor functor(query_norm,
-                                                             norm_inv_or_bias_);
+    asymmetric_hashing_internal::LimitedInnerFunctor functor(
+        query_norm, this->norm_inv_or_bias_);
     return FindNeighborsTopNDispatcher<
         asymmetric_hashing_internal::LimitedInnerFunctor>(query, params,
                                                           functor, result);
-  } else if (opts_.quantization_scheme() ==
+  } else if (this->opts_.quantization_scheme() ==
              AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     asymmetric_hashing_internal::AddBiasFunctor functor(
-        norm_inv_or_bias_, query.values_span().back());
+        this->norm_inv_or_bias_, query.values_span().back());
     return FindNeighborsTopNDispatcher<
         asymmetric_hashing_internal::AddBiasFunctor>(query, params, functor,
                                                      result);
@@ -232,34 +263,15 @@ Status Searcher<T>::FindNeighborsBatchedImpl(
       break;
     }
   }
-  if (!lut16_ || limited_inner_product_ || crowding_enabled_for_any_query ||
-      opts_.quantization_scheme() == AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
+  if (!this->lut16_ || this->limited_inner_product_ ||
+      crowding_enabled_for_any_query ||
+      this->opts_.quantization_scheme() ==
+          AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     return SingleMachineSearcherBase<T>::FindNeighborsBatchedImpl(
         queries, params, results);
   }
-  return FindNeighborsBatchedInternal<
-      asymmetric_hashing_internal::IdentityPostprocessFunctor>(
-      [&queries](DatapointIndex i) { return queries[i]; }, params,
-      asymmetric_hashing_internal::IdentityPostprocessFunctor(), results);
-}
-
-template <typename T>
-StatusOr<const LookupTable*> Searcher<T>::GetOrCreateLookupTable(
-    const DatapointPtr<T>& query, const SearchParameters& params,
-    LookupTable* created_lookup_table_storage) const {
-  DCHECK(created_lookup_table_storage);
-  auto per_query_opts =
-      dynamic_cast<const AsymmetricHashingOptionalParameters*>(
-          params.searcher_specific_optional_parameters());
-  if (per_query_opts && !per_query_opts->precomputed_lookup_table_.empty()) {
-    return &per_query_opts->precomputed_lookup_table_;
-  } else {
-    SCANN_ASSIGN_OR_RETURN(*created_lookup_table_storage,
-                           opts_.asymmetric_queryer_->CreateLookupTable(
-                               query, opts_.asymmetric_lookup_type_,
-                               opts_.fixed_point_lut_conversion_options_));
-    return created_lookup_table_storage;
-  }
+  return FindNeighborsBatchedInternal(
+      [&queries](DatapointIndex i) { return queries[i]; }, params, results);
 }
 
 template <typename T>
@@ -271,7 +283,7 @@ Status Searcher<T>::FindNeighborsTopNDispatcher(
   LookupTable lookup_table_storage;
   SCANN_ASSIGN_OR_RETURN(
       const LookupTable* lookup_table,
-      GetOrCreateLookupTable(query, params, &lookup_table_storage));
+      this->GetOrCreateLookupTable(query, params, &lookup_table_storage));
   if (params.pre_reordering_crowding_enabled()) {
     return FailedPreconditionError("Crowding is not supported.");
   } else {
@@ -296,21 +308,20 @@ QueryerOptions<PostprocessFunctor> Searcher<T>::GetQueryerOptions(
   }
   queryer_options.hashed_dataset = hashed_dataset_view;
   queryer_options.postprocessing_functor = std::move(postprocessing_functor);
-  if (lut16_) {
+  if (this->lut16_) {
     queryer_options.lut16_packed_dataset =
-        CreatePackedDatasetView(packed_dataset_);
+        CreatePackedDatasetView(this->packed_dataset_);
   }
   return queryer_options;
 }
 
 template <typename T>
-template <typename PostprocessFunctor>
 Status Searcher<T>::FindNeighborsBatchedInternal(
     std::function<DatapointPtr<T>(DatapointIndex)> get_query,
     ConstSpan<SearchParameters> params,
-    PostprocessFunctor postprocessing_functor,
     MutableSpan<NNResultsVector> results) const {
-  using QueryerOptionsT = QueryerOptions<PostprocessFunctor>;
+  using QueryerOptionsT =
+      QueryerOptions<asymmetric_hashing_internal::IdentityPostprocessFunctor>;
   QueryerOptionsT queryer_options;
 
   if (this->hashed_dataset()) {
@@ -318,9 +329,10 @@ Status Searcher<T>::FindNeighborsBatchedInternal(
         std::make_shared<DefaultDenseDatasetView<uint8_t>>(
             *this->hashed_dataset());
   }
-  queryer_options.postprocessing_functor = std::move(postprocessing_functor);
+  queryer_options.postprocessing_functor =
+      asymmetric_hashing_internal::IdentityPostprocessFunctor();
   queryer_options.lut16_packed_dataset =
-      CreatePackedDatasetView(packed_dataset_);
+      CreatePackedDatasetView(this->packed_dataset_);
   const size_t num_queries = params.size();
   size_t low_level_batch_start = 0;
 
@@ -328,10 +340,10 @@ Status Searcher<T>::FindNeighborsBatchedInternal(
     const size_t low_level_batch_size = [&]() -> size_t {
       const size_t queries_left = num_queries - low_level_batch_start;
 
-      if (queries_left <= max_low_level_batch_size_) return queries_left;
+      if (queries_left <= this->max_low_level_batch_size_) return queries_left;
 
-      if (queries_left >= 2 * size_t{max_low_level_batch_size_}) {
-        return optimal_low_level_batch_size_;
+      if (queries_left >= 2 * size_t{this->max_low_level_batch_size_}) {
+        return this->optimal_low_level_batch_size_;
       }
 
       return queries_left / 2;
@@ -404,9 +416,9 @@ Status Searcher<T>::FindOneLowLevelBatchOfNeighbors(
   std::array<TopNeighbors<float>*, kNumQueries> top_ns;
   std::array<const SearchParameters*, kNumQueries> cur_batch_params;
   for (size_t batch_idx = 0; batch_idx < kNumQueries; ++batch_idx) {
-    SCANN_ASSIGN_OR_RETURN(
-        lookup_ptrs[batch_idx],
-        GetOrCreateLookupTable(get_query(low_level_batch_start + batch_idx),
+    SCANN_ASSIGN_OR_RETURN(lookup_ptrs[batch_idx],
+                           this->GetOrCreateLookupTable(
+                               get_query(low_level_batch_start + batch_idx),
                                params[low_level_batch_start + batch_idx],
                                &lookup_storages[batch_idx]));
     top_ns_storage[batch_idx] =
@@ -425,25 +437,26 @@ Status Searcher<T>::FindOneLowLevelBatchOfNeighbors(
 }
 
 template <typename T>
-StatusOr<unique_ptr<SearcherSpecificOptionalParameters>>
+StatusOr<std::unique_ptr<SearcherSpecificOptionalParameters>>
 PrecomputedAsymmetricLookupTableCreator<T>::
     CreateLeafSearcherOptionalParameters(const DatapointPtr<T>& query) const {
   SCANN_ASSIGN_OR_RETURN(
       LookupTable lookup_table,
       queryer_->CreateLookupTable(query, lookup_type_,
                                   fixed_point_lut_conversion_options_));
-  return unique_ptr<SearcherSpecificOptionalParameters>(
+  return std::unique_ptr<SearcherSpecificOptionalParameters>(
       new AsymmetricHashingOptionalParameters(std::move(lookup_table)));
 }
 
 template <typename T>
 StatusOr<typename SingleMachineSearcherBase<T>::Mutator*>
 Searcher<T>::GetMutator() const {
-  if (opts_.quantization_scheme() == AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
+  if (this->opts_.quantization_scheme() ==
+      AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     return UnimplementedError(
         "Mutation with PRODUCT_AND_BIAS is not implemented.");
   }
-  if (limited_inner_product_) {
+  if (this->limited_inner_product_) {
     return UnimplementedError(
         "Mutation with LimitedInnerProductDistance is not implemented.");
   }
@@ -463,27 +476,21 @@ Searcher<T>::ExtractSingleMachineFactoryOptions() {
   SCANN_ASSIGN_OR_RETURN(
       auto opts,
       SingleMachineSearcherBase<T>::ExtractSingleMachineFactoryOptions());
-  if (opts_.asymmetric_queryer_) {
-    auto centers = opts_.asymmetric_queryer_->model()->centers();
+  if (this->opts_.asymmetric_queryer_) {
+    auto centers = this->opts_.asymmetric_queryer_->model()->centers();
     opts.ah_codebook = std::make_shared<CentersForAllSubspaces>();
     *opts.ah_codebook =
-        DatasetSpanToCentersProto(centers, opts_.quantization_scheme());
-    if (opts_.asymmetric_lookup_type_ == AsymmetricHasherConfig::INT8_LUT16)
+        DatasetSpanToCentersProto(centers, this->opts_.quantization_scheme());
+    if (this->opts_.asymmetric_lookup_type_ ==
+        AsymmetricHasherConfig::INT8_LUT16)
       opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
-          UnpackDataset(CreatePackedDatasetView(packed_dataset_)));
+          UnpackDataset(CreatePackedDatasetView(this->packed_dataset_)));
   }
   return opts;
 }
 
-template Status Searcher<float>::FindNeighborsBatchedInternal<
-    asymmetric_hashing_internal::IdentityPostprocessFunctor>(
-    std::function<DatapointPtr<float>(DatapointIndex)> get_query,
-    ConstSpan<SearchParameters> params,
-    asymmetric_hashing_internal::IdentityPostprocessFunctor
-        postprocessing_functor,
-    MutableSpan<NNResultsVector> results) const;
-
 SCANN_INSTANTIATE_TYPED_CLASS(, SearcherOptions);
+SCANN_INSTANTIATE_TYPED_CLASS(, SearcherBase);
 SCANN_INSTANTIATE_TYPED_CLASS(, Searcher);
 SCANN_INSTANTIATE_TYPED_CLASS(, PrecomputedAsymmetricLookupTableCreator);
 

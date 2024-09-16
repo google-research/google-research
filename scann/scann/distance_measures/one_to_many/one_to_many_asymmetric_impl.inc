@@ -488,6 +488,50 @@ SCANN_SIMD_INLINE void PermuteQueryForUint4Int8(const int8_t* query,
   LOG(FATAL) << "Unhandled " << SimdName();
 }
 
+template <typename CallbackT, typename ResultT, typename DataT>
+SCANN_SIMD_INLINE void InvokeCallbackSimd(const CallbackT& callback,
+                                          size_t result_idx, ResultT val,
+                                          size_t datapoint_bytes,
+                                          const DataT* ptr) {
+  if constexpr (one_to_many_low_level::NeedsBottomBitsSideData<
+                    CallbackT>::value) {
+    if (datapoint_bytes % 32 == 0) {
+      auto simd_data = SimdFor<DataT, 32>::Zeros();
+      for (size_t i = 0; i < datapoint_bytes; i += 32) {
+        simd_data ^= SimdFor<DataT, 32>::Load(ptr + i);
+      }
+
+      {
+        SimdFor<uint16_t, 16> simd_data_16(simd_data);
+        if constexpr (std::is_same_v<DataT, uint8_t>) {
+          simd_data_16 ^= simd_data_16 >> 4;
+        }
+
+        simd_data_16 <<= 7;
+        simd_data = SimdFor<DataT, 32>(simd_data_16);
+      }
+
+      uint32_t bottom_bits = 0;
+      for (size_t i = 0; i < simd_data.kNumRegisters; ++i) {
+        bottom_bits |= static_cast<uint32_t>(simd_data[i].MaskFromHighBits())
+                       << (i * simd_data.kRegisterBytes);
+      }
+
+      if constexpr (std::is_same_v<DataT, int8_t>) {
+        DCHECK_EQ(bottom_bits, DecodeBottomBitsDataFromInt8(
+                                   MakeConstSpan(ptr, datapoint_bytes)));
+      } else {
+        static_assert(std::is_same_v<DataT, uint8_t>);
+        DCHECK_EQ(bottom_bits, DecodeBottomBitsDataFromPackedInt4(
+                                   MakeConstSpan(ptr, datapoint_bytes)));
+      }
+      callback.invoke(result_idx, val, bottom_bits);
+      return;
+    }
+  }
+  InvokeCallback(callback, result_idx, val, datapoint_bytes, ptr);
+}
+
 template <int kDimensionality, size_t kUnrollBy, bool kHasIndices,
           bool kIsSquaredL2, bool kShouldPrefetch, typename DataT,
           typename DatasetViewT, typename IndexT, typename ResultElemT,
@@ -590,9 +634,11 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
     for (size_t j = num_datapoints / kUnrollBy * kUnrollBy; j < num_datapoints;
          j++) {
       const DataT* ptr = get_db_ptr(j);
-      callback.invoke(
-          j, ComputeOneToOneScore<0, kIsSquaredL2>(
-                 query, ptr, inv_multipliers_for_squared_l2, dimensionality));
+      InvokeCallbackSimd(
+          callback, j,
+          ComputeOneToOneScore<0, kIsSquaredL2>(
+              query, ptr, inv_multipliers_for_squared_l2, dimensionality),
+          datapoint_bytes, ptr);
     }
   }
 
@@ -622,7 +668,8 @@ SCANN_SIMD_INLINE void OneToManyAsymmetricTemplate(
         dimensionality, num_outer_iters, results);
 
     for (size_t jj : Seq(kUnrollBy)) {
-      callback.invoke(j + jj * num_outer_iters, results[jj]);
+      InvokeCallbackSimd(callback, j + jj * num_outer_iters, results[jj],
+                         datapoint_bytes, ptrs[jj]);
     }
   }
 }

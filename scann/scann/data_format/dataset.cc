@@ -485,7 +485,7 @@ DenseDataset<T>::DenseDataset(vector<T> datapoint_vec,
 }
 
 template <typename T>
-DenseDataset<T>::DenseDataset(vector<T> datapoint_vec, size_t num_dp)
+DenseDataset<T>::DenseDataset(vector<T>&& datapoint_vec, size_t num_dp)
     : DenseDataset<T>(
           std::move(datapoint_vec),
           make_unique<VariableLengthDocidCollection>(
