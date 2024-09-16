@@ -12,4 +12,8 @@ Implementation of our EMNLP Findings 2023 paper: A Zero-Shot Language Agent for 
 ```
 ---
 
-# Code and notebook will be released soon! Thank you for your interest!
+# Headsup
+The exact reproduction of our paper requires access to a PaLM model.
+In case such access is not available, please follow the reflection algorithm in ``run_miniwob_task.py`` and the reflection log in ``notebook/LLM_miniwob_release.ipynb`` for better reproduction.
+
+The main body of the algorithm is in ``run_miniwob_task.py``. The miniwob environmental infrastructure will likely need some manual fix to be runnable depending on your devices. Please let us know if you run into any issues related to that.
