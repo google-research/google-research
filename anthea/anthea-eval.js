@@ -4199,10 +4199,6 @@ class AntheaEval {
                                   null, docTextSrcRow,
                                   ...tgtRows,
                                   googdom.createDom('td', 'anthea-document-eval-cell', doc.eval));
-      // Hide all but the first group.
-      if (i !== groupSize * groupPresentationOrder[0]) {
-        doc.row.style.display = 'none';
-      }
       if (config.TARGET_SIDE_ONLY) {
         docTextSrcRow.style.display = 'none';
       }
@@ -4221,8 +4217,8 @@ class AntheaEval {
       let tgtSpannified2 = config.SIDE_BY_SIDE ? '<p class="anthea-target-para" dir="auto">' : '';
       const addEndSpacesSrc = this.isSpaceSepLang(srcLang);
       const addEndSpacesTgt = this.isSpaceSepLang(tgtLang);
-      for (let i = 0; i < srcSegments.length; i++) {
-        if (srcSegments[i].length == 0) {
+      for (let j = 0; j < srcSegments.length; j++) {
+        if (srcSegments[j].length == 0) {
           /* New paragraph. */
           srcSpannified += srcParaBreak;
           tgtSpannified += tgtParaBreak;
@@ -4239,10 +4235,10 @@ class AntheaEval {
           'hotw_list': [],
         };
         this.evalResults_.push(evalResult);
-        if (i < annotations.length) {
+        if (j < annotations.length) {
           let parsed_anno = {};
           try {
-            parsed_anno = JSON.parse(annotations[i]);
+            parsed_anno = JSON.parse(annotations[j]);
           } catch (err) {
             parsed_anno = {};
           }
@@ -4272,21 +4268,21 @@ class AntheaEval {
 
         const segment = {
           doc: this.docs_.length - 1,
-          srcText: srcSegments[i],
-          tgtText: tgtSegments[i],
-          tgtText2: config.SIDE_BY_SIDE ? tgtSegments2[i] : '',
+          srcText: srcSegments[j],
+          tgtText: tgtSegments[j],
+          tgtText2: config.SIDE_BY_SIDE ? tgtSegments2[j] : '',
           tgtsOrder: tgtsOrder,
           numTgtWords: 0,
           numTgtWords2: 0,
           srcSubparas: AntheaEval.splitAndSpannify(
-              srcSegments[i], addEndSpacesSrc,
+              srcSegments[j], addEndSpacesSrc,
               subparaSentences, subparaTokens, 0),
           tgtSubparas: AntheaEval.splitAndSpannify(
-              tgtSegments[i], addEndSpacesTgt,
+              tgtSegments[j], addEndSpacesTgt,
               subparaSentences, subparaTokens,
               this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
           tgtSubparas2: config.SIDE_BY_SIDE ? AntheaEval.splitAndSpannify(
-              tgtSegments2[i], addEndSpacesTgt,
+              tgtSegments2[j], addEndSpacesTgt,
               subparaSentences, subparaTokens,
               this.READ_ONLY ? 0 : hotwPercent, hotwPretend) : [],
         };
@@ -4332,7 +4328,11 @@ class AntheaEval {
       if (config.SIDE_BY_SIDE) {
         googdom.setInnerHtml(docTextTgtRow2, tgtSpannified2 + '</p>');
       }
+      // Adjust line height, then hide all but the first group.
       this.adjustHeight(docTextSrcRow, docTextTgtRow, docTextTgtRow2);
+      if (i !== groupSize * groupPresentationOrder[0]) {
+        doc.row.style.display = 'none';
+      }
     }
     // For shared-source templates, verify that every docsys has the same
     // source segments.
