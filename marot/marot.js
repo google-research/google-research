@@ -5467,6 +5467,11 @@ class Marot {
      */
     const data = [];
     const FAKE_FIELD = '--marot-FAKE-FIELD--';
+    // Export the lowest-index MQM-like metric. If MQM itself is visible, it
+    // will be chosen as it always has index 0. Otherwise, this will generally
+    // be an AutoMQM metric for which scores are present.
+    const firstMqmMetricIndex = Math.min(this.mqmMetricsVisible);
+    const metricToSave = this.metrics[firstMqmMetricIndex];
     if (aggregation == 'system') {
       for (let system in this.statsBySystem) {
         if (system == this.TOTAL) {
@@ -5476,7 +5481,8 @@ class Marot {
         const aggregate = this.aggregateUnitStats(unitStats);
         const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
         dataRow[this.DATA_COL_SYSTEM] = system;
-        dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
+        dataRow[this.DATA_COL_METADATA] =
+            aggregate.mqmStats[metricToSave].score;
         data.push(dataRow);
       }
     } else if (aggregation == 'document') {
@@ -5492,7 +5498,8 @@ class Marot {
           const dataRow = Array(this.DATA_COL_NUM_PARTS).fill(FAKE_FIELD);
           dataRow[this.DATA_COL_SYSTEM] = system;
           dataRow[this.DATA_COL_DOC] = doc;
-          dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
+          dataRow[this.DATA_COL_METADATA] =
+              aggregate.mqmStats[metricToSave].score;
           data.push(dataRow);
         }
       }
@@ -5513,7 +5520,8 @@ class Marot {
             dataRow[this.DATA_COL_SYSTEM] = system;
             dataRow[this.DATA_COL_DOC] = doc;
             dataRow[this.DATA_COL_DOC_SEG_ID] = seg;
-            dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
+            dataRow[this.DATA_COL_METADATA] =
+                aggregate.mqmStats[metricToSave].score;
             data.push(dataRow);
           }
         }
@@ -5533,7 +5541,8 @@ class Marot {
               dataRow[this.DATA_COL_DOC] = doc;
               dataRow[this.DATA_COL_DOC_SEG_ID] = seg;
               dataRow[this.DATA_COL_RATER] = rater;
-              dataRow[this.DATA_COL_METADATA] = aggregate.mqmStats.score;
+              dataRow[this.DATA_COL_METADATA] =
+                  aggregate.mqmStats[metricToSave].score;
               data.push(dataRow);
             }
           }
