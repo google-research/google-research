@@ -100,6 +100,9 @@ class _JaxEngine(sd.ComputeEngine):
   def cast(self, tensor, dtype = 'float32'):
     return jnp.array(tensor, dtype=dtype)
 
+  def cumsum(self, tensor, axis = 0):
+    return jnp.cumsum(tensor, axis)
+
   def minimum(self, x, y):
     return jnp.minimum(x, y)
 
@@ -150,5 +153,7 @@ class _JaxEngine(sd.ComputeEngine):
   def range(self, up_to, dtype = 'float32'):
     return jnp.arange(up_to, dtype=dtype)
 
-engine = _JaxEngine()
+  def one_hot(self, tensor, num_classes):
+    return jax.nn.one_hot(tensor, num_classes)
 
+engine = _JaxEngine()

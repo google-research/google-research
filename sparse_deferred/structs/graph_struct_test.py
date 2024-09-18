@@ -20,6 +20,7 @@ import numpy as np
 import tensorflow as tf
 
 from sparse_deferred import np as sdnp
+from sparse_deferred import tf as sdtf
 from sparse_deferred.structs import graph_struct
 
 
@@ -28,26 +29,21 @@ class GraphStructTest(tf.test.TestCase):
   def test_graph_struct_new_wo_schema(self):
     """Test the new method can construct properly."""
     gt = graph_struct.GraphStruct.new(
-        nodes={
-            'ns1': {'f1': tf.zeros([5, 2, 3]),
-                    'f2': tf.ones([5, 1])}
-        }, edges={
-            'e': ((tf.constant([0, 1, 2]), tf.constant([2, 3, 4])), {})
-        })
+        nodes={'ns1': {'f1': tf.zeros([5, 2, 3]), 'f2': tf.ones([5, 1])}},
+        edges={'e': ((tf.constant([0, 1, 2]), tf.constant([2, 3, 4])), {})},
+    )
     self.assertEqual(gt.schema, {'e': ('ns1', 'ns1')})
 
   def test_graph_struct_new_w_schema(self):
     """Test the `new` method can construct properly."""
     gt = graph_struct.GraphStruct.new(
         nodes={
-            'ns1': {'f1': tf.zeros([5, 2, 3]),
-                    'f2': tf.ones([5, 1])},
-            'ns2': {'f1': tf.zeros([6, 2, 3]),
-                    'f2': tf.ones([6, 1])},
-        }, edges={
-            'e': ((tf.constant([0, 1, 2]), tf.constant([2, 3, 4])), {})
+            'ns1': {'f1': tf.zeros([5, 2, 3]), 'f2': tf.ones([5, 1])},
+            'ns2': {'f1': tf.zeros([6, 2, 3]), 'f2': tf.ones([6, 1])},
         },
-        schema={'e': ('ns1', 'ns2')})
+        edges={'e': ((tf.constant([0, 1, 2]), tf.constant([2, 3, 4])), {})},
+        schema={'e': ('ns1', 'ns2')},
+    )
 
     self.assertEqual(gt.schema, {'e': ('ns1', 'ns2')})
     self.assertAllEqual(gt.nodes['ns1']['f1'], tf.zeros([5, 2, 3]))
@@ -63,19 +59,18 @@ class GraphStructTest(tf.test.TestCase):
         nodes={
             'ns1': {'f': np.array([1.0, 2.0])},
             'ns2': {'f': np.zeros([3]) + 5.0},
-        }, edges={
-            'e': ((np.array([0, 1, 1]), np.array([0, 0, 1])), {})
         },
-        schema={'e': ('ns1', 'ns2')}).add_pooling(sdnp.engine)
+        edges={'e': ((np.array([0, 1, 1]), np.array([0, 0, 1])), {})},
+        schema={'e': ('ns1', 'ns2')},
+    ).add_pooling(sdnp.engine)
     g2 = graph_struct.GraphStruct.new(
         nodes={
             'ns1': {'f': np.array([10.0, 20.0])},
             'ns2': {'f': np.zeros([2]) + 1000.0},
-        }, edges={
-            'e': ((np.array([1, 0]), np.array([0, 1])), {})
         },
-        schema={'e': ('ns1', 'ns2')}).add_pooling(
-            sdnp.engine, {'id': np.array([[5]])})
+        edges={'e': ((np.array([1, 0]), np.array([0, 1])), {})},
+        schema={'e': ('ns1', 'ns2')},
+    ).add_pooling(sdnp.engine, {'id': np.array([[5]])})
 
     # In absence of user-supplied features, node-set 'g' created with feature
     # 'id' = 0.
@@ -129,6 +124,25 @@ class GraphStructTest(tf.test.TestCase):
     broadcasted = broadcast_adjacency @ y
     self.assertAllEqual(broadcasted, np.array([15, 15, 1.5, 1.5, 1.5]))
 
+  def test_graph_struct_get_outgoing_neighbors(self):
+    """Test that the graph can get neighbors."""
+    gt = graph_struct.GraphStruct.new(
+        nodes={'ns1': {'f1': tf.zeros([5, 2, 3]), 'f2': tf.ones([5, 1])}},
+        edges={
+            'e': ((tf.constant([2, 3, 4, 4]), tf.constant([0, 1, 0, 2])), {})
+        },
+    )
+    no_neighbor = gt.get_outgoing_neighbors(sdtf.engine, 'e', 0)
+    self.assertAllEqual(no_neighbor, tf.constant([]), str(no_neighbor))
+
+    single_neighbor = gt.get_outgoing_neighbors(sdtf.engine, 'e', 2)
+    self.assertAllEqual(single_neighbor, tf.constant([0]), str(single_neighbor))
+
+    multiple_neighbors = gt.get_outgoing_neighbors(sdtf.engine, 'e', 4)
+    self.assertAllEqual(
+        multiple_neighbors, tf.constant([0, 2]), str(multiple_neighbors)
+    )
+
 
 class FixedSizePadderTest(tf.test.TestCase):
 
@@ -146,6 +160,12 @@ class FixedSizePadderTest(tf.test.TestCase):
         'writes': ('author', 'paper'),
         'seed': ('paper', 'root'),
     }
+    schema_with_pooling = {
+        'g_author': ('g', 'author'),
+        'g_paper': ('g', 'paper'),
+        'g_root': ('g', 'root'),
+    }
+    schema_with_pooling.update(toy_schema)
     lengths = list(map(len, sizes.values()))
     assert min(lengths) == max(lengths)  # All lengths must be same.
     length = min(lengths)
@@ -158,34 +178,42 @@ class FixedSizePadderTest(tf.test.TestCase):
       num_seeds = sizes[('edge', 'seed')][i]
       num_writes = sizes[('edge', 'writes')][i]
       cites_src = np.array(
-          np.random.uniform(low=0, high=num_papers-1, size=[num_cites]),
-          dtype='int32')
+          np.random.uniform(low=0, high=num_papers - 1, size=[num_cites]),
+          dtype='int32',
+      )
       cites_tgt = np.array(
-          np.random.uniform(low=0, high=num_papers-1, size=[num_cites]),
-          dtype='int32')
+          np.random.uniform(low=0, high=num_papers - 1, size=[num_cites]),
+          dtype='int32',
+      )
 
       writes_src = np.array(
-          np.random.uniform(low=0, high=num_authors-1, size=[num_writes]),
-          dtype='int32')
+          np.random.uniform(low=0, high=num_authors - 1, size=[num_writes]),
+          dtype='int32',
+      )
       writes_tgt = np.array(
-          np.random.uniform(low=0, high=num_papers-1, size=[num_writes]),
-          dtype='int32')
+          np.random.uniform(low=0, high=num_papers - 1, size=[num_writes]),
+          dtype='int32',
+      )
 
       seed_src = np.array(
-          np.random.uniform(low=0, high=num_papers-1, size=[num_seeds]),
-          dtype='int32')
+          np.random.uniform(low=0, high=num_papers - 1, size=[num_seeds]),
+          dtype='int32',
+      )
       seed_tgt = np.array(
-          np.random.uniform(low=0, high=num_seeds-1, size=[num_seeds]),
-          dtype='int32')
+          np.random.uniform(low=0, high=num_seeds - 1, size=[num_seeds]),
+          dtype='int32',
+      )
       return graph_struct.GraphStruct.new(
           nodes={
               'author': {
-                  'embed': np.random.uniform(low=-1.0, high=1.0,
-                                             size=[num_authors, 64]),
+                  'embed': np.random.uniform(
+                      low=-1.0, high=1.0, size=[num_authors, 64]
+                  ),
               },
               'paper': {
-                  'embed': np.random.uniform(low=-1.0, high=1.0,
-                                             size=[num_papers, 128]),
+                  'embed': np.random.uniform(
+                      low=-1.0, high=1.0, size=[num_papers, 128]
+                  ),
               },
               'root': {
                   'empty': np.zeros([num_seeds, 0]),
@@ -197,20 +225,22 @@ class FixedSizePadderTest(tf.test.TestCase):
               'writes': ((writes_src, writes_tgt), {}),
           },
           schema=toy_schema,
-      )
+      ).add_pooling(sdnp.engine, {})
 
     for i in range(length):
       graph_structs.append(_graph_struct(i))
 
     padder = graph_struct.FixedSizePadder(
-        engine=sdnp.engine,  # Use numpy (as features are numpy!)
-        slack=1.5)
+        engine=sdnp.engine, slack=1.5  # Use numpy (as features are numpy!)
+    )
     padder.calculate_pad_statistics(graph_structs)
 
     g = _graph_struct(0)
     padded_g = padder.pad_graph(g)
 
-    self.assertEqual(padded_g.schema, toy_schema)  # Schema should not change!
+    # Schema should be like toy_schema but with addition of graph-pooling
+    # edge-sets (as we invoked `.add_pooling()`).
+    self.assertEqual(padded_g.schema, schema_with_pooling)
 
     self.assertSetEqual(set(padded_g.nodes.keys()), set(g.nodes.keys()))
     self.assertSetEqual(set(padded_g.edges.keys()), set(g.edges.keys()))
@@ -225,21 +255,26 @@ class FixedSizePadderTest(tf.test.TestCase):
 
         # Zero padding
         self.assertAllEqual(padded_value[:size], value)
-        self.assertAllEqual(padded_value[size:],
-                            np.zeros_like(padded_value[size:]))
+        self.assertAllEqual(
+            padded_value[size:], np.zeros_like(padded_value[size:])
+        )
 
         batch_sizes = sizes[('node', node_name)]
         # Note: 1.5 is slack given to constructor above!
         expected_padded_size = int(
-            1 + np.max(batch_sizes) + 1.5 * np.std(batch_sizes))
+            1 + np.max(batch_sizes) + 1.5 * np.std(batch_sizes)
+        )
         self.assertAllEqual(padded_value.shape[0], expected_padded_size)
 
     # Verify edges are copied then padded with connections among "virtual nodes"
     for edge_name, ((src, tgt), unused_features) in g.edges.items():
+      if edge_name.startswith('g_'):
+        continue
       padded_src, padded_tgt = padded_g.edges[edge_name][0]
       batch_sizes = sizes[('edge', edge_name)]
       expected_padded_size = int(
-          1 + np.max(batch_sizes) + 1.5 * np.std(batch_sizes))
+          1 + np.max(batch_sizes) + 1.5 * np.std(batch_sizes)
+      )
 
       self.assertAllEqual(padded_src.shape, [expected_padded_size])
       self.assertAllEqual(padded_tgt.shape, [expected_padded_size])
@@ -254,10 +289,12 @@ class FixedSizePadderTest(tf.test.TestCase):
       virtual_tgt_node = list(padded_g.nodes[tgt_name].values())[0].shape[0] - 1
       self.assertAllEqual(
           padded_src[orig_size:],
-          np.ones_like(padded_src[orig_size:]) * virtual_src_node)
+          np.ones_like(padded_src[orig_size:]) * virtual_src_node,
+      )
       self.assertAllEqual(
           padded_tgt[orig_size:],
-          np.ones_like(padded_tgt[orig_size:]) * virtual_tgt_node)
+          np.ones_like(padded_tgt[orig_size:]) * virtual_tgt_node,
+      )
 
 
 G1 = graph_struct.GraphStruct.new(
@@ -272,7 +309,8 @@ G1 = graph_struct.GraphStruct.new(
     },
     edges={
         'friendship': ((np.array([0, 2, 1]), np.array([2, 0, 1])), {}),
-    })
+    },
+)
 G2 = graph_struct.GraphStruct.new(
     nodes={
         'person': {
@@ -283,9 +321,12 @@ G2 = graph_struct.GraphStruct.new(
         },
     },
     edges={
-        'friendship': ((np.array([], dtype='int32'),
-                        np.array([], dtype='int32')), {}),
-    })
+        'friendship': (
+            (np.array([], dtype='int32'), np.array([], dtype='int32')),
+            {},
+        ),
+    },
+)
 G3 = graph_struct.GraphStruct.new(
     nodes={
         'person': {
@@ -298,7 +339,8 @@ G3 = graph_struct.GraphStruct.new(
     },
     edges={
         'friendship': ((np.array([0, 1]), np.array([1, 0])), {}),
-    })
+    },
+)
 
 
 class CombineGraphStructsTest(tf.test.TestCase):
@@ -307,17 +349,19 @@ class CombineGraphStructsTest(tf.test.TestCase):
 
     combined_g = graph_struct.combine_graph_structs(sdnp.engine, G1, G2, G3)
 
-    self.assertAllEqual(combined_g.nodes['person']['names'],
-                        np.array([
-                            'bryan',
-                            'sami',
-                            'mangpo',
-                            'mickey mouse',
-                            'don duck',
-                            'cat',
-                            'panda',
-                            'bird',
-                        ]))
+    self.assertAllEqual(
+        combined_g.nodes['person']['names'],
+        np.array([
+            'bryan',
+            'sami',
+            'mangpo',
+            'mickey mouse',
+            'don duck',
+            'cat',
+            'panda',
+            'bird',
+        ]),
+    )
     source_ids, target_ids = combined_g.edges['friendship'][0]
     self.assertAllEqual(source_ids, np.array([0, 2, 1, 5, 6]))
     self.assertAllEqual(target_ids, np.array([2, 0, 1, 6, 5]))
@@ -328,36 +372,122 @@ class GraphsExactlyEqualTest(tf.test.TestCase):
   def test_are_graphs_exactly_equal(self):
     self.assertTrue(
         graph_struct.are_graphs_exactly_equal(
-            sdnp.engine, G1, copy.deepcopy(G1)))
-    self.assertFalse(
-        graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, G2))
-    self.assertFalse(
-        graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, G3))
+            sdnp.engine, G1, copy.deepcopy(G1)
+        )
+    )
+    self.assertFalse(graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, G2))
+    self.assertFalse(graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, G3))
     self.assertFalse(
         graph_struct.are_graphs_exactly_equal(
-            sdnp.engine, G1, G1.update(nodes={'person': {'y': np.array(
-                [1, 2, 3]
-            )}})))
+            sdnp.engine,
+            G1,
+            G1.update(nodes={'person': {'y': np.array([1, 2, 3])}}),
+        )
+    )
+
+
+def _make_db_save_on_desk(save_path):
+  db = graph_struct.InMemoryDB()
+  db.add(G1)
+  db.add(G2)
+  db.add(G3)
+  db.finalize()
+  db.save(save_path)
 
 
 class InMemoryDBTest(tf.test.TestCase):
 
-  def test_in_memory_db(self):
-    db = graph_struct.InMemoryDB()
-    db.add(G1)
-    db.add(G2)
-    db.add(G3)
-    db.finalize()
-    tmp_dir = self.get_temp_dir()
-    save_path = os.path.join(tmp_dir, 'in_memory_db.npz')
-    db.save(save_path)
+  def test_save_and_load(self):
+    save_path = os.path.join(self.get_temp_dir(), 'in_memory_db.npz')
+    _make_db_save_on_desk(save_path)
     db = graph_struct.InMemoryDB.from_file(save_path)
     self.assertTrue(
-        graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, db.get_item(0)))
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, db.get_item(0))
+    )
     self.assertTrue(
-        graph_struct.are_graphs_exactly_equal(sdnp.engine, G2, db.get_item(1)))
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G2, db.get_item(1))
+    )
     self.assertTrue(
-        graph_struct.are_graphs_exactly_equal(sdnp.engine, G3, db.get_item(2)))
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G3, db.get_item(2))
+    )
+
+  def test_bytes_serialization_and_deserialization(self):
+    db = graph_struct.InMemoryDB()
+    for g in [G1, G2, G3]:
+      db.add(g)
+    db.finalize()
+    npz_bytes = db.get_npz_bytes()
+    self.assertIsInstance(npz_bytes, bytes)
+    db2 = graph_struct.InMemoryDB.from_bytes(npz_bytes)
+    self.assertEqual(3, db.size)
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, db2.get_item(0))
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G2, db2.get_item(1))
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G3, db2.get_item(2))
+    )
+
+  def test_sharded_save_and_load(self):
+    db = graph_struct.InMemoryDB()
+    for g in [G1, G2, G3]:
+      db.add(g)
+    db.finalize()
+    save_prefix = os.path.join(self.get_temp_dir(), 'in_memory_db.npz')
+    db.save_sharded(save_prefix, batch_size=2)
+    self.assertTrue(os.path.exists(save_prefix + '-0-to-2'))  # 2 graphs.
+    self.assertTrue(os.path.exists(save_prefix + '-2-to-3'))  # 1 graph.
+
+    db0 = graph_struct.InMemoryDB.from_file(save_prefix + '-0-to-2')
+    db1 = graph_struct.InMemoryDB.from_file(save_prefix + '-2-to-3')
+    self.assertEqual(2, db0.size)
+    self.assertEqual(1, db1.size)
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G1, db0.get_item(0))
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G2, db0.get_item(1))
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G3, db1.get_item(0))
+    )
+
+    db_all = graph_struct.InMemoryDB.from_sharded_files(save_prefix)
+    self.assertEqual(3, db_all.size)
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(
+            sdnp.engine, G1, db_all.get_item(0)
+        )
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(
+            sdnp.engine, G2, db_all.get_item(1)
+        )
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(
+            sdnp.engine, G3, db_all.get_item(2)
+        )
+    )
+
+  def test_make_tf_dataset(self):
+    save_path = os.path.join(self.get_temp_dir(), 'in_memory_db.npz')
+    _make_db_save_on_desk(save_path)
+    tfds = sdtf.graph.InMemoryDB.from_file(save_path).as_tf_dataset()
+
+    graphs = list(tfds)
+    self.assertLen(graphs, 3)
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdtf.engine, G1, graphs[0])
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G2, graphs[1])
+    )
+    self.assertTrue(
+        graph_struct.are_graphs_exactly_equal(sdnp.engine, G3, graphs[2])
+    )
 
 
 if __name__ == '__main__':

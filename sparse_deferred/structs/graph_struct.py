@@ -17,15 +17,18 @@
 
 import collections
 from collections.abc import Iterable
+import glob
 import io
 import json
-from typing import Any, Callable, NamedTuple
+from typing import Any, Callable, NamedTuple, Sequence
 
 import numpy as np
+import tqdm
 
 import sparse_deferred as sd
 
 open_file = open
+
 
 
 Tensor = sd.matrix.Tensor
@@ -188,6 +191,36 @@ class GraphStruct(NamedTuple):
         dense_shape=(self.get_num_nodes(engine, row_node_name),
                      self.get_num_nodes(engine, col_node_name)),
         values=values)
+
+  def get_outgoing_neighbors(
+      self, engine, edge_name, node_index
+  ):
+    """Returns neighbors of a given node and edge feature."""
+    src_indices = self.edges[edge_name][0][0]
+    tgt_indices = self.edges[edge_name][0][1]
+    src_node_name = self.schema[edge_name][0]
+    tgt_node_name = self.schema[edge_name][1]
+    num_nodes = engine.maximum(
+        self.get_num_nodes(engine, src_node_name),
+        self.get_num_nodes(engine, tgt_node_name),
+    )
+    outdegree = engine.unsorted_segment_sum(
+        engine.ones(engine.shape(src_indices)),
+        src_indices,
+        num_segments=num_nodes,
+    )
+    offsets = engine.concat([engine.zeros([1]), engine.cumsum(outdegree)], 0)
+    argsorted_src_indices = engine.argsort(src_indices)
+    sorted_tgts = engine.gather(tgt_indices, argsorted_src_indices)
+    start_offset = offsets[node_index]
+    end_offset = offsets[node_index + 1]
+    neighbors = engine.gather(
+        sorted_tgts,
+        engine.cast(
+            engine.range(end_offset - start_offset) + start_offset, 'int32'
+        ),
+    )
+    return neighbors
 
   def incidence(self, engine,
                 edge_name,
@@ -371,8 +404,10 @@ class FixedSizePadder:
         break
       for node_name, features in graph.nodes.items():
         value_list = sizes[('nodes', node_name)]
-        value_list.append(
-            list(features.values())[0].shape[0])
+        if not features:
+          value_list.append(0)
+        else:
+          value_list.append(list(features.values())[0].shape[0])
 
       for edge_name, edges_tuple in graph.edges.items():
         value_list = sizes[('edges', edge_name)]
@@ -413,15 +448,15 @@ class FixedSizePadder:
     for node_name, node_features in graph.nodes.items():
       padded_features = {}
       desired_size = self.sizes[('nodes', node_name)]
-      current_size = e.shape(list(node_features.values())[0])[0]
-
-      pad = e.maximum(desired_size - current_size, 0)
-      e.assert_greater(pad, -1)
 
       for feature_name, feature in node_features.items():
         feature = feature[:desired_size]  # if `is_oversized`.
+        pad = self._engine.maximum(
+            desired_size - self._engine.shape(feature)[0], 0
+        )
         zeros = e.zeros(
-            e.concat([[pad], feature.shape[1:]], axis=0), dtype=feature.dtype)
+            tuple([pad] + list(feature.shape[1:])), dtype=feature.dtype
+        )
         padded_feature = e.concat([feature, zeros], axis=0)
         padded_feature = e.reshape(
             padded_feature, [desired_size] + list(padded_feature.shape[1:]))
@@ -441,16 +476,23 @@ class FixedSizePadder:
       for feature_name, feature in features.items():
         feature = feature[:desired_size]  # if `is_oversized`.
         zeros = e.zeros(
-            e.concat([[pad], feature.shape[1:]], axis=0), dtype=feature.dtype)
+            tuple([pad] + list(feature.shape[1:])), dtype=feature.dtype
+        )
         padded_feature = e.concat([feature, zeros], axis=0)
         padded_feature = e.reshape(
-            padded_feature, [desired_size] + padded_feature.shape[1:])
+            padded_feature, [desired_size] + padded_feature.shape[1:]
+        )
         padded_features[feature_name] = padded_feature
 
       edge_endpoints = [node_ids[:desired_size] for node_ids in edge_endpoints]
       # [[src1_is_valid, src2_is_valid, ...], [tgt1_is_valid, ...]]
-      valid = [ids < self.sizes[('nodes', node_name)]
-               for ids, node_name in zip(edge_endpoints, schema[edge_name])]
+      valid = e.cast(
+          [
+              ids < self.sizes[('nodes', node_name)]
+              for ids, node_name in zip(edge_endpoints, schema[edge_name])
+          ],
+          dtype=bool,
+      )
       valid = e.reduce_all(valid, axis=0)
 
       for node_ids, node_name in zip(edge_endpoints, schema[edge_name]):
@@ -460,10 +502,10 @@ class FixedSizePadder:
         node_ids = e.boolean_mask(node_ids, valid)
         pad = desired_size - e.shape(node_ids)[0]  # Need only to compute once.
 
-        padded_ids = e.concat([
-            node_ids,
-            e.ones([pad], dtype=node_ids.dtype) * max_endpoint
-        ], axis=0)
+        padded_ids = e.concat(
+            [node_ids, e.ones((pad), dtype=node_ids.dtype) * max_endpoint],
+            axis=0,
+        )
         padded_ids = e.reshape(padded_ids, [desired_size])
         padded_endpoints.append(padded_ids)
 
@@ -487,6 +529,13 @@ class InMemoryDB:
 
   # tf.data.Dataset
   ds: tf.data.Dataset = sparse_deferred.tf.graph.db_to_tf_dataset(db)
+
+  # NOTE: for the above to work, the features in `graphs` should be all
+  # `tf.Tensor`s. If this is not the case, then you can convert all to tf.Tensor
+  # by saving-then-loading
+  db.save('temp_file.npz')
+  tfdb = sparse_deferred.tf.graph.InMemoryDB.from_file('temp_file.npz')
+  ds = tfdb.as_tf_dataset()
   ```
   """
 
@@ -497,30 +546,100 @@ class InMemoryDB:
     self.schema = None
     self._cumsum_sizes: dict[tuple[str, str], np.ndarray]|None = None
 
-  def save(self, filename,
-           save_fn = np.savez_compressed):
-    """Saves DB to a numpy file that can be loaded with `from_file()`."""
+  @property
+  def features(self):
+    """Internal representation: Concatenation of all graph features."""
+    return self._features
+
+  def get_npz_bytes(
+      self,
+      save_fn = np.savez_compressed,
+      start_id = 0,
+      end_id = None,
+  ):
+    """Returns bytes of the npz file that can be loaded with `from_bytes()`."""
     if self._cumsum_sizes is None:
       raise ValueError('You have not yet called finalize().')
+    if end_id is None:
+      end_id = self.size
     np_kwargs = {}
     for (n_or_e, name, feat_name), v in self._features.items():
-      np_kwargs[f'feat.{n_or_e}.{name}.{feat_name}'] = np.array(v)
+      idx_start = self._cumsum_size((n_or_e, name), start_id)
+      idx_end = self._cumsum_size((n_or_e, name), end_id)
+      np_kwargs[f'feat.{n_or_e}.{name}.{feat_name}'] = np.array(
+          v[idx_start:idx_end]
+      )
     for (n_or_e, name), v in self._sizes.items():
-      np_kwargs[f'size.{n_or_e}.{name}'] = np.array(v)
+      np_kwargs[f'size.{n_or_e}.{name}'] = np.array(v[start_id:end_id])
       np_kwargs[f'csumsize.{n_or_e}.{name}'] = np.array(
-          self._cumsum_sizes[(n_or_e, name)])
+          self._cumsum_size((n_or_e, name), range(start_id, end_id + 1))
+      )
     for name, v in self._edges.items():
-      np_kwargs[f'edge.{name}'] = np.array(v)
+      idx_start = self._cumsum_size(('e', name), start_id)
+      idx_end = self._cumsum_size(('e', name), end_id)
+      np_kwargs[f'edge.{name}'] = np.array([ep[idx_start:idx_end] for ep in v])
     np_kwargs['schema'] = json.dumps(self.schema)
     bytes_io = io.BytesIO()
     save_fn(bytes_io, **np_kwargs)
-    with open_file(filename, 'wb') as f:
-      f.write(bytes_io.getvalue())
+    return bytes_io.getvalue()
 
-  def load_from_file(self, filename,
-                     to_device_fn = np.array):
-    """Loads DB from a numpy file saved with `save()`."""
-    np_data = np.load(open_file(filename, 'rb'), allow_pickle=True)
+  def _cumsum_size(self, key, index):
+    """show the error."""
+    if self._cumsum_sizes is None:
+      raise ValueError('You have not yet called finalize().')
+    if key not in self._cumsum_sizes:
+      raise ValueError(
+          f'Key {key} not found in {list(self._cumsum_sizes.keys())}'
+      )
+    if isinstance(index, int):
+      if index < 0 or index >= len(self._cumsum_sizes[key]):
+        raise ValueError(f'Index {index} out of bounds for {key}')
+    else:  # must be Sequence.
+      for idx in list(index):
+        if idx < 0 or idx >= len(self._cumsum_sizes[key]):
+          raise ValueError(f'Index {idx} out of bounds for {key}')
+
+    return self._cumsum_sizes[key][index]
+
+  def save(
+      self,
+      filename,
+      save_fn = np.savez_compressed,
+      start_id = 0,
+      end_id = None,
+  ):
+    """Saves DB to a numpy file that can be loaded with `from_file()`."""
+    npz_bytes = self.get_npz_bytes(
+        save_fn=save_fn, start_id=start_id, end_id=end_id
+    )
+    with open_file(filename, 'wb') as f:
+      f.write(npz_bytes)
+
+  def save_sharded(
+      self,
+      file_prefix,
+      batch_size,
+      save_fn = np.savez_compressed,
+  ):
+    """Saves DB onto multiple files, each containing <= `batch_size` graphs."""
+    if self._cumsum_sizes is None:
+      raise ValueError('You have not yet called finalize().')
+    batch_indices = list(range(0, self.size, batch_size))
+    batch_indices.append(self.size)
+    for start_i, end_i in tqdm.tqdm(
+        list(zip(batch_indices[:-1], batch_indices[1:]))
+    ):
+      end_i = min(end_i, self.size)
+      filename = f'{file_prefix}-{start_i}-to-{end_i}'
+      self.save(filename, save_fn=save_fn, start_id=start_i, end_id=end_i)
+
+  def load_from_bytes(
+      self,
+      npz_bytes,
+      to_device_fn = np.array,
+  ):
+    """Restores DB instance serialized with `get_npz_bytes()`."""
+    np_data = dict(np.load(io.BytesIO(npz_bytes), allow_pickle=True))
     self._cumsum_sizes = {}
     for k, np_arr in np_data.items():
       k_parts = k.split('.')
@@ -529,13 +648,38 @@ class InMemoryDB:
       elif k_parts[0] == 'size':
         self._sizes[tuple(k_parts[1:])] = to_device_fn(np_arr)
       elif k_parts[0] == 'csumsize':
-        self._cumsum_sizes[tuple(k_parts[1:])] = to_device_fn(np_arr)
+        csizes = to_device_fn(np_arr)
+        csizes -= csizes[0]
+        self._cumsum_sizes[tuple(k_parts[1:])] = csizes
       elif k_parts[0] == 'edge':
-        self._edges[k_parts[1]] = to_device_fn(np_arr)
+        self._edges[k_parts[1]] = to_device_fn(np.array(np_arr, 'int32'))
       elif k == 'schema':
         self.schema = json.loads(str(np_arr))
         self.schema = {edge_set_name: tuple(endpoints)
                        for edge_set_name, endpoints in self.schema.items()}
+
+  def load_from_file(
+      self, filename, to_device_fn = np.array
+  ):
+    """Loads DB from a numpy file saved with `save()`."""
+    self.load_from_bytes(open_file(filename, 'rb').read(), to_device_fn)
+
+  @classmethod
+  def from_sharded_files(
+      cls,
+      file_prefix,
+      to_device_fn = np.array,
+  ):
+    """Load from sharded files saved with `save_sharded()`."""
+    filenames = glob.glob(f'{file_prefix}-*')
+    filenames.sort(key=lambda filename: int(filename.split('-')[-1]))
+    entire_db = InMemoryDB()
+    for filename in tqdm.tqdm(filenames):
+      db = InMemoryDB.from_file(filename, to_device_fn)
+      for i in range(db.size):
+        entire_db.add(db.get_item(i))
+    entire_db.finalize(to_device_fn)
+    return entire_db
 
   @classmethod
   def from_file(
@@ -544,6 +688,17 @@ class InMemoryDB:
     """Recovers instance saved by save()."""
     db = InMemoryDB()
     db.load_from_file(filename, to_device_fn=to_device_fn)
+    return db
+
+  @classmethod
+  def from_bytes(
+      cls,
+      npz_bytes,
+      to_device_fn = np.array,
+  ):
+    """Recovers instance saved by get_npz_bytes()."""
+    db = InMemoryDB()
+    db.load_from_bytes(npz_bytes, to_device_fn=to_device_fn)
     return db
 
   def add(self, g):
@@ -576,7 +731,7 @@ class InMemoryDB:
           if size != endpoint.shape[0]:
             raise ValueError(f'Endpoint lists for edge set {es_name} differ in '
                              f'length: {size} != {endpoint.shape[0]}')
-        self._edges[es_name][i].append(endpoint)
+        self._edges[es_name][i].append(np.array(endpoint, 'int32'))
       for feat_name, feat_val in feats.items():
         self._features[('e', es_name, feat_name)].append(feat_val)
         if size is None:
@@ -625,7 +780,50 @@ class InMemoryDB:
       edges[name] = (el, edge_features.get(name, {}))
     return GraphStruct.new(nodes=node_features, edges=edges, schema=self.schema)
 
+  def get_item_with_engine(
+      self, engine, i
+  ):
+    """Same as .get_item() but using ops of `engine`."""
+
+    def range_slice(tensor, start_idx, end_idx):
+      elements = engine.range(end_idx - start_idx, dtype='int32') + engine.cast(
+          start_idx, dtype='int32'
+      )
+      return engine.gather(tensor, elements)
+
+    if self._cumsum_sizes is None:
+      raise ValueError('You have not yet called finalize().')
+    node_features = collections.defaultdict(dict)
+    edge_features = collections.defaultdict(dict)
+    for (n_or_e, name, feat_name), feat_val in self._features.items():
+      start_idx = self._cumsum_sizes[(n_or_e, name)][i]
+      end_idx = self._cumsum_sizes[(n_or_e, name)][i + 1]
+      if n_or_e == 'n':
+        node_features[name][feat_name] = range_slice(
+            feat_val, start_idx, end_idx
+        )
+      elif n_or_e == 'e':
+        edge_features[name][feat_name] = range_slice(
+            feat_val, start_idx, end_idx
+        )
+    edges = {}
+    for name, endpoints in self._edges.items():
+      start_idx = self._cumsum_sizes[('e', name)][i]
+      end_idx = self._cumsum_sizes[('e', name)][i + 1]
+      if isinstance(endpoints, list):
+        num_endpoints = len(endpoints)
+      else:
+        num_endpoints = endpoints.shape[0]
+      el = tuple([
+          range_slice(endpoints[j], start_idx, end_idx)
+          for j in range(num_endpoints)
+      ])
+      edges[name] = (el, edge_features.get(name, {}))
+    return GraphStruct.new(nodes=node_features, edges=edges, schema=self.schema)
+
   @property
   def size(self):
     assert self._cumsum_sizes is not None
+    if not self._cumsum_sizes:  # Empty.
+      return 0
     return list(self._cumsum_sizes.values())[0].shape[0] - 1

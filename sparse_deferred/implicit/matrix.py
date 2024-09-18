@@ -98,6 +98,10 @@ class ComputeEngine(abc.ABC):
     """Casts `tensor` to `dtype`."""
 
   @abc.abstractmethod
+  def cumsum(self, x, axis = 0):
+    """Compute the cumulative sum of the tensor along `axis`."""
+
+  @abc.abstractmethod
   def argsort(self, tensor, axis = -1,
               direction = 'ASCENDING'):
     """Returns argsort for a vector."""
@@ -152,6 +156,10 @@ class ComputeEngine(abc.ABC):
   @abc.abstractmethod
   def range(self, up_to, dtype = 'float32'):
     """Like `np.arange` or `tf.range`."""
+
+  @abc.abstractmethod
+  def one_hot(self, tensor, num_classes):
+    """Returns one-hot encoding of a tensor."""
 
   def deferred_diag(self, vec):
     """Returns Diagonal Matrix under this `ComputeEngine`.

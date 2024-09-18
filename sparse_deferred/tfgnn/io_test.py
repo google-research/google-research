@@ -188,6 +188,20 @@ class TensorflowIOTest(_BaseIOTest):
     self._assert_correct(graph_struct)
 
 
+class ToExampleTest(tf.test.TestCase):
+
+  def test_graph_struct_to_tf_example(self):
+    tf_example = _make_tf_example()
+    schema = _make_schema()
+
+    self.assertProtoEquals(
+        tf_example,
+        sdtfgnn.graph_struct_to_tf_example(
+            sdtfgnn.graph_struct_from_tf_example(tf_example, schema)
+        ),
+    )
+
+
 class NumpyIOTest(_BaseIOTest):
 
   def test_graph_struct_from_tf_example(self):

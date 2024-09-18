@@ -68,6 +68,9 @@ class _TFEngine(matrix.ComputeEngine):
   def cast(self, tensor, dtype = 'float32'):
     return tf.cast(tensor, dtype)
 
+  def cumsum(self, tensor, axis = 0):
+    return tf.cumsum(tensor, axis)
+
   def minimum(self, x, y):
     return tf.minimum(x, y)
 
@@ -110,6 +113,9 @@ class _TFEngine(matrix.ComputeEngine):
 
   def range(self, up_to, dtype = 'float32'):
     return tf.range(up_to, dtype=dtype)
+
+  def one_hot(self, tensor, num_classes):
+    return tf.one_hot(tensor, num_classes)
 
   def to_cpu(self, tensor):
     """Brings a tensor to the CPU, so that python can access it."""

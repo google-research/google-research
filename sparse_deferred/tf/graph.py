@@ -21,6 +21,7 @@ import tensorflow as tf
 from sparse_deferred.structs import graph_struct
 import sparse_deferred.tf as sdtf
 
+tf = tf.compat.v2
 
 GraphStruct = graph_struct.GraphStruct
 
@@ -32,7 +33,8 @@ def batch_dataset(ds, batch_size):
 
 
 def db_to_tf_dataset(db):
-  return tf.data.Dataset.range(db.size).map(db.get_item)
+  return tf.data.Dataset.range(db.size).map(
+      functools.partial(db.get_item_with_engine, sdtf.engine))
 
 
 class InMemoryDB(graph_struct.InMemoryDB):

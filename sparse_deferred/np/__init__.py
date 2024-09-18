@@ -148,4 +148,15 @@ class _NumpyEngine(sd.ComputeEngine):
   def range(self, up_to, dtype = 'float32'):
     return np.arange(up_to, dtype=dtype)
 
+  def one_hot(self, tensor, num_classes):
+    onehot = np.zeros((tensor.shape[0], num_classes), dtype='float32')
+    r = np.arange(tensor.shape[0], dtype='int32')
+    r = r[tensor >= 0]
+    tensor = tensor[tensor >= 0]
+    onehot[r, tensor] = 1.0
+    return onehot
+
+  def cumsum(self, tensor, axis = 0):
+    return np.cumsum(tensor, axis)
+
 engine = _NumpyEngine()
