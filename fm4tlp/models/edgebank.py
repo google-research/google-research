@@ -28,7 +28,7 @@ from models import model_template
 from modules import neighbor_loader
 
 
-if 'gfile' not in sys.modules:
+if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
 
 _EDGE_TYPE = tuple[torch.Tensor, torch.Tensor]

@@ -24,7 +24,7 @@ from models import model_template
 
 
 
-if "gfile" not in sys.modules:
+if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
   gfile_mkdirs = gfile.makedirs
   gfile_isdir = gfile.isdir

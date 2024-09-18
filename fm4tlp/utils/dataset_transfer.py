@@ -25,7 +25,7 @@ from utils import negative_sampler
 from utils import pre_process
 
 
-if "gfile" not in sys.modules:
+if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
 
 

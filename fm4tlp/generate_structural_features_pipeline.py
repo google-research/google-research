@@ -43,14 +43,14 @@ import tensorflow.compat.v1 as tf
 from utils import structural_feature_helper
 
 
-if 'gfile' not in sys.modules:
+if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
   gfile_makedirs = gfile.makedirs
   gfile_exists = gfile.exists
   gfile_glob = gfile.glob
   gfile_remove = gfile.remove
 
-if 'beam_runner_lib' not in sys.modules:
+if not any(['py.runner' in m for m in list(sys.modules.keys())]):
   beam_runner = beam.runners.DirectRunner
 
 

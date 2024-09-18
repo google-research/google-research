@@ -30,7 +30,7 @@ import tensorflow.compat.v1 as tf
 use_parallel = True
 
 
-if 'gfile' not in sys.modules:
+if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
   use_parallel = False
   gfile = tf.io.gfile
   gfile_remove = gfile.remove

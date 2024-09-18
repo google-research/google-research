@@ -46,7 +46,7 @@ class TGNMemory(nn.Module):
   See `"Temporal Graph Networks for Deep Learning on Dynamic Graphs"
   <https://arxiv.org/abs/2006.10637>`_ paper.
 
-  .. note::
+  .. note:
 
       For an example of using TGN, see `examples/tgn.py
       <https://github.com/pyg-team/pytorch_geometric/blob/master/examples/

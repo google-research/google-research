@@ -37,7 +37,7 @@ import tqdm
 from utils import negative_sampler
 
 
-if 'gfile' not in sys.modules:
+if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
 
 _CONTINENT = flags.DEFINE_string(
