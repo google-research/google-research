@@ -4229,6 +4229,15 @@ class Marot {
   }
 
   /**
+   * Escapes regular expressions so the contents are matched literally.
+   * @param {string} unescapedRegex
+   * @return {string}
+   */
+  escapeRegex(unescapedRegex) {
+    return unescapedRegex.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  /**
    * Convenience function to escape html in each token.
    * @param {!Array<string>} tokens
    * @return {!Array<string>}
@@ -4632,7 +4641,7 @@ class Marot {
         const v = document.getElementById(`marot-val-${rowId}-${col}`);
         if (!v) continue;
         v.addEventListener('click', (e) => {
-          filter.value = '^' + parts[col] + '$';
+          filter.value = '^' + this.escapeRegex(parts[col]) + '$';
           this.show();
         });
       }
@@ -5025,7 +5034,8 @@ class Marot {
       let html = '<option value=""></option>\n';
       for (let o in opt) {
         if (!o) continue;
-        html += `<option value="^${o}$">${o}</option>\n`;
+        const escapedValue = this.escapeRegex(o);
+        html += `<option value="^${escapedValue}$">${o}</option>\n`;
       }
       sel.innerHTML = html;
     }
