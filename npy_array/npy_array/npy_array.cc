@@ -14,6 +14,7 @@
 
 #include "npy_array/npy_array.h"
 
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <regex>  // NOLINT: ok to use std::regex in third_party code.
@@ -74,6 +75,11 @@ std::string NpyDataTypeString<float>() {
 template <>
 std::string NpyDataTypeString<double>() {
   return "f";
+}
+
+template <>
+std::string NpyDataTypeString<std::complex<float>>() {
+  return "c";
 }
 
 template <>
