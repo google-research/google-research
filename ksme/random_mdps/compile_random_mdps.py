@@ -126,7 +126,7 @@ def main(_):
     ax.set_ylabel(Y_LABELS[value], fontsize=24)
     if value == 'avg_gap':
       ax.legend(prop={'size': 24}, bbox_to_anchor=(0.5, 1.25), ncol=4)
-      for legobj in ax.get_legend().legendHandles:
+      for legobj in ax.get_legend().legend_handles:
         legobj.set_linewidth(6.0)
     else:
       ax.get_legend().remove()
