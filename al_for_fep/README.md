@@ -72,6 +72,10 @@ python3 -m al_for_fep.single_cycle_main
   --cycle_config.virtual_library=al_for_fep/data/testdata/virtual_library.csv
 ```
 
+# Data
+
+[Available on Zenodo](https://zenodo.org/records/13759490)
+
 # Citation
 
 Please refer to the following paper to read more about applying active learning
