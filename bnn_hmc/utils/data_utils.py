@@ -281,7 +281,9 @@ def pmap_dataset(ds, n_devices):
   return jax.pmap(lambda x: x)(batch_split_axis(ds, n_devices))
 
 
-def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
+def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None,
+                           sequential=False, num_sequential_training_folds=2,
+                           index_sequential_training_fold=0, stratified=False):
   """Make train and test sets sharded over batch dim."""
   name = name.lower()
   n_devices = n_devices or len(jax.local_devices())
@@ -320,9 +322,31 @@ def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
 
   if truncate_to:
     assert truncate_to % n_devices == 0, (
-        "truncate_to should be devisible by n_devices, but got values "
+        "truncate_to should be divisible by n_devices, but got values "
         "truncate_to={}, n_devices={}".format(truncate_to, n_devices))
     train_set = tuple(arr[:truncate_to] for arr in train_set)
+
+  if sequential:
+    if task != task.CLASSIFICATION:
+      raise NotImplementedError("Sequential only supported for classification")
+
+    assert len(train_set[0]) % (num_sequential_training_folds * n_devices) == 0, (
+        "Each sequential fold has to be divisible by n_devices, but got values "
+        "truncate_to={}, num_sequential_training_folds={}, n_devices={}".format(
+          truncate_to, num_sequential_training_folds, n_devices))
+
+    if stratified:
+      # Sort classes by increasing order
+      # This means e.g. some classes will be present only in the first half,
+      # some only in the second half
+      order = onp.argsort(train_set[1])
+      train_set = tuple(arr[order] for arr in train_set)
+
+    fold_len = len(train_set[0]) // num_sequential_training_folds
+    train_set = tuple(arr[
+      index_sequential_training_fold*fold_len:(index_sequential_training_fold+1)*fold_len]
+      for arr in train_set
+    )
 
   train_set, test_set = tuple(
       pmap_dataset(ds, n_devices) for ds in (train_set, test_set))
