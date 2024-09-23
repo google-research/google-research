@@ -935,7 +935,7 @@ def convert_sunflower_collection_to_visualizable_json(
     doc_span_tup_dd = first_layer[d_0][1]
     text_d0 = t.decode(tokens[doc_span_tup_dd[0] : doc_span_tup_dd[1]])
 
-    scores_d0 = scores_tens_doc[d_0, :, score_index]
+    scores_d0 = scores_tens_doc[d_0, score_index, :]
 
     doc_dict = {
         "index1": d_0,
@@ -970,7 +970,7 @@ def convert_sunflower_collection_to_visualizable_json(
             ]
         )
 
-        scores_d1 = scores_tens_sen[d_1, :, score_index]
+        scores_d1 = scores_tens_sen[d_1, score_index, :]
 
         sen_dict = {
             "index1": d_0,
@@ -1006,7 +1006,7 @@ def convert_sunflower_collection_to_visualizable_json(
                 ]
             )
 
-            scores_d2 = scores_tens_wor[d_2, :, score_index]
+            scores_d2 = scores_tens_wor[d_2, score_index, :]
 
             wor_dict = {
                 "index1": d_0,
