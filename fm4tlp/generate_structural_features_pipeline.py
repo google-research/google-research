@@ -244,7 +244,6 @@ def main(_):
       'cycle_graph',
       'path_graph',
       'complete_graph',
-      'star_graph',
   ]
 
   # Make giant list of all subgraphs that need to be processed.
