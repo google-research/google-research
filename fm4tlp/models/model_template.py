@@ -17,7 +17,6 @@
 
 import abc
 import dataclasses
-from typing import Optional
 
 import torch
 from torch_geometric import data as torch_geo_data
@@ -29,7 +28,7 @@ from modules import neighbor_loader
 @dataclasses.dataclass(frozen=True)
 class ModelPrediction:
   y_pred_pos: torch.Tensor = dataclasses.field(default_factory=torch.Tensor)
-  y_pred_neg: Optional[torch.Tensor] = None
+  y_pred_neg: torch.Tensor | None = None
 
 
 class TlpModel(abc.ABC):
@@ -80,60 +79,53 @@ class TlpModel(abc.ABC):
   @abc.abstractmethod
   def _initialize_model(self):
     """Initializes model parameters."""
-    pass
 
   @abc.abstractmethod
   def optimize(self, loss):
     """Optimizes the model."""
-    pass
 
   @abc.abstractmethod
   def save_model(self, model_path):
     """Saves the model."""
-    pass
 
   @abc.abstractmethod
   def load_model(self, model_path):
     """Loads the model."""
-    pass
 
   @abc.abstractmethod
   def initialize_train(self):
     """Initializes the training."""
-    pass
 
   @abc.abstractmethod
   def initialize_test(self):
     """Initializes test evaluation."""
-    pass
 
   @abc.abstractmethod
   def initialize_batch(self, batch):
     """Initializes batch processing."""
-    pass
 
   @abc.abstractmethod
   def predict_on_edges(
       self,
+      *,
       source_nodes,
       target_nodes_pos,
-      data,
-      last_neighbor_loader,
       target_nodes_neg = None,
+      last_neighbor_loader,
+      data,
   ):
     """Generates predictions from input edges.
 
     Args:
       source_nodes: Source nodes.
       target_nodes_pos: Target nodes for positive edges.
-      data: The torch geo temporal dataset object.
-      last_neighbor_loader: Object to load recent node neighbors.
       target_nodes_neg: Target nodes for negative edges.
+      last_neighbor_loader: Object to load recent node neighbors.
+      data: The torch geo temporal dataset object.
 
     Returns:
       The model prediction. y_pred_neg is None if target_nodes_neg is None.
     """
-    pass
 
   @abc.abstractmethod
   def compute_loss(
@@ -143,34 +135,33 @@ class TlpModel(abc.ABC):
       memory_emb,
   ):
     """Computes the loss from a model prediction."""
-    pass
 
   @abc.abstractmethod
   def get_memory_embeddings(self, nodes):
     """Gets memory embeddings for a set of nodes."""
-    pass
 
   @abc.abstractmethod
-  def predict_memory_embeddings(self, structral_feat):
+  def predict_memory_embeddings(
+      self, structral_feat
+  ):
     """Predicts memory embeddings for a set of nodes from structural embeddings."""
-    pass
 
-  def initialize_memory_embedding(self, nodes, memory_emb):
+  def initialize_memory_embedding(
+      self, nodes, memory_emb
+  ):
     """Initializes memory embeddings for a set of nodes."""
-    pass
 
   @abc.abstractmethod
   def reset_memory(self):
     """For models with memory modules, resets memory parameters."""
-    pass
 
   @abc.abstractmethod
   def update_memory(
       self,
+      *,
       source_nodes,
       target_nodes,
       timestamps,
       messages,
   ):
     """For models with memory modules, updates memory parameters."""
-    pass

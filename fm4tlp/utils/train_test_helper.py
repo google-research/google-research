@@ -72,7 +72,7 @@ def train(
   r"""Training procedure for TGN model
 
   This function uses some objects that are globally defined in the current
-  scrips.
+  scripts.
 
   Arguments:
       model: the model to be trained
@@ -87,9 +87,10 @@ def train(
       logging_frequency: the frequency to log the training loss
       metrics_logger: the object to log the training metrics
       structural_feats_list: the list of structural features to be used
-      (optional)
+        (optional)
       structural_features: the structural features of the nodes as a dict
-      (optional)
+        (optional)
+
   Returns:
       None
   """
@@ -145,7 +146,11 @@ def train(
       )
 
       model_prediction = model.predict_on_edges(
-          src, pos_dst, data, last_neighbor_loader, neg_dst
+          source_nodes=src,
+          target_nodes_pos=pos_dst,
+          target_nodes_neg=neg_dst,
+          last_neighbor_loader=last_neighbor_loader,
+          data=data,
       )
       model_loss, structmap_loss = model.compute_loss(
           model_prediction,
@@ -153,7 +158,12 @@ def train(
           torch.tensor(np.array(original_memory_embeddings)),
       )
       if model.has_memory:
-        model.update_memory(src, pos_dst, t, msg)
+        model.update_memory(
+            source_nodes=src,
+            target_nodes=pos_dst,
+            timestamps=t,
+            messages=msg,
+        )
       last_neighbor_loader.insert(src, pos_dst)
       loss = model_loss + structmap_loss
       model.optimize(loss)
@@ -306,7 +316,10 @@ def test(
         )
 
         model_prediction = model.predict_on_edges(
-            src, dst, data, last_neighbor_loader
+            source_nodes=src,
+            target_nodes_pos=dst,
+            last_neighbor_loader=last_neighbor_loader,
+            data=data,
         )
         model_loss, structmap_loss = model.compute_loss(
             model_prediction,
@@ -337,7 +350,12 @@ def test(
 
       # Update memory and neighbor loader with ground-truth state.
       if update_memory and model.has_memory:
-        model.update_memory(pos_src, pos_dst, pos_t, pos_msg)
+        model.update_memory(
+            source_nodes=pos_src,
+            target_nodes=pos_dst,
+            timestamps=pos_t,
+            messages=pos_msg,
+        )
       last_neighbor_loader.insert(pos_src, pos_dst)
       num_steps += 1
 
@@ -425,26 +443,27 @@ def warmstart(
   r"""Warmstart on a fraction of test dataset.
 
   This function uses some objects that are globally defined in the current
-  scrips
+  scripts.
 
   Arguments:
       model: the model to be evaluated
       data: the dataset to be evaluated on
       data_loader: an object containing positive attributes of the positive
-      edges of the evaluation set
+        edges of the evaluation set
       device: accelerator, if used
       min_dst_idx: the minimum destination index to be used for negative
-      sampling
+        sampling
       max_dst_idx: the maximum destination index to be used for negative
-      sampling
+        sampling
       metric: the metric to be evaluated
       last_neighbor_loader: the neighbor loader object
       evaluator: the evaluator object
       metrics_logger: the object to log the training metrics
       structural_feats_list: the list of structural features to be used
-      (optional)
+        (optional)
       structural_features: the structural features of the nodes as a dict
-      (optional)
+        (optional)
+
   Returns:
       PerformanceMetricLists: the performance metrics for each batch
   """
@@ -526,11 +545,20 @@ def warmstart(
       )
 
       if model.has_memory:
-        model.update_memory(src, pos_dst, t, msg)
+        model.update_memory(
+            source_nodes=src,
+            target_nodes=pos_dst,
+            timestamps=t,
+            messages=msg,
+        )
       last_neighbor_loader.insert(src, pos_dst)
 
       model_prediction = model.predict_on_edges(
-          src, pos_dst, data, last_neighbor_loader, neg_dst
+          source_nodes=src,
+          target_nodes_pos=pos_dst,
+          target_nodes_neg=neg_dst,
+          last_neighbor_loader=last_neighbor_loader,
+          data=data,
       )
       model_loss, structmap_loss = model.compute_loss(
           model_prediction,

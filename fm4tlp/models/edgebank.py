@@ -17,7 +17,6 @@
 
 import json
 import sys
-from typing import Optional
 
 import tensorflow.compat.v1 as tf
 import torch
@@ -85,6 +84,7 @@ class EdgeBank(model_template.TlpModel):
 
   def update_memory(
       self,
+      *,
       source_nodes,
       target_nodes,
       timestamps,
@@ -135,20 +135,21 @@ class EdgeBank(model_template.TlpModel):
 
   def predict_on_edges(
       self,
+      *,
       source_nodes,
       target_nodes_pos,
-      data,
-      last_neighbor_loader,
       target_nodes_neg = None,
+      last_neighbor_loader,
+      data,
   ):
     """Generates predictions from input edges.
 
     Args:
       source_nodes: Source nodes.
       target_nodes_pos: Target nodes for positive edges.
-      data: The torch geo temporal dataset object.
-      last_neighbor_loader: Object to load recent node neighbors.
       target_nodes_neg: Target nodes for negative edges.
+      last_neighbor_loader: Object to load recent node neighbors.
+      data: The torch geo temporal dataset object.
 
     Returns:
       The model prediction. y_pred_neg is None if target_nodes_neg is None.

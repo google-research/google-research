@@ -15,8 +15,6 @@
 
 """TGN (Temporal Graph Network) model with Structural Mapping Capability."""
 
-from typing import Optional
-
 import torch
 from torch_geometric import data as torch_geo_data
 
@@ -157,12 +155,18 @@ class TGN(model_template.TlpModel):
 
   def update_memory(
       self,
+      *,
       source_nodes,
       target_nodes,
       timestamps,
       messages,
   ):
-    self._memory.update_state(source_nodes, target_nodes, timestamps, messages)
+    self._memory.update_state(
+        src=source_nodes,
+        dst=target_nodes,
+        t=timestamps,
+        raw_msg=messages,
+    )
 
   def reset_memory(self):
     self._memory.reset_state()
@@ -213,25 +217,29 @@ class TGN(model_template.TlpModel):
       )
     structmap_loss = 0.0
     if self.has_struct_mapper:
-      structmap_loss += self._criterion_struct(predicted_memory_emb, memory_emb) * self._config.alpha
+      structmap_loss += (
+          self._criterion_struct(predicted_memory_emb, memory_emb)
+          * self._config.alpha
+      )
     return model_loss, structmap_loss
 
   def predict_on_edges(
       self,
+      *,
       source_nodes,
       target_nodes_pos,
-      data,
-      last_neighbor_loader,
       target_nodes_neg = None,
+      last_neighbor_loader,
+      data,
   ):
     """Generates predictions from input edges.
 
     Args:
       source_nodes: Source nodes.
       target_nodes_pos: Target nodes for positive edges.
-      data: The torch geo temporal dataset object.
-      last_neighbor_loader: Object to load recent node neighbors.
       target_nodes_neg: Target nodes for negative edges.
+      last_neighbor_loader: Object to load recent node neighbors.
+      data: The torch geo temporal dataset object.
 
     Returns:
       The model prediction. y_pred_neg is None if target_nodes_neg is None.

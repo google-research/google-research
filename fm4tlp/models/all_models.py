@@ -18,5 +18,7 @@
 from models import edgebank
 from models import tgn
 
-TGN = tgn.TGN
+# keep-sorted start
 EdgeBank = edgebank.EdgeBank
+TGN = tgn.TGN
+# keep-sorted end

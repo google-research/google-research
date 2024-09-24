@@ -151,6 +151,7 @@ class TGNMemory(nn.Module):
 
   def update_state(
       self,
+      *,
       src,
       dst,
       t,
@@ -383,6 +384,7 @@ class DyRepMemory(nn.Module):
 
   def update_state(
       self,
+      *,
       src,
       dst,
       t,
