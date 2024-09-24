@@ -26,7 +26,7 @@ from models import model_template
 
 if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
-  gfile_mkdirs = gfile.makedirs
+  gfile_makedirs = gfile.makedirs
   gfile_isdir = gfile.isdir
 
 
@@ -59,7 +59,7 @@ class EarlyStopMonitor(object):
     self.save_model_dir = save_model_dir
     if not gfile_isdir(self.save_model_dir):
       print("INFO: Create directory {}".format(save_model_dir))
-      gfile_mkdirs(self.save_model_dir)
+      gfile_makedirs(self.save_model_dir)
     self.save_model_id = save_model_id
 
   def get_best_model_path(self):

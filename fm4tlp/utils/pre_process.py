@@ -15,11 +15,12 @@
 
 """Utilities for pre-processing datasets."""
 
+import codecs
 import csv
 import datetime
 import os.path as osp
 import sys
-from typing import Any, Optional
+from typing import Any, Iterable, Iterator
 
 import numpy as np
 import pandas as pd
@@ -30,6 +31,11 @@ import tqdm
 
 if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
   gfile = tf.io.gfile
+
+
+def _get_csv_reader(file):
+  # A comma (`,`) delimiter is used by default.
+  return csv.reader(codecs.iterdecode(file, encoding="utf-8"))
 
 
 def _convert_str2int(
@@ -129,7 +135,7 @@ def csv_to_pd_data_rc(
   max_words = 5000  # counted form statistics
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=",")
+    csv_reader = _get_csv_reader(csv_file)
     idx = 0
     # ['ts', 'src', 'dst', 'subreddit', 'num_words', 'score']
     for row in tqdm.tqdm(csv_reader):
@@ -211,7 +217,7 @@ def csv_to_pd_data_sc(
   unique_id = 0
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=",")
+    csv_reader = _get_csv_reader(csv_file)
     idx = 0
     # time,src,dst,weight
     # 1648811421,0x27cbb0e6885ccb1db2dab7c2314131c94795fbef,0x8426a27add8dca73548f012d92c7f8f4bbd42a3e,800.0
@@ -294,7 +300,7 @@ def csv_to_pd_data(
   ts_format = None
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=",")
+    csv_reader = _get_csv_reader(csv_file)
     idx = 0
     #'day','src','dst','callsign','typecode'
     for row in tqdm.tqdm(csv_reader):
@@ -408,7 +414,7 @@ def process_node_feat(
   cont_idx = 0
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=",")
+    csv_reader = _get_csv_reader(csv_file)
     idx = 0
     # airport_code,type,continent,iso_region,longitude,latitude
     for row in tqdm.tqdm(csv_reader):
@@ -431,7 +437,7 @@ def process_node_feat(
             cont_idx += 1
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=",")
+    csv_reader = _get_csv_reader(csv_file)
     idx = 0
     # airport_code,type,continent,iso_region,longitude,latitude
     for row in tqdm.tqdm(csv_reader):
@@ -539,7 +545,7 @@ def load_edgelist_datetime(fname, label_size=514):
   label_uid = 0
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = csv.reader(csv_file, delimiter=",")
+    csv_reader = _get_csv_reader(csv_file)
     idx = 0
     for row in tqdm.tqdm(csv_reader):
       if idx == 0:
