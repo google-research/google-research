@@ -15,6 +15,8 @@
 #ifndef SCANN_OSS_WRAPPERS_SCANN_STATUS_H_
 #define SCANN_OSS_WRAPPERS_SCANN_STATUS_H_
 
+#include "absl/base/optimization.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "scann/oss_wrappers/scann_status_builder.h"
 

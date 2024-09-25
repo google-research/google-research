@@ -17,10 +17,12 @@
 #include <cstdint>
 
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/proto/min_distance.pb.h"
-#include "scann/utils/types.h"
+#include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 

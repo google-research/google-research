@@ -51,8 +51,14 @@ SCANN_INLINE int8_t Int8Quantize(float value) {
 std::vector<float> ComputeMaxQuantizationMultipliers(
     const DenseDataset<float>& dataset);
 
+std::vector<float> ComputeMaxQuantizationMultipliers(
+    const DenseDatasetView<float>& dataset);
+
 std::vector<float> ComputeQuantiledQuantizationMultipliers(
     const DenseDataset<float>& dataset, float multiplier_quantile);
+
+std::vector<float> ComputeQuantiledQuantizationMultipliers(
+    const DenseDatasetView<float>& dataset, float multiplier_quantile);
 
 ScalarQuantizationResults ScalarQuantizeFloatDataset(
     const DenseDataset<float>& dataset, float multiplier_quantile = 1.0f,
@@ -140,26 +146,16 @@ constexpr size_t kNumBottomBits = 32;
 
 constexpr size_t kMinDimensionsForBottomBits = 64;
 
-absl::StatusOr<DatapointPtr<int8_t>> ScalarQuantizeFloatDatapoint(
-    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    std::optional<uint32_t> bottom_bits_data, MutableSpan<int8_t> quantized);
-
 absl::StatusOr<DatapointPtr<int8_t>>
 ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
-    MutableSpan<int8_t> quantized, int* num_changes = nullptr,
-    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
-
-absl::Status Int4QuantizePackFloatDatapoint(
-    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    std::optional<uint32_t> bottom_bits_data, MutableSpan<uint8_t> packed);
+    MutableSpan<int8_t> quantized);
 
 absl::Status Int4QuantizePackFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
-    MutableSpan<uint8_t> packed, int* num_changes = nullptr,
-    double* residual_ptr = nullptr, double* parallel_residual_ptr = nullptr);
+    MutableSpan<uint8_t> packed);
 
 uint32_t DecodeBottomBitsDataFromPackedInt4(ConstSpan<uint8_t> packed);
 

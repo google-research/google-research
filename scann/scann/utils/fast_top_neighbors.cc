@@ -238,10 +238,10 @@ void FastTopNeighbors<DistT, DatapointIndexT>::GarbageCollect(size_t keep_min,
 
 template <typename DistT, typename DatapointIndexT>
 pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
-FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted() {
+FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted(size_t max_results) {
   MutableSpan<DatapointIndexT> ii;
   MutableSpan<DistT> vv;
-  std::tie(ii, vv) = FinishUnsorted();
+  std::tie(ii, vv) = FinishUnsorted(max_results);
 
   ZipSortBranchOptimized(vv.begin(), vv.end(), ii.begin(), ii.end());
 

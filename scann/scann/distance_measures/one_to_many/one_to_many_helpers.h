@@ -218,6 +218,21 @@ SCANN_INLINE void InvokeCallback(const CallbackT& callback, size_t result_idx,
   }
 }
 
+template <typename T>
+SCANN_INLINE size_t DatapointBytes(size_t dims, ScaleEncoding scale_encoding) {
+  size_t result;
+  if constexpr (std::is_same_v<T, int8_t>) {
+    result = dims;
+  } else {
+    static_assert(std::is_same_v<T, uint8_t>);
+    result = DivRoundUp(dims, 2);
+  }
+  if (scale_encoding == FLOAT32_SCALE_SUFFIX) {
+    result += sizeof(float);
+  }
+  return result;
+}
+
 template <typename ResultElem, typename ValueT>
 class SetTop1Functor {
   static_assert(std::is_arithmetic<ValueT>(),

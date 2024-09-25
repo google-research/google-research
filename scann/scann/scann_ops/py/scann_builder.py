@@ -192,13 +192,11 @@ class ScannBuilder(object):
         }}
       """
     # global top-N requires:
-    # (1) LUT16, (2) int16 accumulators, (3) residual quantization
-    # and (4) immutable searcher.
+    # (1) LUT16, (2) int16 accumulators, and (3) residual quantization.
     global_topn = (
         hash_type == hash_types[0] and
         (full_blocks + (partial_block_dims > 0)) <= 256 and
-        residual_quantization and
-        not ("extra" in self.params and self.params["extra"]["mutable"]))
+        residual_quantization)
     return f"""
       hash {{
         asymmetric_hash {{
@@ -212,6 +210,9 @@ class ScannBuilder(object):
           projection {{
             input_dim: {n_dims}
             {proj_config}
+          }}
+          fixed_point_lut_conversion_options {{
+            float_to_int_conversion_method: ROUND
           }}
           noise_shaping_threshold: {anisotropic_quantization_threshold}
           expected_sample_size: {training_sample_size}
@@ -340,8 +341,6 @@ class ScannBuilder(object):
     if self.builder_lambda is None:
       raise Exception("build() called but no builder lambda was set.")
 
-    # Set additional parameters.
-    self.params["extra"] = {"mutable": docids is not None}
     config = self.create_config()
     return self.builder_lambda(
         self.db, config, self.training_threads, docids=docids, **kwargs)

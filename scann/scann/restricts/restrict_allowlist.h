@@ -36,6 +36,7 @@
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/bit_iterator.h"
+#include "scann/utils/bits.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 

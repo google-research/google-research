@@ -51,7 +51,8 @@ SCANN_INLINE uint32_t GetFinalMask32(size_t num_datapoints) {
 template <typename T, std::enable_if_t<std::is_unsigned_v<T>, int> = 0>
 SCANN_INLINE T GetLowBits(T src, int nbits) {
   constexpr T all_ones = ~static_cast<T>(0);
-  return src & (all_ones >> (sizeof(T) * CHAR_BIT - nbits));
+  return nbits == 0 ? static_cast<T>(0)
+                    : src & (all_ones >> (sizeof(T) * CHAR_BIT - nbits));
 }
 
 }  // namespace research_scann

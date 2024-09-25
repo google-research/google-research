@@ -19,6 +19,9 @@
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+
 namespace research_scann {
 
 StatusBuilder::StatusBuilder(const absl::Status& status) : status_(status) {}

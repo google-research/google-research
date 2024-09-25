@@ -173,7 +173,11 @@ class FastTopNeighbors {
     return MutableSpan<DatapointIndexT>(indices_.get(), sz_);
   }
 
-  pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>> FinishSorted();
+  pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>> FinishSorted() {
+    return FinishSorted(max_results_);
+  }
+  pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>> FinishSorted(
+      size_t max_results);
 
   void FinishUnsorted(std::vector<pair<DatapointIndexT, DistT>>* results) {
     ConstSpan<DatapointIndexT> idxs;

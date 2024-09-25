@@ -48,26 +48,25 @@ void BuildCenteredMatrix(const Dataset& data, Matrix* centered_data) {
   }
 }
 
-}  // namespace
-
-void PcaUtils::ComputePca(bool use_propack_if_available, const Dataset& data,
-                          const int32_t num_eigenvectors,
-                          const bool build_covariance,
-                          vector<Datapoint<float>>* eigenvectors,
-                          vector<float>* eigenvalues) {
-  ComputePcaWithEigen(data, num_eigenvectors, build_covariance, eigenvectors,
-                      eigenvalues);
+template <typename T>
+void ComputePcaDenseWrapper(const Dataset& data, const int32_t num_eigenvectors,
+                            vector<Datapoint<float>>* eigenvectors,
+                            vector<float>* eigenvalues,
+                            shared_ptr<ThreadPool> pool) {
+  auto view =
+      DefaultDenseDatasetView<T>(*dynamic_cast<const DenseDataset<T>*>(&data));
+  ComputePcaDense(view, num_eigenvectors, eigenvectors, eigenvalues, pool);
 }
 
-void PcaUtils::ComputePcaWithSignificanceThreshold(
-    bool use_propack_if_available, const Dataset& data,
-    const float significance_threshold, const float truncation_threshold,
-    const bool build_covariance, vector<Datapoint<float>>* eigenvectors,
-    vector<float>* eigenvalues) {
+}  // namespace
+
+void PostprocessPcaToSignificance(const float significance_threshold,
+                                  const float truncation_threshold,
+                                  vector<Datapoint<float>>* eigenvectors,
+                                  vector<float>* eigenvalues) {
   DCHECK_LE(significance_threshold, 1.0);
-  const DimensionIndex dim = data.dimensionality();
-  PcaUtils::ComputePca(false, data, dim, build_covariance, eigenvectors,
-                       eigenvalues);
+  DCHECK_EQ(eigenvectors->size(), eigenvalues->size());
+  DCHECK_GT(eigenvectors->size(), 0);
   ZipSortBranchOptimized(std::greater<float>(), eigenvalues->begin(),
                          eigenvalues->end(), eigenvectors->begin(),
                          eigenvectors->end());
@@ -75,7 +74,7 @@ void PcaUtils::ComputePcaWithSignificanceThreshold(
   const float ev_sum =
       std::accumulate(eigenvalues->begin(), eigenvalues->end(), 0.0f);
   float sum = 0.0f;
-  DimensionIndex truncate = dim;
+  DimensionIndex truncate = eigenvalues->size();
   for (DimensionIndex i = 0; i < eigenvalues->size(); ++i) {
     sum += eigenvalues->at(i);
     if (sum > significance_threshold * ev_sum) {
@@ -84,54 +83,36 @@ void PcaUtils::ComputePcaWithSignificanceThreshold(
     }
   }
 
-  if (truncate < dim * truncation_threshold) {
+  if (truncate < eigenvalues->size() * truncation_threshold) {
     eigenvectors->resize(truncate);
     eigenvalues->resize(truncate);
   }
 }
 
-void PcaUtils::ComputePcaWithEigen(const Dataset& data,
-                                   const int32_t num_eigenvectors,
-                                   bool build_covariance,
-                                   vector<Datapoint<float>>* eigenvectors,
-                                   vector<float>* eigenvalues) {
-  CHECK_GT(data.size(), 0) << "The data set is empty";
-  CHECK_GT(num_eigenvectors, 0)
-      << "The number of eigenvectors to return should be more than zero";
-  CHECK_LE(num_eigenvectors, data.dimensionality())
-      << "Cannot return more eigenvectors that data dimensionality";
-  CHECK_LE(data.dimensionality(), max_dims_)
-      << "Cannot process more than " << max_dims_ << "dimensional data";
-
-  CHECK(eigenvectors != nullptr);
-  CHECK(eigenvalues != nullptr);
-  eigenvectors->resize(num_eigenvectors);
-  eigenvalues->resize(num_eigenvectors);
-  DimensionIndex dims = data.dimensionality();
-
-  build_covariance = false;
-  if (build_covariance) {
-  } else {
-    Eigen::MatrixXd centered_data;
-    BuildCenteredMatrix(data, &centered_data);
-
-    Eigen::JacobiSVD<Eigen::MatrixXd> svd(centered_data, Eigen::ComputeThinU);
-
-    CHECK_EQ(svd.matrixU().rows(), dims);
-    int32_t min_dim = dims < data.size() ? dims : data.size();
-    CHECK_EQ(svd.matrixU().cols(), min_dim);
-    CHECK_EQ(svd.singularValues().rows(), min_dim);
-
-    for (size_t i = 0; i < num_eigenvectors; ++i) {
-      auto evec = (*eigenvectors)[i].mutable_values();
-      evec->resize(dims);
-      for (size_t j = 0; j < dims; ++j) {
-        (*evec)[j] = static_cast<float>(svd.matrixU()(j, i));
-      }
-      double singular_val = svd.singularValues()(i);
-      (*eigenvalues)[i] = static_cast<float>(singular_val * singular_val);
-    }
+void PcaUtils::ComputePca(bool use_propack_if_available, const Dataset& data,
+                          const int32_t num_eigenvectors,
+                          const bool build_covariance,
+                          vector<Datapoint<float>>* eigenvectors,
+                          vector<float>* eigenvalues,
+                          shared_ptr<ThreadPool> pool) {
+  if (!use_propack_if_available && build_covariance && data.IsDense()) {
+    SCANN_CALL_FUNCTION_BY_TAG(data.TypeTag(), ComputePcaDenseWrapper, data,
+                               num_eigenvectors, eigenvectors, eigenvalues,
+                               pool);
+    return;
   }
+  LOG(FATAL) << "Unsupported.";
+}
+
+void PcaUtils::ComputePcaWithSignificanceThreshold(
+    bool use_propack_if_available, const Dataset& data,
+    const float significance_threshold, const float truncation_threshold,
+    const bool build_covariance, vector<Datapoint<float>>* eigenvectors,
+    vector<float>* eigenvalues, shared_ptr<ThreadPool> pool) {
+  PcaUtils::ComputePca(use_propack_if_available, data, data.dimensionality(),
+                       build_covariance, eigenvectors, eigenvalues, pool);
+  PostprocessPcaToSignificance(significance_threshold, truncation_threshold,
+                               eigenvectors, eigenvalues);
 }
 
 }  // namespace research_scann

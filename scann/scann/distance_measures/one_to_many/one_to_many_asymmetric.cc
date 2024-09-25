@@ -16,7 +16,12 @@
 
 #include <cstdint>
 
+#include "absl/log/check.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/distance_measures/one_to_many/one_to_many_helpers.h"
 #include "scann/distance_measures/one_to_many/scale_encoding.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -138,8 +143,8 @@ class Int4DenseDatasetView {
                        ScaleEncoding scale_encoding)
       : ptr_(ptr),
         dims_(dims),
-        stride_(DivRoundUp(dims, 2) +
-                (scale_encoding == FLOAT32_SCALE_SUFFIX ? sizeof(float) : 0)) {}
+        stride_(one_to_many_low_level::DatapointBytes<uint8_t>(
+            dims, scale_encoding)) {}
 
   SCANN_INLINE const uint8_t* GetPtr(size_t i) const {
     return ptr_ + i * stride_;

@@ -62,6 +62,8 @@ cc_library(
     hdrs = ["scann_status.h"],
     deps = [
         ":scann_status_builder",
+        "@com_google_absl//absl/base:core_headers",
+        "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings",
     ],
 )
@@ -71,6 +73,7 @@ cc_library(
     srcs = ["scann_status_builder.cc"],
     hdrs = ["scann_status_builder.h"],
     deps = [
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/memory",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/status:statusor",

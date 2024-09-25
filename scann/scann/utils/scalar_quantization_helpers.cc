@@ -20,32 +20,34 @@
 #include <cmath>
 #include <cstdint>
 #include <limits>
-#include <numeric>
 #include <utility>
 #include <vector>
 
 #include "absl/status/status.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
-#include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
-#include "scann/utils/datapoint_utils.h"
 #include "scann/utils/noise_shaping_utils.h"
 #include "scann/utils/parallel_for.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "scann/utils/zip_sort.h"
 
 namespace research_scann {
 
 std::vector<float> ComputeMaxQuantizationMultipliers(
     const DenseDataset<float>& dataset) {
+  return ComputeMaxQuantizationMultipliers(
+      DefaultDenseDatasetView<float>(dataset));
+}
+
+std::vector<float> ComputeMaxQuantizationMultipliers(
+    const DenseDatasetView<float>& dataset) {
   const size_t dimensionality = dataset.dimensionality();
   vector<float> multipliers(dimensionality, 0.0f);
-  for (auto dptr : dataset) {
-    const float* values = dptr.values();
+  for (size_t i : Seq(dataset.size())) {
+    const float* values = dataset.GetPtr(i);
     for (size_t j : Seq(dimensionality)) {
       multipliers[j] = std::max<float>(multipliers[j], std::abs(values[j]));
     }
@@ -62,6 +64,12 @@ std::vector<float> ComputeMaxQuantizationMultipliers(
 
 std::vector<float> ComputeQuantiledQuantizationMultipliers(
     const DenseDataset<float>& dataset, float multiplier_quantile) {
+  return ComputeQuantiledQuantizationMultipliers(
+      DefaultDenseDatasetView<float>(dataset), multiplier_quantile);
+}
+
+std::vector<float> ComputeQuantiledQuantizationMultipliers(
+    const DenseDatasetView<float>& dataset, float multiplier_quantile) {
   const size_t dimensionality = dataset.dimensionality();
   const size_t k = dataset.size() * (1.0 - multiplier_quantile) + 1;
   if (k == 1) return ComputeMaxQuantizationMultipliers(dataset);
@@ -69,8 +77,8 @@ std::vector<float> ComputeQuantiledQuantizationMultipliers(
   for (auto& elem : top_ns) {
     elem = TopNAmortizedConstant<float>(k);
   }
-  for (auto dptr : dataset) {
-    const float* values = dptr.values();
+  for (size_t i : Seq(dataset.size())) {
+    const float* values = dataset.GetPtr(i);
     for (size_t j : Seq(dimensionality)) {
       top_ns[j].push(std::abs(values[j]));
     }
@@ -309,27 +317,18 @@ absl::Status EncodeBottomBits(uint32_t bottom_bits_data,
   }
   return OkStatus();
 }
-
-absl::StatusOr<DatapointPtr<int8_t>> ScalarQuantizeFloatDatapoint(
-    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    std::optional<uint32_t> bottom_bits_data, MutableSpan<int8_t> quantized) {
-  auto result = ScalarQuantizeFloatDatapoint(dptr, multipliers, quantized);
-  if (bottom_bits_data != std::nullopt) {
-    SCANN_RETURN_IF_ERROR(EncodeBottomBits(
-        *bottom_bits_data, dptr, Fixed8NoiseShapingLambdas(multipliers),
-        MakeMutableSpan(quantized)));
-  }
-  return result;
-}
 absl::StatusOr<DatapointPtr<int8_t>>
 ScalarQuantizeFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
-    MutableSpan<int8_t> quantized, int* num_changes, double* residual_ptr,
-    double* parallel_residual_ptr) {
-  auto result = ScalarQuantizeFloatDatapointWithNoiseShaping(
-      dptr, multipliers, noise_shaping_threshold, quantized, num_changes,
-      residual_ptr, parallel_residual_ptr);
+    MutableSpan<int8_t> quantized) {
+  DatapointPtr<int8_t> result;
+  if (std::isnan(noise_shaping_threshold)) {
+    result = ScalarQuantizeFloatDatapoint(dptr, multipliers, quantized);
+  } else {
+    result = ScalarQuantizeFloatDatapointWithNoiseShaping(
+        dptr, multipliers, noise_shaping_threshold, quantized);
+  }
   if (bottom_bits_data != std::nullopt) {
     SCANN_RETURN_IF_ERROR(EncodeBottomBits(
         *bottom_bits_data, dptr, Fixed8NoiseShapingLambdas(multipliers),
@@ -370,37 +369,25 @@ std::vector<float> InverseInt8ToInt4Multipliers(
   return result;
 }
 
-absl::Status Int4QuantizePackFloatDatapoint(
-    const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
-    std::optional<uint32_t> bottom_bits_data, MutableSpan<uint8_t> packed) {
-  const size_t dimensionality = dptr.dimensionality();
-  DCHECK_EQ(multipliers.size(), dimensionality);
-  std::vector<uint8_t> quantized(dimensionality);
-  for (size_t i : Seq(dimensionality)) {
-    quantized[i] = Int4Quantize(dptr.values()[i] * multipliers[i]);
-  }
-  if (bottom_bits_data != std::nullopt) {
-    SCANN_RETURN_IF_ERROR(EncodeBottomBits(
-        *bottom_bits_data, dptr, Fixed4NoiseShapingLambdas(multipliers),
-        MakeMutableSpan(quantized)));
-  }
-  PackNibblesDatapoint(quantized, packed);
-  return OkStatus();
-}
-
 absl::Status Int4QuantizePackFloatDatapointWithNoiseShaping(
     const DatapointPtr<float>& dptr, absl::Span<const float> multipliers,
     std::optional<uint32_t> bottom_bits_data, double noise_shaping_threshold,
-    MutableSpan<uint8_t> packed, int* num_changes, double* residual_ptr,
-    double* parallel_residual_ptr) {
-  vector<uint8_t> quantized(dptr.dimensionality());
-  vector<float> residuals(dptr.dimensionality());
-  vector<uint32_t> dims(dptr.dimensionality());
-  ScalarQuantizeFloatDatapointWithNoiseShapingImpl(
-      dptr, noise_shaping_threshold, MakeMutableSpan(quantized),
-      MakeMutableSpan(residuals), MakeMutableSpan(dims),
-      Fixed4NoiseShapingLambdas(multipliers), num_changes, residual_ptr,
-      parallel_residual_ptr);
+    MutableSpan<uint8_t> packed) {
+  const size_t dimensionality = dptr.dimensionality();
+
+  vector<uint8_t> quantized(dimensionality);
+  if (std::isnan(noise_shaping_threshold)) {
+    for (size_t i : Seq(dimensionality)) {
+      quantized[i] = Int4Quantize(dptr.values()[i] * multipliers[i]);
+    }
+  } else {
+    vector<float> residuals(dimensionality);
+    vector<uint32_t> dims(dimensionality);
+    ScalarQuantizeFloatDatapointWithNoiseShapingImpl(
+        dptr, noise_shaping_threshold, MakeMutableSpan(quantized),
+        MakeMutableSpan(residuals), MakeMutableSpan(dims),
+        Fixed4NoiseShapingLambdas(multipliers), nullptr, nullptr, nullptr);
+  }
   if (bottom_bits_data != std::nullopt) {
     SCANN_RETURN_IF_ERROR(EncodeBottomBits(
         *bottom_bits_data, dptr, Fixed4NoiseShapingLambdas(multipliers),

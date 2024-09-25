@@ -4,12 +4,22 @@ package(
 )
 
 cc_library(
+    name = "one_to_many_helpers",
+    hdrs = ["one_to_many_helpers.h"],
+    deps = [
+        ":scale_encoding_cc_proto",
+        "//scann/utils:common",
+        "//scann/utils:scalar_quantization_helpers",
+        "//scann/utils:types",
+    ],
+)
+
+cc_library(
     name = "one_to_many",
     srcs = ["one_to_many_asymmetric.cc"],
     hdrs = [
         "one_to_many.h",
         "one_to_many_asymmetric.h",
-        "one_to_many_helpers.h",
         "one_to_many_symmetric.h",
     ],
     textual_hdrs = [
@@ -17,6 +27,7 @@ cc_library(
         "one_to_many_impl_highway.inc",
     ],
     deps = [
+        ":one_to_many_helpers",
         ":scale_encoding_cc_proto",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
@@ -36,6 +47,7 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:prefetch",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/synchronization",
         "@com_google_highway//:hwy",
     ],

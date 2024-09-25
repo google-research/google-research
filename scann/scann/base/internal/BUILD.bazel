@@ -42,6 +42,7 @@ cc_library(
         "//scann/base:single_machine_base",
         "//scann/base:single_machine_factory_options",
         "//scann/brute_force:scalar_quantized_brute_force",
+        "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/distance_measures:distance_measure_base",
