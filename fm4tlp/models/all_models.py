@@ -17,10 +17,12 @@
 
 from models import dyrep
 from models import edgebank
+from models import jodie
 from models import tgn
 
 # keep-sorted start
 DyRep = dyrep.DyRep
 EdgeBank = edgebank.EdgeBank
+JODIE = jodie.JODIE
 TGN = tgn.TGN
 # keep-sorted end

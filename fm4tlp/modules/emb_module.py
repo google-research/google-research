@@ -59,7 +59,7 @@ class TimeEmbedding(torch.nn.Module):
     self.embedding_layer = NormalLinear(1, self.out_channels)
 
   def forward(self, x, last_update, t):
-    rel_t = last_update - t
+    rel_t = t - last_update
     embeddings = x * (1 + self.embedding_layer(rel_t.to(x.dtype).unsqueeze(1)))
 
     return embeddings
