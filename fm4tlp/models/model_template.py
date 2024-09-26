@@ -160,8 +160,11 @@ class TlpModel(abc.ABC):
       self,
       *,
       source_nodes,
-      target_nodes,
+      target_nodes_pos,
+      target_nodes_neg,
       timestamps,
       messages,
+      last_neighbor_loader,
+      data,
   ):
     """For models with memory modules, updates memory parameters."""

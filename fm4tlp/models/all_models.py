@@ -15,10 +15,12 @@
 
 """Library to import and register all TLP models."""
 
+from models import dyrep
 from models import edgebank
 from models import tgn
 
 # keep-sorted start
+DyRep = dyrep.DyRep
 EdgeBank = edgebank.EdgeBank
 TGN = tgn.TGN
 # keep-sorted end

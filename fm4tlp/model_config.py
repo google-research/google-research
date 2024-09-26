@@ -28,6 +28,7 @@ if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
 
 
 _MODEL_CONFIG_PATHS = [
+    "google_research/fm4tlp/models/configs/dyrep.pbtxt",
     "google_research/fm4tlp/models/configs/tgn.pbtxt",
     "google_research/fm4tlp/models/configs/tgn_structmap.pbtxt",
     "google_research/fm4tlp/models/configs/tgn_structmap_alpha10.pbtxt",

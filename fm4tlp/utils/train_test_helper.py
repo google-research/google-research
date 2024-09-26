@@ -160,9 +160,12 @@ def train(
       if model.has_memory:
         model.update_memory(
             source_nodes=src,
-            target_nodes=pos_dst,
+            target_nodes_pos=pos_dst,
+            target_nodes_neg=neg_dst,
             timestamps=t,
             messages=msg,
+            last_neighbor_loader=last_neighbor_loader,
+            data=data,
         )
       last_neighbor_loader.insert(src, pos_dst)
       loss = model_loss + structmap_loss
@@ -352,9 +355,12 @@ def test(
       if update_memory and model.has_memory:
         model.update_memory(
             source_nodes=pos_src,
-            target_nodes=pos_dst,
+            target_nodes_pos=pos_dst,
+            target_nodes_neg=None,
             timestamps=pos_t,
             messages=pos_msg,
+            last_neighbor_loader=last_neighbor_loader,
+            data=data,
         )
       last_neighbor_loader.insert(pos_src, pos_dst)
       num_steps += 1
@@ -547,9 +553,12 @@ def warmstart(
       if model.has_memory:
         model.update_memory(
             source_nodes=src,
-            target_nodes=pos_dst,
+            target_nodes_pos=pos_dst,
+            target_nodes_neg=neg_dst,
             timestamps=t,
             messages=msg,
+            last_neighbor_loader=last_neighbor_loader,
+            data=data,
         )
       last_neighbor_loader.insert(src, pos_dst)
 

@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""TGN (Temporal Graph Network) model with Structural Mapping Capability."""
+"""DyRep model with Structural Mapping Capability."""
 
 import torch
 from torch_geometric import data as torch_geo_data
@@ -30,8 +30,8 @@ from modules import structural_mapper
 from utils import utils
 
 
-class TGN(model_template.TlpModel):
-  """TGN model with structural mapping capability."""
+class DyRep(model_template.TlpModel):
+  """DyRep model with structural mapping capability."""
 
   def __init__(
       self,
@@ -89,7 +89,7 @@ class TGN(model_template.TlpModel):
 
   def _initialize_model(self):
     # define the model end-to-end
-    self._memory = memory_module.TGNMemory(
+    self._memory = memory_module.DyRepMemory(
         self._total_num_nodes,
         self._raw_message_size,
         self._config.memory_dimension,
@@ -100,6 +100,9 @@ class TGN(model_template.TlpModel):
             self._config.time_dimension,
         ),
         aggregator_module=message_agg.LastAggregator(),
+        memory_updater_type="rnn",
+        use_src_emb_in_msg=False,
+        use_dst_emb_in_msg=True,
     ).to(self._device)
 
     self._gnn = emb_module.GraphAttentionEmbedding(
@@ -164,12 +167,32 @@ class TGN(model_template.TlpModel):
       last_neighbor_loader,
       data,
   ):
-    del target_nodes_neg, last_neighbor_loader, data  # Unused.
+    all_nodes = torch.cat([source_nodes, target_nodes_pos])
+    if target_nodes_neg is not None:
+      all_nodes = torch.cat([all_nodes, target_nodes_neg])
+    n_id = all_nodes.unique()
+    n_id, edge_index, e_id = last_neighbor_loader(n_id)
+    self._assoc[n_id] = torch.arange(n_id.size(0), device=self._device)
+
+    # Get updated memory and last updated timestamp of all nodes involved in the
+    # computation.
+    memory_embeddings, last_updated_timestamps = self._memory(n_id)
+
+    node_embeddings = self._gnn(
+        memory_embeddings,
+        last_updated_timestamps,
+        edge_index,
+        data.t[e_id].to(self._device),
+        data.msg[e_id].to(self._device),
+    )
+
     self._memory.update_state(
         src=source_nodes,
         dst=target_nodes_pos,
         t=timestamps,
         raw_msg=messages,
+        embeddings=node_embeddings,
+        assoc=self._assoc,
     )
 
   def reset_memory(self):
@@ -252,28 +275,26 @@ class TGN(model_template.TlpModel):
     if target_nodes_neg is not None:
       all_nodes = torch.cat([all_nodes, target_nodes_neg])
     n_id = all_nodes.unique()
-    n_id, edge_index, e_id = last_neighbor_loader(n_id)
+    n_id, unused_edge_index, unused_e_id = last_neighbor_loader(n_id)
     self._assoc[n_id] = torch.arange(n_id.size(0), device=self._device)
 
     # Get updated memory of all nodes involved in the computation.
-    z, last_update = self._memory(n_id)
-    z = self._gnn(
-        z,
-        last_update,
-        edge_index,
-        data.t[e_id].to(self._device),
-        data.msg[e_id].to(self._device),
+    memory_embeddings, unused_last_updated_timestamps = self._memory(n_id)
+
+    y_pred_pos = self._link_pred(
+        memory_embeddings[self._assoc[source_nodes]],
+        memory_embeddings[self._assoc[target_nodes_pos]],
     )
+    y_pred_neg = None
+    if target_nodes_neg is not None:
+      y_pred_neg = self._link_pred(
+          memory_embeddings[self._assoc[source_nodes]],
+          memory_embeddings[self._assoc[target_nodes_neg]],
+      )
 
     return model_template.ModelPrediction(
-        y_pred_pos=self._link_pred(
-            z[self._assoc[source_nodes]], z[self._assoc[target_nodes_pos]]
-        ),
-        y_pred_neg=self._link_pred(
-            z[self._assoc[source_nodes]], z[self._assoc[target_nodes_neg]]
-        )
-        if target_nodes_neg is not None
-        else None,
+        y_pred_pos=y_pred_pos,
+        y_pred_neg=y_pred_neg,
     )
 
   def get_memory_embeddings(self, n_id):

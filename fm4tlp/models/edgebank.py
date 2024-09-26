@@ -86,12 +86,21 @@ class EdgeBank(model_template.TlpModel):
       self,
       *,
       source_nodes,
-      target_nodes,
+      target_nodes_pos,
+      target_nodes_neg,
       timestamps,
       messages,
+      last_neighbor_loader,
+      data,
   ):
-    del timestamps, messages  # Unused.
-    for src, dst in zip(source_nodes, target_nodes):
+    del (
+        target_nodes_neg,
+        timestamps,
+        messages,
+        last_neighbor_loader,
+        data,
+    )  # Unused.
+    for src, dst in zip(source_nodes, target_nodes_pos):
       self._add_to_memory((src, dst))
 
   def reset_memory(self):
