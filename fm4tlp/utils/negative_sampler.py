@@ -13,14 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Sample negative edges for evaluation of dynamic link prediction
+"""Sample negative edges for evaluation of dynamic link prediction.
 
 Load already generated negative edges from file, batch them based on the
 positive edge, and return the evaluation set
 """
 
 import random
-import sys
 
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -28,11 +27,8 @@ import torch
 
 from utils import utils
 
-
-
-if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_exists = gfile.exists
+gfile = tf.io.gfile
+gfile_exists = gfile.exists
 
 
 class NegativeEdgeSampler(object):
@@ -42,19 +38,16 @@ class NegativeEdgeSampler(object):
       dataset_name,
       strategy = "hist_rnd",
   ):
-    r"""Negative Edge Sampler
+    r"""Negative Edge Sampler.
 
         Loads and query the negative batches based on the positive batches
         provided.
     constructor for the negative edge sampler class
 
-    Parameters:
-        dataset_name: name of the dataset
-        strategy: specifies which set of negatives should be loaded;
-                can be 'rnd' or 'hist_rnd'
-
-    Returns:
-        None
+    Args:
+      dataset_name: Name of the dataset.
+      strategy: Specifies which set of negatives should be loaded; can be 'rnd'
+        or 'hist_rnd'.
     """
     self.dataset_name = dataset_name
     assert strategy in [
@@ -69,15 +62,15 @@ class NegativeEdgeSampler(object):
       fname,
       split_mode = "val",
   ):
-    r"""Load the evaluation set from disk, can be either val or test set ns samples
+    r"""Load the evaluation set from disk, can be either val or test ns samples.
 
-    Parameters:
-        fname: the file name of the evaluation ns on disk
-        split_mode: the split mode of the evaluation set, can be either `val` or
-        `test`
+    Args:
+      fname: The file name of the evaluation ns on disk.
+      split_mode: The split mode of the evaluation set, can be either `val` or
+        `test`.
 
-    Returns:
-        None
+    Raises:
+        FileNotFoundError: If the file with the input name is not found.
     """
     assert split_mode in [
         "val",
@@ -91,14 +84,11 @@ class NegativeEdgeSampler(object):
       self,
       split_mode = "test",
   ):
-    r"""Reset evaluation set
+    r"""Resets evaluation set.
 
-    Parameters:
-        split_mode: specifies whether to generate negative edges for
-        'validation' or 'test' splits
-
-    Returns:
-        None
+    Args:
+      split_mode: Specifies whether to generate negative edges for 'validation'
+        or 'test' splits.
     """
     assert split_mode in [
         "val",
@@ -113,28 +103,31 @@ class NegativeEdgeSampler(object):
       pos_timestamp,
       split_mode,
   ):
-    r"""For each positive edge in the `pos_batch`, return a list of negative edges
+    r"""For each positive edge in `pos_batch` returns a list of negative edges.
 
     `split_mode` specifies whether the valiation or test evaluation set should
     be retrieved.
 
-    Parameters:
-        pos_src: list of positive source nodes
-        pos_dst: list of positive destination nodes
-        pos_timestamp: list of timestamps of the positive edges
-        split_mode: specifies whether to generate negative edges for
-        'validation' or 'test' splits
+    Args:
+      pos_src: list of positive source nodes
+      pos_dst: list of positive destination nodes
+      pos_timestamp: list of timestamps of the positive edges
+      split_mode: specifies whether to generate negative edges for 'validation'
+        or 'test' splits
 
     Returns:
-        neg_samples: a list of list; each internal list contains the set of
-        negative edges that
-                    should be evaluated against each positive edge.
+      neg_samples: a list of list; each internal list contains the set of
+        negative edges that should be evaluated against each positive edge.
+
+    Raises:
+      RuntimeError: If NumPy arrays cannot be successfully extracted from (any
+      of) the input tensors.
     """
     assert split_mode in [
         "val",
         "test",
     ], "Invalid split-mode! It should be `val`, `test`!"
-    if self.eval_set[split_mode] == None:
+    if self.eval_set[split_mode] is None:
       raise ValueError(
           f"Evaluation set is None! You should load the {split_mode} evaluation"
           " set first!"
@@ -151,7 +144,7 @@ class NegativeEdgeSampler(object):
     if (
         not isinstance(pos_src, np.ndarray)
         or not isinstance(pos_dst, np.ndarray)
-        or not (pos_timestamp, np.ndarray)
+        or not isinstance(pos_timestamp, np.ndarray)
     ):
       raise RuntimeError(
           "pos_src, pos_dst, and pos_timestamp need to be either numpy ndarray"

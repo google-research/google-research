@@ -43,12 +43,11 @@ import tensorflow.compat.v1 as tf
 from utils import structural_feature_helper
 
 
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_makedirs = gfile.makedirs
-  gfile_exists = gfile.exists
-  gfile_glob = gfile.glob
-  gfile_remove = gfile.remove
+gfile = tf.io.gfile
+gfile_makedirs = gfile.makedirs
+gfile_exists = gfile.exists
+gfile_glob = gfile.glob
+gfile_remove = gfile.remove
 
 if not any(['py.runner' in m for m in list(sys.modules.keys())]):
   beam_runner = beam.runners.DirectRunner
@@ -103,6 +102,22 @@ _STRUCTURAL_FEATURE_FILE_TAG = flags.DEFINE_string(
     ' {data}_{community}_{split}{tag_str}_structural_features_{batch_index}.pkl'
     ' where tag_str is equivalent to _{structural_feature_file_tag}.',
 )
+
+
+_ID_TYPES = [
+    'cycle_graph',
+    'path_graph',
+    'complete_graph',
+    'binomial_tree',
+    'star_graph',
+    'nonisomorphic_trees',
+]
+
+_REDUCED_ID_TYPES = [
+    'cycle_graph',
+    'path_graph',
+    'complete_graph',
+]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -230,21 +245,6 @@ def make_pipeline(
 
 
 def main(_):
-
-  _ID_TYPES = [
-      'cycle_graph',
-      'path_graph',
-      'complete_graph',
-      'binomial_tree',
-      'star_graph',
-      'nonisomorphic_trees',
-  ]
-
-  _REDUCED_ID_TYPES = [
-      'cycle_graph',
-      'path_graph',
-      'complete_graph',
-  ]
 
   # Make giant list of all subgraphs that need to be processed.
   dataset_specs = []

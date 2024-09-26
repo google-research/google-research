@@ -15,7 +15,6 @@
 
 """Dataset class for link prediction datasets."""
 import os
-import sys
 from typing import Any, Dict, Optional, Tuple
 
 import numpy as np
@@ -26,12 +25,9 @@ from utils import negative_sampler
 from utils import utils
 
 
-
-
-if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_isdir = gfile.isdir
-  gfile_exists = gfile.exists
+gfile = tf.io.gfile
+gfile_isdir = gfile.isdir
+gfile_exists = gfile.exists
 
 
 _PROCESSED_DATASETS = ["comment"]
@@ -49,12 +45,12 @@ class LinkPropPredDataset(object):
     Stores meta information about each dataset such as evaluation metrics etc.
 
     Args:
-        name: name of the dataset
-        root: root directory to store the dataset folder. This directory should
+        name: Name of the dataset.
+        root: Root directory to store the dataset folder. This directory should
           contain subfolders, one of which is equivalent to `name`.
 
     Raises:
-      FileNotFoundError if there is no `name` subfolder in `root`.
+      FileNotFoundError: If there is no `name` subfolder in `root`.
     """
     self.name = name  ## original name
     self.dir_name = os.path.join(root, name)
@@ -86,37 +82,42 @@ class LinkPropPredDataset(object):
     self.pre_process()
 
   def load_processed_files(self):
-    r"""turns raw data .csv file into a pandas data frame, stored on disc if not already
+    r"""Turns raw data .csv file into a Pandas dataframe, stored on disc.
 
     Returns:
         df: pandas data frame
+
+    Raises:
+        FileNotFoundError: If the raw data .csv file is not found.
     """
-    OUT_DF = self.dir_name + "/" + "ml_tgbl-{}.pkl".format(self.name)
-    OUT_EDGE_FEAT = (
+    out_df = self.dir_name + "/" + "ml_tgbl-{}.pkl".format(self.name)
+    out_edge_feat = (
         self.dir_name + "/" + "ml_tgbl-{}.pkl".format(self.name + "_edge")
     )
-    OUT_NODE_FEAT = (
+    out_node_feat = (
         self.dir_name + "/" + "ml_tgbl-{}.pkl".format(self.name + "_node")
     )
 
-    if gfile_exists(OUT_DF):
+    if gfile_exists(out_df):
       print("loading processed file")
-      df = pd.read_pickle(OUT_DF)
-      edge_feat = utils.load_pkl(OUT_EDGE_FEAT)
+      df = pd.read_pickle(out_df)
+      edge_feat = utils.load_pkl(out_edge_feat)
     else:
-      raise FileNotFoundError(f"processed file {OUT_DF} not found")
+      raise FileNotFoundError(f"processed file {out_df} not found")
     node_feat = None
-    if gfile_exists(OUT_NODE_FEAT):
-      node_feat = utils.load_pkl(OUT_NODE_FEAT)
+    if gfile_exists(out_node_feat):
+      node_feat = utils.load_pkl(out_node_feat)
 
     return df, edge_feat, node_feat
 
   def pre_process(self):
-    """Pre-process the dataset and generates the splits, must be run before dataset properties can be accessed
+    """Pre-processes the dataset and generates the splits.
 
-    generates the edge data and different train, val, test splits
+    Generates the edge data and different train, val, test splits. Must be run
+    before dataset properties can be accessed.
     """
-    # TODO for link prediction, y =1 because these are all true edges, edge feat = weight + edge feat
+    # TO-DO for link prediction, y = 1 because these are all true edges,
+    # edge feat = weight + edge feat.
 
     # check if path to file is valid
     df, edge_feat, node_feat = self.load_processed_files()
@@ -140,10 +141,10 @@ class LinkPropPredDataset(object):
         "edge_label": edge_label,
     }
     self._full_data = full_data
-    _train_mask, _val_mask, _test_mask = self.generate_splits(full_data)
-    self._train_mask = _train_mask
-    self._val_mask = _val_mask
-    self._test_mask = _test_mask
+    train_mask, val_mask, test_mask = self.generate_splits(full_data)
+    self._train_mask = train_mask
+    self._val_mask = val_mask
+    self._test_mask = test_mask
 
   def generate_splits(
       self,
@@ -151,7 +152,7 @@ class LinkPropPredDataset(object):
       val_ratio = 0.15,
       test_ratio = 0.15,
   ):
-    r"""Generates train, validation, and test splits from the full dataset
+    r"""Generates train, validation, and test splits from the full dataset.
 
     Args:
         full_data: dictionary containing the full dataset
@@ -179,7 +180,7 @@ class LinkPropPredDataset(object):
 
   @property
   def eval_metric(self):
-    """the official evaluation metric for the dataset, loaded from info.py
+    """The official evaluation metric for the dataset, loaded from info.py.
 
     Returns:
         eval_metric: str, the evaluation metric
@@ -188,7 +189,7 @@ class LinkPropPredDataset(object):
 
   @property
   def negative_sampler(self):
-    r"""Returns the negative sampler of the dataset, will load negative samples from disc
+    r"""Returns the dataset negative sampler, loads negative samples from disc.
 
     Returns:
         negative_sampler: NegativeEdgeSampler
@@ -196,20 +197,20 @@ class LinkPropPredDataset(object):
     return self.ns_sampler
 
   def load_val_ns(self):
-    r"""load the negative samples for the validation set"""
+    r"""Loads the negative samples for the validation set."""
     self.ns_sampler.load_eval_set(
         fname=self.meta_dict["val_ns"], split_mode="val"
     )
 
   def load_test_ns(self):
-    r"""load the negative samples for the test set"""
+    r"""Loads the negative samples for the test set."""
     self.ns_sampler.load_eval_set(
         fname=self.meta_dict["test_ns"], split_mode="test"
     )
 
   @property
   def node_feat(self):
-    r"""Returns the node features of the dataset with dim [N, feat_dim]
+    r"""Returns the node features of the dataset with dim [N, feat_dim].
 
     Returns:
         node_feat: np.ndarray, [N, feat_dim] or None if there is no node feature
@@ -218,19 +219,22 @@ class LinkPropPredDataset(object):
 
   @property
   def edge_feat(self):
-    r"""Returns the edge features of the dataset with dim [E, feat_dim]
+    r"""Returns the edge features of the dataset with dim [E, feat_dim].
 
     Returns:
-        edge_feat: np.ndarray, [E, feat_dim] or None if there is no edge feature
+      edge_feat: np.ndarray, [E, feat_dim] or None if there is no edge feature.
     """
     return self._edge_feat
 
   @property
   def full_data(self):
-    r"""the full data of the dataset as a dictionary with keys: 'sources', 'destinations', 'timestamps', 'edge_idxs', 'edge_feat', 'w', 'edge_label',
+    r"""The full data of the dataset as a dictionary.
+
+    The keys correspond to: 'sources', 'destinations', 'timestamps',
+    'edge_idxs', 'edge_feat', 'w', 'edge_label'.
 
     Returns:
-        full_data: Dict[str, Any]
+      full_data: Dict[str, Any]
     """
     if self._full_data is None:
       raise ValueError(
@@ -240,10 +244,10 @@ class LinkPropPredDataset(object):
 
   @property
   def train_mask(self):
-    r"""Returns the train mask of the dataset
+    r"""Returns the train mask of the dataset.
 
     Returns:
-        train_mask: training masks
+      train_mask: training masks.
     """
     if self._train_mask is None:
       raise ValueError("training split hasn't been loaded")
@@ -251,10 +255,10 @@ class LinkPropPredDataset(object):
 
   @property
   def val_mask(self):
-    r"""Returns the validation mask of the dataset
+    r"""Returns the validation mask of the dataset.
 
     Returns:
-        val_mask: Dict[str, Any]
+      val_mask: Dict[str, Any]
     """
     if self._val_mask is None:
       raise ValueError("validation split hasn't been loaded")
@@ -262,7 +266,7 @@ class LinkPropPredDataset(object):
 
   @property
   def test_mask(self):
-    r"""Returns the test mask of the dataset:
+    r"""Returns the test mask of the dataset.
 
     Returns:
         test_mask: Dict[str, Any]

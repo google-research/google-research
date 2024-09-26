@@ -25,7 +25,6 @@ python google_research/fm4tlp/tgbl_coin_dataprep -- \
 
 import os
 import pickle
-import sys
 
 from absl import app
 from absl import flags
@@ -36,9 +35,7 @@ import tensorflow.compat.v1 as tf
 import tqdm
 
 
-
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
+gfile = tf.io.gfile
 
 
 _ROOT_DIR = flags.DEFINE_string(

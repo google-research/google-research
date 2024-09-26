@@ -15,12 +15,10 @@
 
 """Utilities for pre-processing datasets."""
 
-import codecs
 import csv
 import datetime
 import os.path as osp
-import sys
-from typing import Any, Iterable, Iterator
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -28,27 +26,21 @@ import tensorflow.compat.v1 as tf
 import tqdm
 
 
-
-if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-
-
-def _get_csv_reader(file):
-  # A comma (`,`) delimiter is used by default.
-  return csv.reader(codecs.iterdecode(file, encoding="utf-8"))
+gfile = tf.io.gfile
 
 
 def _convert_str2int(
     in_str,
 ):
-  """convert strings to vectors of integers based on individual character
+  """Convert strings to vectors of integers based on individual character.
 
   each letter is converted as follows, a=10, b=11
   numbers are still int
-  Parameters:
-      in_str: an input string to parse
+  Args:
+    in_str: an input string to parse
+
   Returns:
-      out: a numpy integer array
+    A NumPy integer array.
   """
   out = []
   for element in in_str:
@@ -62,24 +54,22 @@ def _convert_str2int(
   return out
 
 
-"""
-functions for wikipedia dataset
----------------------------------------
-"""
+# Functions for the Wikipedia dataset
 
 
 def load_edgelist_wiki(
     fname,
 ):
-  """loading wikipedia dataset into pandas dataframe
+  """Loading Wikipedia dataset into Pandas dataframe.
 
-  similar processing to
-  https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/jodie.html
+  Similar processing to
+  https://pytorch-geometric.readthedocs.io/en/latest/_modules/torch_geometric/datasets/jodie.html.
 
-  Parameters:
-      fname: str, name of the input file
+  Args:
+    fname: str, name of the input file
+
   Returns:
-      df: a pandas dataframe containing the edgelist data
+     A Pandas dataframe containing the edgelist data.
   """
   df = pd.read_csv(fname, skiprows=1, header=None)
   src = df.iloc[:, 1].values
@@ -102,24 +92,25 @@ def load_edgelist_wiki(
   )
 
 
-"""
-functions for redditcomments
--------------------------------------------
-"""
+# Functions for the Reddit comments dataset
 
 
 def csv_to_pd_data_rc(
     fname,
 ):
-  r"""currently used by redditcomments dataset
+  r"""Currently used by the Reddit comments dataset.
 
   convert the raw .csv data to pandas dataframe and numpy array
   input .csv file format should be: timestamp, node u, node v, attributes
+
   Args:
-      fname: the path to the raw data
+    fname: the path to the raw data
+
+  Returns:
+    Edgelist data.
   """
   feat_size = 2  # 1 for subreddit, 1 for num words
-  num_lines = sum(1 for line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
   # print("number of lines counted", num_lines)
   print("there are ", num_lines, " lines in the raw data")
   u_list = np.zeros(num_lines)
@@ -135,7 +126,7 @@ def csv_to_pd_data_rc(
   max_words = 5000  # counted form statistics
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = _get_csv_reader(csv_file)
+    csv_reader = csv.reader(csv_file)
     idx = 0
     # ['ts', 'src', 'dst', 'subreddit', 'num_words', 'score']
     for row in tqdm.tqdm(csv_reader):
@@ -182,25 +173,23 @@ def csv_to_pd_data_rc(
   )
 
 
-"""
-functions for stablecoin
--------------------------------------------
-"""
+# Functions for the Stablecoin dataset
 
 
 def csv_to_pd_data_sc(
     fname,
 ):
-  r"""currently used by stablecoin dataset
+  r"""Currently used by Stablecoin dataset.
 
   convert the raw .csv data to pandas dataframe and numpy array
   input .csv file format should be: timestamp, node u, node v, attributes
-  Parameters:
-      fname: the path to the raw data
+  Args:
+    fname: the path to the raw data
+
   Returns:
-      df: a pandas dataframe containing the edgelist data
-      feat_l: a numpy array containing the node features
-      node_ids: a dictionary mapping node id to integer
+    df: a pandas dataframe containing the edgelist data
+    feat_l: a numpy array containing the node features
+    node_ids: a dictionary mapping node id to integer
   """
   feat_size = 1
   num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
@@ -217,7 +206,7 @@ def csv_to_pd_data_sc(
   unique_id = 0
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = _get_csv_reader(csv_file)
+    csv_reader = csv.reader(csv_file)
     idx = 0
     # time,src,dst,weight
     # 1648811421,0x27cbb0e6885ccb1db2dab7c2314131c94795fbef,0x8426a27add8dca73548f012d92c7f8f4bbd42a3e,800.0
@@ -268,24 +257,25 @@ def csv_to_pd_data_sc(
   )
 
 
-"""
-functions for tgbl-flight
--------------------------------------------
-"""
+# Functions for the TGBL flight dataset
 
 
 def csv_to_pd_data(
     fname,
 ):
-  r"""currently used by tgbl-flight dataset
+  r"""Currently used by the tgbl-flight dataset.
 
   convert the raw .csv data to pandas dataframe and numpy array
   input .csv file format should be: timestamp, node u, node v, attributes
+
   Args:
-      fname: the path to the raw data
+    fname: the path to the raw data
+
+  Returns:
+    Edgelist data.
   """
   feat_size = 16
-  num_lines = sum(1 for line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
   print("number of lines counted", num_lines)
   u_list = np.zeros(num_lines)
   i_list = np.zeros(num_lines)
@@ -300,9 +290,9 @@ def csv_to_pd_data(
   ts_format = None
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = _get_csv_reader(csv_file)
+    csv_reader = csv.reader(csv_file)
     idx = 0
-    #'day','src','dst','callsign','typecode'
+    # 'day','src','dst','callsign','typecode'
     for row in tqdm.tqdm(csv_reader):
       if idx == 0:
         idx += 1
@@ -319,12 +309,15 @@ def csv_to_pd_data(
           ts = float(int(ts))  # unix timestamp already
         else:
           # convert to unix timestamp
-          TIME_FORMAT = "%Y-%m-%d"
-          date_cur = datetime.datetime.strptime(ts, TIME_FORMAT)
+          time_format = "%Y-%m-%d"
+          date_cur = datetime.datetime.strptime(ts, time_format)
           ts = float(date_cur.timestamp())
-          # TIME_FORMAT = "%Y-%m-%d" # 2019-01-01
+          # time_format = "%Y-%m-%d" # 2019-01-01
           # date_cur  = date.fromisoformat(ts)
-          # dt = datetime.datetime.combine(date_cur, datetime.datetime.min.time())
+          # dt = datetime.datetime.combine(
+          #     date_cur,
+          #     datetime.datetime.min.time(),
+          # )
           # dt = dt.replace(tzinfo=datetime.timezone.edt)
           # ts = float(dt.timestamp())
 
@@ -342,20 +335,20 @@ def csv_to_pd_data(
         # use ! as padding
 
         # pad row[3] to size 7
-        if len(row[3]) == 0:
+        if not row[3]:
           row[3] = "!!!!!!!!"
         while len(row[3]) < 8:
           row[3] += "!"
 
         # pad row[4] to size 4
-        if len(row[4]) == 0:
+        if not row[4]:
           row[4] = "!!!!!!!!"
         while len(row[4]) < 8:
           row[4] += "!"
         if len(row[4]) > 8:
           row[4] = "!!!!!!!!"
 
-        feat_str = row[3] + row[4]
+        # feat_str = row[3] + row[4]
 
         if src not in node_ids:
           node_ids[src] = unique_id
@@ -405,6 +398,9 @@ def process_node_feat(
   iso_region: alphabet encoding same as edge feat
   longitude: float divide by 180
   latitude: float divide by 90
+
+  Returns:
+    Node features.
   """
   feat_size = 20
   node_feat = np.zeros((len(node_ids), feat_size))
@@ -414,7 +410,7 @@ def process_node_feat(
   cont_idx = 0
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = _get_csv_reader(csv_file)
+    csv_reader = csv.reader(csv_file)
     idx = 0
     # airport_code,type,continent,iso_region,longitude,latitude
     for row in tqdm.tqdm(csv_reader):
@@ -426,7 +422,6 @@ def process_node_feat(
         if code not in node_ids:
           continue
         else:
-          node_id = node_ids[code]
           airport_type = row[1]
           if airport_type not in type_dict:
             type_dict[airport_type] = type_idx
@@ -437,7 +432,7 @@ def process_node_feat(
             cont_idx += 1
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = _get_csv_reader(csv_file)
+    csv_reader = csv.reader(csv_file)
     idx = 0
     # airport_code,type,continent,iso_region,longitude,latitude
     for row in tqdm.tqdm(csv_reader):
@@ -469,19 +464,17 @@ def process_node_feat(
   return node_feat
 
 
-"""
-functions for un trade
--------------------------------------------
-"""
+# Functions for the UN trade dataset
 
 
 #! these are helper functions
-# TODO cleaning the un trade csv with countries with comma in the name, to remove this function
+# TO-DO cleaning the un trade csv with countries with comma in the name, to
+# remove this function
 def clean_rows(
     fname,
     outname,
 ):
-  r"""clean the rows with comma in the name
+  r"""Clean the rows with comma in the name.
 
   args:
       fname: the path to the raw data
@@ -514,23 +507,23 @@ def clean_rows(
   outf.close()
 
 
-"""
-functions for last fm genre
--------------------------------------------
-"""
+# Functions for the last FM genre dataset
 
 
 def load_edgelist_datetime(fname, label_size=514):
-  """load the edgelist into a pandas dataframe
+  """Load the edgelist into a Pandas dataframe.
 
   use numpy array instead of list for faster processing
   assume all edges are already sorted by time
   convert all time unit to unix time
 
   time, user_id, genre, weight
+
+  Returns:
+    Edgelist data.
   """
   feat_size = 1
-  num_lines = sum(1 for line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
   print("number of lines counted", num_lines)
   u_list = np.zeros(num_lines)
   i_list = np.zeros(num_lines)
@@ -545,7 +538,7 @@ def load_edgelist_datetime(fname, label_size=514):
   label_uid = 0
 
   with gfile.GFile(fname, "r") as csv_file:
-    csv_reader = _get_csv_reader(csv_file)
+    csv_reader = csv.reader(csv_file)
     idx = 0
     for row in tqdm.tqdm(csv_reader):
       if idx == 0:
@@ -591,7 +584,7 @@ def load_edgelist_datetime(fname, label_size=514):
 
 
 def load_genre_list(fname):
-  """load the list of genres"""
+  """Load the list of genres."""
   if not osp.exists(fname):
     raise FileNotFoundError(f"File not found at {fname}")
 
@@ -612,21 +605,21 @@ def load_genre_list(fname):
   return genre_index
 
 
-"""
-functions for wikipedia and un_trade
--------------------------------------------
-"""
+# Functions for the Wikipedia and UN trade datasets
 
 
 def reindex(
     df,
     bipartite = False,
 ):
-  r"""reindex the nodes especially if the node ids are not integers
+  r"""Reindex the nodes especially if the node ids are not integers.
 
   Args:
       df: the pandas dataframe containing the graph
       bipartite: whether the graph is bipartite
+
+  Returns:
+      The reindexed Pandas dataframe.
   """
   new_df = df.copy()
   if bipartite:

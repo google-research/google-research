@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Script to study correlation between memory embeddings and structural/positnal embeddings.
+r"""Script to study correlation between memory embeddings and structural/positional embeddings.
 
 command for an example run:
 
@@ -32,7 +32,6 @@ python google_research/fm4tlp/get_embedding_correlation -- \
 import datetime
 import itertools
 import os
-import sys
 import timeit
 
 from absl import app
@@ -54,8 +53,7 @@ from utils import structural_feature_helper
 from utils import utils
 
 
-if 'gfile' in sys.modules:
-  gfile = tf.io.gfile
+gfile = tf.io.gfile
 
 
 _DATA = flags.DEFINE_string(
@@ -163,6 +161,7 @@ def main(_):
     node_count = pd.read_csv(f)
   total_nodes = node_count['num_nodes'][0]
 
+  assert train_data.src and train_data.dst
   all_nodes = set(train_data.src.numpy()).union(set(train_data.dst.numpy()))
 
   G = nx.Graph()
@@ -179,7 +178,7 @@ def main(_):
       device,
   )
 
-  MODEL_NAME = '_'.join(
+  model_name = '_'.join(
       [model.model_name, _DATA.value, _TRAIN_GROUP.value, _VAL_GROUP.value]
   )
 
@@ -194,13 +193,13 @@ def main(_):
   # define an early stopper
   save_model_dir = os.path.join(run_directory, 'saved_models')
   save_model_id = (
-      f'{MODEL_NAME}_{_SEED.value}_{_RUN_ID.value}_{experiment_name}'
+      f'{model_name}_{_SEED.value}_{_RUN_ID.value}_{experiment_name}'
   )
   early_stopper = early_stopping.EarlyStopMonitor(
       save_model_dir=save_model_dir,
       save_model_id=save_model_id,
   )
-  print(f'INFO: done setting up loading of saved models.')
+  print('INFO: done setting up loading of saved models.')
 
   # ==================================================== Test
   # first, load the best model
@@ -220,14 +219,14 @@ def main(_):
     pos_feature_dict = structural_feature_helper.lap_positional_encoding(
         G, _POS_ENC_DIM.value
     )
-    PE_feature_dict = structural_feature_helper.init_positional_encoding(
+    pe_feature_dict = structural_feature_helper.init_positional_encoding(
         G, _POS_ENC_DIM.value
     )
 
     memory_distances = []
     structural_distances = []
     pos_distances = []
-    PE_distances = []
+    pe_distances = []
 
     node_pairs = list(itertools.product(all_nodes, all_nodes))
 
@@ -249,8 +248,8 @@ def main(_):
       pos_distances.append(
           np.linalg.norm(pos_feature_dict[node1] - pos_feature_dict[node2])
       )
-      PE_distances.append(
-          np.linalg.norm(PE_feature_dict[node1] - PE_feature_dict[node2])
+      pe_distances.append(
+          np.linalg.norm(pe_feature_dict[node1] - pe_feature_dict[node2])
       )
 
     res_pearson_structural = scipy.stats.pearsonr(
@@ -261,8 +260,8 @@ def main(_):
     )
     res_pearson_pos = scipy.stats.pearsonr(pos_distances, memory_distances)
     res_spearman_pos = scipy.stats.spearmanr(pos_distances, memory_distances)
-    res_pearson_PE = scipy.stats.pearsonr(PE_distances, memory_distances)
-    res_spearman_PE = scipy.stats.spearmanr(PE_distances, memory_distances)
+    res_pearson_pe = scipy.stats.pearsonr(pe_distances, memory_distances)
+    res_spearman_pe = scipy.stats.spearmanr(pe_distances, memory_distances)
     print(
         'Pearson and Spearman correlation of pairwise node distances between'
         f' memory and structural embeddings: {res_pearson_structural[0]: .4f},'
@@ -275,8 +274,8 @@ def main(_):
     )
     print(
         'Pearson and Spearman correlation of pairwise node distances between'
-        f' memory and PE embeddings: {res_pearson_PE[0]: .4f},'
-        f' {res_spearman_PE[0]: .4f}'
+        f' memory and PE embeddings: {res_pearson_pe[0]: .4f},'
+        f' {res_spearman_pe[0]: .4f}'
     )
 
 

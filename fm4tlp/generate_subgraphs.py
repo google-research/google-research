@@ -43,13 +43,11 @@ import tqdm
 from utils import structural_feature_helper
 
 
-
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_makedirs = gfile.makedirs
-  gfile_exists = gfile.exists
-  gfile_glob = gfile.glob
-  gfile_remove = gfile.remove
+gfile = tf.io.gfile
+gfile_makedirs = gfile.makedirs
+gfile_exists = gfile.exists
+gfile_glob = gfile.glob
+gfile_remove = gfile.remove
 
 
 _DATA = flags.DEFINE_string(
@@ -193,7 +191,6 @@ def main(_):
       nx.write_graphml(G_sub, f)
 
   # Keep this bool here. Needed for routing to external code.
-  run_concurrent = True
   run_concurrent = True
   if run_concurrent:
     with concurrent.futures.ThreadPoolExecutor(

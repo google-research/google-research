@@ -41,7 +41,6 @@ python google_research/fm4tlp/test -- \
 
 import datetime
 import os
-import sys
 import timeit
 
 from absl import app
@@ -61,10 +60,10 @@ from utils import evaluate
 from utils import train_test_helper
 from utils import utils
 
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_makedirs = gfile.makedirs
-  gfile_isdir = gfile.isdir
+
+gfile = tf.io.gfile
+gfile_makedirs = gfile.makedirs
+gfile_isdir = gfile.isdir
 
 
 _DATA = flags.DEFINE_string(
@@ -201,7 +200,7 @@ def main(_):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
   # Start...
-  start_overall = timeit.default_timer()
+  unused_start_overall = timeit.default_timer()
   # ==========
 
   # data loading
@@ -242,7 +241,7 @@ def main(_):
     ), int(warmstart_test_data.dst.max())
   else:
     # Do we need all these defined here?
-    warmstart_test_data = torch.empty(0, dtype=torch.long, device=device)
+    unused_warmstart_test_data = torch.empty(0, dtype=torch.long, device=device)
     warmstart_test_loader = None
     min_dst_idx_warmstart, max_dst_idx_warmstart = None, None
 
@@ -289,7 +288,7 @@ def main(_):
       structural_feature_dim=test_feature_dim,
   )
 
-  MODEL_NAME = '_'.join(
+  model_name = '_'.join(
       [model.model_name, _DATA.value, _TRAIN_GROUP.value, _VAL_GROUP.value]
   )
 
@@ -300,7 +299,7 @@ def main(_):
   run_directory = os.path.join(
       _ROOT_DIR.value, 'experiments', _OUTPUT_SUBDIR.value, _DATA.value
   )
-  results_path = os.path.join(run_directory, 'results', MODEL_NAME)
+  results_path = os.path.join(run_directory, 'results', model_name)
   if not gfile_isdir(results_path):
     print('INFO: Create directory {}'.format(results_path))
     gfile_makedirs(results_path)
@@ -318,13 +317,13 @@ def main(_):
   # define an early stopper
   save_model_dir = os.path.join(run_directory, 'saved_models')
   save_model_id = (
-      f'{MODEL_NAME}_{_SEED.value}_{_RUN_ID.value}_{experiment_name}'
+      f'{model_name}_{_SEED.value}_{_RUN_ID.value}_{experiment_name}'
   )
   early_stopper = early_stopping.EarlyStopMonitor(
       save_model_dir=save_model_dir,
       save_model_id=save_model_id,
   )
-  print(f'INFO: done setting up loading of saved models.')
+  print('INFO: done setting up loading of saved models.')
 
   # ==================================================== Test
   # first, load the best model
@@ -350,7 +349,7 @@ def main(_):
         structural_feats_list=structural_feats_list,
         structural_features=test_structural_features,
     )
-    print(f'INFO: Warmstart done.')
+    print('INFO: Warmstart done.')
     warmstart_loss = pd.DataFrame()
     warmstart_loss['loss'] = warmstart_performance_lists.loss
     warmstart_loss['model_loss'] = warmstart_performance_lists.model_loss
@@ -386,7 +385,7 @@ def main(_):
       structural_features=test_structural_features,
   )
 
-  print(f'INFO: Test: Evaluation Setting: >>> ONE-VS-MANY <<< ')
+  print('INFO: Test: Evaluation Setting: >>> ONE-VS-MANY <<< ')
   print(f'\tTest: {metric}: {perf_metric_test: .4f}')
   print(f'\tTest AUC: {auc: .4f}')
   test_time = timeit.default_timer() - start_test
@@ -404,7 +403,7 @@ def main(_):
 
   utils.save_results(
       {
-          'model': MODEL_NAME,
+          'model': model_name,
           'data': _DATA.value,
           'run': _RUN_ID.value,
           'seed': _SEED.value,

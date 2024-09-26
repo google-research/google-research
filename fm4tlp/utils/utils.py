@@ -27,15 +27,10 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 
-use_parallel = True
-
-
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  use_parallel = False
-  gfile = tf.io.gfile
-  gfile_remove = gfile.remove
-  gfile_exists = gfile.exists
-  gfile_glob = gfile.glob
+gfile = tf.io.gfile
+gfile_remove = gfile.remove
+gfile_exists = gfile.exists
+gfile_glob = gfile.glob
 
 
 def save_pkl(obj, fname):
@@ -102,7 +97,7 @@ def _compute_total_structural_feature_mean_std(
   features_sum = np.zeros(feature_dim)
   features_squared_sum = np.zeros(feature_dim)
   total_samples = 0
-  for batch_index, batch_features in structural_features.items():
+  for unused_batch_index, batch_features in structural_features.items():
     present_structural_feats_list = [
         feat_name for feat_name in structural_feats_list
         if feat_name in batch_features
@@ -180,7 +175,7 @@ def load_structural_features(
   batch_filenames = gfile_glob(
       os.path.join(
           batches_root,
-          filename_prefix + f'_structural_features_*',
+          filename_prefix + '_structural_features_*',
       )
   )
   logging.info(
@@ -188,7 +183,7 @@ def load_structural_features(
   )
 
   structural_feature_dicts = []
-  if not use_parallel:
+  if 'parallel' not in sys.modules:
     for batch_filename in batch_filenames:
       structural_feature_dicts.append(_load_batch_stats(batch_filename))
   structural_features = {}

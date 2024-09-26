@@ -26,7 +26,6 @@ import collections
 import os
 import pickle
 import random
-import sys
 
 from absl import app
 from absl import flags
@@ -34,11 +33,12 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
+
 from utils import negative_sampler
 
 
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
+gfile = tf.io.gfile
+
 
 _CONTINENT = flags.DEFINE_string(
     'continent',

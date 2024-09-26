@@ -15,19 +15,15 @@
 
 """An Early Stopping Module"""
 
-import sys
-
 import numpy as np
 import tensorflow.compat.v1 as tf
 
 from models import model_template
 
 
-
-if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_makedirs = gfile.makedirs
-  gfile_isdir = gfile.isdir
+gfile = tf.io.gfile
+gfile_makedirs = gfile.makedirs
+gfile_isdir = gfile.isdir
 
 
 class EarlyStopMonitor(object):

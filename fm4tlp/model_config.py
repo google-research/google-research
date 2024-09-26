@@ -16,15 +16,13 @@
 """Helpers to define models for xmanager runs.
 """
 
-import sys
 import tensorflow.compat.v1 as tf
 
 from google.protobuf import text_format
 from models import model_config_pb2
 
 
-if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
+gfile = tf.io.gfile
 
 
 _MODEL_CONFIG_PATHS = [

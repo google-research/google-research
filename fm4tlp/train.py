@@ -42,7 +42,6 @@ python google_research/fm4tlp/train  -- \
 
 import datetime
 import os
-import sys
 import timeit
 
 from absl import app
@@ -64,10 +63,9 @@ from utils import train_test_helper
 from utils import utils
 
 
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
-  gfile_makedirs = gfile.makedirs
-  gfile_isdir = gfile.isdir
+gfile = tf.io.gfile
+gfile_makedirs = gfile.makedirs
+gfile_isdir = gfile.isdir
 
 
 _DATA = flags.DEFINE_string(

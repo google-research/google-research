@@ -14,19 +14,13 @@
 # limitations under the License.
 
 import os.path as osp
-import sys
 from typing import Any, Dict, Optional
 
 import numpy as np
 import pandas as pd
-import tensorflow.compat.v1 as tf
 
 from utils import negative_sampler
 from utils import pre_process
-
-
-if not any([m.split(".")[-1] == "gfile" for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
 
 
 class LinkPropPredDataset(object):

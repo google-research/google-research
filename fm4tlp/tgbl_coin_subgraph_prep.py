@@ -81,7 +81,6 @@ import collections
 import os
 import pickle
 import random
-import sys
 
 from absl import app
 from absl import flags
@@ -93,8 +92,8 @@ import tqdm
 from utils import communities
 from utils import negative_sampler
 
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
+
+gfile = tf.io.gfile
 
 
 _GRAPH_FRACTION = flags.DEFINE_float(

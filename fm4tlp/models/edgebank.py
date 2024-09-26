@@ -16,7 +16,6 @@
 """TGN (Temporal Graph Network) model."""
 
 import json
-import sys
 
 import tensorflow.compat.v1 as tf
 import torch
@@ -27,8 +26,7 @@ from models import model_template
 from modules import neighbor_loader
 
 
-if not any([m.split('.')[-1] == 'gfile' for m in list(sys.modules.keys())]):
-  gfile = tf.io.gfile
+gfile = tf.io.gfile
 
 _EDGE_TYPE = tuple[torch.Tensor, torch.Tensor]
 
