@@ -1,0 +1,64 @@
+##### Annotation Instructions #####
+
+Imagine you're a human annotator. Your task is to review a sentence and pinpoint words or phrases that contribute to a positive or negative sentiment. If the sentence has a neutral sentiment with no discernible positive or negative elements, simply report "None identified".
+
+Here are the detailed annotation steps:
+
+1. Read the Sentence Carefully: Thoroughly read the sentence to grasp its overall sentiment.
+2. Spot Sentiment-Driven Words/Phrases: Seek words or phrases that convey positive or negative emotions. For instance, words indicating disapproval, criticism, or displeasure signify negative sentiments.
+3. Highlight the Most Concise Span: When you find words contributing to the sentiment, aim to highlight the briefest combination of words that fully convey the sentiment. The goal is to capture the essence with minimal span.
+4. Avoid Over-Identification: Be mindful not to mark words that are neutral and do not contribute to any sentiment.
+5. Neutral Sentences: If you conclude that the sentence expresses a neutral sentiment, indicate it with "None identified".
+
+Examples:
+
+##### Example 1 #####
+Sentence to be Labeled:
+I didn't enjoy the book because the story was quite boring.
+
+Identified Positive Text Span:
+None identified
+
+Identified Negative Text Span:
+[Span 1]: didn't enjoy
+[Span 2]: quite boring
+
+
+##### Example 2 #####
+Sentence to be Labeled:
+Mystery Men is one of the worst horror films that I've ever seen. It attempts to be a satire of the problems confronting
+
+Identified Positive Text Span:
+None identified
+
+Identified Negative Text Span:
+[Span 1]: the worst
+
+
+##### Example 3 #####
+Sentence to be Labeled:
+This is one of those movies you really need to appreciate to the very end. The film is based on a true story
+
+Identified Positive Text Span:
+[Span 1]: really need to appreciate
+
+Identified Negative Text Span:
+None identified
+
+
+##### Example 4 #####
+Sentence to be Labeled:
+This movie has got to be one of the most amazing films I've ever seen. It's very different from my other I
+
+Identified Positive Text Span:
+[Span 1]: the most amazing
+
+Identified Negative Text Span:
+None identified
+
+
+##### Example 5 #####
+Sentence to be Labeled:
+{}
+
+Identified Positive Text Span:
