@@ -26,9 +26,6 @@ import tensorflow.compat.v1 as tf
 import tqdm
 
 
-gfile = tf.io.gfile
-
-
 def _convert_str2int(
     in_str,
 ):
@@ -110,7 +107,7 @@ def csv_to_pd_data_rc(
     Edgelist data.
   """
   feat_size = 2  # 1 for subreddit, 1 for num words
-  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in tf.io.gfile.GFile(fname)) - 1
   # print("number of lines counted", num_lines)
   print("there are ", num_lines, " lines in the raw data")
   u_list = np.zeros(num_lines)
@@ -125,7 +122,7 @@ def csv_to_pd_data_rc(
   unique_id = 0
   max_words = 5000  # counted form statistics
 
-  with gfile.GFile(fname, "r") as csv_file:
+  with tf.io.gfile.GFile(fname, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     idx = 0
     # ['ts', 'src', 'dst', 'subreddit', 'num_words', 'score']
@@ -192,7 +189,7 @@ def csv_to_pd_data_sc(
     node_ids: a dictionary mapping node id to integer
   """
   feat_size = 1
-  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in tf.io.gfile.GFile(fname)) - 1
   print("number of lines counted", num_lines)
   u_list = np.zeros(num_lines)
   i_list = np.zeros(num_lines)
@@ -205,7 +202,7 @@ def csv_to_pd_data_sc(
   node_ids = {}
   unique_id = 0
 
-  with gfile.GFile(fname, "r") as csv_file:
+  with tf.io.gfile.GFile(fname, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     idx = 0
     # time,src,dst,weight
@@ -275,7 +272,7 @@ def csv_to_pd_data(
     Edgelist data.
   """
   feat_size = 16
-  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in tf.io.gfile.GFile(fname)) - 1
   print("number of lines counted", num_lines)
   u_list = np.zeros(num_lines)
   i_list = np.zeros(num_lines)
@@ -289,7 +286,7 @@ def csv_to_pd_data(
   unique_id = 0
   ts_format = None
 
-  with gfile.GFile(fname, "r") as csv_file:
+  with tf.io.gfile.GFile(fname, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     idx = 0
     # 'day','src','dst','callsign','typecode'
@@ -409,7 +406,7 @@ def process_node_feat(
   continent_dict = {}
   cont_idx = 0
 
-  with gfile.GFile(fname, "r") as csv_file:
+  with tf.io.gfile.GFile(fname, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     idx = 0
     # airport_code,type,continent,iso_region,longitude,latitude
@@ -431,7 +428,7 @@ def process_node_feat(
             continent_dict[continent] = cont_idx
             cont_idx += 1
 
-  with gfile.GFile(fname, "r") as csv_file:
+  with tf.io.gfile.GFile(fname, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     idx = 0
     # airport_code,type,continent,iso_region,longitude,latitude
@@ -481,9 +478,9 @@ def clean_rows(
       outname: the path to the cleaned data
   """
 
-  outf = gfile.GFile(outname, "w")
+  outf = tf.io.gfile.GFile(outname, "w")
 
-  with gfile.GFile(fname) as f:
+  with tf.io.gfile.GFile(fname) as f:
     s = next(f)
     outf.write(s)
     for line in f:
@@ -523,7 +520,7 @@ def load_edgelist_datetime(fname, label_size=514):
     Edgelist data.
   """
   feat_size = 1
-  num_lines = sum(1 for unused_line in gfile.GFile(fname)) - 1
+  num_lines = sum(1 for unused_line in tf.io.gfile.GFile(fname)) - 1
   print("number of lines counted", num_lines)
   u_list = np.zeros(num_lines)
   i_list = np.zeros(num_lines)
@@ -537,7 +534,7 @@ def load_edgelist_datetime(fname, label_size=514):
   node_uid = label_size  # node ids start after the genre nodes
   label_uid = 0
 
-  with gfile.GFile(fname, "r") as csv_file:
+  with tf.io.gfile.GFile(fname, "r") as csv_file:
     csv_reader = csv.reader(csv_file)
     idx = 0
     for row in tqdm.tqdm(csv_reader):
@@ -588,7 +585,7 @@ def load_genre_list(fname):
   if not osp.exists(fname):
     raise FileNotFoundError(f"File not found at {fname}")
 
-  edgelist = gfile.GFile(fname, "r")
+  edgelist = tf.io.gfile.GFile(fname, "r")
   lines = list(edgelist.readlines())
   edgelist.close()
 

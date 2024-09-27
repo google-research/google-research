@@ -35,9 +35,6 @@ import tensorflow.compat.v1 as tf
 import tqdm
 
 
-gfile = tf.io.gfile
-
-
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',
     None,
@@ -49,7 +46,7 @@ _ROOT_DIR = flags.DEFINE_string(
 def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_coin')
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl-coin_edgelist_v2.csv'), 'r'
   ) as f:
     tgbl_coin_edgelist = pd.read_csv(f)
@@ -64,7 +61,7 @@ def main(_):
     if dst not in node_mapping:
       node_mapping[dst] = len(node_mapping)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_coin_address_index_map.pkl'), 'wb'
   ) as f:
     pickle.dump(node_mapping, f)
@@ -72,7 +69,7 @@ def main(_):
   address_count = pd.DataFrame()
   address_count['num_nodes'] = [len(node_mapping)]
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_coin_total_count.csv'), 'w'
   ) as f:
     address_count.to_csv(f, index=False)
@@ -114,7 +111,7 @@ def main(_):
     )
     community_index += 1
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_coin_address_community_map.pkl'), 'wb'
   ) as f:
     pickle.dump(community_address_map, f)
@@ -135,7 +132,7 @@ def main(_):
       {'val_time': [int(val_time)], 'test_time': [int(test_time)]}
   )
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_coin_timesplit.csv'), 'w'
   ) as f:
     timesplit.to_csv(f, index=False)

@@ -53,9 +53,6 @@ from utils import structural_feature_helper
 from utils import utils
 
 
-gfile = tf.io.gfile
-
-
 _DATA = flags.DEFINE_string(
     'data',
     None,
@@ -155,7 +152,7 @@ def main(_):
 
   train_data = train_dataset.get_TemporalData()
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, _DATA.value + '_total_count.csv'), 'r'
   ) as f:
     node_count = pd.read_csv(f)

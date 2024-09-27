@@ -93,9 +93,6 @@ from utils import communities
 from utils import negative_sampler
 
 
-gfile = tf.io.gfile
-
-
 _GRAPH_FRACTION = flags.DEFINE_float(
     'graph_fraction',
     0.3,
@@ -152,7 +149,7 @@ def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_coin')
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl-coin_edgelist_v2.csv'), 'r'
   ) as f:
     tgbl_coin_edgelist = pd.read_csv(f)
@@ -160,19 +157,19 @@ def main(_):
       columns={'src': 'source', 'dst': 'target', 'day': 'ts'}, inplace=True
   )
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_coin_address_index_map.pkl'), 'rb'
   ) as f:
     node_index_dict = pickle.load(f)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_coin_address_community_map.pkl'), 'rb'
   ) as f:
     community_node_map = pickle.load(f)
 
   communities.reindex_communities(community_node_map, node_index_dict)
 
-  with gfile.GFile(dataset_root + '/tgbl_coin_timesplit.csv', 'r') as f:
+  with tf.io.gfile.GFile(dataset_root + '/tgbl_coin_timesplit.csv', 'r') as f:
     timesplit = pd.read_csv(f)
 
   source_mapped_l = []
@@ -213,7 +210,7 @@ def main(_):
 
   train_val_edgelist = train_val_edgelist.sort_values('ts')
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(
           dataset_root,
           'tgbl_coin_' + train_val_dataset_name + '_edgelist.csv',
@@ -231,11 +228,11 @@ def main(_):
   ]
 
   filename = 'tgbl_coin_' + train_val_dataset_name + '_train_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     community_edgelist_train.to_csv(f, index=False)
 
   filename = 'tgbl_coin_' + train_val_dataset_name + '_val_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     community_edgelist_val.to_csv(f, index=False)
 
   print(
@@ -271,7 +268,7 @@ def main(_):
     val_historical_neighbor_sets[source].add(target)
 
   filename = 'tgbl_coin_' + train_val_dataset_name + '_val_ns.pkl'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
     pickle.dump(val_ns, f)
 
   # Prepare test edgelist and negative samples.
@@ -283,7 +280,7 @@ def main(_):
   ]
 
   filename = 'tgbl_coin_' + test_dataset_name + '_test_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     test_edgelist.to_csv(f, index=False)
 
   print(
@@ -308,7 +305,7 @@ def main(_):
     test_historical_neighbor_sets[source].add(target)
 
   filename = 'tgbl_coin_' + test_dataset_name + '_test_ns.pkl'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
     pickle.dump(test_ns, f)
 
 

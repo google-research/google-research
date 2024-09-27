@@ -37,9 +37,6 @@ import tqdm
 from utils import negative_sampler
 
 
-gfile = tf.io.gfile
-
-
 _CONTINENT = flags.DEFINE_string(
     'continent',
     None,
@@ -64,19 +61,19 @@ def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_flight')
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl-flight_edgelist_v2.csv'), 'r'
   ) as f:
     tgbl_flight_edgelist = pd.read_csv(f)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'airport_node_feat_v2.csv'), 'r'
   ) as f:
     airport_feat = pd.read_csv(f)
 
   airport_feat_valid_continent = airport_feat[~airport_feat.continent.isna()]
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_flight_airport_index_map.pkl'), 'rb'
   ) as f:
     airpot_code_index_dict = pickle.load(f)
@@ -114,10 +111,10 @@ def main(_):
   }).sort_values('timestamp')
 
   filename = 'tgbl_flight_' + _CONTINENT.value + '_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     continent_airport_tgbl_flight_edgelist_indexed.to_csv(f, index=False)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_flight_timesplit.csv'), 'r'
   ) as f:
     timesplit = pd.read_csv(f)
@@ -151,15 +148,15 @@ def main(_):
   )
 
   filename = 'tgbl_flight_' + _CONTINENT.value + '_train_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     continent_airport_tgbl_flight_edgelist_indexed_train.to_csv(f, index=False)
 
   filename = 'tgbl_flight_' + _CONTINENT.value + '_val_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     continent_airport_tgbl_flight_edgelist_indexed_val.to_csv(f, index=False)
 
   filename = 'tgbl_flight_' + _CONTINENT.value + '_test_edgelist.csv'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'w') as f:
     continent_airport_tgbl_flight_edgelist_indexed_test.to_csv(f, index=False)
 
   print(
@@ -200,7 +197,7 @@ def main(_):
     val_historical_neighbor_sets[source].add(target)
 
   filename = 'tgbl_flight_' + _CONTINENT.value + '_val_ns.pkl'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
     pickle.dump(val_ns, f)
 
   test_ns = dict()
@@ -223,7 +220,7 @@ def main(_):
     test_historical_neighbor_sets[source].add(target)
 
   filename = 'tgbl_flight_' + _CONTINENT.value + '_test_ns.pkl'
-  with gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
+  with tf.io.gfile.GFile(os.path.join(dataset_root, filename), 'wb') as f:
     pickle.dump(test_ns, f)
 
 

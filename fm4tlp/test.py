@@ -61,11 +61,6 @@ from utils import train_test_helper
 from utils import utils
 
 
-gfile = tf.io.gfile
-gfile_makedirs = gfile.makedirs
-gfile_isdir = gfile.isdir
-
-
 _DATA = flags.DEFINE_string(
     'data',
     None,
@@ -216,7 +211,7 @@ def main(_):
   test_data = test_data.to(device)
   metric = 'mrr'
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, _DATA.value + '_total_count.csv'), 'r'
   ) as f:
     airport_count = pd.read_csv(f)
@@ -300,9 +295,9 @@ def main(_):
       _ROOT_DIR.value, 'experiments', _OUTPUT_SUBDIR.value, _DATA.value
   )
   results_path = os.path.join(run_directory, 'results', model_name)
-  if not gfile_isdir(results_path):
+  if not tf.io.gfile.isdir(results_path):
     print('INFO: Create directory {}'.format(results_path))
-    gfile_makedirs(results_path)
+    tf.io.gfile.makedirs(results_path)
 
   metrics_logger = evaluate.MetricsLogger()
 
@@ -355,7 +350,7 @@ def main(_):
     warmstart_loss['model_loss'] = warmstart_performance_lists.model_loss
     warmstart_loss['perf'] = warmstart_performance_lists.perf
     warmstart_loss['auc'] = warmstart_performance_lists.auc
-    with gfile.GFile(
+    with tf.io.gfile.GFile(
         os.path.join(
             results_path, f'{experiment_name}_test_warmstart_loss.csv'
         ),
@@ -396,7 +391,7 @@ def main(_):
   test_loss['model_loss'] = test_performance_lists.model_loss
   test_loss['perf'] = test_performance_lists.perf
   test_loss['auc'] = test_performance_lists.auc
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(results_path, f'{experiment_name}_test_loss.csv'), 'w'
   ) as f:
     test_loss.to_csv(f, index=False)

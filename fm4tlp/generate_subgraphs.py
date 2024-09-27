@@ -43,13 +43,6 @@ import tqdm
 from utils import structural_feature_helper
 
 
-gfile = tf.io.gfile
-gfile_makedirs = gfile.makedirs
-gfile_exists = gfile.exists
-gfile_glob = gfile.glob
-gfile_remove = gfile.remove
-
-
 _DATA = flags.DEFINE_string(
     'data',
     None,
@@ -97,14 +90,16 @@ def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets', _DATA.value)
   batches_root = os.path.join(dataset_root, 'structural_features_by_batch')
-  if not gfile_exists(batches_root):
-    gfile_makedirs(batches_root)
+  if not tf.io.gfile.exists(batches_root):
+    tf.io.gfile.makedirs(batches_root)
 
   filename_prefix = _DATA.value + '_' + _COMMUNITY.value + '_' + _SPLIT.value
 
   edgelist_filename = filename_prefix + '_edgelist.csv'
   logging.info('Loading edgelist from %s', edgelist_filename)
-  with gfile.GFile(os.path.join(dataset_root, edgelist_filename), 'r') as f:
+  with tf.io.gfile.GFile(
+      os.path.join(dataset_root, edgelist_filename), 'r'
+  ) as f:
     edgelist = pd.read_csv(f)
   logging.info('Loaded edgelist.')
 
@@ -129,13 +124,13 @@ def main(_):
   )
 
   # Lookup which subgraph indices need to be processed.
-  existing_subgraph_filenames = gfile_glob(
+  existing_subgraph_filenames = tf.io.gfile.glob(
       os.path.join(batches_root, filename_prefix + '_subgraph_*')
   )
   processed_subgraph_indices = set()
   if _OVERWRITE_GRAPHS.value:
     for filename in existing_subgraph_filenames:
-      gfile_remove(filename)
+      tf.io.gfile.remove(filename)
   else:
     for filename in existing_subgraph_filenames:
       processed_subgraph_indices.add(int(filename.split('_')[-1].split('.')[0]))
@@ -184,7 +179,7 @@ def main(_):
     if G_sub is None:
       return
     filename = filename_prefix + '_subgraph_' + str(batch_index) + '.graphml'
-    with gfile.GFile(
+    with tf.io.gfile.GFile(
         os.path.join(batches_root, filename),
         'wb',
     ) as f:

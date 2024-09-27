@@ -33,8 +33,6 @@ import tensorflow.compat.v1 as tf
 import tqdm
 
 
-gfile = tf.io.gfile
-
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',
     None,
@@ -48,12 +46,12 @@ def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_flight')
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl-flight_edgelist_v2.csv'), 'r'
   ) as f:
     tgbl_flight_edgelist = pd.read_csv(f)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'airport_node_feat_v2.csv'), 'r'
   ) as f:
     airport_feat = pd.read_csv(f)
@@ -80,7 +78,7 @@ def main(_):
     airport_code_index_dict[airport_code] = index
     index += 1
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_flight_airport_index_map.pkl'), 'wb'
   ) as f:
     pickle.dump(airport_code_index_dict, f)
@@ -91,7 +89,7 @@ def main(_):
   airport_count = pd.DataFrame()
   airport_count['num_nodes'] = [count_airports]
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_flight_total_count.csv'), 'w'
   ) as f:
     airport_count.to_csv(f, index=False)
@@ -110,7 +108,7 @@ def main(_):
       {'val_time': [int(val_time)], 'test_time': [int(test_time)]}
   )
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_flight_timesplit.csv'), 'w'
   ) as f:
     timesplit.to_csv(f, index=False)

@@ -26,8 +26,6 @@ from models import model_template
 from modules import neighbor_loader
 
 
-gfile = tf.io.gfile
-
 _EDGE_TYPE = tuple[torch.Tensor, torch.Tensor]
 
 
@@ -60,11 +58,11 @@ class EdgeBank(model_template.TlpModel):
     )
 
   def save_model(self, model_path):
-    with gfile.GFile(model_path, 'w') as f:
+    with tf.io.gfile.GFile(model_path, 'w') as f:
       f.write(json.dumps(list(self._memory)))
 
   def load_model(self, model_path):
-    with gfile.GFile(model_path, 'r') as f:
+    with tf.io.gfile.GFile(model_path, 'r') as f:
       self._memory = set([(u, v) for u, v in json.loads(f.read())])
 
   def _initialize_model(self):

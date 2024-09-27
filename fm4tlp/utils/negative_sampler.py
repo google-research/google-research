@@ -27,9 +27,6 @@ import torch
 
 from utils import utils
 
-gfile = tf.io.gfile
-gfile_exists = gfile.exists
-
 
 class NegativeEdgeSampler(object):
 
@@ -76,7 +73,7 @@ class NegativeEdgeSampler(object):
         "val",
         "test",
     ], "Invalid split-mode! It should be `val`, `test`"
-    if not gfile_exists(fname):
+    if not tf.io.gfile.exists(fname):
       raise FileNotFoundError(f"File not found at {fname}")
     self.eval_set[split_mode] = utils.load_pkl(fname)
 

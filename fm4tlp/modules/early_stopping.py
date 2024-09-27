@@ -21,11 +21,6 @@ import tensorflow.compat.v1 as tf
 from models import model_template
 
 
-gfile = tf.io.gfile
-gfile_makedirs = gfile.makedirs
-gfile_isdir = gfile.isdir
-
-
 class EarlyStopMonitor(object):
 
   def __init__(
@@ -53,9 +48,9 @@ class EarlyStopMonitor(object):
     self.epoch_idx = 1
 
     self.save_model_dir = save_model_dir
-    if not gfile_isdir(self.save_model_dir):
+    if not tf.io.gfile.isdir(self.save_model_dir):
       print("INFO: Create directory {}".format(save_model_dir))
-      gfile_makedirs(self.save_model_dir)
+      tf.io.gfile.makedirs(self.save_model_dir)
     self.save_model_id = save_model_id
 
   def get_best_model_path(self):

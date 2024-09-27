@@ -43,11 +43,6 @@ import tensorflow.compat.v1 as tf
 from utils import structural_feature_helper
 
 
-gfile = tf.io.gfile
-gfile_makedirs = gfile.makedirs
-gfile_exists = gfile.exists
-gfile_glob = gfile.glob
-gfile_remove = gfile.remove
 
 if not any(['py.runner' in m for m in list(sys.modules.keys())]):
   beam_runner = beam.runners.DirectRunner
@@ -168,7 +163,7 @@ class SaveBatchStats(beam.DoFn):
     dataset_counter_prefix = f'{dataset}-{community}-{split}'
 
     # Compute features.
-    if gfile_exists(features_filename) and not self._overwrite:
+    if tf.io.gfile.exists(features_filename) and not self._overwrite:
       beam.metrics.Metrics.counter(
           'ComputeFeatures', dataset_counter_prefix + '-features-already-exist'
       ).inc()
@@ -178,7 +173,7 @@ class SaveBatchStats(beam.DoFn):
           'ComputeFeatures', dataset_counter_prefix + '-features-compute-start'
       ).inc()
       # Load subgraph.
-      with gfile.GFile(
+      with tf.io.gfile.GFile(
           os.path.join(batches_root, subgraph_filename), 'rb'
       ) as f:
         subgraph = nx.read_graphml(f)
@@ -202,7 +197,7 @@ class SaveBatchStats(beam.DoFn):
         batch_stats['vac3'] = self._vac3.get_all_automorphism_counts(subgraph)
         if self._compute_vac4:
           batch_stats['vac4'] = self._vac4.get_all_automorphism_counts(subgraph)
-      with gfile.GFile(
+      with tf.io.gfile.GFile(
           os.path.join(batches_root, features_filename), 'wb'
       ) as f:
         pickle.dump(batch_stats, f)
@@ -259,10 +254,10 @@ def main(_):
     dataset_root = os.path.join(_ROOT_DIR.value, 'datasets', dataset)
     for split in ['train', 'val', 'test']:
       batches_root = os.path.join(dataset_root, 'structural_features_by_batch')
-      if not gfile_exists(batches_root):
-        gfile_makedirs(batches_root)
+      if not tf.io.gfile.exists(batches_root):
+        tf.io.gfile.makedirs(batches_root)
       filename_prefix = dataset + '_' + community + '_' + split
-      subgraph_filenames = gfile_glob(
+      subgraph_filenames = tf.io.gfile.glob(
           os.path.join(batches_root, filename_prefix + '_subgraph_*')
       )
       logging.info(

@@ -27,21 +27,16 @@ import numpy as np
 import tensorflow.compat.v1 as tf
 
 
-gfile = tf.io.gfile
-gfile_remove = gfile.remove
-gfile_exists = gfile.exists
-gfile_glob = gfile.glob
-
 
 def save_pkl(obj, fname):
   r"""save a python object as a pickle file"""
-  with gfile.GFile(fname, 'wb') as handle:
+  with tf.io.gfile.GFile(fname, 'wb') as handle:
     pickle.dump(obj, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def load_pkl(fname):
   r"""load a python object from a pickle file"""
-  with gfile.GFile(fname, 'rb') as handle:
+  with tf.io.gfile.GFile(fname, 'rb') as handle:
     return pickle.load(handle)
 
 
@@ -65,17 +60,17 @@ def save_results(new_results, filename):
   :filename: the name of the file to save the (new) results
   """
 
-  if gfile_exists(filename):
-    gfile_remove(filename)
+  if tf.io.gfile.exists(filename):
+    tf.io.gfile.remove(filename)
 
-  with gfile.GFile(filename, 'w') as json_file:
+  with tf.io.gfile.GFile(filename, 'w') as json_file:
     json.dump(new_results, json_file, indent=4)
 
 
 def _load_batch_stats(batch_filename):
   r"""Load structural features for a given batch."""
   batch_index = int(batch_filename.split('_')[-1].split('.')[0])
-  with gfile.GFile(batch_filename, 'rb') as f:
+  with tf.io.gfile.GFile(batch_filename, 'rb') as f:
     batch_stats = pickle.load(f)
     batch_stats['batch_index'] = batch_index
   for feature_key, feature_values in batch_stats.items():
@@ -172,7 +167,7 @@ def load_structural_features(
   filename_prefix = data_name + '_' + community + '_' + split
   if structural_feature_file_tag:
     filename_prefix += '_' + structural_feature_file_tag
-  batch_filenames = gfile_glob(
+  batch_filenames = tf.io.gfile.glob(
       os.path.join(
           batches_root,
           filename_prefix + '_structural_features_*',
@@ -220,7 +215,7 @@ def save_structural_feature_measurement(
   sf_filepath = _get_structural_measurement_filepath_from_model_path(
       model_path, measurement_name
   )
-  with gfile.GFile(sf_filepath, 'w') as f:
+  with tf.io.gfile.GFile(sf_filepath, 'w') as f:
     f.write(json.dumps(measurement))
 
 
@@ -232,6 +227,6 @@ def load_structural_feature_measurement(
       model_path, measurement_name
   )
   measurement = []
-  with gfile.GFile(sf_filepath, 'r') as f:
+  with tf.io.gfile.GFile(sf_filepath, 'r') as f:
     measurement.extend(json.loads(f.read()))
   return measurement

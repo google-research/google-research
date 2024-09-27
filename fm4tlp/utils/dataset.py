@@ -25,11 +25,6 @@ from utils import negative_sampler
 from utils import utils
 
 
-gfile = tf.io.gfile
-gfile_isdir = gfile.isdir
-gfile_exists = gfile.exists
-
-
 _PROCESSED_DATASETS = ["comment"]
 
 
@@ -54,7 +49,7 @@ class LinkPropPredDataset(object):
     """
     self.name = name  ## original name
     self.dir_name = os.path.join(root, name)
-    if not gfile_isdir(self.dir_name):
+    if not tf.io.gfile.isdir(self.dir_name):
       raise FileNotFoundError(
           f"Processed data folder for {name} not found in {root}"
       )
@@ -98,14 +93,14 @@ class LinkPropPredDataset(object):
         self.dir_name + "/" + "ml_tgbl-{}.pkl".format(self.name + "_node")
     )
 
-    if gfile_exists(out_df):
+    if tf.io.gfile.exists(out_df):
       print("loading processed file")
       df = pd.read_pickle(out_df)
       edge_feat = utils.load_pkl(out_edge_feat)
     else:
       raise FileNotFoundError(f"processed file {out_df} not found")
     node_feat = None
-    if gfile_exists(out_node_feat):
+    if tf.io.gfile.exists(out_node_feat):
       node_feat = utils.load_pkl(out_node_feat)
 
     return df, edge_feat, node_feat

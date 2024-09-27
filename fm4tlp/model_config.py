@@ -22,9 +22,6 @@ from google.protobuf import text_format
 from models import model_config_pb2
 
 
-gfile = tf.io.gfile
-
-
 _MODEL_CONFIG_PATHS = [
     "google_research/fm4tlp/models/configs/dyrep.pbtxt",
     "google_research/fm4tlp/models/configs/jodie.pbtxt",
@@ -42,7 +39,7 @@ def get_model_config(model_name):
   for model_config_path in _MODEL_CONFIG_PATHS:
     model_config = model_config_pb2.TlpModelConfig()
     filepath = str(model_config_path)
-    with gfile.GFile(filepath, "r") as f:
+    with tf.io.gfile.GFile(filepath, "r") as f:
       text_format.Parse(f.read(), model_config)
     if model_config.model_name in model_configs:
       raise ValueError(

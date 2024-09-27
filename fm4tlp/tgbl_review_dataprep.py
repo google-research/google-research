@@ -43,9 +43,6 @@ import tensorflow.compat.v1 as tf
 import tqdm
 
 
-gfile = tf.io.gfile
-
-
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',
     None,
@@ -57,7 +54,7 @@ _ROOT_DIR = flags.DEFINE_string(
 def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_review')
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl-review_edgelist_v2.csv'), 'r'
   ) as f:
     tgbl_review_edgelist = pd.read_csv(f)
@@ -77,7 +74,7 @@ def main(_):
     if target not in node_mapping:
       node_mapping[target] = len(node_mapping)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_review_node_index_map.pkl'), 'wb'
   ) as f:
     pickle.dump(node_mapping, f)
@@ -85,7 +82,7 @@ def main(_):
   node_count = pd.DataFrame()
   node_count['num_nodes'] = [len(node_mapping)]
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_review_total_count.csv'), 'w'
   ) as f:
     node_count.to_csv(f, index=False)
@@ -127,7 +124,7 @@ def main(_):
     )
     community_index += 1
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_review_node_community_map.pkl'), 'wb'
   ) as f:
     pickle.dump(community_node_map, f)
@@ -148,7 +145,7 @@ def main(_):
       {'val_time': [int(val_time)], 'test_time': [int(test_time)]}
   )
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_review_timesplit.csv'), 'w'
   ) as f:
     timesplit.to_csv(f, index=False)
