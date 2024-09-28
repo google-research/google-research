@@ -365,6 +365,37 @@
             }
         },
         {
+            "name": "SEQ_CIFAR10_2_OF_2_SGD_FROM_SPLIT1_INIT",
+            // Do further training (no pretrained prior) from previous SGD solution for guidance.
+            // Expect this to do similarly to random-split sequential training.
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10", // No pretrained prior
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_from_split1_init/",
+                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=250",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                // "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
             "name": "SEQ_CIFAR10_1_OF_2_STRATIFIED_SGD",
             "type": "debugpy",
             "request": "launch",
@@ -474,6 +505,37 @@
                 "--temperature=1.",
                 "--vi_ensemble_size=50",
                 "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_1849984_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_SGD_FROM_SPLIT1_INIT",
+            // Do further training (no pretrained prior) from previous SGD solution for guidance.
+            // Expect this to do similarly to random-split sequential training.
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10", // No pretrained prior
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_stratified_from_split1_init/",
+                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=250",
+                "--subset_train_to=40960",
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
