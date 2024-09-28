@@ -135,6 +135,23 @@ def train_model():
                                      args.tabulate_freq)
     print(table)
 
+  print("Final evaluation:")
+
+  # Evaluate the model
+  train_stats, test_stats = {"log_prob": None}, {}
+  _, test_predictions, train_predictions, test_stats, train_stats_ = (
+      script_utils.evaluate(net_apply, params, net_state, train_set,
+                            test_set, predict_fn, metrics_fns,
+                            log_prior_fn))
+  train_stats.update(train_stats_)
+
+  logging_dict = logging_utils.make_logging_dict(train_stats, test_stats, {})
+  logging_dict["telemetry/iteration"] = None
+  logging_dict["telemetry/iteration_time"] = None
+  tabulate_dict = script_utils.get_tabulate_dict(tabulate_metrics,
+                                                  logging_dict)
+  table = logging_utils.make_table(tabulate_dict, 0, args.tabulate_freq)
+  print(table)
 
 if __name__ == "__main__":
   script_utils.print_visible_devices()

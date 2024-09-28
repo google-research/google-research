@@ -176,7 +176,9 @@ def train_model():
   start_iteration += 1
 
   # Loading mean checkpoint
-  if args.mean_init_checkpoint:
+  if args.mean_init_checkpoint and start_iteration < args.num_epochs:
+    # Note for simple evaluation of fully trained model, pass through the
+    # checkpoint parameters when no further training steps to make
     logger.info("Initializing VI mean from the provided checkpoint")
     ckpt_dict = checkpoint_utils.load_checkpoint(args.mean_init_checkpoint)
     mean_params = checkpoint_utils.parse_sgd_checkpoint_dict(ckpt_dict)[1]
@@ -240,6 +242,33 @@ def train_model():
     table = logging_utils.make_table(tabulate_dict, iteration - start_iteration,
                                      args.tabulate_freq)
     print(table)
+
+  logger.info("Final evaluation")
+
+  # Evaluate the model
+  train_stats = {"ELBO": None, "KL": prior_kl(params)}
+  test_stats, ensemble_stats = {}, {}
+  # Evaluate the mean
+  _, test_predictions, train_predictions, test_stats, train_stats_ = (
+      script_utils.evaluate(mean_apply, params, net_state, train_set,
+                            test_set, predict_fn, metrics_fns, prior_kl))
+  train_stats.update(train_stats_)
+  del train_stats["prior"]
+
+  # Evaluate the ensemble
+  net_state, ensemble_predictions = vi_ensemble_predict_fn(
+    net_apply, params, net_state, test_set)
+  ensemble_stats = train_utils.evaluate_metrics(ensemble_predictions,
+                                                test_set[1], metrics_fns)
+
+  logging_dict = logging_utils.make_logging_dict(train_stats, test_stats,
+                                                 ensemble_stats)
+  logging_dict["telemetry/iteration"] = None
+  logging_dict["telemetry/iteration_time"] = None
+  tabulate_dict = script_utils.get_tabulate_dict(tabulate_metrics,
+                                                 logging_dict)
+  table = logging_utils.make_table(tabulate_dict, 0, args.tabulate_freq)
+  print(table)
 
 
 if __name__ == "__main__":
