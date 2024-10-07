@@ -147,7 +147,7 @@ def _calculate_and_save_gr_moving_window_constant_time(
       COMPLETENESS_VEC_TXT,
   )
   if os.path.exists(completeness_path):
-    gfile.Remove(completeness_path)
+    gfile.remove(completeness_path)
   with open(completeness_path, 'wt') as f:
     np.savetxt(f, completeness_vec)
 
@@ -156,7 +156,7 @@ def _calculate_and_save_gr_moving_window_constant_time(
       BETA_VEC_TXT,
   )
   if os.path.exists(beta_path):
-    gfile.Remove(beta_path)
+    gfile.remove(beta_path)
   with open(beta_path, 'wt') as f:
     np.savetxt(f, beta_vec)
 
@@ -293,13 +293,13 @@ def _calculate_and_save_gr_moving_window_n_events(
 
   completeness_path = os.path.join(cache_folder_path, COMPLETENESS_VEC_TXT)
   if os.path.exists(completeness_path):
-    gfile.Remove(completeness_path)
+    gfile.remove(completeness_path)
   with open(completeness_path, 'wt') as f:
     np.savetxt(f, completeness_vec)
 
   beta_path = os.path.join(cache_folder_path, BETA_VEC_TXT)
   if os.path.exists(beta_path):
-    gfile.Remove(beta_path)
+    gfile.remove(beta_path)
   with open(beta_path, 'wt') as f:
     np.savetxt(f, beta_vec)
 
@@ -431,13 +431,13 @@ def _calculate_and_save_kde_moving_window_n_events(
 
   completeness_path = os.path.join(cache_folder_path, COMPLETENESS_VEC_TXT)
   if os.path.exists(completeness_path):
-    gfile.Remove(completeness_path)
+    gfile.remove(completeness_path)
   with open(completeness_path, 'wt') as f:
     np.savetxt(f, completeness_vec)
 
   kde_list_path = os.path.join(cache_folder_path, KDE_LIST_TXT)
   if os.path.exists(kde_list_path):
-    gfile.Remove(kde_list_path)
+    gfile.remove(kde_list_path)
   with open(kde_list_path, 'wb') as f:
     joblib.dump(kde_list, f)
 
@@ -567,13 +567,13 @@ def _calculate_and_save_gr_spatial(
 
   completeness_path = os.path.join(cache_folder_path, COMPLETENESS_VEC_TXT)
   if os.path.exists(completeness_path):
-    gfile.Remove(completeness_path)
+    gfile.remove(completeness_path)
   with open(completeness_path, 'wt') as f:
     np.savetxt(f, completeness_vec)
 
   beta_path = os.path.join(cache_folder_path, BETA_VEC_TXT)
   if os.path.exists(beta_path):
-    gfile.Remove(beta_path)
+    gfile.remove(beta_path)
   with open(beta_path, 'wt') as f:
     np.savetxt(f, beta_vec)
 

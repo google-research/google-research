@@ -378,6 +378,17 @@ def california_major_earthquakes_dataframe(
   return pd.read_csv(open(look_for_file(csv_path), 'rt'))
 
 
-def scsn_stations(csv_path = 'scsn_stations.csv'):
-  """Fetches a pandas DataFrame of the SCSN seismic stations."""
+@gin.configurable
+def sample_catalog_dataframe(
+    csv_path = 'sample_catalog.csv',
+):
+  """Fetches a pandas DataFrame of a sample earthquake catalog."""
+  return pd.read_csv(open(look_for_file(csv_path), 'rt'))
+
+
+@gin.configurable
+def mock_catalog_dataframe(
+    csv_path = 'mock.csv',
+):
+  """Fetches a pandas DataFrame of a mock earthquake catalog."""
   return pd.read_csv(open(look_for_file(csv_path), 'rt'))

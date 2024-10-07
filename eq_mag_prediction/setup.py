@@ -16,7 +16,7 @@
 """Setup for eq_mag_prediction.
 
 In order to install execute:
-pip install -e .
+pip --no-deps install -e .
 from root folder of this project.
 """
 

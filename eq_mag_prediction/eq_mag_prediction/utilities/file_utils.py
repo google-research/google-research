@@ -17,7 +17,6 @@
 
 import os
 import xarray as xr
-from tensorflow.io import gfile
 
 
 def chain_files_iterator(dirname):
@@ -32,9 +31,6 @@ def chain_files_iterator(dirname):
 def load_xr_dataset(file_path):
   """Helper function that loads a serialized xr.Dataset from a netcdf file.
 
-  This is a wrapper around xarray.open_dataset, because there is a bug in
-  passing a gfile.File buffer directly as an argument to xarray.open_dataset.
-
   Args:
     file_path: Path (string) to the file.
 
@@ -47,9 +43,6 @@ def load_xr_dataset(file_path):
 
 def save_xr_dataset(file_path, dset):
   """Helper function that serializes an xr.Dataset to a netcdf file.
-
-  This is a wrapper around xarray.to_netcdf, because there is a bug in
-  passing a gfile.File buffer directly as an argument to xarray.to_netcdf.
 
   Args:
     file_path: Path to the file.

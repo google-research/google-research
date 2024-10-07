@@ -30,7 +30,6 @@ from absl import flags
 import gin
 import tensorflow as tf
 
-from tensorflow.io import gfile
 from eq_mag_prediction.forecasting import external_configurations
 from eq_mag_prediction.forecasting import head_models
 from eq_mag_prediction.forecasting import metrics
@@ -44,9 +43,6 @@ _GIN_BINDINGS = flags.DEFINE_multi_string(
     'gin_bindings', None, 'Newline separated list of Gin parameter bindings.'
 )
 _OUTPUT_DIR = flags.DEFINE_string('output_dir', None, 'Output directory.')
-_ = flags.DEFINE_integer(
-    'repetition', None, 'Integer ID into a set of identical repetitions.'
-)
 
 
 @gin.configurable(denylist=['output_dir'])

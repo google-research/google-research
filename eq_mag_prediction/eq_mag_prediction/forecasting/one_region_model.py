@@ -506,7 +506,7 @@ def store_everything_in_folder(
   os.makedirs(os.path.dirname(gin_target_path), exist_ok=True)
   with open(gin_target_path, 'w') as f:
     f.truncate(0)
-    _ = f.write(gin.operative_config_str())
+    _ = f.write(gin.config_str())
 
   features_given = all([
       f is not None
