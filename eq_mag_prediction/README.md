@@ -9,9 +9,11 @@ The package was tested using a python env created with conda package manager.
 From the root of project, perform:
 
 ```
-conda create --name <environment_name> --file requirements.txt
+conda create --name <environment_name> --file requirements.txt -c conda-forge
 pip install --no-deps -e .
 ```
+
+To experiment with our catalogs and trained models, download the data from [this Zenodo link](https://zenodo.org/records/13387662), extract the zip file, and replace the directory `./results` with its contents.
 
 # Model training procedure
 
@@ -113,5 +115,4 @@ Where trained models are stored, and cached by default.
 
 Default cache location for benchmarks, features and ingested catalogs as well.
 
-Pre-trained models, encoders, and calculated benchmarks can be found in
-* **LINK TO ZENODO** *
+Pre-trained models, encoders, and calculated benchmarks can be found in [this Zenodo link](https://zenodo.org/records/13387662)
