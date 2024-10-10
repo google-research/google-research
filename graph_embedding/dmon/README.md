@@ -7,7 +7,27 @@ Example usage
 ---
 First, make sure you have the requirements `numpy`, `scipy`, `tensorflow 2`. You can always install them with `pip`: `pip3 install -r graph_embedding/dmon/requirements.txt`.
 
+###### Special case
+- Make sure, your python version in less than 3.9 . Otherwise, fail to run `tensorflow 2` 
+###### For windows users
+- Install virtualenv
+```
+$pip install virtualenv
+```
+- Then create virtualenv for your project
+```
+$virtualenv -p python3 . 
+```
+- It will create `Scripts` folder, inside base folder. Go to `Scripts` folder and run activate.bat `./activate.bat`
+- Then install prerequisites for this project. But before this, update `requirements.txt` update numpy version `numpy==1.19.2`
+
+```
+$pip installl -r requirements.txt
+```
+
 Then, to reproduce the paper results on the [Cora graph](https://relational.fit.cvut.cz/dataset/CORA), run
+
+*During run, ignore tensorflow related warning if you do not have any gpu*
 
 ```python
 # From google-research/
