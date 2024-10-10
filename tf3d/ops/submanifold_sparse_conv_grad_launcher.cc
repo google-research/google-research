@@ -29,7 +29,7 @@ namespace tensorflow {
 namespace tf3d {
 
 template <int dims>
-Status RunSubmanifoldSparseConvBackpropFilter(
+absl::Status RunSubmanifoldSparseConvBackpropFilter(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts) {
   const int batch_size = opts.batch_size();
   const int max_num_coords_per_batch = opts.max_num_coords_per_batch();
@@ -84,11 +84,11 @@ Status RunSubmanifoldSparseConvBackpropFilter(
       }
     }
   }
-  return Status();
+  return absl::Status();
 }
 
 template <>
-Status LaunchSubmanifoldSparseConvBackpropFilter<Eigen::ThreadPoolDevice>(
+absl::Status LaunchSubmanifoldSparseConvBackpropFilter<Eigen::ThreadPoolDevice>(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts) {
   const int dims = opts.coordinates.dim_size(2);
   if (dims == 2) return RunSubmanifoldSparseConvBackpropFilter<2>(opts);

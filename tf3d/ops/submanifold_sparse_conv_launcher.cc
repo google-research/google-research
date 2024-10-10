@@ -29,7 +29,7 @@ namespace tensorflow {
 namespace tf3d {
 
 template <int dims>
-Status RunSubmanifoldSparseConvolution(
+absl::Status RunSubmanifoldSparseConvolution(
     const SubmanifoldSparseConvLaunchOptions& opts) {
   const int batch_size = opts.batch_size();
   const int max_num_coords_per_batch = opts.max_num_coords_per_batch();
@@ -84,11 +84,11 @@ Status RunSubmanifoldSparseConvolution(
       }
     }
   }
-  return Status();
+  return absl::Status();
 }
 
 template <>
-Status LaunchSubmanifoldSparseConvolution<Eigen::ThreadPoolDevice>(
+absl::Status LaunchSubmanifoldSparseConvolution<Eigen::ThreadPoolDevice>(
     const SubmanifoldSparseConvLaunchOptions& opts) {
   const int dims = opts.coordinates.dim_size(2);
   if (dims == 2) return RunSubmanifoldSparseConvolution<2>(opts);
