@@ -1,0 +1,57 @@
+[package]
+name = "brush-viewer"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+# Brush deps.
+brush-render.path = "../brush-render"
+brush-train.path = "../brush-train"
+brush-dataset.path = "../brush-dataset"
+
+# Workspace deps.
+glam.workspace = true
+burn.workspace = true
+burn-wgpu.workspace = true
+
+image.workspace = true
+anyhow.workspace = true
+eframe.workspace = true
+egui.workspace = true
+tracing.workspace = true
+wgpu.workspace = true
+ply-rs.workspace = true
+tracing-subscriber.workspace = true
+rerun = { workspace = true, optional = true }
+
+web-time.workspace = true
+futures-lite.workspace = true
+pollster.workspace = true
+async-stream.workspace = true
+async-channel.workspace = true
+
+log.workspace = true
+
+tracing-tracy = { workspace = true, optional = true }
+cfg-if.workspace = true
+
+rrfd.path = "../rrfd"
+sync-span.path = "../sync-span"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen-futures.workspace = true
+tracing-wasm.workspace = true
+web-sys.workspace = true
+gloo-timers.workspace = true
+
+[features]
+tracy = ["dep:tracing-tracy"]
+rerun = ["dep:rerun"]
+
+[package.metadata.wasm-pack.profile.release.wasm-bindgen]
+debug-js-glue = false
+demangle-name-section = false
+dwarf-debug-info = false
+omit-default-module-path = false

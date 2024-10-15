@@ -1,0 +1,12 @@
+[package]
+name = "sync-span"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+tracing.workspace = true
+tracing-subscriber.workspace = true
+burn.workspace = true
+burn-wgpu.workspace = true

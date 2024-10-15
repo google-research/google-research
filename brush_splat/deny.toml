@@ -1,0 +1,113 @@
+# https://github.com/EmbarkStudios/cargo-deny
+#
+# cargo-deny checks the dependency tree for copy-left licenses,
+# duplicate dependencies, and rustsec advisories (https://rustsec.org/advisories).
+#
+# Install: `cargo install cargo-deny`
+# Check: `cargo deny check`.
+
+# Note: running just `cargo deny check` without a `--target` can result in
+# false positives due to https://github.com/EmbarkStudios/cargo-deny/issues/324
+[graph]
+targets = [
+    { triple = "aarch64-apple-darwin" },
+    { triple = "wasm32-unknown-unknown" },
+    { triple = "x86_64-apple-darwin" },
+    { triple = "x86_64-pc-windows-msvc" },
+    { triple = "x86_64-unknown-linux-gnu" },
+    { triple = "x86_64-unknown-linux-musl" },
+]
+all-features = true
+
+[advisories]
+version = 2
+ignore = []
+
+[bans]
+multiple-versions = "deny"
+deny = [
+    { name = "openssl-sys", reason = "Use rustls" },
+    { name = "openssl", reason = "Use rustls" },
+]
+
+skip = [
+    # common small deps.
+    { name = "bit-set" },
+    { name = "bit-vec" },
+    { name = "bitflags" },
+    { name = 'cfg_aliases' },
+    { name = 'syn' },
+    { name = 'itertools' },
+
+    # Rfd problematic deps.
+    { name = 'futures-lite' },      # Duplicate in rfd.
+    { name = 'fastrand' },          # Duplicate in rfd.
+    { name = 'event-listener' },    # Duplicate in rfd.
+    { name = 'async-io' },          # Duplicate in rfd.
+    { name = 'async-lock' },        # Duplicate in rfd.
+    { name = 'async-fs' },          # Duplicate in rfd.
+    { name = 'polling' },           # Duplicate in rfd.
+    { name = 'memoffset' },         # Duplicate in rfd.
+    { name = 'linux-raw-sys' },     # Duplicate in rfd.
+    { name = 'toml_edit' },         # Duplicate in rfd.
+    { name = 'rustix' },            # Duplicate in rfd.
+    { name = 'raw-window-handle' }, # Old version from rfd.
+
+    # Custom ply fork.
+    { name = "ply-rs" },         # Custom fork & rerun version.
+    { name = 'peg' },            # Custom ply fork & rerun version.
+    { name = 'peg-macros' },     # Custom ply fork & rerun version.
+    { name = 'peg-runtime' },    # Custom ply fork & rerun version.
+    { name = 'cargo_metadata' }, # Duplicate from custom ply + rerun
+
+    # Egui at head
+    { name = 'emath' }, # Duplicate from custom egui + rerun.
+
+    # Other
+    { name = 'bincode' },             # Burn uses rc2, puffin 1.3.1
+    { name = 'windows-core' },        # Wgpu & rerun
+    { name = 'windows' },             # Wgpu & rerun
+    { name = "web-time" },            # Old version from egui & rerun.
+    { name = 'windows_x86_64_msvc' }, # Old version from winit.
+    { name = 'windows_x86_64_gnu' },  # Old version from winit.
+    { name = 'windows-targets' },     # Old version from winit.
+    { name = 'windows-sys' },         # Old version from winit.
+    { name = 'miniz_oxide' },         # Rerun & burn
+    { name = 'hashbrown' },
+]
+
+[licenses]
+version = 2
+private = { ignore = true }
+confidence-threshold = 0.93 # We want really high confidence when inferring licenses from text
+allow = [
+    "Apache-2.0 WITH LLVM-exception", # https://spdx.org/licenses/LLVM-exception.html
+    "Apache-2.0",                     # https://tldrlegal.com/license/apache-license-2.0-(apache-2.0)
+    "BSD-2-Clause",                   # https://tldrlegal.com/license/bsd-2-clause-license-(freebsd)
+    "BSD-3-Clause",                   # https://tldrlegal.com/license/bsd-3-clause-license-(revised)
+    "BSL-1.0",                        # https://tldrlegal.com/license/boost-software-license-1.0-explained
+    "CC0-1.0",                        # https://creativecommons.org/publicdomain/zero/1.0/
+    "ISC",                            # https://www.tldrlegal.com/license/isc-license
+    "LicenseRef-UFL-1.0",             # no official SPDX, see https://github.com/emilk/egui/issues/2321
+    "MIT",                            # https://tldrlegal.com/license/mit-license
+    "MPL-2.0",                        # https://www.mozilla.org/en-US/MPL/2.0/FAQ/ - see Q11. Used by webpki-roots on Linux.
+    "OFL-1.1",                        # https://spdx.org/licenses/OFL-1.1.html
+    "Unicode-DFS-2016",               # https://spdx.org/licenses/Unicode-DFS-2016.html
+    "Zlib",                           # https://tldrlegal.com/license/zlib-libpng-license-(zlib)
+]
+exceptions = []
+
+[[licenses.clarify]]
+name = "webpki"
+expression = "ISC"
+license-files = [{ path = "LICENSE", hash = 0x001c7e6c }]
+
+[[licenses.clarify]]
+name = "ring"
+expression = "MIT AND ISC AND OpenSSL"
+license-files = [{ path = "LICENSE", hash = 0xbd0eed23 }]
+
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "allow"

@@ -1,0 +1,18 @@
+[package]
+name = "brush-train"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+brush-render.path = "../brush-render"
+anyhow.workspace = true
+image.workspace = true
+glam.workspace = true
+burn.workspace = true
+rand.workspace = true
+tracing.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+gloo-timers.workspace = true

@@ -1,0 +1,23 @@
+[package]
+name = "brush-sort"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+brush-kernel.path = "../brush-kernel"
+burn.workspace = true
+burn-wgpu.workspace = true
+burn-jit.workspace = true
+tracing.workspace = true
+naga_oil.workspace = true
+bytemuck.workspace = true
+naga.workspace = true
+
+[dev-dependencies]
+rand.workspace = true
+
+[build-dependencies]
+brush-wgsl.path = "../brush-wgsl"
+miette.workspace = true
