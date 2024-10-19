@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -424,7 +424,7 @@ class BERTLayoutTrainer(base_trainer.LayoutBaseTrainer):
       asset_num = np.random.choice(max_asset_num, batch_size, p=prior) + 1
       rng, sample_rng = jax.random.split(rng, 2)
       p_rng = jax.random.split(sample_rng, jax.local_device_count())
-      test_batch = jax.tree_map(lambda x: x._numpy(), test_batch)  # pylint: disable=protected-access
+      test_batch = jax.tree.map(lambda x: x._numpy(), test_batch)  # pylint: disable=protected-access
       test_batch, _ = self.preprocess_batch(test_batch, batch_size, dataset,
                                             use_vertical)
       if test_batch is None or (conditional == "none" and

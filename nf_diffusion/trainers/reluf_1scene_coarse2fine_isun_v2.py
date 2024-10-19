@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -251,7 +251,7 @@ def evaluate(
   with utils.StepTraceContextHelper("eval", 0) as trace_context:
     for step, batch in enumerate(eval_ds):  # pytype: disable=wrong-arg-types
       logging.info("Eval step: %d", step)
-      data = jax.tree_map(jnp.asarray, batch)
+      data = jax.tree.map(jnp.asarray, batch)
       rays, colors = data
       rays = (rays["ray_origins"], rays["ray_directions"])
       gt = colors["ray_colors"]

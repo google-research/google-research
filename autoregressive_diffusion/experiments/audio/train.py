@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -229,7 +229,7 @@ def train_and_evaluate(
     raise ValueError(f'Unknown dataset {config.dataset.name}.')
 
   # Immediately create infinite iterators.
-  it = jax.tree_map(util_fns.get_iterator, ds)
+  it = jax.tree.map(util_fns.get_iterator, ds)
 
   # TODO(agritsenko): Can we fix the ugly nested dicts?
   config.data_shape = ds_metadata['train']['shape']['inputs'][2:]

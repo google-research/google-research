@@ -2,8 +2,9 @@
 
 ## Introduction
 
-We present a novel problem, namely **video timeline modeling**. Our objective is to create a video-associated timeline from a set of videos related to a specific topic, thereby facilitating the content and structure understanding of the story being told. This problem has significant potential in various real-world applications, such as news story summarization. To bootstrap research in this area, we curate a realistic benchmark dataset, **YouTube-News-Timeline**
+We present a novel problem, namely **video timeline modeling**. Our objective is to create a video-associated timeline from a set of videos related to a specific topic, thereby facilitating the content and structure understanding of the story being told. This problem has significant potential in various real-world applications, such as news story summarization. To bootstrap research in this area, we curate a realistic benchmark dataset, **YouTube-News-Timeline**.
 
+For more details please check our paper: https://arxiv.org/abs/2309.13446
 
 ![](https://github.com/google-research/google-research/blob/master/video_timeline_modeling/vtm.png)
 
@@ -56,13 +57,19 @@ The dataset is available via [this Google Drive link](https://drive.google.com/d
     ] // The URL links of the retrieved YouTube news videos. Each list in the nested list corresponds to one node on the timeline. These nodes are ordered in the nested list.
 }
 ```
+Due to data privacy concern, we periodically refresh our dataset to remove invalid YouTube videos thus the exact size of our dataset may change slightly.
 
-## Note
-We are working on organizing the code to run baseline models. Will update it once it is ready.
 
 ## Citation 
-
-Add it later
+```
+@inproceedings{
+  liu2023video,
+  title={Video Timeline Modeling For News Story Understanding},
+  author={Liu, Meng and Zhang, Mingda and Liu, Jialu and Dai, Hanjun and Yang, Ming-Hsuan and Ji, Shuiwang and Feng, Zheyun and Gong, Boqing},
+  booktitle={Thirty-seventh Conference on Neural Information Processing Systems Datasets and Benchmarks Track},
+  year={2023}
+}
+```
 
 ## Disclaimer
 The reference timelines used to construct the dataset are crawled from the web, and the videos are sourced from YouTube. The opinions expressed in the timelines and videos do not necessarily reflect our own, and we do not endorse or promote any specific viewpoint. The dataset is intended for research and educational purposes only, and users should exercise their own judgment when interpreting and using it.

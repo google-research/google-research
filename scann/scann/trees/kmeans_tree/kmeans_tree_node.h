@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,18 +27,22 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/flags/declare.h"
 #include "absl/flags/flag.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_castops.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/partitioning/anisotropic.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
 #include "scann/trees/kmeans_tree/training_options.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"
-#include "tensorflow/core/platform/macros.h"
 
 namespace research_scann {
 
@@ -48,11 +52,18 @@ class KMeansTreeNode {
 
   explicit KMeansTreeNode(int32_t leaf_id) { leaf_id_ = leaf_id; }
 
+  static KMeansTreeNode CreateFlat(DenseDataset<float> centers);
+
   void Reset();
 
   bool IsLeaf() const { return children_.empty(); }
 
   int32_t LeafId() const { return leaf_id_; }
+
+  template <typename T>
+  Status ApplyAvq(const DenseDataset<T>& dataset,
+                  ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+                  float avq_eta, ThreadPool* pool_or_null = nullptr);
 
   const DenseDataset<float>& Centers() const { return float_centers_; }
 
@@ -67,6 +78,9 @@ class KMeansTreeNode {
   }
 
   DatapointPtr<float> cur_node_center() const { return cur_node_center_; }
+
+  template <typename Real>
+  const DenseDataset<Real>& GetCentersByTemplateType() const;
 
  private:
   friend class KMeansTree;
@@ -103,9 +117,6 @@ class KMeansTreeNode {
   int32_t NumberLeaves(int32_t m);
 
   void PopulateCurNodeCenters();
-
-  template <typename Real>
-  const DenseDataset<Real>& GetCentersByTemplateType() const;
 
   void UnionIndicesImpl(absl::flat_hash_set<DatapointIndex>* union_hash) const;
 
@@ -267,6 +278,82 @@ Status KMeansTreeNode::FindChildrenWithSpilling(
   return kmeans_tree_internal::PostprocessDistancesForSpilling(
       MakeMutableSpan(distances), spilling_type, spilling_threshold,
       max_centers, child_centers);
+}
+
+template <typename T>
+Status KMeansTreeNode::ApplyAvq(
+    const DenseDataset<T>& dataset,
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token, float avq_eta,
+    ThreadPool* pool_or_null) {
+  if (IsLeaf()) return OkStatus();
+  DenseDataset<float> new_centers;
+  new_centers.set_dimensionality(float_centers_.dimensionality());
+  new_centers.Resize(float_centers_.size());
+
+  auto create_child_dataset = [](const DenseDataset<T>& dataset,
+                                 ConstSpan<DatapointIndex> child_datapoint_idxs)
+      -> StatusOr<DenseDataset<float>> {
+    vector<float> result(child_datapoint_idxs.size() *
+                         dataset.dimensionality());
+    auto output_it = result.begin();
+    for (DatapointIndex i : child_datapoint_idxs) {
+      ConstSpan<T> values = dataset[i].values_span();
+      std::copy(values.begin(), values.end(), output_it);
+      output_it += values.size();
+    }
+    SCANN_RET_CHECK(output_it == result.end()) << result.end() - output_it;
+    return DenseDataset<float>(std::move(result), child_datapoint_idxs.size());
+  };
+
+  double rescale_numerator = 0, rescale_denominator = 0;
+  absl::Mutex rescaling_mutex;
+  SCANN_ASSIGN_OR_RETURN(auto mutator, new_centers.GetMutator());
+  Status status = ParallelForWithStatus<1>(
+      Seq(children_.size()), pool_or_null, [&](size_t child_idx) -> Status {
+        auto& child = children_[child_idx];
+        if (child.IsLeaf()) {
+          const int32_t child_token = child.leaf_id_;
+          ConstSpan<DatapointIndex> child_datapoint_idxs =
+              datapoints_by_token[child_token];
+          if (child_datapoint_idxs.empty()) {
+            SCANN_RETURN_IF_ERROR(
+                mutator->UpdateDatapoint(float_centers_[child_idx], child_idx));
+          } else {
+            SCANN_ASSIGN_OR_RETURN(
+                DenseDataset<float> child_dps,
+                create_child_dataset(dataset, child_datapoint_idxs));
+            auto eigen_center = ComputeAVQPartition(
+                child_dps.data(), child_dps.dimensionality(), avq_eta);
+            ConstSpan<float> center_span(eigen_center.data(),
+                                         eigen_center.size());
+
+            std::pair<double, double> rescale_res =
+                ComputeRescaleFraction(center_span, child_dps.data());
+            SCANN_RETURN_IF_ERROR(mutator->UpdateDatapoint(
+                MakeDatapointPtr(center_span), child_idx));
+            absl::MutexLock lock(&rescaling_mutex);
+            rescale_numerator += rescale_res.first;
+            rescale_denominator += rescale_res.second;
+          }
+        } else {
+          SCANN_RETURN_IF_ERROR(
+              child.ApplyAvq(dataset, datapoints_by_token, avq_eta));
+          SCANN_RETURN_IF_ERROR(
+              mutator->UpdateDatapoint(float_centers_[child_idx], child_idx));
+        }
+        return OkStatus();
+      });
+  if (rescale_denominator > 0) {
+    double rescale = rescale_numerator / rescale_denominator;
+
+    for (float& f : new_centers.mutable_data()) f *= rescale;
+  }
+
+  float_centers_ = std::move(new_centers);
+  fixed_point_centers_ = decltype(fixed_point_centers_)();
+  inv_int8_multipliers_.clear();
+
+  return OkStatus();
 }
 
 }  // namespace research_scann

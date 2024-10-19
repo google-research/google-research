@@ -1,0 +1,15 @@
+[package]
+name = "rrfd"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+jni = "0.21.1"
+lazy_static = "1.5.0"
+async-channel = "2.3.1"
+anyhow.workspace = true
+
+[target.'cfg(not(target_os = "android"))'.dependencies]
+rfd = "0.12.1"

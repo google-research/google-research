@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from nltk.tokenize import word_tokenize
 from nltk.translate import meteor_score
 import sacrebleu
 
-from rouge import rouge_scorer
+from rouge_score import rouge_scorer
 
 
 class MatchingFunction(metaclass=abc.ABCMeta):
@@ -42,7 +42,7 @@ class RougeMatchingFunction(MatchingFunction):
   """ROUGE matching function."""
 
   def __init__(self, rouge_type):
-    self._rouge = rouge_scorer.RougeScorer(rouge_type=[rouge_type])
+    self._rouge = rouge_scorer.RougeScorer(rouge_types=[rouge_type])
     self.rouge_type = rouge_type
 
   def __call__(

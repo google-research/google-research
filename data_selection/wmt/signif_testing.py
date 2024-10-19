@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,10 +50,10 @@ def per_host_sum_pmap(in_tree):
   host_psum = jax.pmap(lambda x: jax.lax.psum(x, "i"), "i", devices=devices)
 
   def pre_pmap(xs):
-    return jax.tree_map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
+    return jax.tree.map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
 
   def post_pmap(xs):
-    return jax.tree_map(lambda x: x[0], xs)
+    return jax.tree.map(lambda x: x[0], xs)
 
   return post_pmap(host_psum(pre_pmap(in_tree)))
 

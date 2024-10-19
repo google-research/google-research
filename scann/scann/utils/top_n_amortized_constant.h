@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <functional>
 #include <utility>
 
+#include "absl/types/span.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
@@ -85,6 +86,13 @@ class TopNAmortizedConstant {
     return result;
   }
 
+  absl::Span<const T> FinishUnsorted() {
+    DCHECK_GT(limit_, 0) << "Cannot call TakeUnsorted on uninitialized "
+                            "TopNAmortizedConstant instance.";
+    if (elements_.size() > limit_) PartitionAndResizeToLimit();
+    return absl::MakeConstSpan(elements_);
+  }
+
   const T& approx_bottom() const {
     DCHECK(!elements_.empty());
     return approx_bottom_;
@@ -108,6 +116,12 @@ class TopNAmortizedConstant {
   void reserve(size_t n_elements) {
     DCHECK_LE(n_elements, 2 * limit_);
     elements_.reserve(n_elements);
+  }
+
+  void reset(size_t limit) {
+    elements_.clear();
+    limit_ = limit;
+    approx_bottom_ = T();
   }
 
  protected:

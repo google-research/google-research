@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include "scann/utils/intrinsics/avx512.h"
 #include "scann/utils/intrinsics/fallback.h"
 #include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/sse4.h"
 
 #endif

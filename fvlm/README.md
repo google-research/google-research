@@ -1,6 +1,7 @@
 # F-VLM: Open-Vocabulary Object Detection upon Frozen Vision and Language Models
 
-This is a JAX/Flax demo of the ICLR-2023 paper ["F-VLM: Open-Vocabulary Object Detection upon Frozen Vision and Language Models"](https://arxiv.org/abs/2209.15639).
+This is the JAX/FLAX implementation of the ICLR-2023 paper ["F-VLM: Open-Vocabulary Object Detection upon Frozen Vision and Language Models"](https://arxiv.org/abs/2209.15639).
+The model is also supported on the Cloud Vertex API [here](https://console.cloud.google.com/vertex-ai/publishers/google/model-garden/109), where you can train and predict with this model on Google Cloud Vertex AI Training and Prediction service using the provided notebook at the top of the model card.
 
 
 ## Installation
@@ -29,6 +30,14 @@ Run the following commands from the root fvlm directory.
 cd ./checkpoints
 ./download.sh
 ```
+
+For users who want to use the FLAX checkpoints directly rather than tf.SavedModel, we have prepared the checkpoints for downloading by the commands below:
+
+```
+MODEL="r50"  # Supported model: r50, r50x4, r50x16
+wget "https://storage.googleapis.com/cloud-tpu-checkpoints/detection/projects/fvlm/jax_checkpoints/${MODEL}_checkpoint_184000"
+```
+We recommend users to run the above commands in the checkpoints directory.
 
 ## Run the demo.
 Run the following commands from the root fvlm directory. This will run F-VLM demo using ResNet50 backbone.

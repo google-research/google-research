@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "absl/base/internal/spinlock.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"
 
@@ -46,8 +47,8 @@ Status Partitioner<T>::TokenForDatapointBatched(const TypedDataset<T>& queries,
 
 template <typename T>
 Status Partitioner<T>::TokensForDatapointWithSpillingBatched(
-    const TypedDataset<T>& queries,
-    MutableSpan<vector<int32_t>> results) const {
+    const TypedDataset<T>& queries, MutableSpan<vector<int32_t>> results,
+    ThreadPool*) const {
   if (results.size() != queries.size()) {
     return InvalidArgumentError(
         absl::StrCat("queries.size must be equal to results.size.  (",

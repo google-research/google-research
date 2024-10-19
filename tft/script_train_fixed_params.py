@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -111,7 +111,7 @@ def main(expt_name,
   for k in params:
     print("{}: {}".format(k, params[k]))
 
-  best_loss = np.Inf
+  best_loss = np.inf
   for _ in range(num_repeats):
 
     tf.reset_default_graph()

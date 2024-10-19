@@ -1,0 +1,17 @@
+[package]
+name = "brush-kernel"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+burn.workspace = true
+burn-jit.workspace = true
+bytemuck.workspace = true
+naga_oil.workspace = true
+naga.workspace = true
+
+[build-dependencies]
+brush-wgsl.path = "../brush-wgsl"
+miette.workspace = true

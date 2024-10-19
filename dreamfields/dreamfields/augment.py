@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ def augment_rendering(config, z, acc, rng):
     if config.get('bg_blur_std_range', None):
       min_blur, max_blur = config.bg_blur_std_range
       blur_std = random.uniform(blur_key) * (max_blur - min_blur) + min_blur
-      bg = dm_pix.gaussian_blur(bg, blur_std, kernel_size=15)
+      bg = dm_pix.gaussian_blur(bg, blur_std, kernel_size=15)  # pytype: disable=wrong-arg-types  # dataclasses-replace
 
     # (de)saturate background. values < 1 indicate desaturation (grayscale)
     if config.get('bg_random_saturation_range', None):

@@ -1,0 +1,28 @@
+[package]
+name = "brush-desktop"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "brush_bin"
+path = "src/main.rs"
+
+[dependencies]
+anyhow.workspace = true
+egui.workspace = true
+eframe.workspace = true
+brush-viewer.path = "../brush-viewer"
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen.workspace = true
+console_error_panic_hook.workspace = true
+web-sys.workspace = true
+wasm-logger.workspace = true
+wasm-bindgen-futures.workspace = true
+
+[features]
+tracy = ["brush-viewer/tracy"]
+rerun = ["brush-viewer/rerun"]

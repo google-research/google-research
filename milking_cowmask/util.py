@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ def to_state_list(obj):
     State as a list of jax.numpy arrays
   """
   return jax.device_get(
-      [x[0] for x in jax.tree_leaves(obj)])
+      [x[0] for x in jax.tree.leaves(obj)])
 
 
 def restore_state_list(obj, state_list):
@@ -66,7 +66,7 @@ def restore_state_list(obj, state_list):
   """
   state_list = replicate(state_list)
   structure = jax.tree_util.tree_structure(obj)
-  return jax.tree_unflatten(structure, state_list)
+  return jax.tree.unflatten(structure, state_list)
 
 
 def replicate(xs, n_devices=None):
@@ -78,7 +78,7 @@ def replicate(xs, n_devices=None):
 
 def shard(xs):
   local_device_count = jax.local_device_count()
-  return jax.tree_map(
+  return jax.tree.map(
       lambda x: x.reshape((local_device_count, -1) + x.shape[1:]), xs)
 
 
@@ -89,11 +89,11 @@ def onehot(labels, num_classes):
 
 def pmean(tree, axis_name='batch'):
   num_devices = lax.psum(1., axis_name)
-  return jax.tree_map(lambda x: lax.psum(x, axis_name) / num_devices, tree)
+  return jax.tree.map(lambda x: lax.psum(x, axis_name) / num_devices, tree)
 
 
 def psum(tree, axis_name='batch'):
-  return jax.tree_map(lambda x: lax.psum(x, axis_name), tree)
+  return jax.tree.map(lambda x: lax.psum(x, axis_name), tree)
 
 
 def pad_classification_batch(batch, batch_size):
@@ -129,10 +129,10 @@ def pad_classification_batch(batch, batch_size):
 
 def stack_forest(forest):
   stack_args = lambda *args: onp.stack(args)
-  return jax.tree_map(stack_args, *forest)
+  return jax.tree.map(stack_args, *forest)
 
 
 def get_metrics(device_metrics):
-  device_metrics = jax.tree_map(lambda x: x[0], device_metrics)
+  device_metrics = jax.tree.map(lambda x: x[0], device_metrics)
   metrics_np = jax.device_get(device_metrics)
   return stack_forest(metrics_np)

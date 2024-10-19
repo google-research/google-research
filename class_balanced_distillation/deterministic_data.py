@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -48,7 +48,7 @@ Synopsis for deterministic training with multiple hosts:
   )
   ds_iter = iter(ds)
   for _ in range(num_train_steps):
-    batch = jax.tree_map(lambda x: x._numpy(), next(ds_iter)
+    batch = jax.tree.map(lambda x: x._numpy(), next(ds_iter)
     # (training step)
 
 """

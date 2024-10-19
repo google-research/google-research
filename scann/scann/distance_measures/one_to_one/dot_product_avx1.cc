@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,11 +16,13 @@
 
 #include <cstdint>
 
+#include "absl/log/check.h"
+#include "scann/utils/intrinsics/attributes.h"
+
 #ifdef __x86_64__
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/internal/avx_funcs.h"
-#include "scann/utils/intrinsics/avx1.h"
 
 namespace research_scann {
 namespace dp_internal {

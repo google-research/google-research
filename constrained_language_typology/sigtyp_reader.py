@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -240,7 +240,7 @@ def read(filename, categorical_as_ints=False, verbose=True):
     logging.info("Preparing data ...")
   for feature_name in sorted(feature_values.keys()):
     df.insert(num_columns, feature_name,
-              np.NaN if categorical_as_ints else None)
+              np.nan if categorical_as_ints else None)
     num_columns += 1
   genera = data_info[const.DATA_KEY_GENERA]
   families = data_info[const.DATA_KEY_FAMILIES]
@@ -258,7 +258,7 @@ def read(filename, categorical_as_ints=False, verbose=True):
     for feature_name in sorted(current_features.keys()):
       value = current_features[feature_name]
       if value == const.UNKNOWN_FEATURE_VALUE:
-        value = np.NaN
+        value = np.nan
       else:
         assert feature_name in feature_values
         if categorical_as_ints:

@@ -6,9 +6,9 @@
 
 #ifdef __x86_64__
 
+#include "absl/base/prefetch.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/intrinsics/avx2.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {
@@ -65,11 +65,9 @@ SCANN_AVX2_INLINE Avx2<int16_t, kNumQueries, 2> Avx2LUT16BottomLoop(
   for (; num_unroll_iter != 0; --num_unroll_iter) {
     constexpr uint32_t kPointsPerIter = 32;
     if constexpr (kPrefetch == PrefetchStrategy::kSeq) {
-      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-          data_start + kPrefetchBytesAhead);
+      absl::PrefetchToLocalCache(data_start + kPrefetchBytesAhead);
     } else if constexpr (kPrefetch == PrefetchStrategy::kSmart) {
-      ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(
-          prefetch_start);
+      absl::PrefetchToLocalCacheNta(prefetch_start);
       prefetch_start += kPointsPerIter;
     }
 
@@ -489,8 +487,10 @@ SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
           }
         }
 
-        const bool needs_gc =
-            topn_mutators[j].Push(dp_idx, distances_buffer[offset]);
+        DCHECK_LE(distances_buffer[offset],
+                  topn_mutators[j].epsilon() + (*inv_mults[j])[0]);
+        const bool needs_gc = topn_mutators[j].PushNoEpsilonCheck(
+            dp_idx, distances_buffer[offset]);
         if (ABSL_PREDICT_FALSE(needs_gc)) {
           topn_mutators[j].GarbageCollect();
 

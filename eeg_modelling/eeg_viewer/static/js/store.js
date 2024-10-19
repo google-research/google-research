@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,6 +37,7 @@ const JspbMap = goog.require('jspb.Map');
 const SimilarPatternsResponse = goog.require('proto.eeg_modelling.protos.SimilarPatternsResponse');
 const SimilarityCurveResponse = goog.require('proto.eeg_modelling.protos.SimilarityCurveResponse');
 const log = goog.require('goog.log');
+const {DO_NOT_FREEZE__LEGACY_OPTION, asLegacyMutableArray} = goog.require('jspb.types.legacy_mutable_array');
 const {assert, assertArray, assertInstanceof, assertNumber, assertString} = goog.require('goog.asserts');
 
 /**
@@ -799,14 +800,16 @@ class Store {
     newStoreData.patientId = waveformMeta.getPatientId();
     newStoreData.sstableKey = waveformMeta.getSstableKey() || null;
     if (data.hasPredictionChunk() &&
-        data.getPredictionChunk().getChunkStart() != null &&
-        data.getPredictionChunk().getChunkDuration() != null) {
+        data.getPredictionChunk().getChunkStart_asLegacyNumberOrString() !=
+            null &&
+        data.getPredictionChunk().getChunkDuration_asLegacyNumberOrString() !=
+            null) {
       const predictionChunk = data.getPredictionChunk();
       newStoreData.attributionMaps = predictionChunk.getAttributionDataMap();
       newStoreData.predictionChunkSize = assertNumber(
-          predictionChunk.getChunkDuration());
-      newStoreData.predictionChunkStart = assertNumber(
-          predictionChunk.getChunkStart());
+          predictionChunk.getChunkDuration_asLegacyNumberOrString());
+      newStoreData.predictionChunkStart =
+          assertNumber(predictionChunk.getChunkStart_asLegacyNumberOrString());
     } else {
       newStoreData.attributionMaps = null;
       newStoreData.predictionChunkSize = null;
@@ -814,7 +817,8 @@ class Store {
     }
     if (data.hasPredictionMetadata()) {
       const predictionMeta = data.getPredictionMetadata();
-      newStoreData.chunkScores = predictionMeta.getChunkScoresList();
+      newStoreData.chunkScores = asLegacyMutableArray(
+          predictionMeta.getChunkScoresList(DO_NOT_FREEZE__LEGACY_OPTION));
     } else {
       newStoreData.chunkScores = null;
     }
@@ -1178,7 +1182,8 @@ class Store {
    */
   handleSimilarityCurveResponseOk(data) {
     return {
-      similarityCurveResult: data.getScoresList(),
+      similarityCurveResult: asLegacyMutableArray(
+          data.getScoresList(DO_NOT_FREEZE__LEGACY_OPTION)),
     };
   }
 
@@ -1431,11 +1436,17 @@ class Store {
    */
   convertChannelDataIdToIndexStr(channelDataId) {
     if (channelDataId.hasSingleChannel()) {
-      return channelDataId.getSingleChannel().getIndex().toString();
+      return channelDataId.getSingleChannel()
+          .getIndex_asLegacyNumberOrString()
+          .toString();
     } else if (channelDataId.hasBipolarChannel()) {
       return [
-        channelDataId.getBipolarChannel().getIndex().toString(),
-        channelDataId.getBipolarChannel().getReferentialIndex().toString()
+        channelDataId.getBipolarChannel()
+            .getIndex_asLegacyNumberOrString()
+            .toString(),
+        channelDataId.getBipolarChannel()
+            .getReferentialIndex_asLegacyNumberOrString()
+            .toString()
       ].join('-');
     } else {
       log.error(this.logger_, 'Empty ChannelDataId');

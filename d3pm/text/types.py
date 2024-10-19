@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -44,13 +44,12 @@ class DatasetInfo:
 
 
 def _convert_spec(spec):
-  return jax.ShapeDtypeStruct(
-      shape=spec.shape, dtype=spec.dtype.as_numpy_dtype, named_shape=spec.name)
+  return jax.ShapeDtypeStruct(shape=spec.shape, dtype=spec.dtype.as_numpy_dtype)
 
 
 def get_dataset_info(ds, vocab=None):
   """Wraps a set of TFDS datasets with vocabularies."""
-  shapes = jax.tree_map(_convert_spec, ds.element_spec)
+  shapes = jax.tree.map(_convert_spec, ds.element_spec)
 
   if not isinstance(shapes, dict):
     raise ValueError(

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -47,7 +47,7 @@ def get_iterator(
     Dataset iterator.
   """
   # Convert to numpy.
-  it = map(lambda x: jax.tree_map(lambda y: y._numpy(), x), iter(ds))  # pylint: disable=protected-access
+  it = map(lambda x: jax.tree.map(lambda y: y._numpy(), x), iter(ds))  # pylint: disable=protected-access
   if prefetch:
     it = flax.jax_utils.prefetch_to_device(it, prefetch)
   return it
@@ -69,13 +69,13 @@ def apply_weight(x, weight):
 
 def global_norm(tree, eps=1e-10):
   return jnp.sqrt(eps + jnp.sum(jnp.asarray(
-      [jnp.sum(jnp.square(x)) for x in jax.tree_leaves(tree)])))
+      [jnp.sum(jnp.square(x)) for x in jax.tree.leaves(tree)])))
 
 
 def clip_by_global_norm(tree, clip_norm, eps=1e-10):
   norm = global_norm(tree)
   scale = jnp.minimum(1.0, clip_norm / norm + eps)
-  return jax.tree_map(lambda x: x * scale, tree), norm
+  return jax.tree.map(lambda x: x * scale, tree), norm
 
 
 def batch_permute(array, permutation):

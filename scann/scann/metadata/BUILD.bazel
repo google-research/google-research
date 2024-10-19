@@ -14,13 +14,12 @@ cc_library(
     name = "metadata_getter",
     srcs = ["metadata_getter.cc"],
     hdrs = ["metadata_getter.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/data_format:features_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:types",
-        "@com_google_absl//absl/status",
         "@com_google_absl//absl/synchronization",
     ],
 )

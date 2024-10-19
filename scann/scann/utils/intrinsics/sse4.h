@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -416,6 +416,25 @@ class Sse4<T, kNumRegistersInferred> {
     return BinaryOperatorImpl(*this, other, &BitwiseOr);
   }
 
+  static SCANN_SSE4_INLINE auto BitwiseXor(IntelType a, IntelType b) {
+    if constexpr (IsSame<T, float>()) {
+      return _mm_xor_ps(a, b);
+    }
+    if constexpr (IsSame<T, double>()) {
+      return _mm_xor_pd(a, b);
+    }
+    if constexpr (IsSameAny<T, int8_t, uint8_t, int16_t, uint16_t, int32_t,
+                            uint32_t, int64_t, uint64_t>()) {
+      return _mm_xor_si128(a, b);
+    }
+    LOG(FATAL) << "Undefined";
+  }
+
+  template <size_t kOther>
+  SCANN_SSE4_INLINE auto operator^(const Sse4<T, kOther>& other) const {
+    return BinaryOperatorImpl(*this, other, &BitwiseXor);
+  }
+
   static SCANN_SSE4_INLINE IntelType ShiftRight(IntelType x, int count) {
     static_assert(!IsSameAny<T, int8_t, uint8_t>(),
                   "There's no 8-bit '>>' instruction");
@@ -524,6 +543,11 @@ class Sse4<T, kNumRegistersInferred> {
   template <size_t kOther>
   SCANN_SSE4_INLINE Sse4& operator|=(const Sse4<T, kOther>& other) {
     return AccumulateOperatorImpl(other, &BitwiseOr);
+  }
+
+  template <size_t kOther>
+  SCANN_SSE4_INLINE Sse4& operator^=(const Sse4<T, kOther>& other) {
+    return AccumulateOperatorImpl(other, &BitwiseXor);
   }
 
   SCANN_SSE4_INLINE Sse4& operator<<=(int count) {

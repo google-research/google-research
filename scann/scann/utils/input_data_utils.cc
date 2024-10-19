@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,13 @@ namespace research_scann {
 StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
+    const DenseDataset<int16_t>* bfloat16_dataset,
     const vector<int64_t>* crowding_attributes) {
-  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point) {
+  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point &&
+      !bfloat16_dataset) {
     return InvalidArgumentError(
-        "dataset, hashed_dataset and pre_quantized_fixed_point are all null.");
+        "dataset, hashed_dataset, pre_quantized_fixed_point, and "
+        "bfloat16_dataset are all null.");
   }
 
   DatapointIndex sz = kInvalidDatapointIndex;
@@ -37,7 +40,7 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
       sz = hashed_dataset->size();
     } else {
       SCANN_RET_CHECK_EQ(sz, hashed_dataset->size())
-              .SetErrorCode(error::INVALID_ARGUMENT)
+              .SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original and hashed database sizes.";
     }
   }
@@ -49,8 +52,19 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     } else {
       SCANN_RET_CHECK_EQ(sz,
                          pre_quantized_fixed_point->fixed_point_dataset->size())
-              .SetErrorCode(error::INVALID_ARGUMENT)
+              .SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original/hashed database and fixed-point "
+             "database sizes.";
+    }
+  }
+
+  if (bfloat16_dataset) {
+    if (sz == kInvalidDatapointIndex) {
+      sz = bfloat16_dataset->size();
+    } else {
+      SCANN_RET_CHECK_EQ(sz, bfloat16_dataset->size())
+              .SetCode(absl::StatusCode::kInvalidArgument)
+          << "Mismatch between original/hashed/int8 database and bfloat16 "
              "database sizes.";
     }
   }
@@ -68,10 +82,13 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
 StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     const HashConfig& config, const Dataset* dataset,
     const DenseDataset<uint8_t>* hashed_dataset,
-    const PreQuantizedFixedPoint* pre_quantized_fixed_point) {
-  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point) {
+    const PreQuantizedFixedPoint* pre_quantized_fixed_point,
+    const DenseDataset<int16_t>* bfloat16_dataset) {
+  if (!dataset && !hashed_dataset && !pre_quantized_fixed_point &&
+      !bfloat16_dataset) {
     return InvalidArgumentError(
-        "dataset, hashed_dataset and pre_quantized_fixed_point are all null.");
+        "dataset, hashed_dataset, pre_quantized_fixed_point, and "
+        "bfloat16_dataset are all null.");
   }
 
   DimensionIndex dims = kInvalidDimension;
@@ -83,9 +100,20 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     if (dims == kInvalidDimension) {
       dims = d;
     } else {
-      SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
+      SCANN_RET_CHECK_EQ(dims, d).SetCode(absl::StatusCode::kInvalidArgument)
           << "Mismatch between original and fixed-point database "
              "dimensionalities.";
+    }
+  }
+
+  if (bfloat16_dataset) {
+    DimensionIndex d = bfloat16_dataset->dimensionality();
+    if (dims == kInvalidDimension) {
+      dims = d;
+    } else {
+      SCANN_RET_CHECK_EQ(dims, d).SetCode(absl::StatusCode::kInvalidArgument)
+          << "Mismatch between original/fixed-point database and bfloat16 "
+             "database dimensionalities.";
     }
   }
 
@@ -95,9 +123,9 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
       if (dims == kInvalidDimension) {
         dims = d;
       } else {
-        SCANN_RET_CHECK_EQ(dims, d).SetErrorCode(error::INVALID_ARGUMENT)
-            << "Mismatch between original/fixed-point and hash projection "
-               "dimensionalities.";
+        SCANN_RET_CHECK_EQ(dims, d).SetCode(absl::StatusCode::kInvalidArgument)
+            << "Mismatch between original/fixed-point/bfloat16 and hash "
+               "projection dimensionalities.";
       }
     }
     return OkStatus();

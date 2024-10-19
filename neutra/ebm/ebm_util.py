@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ def mnist_dataset(num_channels=1):
     with np.load(f, allow_pickle=True) as npf:
       x_train = npf['x_train']
 
-  x_train = np.lib.pad(x_train, ((0, 0), (2, 2), (2, 2)), 'minimum')
+  x_train = np.pad(x_train, ((0, 0), (2, 2), (2, 2)), 'minimum')
   x_train = x_train[Ellipsis, tf.newaxis]
   x_train = np.repeat(x_train, num_channels, axis=3)
 

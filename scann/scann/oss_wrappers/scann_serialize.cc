@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include "absl/base/casts.h"
 #include "absl/base/internal/endian.h"
+#include "absl/strings/string_view.h"
 
 namespace research_scann {
 namespace strings {
@@ -50,6 +51,8 @@ inline std::string Uint32ToKey(uint32_t u32) {
   return key;
 }
 
+std::string Int32ToKey(int32_t i32) { return Uint32ToKey(i32); }
+
 inline std::string Uint64ToKey(uint64_t u64) {
   std::string key;
   KeyFromUint64(u64, &key);
@@ -71,6 +74,8 @@ inline uint32_t KeyToUint32(absl::string_view key) {
   memcpy(&value, key.data(), sizeof(value));
   return absl::gntohl(value);
 }
+
+int32_t KeyToInt32(absl::string_view key) { return KeyToUint32(key); }
 
 inline uint64_t KeyToUint64(absl::string_view key) {
   uint64_t value;

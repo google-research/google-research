@@ -1,7 +1,22 @@
 # ScaNN Release Notes
 
+### 1.3.4
+Internal changes and code cleanup.
+
+### 1.3.3
+Updated to compile against TensorFlow 2.17; **not** backwards-compatible with earlier versions of TensorFlow.
+
+### 1.3.2
+Bfloat16 improvements.
+
+### 1.3.1
+Updated to compile against TensorFlow 2.16; **not** backwards-compatible with earlier versions of TensorFlow.
+
+### 1.3.0
+Adds support for dynamic update (insertions, modifications, and deletions of vectors), bfloat16 distance computation, as well as SOAR ([published in NeurIPS 2023](https://neurips.cc/virtual/2023/poster/71686)). Updated to compile against TensorFlow 2.15 (not backwards-compatible).
+
 ### 1.2.10
-Updated to compile against TensorFlow 2.12; **not** backwards-compatible with earlier versions of TensorFlow.
+Updated to compile against TensorFlow 2.13; **not** backwards-compatible with earlier versions of TensorFlow.
 
 ### 1.2.9
 Updated to compile against TensorFlow 2.11; **not** backwards-compatible with earlier versions of TensorFlow.

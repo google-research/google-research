@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ class KVCache:
   @classmethod
   def physical_axes(cls, circular=False):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(
+    return jax.tree.map(
         partitioning.logical_to_physical, KVCache.logical_axes(circular)
     )
 

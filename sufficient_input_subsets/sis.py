@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -538,7 +538,7 @@ def find_sis(f, threshold, current_input, current_mask, fully_masked_input):
       ordering_over_entire_backselect=np.array(
           ordering_over_entire_backselect, dtype=np.int_),
       values_over_entire_backselect=np.array(
-          values_over_entire_backselect, dtype=np.float_),
+          values_over_entire_backselect, dtype=np.float64),
       mask=mask,
   )
 

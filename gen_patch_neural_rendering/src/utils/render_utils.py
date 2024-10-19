@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ def preprocess_eval_batch(batch, num_rays):
     batch: processed batch
   """
 
-  batch.target_view.rays = jax.tree_map(
+  batch.target_view.rays = jax.tree.map(
       lambda r: r.reshape((num_rays, r.shape[-1])), batch.target_view.rays)
 
   # Remove rgb as it is not required for rendering
@@ -77,13 +77,13 @@ def convert_to_chunk(batch, start_idx, chunk, host_id):
     chunk_batch: padded chunk.
     padding: amount of padding done.
   """
-  chunk_rays = jax.tree_map(lambda r: r[start_idx:start_idx + chunk],
+  chunk_rays = jax.tree.map(lambda r: r[start_idx:start_idx + chunk],
                             batch.target_view.rays)
   chunk_size = chunk_rays.batch_shape[0]
   rays_remaining = chunk_size % jax.device_count()
   if rays_remaining != 0:
     padding = jax.device_count() - rays_remaining
-    chunk_rays = jax.tree_map(
+    chunk_rays = jax.tree.map(
         lambda r: jnp.pad(r, ((0, padding), (0, 0)), mode="edge"), chunk_rays)
   else:
     padding = 0
@@ -93,7 +93,7 @@ def convert_to_chunk(batch, start_idx, chunk, host_id):
   # Distribute rays to hosts
   rays_per_host = chunk_rays.batch_shape[0] // jax.process_count()
   start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
-  chunk_rays = jax.tree_map(lambda r: data_utils.shard(r[start:stop]),
+  chunk_rays = jax.tree.map(lambda r: data_utils.shard(r[start:stop]),
                             chunk_rays)
   chunk_batch = data_types.Batch(target_view=data_types.Views(rays=chunk_rays))
 

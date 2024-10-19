@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ class CQLLearner(acme.Learner):
           critic_grads, optim_state)
       q_params = optax.apply_updates(q_params, critic_update)
 
-      target_q_params = jax.tree_map(lambda x, y: x * (1 - tau) + y * tau,
+      target_q_params = jax.tree.map(lambda x, y: x * (1 - tau) + y * tau,
                                      target_q_params, q_params)
 
       return total_critic_loss_and_aux, q_params, target_q_params, optim_state
@@ -362,7 +362,7 @@ class CQLLearner(acme.Learner):
         rest_t_shape = list(t.shape[1:])
         new_shape = [num_devices, t.shape[0]//num_devices,] + rest_t_shape
         return jnp.reshape(t, new_shape)
-      transitions = jax.tree_map(reshape_for_devices, transitions)
+      transitions = jax.tree.map(reshape_for_devices, transitions)
 
       key, key_alpha, key_critic, key_actor = jax.random.split(state.key, 4)
       if adaptive_entropy_coefficient:
@@ -371,7 +371,7 @@ class CQLLearner(acme.Learner):
         alpha = entropy_coefficient
 
       key_critic = jax.random.split(key_critic, jax.local_device_count())
-      # print(jax.tree_map(lambda t: t.shape, state.q_params))
+      # print(jax.tree.map(lambda t: t.shape, state.q_params))
       total_critic_loss_and_aux, q_params, new_target_q_params, q_optimizer_state = pmapped_critic_update(
           state.q_params,
           state.target_q_params,
@@ -381,8 +381,8 @@ class CQLLearner(acme.Learner):
           cql_alpha,
           transitions,
           key_critic,)
-      # print(jax.tree_map(lambda t: t.shape, q_params))
-      total_critic_loss_and_aux = jax.tree_map(jnp.mean, total_critic_loss_and_aux)
+      # print(jax.tree.map(lambda t: t.shape, q_params))
+      total_critic_loss_and_aux = jax.tree.map(jnp.mean, total_critic_loss_and_aux)
 
       key_actor = jax.random.split(key_actor, jax.local_device_count())
       # if in_initial_bc_iters:
@@ -449,19 +449,19 @@ class CQLLearner(acme.Learner):
 
       # metrics['observations_mean'] = jnp.mean(
       #     utils.batch_concat(
-      #         jax.tree_map(lambda x: jnp.abs(jnp.mean(x, axis=0)),
+      #         jax.tree.map(lambda x: jnp.abs(jnp.mean(x, axis=0)),
       #                      transitions.observation)))
       # metrics['observations_std'] = jnp.mean(
       #     utils.batch_concat(
-      #         jax.tree_map(lambda x: jnp.std(x, axis=0),
+      #         jax.tree.map(lambda x: jnp.std(x, axis=0),
       #                      transitions.observation)))
       # metrics['next_observations_mean'] = jnp.mean(
       #     utils.batch_concat(
-      #         jax.tree_map(lambda x: jnp.abs(jnp.mean(x, axis=0)),
+      #         jax.tree.map(lambda x: jnp.abs(jnp.mean(x, axis=0)),
       #                      transitions.next_observation)))
       # metrics['next_observations_std'] = jnp.mean(
       #     utils.batch_concat(
-      #         jax.tree_map(lambda x: jnp.std(x, axis=0),
+      #         jax.tree.map(lambda x: jnp.std(x, axis=0),
       #                      transitions.next_observation)))
 
       return new_state, metrics  # pytype: disable=bad-return-type  # jax-ndarray
@@ -567,8 +567,8 @@ class CQLLearner(acme.Learner):
 
   def get_variables(self, names):
     variables = {
-        'policy': jax.tree_map(lambda x: x[0], self._state.policy_params),
-        'q': jax.tree_map(lambda x: x[0], self._state.q_params),
+        'policy': jax.tree.map(lambda x: x[0], self._state.policy_params),
+        'q': jax.tree.map(lambda x: x[0], self._state.q_params),
     }
     return [variables[name] for name in names]
 

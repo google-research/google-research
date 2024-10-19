@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,8 @@
 namespace tensorflow {
 namespace tf3d {
 
-Status ValidateConvInputs(bool is_grad_op, int dims, OpKernelContext* ctx) {
+absl::Status ValidateConvInputs(bool is_grad_op, int dims,
+                                OpKernelContext* ctx) {
   // Sparse coordinates.
   const Tensor& coordinates = ctx->input(0);
   if (coordinates.dtype() != DT_INT32) {
@@ -125,7 +126,7 @@ Status ValidateConvInputs(bool is_grad_op, int dims, OpKernelContext* ctx) {
           "channels of the filter.");
     }
   }
-  return Status();
+  return absl::Status();
 }
 
 }  // namespace tf3d

@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,9 +20,8 @@ goog.module('eeg_modelling.eeg_viewer.Uploader');
 
 const Dispatcher = goog.require('eeg_modelling.eeg_viewer.Dispatcher');
 const Downloader = goog.require('eeg_modelling.eeg_viewer.Downloader');
-const HtmlSanitizer = goog.require('goog.html.sanitizer.HtmlSanitizer');
-const SafeHtml = goog.require('goog.html.SafeHtml');
 const utils = goog.require('eeg_modelling.eeg_viewer.utils');
+const {sanitizeHtml, unwrapHtml} = goog.require('safevalues');
 
 
 class Uploader {
@@ -69,11 +68,9 @@ class Uploader {
         // Note that the string can't be escaped to prevent injections, since
         // that would escape the quotes and break the JSON.
 
-        const sanitizer = new HtmlSanitizer();
-
         let fileData;
         const text = /** @type {string} */ (reader.result);
-        const safeText = SafeHtml.unwrap(sanitizer.sanitize(text));
+        const safeText = unwrapHtml(sanitizeHtml(text)).toString();
 
         try {
           fileData = JSON.parse(safeText);

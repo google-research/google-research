@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,7 +135,7 @@ def train_and_evaluate(config, workdir):
   err = pmetric(stoch_samples)[0]
 
   logging.info(f"{noise.__name__} gets NLL {nll:.3f} and err {err:.3f}")  # pylint: disable=logging-fstring-interpolation
-  eval_metrics_cpu = jax.tree_map(np.array, {"NLL": nll, "err": err})
+  eval_metrics_cpu = jax.tree.map(np.array, {"NLL": nll, "err": err})
   writer.write_scalars(config.epochs, eval_metrics_cpu)
   report_progress(config.epochs, time.time())
   return score_fn

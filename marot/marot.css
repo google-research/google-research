@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 The Google Research Authors.
+ * Copyright 2024 The Google Research Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -25,6 +25,9 @@
 #marot-uncategorized-th {
   color: blue;
 }
+.marot-all-rater-flags .marot-rater-flag {
+  visibility: hidden;
+}
 .marot-arrow {
   opacity: 50%;
   color: gray;
@@ -34,12 +37,22 @@
   opacity: 100%;
   color: black;
 }
-.marot-bottomed-tr {
+.marot-bottomed {
   border-bottom: 1px solid dimgray;
 }
 .marot-ci {
   color: gray;
   font-size: x-small
+}
+.marot-comparison-histograms,
+.marot-comparison-tables-pvalue,
+.marot-comparison-tables-rho {
+  margin: 8px;
+}
+.marot-comparison-tables-pvalue .marot-rho,
+.marot-comparison-tables-rho .marot-pvalue {
+  /** only one of pvalue/rho will be visible */
+  display: none;
 }
 .marot-deleted {
   background: lavender;
@@ -48,12 +61,19 @@
   padding: 0 4px;
   vertical-align: top;
 }
-.marot-dotted-bottomed-tr {
+.marot-details-toggle {
+  color: gray;
+}
+th:hover .marot-details-toggle {
+  color: black;
+}
+.marot-dotted-bottomed {
   border-bottom: 1px dashed darkgray;
 }
 #marot-errors {
   color: red;
   max-height: 100px;
+  margin-left: 8px;
   overflow-y: auto;
 }
 .marot-file-menu tr {
@@ -74,7 +94,11 @@
   line-height: 1.5;
 }
 .marot-filter-expr-error {
-  color: red;
+  color: orange;
+  font-size: tiny;
+}
+.marot-gray {
+  color: gray;
 }
 .marot-header {
   margin: 8px;
@@ -108,6 +132,12 @@
   cursor: pointer;
   color: blue;
 }
+.marot-metric {
+  font-size: 11px;
+}
+.marot-mqm-details-th {
+  cursor: pointer;
+}
 .marot-note {
   font-style: italic;
   cursor: default;
@@ -122,15 +152,24 @@
 .marot-out-of-order {
   background: lavender;
 }
+.marot-subpara {
+  cursor: pointer;
+}
 .marot-prior-error {
   background: gainsboro;
   margin-left: 6px;
+}
+.marot-pvalue-significant {
+  font-weight: bold;
 }
 #marot-quote {
   text-align: center;
   margin-top: 300px;
   font-size: 14px;
   font-family: monospace;
+}
+.marot-rater {
+  cursor: pointer;
 }
 .marot-rater-details {
   font-size: xx-small;
@@ -140,6 +179,16 @@
 }
 .marot-rater-details:hover {
   color: black;
+}
+.marot-rater-flag {
+  background-color: white;
+  font-size: 20px;
+  font-weight: bold;
+  padding: 1px 0;
+  position: absolute;
+  right: 0;
+  top: 0;
+  z-index: 2;
 }
 .marot-ref-row {
   background-color: #e9ffdb;
@@ -168,7 +217,10 @@
 .marot-score-th {
   min-width: 10ch;
 }
-.marot-scores-table .marot-seg-score {
+.marot-scores-table {
+  width: 100%;
+}
+.marot-scores-table .marot-unit-score {
   padding-left: 4px;
   text-align: right;
 }
@@ -198,12 +250,6 @@
 .marot-settings-row {
   margin: 6px 0;
 }
-.marot-sigtests {
-  margin: 8px;
-}
-.marot-sigtest-significant {
-  font-weight: bold;
-}
 .marot-stats-slice {
   background-color: #F0F0F0;
 }
@@ -213,11 +259,11 @@
 .marot-subheading {
   padding: 6px 0 0 4px;
 }
-.marot-sys-v-sys {
-  margin: 8px;
-}
-.marot-sys-v-sys-hist {
+.marot-histogram {
   cursor: pointer;
+}
+.marot-histogram-selected {
+  filter: brightness(60%);
 }
 .marot-table {
   border: none;
@@ -242,15 +288,25 @@
 }
 .marot-table-ratings {
   border-collapse: collapse;
+  width: 100%;
 }
-#marot-tbody td {
+#marot-segments-tbody td {
   padding: 0;
 }
-#marot-tbody div {
+#marot-segments-tbody div {
   overflow-wrap: anywhere;
   padding: 4px;
 }
-#marot-tbody tr:not(:last-child) {
+#marot-segments-tbody p {
+  margin-block-end: 0;
+}
+#marot-segments-tbody p:not(:first-child) {
+  margin-block-start: 1em;
+}
+#marot-segments-tbody p:first-child {
+  margin-block-start: 0;
+}
+#marot-segments-tbody tr:not(:last-child) {
   border-bottom: 1px solid gray;
 }
 #marot-th-doc {
@@ -276,10 +332,8 @@
   font-size: x-large;
 }
 .marot-val {
-  word-break: break-all;
-}
-.marot-val:hover {
   cursor: pointer;
+  word-break: break-all;
 }
 .marot-val-col {
   max-width: 150px;
@@ -291,7 +345,6 @@
 .marot-warning {
   color: red;
 }
-
 .mqm-critical {
   background: rgba(127, 0, 255, 0.7);
   cursor: crosshair;
@@ -307,6 +360,21 @@
 .mqm-neutral {
   background: rgba(211, 211, 211, 0.7);
   cursor: crosshair;
+}
+.marot-single-rater-view .mqm-critical,
+.marot-single-rater-view .mqm-major,
+.marot-single-rater-view .mqm-minor,
+.marot-single-rater-view .mqm-neutral {
+  background: transparent;
+}
+.marot-single-rater-view .marot-rater-flag {
+  visibility: hidden;
+}
+#marot-status {
+  color: blue;
+  max-height: 100px;
+  margin-left: 8px;
+  overflow-y: auto;
 }
 .mqm-trivial {
   background: rgba(245, 245, 220, 0.7);

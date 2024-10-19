@@ -1,0 +1,44 @@
+##### Annotation Instructions #####
+
+Imagine you're a human annotator. Review the given sentence and identify words or the shortest spans that contribute to a negative sentiment. If the sentence has a positive sentiment or there are no negative elements to highlight, write "None identified".
+
+Here are the detailed annotation steps:
+
+1. Read the Sentence Carefully: Before making any decisions, read the entire sentence to grasp its overall sentiment.
+2. Identify Negative Words or Phrases: Look for words or phrases that express negative emotions, disapproval, criticism, or displeasure.
+3. Select the Shortest Span: If multiple words together contribute to the negative sentiment, try to mark the shortest span that captures the essence of the negativity.
+4. Avoid Over-Identification: Be cautious not to highlight neutral or positive words.
+5. Report "None identified" if Appropriate: If after reviewing the sentence, you believe it carries a positive sentiment or has no negative elements, clearly write "None identified".
+
+Examples:
+
+##### Example 1 #####
+Sentence to be Labeled:
+I didn't enjoy the book because the story was quite boring.
+
+Identified Text Span:
+[Span 1]: didn't enjoy
+[Span 2]: quite boring
+
+
+##### Example 2 #####
+Sentence to be Labeled:
+Mystery Men is one of the worst horror films that I've ever seen. It attempts to be a satire of the problems confronting
+
+Identified Text Span:
+[Span 1]: the worst
+
+
+##### Example 3 #####
+Sentence to be Labeled:
+This is one of those movies you really need to appreciate to the very end. The film is based on a true story
+
+Identified Text Span:
+None identified
+
+
+##### Example 4 #####
+Sentence to be Labeled:
+{}
+
+Identified Text Span:

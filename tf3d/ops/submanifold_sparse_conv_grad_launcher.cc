@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,7 +29,7 @@ namespace tensorflow {
 namespace tf3d {
 
 template <int dims>
-Status RunSubmanifoldSparseConvBackpropFilter(
+absl::Status RunSubmanifoldSparseConvBackpropFilter(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts) {
   const int batch_size = opts.batch_size();
   const int max_num_coords_per_batch = opts.max_num_coords_per_batch();
@@ -84,11 +84,11 @@ Status RunSubmanifoldSparseConvBackpropFilter(
       }
     }
   }
-  return Status();
+  return absl::Status();
 }
 
 template <>
-Status LaunchSubmanifoldSparseConvBackpropFilter<Eigen::ThreadPoolDevice>(
+absl::Status LaunchSubmanifoldSparseConvBackpropFilter<Eigen::ThreadPoolDevice>(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts) {
   const int dims = opts.coordinates.dim_size(2);
   if (dims == 2) return RunSubmanifoldSparseConvBackpropFilter<2>(opts);

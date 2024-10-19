@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,8 +25,9 @@ import numpy as np
 import scipy.sparse
 import tensorflow as tf
 import tensorflow_gnn as tfgnn
-import tensorflow_gnn.experimental.in_memory.datasets as tfgnn_datasets
 import tensorflow_hub as tfhub
+
+from ugsl import tfgnn_datasets
 
 
 class GSLGraphData:

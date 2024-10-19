@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -130,8 +130,8 @@ def save_tiled_imgs(filename, imgs, pad_pixels=1, pad_val=255, num_col=0):
 @functools.partial(jax.pmap, axis_name='batch')
 def _check_synced(pytree):
   mins = jax.lax.pmin(pytree, axis_name='batch')
-  equals = jax.tree_multimap(jnp.array_equal, pytree, mins)
-  return jnp.all(jnp.asarray(jax.tree_leaves(equals)))
+  equals = jax.tree_multimap(jnp.array_equal, pytree, mins)  # pytype: disable=module-attr  # dataclasses-replace
+  return jnp.all(jnp.asarray(jax.tree.leaves(equals)))
 
 
 def assert_synced(pytree):
@@ -169,7 +169,7 @@ def allgather_and_reshape(x, axis_name='batch'):
 
 
 def np_treecat(xs):
-  return jax.tree_multimap(lambda *zs: onp.concatenate(zs, axis=0), *xs)
+  return jax.tree_multimap(lambda *zs: onp.concatenate(zs, axis=0), *xs)  # pytype: disable=module-attr  # dataclasses-replace
 
 
 def dist(fn, accumulate, axis_name='batch'):
@@ -189,7 +189,7 @@ def dist(fn, accumulate, axis_name='batch'):
   @functools.partial(jax.pmap, axis_name=axis_name)
   def pmapped_fn(*args, **kwargs):
     out = fn(*args, **kwargs)
-    return out if accumulate_fn is None else jax.tree_map(accumulate_fn, out)
+    return out if accumulate_fn is None else jax.tree.map(accumulate_fn, out)
 
   def wrapper(*args, **kwargs):
     return jax.device_get(
@@ -201,7 +201,7 @@ def dist(fn, accumulate, axis_name='batch'):
 def tf_to_numpy(tf_batch):
   """TF to NumPy, using ._numpy() to avoid copy."""
   # pylint: disable=protected-access,g-long-lambda
-  return jax.tree_map(lambda x: (x._numpy()
+  return jax.tree.map(lambda x: (x._numpy()
                                  if hasattr(x, '_numpy') else x), tf_batch)
 
 
@@ -279,16 +279,16 @@ def normal_cdf(x):
 
 
 def count_params(pytree):
-  return sum([x.size for x in jax.tree_leaves(pytree)])
+  return sum([x.size for x in jax.tree.leaves(pytree)])
 
 
 def copy_pytree(pytree):
-  return jax.tree_map(jnp.array, pytree)
+  return jax.tree.map(jnp.array, pytree)
 
 
 def global_norm(pytree):
   return jnp.sqrt(jnp.sum(jnp.asarray(
-      [jnp.sum(jnp.square(x)) for x in jax.tree_leaves(pytree)])))
+      [jnp.sum(jnp.square(x)) for x in jax.tree.leaves(pytree)])))
 
 
 def clip_by_global_norm(pytree, clip_norm, use_norm=None):
@@ -296,11 +296,11 @@ def clip_by_global_norm(pytree, clip_norm, use_norm=None):
     use_norm = global_norm(pytree)
     assert use_norm.shape == ()  # pylint: disable=g-explicit-bool-comparison
   scale = clip_norm * jnp.minimum(1.0 / use_norm, 1.0 / clip_norm)
-  return jax.tree_map(lambda x: x * scale, pytree), use_norm
+  return jax.tree.map(lambda x: x * scale, pytree), use_norm
 
 
 def apply_ema(decay, avg, new):
-  return jax.tree_multimap(lambda a, b: decay * a + (1. - decay) * b, avg, new)
+  return jax.tree_multimap(lambda a, b: decay * a + (1. - decay) * b, avg, new)  # pytype: disable=module-attr  # dataclasses-replace
 
 
 def scale_init(scale, init_fn, dtype=jnp.float32):

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ class IPAGNNAdapter(common_adapters.SequenceAdapter):
   """Adapter for IPAGNN model."""
 
   def as_example(self, dataset_item):
-    inputs = jax.tree_map(lambda x: x.numpy(), dataset_item)
+    inputs = jax.tree.map(lambda x: x.numpy(), dataset_item)
     example = {
         'true_branch_nodes': inputs['cfg']['true_branch_nodes'],
         'false_branch_nodes': inputs['cfg']['false_branch_nodes'],

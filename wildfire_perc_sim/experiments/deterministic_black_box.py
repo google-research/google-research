@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -234,7 +234,7 @@ def train_and_evaluate(cfg):
           eval_metrics = train_utils.evaluate(
               model, tstate, eval_ds, eval_step, eval_rng,
               cfg.train.backward_observation_length)
-        eval_metrics_cpu = jax.tree_map(np.array, eval_metrics.compute())
+        eval_metrics_cpu = jax.tree.map(np.array, eval_metrics.compute())
         eval_metrics_cpu = utils.prepend_dict_keys(eval_metrics_cpu, 'eval/')
         writer.write_scalars(step, eval_metrics_cpu)
 
@@ -248,7 +248,7 @@ def train_and_evaluate(cfg):
     test_metrics = train_utils.evaluate(model, tstate, test_ds, eval_step,
                                         test_rng,
                                         cfg.train.backward_observation_length)
-  test_metrics_cpu = jax.tree_map(np.array, test_metrics.compute())
+  test_metrics_cpu = jax.tree.map(np.array, test_metrics.compute())
   test_metrics_cpu = utils.prepend_dict_keys(test_metrics_cpu, 'test/')
   writer.write_scalars(step, test_metrics_cpu)
 

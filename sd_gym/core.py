@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,9 +53,6 @@ class Params(object):
   # Defaults to 1 i.e. only the timestep of the simulation.
   observation_len = attr.ib(default=1)  # type: Optional[int]
 
-  # Units-Type map for the SD model.
-  sd_units_types = attr.ib(factory=dict)  # type: Optional[Dict[str, np.dtype]]
-
   # The names of the variables that are actionable.
   # Defaults to all stocks and constants.
   actionables = attr.ib(factory=list)  # type: Optional[list[str]]
@@ -63,10 +60,15 @@ class Params(object):
   # Whether to have an additional indicator for taking an action or not.
   parameterize_action_space = attr.ib(default=False) # type: Optional[bool]
 
-  # Max and min values for the SD model variable inputs.
+  # Map of SD units to numpy types.
+  sd_units_types = attr.ib(factory=dict)  # type: Optional[Dict[str, np.dtype]]
+
+  # Max and min values for actions.
   default_sd_units_limits = attr.ib(factory=dict)  # type: Optional[Dict[str, Tuple[float, float]]]
   sd_var_limits_override = attr.ib(factory=dict)  # type: Optional[Dict[str, Tuple[float, float]]]
-  discrete_sd_vars = attr.ib(factory=dict)  # type: Optional[Dict[str, List[float]]]
+
+  # Variables that are categorical
+  categorical_sd_vars = attr.ib(factory=dict)  # type: Optional[Dict[str, List[float]]]
 
   # Set initial conditions for variables.
   initial_conditions_override = attr.ib(factory=dict)  # type: Optional[Dict[str, float]]
@@ -112,7 +114,7 @@ class GymEncoder(json.JSONEncoder):
       return int(o)
     if isinstance(o, (bool, np.bool_)):
       return str(o)
-    if isinstance(o, (np.float_, np.float16, np.float32, np.float64)):
+    if isinstance(o, (np.float16, np.float32, np.float64)):
       return float(o)
     if isinstance(o, np.random.RandomState):
       state = o.get_state()

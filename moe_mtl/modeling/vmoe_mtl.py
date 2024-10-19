@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -116,8 +116,8 @@ def sparse_moe_spmd_mtl(
     def transformed(scopes, dispatcher_det, inputs_det, dispatcher_cls,
                     inputs_cls):
       # Prepare inputs to be processed by each expert.
-      inputs_det = jax.tree_map(dispatcher_det.dispatch, inputs_det)
-      inputs_cls = jax.tree_map(dispatcher_cls.dispatch, inputs_cls)
+      inputs_det = jax.tree.map(dispatcher_det.dispatch, inputs_det)
+      inputs_cls = jax.tree.map(dispatcher_cls.dispatch, inputs_cls)
       outputs_det, outputs_cls = flax.core.lift.vmap(
           expert_fn,
           in_axes=0,
@@ -131,8 +131,8 @@ def sparse_moe_spmd_mtl(
       if has_aux:
         outputs_det, _ = outputs_det
         outputs_cls, _ = outputs_cls
-      outputs_det = jax.tree_map(dispatcher_det.combine, outputs_det)
-      outputs_cls = jax.tree_map(dispatcher_cls.combine, outputs_cls)
+      outputs_det = jax.tree.map(dispatcher_det.combine, outputs_det)
+      outputs_cls = jax.tree.map(dispatcher_cls.combine, outputs_cls)
       return outputs_det, outputs_cls
 
     return transformed

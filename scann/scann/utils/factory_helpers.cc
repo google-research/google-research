@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,14 +17,18 @@
 #include <cstdint>
 
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
-#include "scann/utils/types.h"
+#include "scann/proto/min_distance.pb.h"
+#include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 
 Status GenericSearchParameters::PopulateValuesFromScannConfig(
     const ScannConfig& config) {
+  min_distance = config.min_distance().min_distance();
   if (!config.has_num_neighbors() && !config.has_epsilon_distance()) {
     return InvalidArgumentError(
         "Must specify num_neighbors and/or epsilon_distance.");
@@ -57,14 +61,14 @@ Status GenericSearchParameters::PopulateValuesFromScannConfig(
     return InvalidArgumentError("num_neighbors must be > 0.");
   }
 
-  TF_ASSIGN_OR_RETURN(reordering_dist,
-                      GetDistanceMeasure(config.distance_measure()));
+  SCANN_ASSIGN_OR_RETURN(reordering_dist,
+                         GetDistanceMeasure(config.distance_measure()));
 
   if (config.has_exact_reordering()) {
     const auto& er = config.exact_reordering();
     if (er.has_approx_distance_measure()) {
-      TF_ASSIGN_OR_RETURN(pre_reordering_dist,
-                          GetDistanceMeasure(er.approx_distance_measure()));
+      SCANN_ASSIGN_OR_RETURN(pre_reordering_dist,
+                             GetDistanceMeasure(er.approx_distance_measure()));
     } else {
       pre_reordering_dist = reordering_dist;
     }

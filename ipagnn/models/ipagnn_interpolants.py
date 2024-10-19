@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ class IPAGNNInterpolant(nn.Module):
     def branch_decide_single_node(hidden_state):
       # leaves(hidden_state).shape: hidden_size
       hidden_state_concat = jnp.concatenate(
-          jax.tree_leaves(hidden_state), axis=0)
+          jax.tree.leaves(hidden_state), axis=0)
       return branch_decide_dense(hidden_state_concat)
     branch_decide = jax.vmap(branch_decide_single_node)
 
@@ -180,7 +180,7 @@ class IPAGNNInterpolant(nn.Module):
         return (true_contributions + false_contributions) / denominators
       aggregate_component = jax.vmap(aggregate_component, in_axes=1, out_axes=1)
 
-      return jax.tree_map(aggregate_component, hidden_states)
+      return jax.tree.map(aggregate_component, hidden_states)
 
     def step_single_example(hidden_states, instruction_pointer,
                             node_embeddings, true_indexes, false_indexes,
@@ -196,13 +196,13 @@ class IPAGNNInterpolant(nn.Module):
         hidden_state_contributions = hidden_states
 
       if config.model.interpolant.apply_dense:
-        parent_to_true_child = jax.tree_map(
+        parent_to_true_child = jax.tree.map(
             dense_parent_to_true_child, hidden_state_contributions)
-        parent_to_false_child = jax.tree_map(
+        parent_to_false_child = jax.tree.map(
             dense_parent_to_false_child, hidden_state_contributions)
-        true_child_to_parent = jax.tree_map(
+        true_child_to_parent = jax.tree.map(
             dense_true_child_to_parent, hidden_state_contributions)
-        false_child_to_parent = jax.tree_map(
+        false_child_to_parent = jax.tree.map(
             dense_false_child_to_parent, hidden_state_contributions)
       else:
         parent_to_true_child = hidden_state_contributions
@@ -215,7 +215,7 @@ class IPAGNNInterpolant(nn.Module):
       def mask_h(h_contribution, h):
         return h_contribution.at[exit_index, :].set(h[exit_index, :])
 
-      hidden_state_contributions = jax.tree_map(mask_h,
+      hidden_state_contributions = jax.tree.map(mask_h,
                                                 hidden_state_contributions,
                                                 hidden_states)
 
@@ -257,7 +257,7 @@ class IPAGNNInterpolant(nn.Module):
               + c4[false_indexes]
           ) / normalization[:, None]
 
-        hidden_states_new = jax.tree_map(
+        hidden_states_new = jax.tree.map(
             aggregate_parent_and_child_contributions,
             parent_to_true_child,
             parent_to_false_child,
@@ -268,7 +268,7 @@ class IPAGNNInterpolant(nn.Module):
           output, _ = gru_cell(h2, h1)
           return output
         hidden_states_new = (
-            jax.tree_map(apply_gru, hidden_states_new, hidden_states))
+            jax.tree.map(apply_gru, hidden_states_new, hidden_states))
 
       to_tag = {
           'branch_decisions': branch_decisions,
@@ -296,7 +296,7 @@ class IPAGNNInterpolant(nn.Module):
                 node_embeddings, true_indexes, false_indexes,
                 exit_index)
         )
-        carry = jax.tree_map(
+        carry = jax.tree.map(
             lambda new, old, index=index: jnp.where(index < steps, new, old),
             (hidden_states_new, instruction_pointer_new, index + 1),
             (hidden_states, instruction_pointer, index + 1),
@@ -309,9 +309,9 @@ class IPAGNNInterpolant(nn.Module):
       (hidden_states, instruction_pointer, _), to_tag = lax.scan(
           step_, carry, None, length=max_steps)
 
-      final_state = jax.tree_map(lambda hs: hs[exit_index], hidden_states)
+      final_state = jax.tree.map(lambda hs: hs[exit_index], hidden_states)
       # leaves(final_state).shape: hidden_size
-      final_state_concat = jnp.concatenate(jax.tree_leaves(final_state), axis=0)
+      final_state_concat = jnp.concatenate(jax.tree.leaves(final_state), axis=0)
       logits = output_dense(final_state_concat)
       to_tag.update({
           'instruction_pointer_final': instruction_pointer,

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class XCFunctional:
     """Parameter specification of the functional."""
     # NOTE(htm) parameters_spec cannot be stored as a regular data attribute of
     # XCFunctional as it prevents making deepcopies of XCFunctional instances
-    return jax.tree_flatten({
+    return jax.tree.flatten({
         'parameters_x': {
             parameter_name: 0.
             for parameter_name in sorted(self.f_x.parameter_names)},
@@ -511,7 +511,7 @@ class XCFunctional:
     signatures = []
     for parameters in parameter_samples:
       signatures.extend(self.get_signature(
-          **jax.tree_unflatten(self.parameters_spec, parameters),
+          **jax.tree.unflatten(self.parameters_spec, parameters),
           num_feature_samples=num_feature_samples,
           random_state=random_state,
           signature='e_xc'))

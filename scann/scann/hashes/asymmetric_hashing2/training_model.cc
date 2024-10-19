@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,8 +14,17 @@
 
 #include "scann/hashes/asymmetric_hashing2/training_model.h"
 
+#include <algorithm>
+#include <cstddef>
+#include <utility>
+
+#include "absl/strings/str_cat.h"
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -66,7 +75,7 @@ StatusOr<unique_ptr<Model<T>>> Model<T>::FromProto(
     for (size_t j = 0; j < num_centers; ++j) {
       temp.clear();
       SCANN_RETURN_IF_ERROR(temp.FromGfv(proto.subspace_centers(i).center(j)));
-      all_centers[i].AppendOrDie(temp.ToPtr(), "");
+      SCANN_RETURN_IF_ERROR(all_centers[i].Append(temp.ToPtr(), ""));
     }
 
     all_centers[i].ShrinkToFit();

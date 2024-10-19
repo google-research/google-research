@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -310,5 +310,5 @@ def c4_masked_lm_inputs(
 
     examples.append(example)
     if len(examples) == batch_size:
-      yield jax.tree_map(lambda *x: np.stack(x), *examples)
+      yield jax.tree.map(lambda *x: np.stack(x), *examples)
       examples = []

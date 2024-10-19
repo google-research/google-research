@@ -1,0 +1,99 @@
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+default-members = ["crates/brush-desktop"]
+
+[workspace.package]
+edition = "2021"
+version = "0.1.0"
+readme = "README.md"
+license = "Apache-2.0"
+
+[workspace.dependencies]
+glam = "0.28"
+bytemuck = "1.15"
+image = { version = "0.25", default-features = false, features = [
+    'png',
+    'webp',
+    "jpeg",
+] }
+
+serde = "1.0"
+serde_json = "1.0"
+rand = "0.8.5"
+anyhow = "1.0.81"
+ply-rs.git = "https://github.com/ArthurBrussee/ply-rs.git"
+tracing = "0.1.40"
+tracing-tracy = "0.11.0"
+tracing-subscriber = "0.3.18"
+wasm-bindgen-futures = "0.4.42"
+web-time = "1.1.0"
+futures-lite = "2.3.0"
+pollster = "0.3.0"
+gloo-timers = { version = "0.3.0", features = ["futures"] }
+
+tracing-wasm = "0.2.1"
+async-stream = "0.3.5"
+async-channel = "2.3.1"
+
+miette = { version = "7.2.0", features = ["fancy"] }
+cfg-if = "1.0.0"
+console_error_panic_hook = "0.1.7"
+
+assert_approx_eq = "1.1.0"
+safetensors = "0.4.3"
+log = "0.4.22"
+wasm-bindgen = "0.2.92"
+wgpu = "22.1.0"
+naga = "22.1.0"
+naga_oil = "0.15"
+
+# Various burn packages.
+burn = { git = "https://github.com/tracel-ai/burn", features = [
+    'wgpu',
+    'autodiff',
+    'template',
+    "std",
+], default-features = false }
+burn-jit = { git = "https://github.com/tracel-ai/burn", features = [
+    "autotune",
+], default-features = false }
+burn-wgpu = { git = "https://github.com/tracel-ai/burn", default-features = false }
+
+# Rerun currently has to be at head to be compatible with other egui/eframe. Once version 0.19
+# is released this requirement should go away.
+egui = { version = "0.28.1" }
+eframe = { version = "0.28.1", default-features = false, features = [
+    "wgpu",
+    "android-game-activity",
+] }
+rerun = { git = "https://github.com/rerun-io/rerun", default-features = false, features = [
+    'sdk',
+    'glam',
+    'image',
+] }
+
+# Build dependencies.
+thiserror = "*"
+zip = { version = "2.1.3", default-features = false, features = ["deflate"] }
+
+[patch.crates-io]
+egui = { git = "https://github.com/emilk/egui" }
+eframe = { git = "https://github.com/emilk/egui" }
+
+# Overrides to use wgpu branch with float atomics.
+wgpu = { git = "https://github.com/ArthurBrussee/wgpu", branch = "flt-atom" }
+naga = { git = "https://github.com/ArthurBrussee/wgpu", branch = "flt-atom" }
+
+[profile.dev]
+opt-level = 0
+debug = true
+
+# Optimize all dependencies even in debug builds (does not affect workspace packages):
+[profile.dev.package."*"]
+opt-level = 1
+debug = true
+
+[profile.release]
+# debug = true # good for profilers
+panic = "abort" # This leads to better optimizations and smaller binaries (and is the default in Wasm anyways).

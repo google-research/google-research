@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ import tqdm
 def create_mlp_p(state):
   mlp = models.DensityAndFeaturesMLP()
   params = state.params['params']['DensityAndFeaturesMLP_0']
-  params = jax.tree_map(lambda x: jnp.array(x), params)  # pylint: disable=unnecessary-lambda
+  params = jax.tree.map(lambda x: jnp.array(x), params)  # pylint: disable=unnecessary-lambda
 
   def mlp_fn(positions):
     return mlp.apply({'params': params}, positions)
@@ -123,7 +123,7 @@ def compute_alive_voxels(
   grid_size = [grid_config['resolution_to_use']] * 3
 
   alive_voxels = np.zeros(grid_size, dtype=bool)
-  cpu = jax.devices('cpu')[0]
+  cpu = jax.local_devices(backend='cpu')[0]
   to_cpu = lambda x: jax.device_put(x, cpu)
 
   _, _, render_eval_pfn, _, _ = train_utils.setup_model(

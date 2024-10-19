@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 """Tests for tokenizers."""
 
 from absl.testing import absltest
-from rouge import tokenizers
+from rouge_score import tokenizers
 
 
 class TokenizersTest(absltest.TestCase):

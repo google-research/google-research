@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ class TrainState(object):
   global_step: tf.Tensor = dataclasses.field(
       default_factory=tf.train.get_or_create_global_step)
 
-  summary_writer: Optional[tf.summary.FileWriter] = None
+  summary_writer: tf.summary.FileWriter = None
   saver: tf.train.Saver = field(default_factory=get_default_saver)
 
   record_graph_in_summary: dataclasses.InitVar[bool] = True

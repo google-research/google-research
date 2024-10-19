@@ -3,11 +3,13 @@
 ## Overview
 This repository includes the implementation of `Environment Generation for Zero-Shot Compositional Reinforcement Learning by Izzeddin Gur, Natasha Jaques, Yingjie Miao, Jongwook Choi,Manoj Tiwari, Honglak Lee, and Aleksandra Faust. NeurIPS'21`.
 
+(please see [compwob](./compwob/README.md) directory if you are interested in the code for `Language Model Agents Suffer from Compositional Decision Making`)
+
 ## Getting Started
 
-* Download this repo
+* Download this repo:
 
-```
+```bash
 svn export https://github.com/google-research/google-research/trunk/compositional_rl
 ```
 
@@ -16,58 +18,58 @@ svn export https://github.com/google-research/google-research/trunk/compositiona
 
 * Download bootstrap files:
 
-```
+```bash
 mkdir gwob/bootstrap/ && cd gwob/bootstrap && wget https://github.com/twbs/bootstrap/releases/download/v4.3.1/bootstrap-4.3.1-dist.zip
 ```
 
 * Unzip and extract:
 
-```
+```bash
 unzip bootstrap-4.3.1-dist.zip && cp bootstrap-4.3.1-dist/css/bootstrap.min.css . && cp bootstrap-4.3.1-dist/js/bootstrap.min.js . && rm -r bootstrap-4.3.1-dist* && cd ../../
 ```
 
 #### Install MiniWoB
 
-* Clone the MiniWoB project:
+* Clone the MiniWoB project (from legacy branch):
 
-```
-git clone https://github.com/stanfordnlp/miniwob-plusplus gwob/miniwob-plusplus
+```bash
+git clone -b legacy https://github.com/Farama-Foundation/miniwob-plusplus.git gwob/miniwob-plusplus
 ```
 
 * Checkout the version that we used in our project:
 
-```
+```bash
 cd gwob/miniwob-plusplus && git checkout 833a477a8fbfbd2497e95fee019f76df2b9bd75e
 ```
 
 * Convert all python files from Python 2 to Python 3:
 
-```
+```bash
 pip install 2to3 && cd ../../ && 2to3 gwob/miniwob-plusplus/python/miniwob -w
 ```
 
-* Integrate miniwob by making necessary changes:
+* Integrate MiniWoB by making necessary changes:
 
-```
+```bash
 python3 integrate_miniwob.py
 ```
 
-* Install miniwob:
+* Install MiniWoB:
 
-```
+```bash
 pip install gwob/miniwob-plusplus/python/
 ```
 
-* Install the [ChromeDriver](https://chromedriver.chromium.org/downloads) with the version that is matching your Chrome browser:
+* Install the [ChromeDriver](https://googlechromelabs.github.io/chrome-for-testing/) with the version that is matching your Chrome browser:
 
-```
+```bash
 export PATH=$PATH:/path/to/chromedriver
 ```
 
 ### Install gMiniWoB
-* Install gminiwob:
+* Install gMiniWoB:
 
-```
+```bash
 pip install gwob/
 ```
 
@@ -85,7 +87,7 @@ pip install gwob/
 * The following is a simple tutorial for randomly designing an environment and
 using an LSTM-based DQN to generate logits and values.
 
-```
+```python
 import gin
 import numpy as np
 

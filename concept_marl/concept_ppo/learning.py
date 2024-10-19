@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -214,7 +214,7 @@ class ConceptPPOLearner(acme.Learner):
 
       def get_behavior_values(params,
                               observations):
-        o = jax.tree_map(lambda x: jnp.reshape(x, [-1] + list(x.shape[2:])),
+        o = jax.tree.map(lambda x: jnp.reshape(x, [-1] + list(x.shape[2:])),
                          observations)
         (_, behavior_values), _ = concept_ppo_networks.network.apply(
             params, o, is_training=True)
@@ -229,7 +229,7 @@ class ConceptPPOLearner(acme.Learner):
                                                        behavior_values)
       # Exclude the last step - it was only used for bootstrapping.
       # The shape is [num_sequences, num_steps, ..]
-      observations, actions, behavior_log_probs, behavior_values = jax.tree_map(
+      observations, actions, behavior_log_probs, behavior_values = jax.tree.map(
           lambda x: x[:, :-1],
           (observations, actions, behavior_log_probs, behavior_values))
 
@@ -253,7 +253,7 @@ class ConceptPPOLearner(acme.Learner):
           'Num minibatches must divide batch size. Got batch_size={}'
           ' num_minibatches={}.'
       ).format(batch_size, num_minibatches)
-      batch = jax.tree_map(lambda x: x.reshape((batch_size,) + x.shape[2:]),
+      batch = jax.tree.map(lambda x: x.reshape((batch_size,) + x.shape[2:]),
                            trajectories)
 
       # Compute gradients.
@@ -292,9 +292,9 @@ class ConceptPPOLearner(acme.Learner):
         key, params, opt_state, batch = carry
         key, subkey = jax.random.split(key)
         permutation = jax.random.permutation(subkey, batch_size)
-        shuffled_batch = jax.tree_map(
+        shuffled_batch = jax.tree.map(
             lambda x: jnp.take(x, permutation, axis=0), batch)
-        minibatches = jax.tree_map(
+        minibatches = jax.tree.map(
             lambda x: jnp.reshape(x, [num_minibatches, -1] + list(x.shape[1:])),
             shuffled_batch)
 
@@ -312,16 +312,16 @@ class ConceptPPOLearner(acme.Learner):
           model_update_epoch, (state.random_key, params, opt_state, batch), (),
           length=num_epochs)
 
-      metrics = jax.tree_map(jnp.mean, metrics)
+      metrics = jax.tree.map(jnp.mean, metrics)
       metrics['norm_params'] = optax.global_norm(params)
       metrics['observations_mean'] = jnp.mean(
           utils.batch_concat(
-              jax.tree_map(lambda x: jnp.abs(jnp.mean(x, axis=(0, 1))),
+              jax.tree.map(lambda x: jnp.abs(jnp.mean(x, axis=(0, 1))),
                            observations),
               num_batch_dims=0))
       metrics['observations_std'] = jnp.mean(
           utils.batch_concat(
-              jax.tree_map(lambda x: jnp.std(x, axis=(0, 1)), observations),
+              jax.tree.map(lambda x: jnp.std(x, axis=(0, 1)), observations),
               num_batch_dims=0))
       metrics['rewards_mean'] = jnp.mean(
           jnp.abs(jnp.mean(rewards, axis=(0, 1))))

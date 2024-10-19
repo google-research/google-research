@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,10 +62,10 @@ def restore_checkpoint(work_dir):
     x_list = np.split(x, x.shape[0], axis=0)
 
     # Squeeze out the dummy dimension.
-    x_list = jax.tree_map(lambda y: np.squeeze(y, axis=0), x_list)
+    x_list = jax.tree.map(lambda y: np.squeeze(y, axis=0), x_list)
 
     # Send the sharded array in devices.
     return jax.device_put_sharded(x_list, jax.local_devices())
 
-  state = jax.tree_map(device_put_sharded, state)
+  state = jax.tree.map(device_put_sharded, state)
   return state

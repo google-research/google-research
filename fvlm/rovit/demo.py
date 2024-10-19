@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,12 +54,13 @@ _DEMO_IMAGE_NAME = flags.DEFINE_string('demo_image_name', 'citrus.jpg',
                                        'The image file name under data/.')
 _MODEL = flags.DEFINE_enum('model', 'vit-large', ['vit-large'],
                            'RO-ViT model size to use.')
+_MODEL_NAME = 'rovit'
 _TEXT_EMBED = flags.DEFINE_enum('text_embed', 'lvis',
                                 ['lvis', 'lvis-base'],
                                 'Text embeddings to use.')
 _MAX_BOXES_TO_DRAW = flags.DEFINE_integer('max_boxes_to_draw', 25,
                                           'Max number of boxes to draw.')
-_MIN_SCORE_THRESH = flags.DEFINE_float('min_score_thresh', 0.2,
+_MIN_SCORE_THRESH = flags.DEFINE_float('min_score_thresh', 0.05,
                                        'Min score threshold.')
 _MAX_TEXT_EMBEDDING = 1204  # Max text embeddings allowed by the saved model.
 
@@ -72,7 +73,7 @@ def main(argv):
   output_image_path = demo_image_path.replace('data', 'output')
   output_image_path = (
       output_image_path[:-4]
-      + f'_{_MODEL.value.replace("resnet_", "r")}'
+      + f'_{_MODEL_NAME}{_MODEL.value.replace("vit", "")}'
       + output_image_path[-4:]
   )
   with tf.io.gfile.GFile(demo_image_path, 'rb') as f:
@@ -95,7 +96,7 @@ def main(argv):
   # Parse the image data.
   parser_fn = input_utils.get_rovit_parser()
   data = parser_fn({'image': np_image, 'source_id': np.array([0])})
-  np_data = jax.tree_map(lambda x: x.numpy()[np.newaxis, Ellipsis], data)
+  np_data = jax.tree.map(lambda x: x.numpy()[np.newaxis, Ellipsis], data)
   np_data['text'] = text_embeddings
   np_data['image'] = np_data.pop('images')
   labels = np_data.pop('labels')

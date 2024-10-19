@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
 
 """Python API for ScaNN - single machine, dense vector similarity search."""
 
-import os
 import uuid
-from scann.scann_ops.py import scann_builder
 import tensorflow as tf
+import os
+from scann.scann_ops.py import scann_builder
 
 _scann_ops_so = tf.load_op_library(
     os.path.join(
@@ -126,6 +126,8 @@ def builder(db, num_neighbors, distance_measure):
   """
 
   def builder_lambda(db, config, training_threads, **kwargs):
+    if "TWO_CENTER_ORTHOGONALITY_AMPLIFIED" in config:
+      raise ValueError("SOAR is not supported in the ScaNN TF ops.")
     return create_searcher(db, config, training_threads, **kwargs)
 
   return scann_builder.ScannBuilder(
@@ -136,7 +138,8 @@ def create_searcher(db,
                     scann_config,
                     training_threads=0,
                     container="",
-                    shared_name=None):
+                    shared_name=None,
+                    **unused_kwargs):
   """Create a ScaNN searcher given a dataset and text config proto."""
   if shared_name is None:
     shared_name = f"scann-{uuid.uuid4()}"

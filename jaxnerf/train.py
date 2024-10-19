@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -222,7 +222,7 @@ def main(unused_argv):
               f"weight_l2={stats.weight_l2[0]:0.2e}, " + f"lr={lr:0.2e}, " +
               f"{rays_per_sec:0.0f} rays/sec")
       if step % FLAGS.save_every == 0:
-        state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
+        state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
         checkpoints.save_checkpoint(
             FLAGS.train_dir, state_to_save, int(step), keep=100)
 
@@ -232,7 +232,7 @@ def main(unused_argv):
       # here on purpose so that the visualization matches what happened in
       # training.
       t_eval_start = time.time()
-      eval_variables = jax.device_get(jax.tree_map(lambda x: x[0],
+      eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
                                                    state)).optimizer.target
       test_case = next(test_dataset)
       pred_color, pred_disp, pred_acc = utils.render_image(
@@ -260,7 +260,7 @@ def main(unused_argv):
         summary_writer.image("test_target", test_case["pixels"], step)
 
   if FLAGS.max_steps % FLAGS.save_every != 0:
-    state = jax.device_get(jax.tree_map(lambda x: x[0], state))
+    state = jax.device_get(jax.tree.map(lambda x: x[0], state))
     checkpoints.save_checkpoint(
         FLAGS.train_dir, state, int(FLAGS.max_steps), keep=100)
 

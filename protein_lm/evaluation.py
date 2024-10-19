@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,9 +86,9 @@ def combine_metrics(step_metrics):
   lr = None
   if 'learning_rate' in metrics_all:
     lr = metrics_all.pop('learning_rate').mean()
-  metrics_sums = jax.tree_map(jnp.sum, metrics_all)
+  metrics_sums = jax.tree.map(jnp.sum, metrics_all)
   denominator = metrics_sums.pop('denominator')
-  summary = jax.tree_map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
+  summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
   if lr is not None:
     summary['learning_rate'] = lr
 

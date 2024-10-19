@@ -1,5 +1,6 @@
-absl
+absl-py
 altair
+dm-tree
 immutabledict
 lightgbm
 matplotlib
@@ -7,7 +8,6 @@ numpy
 pandas
 scipy
 seaborn
-sklearn
+scikit-learn
 statsmodels
 tensorflow
-tree

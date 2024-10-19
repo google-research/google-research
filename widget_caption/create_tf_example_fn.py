@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -342,7 +342,7 @@ def features_to_tf_example(features):
     if not isinstance(v, np.ndarray):
       raise ValueError('Value field: %s is not numpy array' % str((k, v)))
     v = v.flatten()
-    if np.issubdtype(v.dtype.type, np.string_):
+    if np.issubdtype(v.dtype.type, np.bytes_):
       new_features[k] = tf.train.Feature(bytes_list=tf.train.BytesList(value=v))
     elif np.issubdtype(v.dtype.type, np.integer):
       new_features[k] = tf.train.Feature(int64_list=tf.train.Int64List(value=v))

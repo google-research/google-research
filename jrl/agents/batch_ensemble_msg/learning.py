@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -197,7 +197,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
       ep_update, new_epos = q_optimizer.update(ep_grad, epos)
       new_ep = optax.apply_updates(ep, ep_update)
       # update ensemble member specific target params
-      new_tep = jax.tree_map(lambda x, y: x * (1 - tau) + y * tau, tep, new_ep)
+      new_tep = jax.tree.map(lambda x, y: x * (1 - tau) + y * tau, tep, new_ep)
 
       return sp_grad, new_ep, new_epos, new_tep, q_loss_val
 
@@ -224,7 +224,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
           cur_dist._distribution._distribution.scale,)
       del trans_obs
 
-      act_dist_for_next_obs, act_dist_for_obs = jax.tree_map(
+      act_dist_for_next_obs, act_dist_for_obs = jax.tree.map(
           lambda t: jnp.reshape(
               t,
               (
@@ -250,7 +250,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
       sp_update, new_spos = q_optimizer.update(sp_grad, spos)
       new_sp = optax.apply_updates(sp, sp_update)
       # update ensemble target params
-      new_tsp = jax.tree_map(lambda x, y: x * (1 - tau) + y * tau, tsp, new_sp)
+      new_tsp = jax.tree.map(lambda x, y: x * (1 - tau) + y * tau, tsp, new_sp)
 
       return new_sp, new_spos, new_ep, new_epos, new_tsp, new_tep, q_loss_val
 
@@ -497,10 +497,10 @@ class BatchEnsembleMSGLearner(acme.Learner):
       #         sub_key,
       #         transitions.observation)
 
-      reshaped_transitions = jax.tree_map(
+      reshaped_transitions = jax.tree.map(
           lambda t: jnp.reshape(t, (num_devices, num_models_per_device, int(t.shape[0] / ensemble_size), *t.shape[1:])),
           transitions)
-      trans_next_obs, trans_obs = jax.tree_map(
+      trans_next_obs, trans_obs = jax.tree.map(
           lambda t: jnp.reshape(t, (num_devices, int(t.shape[0] / num_devices), *t.shape[1:])),
           (transitions.next_observation, transitions.observation))
 
@@ -635,7 +635,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
       # model params
       key, sub_key = jax.random.split(key)
       shared_params, ensemble_params = networks.q_ensemble_init(ensemble_size, sub_key)
-      # replicated_shared_params = jax.tree_map(
+      # replicated_shared_params = jax.tree.map(
       #     lambda x: jnp.array([x] * num_devices), shared_params)
       replicated_shared_params = jax.device_put_replicated(
           shared_params, jax.local_devices())
@@ -647,7 +647,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
           ensemble_params,
           optax.adam,
           {'learning_rate': q_lr})
-      # replicated_shared_params_optim_state = jax.tree_map(
+      # replicated_shared_params_optim_state = jax.tree.map(
       #     lambda x: jnp.array([x] * num_devices), shared_params_optim_state)
       replicated_shared_params_optim_state = jax.device_put_replicated(
           shared_params_optim_state, jax.local_devices())
@@ -658,9 +658,9 @@ class BatchEnsembleMSGLearner(acme.Learner):
       policy_params = networks.policy_network.init(sub_key)
       policy_optimizer_state = policy_optimizer.init(policy_params)
 
-      # replicated_policy_params = jax.tree_map(
+      # replicated_policy_params = jax.tree.map(
       #     lambda x: jnp.array([x] * num_devices), policy_params)
-      # replicated_policy_optimizer_state = jax.tree_map(
+      # replicated_policy_optimizer_state = jax.tree.map(
       #     lambda x: jnp.array([x] * num_devices), policy_optimizer_state)
       replicated_policy_params = jax.device_put_replicated(
           policy_params, jax.local_devices())
@@ -683,7 +683,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
         state = state._replace(alpha_optimizer_state=alpha_optimizer_state,
                                alpha_params=log_alpha)
 
-      # jax.tree_map(lambda t: print(t.shape), replicated_shared_params_optim_state)
+      # jax.tree.map(lambda t: print(t.shape), replicated_shared_params_optim_state)
 
       return state
 
@@ -730,7 +730,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
   def get_variables(self, names):
     variables = {
         # 'policy': self._state.policy_params,
-        'policy': jax.tree_map(lambda x: x[0], self._state.replicated_policy_params),
+        'policy': jax.tree.map(lambda x: x[0], self._state.replicated_policy_params),
     }
     return [variables[name] for name in names]
 

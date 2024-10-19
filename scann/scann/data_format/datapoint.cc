@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,7 +16,14 @@
 
 #include <algorithm>
 
+#include "absl/log/check.h"
+#include "absl/log/log.h"
+#include "absl/strings/str_cat.h"
+#include "scann/data_format/features.pb.h"
+#include "scann/data_format/gfv_conversion.h"
 #include "scann/data_format/gfv_properties.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "scann/utils/zip_sort.h"
 
@@ -83,7 +90,7 @@ template <typename T>
 Status Datapoint<T>::FromGfvImpl(const GenericFeatureVector& gfv) {
   clear();
   normalization_ = static_cast<Normalization>(gfv.norm_type());
-  TF_ASSIGN_OR_RETURN(dimensionality_, GetGfvDimensionality(gfv));
+  SCANN_ASSIGN_OR_RETURN(dimensionality_, GetGfvDimensionality(gfv));
   const bool is_binary = gfv.feature_type() == GenericFeatureVector::BINARY;
   if (gfv.feature_type() == GenericFeatureVector::STRING) {
     return InvalidArgumentError("GFV with feature_type == STRING");
@@ -126,7 +133,7 @@ Status Datapoint<T>::FromGfvImpl(const GenericFeatureVector& gfv) {
   if (need_check_dupes) {
     for (size_t j : Seq(1, indices_.size())) {
       if (indices_[j] == indices_[j - 1]) {
-        SCANN_LOG_NOOP(ERROR, 10)
+        LOG_FIRST_N(ERROR, 10)
             << "Found duplicate indices when parsing GFV with data_id: "
             << gfv.data_id_str();
         return InvalidArgumentError(

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -282,7 +282,7 @@ def recon(preds,
     # This rescaling reflects taking the sum over feature axis &
     # mean over space/time axes.
     loss *= targets.shape[-1]  # pytype: disable=attribute-error  # allow-recursive-types
-  return jnp.mean(loss)
+  return jnp.mean(loss)  # pytype: disable=bad-return-type  # jnp-type
 
 
 def squared_l2_norm(preds, targets,

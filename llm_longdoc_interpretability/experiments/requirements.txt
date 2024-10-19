@@ -1,0 +1,8 @@
+absl-py
+datasets
+faiss-cpu
+matplotlib
+numpy
+torch
+transformers
+triton

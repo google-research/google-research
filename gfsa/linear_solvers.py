@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ def richardson_solve(matvec,
 
     # Iterate x_k = b + (I-A) x_{k-1}
     def fixedpt_fn(_, x):
-      return jax.tree_map(lambda bi, xi, ai: bi + xi - ai, b, x, a_fn(x))
+      return jax.tree.map(lambda bi, xi, ai: bi + xi - ai, b, x, a_fn(x))
 
     return jax.lax.fori_loop(0, iterations, fixedpt_fn, b)
 

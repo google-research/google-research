@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,8 @@
 
 #ifndef SCANN_PARTITIONING_PARTITIONER_FACTORY_BASE_H_
 #define SCANN_PARTITIONING_PARTITIONER_FACTORY_BASE_H_
+
+#include <utility>
 
 #include "scann/data_format/dataset.h"
 #include "scann/partitioning/kmeans_tree_partitioner_utils.h"
@@ -39,20 +41,19 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryPreSampledAndProjected(
     const TypedDataset<T>* dataset, const PartitioningConfig& config,
     shared_ptr<ThreadPool> training_parallelization_pool = nullptr);
 
-template <typename T, typename ProjectionType = double>
+template <typename T>
 unique_ptr<Partitioner<T>> MakeProjectingDecorator(
     shared_ptr<const Projection<T>> projection,
-    unique_ptr<Partitioner<ProjectionType>> partitioner) {
+    unique_ptr<Partitioner<float>> partitioner) {
   Partitioner<T>* result;
-  if (dynamic_cast<KMeansTreeLikePartitioner<ProjectionType>*>(
-          partitioner.get())) {
-    result = new KMeansTreeProjectingDecorator<T, ProjectionType>(
+  if (dynamic_cast<KMeansTreeLikePartitioner<float>*>(partitioner.get())) {
+    result = new KMeansTreeProjectingDecorator<T>(
         std::move(projection),
-        absl::WrapUnique(down_cast<KMeansTreeLikePartitioner<ProjectionType>*>(
+        absl::WrapUnique(down_cast<KMeansTreeLikePartitioner<float>*>(
             partitioner.release())));
   } else {
-    result = new GenericProjectingDecorator<T, ProjectionType>(
-        std::move(projection), std::move(partitioner));
+    result = new GenericProjectingDecorator<T>(std::move(projection),
+                                               std::move(partitioner));
   }
   return absl::WrapUnique(result);
 }

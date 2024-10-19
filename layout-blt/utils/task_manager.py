@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ def restore_checkpoint(state, workdir):
 def save_checkpoint(state, workdir):
   if jax.process_index() == 0:
     # get train state from the first replica
-    state = jax.device_get(jax.tree_map(lambda x: x[0], state))
+    state = jax.device_get(jax.tree.map(lambda x: x[0], state))
     step = int(state.step)
     flax_checkpoints.save_checkpoint(workdir, state, step, keep=5,
                                      overwrite=True)

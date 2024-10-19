@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -157,7 +157,7 @@ def get_dataset(rng, config):
         'sample_rate': 16000,
         'num_examples': num_examples,
         'num_batches': num_batches,
-        'shape': jax.tree_map(
+        'shape': jax.tree.map(
             lambda x: x.shape, next(ds[name].as_numpy_iterator())),
     }
 

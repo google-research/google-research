@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -164,8 +164,8 @@ def prepare_images_for_logging(
   # Converts all tensors to numpy arrays to run everything on CPU as JAX
   # eager mode is inefficient and because memory usage from these ops may
   # lead to OOM errors.
-  batch = jax.tree_map(np.array, batch)
-  preds = jax.tree_map(np.array, preds)
+  batch = jax.tree.map(np.array, batch)
+  preds = jax.tree.map(np.array, preds)
 
   if n_samples <= 0:
     return images
@@ -173,17 +173,17 @@ def prepare_images_for_logging(
   if not first_replica_only:
     # Move the two leading batch dimensions into a single dimension. We do this
     # to plot the same number of examples regardless of the data parallelism.
-    batch = jax.tree_map(lambda x: np.reshape(x, (-1,) + x.shape[2:]), batch)
-    preds = jax.tree_map(lambda x: np.reshape(x, (-1,) + x.shape[2:]), preds)
+    batch = jax.tree.map(lambda x: np.reshape(x, (-1,) + x.shape[2:]), batch)
+    preds = jax.tree.map(lambda x: np.reshape(x, (-1,) + x.shape[2:]), preds)
   else:
-    batch = jax.tree_map(lambda x: x[0], batch)
-    preds = jax.tree_map(lambda x: x[0], preds)
+    batch = jax.tree.map(lambda x: x[0], batch)
+    preds = jax.tree.map(lambda x: x[0], preds)
 
   # Limit the tensors to n_samples and n_frames.
-  batch = jax.tree_map(
+  batch = jax.tree.map(
       lambda x: x[:n_samples, :n_frames] if x.ndim > 2 else x[:n_samples],
       batch)
-  preds = jax.tree_map(
+  preds = jax.tree.map(
       lambda x: x[:n_samples, :n_frames] if x.ndim > 2 else x[:n_samples],
       preds)
 
@@ -216,7 +216,7 @@ def prepare_images_for_logging(
   if preds is not None and "intermediates" in preds:
 
     logging.info("intermediates: %s",
-                 jax.tree_map(shape_fn, preds["intermediates"]))
+                 jax.tree.map(shape_fn, preds["intermediates"]))
 
     for key, path in config.debug_var_video_paths.items():
       log_vars = retrieve_from_collection(preds["intermediates"], path)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -133,7 +133,9 @@ class CMAESOptimizer:
           value obtained after early_termination_num_fevals evaluations is still
           larger than early_termination_wrmsd.
       """
-      if not np.any(cma_es.fit.fit < early_termination_abnormal_wrmsd):
+      if not np.any(
+          np.asarray(cma_es.fit.fit) < early_termination_abnormal_wrmsd
+      ):
         logging.info(
             'Optimization terminated due to abnormal function values: %s',
             cma_es.fit.fit)
@@ -193,7 +195,7 @@ class CMAESOptimizer:
         Float, the weighted root mean square deviation (WRMSD).
       """
       loss = float(
-          eval_wrmsd(**jax.tree_unflatten(
+          eval_wrmsd(**jax.tree.unflatten(
               functional.parameters_spec, parameters_vec)))
       if self.l1_penalty > 1e-8:
         loss += self.l1_penalty * np.sum(np.abs(parameters_vec))
@@ -228,7 +230,7 @@ class CMAESOptimizer:
     objective = self.get_objective(functional)
 
     if parameters_init:
-      parameters_vec_init = jax.tree_flatten(parameters_init)[0]
+      parameters_vec_init = jax.tree.flatten(parameters_init)[0]
 
     start = time.time()
     wrmsd_best = float('inf')
@@ -256,7 +258,7 @@ class CMAESOptimizer:
         wrmsd_best = wrmsd
         results = results_trial
         results['parameters'] = (
-            None if results['xbest'] is None else jax.tree_unflatten(
+            None if results['xbest'] is None else jax.tree.unflatten(
                 functional.parameters_spec, results['xbest']))
 
     results['wrmsd_trials'] = wrmsds

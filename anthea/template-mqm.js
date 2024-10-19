@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -42,6 +42,11 @@ antheaTemplates['MQM'] = {
    * @const {string} Template version identifier.
    */
   VERSION: 'v1.00-Feb-13-2023',
+
+  /**
+   * @const {boolean} Show two translations when set to true.
+   */
+  SIDE_BY_SIDE: false,
 
   /**
    * @const {boolean} Only rate the target side, i.e., the translated text.
@@ -106,6 +111,10 @@ antheaTemplates['MQM'] = {
           display: 'Mistranslation',
           description: 'The target text does not accurately represent the source text.',
         },
+        gender_mismatch: {
+          display: 'Gender Mismatch',
+          description: 'The gender is incorrect (incorrect pronouns, noun/adjective endings, etc).',
+        },
         untranslated: {
           display: 'Source language fragment',
           description: 'Content that should have been translated has been left untranslated.',
@@ -141,6 +150,10 @@ antheaTemplates['MQM'] = {
           display: 'Spelling',
           description: 'Issues related to spelling or capitalization of words, and incorrect omission/addition of whitespace.',
         },
+        breaking: {
+          display: 'Text-Breaking',
+          description: 'Issues related to missing or unwarranted paragraph breaks or line breaks.',
+        },
         punctuation: {
           display: 'Punctuation',
           description: 'Punctuation is used incorrectly (for the locale or style).',
@@ -162,6 +175,10 @@ antheaTemplates['MQM'] = {
         sentence_structure: {
           display: 'Bad sentence structure',
           description: 'The marked span of text is an unnecessary repetition, or makes the sentence unnecessarily long, or would have been better as a clause in the previous sentence.'
+        },
+        archaic_word: {
+          display: 'Archaic or obscure word choice',
+          description: 'An archaic or lesser-known word is used where a more colloquial term would be a better fit.',
         },
       },
     },

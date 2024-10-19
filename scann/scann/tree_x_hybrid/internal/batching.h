@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -71,6 +71,20 @@ inline DatapointIndex QueryIndex(const QueryForResidualLeaf& q) {
   return q.query_index;
 }
 
+struct BatchedGlobalTopNData {
+  BatchedGlobalTopNData(uint32_t leaf_index, uint32_t leaf_size,
+                        const uint8_t* ah_data,
+                        ConstSpan<QueryForResidualLeaf> queries)
+      : leaf_index(leaf_index),
+        leaf_size(leaf_size),
+        ah_data(ah_data),
+        queries(queries) {}
+  uint32_t leaf_index;
+  uint32_t leaf_size;
+  const uint8_t* ah_data;
+  ConstSpan<QueryForResidualLeaf> queries;
+};
+
 inline float DistanceToCenterAdjustment(DatapointIndex query_index) {
   return 0.0f;
 }
@@ -81,7 +95,7 @@ inline float DistanceToCenterAdjustment(const QueryForResidualLeaf& q) {
 
 template <typename QueryForLeaf>
 vector<SearchParameters> CreateParamsSubsetForLeaf(
-    ConstSpan<FastTopNeighbors<float>::Mutator> mutators,
+    ConstSpan<FastTopNeighbors<float>> topns,
     ConstSpan<shared_ptr<const SearcherSpecificOptionalParameters>>
         leaf_optional_params,
     ConstSpan<QueryForLeaf> queries_for_leaf) {
@@ -91,8 +105,8 @@ vector<SearchParameters> CreateParamsSubsetForLeaf(
     const DatapointIndex query_index = QueryIndex(q);
     SearchParameters leaf_params;
     leaf_params.set_pre_reordering_num_neighbors(
-        mutators[query_index].max_results());
-    leaf_params.set_pre_reordering_epsilon(mutators[query_index].epsilon() -
+        topns[query_index].max_results());
+    leaf_params.set_pre_reordering_epsilon(topns[query_index].epsilon() -
                                            DistanceToCenterAdjustment(q));
     leaf_params.set_searcher_specific_optional_parameters(
         leaf_optional_params[query_index]);

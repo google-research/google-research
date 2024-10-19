@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,10 +14,17 @@
 
 #include "scann/projection/chunking_projection.h"
 
+#include <cstddef>
 #include <cstdint>
+#include <utility>
 
+#include "absl/log/check.h"
 #include "absl/strings/substitute.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/projection/identity_projection.h"
+#include "scann/projection/projection_base.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
 
@@ -42,6 +49,10 @@ StatusOr<unique_ptr<ChunkingProjection<T>>> BuildFromConfigImpl(
       vector<int32_t> dims_per_block;
       int32_t num_blocks = 0;
       for (const auto& vblock : config.variable_blocks()) {
+        if (vblock.num_blocks() < 0) {
+          return InvalidArgumentError(
+              "variable_blocks mustn't contain blocks with negative sizes");
+        }
         dims_per_block.insert(dims_per_block.end(), vblock.num_blocks(),
                               vblock.num_dims_per_block());
         num_blocks += vblock.num_blocks();
@@ -80,6 +91,11 @@ StatusOr<unique_ptr<ChunkingProjection<T>>> BuildFromConfigImpl(
             "will consist entirely of zero-padding.",
             num_blocks, DivRoundUp(input_dim, dims_per_block)));
       }
+      if (num_blocks < DivRoundUp(input_dim, dims_per_block)) {
+      }
+      if (num_blocks < 0) {
+        return InvalidArgumentError("num_blocks mustn't be negative");
+      }
       return make_unique<ChunkingProjection<T>>(num_blocks, dims_per_block);
     }
   }
@@ -90,7 +106,7 @@ StatusOr<unique_ptr<ChunkingProjection<T>>>
 ChunkingProjection<T>::BuildFromConfig(
     const ProjectionConfig& config,
     unique_ptr<Projection<T>> initial_projection) {
-  TF_ASSIGN_OR_RETURN(auto result, BuildFromConfigImpl<T>(config));
+  SCANN_ASSIGN_OR_RETURN(auto result, BuildFromConfigImpl<T>(config));
   result->initial_projection_ = std::move(initial_projection);
   return {std::move(result)};
 }
@@ -211,13 +227,13 @@ void ChunkingProjection<T>::ComputeCumulativeDims() {
 template <typename T>
 Status ChunkingProjection<T>::ProjectInput(
     const DatapointPtr<T>& input, ChunkedDatapoint<float>* chunked) const {
-  TF_ASSIGN_OR_RETURN(*chunked, ProjectInputImpl<float>(input));
+  SCANN_ASSIGN_OR_RETURN(*chunked, ProjectInputImpl<float>(input));
   return OkStatus();
 }
 template <typename T>
 Status ChunkingProjection<T>::ProjectInput(
     const DatapointPtr<T>& input, ChunkedDatapoint<double>* chunked) const {
-  TF_ASSIGN_OR_RETURN(*chunked, ProjectInputImpl<double>(input));
+  SCANN_ASSIGN_OR_RETURN(*chunked, ProjectInputImpl<double>(input));
   return OkStatus();
 }
 

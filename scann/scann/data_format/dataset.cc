@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,22 +22,25 @@
 #include <utility>
 
 #include "absl/container/flat_hash_set.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/strings/str_cat.h"
-#include "absl/strings/substitute.h"
-#include "absl/time/time.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/docid_collection.h"
-#include "scann/data_format/gfv_conversion.h"
+#include "scann/data_format/docid_collection_interface.h"
+#include "scann/data_format/features.pb.h"
 #include "scann/data_format/gfv_properties.h"
-#include "scann/oss_wrappers/scann_aligned_malloc.h"
+#include "scann/data_format/sparse_low_level.h"
+#include "scann/distance_measures/distance_measure_base.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/proto/hashed.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
-#include "scann/utils/memory_logging.h"
 #include "scann/utils/types.h"
-#include "scann/utils/zip_sort.h"
-#include "tensorflow/core/platform/prefetch.h"
+#include "scann/utils/util_functions.h"
 
 namespace research_scann {
-
-void Dataset::UnusedKeyMethod() {}
 
 shared_ptr<DocidCollectionInterface> Dataset::ReleaseDocids() {
   auto result = std::move(docids_);
@@ -82,13 +85,13 @@ void TypedDataset<T>::AppendOrDie(const GenericFeatureVector& gfv) {
 template <typename T>
 void TypedDataset<T>::AppendOrDie(const DatapointPtr<T>& dptr,
                                   string_view docid) {
-  TF_CHECK_OK(this->Append(dptr, docid));
+  CHECK_OK(this->Append(dptr, docid));
 }
 
 template <typename T>
 void TypedDataset<T>::AppendOrDie(const GenericFeatureVector& gfv,
                                   string_view docid) {
-  TF_CHECK_OK(this->Append(gfv, docid));
+  CHECK_OK(this->Append(gfv, docid));
 }
 
 template <typename T>
@@ -310,6 +313,18 @@ inline void ToDoubleAlwaysCopy(const DatapointPtr<double>& dptr,
                                Datapoint<double>* dp) {
   CopyToDatapoint(dptr, dp);
 }
+
+template <typename T>
+inline void ToFloatAlwaysCopy(const DatapointPtr<T>& dptr,
+                              Datapoint<float>* dp) {
+  ToFloat(dptr, dp);
+}
+
+template <>
+inline void ToFloatAlwaysCopy(const DatapointPtr<float>& dptr,
+                              Datapoint<float>* dp) {
+  CopyToDatapoint(dptr, dp);
+}
 }  // namespace
 
 template <typename T>
@@ -319,6 +334,16 @@ void TypedDataset<T>::GetDatapoint(size_t index,
   result->clear();
   auto unconverted = (*this)[index];
   ToDoubleAlwaysCopy(unconverted, result);
+  result->set_normalization(this->normalization());
+}
+
+template <typename T>
+void TypedDataset<T>::GetDatapoint(size_t index,
+                                   Datapoint<float>* result) const {
+  DCHECK(result);
+  result->clear();
+  auto unconverted = (*this)[index];
+  ToFloatAlwaysCopy(unconverted, result);
   result->set_normalization(this->normalization());
 }
 
@@ -368,6 +393,12 @@ void DenseDataset<T>::GetDenseDatapoint(size_t index,
 }
 
 template <typename T>
+void DenseDataset<T>::GetDenseDatapoint(size_t index,
+                                        Datapoint<float>* result) const {
+  this->GetDatapoint(index, result);
+}
+
+template <typename T>
 double DenseDataset<T>::GetDistance(const DistanceMeasure& dist,
                                     size_t vec1_index,
                                     size_t vec2_index) const {
@@ -396,13 +427,14 @@ Status DenseDataset<T>::Append(const DatapointPtr<T>& dptr, string_view docid) {
         "parameter.");
   }
 
-  if (this->dimensionality() == 0) {
-    this->set_dimensionality(dptr_dim);
-
+  if (this->size() == 0) {
+    if (this->dimensionality() == 0) this->set_dimensionality(dptr_dim);
     if (this->packing_strategy() == HashedItem::NONE) {
       set_is_binary(dptr_is_binary);
     }
-  } else if (this->dimensionality() != dptr_dim) {
+  }
+
+  if (this->dimensionality() != dptr_dim) {
     return FailedPreconditionError(
         StrFormat("Dimensionality mismatch:  Appending a %u dimensional "
                   "datapoint to a %u dimensional dataset.",
@@ -453,7 +485,7 @@ DenseDataset<T>::DenseDataset(vector<T> datapoint_vec,
 }
 
 template <typename T>
-DenseDataset<T>::DenseDataset(vector<T> datapoint_vec, size_t num_dp)
+DenseDataset<T>::DenseDataset(vector<T>&& datapoint_vec, size_t num_dp)
     : DenseDataset<T>(
           std::move(datapoint_vec),
           make_unique<VariableLengthDocidCollection>(
@@ -494,7 +526,7 @@ shared_ptr<DocidCollectionInterface> DenseDataset<T>::ReleaseDocids() {
   auto result = Dataset::ReleaseDocids();
   if (mutator_) {
     mutator_ = nullptr;
-    TF_CHECK_OK(GetMutator().status());
+    CHECK_OK(GetMutator().status());
   }
   return result;
 }
@@ -507,7 +539,11 @@ size_t DenseDataset<T>::MemoryUsageExcludingDocids() const {
 template <typename T>
 StatusOr<typename TypedDataset<T>::Mutator*> DenseDataset<T>::GetMutator()
     const {
-  return UnimplementedError("No mutator supported.");
+  if (!mutator_) {
+    SCANN_ASSIGN_OR_RETURN(mutator_, DenseDataset<T>::Mutator::Create(
+                                         const_cast<DenseDataset<T>*>(this)));
+  }
+  return {mutator_.get()};
 }
 
 template <typename T>
@@ -521,8 +557,9 @@ void SparseDataset<T>::set_dimensionality(DimensionIndex dimensionality) {
 }
 
 template <typename T>
-void SparseDataset<T>::GetDenseDatapoint(size_t index,
-                                         Datapoint<double>* result) const {
+template <typename OutT>
+void SparseDataset<T>::GetDenseDatapointImpl(size_t index,
+                                             Datapoint<OutT>* result) const {
   DCHECK(result);
   result->clear();
   auto unconverted = (*this)[index];
@@ -538,6 +575,18 @@ void SparseDataset<T>::GetDenseDatapoint(size_t index,
     }
   }
   result->set_normalization(this->normalization());
+}
+
+template <typename T>
+void SparseDataset<T>::GetDenseDatapoint(size_t index,
+                                         Datapoint<double>* result) const {
+  GetDenseDatapointImpl(index, result);
+}
+
+template <typename T>
+void SparseDataset<T>::GetDenseDatapoint(size_t index,
+                                         Datapoint<float>* result) const {
+  GetDenseDatapointImpl(index, result);
 }
 
 template <typename T>
@@ -581,13 +630,13 @@ Status SparseDataset<T>::Append(const GenericFeatureVector& gfv,
 template <typename T>
 Status SparseDataset<T>::AppendImpl(const GenericFeatureVector& gfv,
                                     string_view docid) {
-  TF_ASSIGN_OR_RETURN(bool is_sparse, IsGfvSparse(gfv));
+  SCANN_ASSIGN_OR_RETURN(bool is_sparse, IsGfvSparse(gfv));
   if (!is_sparse) {
     return FailedPreconditionError(
         "Cannot append a dense GFV to a sparse dataset.");
   }
 
-  TF_ASSIGN_OR_RETURN(DimensionIndex gfv_dim, GetGfvDimensionality(gfv));
+  SCANN_ASSIGN_OR_RETURN(DimensionIndex gfv_dim, GetGfvDimensionality(gfv));
   if (this->dimensionality() == 0) {
     this->set_dimensionality(gfv_dim);
   } else if (this->dimensionality() != gfv_dim) {

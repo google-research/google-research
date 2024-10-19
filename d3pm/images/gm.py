@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -157,10 +157,10 @@ class TrainableModel:
         # Apply update if the new optimizer state is all finite
         ok = jnp.all(
             jnp.asarray([
-                jnp.all(jnp.isfinite(p)) for p in jax.tree_leaves(new_optimizer)
+                jnp.all(jnp.isfinite(p)) for p in jax.tree.leaves(new_optimizer)
             ]))
         new_state_no_update = state.replace(step=step + 1)
-        state = jax.tree_map(lambda a, b: jnp.where(ok, a, b), new_state,
+        state = jax.tree.map(lambda a, b: jnp.where(ok, a, b), new_state,
                                   new_state_no_update)
       else:
         logging.info('Update skipping disabled')
@@ -211,7 +211,7 @@ class TrainableModel:
     init_params = self.make_init_params(
         global_rng=jax.random.PRNGKey(self.config.seed))
     logging_string = (f'Param shapes: '
-                      f'{jax.tree_map(lambda a: a.shape, init_params)}')
+                      f'{jax.tree.map(lambda a: a.shape, init_params)}')
     logging.info(logging_string)
     logging.info('Number of trainable parameters: %d',
                  utils.count_params(init_params))
@@ -365,7 +365,7 @@ class TrainableModel:
             assert x.shape[0] == config.train.substeps
             return float(x.mean(axis=0))
 
-          metrics = jax.tree_map(avg_over_substeps, metrics)
+          metrics = jax.tree.map(avg_over_substeps, metrics)
           metrics['train/steps_per_sec'] = float(
               config.train.log_loss_every_steps / (time.time() - last_log_time))
           writer.write_scalars(new_step, metrics)

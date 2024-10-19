@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ _cross_replica_mean = jax.pmap(lambda x: jax.lax.pmean(x, "x"), "x")
 def merge_batch_stats(config,
                       replicated_state):
   """Merge model batch stats and populate ema_params."""
-  if jax.tree_leaves(replicated_state.batch_stats):
+  if jax.tree.leaves(replicated_state.batch_stats):
     replicated_state = replicated_state.replace(
         batch_stats=_cross_replica_mean(replicated_state.batch_stats))
   if config.ema_decay:
@@ -210,7 +210,7 @@ def train_step(model, state, batch,
     elif loss_fn == "squared":
       loss = jnp.mean(squared_loss(logits=logits, labels=batch["label"]))
       loss = loss / 10.0
-    weight_penalty_params = jax.tree_leaves(variables["params"])
+    weight_penalty_params = jax.tree.leaves(variables["params"])
     weight_l2 = sum(
         [jnp.sum(x**2) for x in weight_penalty_params if x.ndim > 1])
     weight_penalty = weight_decay * 0.5 * weight_l2
@@ -305,7 +305,7 @@ def evaluate(model,
   with StepTraceContextHelper("eval", 0) as trace_context:
     for step, batch in enumerate(eval_ds):  # pytype: disable=wrong-arg-types
       logging.info("Eval step %d", step)
-      batch = jax.tree_map(np.asarray, batch)
+      batch = jax.tree.map(np.asarray, batch)
       metrics_update = flax_utils.unreplicate(
           eval_step(model, state, batch, loss_fn))
       eval_metrics = (
@@ -408,7 +408,7 @@ def train_and_evaluate(config, workdir):
       is_last_step = step == num_train_steps
 
       with jax.profiler.StepTraceAnnotation("train", step_num=step):
-        batch = jax.tree_map(np.asarray, next(train_iter))
+        batch = jax.tree.map(np.asarray, next(train_iter))
         state, metrics_update = p_train_step(state=state, batch=batch)
         metric_update = flax_utils.unreplicate(metrics_update)
         train_metrics = (
@@ -435,7 +435,7 @@ def train_and_evaluate(config, workdir):
           state = merge_batch_stats(config, state)
           eval_metrics = evaluate(model, state, eval_ds, config.num_eval_steps,
                                   config.loss_fn)
-        eval_metrics_cpu = jax.tree_map(np.array, eval_metrics.compute())
+        eval_metrics_cpu = jax.tree.map(np.array, eval_metrics.compute())
         writer.write_scalars(step, eval_metrics_cpu)
 
       if step % (steps_per_epoch * 5) == 0 or is_last_step:

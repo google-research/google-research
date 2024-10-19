@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 
 #include <cstdint>
 
+#include "absl/types/span.h"
 #include "scann/data_format/dataset.h"
 #include "scann/utils/types.h"
 
@@ -33,8 +34,8 @@ struct PreQuantizedFixedPoint {
 };
 
 inline PreQuantizedFixedPoint CreatePreQuantizedFixedPoint(
-    const DenseDataset<int8_t>& dataset, const vector<float>& multipliers,
-    const vector<float>& norms, bool reciprocate = false) {
+    const DenseDataset<int8_t>& dataset, absl::Span<const float> multipliers,
+    absl::Span<const float> norms, bool reciprocate = false) {
   PreQuantizedFixedPoint res;
   res.fixed_point_dataset = make_shared<DenseDataset<int8_t>>(dataset.Copy());
   res.multiplier_by_dimension =

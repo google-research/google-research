@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
 import jax
-from jax.experimental import host_callback as hcb
+from jax.experimental import io_callback
 import jax.numpy as jnp
 import numpy as np
 from t5x import decoding
@@ -161,12 +161,10 @@ class DecodingTest(parameterized.TestCase):
             sequences[i, current_index[i] + 1] = EOS_ID
         return sequences
 
-      sequences = hcb.call(
+      sequences = io_callback(
           callback_fn,
+          jax.ShapeDtypeStruct(state.sequences.shape, state.sequences.dtype),
           (state.cur_index, state.sequences),
-          result_shape=jax.ShapeDtypeStruct(
-              state.sequences.shape, state.sequences.dtype
-          ),
       )
       return state.replace(sequences=sequences)
 

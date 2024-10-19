@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -283,7 +283,7 @@ def hsv_to_rgb(h, s, v):
 
 
 def adjust_brightness(rgb_tuple, delta):
-  return jax.tree_map(lambda x: x + delta, rgb_tuple)
+  return jax.tree.map(lambda x: x + delta, rgb_tuple)
 
 
 def adjust_contrast(image, factor):
@@ -292,7 +292,7 @@ def adjust_contrast(image, factor):
     mean = jnp.mean(channel, axis=(-2, -1), keepdims=True)
     return factor * (channel - mean) + mean
 
-  return jax.tree_map(_adjust_contrast_channel, image)
+  return jax.tree.map(_adjust_contrast_channel, image)
 
 
 def adjust_saturation(h, s, v, factor):
@@ -372,7 +372,7 @@ def _color_transform_single_image(image, rng, brightness, contrast, saturation,
     def cond_fn(args, i):
 
       def clip(args):
-        return jax.tree_map(lambda arg: jnp.clip(arg, 0., 1.), args)
+        return jax.tree.map(lambda arg: jnp.clip(arg, 0., 1.), args)
 
       out = jax.lax.cond(should_apply & should_apply_color & (i == idx), args,
                          lambda a: clip(fn(*a)), args,
@@ -387,7 +387,7 @@ def _color_transform_single_image(image, rng, brightness, contrast, saturation,
   random_hue_cond = _make_cond(_random_hue, idx=3)
 
   def _color_jitter(x):
-    rgb_tuple = tuple(jax.tree_map(jnp.squeeze, jnp.split(x, 3, axis=-1)))
+    rgb_tuple = tuple(jax.tree.map(jnp.squeeze, jnp.split(x, 3, axis=-1)))
     if shuffle:
       order = jax.random.permutation(perm_rng, jnp.arange(4, dtype=jnp.int32))
     else:

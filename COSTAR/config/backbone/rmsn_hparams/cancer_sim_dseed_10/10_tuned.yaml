@@ -1,0 +1,41 @@
+# @package _global_
+dataset:
+  coeff: 10.0
+
+model:
+  propensity_treatment:
+    seq_hidden_units: 8                 # rnn_hidden_units in the original terminology
+    dropout_rate: 0.5
+    num_layer: 1
+    batch_size: 128
+    max_grad_norm: 1.0
+    optimizer:
+      learning_rate: 0.01
+
+  propensity_history:
+    seq_hidden_units: 24                  # rnn_hidden_units in the original terminology
+    dropout_rate: 0.1
+    num_layer: 1
+    batch_size: 128
+    max_grad_norm: 2.0
+    optimizer:
+      learning_rate: 0.01
+
+  encoder:
+    seq_hidden_units: 24                  # rnn_hidden_units in the original terminology
+    dropout_rate: 0.1                       # Dropout of LSTM hidden layers + output layers
+    num_layer: 1
+    batch_size: 64
+    max_grad_norm: 0.5
+    optimizer:
+      learning_rate: 0.01
+
+  train_decoder: True
+  decoder:
+    seq_hidden_units: 48                    # rnn_hidden_units in the original terminology
+    dropout_rate: 0.1                        # Dropout of LSTM hidden layers + output layers
+    num_layer: 1
+    batch_size: 256
+    max_grad_norm: 0.5
+    optimizer:
+      learning_rate: 0.0001

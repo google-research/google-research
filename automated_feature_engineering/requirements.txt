@@ -1,0 +1,18 @@
+absl-py==1.4.0
+db-dtypes
+google-auth
+google-cloud-bigquery
+google-cloud-bigquery-storage
+google-cloud-storage
+pandas>=2.2.1
+Pillow
+scikit-learn==1.2.1
+tensorflow==2.11
+tensorflow_addons==0.19.0
+tensorflow_probability==0.19.0
+# The baselines that can be used if desired
+# selective==1.1.1
+# xgboost==1.6.2
+# autofeat==2.1.2
+# pyHSICLasso==1.4.2
+# lassonet==0.0.11

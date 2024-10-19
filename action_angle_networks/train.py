@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -286,7 +286,7 @@ def compute_loss(predicted_positions,
     actions = auxiliary_predictions['actions']
     actions_variances = jnp.var(actions, axis=0).sum()
     loss += regularizations['actions'] * actions_variances
-  return loss
+  return loss  # pytype: disable=bad-return-type  # jnp-type
 
 
 @jax.jit
@@ -335,7 +335,7 @@ def compute_mean_change_in_hamiltonians(
   predicted_hamiltonians = compute_hamiltonian_fn(predicted_positions,
                                                   predicted_momentums,
                                                   simulation_parameters)
-  return jnp.mean(jnp.abs(curr_hamiltonians - predicted_hamiltonians))
+  return jnp.mean(jnp.abs(curr_hamiltonians - predicted_hamiltonians))  # pytype: disable=bad-return-type  # jnp-type
 
 
 @jax.jit
@@ -490,11 +490,11 @@ def sample_simulation_parameters(
   """Samples simulation parameters."""
 
   is_tuple = lambda val: isinstance(val, tuple)
-  ranges_flat, ranges_treedef = jax.tree_flatten(
+  ranges_flat, ranges_treedef = jax.tree.flatten(
       simulation_parameter_ranges, is_leaf=is_tuple)
   rng, shuffle_rng, *rngs = jax.random.split(rng, len(ranges_flat) + 2)
   shuffle_indices = jax.random.permutation(shuffle_rng, num_trajectories)
-  rng_tree = jax.tree_unflatten(ranges_treedef, rngs)
+  rng_tree = jax.tree.unflatten(ranges_treedef, rngs)
 
   def sample_simulation_parameter(simulation_parameter_range,
                                   parameter_rng):
@@ -504,7 +504,7 @@ def sample_simulation_parameters(
     samples = jnp.linspace(minval, maxval, num=num_trajectories)
     return jnp.sort(samples)[shuffle_indices]
 
-  return jax.tree_map(
+  return jax.tree.map(
       sample_simulation_parameter,
       simulation_parameter_ranges,
       rng_tree,
@@ -539,7 +539,7 @@ def get_coordinates_for_time_jumps(
 
   num_samples = positions.shape[1]
   curr_indices = jnp.arange(0, num_samples - max_jump)
-  target_indices = jax.vmap(map_to_target_indices)(curr_indices)
+  target_indices = jax.vmap(map_to_target_indices)(curr_indices)  # pytype: disable=wrong-arg-types  # jnp-type
   curr_positions = positions[curr_indices]
   target_positions = positions[target_indices]
   curr_momentums = momentums[curr_indices]
@@ -595,7 +595,7 @@ def get_trajectory_with_parameters(
     simulation_parameters
 ):
   """Gets the trajectory and simulation parameters for a particular index."""
-  return jax.tree_map(
+  return jax.tree.map(
       lambda arr: arr[index], (positions, momentums, simulation_parameters))
 
 

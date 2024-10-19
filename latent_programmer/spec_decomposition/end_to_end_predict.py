@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -334,7 +334,7 @@ def end_to_end_beam_init(batch_size,
   finished_flags0 = aux['finished']
   finished_aux = aux
   # add beam dimension to attention cache pytree elements
-  beam_cache0 = jax.tree_map(lambda x: decode.add_beam_dim(x, beam_size), cache)
+  beam_cache0 = jax.tree.map(lambda x: decode.add_beam_dim(x, beam_size), cache)
   return decode.BeamState(
       cur_index=cur_index0,
       cur_encoded=encoded,

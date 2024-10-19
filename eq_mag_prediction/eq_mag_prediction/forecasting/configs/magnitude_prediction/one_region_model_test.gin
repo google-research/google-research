@@ -1,0 +1,17 @@
+use_moment_angles = True
+
+build_encoders:
+  include_catalog_columns = True
+  include_recent_earthquakes = False
+  include_biggest_earthquakes = False
+  include_seismicity_rate = True
+
+_mock_earthquake.add_angles = %use_moment_angles
+
+SeismicityRateEncoder.prepare_features:
+  grid_side_deg = 100
+  lookback_seconds = [10,]
+  magnitudes = [3]
+
+
+

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -740,7 +740,7 @@ class MultiscopeRenderer:
           zero_backfacing,
           light_rotation,
       )
-      return jax.tree_map(utils.unshard, out_sharded)
+      return jax.tree.map(utils.unshard, out_sharded)
 
     self.render_rays = render_rays_batched
     self.render_pfn = train_utils.create_render_fn(model)
@@ -1226,7 +1226,7 @@ class MultiscopeRenderer:
         def select(z):
           return z[ray_idx[0], ray_idx[1]] if z is not None else None
 
-        ray_subset = jax.tree_map(select, self.all_rays)
+        ray_subset = jax.tree.map(select, self.all_rays)
         step = self.state.step[0]
         train_frac = jnp.clip((step - 1) / (self.config.max_steps - 1), 0, 1)
         out = self.render_rays(

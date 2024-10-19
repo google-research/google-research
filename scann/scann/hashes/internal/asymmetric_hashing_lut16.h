@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ using TopFixedPointNeighbors = TopNeighbors<int32_t>;
 template <typename TopN, typename PostprocessedDistance, typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt32Accumulator2(
     ConstSpan<uint8_t> lookup, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     const RestrictAllowlist* whitelist_or_null,
     PostprocessedDistance max_distance, const Postprocess& postprocess,
     TopN* top_items);
@@ -44,7 +44,7 @@ void GetNeighborsViaAsymmetricDistanceLUT16WithInt32Accumulator2(
 template <typename TopN, typename PostprocessedDistance, typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt16Accumulator2(
     ConstSpan<uint8_t> lookup, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     const RestrictAllowlist* whitelist_or_null,
     PostprocessedDistance max_distance, const Postprocess& postprocess,
     TopN* top_items);
@@ -53,7 +53,7 @@ template <size_t kNumQueries, typename TopN, typename PostprocessedDistance,
           typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt16AccumulatorBatched2(
     array<ConstSpan<int8_t>, kNumQueries> lookups, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null,
     array<PostprocessedDistance, kNumQueries> max_distances,
     const Postprocess& postprocess, array<TopN*, kNumQueries> top_items);
@@ -62,7 +62,7 @@ template <size_t kNumQueries, typename TopN, typename PostprocessedDistance,
           typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt32AccumulatorBatched2(
     array<ConstSpan<int8_t>, kNumQueries> lookups, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null,
     array<PostprocessedDistance, kNumQueries> max_distances,
     const Postprocess& postprocess, array<TopN*, kNumQueries> top_items);
@@ -70,7 +70,7 @@ void GetNeighborsViaAsymmetricDistanceLUT16WithInt32AccumulatorBatched2(
 template <typename TopN, typename PostprocessedDistance, typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt32Accumulator2(
     ConstSpan<uint8_t> lookup, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     const RestrictAllowlist* whitelist_or_null,
     PostprocessedDistance max_distance, const Postprocess& postprocess,
     TopN* top_items) {
@@ -97,7 +97,7 @@ void GetNeighborsViaAsymmetricDistanceLUT16WithInt32Accumulator2(
 template <typename TopN, typename PostprocessedDistance, typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt16Accumulator2(
     ConstSpan<uint8_t> lookup, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     const RestrictAllowlist* whitelist_or_null,
     PostprocessedDistance max_distance, const Postprocess& postprocess,
     TopN* top_items) {
@@ -123,7 +123,7 @@ template <size_t kNumQueries, typename TopN, typename PostprocessedDistance,
           typename DistT, typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16BatchedImpl(
     array<ConstSpan<uint8_t>, kNumQueries> lookups, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null,
     array<PostprocessedDistance, kNumQueries> max_distances,
     const Postprocess& postprocess, array<TopN*, kNumQueries> top_items) {
@@ -169,7 +169,7 @@ template <size_t kNumQueries, typename TopN, typename PostprocessedDistance,
           typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt16AccumulatorBatched2(
     array<ConstSpan<uint8_t>, kNumQueries> lookups, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null,
     array<PostprocessedDistance, kNumQueries> max_distances,
     const Postprocess& postprocess, array<TopN*, kNumQueries> top_items) {
@@ -183,7 +183,7 @@ template <size_t kNumQueries, typename TopN, typename PostprocessedDistance,
           typename Postprocess>
 void GetNeighborsViaAsymmetricDistanceLUT16WithInt32AccumulatorBatched2(
     array<ConstSpan<uint8_t>, kNumQueries> lookups, DatapointIndex dataset_size,
-    const std::vector<uint8_t>& packed_dataset,
+    ConstSpan<uint8_t> packed_dataset,
     array<const RestrictAllowlist*, kNumQueries> restrict_whitelists_or_null,
     array<PostprocessedDistance, kNumQueries> max_distances,
     const Postprocess& postprocess, array<TopN*, kNumQueries> top_items) {

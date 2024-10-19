@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
               noise_factor=initialization_noise_factor)
           if legacy_initialize:
             return routing_probs
-          return jax.tree_map(lambda x: jnp.log(x + initialize_smoothing),
+          return jax.tree.map(lambda x: jnp.log(x + initialize_smoothing),
                               routing_probs)
 
         log_routing_params = self.param(
@@ -221,12 +221,6 @@ class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
             initializer=shared_routing_initializer)
         routing_params = builder.routing_softmax(log_routing_params)
 
-      # Don't precompute constants if we are tracing an XLA computation; wait
-      # until we know a value for our parameters by adding a fake data
-      # dependence.
-      trigger = jax.tree_leaves(routing_params)[0]
-      variant_weights = jax.lax.tie_in(trigger, variant_weights)
-
       # Build the automaton on the provided graph.
       transition_matrix = builder.build_transition_matrix(
           routing_params, encoded_graph, static_metadata)
@@ -234,12 +228,11 @@ class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
       # Each edge type is a start state.
       if num_intermediate_states > 0:
         start_machine_states = jnp.concatenate([
-            jax.lax.tie_in(trigger, jnp.eye(num_out_edges)),
-            jax.lax.tie_in(trigger,
-                           jnp.zeros((num_out_edges, num_intermediate_states)))
+            jnp.eye(num_out_edges),
+            jnp.zeros((num_out_edges, num_intermediate_states))
         ], 1)
       else:
-        start_machine_states = jax.lax.tie_in(trigger, jnp.eye(num_out_edges))
+        start_machine_states = jnp.eye(num_out_edges)
 
       start_machine_states = jnp.broadcast_to(
           start_machine_states, (num_nodes, num_out_edges, num_fsm_states))
@@ -381,7 +374,7 @@ class FiniteStateGraphAutomaton(flax.deprecated.nn.Module):
                   noise_factor=initialization_noise_factor)
           if legacy_initialize:
             return routing_probs
-          return jax.tree_map(lambda x: jnp.log(x + initialize_smoothing),
+          return jax.tree.map(lambda x: jnp.log(x + initialize_smoothing),
                               routing_probs)
 
         log_routing_params = self.param(

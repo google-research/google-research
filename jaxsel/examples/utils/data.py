@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ def make_graph_mnist(
   return image_graph.ImageGraph.create(
       # The threshold value .3 was selected to keep information
       # while not introducing noise
-      jnp.digitize(image, bins).squeeze(),
+      jnp.digitize(image, bins).squeeze(),  # pytype: disable=wrong-arg-types  # jnp-type
       get_start_pixel_fn=lambda _: (14, 14),  # start in the center
       num_colors=len(bins),  # number of bins + 'out of bounds' pixel
       patch_size=patch_size)
@@ -171,7 +171,7 @@ def make_graph_pathfinder(
 
   # TODO(gnegiar): Allow continuous features in models.
   return image_graph.ImageGraph.create(
-      jnp.digitize(image, bins).squeeze(),
+      jnp.digitize(image, bins).squeeze(),  # pytype: disable=wrong-arg-types  # jnp-type
       # Set thresh to .5 by leveraging the image discretization.
       get_start_pixel_fn=functools.partial(
           _get_start_pixel_fn, thresh=.5 * len(bins)),

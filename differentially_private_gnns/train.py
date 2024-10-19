@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,7 +64,7 @@ def compute_loss(logits,
 def get_subgraphs(graph,
                   pad_to):
   """Creates an array of padded subgraphs."""
-  num_nodes = jax.tree_leaves(graph.nodes)[0].shape[0]
+  num_nodes = jax.tree.leaves(graph.nodes)[0].shape[0]
   outgoing_edges = {u: [] for u in range(num_nodes)}
   for sender, receiver in zip(graph.senders, graph.receivers):
     if sender != receiver:
@@ -201,10 +201,10 @@ def compute_updates_for_dp(state,
                                   subgraph_indices)
 
   # Undo reshape.
-  grads = jax.tree_map(reshape_after_pmap, grads)
+  grads = jax.tree.map(reshape_after_pmap, grads)
 
   # Normalize gradients by batch size.
-  return jax.tree_map(lambda grad: grad / grad.shape[0], grads)
+  return jax.tree.map(lambda grad: grad / grad.shape[0], grads)
 
 
 @jax.jit
@@ -241,9 +241,9 @@ def estimate_clipping_thresholds(
       apply_fn=apply_fn, params=params, tx=optax.identity())
   grads = compute_updates_for_dp(dummy_state, graph, labels, subgraphs,
                                  estimation_indices, adjacency_normalization)
-  grad_norms = jax.tree_map(jax.vmap(jnp.linalg.norm), grads)
+  grad_norms = jax.tree.map(jax.vmap(jnp.linalg.norm), grads)
   get_percentile = lambda norms: jnp.percentile(norms, l2_norm_clip_percentile)
-  l2_norms_threshold = jax.tree_map(get_percentile, grad_norms)
+  l2_norms_threshold = jax.tree.map(get_percentile, grad_norms)
   return l2_norms_threshold
 
 
@@ -453,7 +453,7 @@ def train_and_evaluate(config,
   # Get datasets.
   rng, dataset_rng = jax.random.split(rng)
   dataset = input_pipeline.get_dataset(config, dataset_rng)
-  graph, labels, masks = jax.tree_map(jnp.asarray, dataset)
+  graph, labels, masks = jax.tree.map(jnp.asarray, dataset)
   labels = jax.nn.one_hot(labels, config.num_classes)
   train_mask = masks['train']
   train_indices = jnp.where(train_mask)[0]
@@ -462,10 +462,10 @@ def train_and_evaluate(config,
 
   # Get subgraphs.
   if config.differentially_private_training:
-    graph = jax.tree_map(np.asarray, graph)
+    graph = jax.tree.map(np.asarray, graph)
     subgraphs = get_subgraphs(
         graph, pad_to=config.pad_subgraphs_to)
-    graph = jax.tree_map(jnp.asarray, graph)
+    graph = jax.tree.map(jnp.asarray, graph)
 
     # We only need the subgraphs for training nodes.
     train_subgraphs = subgraphs[train_indices]

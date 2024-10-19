@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ class TrainState:
     Returns:
       Cloned TrainState
     """
-    new_train_state = jax.tree_map(copy.deepcopy, self)
+    new_train_state = jax.tree.map(copy.deepcopy, self)
     return new_train_state
 
 
@@ -111,7 +111,7 @@ def sync_model_state_across_replicas(train_state):
   logging.warning('All model state statistics are averaged during syncing'
                   'across replicas.')
 
-  if jax.tree_leaves(train_state.model_state):
+  if jax.tree.leaves(train_state.model_state):
     # if the model_state is not empty
     return train_state.replace(model_state=pmap_mean(train_state.model_state))
   else:

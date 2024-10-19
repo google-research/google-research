@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -698,7 +698,7 @@ def sample_noise_step(
     assert isinstance(distn, ManyStepDistn)
     is_single_step = False
 
-  (sequence, distn) = jax.tree_map(jnp.array, (sequence, distn))
+  (sequence, distn) = jax.tree.map(jnp.array, (sequence, distn))
 
   max_len, = sequence.tokens.shape
   k1, k2, k3, k4 = jax.random.split(rng, 4)
@@ -867,7 +867,7 @@ def sentinel_one_step_log_prob(
   Returns:
     log q(x_{t+1} | x_t)
   """
-  xt, xtplus1, d_t_to_tplus1 = jax.tree_map(jnp.array,
+  xt, xtplus1, d_t_to_tplus1 = jax.tree.map(jnp.array,
                                             (xt, xtplus1, d_t_to_tplus1))
   # Log probs of new insert sentinels.
   insertion_mask = xtplus1.insert_sentinel_mask()
@@ -1063,7 +1063,7 @@ def multi_step_aligned_log_prob(
     log q(target, alignment | source)
   """
   (source, target, alignment,
-   distn) = jax.tree_map(jnp.array, (source, target, alignment, distn))
+   distn) = jax.tree.map(jnp.array, (source, target, alignment, distn))
 
   # Log probs of inserts.
   insertion_mask = alignment.insert_mask()
@@ -1206,7 +1206,7 @@ def compute_multi_step_alignment_table(
       Note that the table may contain garbage after the end of the sequences,
       so the result should be indexed into appropriately.
   """
-  source, target, distn = jax.tree_map(jnp.array, (source, target, distn))
+  source, target, distn = jax.tree.map(jnp.array, (source, target, distn))
   source_max_len, = source.tokens.shape
   target_max_len, = target.tokens.shape
 
@@ -1349,7 +1349,7 @@ def sample_alignment_from_table(
   Returns:
     Random alignment conditioned on source and target.
   """
-  source, target, distn = jax.tree_map(jnp.array, (source, target, distn))
+  source, target, distn = jax.tree.map(jnp.array, (source, target, distn))
   log_gen, log_take = alignment_table
 
   # Start with the accepting state of the FSM:
@@ -1724,7 +1724,7 @@ def sample_intermediate(
   Returns:
     xt, alignment from 0 to t, and alignment from t to t+1.
   """
-  (x0, xtplus1, alignment, d_0_to_t, d_t_to_tplus1) = jax.tree_map(
+  (x0, xtplus1, alignment, d_0_to_t, d_t_to_tplus1) = jax.tree.map(
       jnp.array, (x0, xtplus1, alignment, d_0_to_t, d_t_to_tplus1))
 
   # Algorithm sketch:
@@ -2037,7 +2037,7 @@ def sample_intermediate(
         init=initial_state,
         xs=None,
         length=(x0.length + xtplus1.length + 1))
-    intermediates = jax.tree_map(
+    intermediates = jax.tree.map(
         lambda a, b: jnp.concatenate([a[None], b]), initial_state,
         intermediates)
   else:
@@ -2228,7 +2228,7 @@ def intermediate_marginals(
     - Posterior marginals conditioned on x0 and xtplus1, for use as a target.
     - The quantity E_{q(x_t | x0, xtplus1, alignment)}[ log q(xtplus1 | xt) ]
   """
-  (x0, xtplus1, alignment, d_0_to_t, d_t_to_tplus1) = jax.tree_map(
+  (x0, xtplus1, alignment, d_0_to_t, d_t_to_tplus1) = jax.tree.map(
       jnp.array, (x0, xtplus1, alignment, d_0_to_t, d_t_to_tplus1))
   # d_0_to_tplus1 = d_0_to_t.then(d_t_to_tplus1)
   max_len, = xtplus1.tokens.shape
@@ -2380,7 +2380,7 @@ def intermediate_marginals(
     lp_total = math_util.safe_logaddexp(copy_info.lp_case_1,
                                         copy_info.lp_case_2)
     (was_insert, was_token, lp_case_1_normalized,
-     lp_case_2_normalized) = jax.tree_map(
+     lp_case_2_normalized) = jax.tree.map(
          lambda v: math_util.safe_sub_or_ninf(v, lp_total),
          (was_insert, was_token, copy_info.lp_case_1, copy_info.lp_case_2))
 
@@ -2494,7 +2494,7 @@ def expected_forward_logprob(
 ):
   """Compute expected logprob over marginals."""
   (xt_marginals, xtplus1,
-   d_t_to_tplus1) = jax.tree_map(jnp.array,
+   d_t_to_tplus1) = jax.tree.map(jnp.array,
                                  (xt_marginals, xtplus1, d_t_to_tplus1))
   # Log probs of new insert sentinels.
   insertion_mask = xtplus1.insert_sentinel_mask()
@@ -2586,7 +2586,7 @@ def apply_x0_parameterization(
   Returns:
     Adjusted marginals, so that they now represent p_theta(x_t | x_{t+1})
   """
-  (approximate_x0_guess, xtplus1, d_0_to_t, d_t_to_tplus1) = jax.tree_map(
+  (approximate_x0_guess, xtplus1, d_0_to_t, d_t_to_tplus1) = jax.tree.map(
       jnp.array, (approximate_x0_guess, xtplus1, d_0_to_t, d_t_to_tplus1))
   max_len, = xtplus1.tokens.shape
 

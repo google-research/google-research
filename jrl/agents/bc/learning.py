@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -159,7 +159,7 @@ class BCLearner(acme.Learner):
         rest_t_shape = list(t.shape[1:])
         new_shape = [num_devices, t.shape[0]//num_devices,] + rest_t_shape
         return jnp.reshape(t, new_shape)
-      transitions = jax.tree_map(reshape_for_devices, transitions)
+      transitions = jax.tree.map(reshape_for_devices, transitions)
       sub_keys = jax.random.split(key, num_devices + 1)
       key = sub_keys[0]
       sub_keys = sub_keys[1:]
@@ -263,10 +263,10 @@ class BCLearner(acme.Learner):
 
   def get_variables(self, names):
     variables = {
-        'policy': jax.tree_map(lambda x: x[0], self._state.policy_params),
+        'policy': jax.tree.map(lambda x: x[0], self._state.policy_params),
     }
     if self._use_img_encoder:
-      img_encoder_params = jax.tree_map(
+      img_encoder_params = jax.tree.map(
           lambda x: x[0], self._state.img_encoder_params)
       variables['img_encoder'] = img_encoder_params
     return [variables[name] for name in names]

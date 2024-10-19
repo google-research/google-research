@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -411,4 +411,4 @@ def marginal_logprob(diffusion,
     cp = conditional_prob(xi)
     event_nats.append(up - cp)
   event_nats = jnp.concatenate(event_nats, axis=0)
-  return event_nats.mean(), event_nats.std() / jnp.sqrt(num_samples)
+  return event_nats.mean(), event_nats.std() / jnp.sqrt(num_samples)  # pytype: disable=bad-return-type  # jnp-type

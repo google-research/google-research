@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -160,7 +160,7 @@ def batch(
       stacked = jax_util.pad_to(stacked, batch_size)
       return stacked.reshape(batch_dim_sizes + stacked.shape[1:])
 
-    yield jax.tree_map(_batch_and_pad_elts, *to_batch)
+    yield jax.tree.map(_batch_and_pad_elts, *to_batch)
 
 
 def batch_bucketed(
@@ -209,7 +209,7 @@ def batch_bucketed(
       stacked = jax_util.pad_to(stacked, batch_sizes[key])
       return stacked.reshape(batch_dim_sizes[key] + stacked.shape[1:])  # pytype: disable=unsupported-operands  # jax-devicearray
 
-    result = jax.tree_map(_batch_and_pad_elts, *partial_batches[key])
+    result = jax.tree.map(_batch_and_pad_elts, *partial_batches[key])
     partial_batches[key].clear()
     return (key, result)
 
@@ -267,13 +267,13 @@ def batch_and_pad_to_prototype(
     divide the source length.
   """
   if drop_too_large:
-    prototype_leaves = jax.tree_leaves(prototype)
+    prototype_leaves = jax.tree.leaves(prototype)
 
     def filtered_source_generator():
       drop_ct = 0
       total_ct = 0
       for element in source:
-        element_leaves = jax.tree_leaves(element)
+        element_leaves = jax.tree.leaves(element)
         fits = True
         for el, ep in zip(element_leaves, prototype_leaves):
           el = np.asarray(el)
@@ -329,7 +329,7 @@ def batch_and_pad_to_prototype(
       else:
         raise ValueError(f"Unknown remainder behavior {remainder_behavior}")
 
-    yield jax.tree_map(_batch_into_prototype, prototype, *to_batch)
+    yield jax.tree.map(_batch_into_prototype, prototype, *to_batch)
 
 
 class ThreadedPrefetcher:

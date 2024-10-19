@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,14 +19,16 @@
 #include <string>
 #include <utility>
 
+#include "absl/status/status.h"
+#include "absl/strings/str_cat.h"
+
 namespace research_scann {
 
-StatusBuilder::StatusBuilder(const Status& status) : status_(status) {}
+StatusBuilder::StatusBuilder(const absl::Status& status) : status_(status) {}
 
-StatusBuilder::StatusBuilder(Status&& status) : status_(status) {}
+StatusBuilder::StatusBuilder(absl::Status&& status) : status_(status) {}
 
-StatusBuilder::StatusBuilder(tensorflow::error::Code code)
-    : status_(static_cast<tsl::errors::Code>(code), "") {}
+StatusBuilder::StatusBuilder(absl::StatusCode code) : status_(code, "") {}
 
 StatusBuilder::StatusBuilder(const StatusBuilder& sb) : status_(sb.status_) {
   if (sb.streamptr_ != nullptr) {
@@ -34,14 +36,14 @@ StatusBuilder::StatusBuilder(const StatusBuilder& sb) : status_(sb.status_) {
   }
 }
 
-Status StatusBuilder::CreateStatus() && {
+absl::Status StatusBuilder::CreateStatus() && {
   auto result = [&] {
     if (streamptr_->str().empty()) return status_;
     std::string new_msg =
         absl::StrCat(status_.message(), "; ", streamptr_->str());
-    return Status(status_.code(), new_msg);
+    return absl::Status(status_.code(), new_msg);
   }();
-  status_ = errors::Unknown("");
+  status_ = absl::UnknownError("");
   streamptr_ = nullptr;
   return result;
 }
@@ -49,43 +51,51 @@ Status StatusBuilder::CreateStatus() && {
 StatusBuilder& StatusBuilder::LogError() & { return *this; }
 StatusBuilder&& StatusBuilder::LogError() && { return std::move(LogError()); }
 
-StatusBuilder::operator Status() const& {
+StatusBuilder::operator absl::Status() const& {
   if (streamptr_ == nullptr) return status_;
   return StatusBuilder(*this).CreateStatus();
 }
 
-StatusBuilder::operator Status() && {
+StatusBuilder::operator absl::Status() && {
   if (streamptr_ == nullptr) return status_;
   return std::move(*this).CreateStatus();
 }
 
-StatusBuilder AbortedErrorBuilder() { return StatusBuilder(error::ABORTED); }
+StatusBuilder AbortedErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kAborted);
+}
 StatusBuilder AlreadyExistsErrorBuilder() {
-  return StatusBuilder(error::ALREADY_EXISTS);
+  return StatusBuilder(absl::StatusCode::kAlreadyExists);
 }
 StatusBuilder CancelledErrorBuilder() {
-  return StatusBuilder(error::CANCELLED);
+  return StatusBuilder(absl::StatusCode::kCancelled);
 }
 StatusBuilder FailedPreconditionErrorBuilder() {
-  return StatusBuilder(error::FAILED_PRECONDITION);
+  return StatusBuilder(absl::StatusCode::kFailedPrecondition);
 }
-StatusBuilder InternalErrorBuilder() { return StatusBuilder(error::INTERNAL); }
+StatusBuilder InternalErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kInternal);
+}
 StatusBuilder InvalidArgumentErrorBuilder() {
-  return StatusBuilder(error::INVALID_ARGUMENT);
+  return StatusBuilder(absl::StatusCode::kInvalidArgument);
 }
-StatusBuilder NotFoundErrorBuilder() { return StatusBuilder(error::NOT_FOUND); }
+StatusBuilder NotFoundErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kNotFound);
+}
 StatusBuilder OutOfRangeErrorBuilder() {
-  return StatusBuilder(error::OUT_OF_RANGE);
+  return StatusBuilder(absl::StatusCode::kOutOfRange);
 }
 StatusBuilder UnauthenticatedErrorBuilder() {
-  return StatusBuilder(error::UNAUTHENTICATED);
+  return StatusBuilder(absl::StatusCode::kUnauthenticated);
 }
 StatusBuilder UnavailableErrorBuilder() {
-  return StatusBuilder(error::UNAVAILABLE);
+  return StatusBuilder(absl::StatusCode::kUnavailable);
 }
 StatusBuilder UnimplementedErrorBuilder() {
-  return StatusBuilder(error::UNIMPLEMENTED);
+  return StatusBuilder(absl::StatusCode::kUnimplemented);
 }
-StatusBuilder UnknownErrorBuilder() { return StatusBuilder(error::UNKNOWN); }
+StatusBuilder UnknownErrorBuilder() {
+  return StatusBuilder(absl::StatusCode::kUnknown);
+}
 
 }  // namespace research_scann

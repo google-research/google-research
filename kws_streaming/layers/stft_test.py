@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -51,8 +51,9 @@ class STFTTest(tf.test.TestCase, parameterized.TestCase):
     self.input_signal = np.random.rand(1, 120)
 
     # prepare default tf stft
+    frame_overlap = max(0, stft_layer.frame_size - stft_layer.frame_step)
     padding_layer = temporal_padding.TemporalPadding(
-        padding_size=stft_layer.frame_size - 1, padding=stft_layer.padding)
+        padding_size=frame_overlap, padding=stft_layer.padding)
     # pylint: disable=g-long-lambda
     stft_default_layer = tf.keras.layers.Lambda(
         lambda x: tf.signal.stft(

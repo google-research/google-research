@@ -1,0 +1,12 @@
+# nottingham
+smerf.internal.configs.Config.data_dir = "datasets/alameda"
+smerf.internal.configs.Config.distill_teacher_ckpt_dir = "teachers/alameda"
+
+# Downsample pixels
+smerf.internal.configs.Config.factor = 2
+
+# Render path config
+camp_zipnerf.internal.configs.Config.render_path_file = 'render_path_file.npy'
+camp_zipnerf.internal.configs.Config.render_resolution = (1392, 793)  # (width, height)
+camp_zipnerf.internal.configs.Config.render_focal = 604.09404416  # in pixels
+camp_zipnerf.internal.configs.Config.render_camtype = 'perspective'

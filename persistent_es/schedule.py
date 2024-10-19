@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -39,13 +39,13 @@ def get_inv_decay_sched_val(theta, param_name, t, T, **kwargs):
 
 def get_fixed_val_single(opt_params, theta, param_name, t, T, **kwargs):
   theta = hparam_utils.cons_funcs[param_name](theta)
-  optim_tree = jax.tree_map(lambda x: theta, opt_params[param_name])
+  optim_tree = jax.tree.map(lambda x: theta, opt_params[param_name])
   return optim_tree
 
 
 def get_linear_sched_val_single(opt_params, theta, param_name, t, T, **kwargs):
   theta = hparam_utils.cons_funcs[param_name](theta)
-  optim_tree = jax.tree_map(
+  optim_tree = jax.tree.map(
       lambda x: get_linear_sched_val(theta, param_name, t, T),
       opt_params[param_name])
   return optim_tree
@@ -54,7 +54,7 @@ def get_linear_sched_val_single(opt_params, theta, param_name, t, T, **kwargs):
 def get_inv_time_decay_sched_val_single(opt_params, theta, param_name, t, T,
                                         **kwargs):
   theta = hparam_utils.cons_funcs[param_name](theta)
-  optim_tree = jax.tree_map(
+  optim_tree = jax.tree.map(
       lambda x: get_inv_decay_sched_val(theta, param_name, t, T),
       opt_params[param_name])
   return optim_tree
@@ -68,7 +68,7 @@ def get_fixed_val_pl(opt_params, theta, param_name, t, T, **kwargs):
 def get_linear_sched_val_pl(opt_params, theta, param_name, t, T, **kwargs):
   theta = hparam_utils.cons_funcs[param_name](theta)
   hparam_tree = kwargs['unflatten_func_dict'][param_name](theta)
-  optim_tree = jax.tree_map(
+  optim_tree = jax.tree.map(
       lambda theta_val: get_linear_sched_val(theta_val, param_name, t, T),
       hparam_tree)
   return optim_tree
@@ -78,7 +78,7 @@ def get_inverse_time_decay_sched_value_pl(opt_params, theta, param_name, t, T,
                                           **kwargs):
   theta = hparam_utils.cons_funcs[param_name](theta)
   hparam_tree = kwargs['unflatten_func_dict'][param_name](theta)
-  optim_tree = jax.tree_map(
+  optim_tree = jax.tree.map(
       lambda theta_val: get_inv_decay_sched_val(theta_val, param_name, t, T),
       hparam_tree)
   return optim_tree

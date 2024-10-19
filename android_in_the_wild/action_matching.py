@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -236,6 +236,7 @@ def check_actions_match(
   )
   drags_match = jnp.where(is_tap, False, drags_match)
 
+  # pytype: disable=bad-return-type
   return jnp.where(
       has_non_dual_point_action,
       jnp.equal(action_1_action_type, action_2_action_type),

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -18,12 +18,11 @@
 import abc
 import dataclasses
 import functools
+import math
 from typing import Optional, Sequence, Tuple, Union
 
 from absl import logging
 from clu import preprocess_spec
-
-import numpy as np
 import tensorflow as tf
 
 from invariant_slot_attention.lib import transforms
@@ -150,7 +149,7 @@ def flow_tensor_to_rgb_tensor(motion_image, flow_scaling_factor=50.):
   scaling = flow_scaling_factor / hypot(height, width)
   x, y = motion_image[Ellipsis, 0], motion_image[Ellipsis, 1]
   motion_angle = tf.atan2(y, x)
-  motion_angle = (motion_angle / np.math.pi + 1.0) / 2.0
+  motion_angle = (motion_angle / math.pi + 1.0) / 2.0
   motion_magnitude = hypot(y, x)
   motion_magnitude = tf.clip_by_value(motion_magnitude * scaling, 0.0, 1.0)
   value_channel = tf.ones_like(motion_angle)

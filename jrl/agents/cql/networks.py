@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,7 +79,7 @@ def build_q_filtered_actor(
       # tile_shape[0] = num_samples
       tile_shape[0] = acts.shape[0]
       return jnp.tile(t, tile_shape)
-    tiled_obs = jax.tree_map(obs_tile_fn, obs)
+    tiled_obs = jax.tree.map(obs_tile_fn, obs)
 
     # batch_size x num_critics
     all_q = networks.q_network.apply(q_params, tiled_obs, acts)

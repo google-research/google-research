@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,21 +17,23 @@
 #include "scann/data_format/docid_collection.h"
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <string>
 #include <utility>
 #include <vector>
 
+#include "absl/base/optimization.h"
 #include "absl/flags/flag.h"
 #include "absl/strings/str_cat.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
+#include "scann/data_format/docid_collection_interface.h"
+#include "scann/data_format/internal/short_string_optimized_string.h"
+#include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/utils/common.h"
 #include "scann/utils/memory_logging.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/status.h"
 
 ABSL_FLAG(bool, use_memory_optimized_immutable_docid_collection, false,
           "Controls which implementation is used for immutable "
@@ -262,7 +264,7 @@ class ImmutableMemoryOptCollection : public DocidCollectionInterface {
       const char* ptr = chunk.data();
       while (ptr != chunk.data() + chunk.size()) {
         absl::string_view payload = LoadPayload(ptr);
-        TF_CHECK_OK(result->Append(payload));
+        CHECK_OK(result->Append(payload));
         ptr = payload.data() + payload.size();
       }
       std::exchange(chunk, {});
@@ -394,7 +396,7 @@ VariableLengthDocidCollection::GetMutator() const {
         mutable_this->impl_ = std::move(*ptr).ToMutable();
       }
     }
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         mutator_, VariableLengthDocidCollection::Mutator::Create(mutable_this));
   }
   return static_cast<DocidCollectionInterface::Mutator*>(mutator_.get());
@@ -512,7 +514,7 @@ namespace {
 
 ImmutableCollection::ImmutableCollection(size_t size) {
   for (size_t i = 0; i < size; ++i) {
-    TF_CHECK_OK(Append(""));
+    CHECK_OK(Append(""));
   }
 }
 
@@ -568,7 +570,7 @@ StatusOr<DocidCollectionInterface::Mutator*> ImmutableCollection::GetMutator()
 MutableCollection::MutableCollection(size_t size) {
   Reserve(size);
   for (size_t i = 0; i < size; ++i) {
-    TF_CHECK_OK(Append(""));
+    CHECK_OK(Append(""));
   }
 }
 
@@ -598,7 +600,7 @@ unique_ptr<MutableCollection> MutableCollection::FromImmutableDestructive(
   result->Reserve(static_impl->size());
   for (auto& chunk : static_impl->chunks_) {
     for (size_t i : IndicesOf(chunk.payload_offsets)) {
-      TF_CHECK_OK(result->Append(chunk.Get(i)));
+      CHECK_OK(result->Append(chunk.Get(i)));
     }
     FreeBackingStorage(&chunk.payload_offsets);
     FreeBackingStorage(&chunk.payloads);
@@ -704,9 +706,8 @@ StatusOr<DocidCollectionInterface::Mutator*>
 FixedLengthDocidCollection::GetMutator() const {
   if (!mutator_) {
     auto mutable_this = const_cast<FixedLengthDocidCollection*>(this);
-    auto statusor = FixedLengthDocidCollection::Mutator::Create(mutable_this);
-    SCANN_RETURN_IF_ERROR(statusor.status());
-    mutator_ = std::move(statusor).value();
+    SCANN_ASSIGN_OR_RETURN(
+        mutator_, FixedLengthDocidCollection::Mutator::Create(mutable_this));
   }
   return static_cast<DocidCollectionInterface::Mutator*>(mutator_.get());
 }

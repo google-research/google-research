@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -54,7 +54,7 @@ def tree_shape_dtype_struct(tree):
     dtype = dtype.as_numpy_dtype if hasattr(dtype, "as_numpy_dtype") else dtype
     return jax.ShapeDtypeStruct(shape=shape, dtype=dtype)
 
-  return jax.tree_map(fn, tree)
+  return jax.tree.map(fn, tree)
 
 
 class ExecutionMode(enum.Enum):
@@ -71,8 +71,8 @@ def log_model_size(params):
     params: A dictionary of string to parameter arrays.
   """
   parameter_overview.log_parameter_overview(params)
-  params_size = jax.tree_map(lambda x: x.size, params)
-  params_size = sum(jax.tree_flatten(params_size)[0])
+  params_size = jax.tree.map(lambda x: x.size, params)
+  params_size = sum(jax.tree.flatten(params_size)[0])
   try:
     # Catch exceptions if running locally.
     xm_client = xmanager_api.XManagerApi(xm_deployment_env="alphabet")
@@ -199,7 +199,7 @@ class EvaluateMultipleDatasets(object):
     def compile_for_dataset(name, train_state, train_step):
       # Note: This is not the initial EvalState, this only serves to compile the
       # eval step for a given dataset.
-      logging.info(name, jax.tree_map(lambda x: x.shape, batch))
+      logging.info(name, jax.tree.map(lambda x: x.shape, batch))
 
       t0 = time.time()
 
@@ -318,7 +318,7 @@ def evaluate_dataset(
         rngs, train_state, batch)
     if idx > 5:
       labels, _ = labels
-    metrics_value = jax.tree_map(lambda x: x * 1.0, metrics_value)
+    metrics_value = jax.tree.map(lambda x: x * 1.0, metrics_value)
     if results is None:
       results = metrics_value
     else:
@@ -327,11 +327,11 @@ def evaluate_dataset(
           for name in metrics_value
       }
 
-    logging.info(jax.tree_map(lambda x: x.shape, results))
+    logging.info(jax.tree.map(lambda x: x.shape, results))
 
   if not os.path.exists(workdir):
     tf.io.gfile.makedirs(workdir)
-  results = jax.tree_map(lambda x: x.block_until_ready(), results)
+  results = jax.tree.map(lambda x: x.block_until_ready(), results)
   computed_results = {name: results[name].compute() for name in results}
   return computed_results
 
@@ -600,7 +600,7 @@ def evaluate_dataset_mtl(
       nbatch[key + "_det"] = batch[key]
     metrics_value, rngs, _, _, _, _ = eval_step_pjit(
         rngs, train_state, nbatch, b_cls)
-    metrics_value = jax.tree_map(lambda x: x * 1.0, metrics_value)
+    metrics_value = jax.tree.map(lambda x: x * 1.0, metrics_value)
     if results["det"] is None:
       results["det"] = metrics_value["det"]
     else:
@@ -613,7 +613,7 @@ def evaluate_dataset_mtl(
       nbatch[key + "_cls"] = batch[key]
     metrics_value, rngs, _, _, _, _ = eval_step_pjit(
         rngs, train_state, b_det, nbatch)
-    metrics_value = jax.tree_map(lambda x: x * 1.0, metrics_value)
+    metrics_value = jax.tree.map(lambda x: x * 1.0, metrics_value)
     if results["cls"] is None:
       results["cls"] = metrics_value["cls"]
     else:

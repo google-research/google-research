@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -399,7 +399,7 @@ def train_diffusion(
     params = optax.apply_updates(params, updates)
     key, _ = random.split(key)
     ema_update = lambda p, ema: ema + (p - ema) / ema_ts
-    ema_params = jax.tree_map(ema_update, params, ema_params)
+    ema_params = jax.tree.map(ema_update, params, ema_params)
     return params, ema_params, opt_state, key, loss_val
 
   for epoch in tqdm(range(epochs + 1)):
@@ -412,7 +412,7 @@ def train_diffusion(
       logging.info(message)
       if writer is not None:
         metrics = {'loss': loss_val, 'ema_loss': ema_loss}
-        eval_metrics_cpu = jax.tree_map(np.array, metrics)
+        eval_metrics_cpu = jax.tree.map(np.array, metrics)
         writer.write_scalars(epoch, eval_metrics_cpu)
         report(epoch, time.time())
 

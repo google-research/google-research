@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -280,7 +280,7 @@ class AutomatonTest(parameterized.TestCase):
     else:
       routing_aggregates = builder.routing_reduce(
           routing_params, reduction=reduction)
-      routing_aggregates = jax.tree_map(
+      routing_aggregates = jax.tree.map(
           lambda s, p: np.array(jnp.broadcast_to(s, p.shape)),
           routing_aggregates, routing_params)
 

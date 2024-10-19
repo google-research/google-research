@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,13 +32,13 @@ def random_geometric(key, continue_log_prob):
 
 
 def tree_choose(choice, trees):
-  return jax.tree_map(
+  return jax.tree.map(
       lambda *args: jnp.choose(choice, list(args), mode="clip"), *trees
   )
 
 
 def tree_where(gate, true_tree, false_tree):
-  return jax.tree_map(lambda t, f: jnp.where(gate, t, f), true_tree, false_tree)
+  return jax.tree.map(lambda t, f: jnp.where(gate, t, f), true_tree, false_tree)
 
 
 def tree_select(condlist, choicelist, default=None):
@@ -48,8 +48,8 @@ def tree_select(condlist, choicelist, default=None):
       x = jnp.array(x)
       return jnp.full(x.shape, -12345, x.dtype)
 
-    default = jax.tree_map(mk_default, choicelist[0])
-  return jax.tree_map(
+    default = jax.tree.map(mk_default, choicelist[0])
+  return jax.tree.map(
       lambda d, *args: jnp.select(condlist, list(args), default=d),
       default,
       *choicelist,
@@ -151,7 +151,7 @@ def rejection_sample(fn,
     return i + 1, is_good, output, next_rng
 
   _, shapes_and_types = jax.eval_shape(fn, rng)
-  dummy_output = jax.tree_map(lambda s: jnp.zeros(s.shape, s.dtype),
+  dummy_output = jax.tree.map(lambda s: jnp.zeros(s.shape, s.dtype),
                               shapes_and_types)
 
   _, _, good_output, _ = jax.lax.while_loop(rejection_cond, rejection_body,

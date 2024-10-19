@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ REGISTER_OP("SubmanifoldSparseConv2D")
           {c->Dim(input_feature_shape, 0), c->Dim(input_feature_shape, 1),
            c->Dim(filter_shape, 3)});
       c->set_output(0, output_feature_shape);
-      return tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Run convolutions on 2D points whose locations are specified by `coordinates`.
@@ -80,7 +80,7 @@ REGISTER_OP("SubmanifoldSparseConv3D")
           {c->Dim(input_feature_shape, 0), c->Dim(input_feature_shape, 1),
            c->Dim(filter_shape, 4)});
       c->set_output(0, output_feature_shape);
-      return tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Run convolutions on 3D points whose locations are specified by `coordinates`.
@@ -120,7 +120,7 @@ REGISTER_OP("SubmanifoldSparseConv2DBackpropInput")
       tensorflow::shape_inference::ShapeHandle input_feature_shape;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(2), 3, &input_feature_shape));
       c->set_output(0, input_feature_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_OP("SubmanifoldSparseConv3DBackpropInput")
@@ -134,7 +134,7 @@ REGISTER_OP("SubmanifoldSparseConv3DBackpropInput")
       tensorflow::shape_inference::ShapeHandle input_feature_shape;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(2), 3, &input_feature_shape));
       c->set_output(0, input_feature_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_OP("SubmanifoldSparseConv2DBackpropFilter")
@@ -148,7 +148,7 @@ REGISTER_OP("SubmanifoldSparseConv2DBackpropFilter")
       tensorflow::shape_inference::ShapeHandle filter_shape;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(3), 4, &filter_shape));
       c->set_output(0, filter_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_OP("SubmanifoldSparseConv3DBackpropFilter")
@@ -162,7 +162,7 @@ REGISTER_OP("SubmanifoldSparseConv3DBackpropFilter")
       tensorflow::shape_inference::ShapeHandle filter_shape;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(3), 5, &filter_shape));
       c->set_output(0, filter_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 }  // namespace

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -46,7 +46,7 @@ class BaseController(abc.ABC):
     Returns:
       dna: A proposed dna.
     """
-    return self._controller.propose()
+    return self._controller.propose()  # pytype: disable=attribute-error  # dataclasses-replace
 
   def collect_rewards_and_train(self, reward_vector,
                                 dna_list):
@@ -62,4 +62,4 @@ class BaseController(abc.ABC):
 
     for i, dna in enumerate(dna_list):
       dna.reward = reward_vector[i]
-      self._controller.feedback(dna, dna.reward)
+      self._controller.feedback(dna, dna.reward)  # pytype: disable=attribute-error  # dataclasses-replace

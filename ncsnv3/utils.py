@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -302,7 +302,7 @@ def save_image(ndarray, fp, nrow=8, padding=2, pad_value=0.0, format=None):
 
   # Add 0.5 after unnormalizing to [0, 255] to round to nearest integer
   ndarr = jnp.clip(grid * 255.0 + 0.5, 0, 255).astype(jnp.uint8)
-  im = Image.fromarray(ndarr.copy())
+  im = Image.fromarray(ndarr.copy())  # pytype: disable=wrong-arg-types  # pillow-102-upgrade
   im.save(fp, format=format)
 
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -541,7 +541,7 @@ class MoeLayer(GeneralizedFeedForwardLayer):
       total_expert_capacity = self.num_experts * expert_capacity * num_groups
       expert_usage = num_tokens_dispatched / total_expert_capacity
 
-    self._sow_expert_metrics(router_mask.auxiliary_loss,
+    self._sow_expert_metrics(router_mask.auxiliary_loss,  # pytype: disable=wrong-arg-types  # jnp-type
                              router_mask.router_z_loss,
                              fraction_tokens_left_behind, router_confidence,
                              expert_usage)
@@ -851,7 +851,7 @@ class LinearTransform(MixingLayer):
     mat_seq = self.param("input_kernel", self.kernel_init,
                          (input_emb.shape[-2], input_emb.shape[-2]))
 
-    return jnp.einsum(
+    return jnp.einsum(  # pytype: disable=wrong-arg-types  # jnp-type
         "bij,jk,ni->bnk",
         input_emb,
         mat_hidden,

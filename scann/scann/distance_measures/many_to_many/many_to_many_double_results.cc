@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ namespace research_scann {
 namespace mm_internal {
 
 template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, const DenseDataset<double> &queries,
+    const DistanceMeasure &dist, DefaultDenseDatasetView<double> queries,
     const DenseDataset<double> &database, ThreadPool *pool,
     ManyToManyResultsCallback<double> callback);
 

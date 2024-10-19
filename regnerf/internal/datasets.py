@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -115,7 +115,7 @@ def downsample(img, factor, patch_size=-1, mode=cv2.INTER_AREA):
   sh = img.shape
   max_fn = lambda x: max(x, patch_size)
   out_shape = (max_fn(sh[1] // factor), max_fn(sh[0] // factor))
-  img = cv2.resize(img, out_shape, mode)
+  img = cv2.resize(img, out_shape, interpolation=mode)
   return img
 
 
@@ -702,7 +702,9 @@ class Dataset(threading.Thread):
     res = config.dietnerf_loss_resolution
     images_feat = []
     for img in images:
-      images_feat.append(cv2.resize(img, (res, res), cv2.INTER_AREA))
+      images_feat.append(
+          cv2.resize(img, (res, res), interpolation=cv2.INTER_AREA)
+      )
     self.images_feat = np.stack(images_feat)
 
   def _generate_random_fullimage_rays(self, config):

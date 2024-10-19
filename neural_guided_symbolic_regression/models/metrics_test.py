@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -129,7 +129,7 @@ class NextProductionRuleInfoBatchTextSummaryTest(tf.test.TestCase):
             unmasked_probabilities_batch=[],
             masked_probabilities_batch=[],
             grammar=self.grammar),
-        np.asarray([], dtype=np.unicode_))
+        np.asarray([], dtype=np.str_))
 
 
 class MaskByPartialSequenceLengthTest(parameterized.TestCase, tf.test.TestCase):

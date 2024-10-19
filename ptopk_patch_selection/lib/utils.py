@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -108,12 +108,13 @@ def to_tree_arrays(list_of_trees):
   if not list_of_trees:
     return list_of_trees
 
-  trees_list = jax.tree_transpose(
-      jax.tree_structure([0] * len(list_of_trees)),
-      jax.tree_structure(list_of_trees[0]), list_of_trees)
+  trees_list = jax.tree_util.tree_transpose(
+      jax.tree_util.tree_structure([0] * len(list_of_trees)),
+      jax.tree_util.tree_structure(list_of_trees[0]), list_of_trees)
 
-  trees_array = jax.tree_map(lambda _, ls: jnp.stack(ls), list_of_trees[0],
-                                  trees_list)
+  trees_array = jax.tree_util.tree_map(lambda _, ls: jnp.stack(ls),
+                                       list_of_trees[0],
+                                       trees_list)
 
   return trees_array
 
@@ -242,18 +243,21 @@ def decoupled_weight_decay(decay,
   """
 
   def init_fn(_):
-    return DecoupledWeightDecayState(count=jnp.zeros([], jnp.int32),
-                                     step_size=jnp.zeros([], jnp.float32))
+    return DecoupledWeightDecayState(
+        count=jnp.zeros([], jnp.int32), step_size=jnp.zeros([], jnp.float32)
+    )
 
   def update_fn(updates, state, params=None):
     step_size = step_size_fn(state.count) * decay
-    updates = jax.tree_map(lambda u, p: u - step_size * p, updates, params)
+    updates = jax.tree_util.tree_map(
+        lambda u, p: u - step_size * p, updates, params
+    )
 
     # does a _safe_int32_increment
     max_int32_value = jnp.iinfo(jnp.int32).max
-    new_count = jnp.where(state.count < max_int32_value,
-                          state.count + 1,
-                          max_int32_value)
+    new_count = jnp.where(
+        state.count < max_int32_value, state.count + 1, max_int32_value
+    )
     new_state = DecoupledWeightDecayState(count=new_count, step_size=step_size)
 
     return updates, new_state
@@ -529,8 +533,8 @@ def scale_selected_parameters(regex, multiplier):
 
   def update_fn(updates, state, params=None):
     del params
-    multiplied_updates = jax.tree_map(
-        lambda m, update: jax.tree_map(lambda u: u * m, update),
+    multiplied_updates = jax.tree_util.tree_map(
+        lambda m, update: jax.tree_util.tree_map(lambda u: u * m, update),
         state.multipliers, updates)
     return multiplied_updates, state
 
@@ -542,4 +546,4 @@ def has_inf_or_nan(x):
 
 
 def has_any_inf_or_nan(x):
-  return any(map(has_inf_or_nan, jax.tree_leaves([x])))
+  return any(map(has_inf_or_nan, jax.tree_util.tree_leaves([x])))

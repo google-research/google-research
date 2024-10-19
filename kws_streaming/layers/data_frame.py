@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 
 """A layer which splits input speech signal into frames."""
 
+from absl import logging
 from kws_streaming.layers import modes
 from kws_streaming.layers import temporal_padding
 from kws_streaming.layers.compat import tf
@@ -78,12 +79,18 @@ class DataFrame(tf.keras.layers.Layer):
 
     if self.use_one_step:
       self.ring_buffer_size_in_time_dim = frame_size
+      logging.warning('use_one_step=True for DataFrame is depricated, '
+                      'please use use_one_step=False')
     else:
-      self.ring_buffer_size_in_time_dim = frame_size - 1
+      # Frame overlap.
+      self.ring_buffer_size_in_time_dim = max(
+          0, self.frame_size - self.frame_step
+      )
 
     if self.padding:
       self.padding_layer = temporal_padding.TemporalPadding(
-          padding_size=self.ring_buffer_size_in_time_dim, padding=self.padding)
+          padding_size=self.ring_buffer_size_in_time_dim, padding=self.padding
+      )
     else:
       self.padding_layer = tf.keras.layers.Lambda(lambda x: x)
 
@@ -151,7 +158,10 @@ class DataFrame(tf.keras.layers.Layer):
 
   def _streaming_internal_state(self, inputs):
     # first dimension is batch size
-    if inputs.shape[0] != self.inference_batch_size:
+    if (
+        inputs.shape[0] is not None
+        and inputs.shape[0] != self.inference_batch_size
+    ):
       raise ValueError(
           'inputs.shape[0]:%d must be = self.inference_batch_size:%d' %
           (inputs.shape[0], self.inference_batch_size))
@@ -180,7 +190,11 @@ class DataFrame(tf.keras.layers.Layer):
         return output_frame
     else:
       memory = tf.keras.backend.concatenate([self.states, inputs], 1)
-      state_update = memory[:, -self.ring_buffer_size_in_time_dim:]
+      if self.ring_buffer_size_in_time_dim:
+        state_update = memory[:, -self.ring_buffer_size_in_time_dim:]
+      else:
+        # There is no overlap, so there is no state (it is empty)
+        state_update = self.states
       assign_states = self.states.assign(state_update)
 
       with tf.control_dependencies([assign_states]):
@@ -190,7 +204,10 @@ class DataFrame(tf.keras.layers.Layer):
 
   def _streaming_external_state(self, inputs, states):
     # first dimension is batch size
-    if inputs.shape[0] != self.inference_batch_size:
+    if (
+        inputs.shape[0] is not None
+        and inputs.shape[0] != self.inference_batch_size
+    ):
       raise ValueError(
           'inputs.shape[0]:%d must be = self.inference_batch_size:%d' %
           (inputs.shape[0], self.inference_batch_size))
@@ -213,7 +230,12 @@ class DataFrame(tf.keras.layers.Layer):
       return output_frame, memory
     else:
       memory = tf.keras.backend.concatenate([states, inputs], 1)
-      state_update = memory[:, -self.ring_buffer_size_in_time_dim:]  # pylint: disable=invalid-unary-operand-type
+      if self.ring_buffer_size_in_time_dim:
+        state_update = memory[:, -self.ring_buffer_size_in_time_dim:]
+      else:
+        # There is no overlap, so there is no state (it is empty)
+        state_update = states
+
       output_frame = tf.signal.frame(
           memory, frame_length=self.frame_size, frame_step=self.frame_step)
       return output_frame, state_update

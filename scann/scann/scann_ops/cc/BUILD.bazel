@@ -11,7 +11,6 @@ cc_binary(
         "-pthread",
     ],
     linkshared = 1,
-    tags = ["local"],
     deps = [
         ":scann_ops",
         ":scann_ops_kernels",
@@ -21,7 +20,6 @@ cc_binary(
 cc_library(
     name = "scann_ops",
     srcs = ["ops/scann_ops.cc"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:tf_dependency",
     ],
@@ -33,7 +31,6 @@ cc_library(
     srcs = [
         "kernels/scann_ops.cc",
     ],
-    tags = ["local"],
     deps = [
         ":scann",
         ":scann_ops_utils",
@@ -50,7 +47,6 @@ cc_library(
     name = "scann_ops_utils",
     srcs = ["kernels/scann_ops_utils.cc"],
     hdrs = ["kernels/scann_ops_utils.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:tf_dependency",
@@ -63,7 +59,6 @@ cc_library(
     name = "scann",
     srcs = ["scann.cc"],
     hdrs = ["scann.h"],
-    tags = ["local"],
     deps = [
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
@@ -74,18 +69,23 @@ cc_library(
         "//scann/partitioning:partitioner_cc_proto",
         "//scann/proto:brute_force_cc_proto",
         "//scann/proto:centers_cc_proto",
+        "//scann/proto:scann_cc_proto",
         "//scann/scann_ops:scann_assets_cc_proto",
         "//scann/tree_x_hybrid:tree_x_params",
+        "//scann/utils:common",
         "//scann/utils:io_npy",
         "//scann/utils:io_oss_wrapper",
         "//scann/utils:scann_config_utils",
+        "//scann/utils:single_machine_retraining",
         "//scann/utils:threads",
+        "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:flat_hash_set",
         "@com_google_absl//absl/container:node_hash_set",
         "@com_google_absl//absl/memory",
+        "@com_google_absl//absl/status:statusor",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
-        "@com_google_absl//absl/types:optional",
         "@com_google_absl//absl/types:span",
         "@com_google_protobuf//:protobuf",
     ],
@@ -95,12 +95,17 @@ pybind_library(
     name = "scann_npy",
     srcs = ["scann_npy.cc"],
     hdrs = ["scann_npy.h"],
-    tags = ["local"],
     deps = [
         ":scann",
+        "//scann/base:single_machine_base",
         "//scann/base:single_machine_factory_options",
+        "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/utils:common",
         "//scann/utils:io_oss_wrapper",
+        "//scann/utils:single_machine_autopilot",
+        "//scann/utils:types",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
     ],
 )

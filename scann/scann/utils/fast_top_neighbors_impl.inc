@@ -6,14 +6,13 @@ SCANN_SIMD_INLINE size_t CalculateSwapMasks(const DistT* values,
                                             uint32_t* masks, size_t n_masks,
                                             uint32_t final_mask,
                                             DistT threshold) {
-  const auto simd_threshold = Simd<DistT>::Broadcast(threshold);
-
   size_t n_kept = 0;
+  const auto simd_threshold = Simd<DistT>::Broadcast(threshold);
+  constexpr size_t kNumLanes = 32;
   for (size_t j : Seq(n_masks)) {
-    auto vals = SimdFor<DistT, 32>::Load(values + 32 * j);
-    const uint32_t mask = kIsEquality
-                              ? GetComparisonMask(vals == simd_threshold)
-                              : GetComparisonMask(vals < simd_threshold);
+    auto vals = SimdFor<DistT, kNumLanes>::Load(values + kNumLanes * j);
+    const auto mask = kIsEquality ? GetComparisonMask(vals == simd_threshold)
+                                  : GetComparisonMask(vals < simd_threshold);
     n_kept += absl::popcount(mask);
     masks[j] = mask;
   }
@@ -191,6 +190,11 @@ template <typename DistT, typename DatapointIndexT>
 SCANN_SIMD_INLINE size_t UseMasksToCompact(DatapointIndexT* indices,
                                            DistT* values, uint32_t* masks,
                                            size_t n_masks) {
+#if HWY_TARGET <= HWY_AVX2
+  if constexpr (IsSame<DatapointIndexT, uint32>() && IsSame<DistT, float>()) {
+    return HwyCompact(indices, values, masks, n_masks);
+  }
+#endif
   if (n_masks == 1) {
     return UseMaskToCompact(indices, values, masks[0]);
   }
@@ -265,7 +269,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
       DCHECK_LE(keep_min, keep_max);
       if (ABSL_PREDICT_FALSE(sz <= 3)) {
         const size_t final_size = n_already_kept + keep_min;
-        SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+        DLOG_IF(INFO, kShouldLog) << StrFormat(
             "SelectionSort for range:[%d,%d) = %d; will return idx %d",
             n_already_kept, final_size, sz, keep_min);
         SelectionSort(indices, values, sz);
@@ -287,16 +291,16 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
     const size_t n_masks = DivRoundUp(sz, 32);
     size_t n_kept = CalculateLtSwapMasks(values, masks, n_masks, final_mask,
                                          threshold_value);
-    SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+    DLOG_IF(INFO, kShouldLog) << StrFormat(
         "CalculateLtSwapMasks w/ %s returns %d / %d bits (goal=%d). "
         "final_mask=%08x",
         absl::StrCat(threshold_value), n_kept, sz, keep_min, final_mask);
-    SCANN_LOG_NOOP(INFO, kShouldLog)
+    DLOG_IF(INFO, kShouldLog)
         << DebugLogArrayContents(indices, values, masks, sz);
 
     auto handle_overly_picky_pivot = [&]() SCANN_SIMD_INLINE_LAMBDA {
       if (n_kept < sz * 3 / 4) {
-        SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+        DLOG_IF(INFO, kShouldLog) << StrFormat(
             "UseMasksToFindNewMedian; range:[%d,%d) = %d; masks=%d << "
             "goal=%d",
             n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
@@ -305,7 +309,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
             UseMasksToFindNewMedian(values, masks, eq_masks, n_masks);
         skip_threshold_selection = true;
       } else {
-        SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+        DLOG_IF(INFO, kShouldLog) << StrFormat(
             "UseMasksToPartition; range:[%d,%d) = %d; masks=%d < goal=%d;",
             n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
         const size_t pivot_idx =
@@ -328,7 +332,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
       uint32_t* eq_masks = masks + n_masks;
       n_found = CalculateEqSwapMasks(values, eq_masks, n_masks, final_mask,
                                      threshold_value);
-      SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+      DLOG_IF(INFO, kShouldLog) << StrFormat(
           "CalculateEqSwapMasks w/ %s returns %d / %d bits (goal=%d). "
           "final_mask=%08x",
           absl::StrCat(threshold_value), n_found, sz, n_needed, final_mask);
@@ -348,7 +352,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
       }
     }
 
-    SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
+    DLOG_IF(INFO, kShouldLog) << StrFormat(
         "UseMasksToCompact; range:[%d,%d) = %d; masks=%d >= goal=%d;",
         n_already_kept, n_already_kept + sz, sz, n_kept, keep_min);
     sz = UseMasksToCompact(indices, values, masks, n_masks);
@@ -361,8 +365,8 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
     DatapointIndexT tiebreaker_idx = numeric_limits<DatapointIndexT>::max();
     if (compute_eq_masks) {
       const size_t n_needed = keep_min - n_kept;
-      SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-          "RecoverPivotElement(s); %f x %d", threshold_value, n_needed);
+      DLOG_IF(INFO, kShouldLog) << StrFormat("RecoverPivotElement(s); %f x %d",
+                                             threshold_value, n_needed);
       DatapointIndexT* scratch = indices + 32 * n_masks + 64;
       std::copy(scratch, scratch + n_needed, indices + n_kept);
       std::fill(values + n_kept, values + n_kept + n_needed, threshold_value);
@@ -379,7 +383,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
     indices[n_kept] = tiebreaker_idx;
 
     const size_t final_size = n_already_kept + n_kept;
-    SCANN_LOG_NOOP(INFO, kShouldLog)
+    DLOG_IF(INFO, kShouldLog)
         << StrFormat("Returning %d elements w/ pivot = %f", final_size,
                      static_cast<double>(values[n_kept]));
     return final_size;

@@ -13,7 +13,6 @@ cc_library(
     name = "projection_base",
     srcs = ["projection_base.cc"],
     hdrs = ["projection_base.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
@@ -24,6 +23,7 @@ cc_library(
         "//scann/utils:util_functions",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -31,15 +31,31 @@ cc_library(
     name = "chunking_projection",
     srcs = ["chunking_projection.cc"],
     hdrs = ["chunking_projection.h"],
-    tags = ["local"],
     deps = [
         ":identity_projection",
         ":projection_base",
         "//scann/data_format:datapoint",
+        "//scann/oss_wrappers:scann_status",
         "//scann/proto:projection_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:datapoint_utils",
         "//scann/utils:types",
+        "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
+    ],
+)
+
+cc_library(
+    name = "pca_projection",
+    srcs = ["pca_projection.cc"],
+    hdrs = ["pca_projection.h"],
+    deps = [
+        ":projection_base",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/utils:datapoint_utils",
+        "//scann/utils:pca_utils",
+        "//scann/utils:types",
     ],
 )
 
@@ -47,7 +63,6 @@ cc_library(
     name = "identity_projection",
     srcs = ["identity_projection.cc"],
     hdrs = ["identity_projection.h"],
-    tags = ["local"],
     deps = [
         ":projection_base",
         "//scann/data_format:datapoint",
@@ -61,16 +76,17 @@ cc_library(
         "//conditions:default": ["projection_factory.cc"],
     }),
     hdrs = ["projection_factory.h"],
-    tags = ["local"],
     deps = select({
         "//conditions:default": [
         ],
     }) + [
         ":chunking_projection",
         ":identity_projection",
+        ":pca_projection",
         ":projection_base",
         "//scann/data_format:dataset",
         "//scann/proto:projection_cc_proto",
+        "//scann/utils:common",
         "//scann/utils:types",
     ],
 )

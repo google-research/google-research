@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,10 +16,11 @@
 # pylint: skip-file
 """Functions for reflection directions and directional encodings."""
 
-import jax.numpy as jnp
-import numpy as np
+import math
 
 from google_research.yobo.internal import math
+import jax.numpy as jnp
+import numpy as np
 
 
 def reflect(viewdirs, normals):
@@ -79,7 +80,7 @@ def compute_weighted_mae(weights, normals, normals_gt):
 
 def generalized_binomial_coeff(a, k):
   """Compute generalized binomial coefficients."""
-  return np.prod(a - np.arange(k)) / np.math.factorial(k)
+  return np.prod(a - np.arange(k)) / math.factorial(k)
 
 
 def assoc_legendre_coeff(l, m, k):
@@ -99,9 +100,9 @@ def assoc_legendre_coeff(l, m, k):
   return (
       (-1) ** m
       * 2**l
-      * np.math.factorial(l)
-      / np.math.factorial(k)
-      / np.math.factorial(l - k - m)
+      * math.factorial(l)
+      / math.factorial(k)
+      / math.factorial(l - k - m)
       * generalized_binomial_coeff(0.5 * (l + k + m - 1.0), l)
   )
 
@@ -110,8 +111,8 @@ def sph_harm_coeff(l, m, k):
   """Compute spherical harmonic coefficients."""
   return np.sqrt(
       (2.0 * l + 1.0)
-      * np.math.factorial(l - m)
-      / (4.0 * np.pi * np.math.factorial(l + m))
+      * math.factorial(l - m)
+      / (4.0 * np.pi * math.factorial(l + m))
   ) * assoc_legendre_coeff(l, m, k)
 
 

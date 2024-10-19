@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ class State:
   opt_state: optax.OptState
   params: PyTree
   model_state: PyTree
-  rng: jax.random.PRNGKeyArray
+  rng: jax.Array
   data_weight: float = 1.
   prior_weight: float = 1.
   entropy_weight: float = 1.

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -53,7 +53,7 @@ def run(model, quantized):
       cs = checkpoint.CheckpointSpec.PALM_540B
 
   loaded_cs = ckpt.load_unsharded_to_host(cs)
-  print(jax.tree_map(jnp.shape, loaded_cs))
+  print(jax.tree.map(jnp.shape, loaded_cs))
 
   the_model = incremental.JittedModel(
       cs.hparams, the_vocab.eos_id,

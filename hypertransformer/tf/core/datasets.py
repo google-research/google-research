@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -364,6 +364,8 @@ class AugmentationConfig:
     if index is not None:
       return self.children[index].process(images)
     config = self.random_config
+    if config is None:
+      raise ValueError('AugmentationConfig is undefined.')
     if config.rotate_by_90:
       images = self._aug_rotate_90(images)
     if config.rotation_probability > 0.0:

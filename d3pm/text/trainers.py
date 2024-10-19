@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ def _pmap_preprocess_batch(batch,
 
     return reshaped
 
-  return jax.tree_map(reshape_arr, batch)
+  return jax.tree.map(reshape_arr, batch)
 
 
 @flax.struct.dataclass
@@ -209,7 +209,7 @@ def standard_train_step(
   (loss, (metrics, _)), grad = grad_fn(optimizer.target)
 
   if use_bfloat16:
-    grad = jax.tree_map(lambda x: x.astype(jnp.bfloat16), grad)
+    grad = jax.tree.map(lambda x: x.astype(jnp.bfloat16), grad)
 
   if parallel:
     grad = jax.lax.pmean(grad, 'device')
@@ -247,7 +247,7 @@ def standard_train_step(
 
   grads_ok = jnp.all(
       jnp.asarray(
-          [jnp.all(jnp.isfinite(p)) for p in jax.tree_leaves(new_optimizer)]))
+          [jnp.all(jnp.isfinite(p)) for p in jax.tree.leaves(new_optimizer)]))
 
   loss_ok = jnp.all(jnp.isfinite(loss))
   should_replace = should_replace & grads_ok & loss_ok
@@ -269,7 +269,7 @@ def standard_train_step(
       (1 - ema_decay_rate) * delta**2,
   )
 
-  new_state = jax.tree_map(
+  new_state = jax.tree.map(
       lambda a, b: jnp.where(should_replace, a, b),
       new_state,
       state,

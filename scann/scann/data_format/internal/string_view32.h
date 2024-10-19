@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,16 +30,10 @@ class string_view32 {
     CHECK_LE(s.length(), numeric_limits<uint32_t>::max());
   }
 
-  const char* ptr() const { return ptr_; }
-  uint32_t size() const { return length_; }
-  uint32_t length() const { return length_; }
   bool empty() const { return length_ == 0; }
 
   explicit operator string_view() const {
     return string_view(static_cast<const char*>(ptr_), length_);
-  }
-  bool operator==(string_view rhs) const {
-    return static_cast<string_view>(*this) == rhs;
   }
   bool operator==(string_view32 rhs) const {
     return static_cast<string_view>(*this) == static_cast<string_view>(rhs);

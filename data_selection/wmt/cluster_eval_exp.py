@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -247,8 +247,8 @@ def setup():
   tf.config.experimental.set_visible_devices([], 'GPU')
 
   if FLAGS.jax_backend_target:
-    jax.config.FLAGS.jax_xla_backend = 'tpu_driver'
-    jax.config.FLAGS.jax_backend_target = FLAGS.jax_backend_target
+    jax.config.update('jax_xla_backend', 'tpu_driver')
+    jax.config.update('jax_backend_target', FLAGS.jax_backend_target)
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
@@ -440,12 +440,12 @@ def get_losses(ds_iter, optimizer, p_eval_step, model_id, test_cluster_id):
     writer = csv.writer(fp)
 
     for batch_idx, eval_batch in enumerate(ds_iter):
-      eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+      eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
       cur_pred_batch_size = eval_batch['inputs'].shape[0]
       if cur_pred_batch_size % n_devices:
         padded_size = int(
             np.ceil(cur_pred_batch_size / n_devices) * n_devices)
-        eval_batch = jax.tree_map(
+        eval_batch = jax.tree.map(
             lambda x: common.pad_examples(x, padded_size), eval_batch)  # pylint: disable=cell-var-from-loop
       eval_batch = common_utils.shard(eval_batch)
       losses, lengths = p_eval_step(optimizer.target, eval_batch)
@@ -481,12 +481,12 @@ def get_decodes(ds_iter, optimizer, p_init_cache, p_pred_step, model_id,
     writer = csv.writer(fp)
 
     for batch_idx, pred_batch in enumerate(ds_iter):
-      pred_batch = jax.tree_map(lambda x: x._numpy(), pred_batch)  # pylint: disable=protected-access
+      pred_batch = jax.tree.map(lambda x: x._numpy(), pred_batch)  # pylint: disable=protected-access
       # Handle final odd-sized batch by padding instead of dropping it.
       cur_pred_batch_size = pred_batch['inputs'].shape[0]
       if cur_pred_batch_size % n_devices:
         padded_size = int(np.ceil(cur_pred_batch_size / n_devices) * n_devices)
-        pred_batch = jax.tree_map(
+        pred_batch = jax.tree.map(
             lambda x: pad_examples(x, padded_size),  # pylint: disable=cell-var-from-loop
             pred_batch)
       pred_batch = common_utils.shard(pred_batch)

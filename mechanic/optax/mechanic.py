@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ def tree_sum(tree):
 
 @jax.jit
 def tree_norm(tree):
-  return jnp.sqrt(tree_sum(jax.tree_map(lambda x: jnp.sum(x**2), tree)))
+  return jnp.sqrt(tree_sum(jax.tree.map(lambda x: jnp.sum(x**2), tree)))
 
 
 class MechanicState(NamedTuple):

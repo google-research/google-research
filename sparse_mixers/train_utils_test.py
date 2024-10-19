@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -364,8 +364,8 @@ class TrainUtilsTest(absltest.TestCase):
         train_state.params, batch, loss_fn, accum_steps=2)
 
     self.assertEqual(
-        jax.tree_map(jnp.shape, actual_grad),
-        jax.tree_map(jnp.shape, expected_grad))
+        jax.tree.map(jnp.shape, actual_grad),
+        jax.tree.map(jnp.shape, expected_grad))
     self.assertEqual(actual_metrics, expected_metrics)
 
 

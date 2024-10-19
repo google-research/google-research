@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -654,7 +654,7 @@ def _load_balancing_loss(router_probs,
       expert_mask, dtype=jnp.float32, axis=-2)
   router_prob_per_group_and_expert = jnp.mean(
       router_probs, dtype=jnp.float32, axis=-2)
-  return jnp.mean(
+  return jnp.mean(  # pytype: disable=bad-return-type  # jnp-type
       tokens_per_group_and_expert * router_prob_per_group_and_expert,
       dtype=jnp.float32) * num_experts**2
 
@@ -676,4 +676,4 @@ def _router_z_loss(router_logits):
   num_groups, tokens_per_group, _ = router_logits.shape
   log_z = jax.nn.logsumexp(router_logits, axis=-1)
   z_loss = log_z**2
-  return jnp.sum(z_loss, dtype=jnp.float32) / (num_groups * tokens_per_group)
+  return jnp.sum(z_loss, dtype=jnp.float32) / (num_groups * tokens_per_group)  # pytype: disable=bad-return-type  # jnp-type

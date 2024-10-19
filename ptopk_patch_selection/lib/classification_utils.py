@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,7 +135,7 @@ def train_step(
              for (m, fn) in metrics_dict.items()}
   metrics = jax.lax.all_gather(metrics, axis_name="batch")
   stats = jax.lax.all_gather(stats, axis_name="batch")
-  stats = jax.tree_map(lambda x: x[0], stats)
+  stats = jax.tree_util.tree_map(lambda x: x[0], stats)
   new_state = state.replace(  # pytype: disable=attribute-error
       step=state.step + 1,
       optimizer_state=new_opt_state,
@@ -192,14 +192,16 @@ def evaluate(
   is_first = True
   for batch in eval_ds:
     # Use ._numpy() to avoid copy.
-    batch = jax.tree_map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
+    batch = jax.tree_util.tree_map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
 
     device_metrics, stats, eval_rngs = eval_step(state, module, batch,
                                                  metrics_dict, eval_rngs)
     metrics.append(flax.jax_utils.unreplicate(device_metrics))
     if is_first:
       first_batch_stats = flax.jax_utils.unreplicate(stats)
-      first_batch_stats = jax.tree_map(lambda x: x[0], first_batch_stats)
+      first_batch_stats = jax.tree_util.tree_map(
+          lambda x: x[0], first_batch_stats
+      )
       is_first = False
 
   elapsed = time.time() - start
@@ -353,7 +355,7 @@ def training_loop(
     # Skip the training if only do the eval.
     if not do_eval_only:
       # Use ._numpy() to avoid copy.
-      batch = jax.tree_map(lambda x: x._numpy(), next(train_iter))  # pylint: disable=protected-access
+      batch = jax.tree_util.tree_map(lambda x: x._numpy(), next(train_iter))  # pylint: disable=protected-access
       state, grads, updates, metrics, training_stats, train_rngs = train_step(
           state, batch, module, loss_fn, optimizer, train_metrics_dict,
           train_rngs)
@@ -486,9 +488,9 @@ def write_gradient_histogram(writer, step, *, grads=None, updates=None):
   # {"grad": {"param1": Tensor}, "update": {"param1": Tensor}} to
   # {"param1": {"grad": Tensor, "update": Tensor}} such that the gradient and
   # the transformed updates appear next to each other in tensorboard.
-  histograms = jax.tree_transpose(
-      jax.tree_structure({k: 0 for k in histograms.keys()}),
-      jax.tree_structure(next(iter(histograms.values()))),
+  histograms = jax.tree_util.tree_transpose(
+      jax.tree_util.tree_structure({k: 0 for k in histograms.keys()}),
+      jax.tree_util.tree_structure(next(iter(histograms.values()))),
       histograms)
 
   histograms = utils.flatten_dict(histograms, sep=".")

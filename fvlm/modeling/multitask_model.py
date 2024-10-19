@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,7 +15,7 @@
 
 """Multi-task vision and language model.
 """
-from typing import Callable, Any
+from typing import Any, Callable, Optional
 
 from flax import linen as nn
 import gin
@@ -43,6 +43,7 @@ class MultitaskModel(base.BaseModel):
   """
   tasks: Tasks = gin.REQUIRED
   vision_model_fn: Callable[Ellipsis, Any] = gin.REQUIRED
+  frozen_vision_model_fn: Optional[Callable[Ellipsis, Any]] = None
   train_vision_model: bool = True
   dtype: DType = jnp.float32
 
@@ -61,6 +62,10 @@ class MultitaskModel(base.BaseModel):
     assert self.vision_model_fn is not None
     self.vision_model = self.vision_model_fn(
         **base.filter_attrs(self.vision_model_fn, module_attrs))
+
+    if self.frozen_vision_model_fn is not None:
+      self.frozen_vision_model = self.frozen_vision_model_fn(
+          **base.filter_attrs(self.frozen_vision_model_fn, module_attrs))
 
     # Set up task heads.
     self.task_heads = [task.head(
@@ -87,14 +92,24 @@ class MultitaskModel(base.BaseModel):
     if not self.train_vision_model:
       vision_features = jax.lax.stop_gradient(vision_features)
 
+    frozen_vision_features = None
+    if self.frozen_vision_model_fn:
+      frozen_vision_features = self.frozen_vision_model(image)
+      frozen_vision_features = jax.lax.stop_gradient(frozen_vision_features)
+
     text_features = text
     image_text_features = None
     paddings = None
     model_outputs = {}
     for task, task_head in zip(self.tasks, self.task_heads):
       task_labels = task.filter_by_task(labels)
-      task_outputs = task_head(vision_features, text_features,
-                               image_text_features, paddings, task_labels)
+      if self.frozen_vision_model_fn is not None:
+        task_outputs = task_head(vision_features, text_features,
+                                 image_text_features, paddings, task_labels,
+                                 frozen_vision_features)
+      else:
+        task_outputs = task_head(vision_features, text_features,
+                                 image_text_features, paddings, task_labels)
       # Add task specific scope name.
       model_outputs.update(task.unfilter_by_task(task_outputs))
 

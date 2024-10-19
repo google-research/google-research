@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,7 +41,7 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
       return InvalidArgumentError(
           "Stacked quantizers can only process dense datasets.");
     const auto& dense = down_cast<const DenseDataset<T>&>(dataset);
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto centers,
         ::research_scann::asymmetric_hashing_internal::StackedQuantizers<
             T>::Train(dense, params, pool));
@@ -59,7 +59,7 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
           MakeDatapointPtr(dp.values(), dp.dimensionality() - 1)));
     }
 
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto centers,
         ::research_scann::asymmetric_hashing_internal::TrainAsymmetricHashing(
             dataset_no_bias, params, pool));
@@ -68,7 +68,7 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
     return Model<T>::FromCenters(std::move(converted),
                                  params.config().quantization_scheme());
   } else {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto centers,
         ::research_scann::asymmetric_hashing_internal::TrainAsymmetricHashing(
             dataset, params, pool));

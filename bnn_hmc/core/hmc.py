@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -45,12 +45,12 @@ def make_leapfrog(log_prob_and_grad):
 
     def _leapfrog_body(_, carry):
       params, net_state, momentum, grad, _, _ = carry
-      momentum = jax.tree_map(lambda m, g: m + 0.5 * step_size * g, momentum,
+      momentum = jax.tree.map(lambda m, g: m + 0.5 * step_size * g, momentum,
                               grad)
-      params = jax.tree_map(lambda s, m: s + m * step_size, params, momentum)
+      params = jax.tree.map(lambda s, m: s + m * step_size, params, momentum)
       log_prob, grad, log_likelihood, net_state = log_prob_and_grad(
           dataset, params, net_state)
-      momentum = jax.tree_map(lambda m, g: m + 0.5 * step_size * g, momentum,
+      momentum = jax.tree.map(lambda m, g: m + 0.5 * step_size * g, momentum,
                               grad)
       return params, net_state, momentum, grad, log_prob, log_likelihood
 
@@ -79,7 +79,7 @@ def _second(xy):
 def get_kinetic_energy_diff(momentum1, momentum2):
   return sum([
       0.5 * jnp.sum(m1**2 - m2**2)
-      for m1, m2 in zip(jax.tree_leaves(momentum1), jax.tree_leaves(momentum2))
+      for m1, m2 in zip(jax.tree.leaves(momentum1), jax.tree.leaves(momentum2))
   ])
 
 

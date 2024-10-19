@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -163,7 +163,7 @@ class UNet(nn.Module):
   extra_class: bool
 
   logsnr_input_type: str
-  logsnr_scale_range: Tuple[float] = (-10., 10.)
+  logsnr_scale_range: Tuple[float] = (-10., 10.)  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
 
   resblock_resample: bool = True
   head_dim: Optional[int] = None  # alternative to num_heads

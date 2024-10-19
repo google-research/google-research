@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,15 @@ using StatusOrHelper = StatusOr<unique_ptr<ReorderingInterface<T>>>;
 namespace {
 
 template <typename T>
+StatusOrHelper<T> BuildBfloat16ReorderingHelper(
+    const shared_ptr<const DistanceMeasure>& reordering_dist,
+    const shared_ptr<TypedDataset<T>>& dataset,
+    SingleMachineFactoryOptions* opts, float noise_shaping_threshold) {
+  return InvalidArgumentError(
+      "BFloat16 reordering is only supported for float32 return types.");
+}
+
+template <typename T>
 StatusOrHelper<T> BuildFixedPointReorderingHelper(
     const FixedPoint& config,
     const shared_ptr<const DistanceMeasure>& reordering_dist,
@@ -40,6 +49,49 @@ StatusOrHelper<T> BuildFixedPointReorderingHelper(
     SingleMachineFactoryOptions* opts) {
   return InvalidArgumentError(
       "Fixed-point reordering is only supported for float types.");
+}
+
+template <>
+StatusOrHelper<float> BuildBfloat16ReorderingHelper(
+    const shared_ptr<const DistanceMeasure>& reordering_dist,
+    const shared_ptr<TypedDataset<float>>& dataset,
+    SingleMachineFactoryOptions* opts, float noise_shaping_threshold) {
+  if (dataset && !dataset->IsDense()) return {nullptr};
+  const auto& distance_type = typeid(*reordering_dist);
+  const bool is_dot = (distance_type == typeid(const DotProductDistance));
+  const bool is_squared_l2 = (distance_type == typeid(const SquaredL2Distance));
+  if (!is_dot && !is_squared_l2) {
+    return UnimplementedError(
+        "For now, bfloat16 reordering only supports DotProductDistance and "
+        "SquaredL2Distance.");
+  }
+
+  if (opts->bfloat16_dataset) {
+    if (is_dot) {
+      return {make_unique<Bfloat16DenseDotProductReorderingHelper>(
+          std::move(opts->bfloat16_dataset), noise_shaping_threshold)};
+    } else {
+      return {make_unique<Bfloat16DenseSquaredL2ReorderingHelper>(
+          std::move(opts->bfloat16_dataset))};
+    }
+  } else {
+    if (dataset == nullptr)
+      return FailedPreconditionError(
+          "No dataset provided; this is required when bfloat16_dataset isn't "
+          "present in opts");
+    const DenseDataset<float>* dense_dataset =
+        down_cast<const DenseDataset<float>*>(dataset.get());
+    if (dense_dataset == nullptr)
+      return FailedPreconditionError("Failed to cast to DenseDataset<float>.");
+    if (is_dot) {
+      return {make_unique<Bfloat16DenseDotProductReorderingHelper>(
+          *dense_dataset, noise_shaping_threshold,
+          opts->parallelization_pool.get())};
+    } else {
+      return {
+          make_unique<Bfloat16DenseSquaredL2ReorderingHelper>(*dense_dataset)};
+    }
+  }
 }
 
 template <>
@@ -57,17 +109,19 @@ StatusOrHelper<float> BuildFixedPointReorderingHelper<float>(
     SCANN_RET_CHECK_EQ(
         opts->pre_quantized_fixed_point->fixed_point_dataset->dimensionality(),
         opts->pre_quantized_fixed_point->multiplier_by_dimension->size())
-            .SetErrorCode(error::INVALID_ARGUMENT)
+            .SetCode(absl::StatusCode::kInvalidArgument)
         << "Multipliers for pre-quantized FP8 reordering must be of the same "
            "dimensionality as the pre-quantized dataset.";
     if (distance_type == typeid(const DotProductDistance)) {
       return {make_unique<FixedPointFloatDenseDotProductReorderingHelper>(
           std::move(opts->pre_quantized_fixed_point->fixed_point_dataset),
-          *opts->pre_quantized_fixed_point->multiplier_by_dimension)};
+          *opts->pre_quantized_fixed_point->multiplier_by_dimension,
+          config.noise_shaping_threshold())};
     } else if (distance_type == typeid(const CosineDistance)) {
       return {make_unique<FixedPointFloatDenseCosineReorderingHelper>(
           std::move(opts->pre_quantized_fixed_point->fixed_point_dataset),
-          *opts->pre_quantized_fixed_point->multiplier_by_dimension)};
+          *opts->pre_quantized_fixed_point->multiplier_by_dimension,
+          config.noise_shaping_threshold())};
     } else if (distance_type == typeid(const SquaredL2Distance)) {
       return {make_unique<FixedPointFloatDenseSquaredL2ReorderingHelper>(
           std::move(opts->pre_quantized_fixed_point->fixed_point_dataset),
@@ -91,10 +145,12 @@ StatusOrHelper<float> BuildFixedPointReorderingHelper<float>(
         *down_cast<const DenseDataset<float>*>(dataset.get());
     if (distance_type == typeid(const DotProductDistance)) {
       return {make_unique<FixedPointFloatDenseDotProductReorderingHelper>(
-          dense_dataset, fp_quantile)};
+          dense_dataset, fp_quantile, config.noise_shaping_threshold(),
+          opts->parallelization_pool.get())};
     } else if (distance_type == typeid(const CosineDistance)) {
       return {make_unique<FixedPointFloatDenseCosineReorderingHelper>(
-          dense_dataset, fp_quantile)};
+          dense_dataset, fp_quantile, config.noise_shaping_threshold(),
+          opts->parallelization_pool.get())};
     } else if (distance_type == typeid(const SquaredL2Distance)) {
       return {make_unique<FixedPointFloatDenseSquaredL2ReorderingHelper>(
           dense_dataset, fp_quantile)};
@@ -115,6 +171,11 @@ StatusOrHelper<T> ExactReorderingFactory(
     const shared_ptr<const DistanceMeasure>& reordering_dist,
     const shared_ptr<TypedDataset<T>>& dataset,
     SingleMachineFactoryOptions* opts) {
+  if (config.bfloat16().enabled()) {
+    return BuildBfloat16ReorderingHelper<T>(
+        reordering_dist, dataset, opts,
+        config.bfloat16().noise_shaping_threshold());
+  }
   if (config.fixed_point().enabled() || config.use_fixed_point_if_possible()) {
     auto statusor = BuildFixedPointReorderingHelper<T>(
         config.fixed_point(), reordering_dist, dataset, opts);

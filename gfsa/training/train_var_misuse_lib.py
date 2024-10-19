@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -231,7 +231,7 @@ def loss_fn(
     metrics['baseline'] = baseline
     metrics['total_log_prob'] = total_log_prob
 
-  metrics = jax.tree_map(lambda x: x.astype(jnp.float32), metrics)
+  metrics = jax.tree.map(lambda x: x.astype(jnp.float32), metrics)
   return loss, metrics
 
 
@@ -399,7 +399,7 @@ def train(
       # Initialize parameters based on our seed.
       _, initial_params = model_def.init(
           jax.random.PRNGKey(parameter_seed),
-          jax.tree_map(
+          jax.tree.map(
               jnp.array,
               example_definition.zeros_like_padded_example(
                   TINY_PADDING_CONFIG)), TINY_PADDING_CONFIG)
@@ -513,7 +513,7 @@ def train(
       metrics['example_count'] = validation_example_count
 
       array_types = (np.ndarray, jnp.ndarray)
-      metrics = jax.tree_map(
+      metrics = jax.tree.map(
           lambda x: x.tolist() if isinstance(x, array_types) else x, metrics)
 
       gfile.makedirs(os.path.dirname(evaluation_save_path))

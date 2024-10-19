@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -456,7 +456,7 @@ class CoCaVilaPretrain(base_model.BaseModel):
     reflen = jnp.reshape(reflen, [-1])
 
     decoded_strs = input_obj.ids_to_strings(hyp, hyplen)
-    ref_strs = input_obj.ids_to_strings(ref, reflen)
+    ref_strs = input_obj.ids_to_strings(ref, reflen)  # pytype: disable=wrong-arg-types  # jnp-type
     ref_str_list = list()
 
     generation_outputs = []

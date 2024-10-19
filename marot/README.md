@@ -6,10 +6,11 @@ data from a human evaluation of translation quality. The web app can also
 display metrics computed by automated evaluations, such as BLEURT.
 
 To use the web app, download the files `marot.html`, `marot.js`,
-`marot-histogram.js`, `marot-sigtests.js`, and `marot.css` to your computer:
+`marot-histogram.js`, `marot-sigtests.js`, `marot-utils.js`, and
+`marot.css` to your computer:
 
 ```
-wget https://raw.githubusercontent.com/google-research/google-research/master/marot/marot{-sigtests.js,-histogram.js,.html,.js,.css}
+wget https://raw.githubusercontent.com/google-research/google-research/master/marot/marot{-sigtests.js,-histogram.js,-utils.js,.html,.js,.css}
 ```
 
 Then, simply open the `marot.html` file in a web browser, and use
@@ -22,6 +23,13 @@ open it in a web browser (it loads the needed JavaScript and CSS files from
 a Google-hosted server).
 
 This is not an officially supported Google product.
+
+## Score computations
+
+MQM scores are computed for every segment by averaging over each rater's score
+for that segment. Each rater's score for a segment is computed using MQM
+weights for marked error severity/category combination. The weighing scheme
+can be modified in the Settings menu at the top.
 
 ## Data file format
 
@@ -37,8 +45,11 @@ ten columns, one line per marked error:
 - **globalSegId**: Id of segment across all documents. If you do not have
   such numbering available, set this to a constant value, say 0.
 - **rater**: Rater who evaluated segment. If this row only carries metadata
-  such as automated metrics and/or references, then `rater` should be the empty
-  string (as should be `category` and `severity`).
+  such as automated scalar metrics and/or references, then `rater` should be the
+  empty string (as should be `category` and `severity`). If `rater` has the
+  prefix *AutoMQM* (case-insensitive), then the rater is treated as an AI
+  and its scores are treated as a distinct "Auto MQM" metric (not to be combined
+  with human raters or other AI raters).
 - **source**: Source text for segment.
 - **target**: Translated text for segment.
 - **category**: MQM error category (or "no-error").
@@ -77,7 +88,7 @@ ten columns, one line per marked error:
     - **severity**
     - **type, subtype**
     - **prefix**: Text span leading up to the marked span.
-    - **selected**: The marked text span leading up to the marked span.
+    - **selected**: The marked text span.
     - **metadata**: The metadata object in the prior error.
   - **deleted_errors**: An array with a list of errors that the rater deleted.
     Each deleted error object also has the same format as a prior error
@@ -89,30 +100,48 @@ ten columns, one line per marked error:
     annotation/rater. This object may not necessarily be repeated across
     multiple ratings for the same segment. The segment object may contain the
     following fields:
-      - **references**: A mapping from names of references to the references
-        themselves (e.g., {"ref_A": "The reference", "ref_B": "..."}). This
-        field need not be repeated across different systems.
-      - **primary_reference**: The name of the primary reference, which is
-        a key in the "references" mapping (e.g., "ref_A"). This field is
-        required if "references" is present. This field too need not be repeated
-        across different systems.
       - **metrics**: A dictionary in which the keys are the names of metrics
         (such as "Bleurt-X") and values are the numbers for those metrics. The
         metric name "MQM" is used for the MQM score. Note that this MQM score
         for the segment is computed *without any filtering*.
       - **source_tokens**: An array of source text tokens.
       - **target_tokens**: An array of target text tokens.
-      - **source_sentence_tokens**: An array specifying sentence segmentation
-        in the source segment. Each entry is the number of tokens in one
-        sentence.
-      - **target_sentence_tokens**: An array specifying sentence segmentation
-        in the target segment. Each entry is the number of tokens in one
-        sentence.
+      - **source_sentence_splits**: An array specifying sentence segmentation
+        in the source segment. Each entry contains the following fields:
+           num_tokens (integer)
+           ends_with_line_break (boolean, optional)
+           ends_with_para_break (boolean, optional)
+      - **target_sentence_splits**: An array specifying sentence segmentation
+        in the target segment. Same structure as source_sentence_splits.
+      - **reference_tokens**: An object keyed by reference name. Each value is
+        an array of reference text tokens. This field need not be repeated
+        across different systems.
+      - **reference_sentence_splits**: An object keyed by reference name. Each
+        value is an array specifying sentence segmentation in a reference
+        segment. Same structure as source_sentence_splits. This field need not
+        be repeated across different systems.
+      - **references**: *Deprecated: reference_tokens and
+        reference_sentence_splits are the preferred way.* A mapping from names
+        of references to the references themselves (e.g., {"ref_A":
+        "The reference", "ref_B": "..."}). This field need not be repeated
+        across different systems.
+      - **primary_reference**: The name of the primary reference (e.g.,
+        "ref_A"), which is a key in the "reference_tokens" and
+        "reference_sentence_splits" mappings (or the "references" mapping in
+        legacy data). This field is required if "references/reference_tokens"
+        is present. This field too need not be repeated across different
+        systems.
       - **starts_paragraph**: A boolean that is true if this segment is the
         start of a new paragraph.
+      - **num_source_chars**, **num_target_chars**
+      - **characteristics**: A dictionary of segment characteristics that may
+        be useful for slicing and dicing scores, or creating automated analyses
+        of what characteristics contribute the most to score differences between
+        systems (or even raters). For example:
+        - `source_length_class`: 'short_0_to_10_chars',
+        - `embedding_vilar_2d`: [42.678, 901.23],
       - In addition, any text annotation fields present in the input data are
-        copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html),
-        this would be all the fields present in the optional last column.
+        copied here. In [Anthea's data format](https://github.com/google-research/google-research/blob/master/anthea/anthea-help.html), this would be all the fields present in the optional last column.
   - **feedback**: An object optionally present in the metadata of the first
     segment of a doc. This captures any feedback the rater may have provided.
     It can include a free-form text field (keyed by **notes**) and a string
@@ -175,7 +204,8 @@ JavaScript function with the following name and behavior:
 /**
  * Transform a data name (that may be in some custom format) to a URL.
  * @param {string} dataName The name or identifier for the data.
- * @return {string} The URL from which the data can be loaded.
+ * @return {string} The URL (or comma-separated URLs) from which the data can be
+ * loaded.
  */
 function marotURLMaker(dataName) {
   /** Code to convert dataName into url */
@@ -202,7 +232,8 @@ filters.
     involving the columns. It can use the following
     variables: **system**, **doc**, **docSegId**,
     **globalSegId**, **rater**, **category**, **severity**,
-    **source**, **target**, **metadata**.
+    **source**, **target**, **reference** (set to be the primary reference),
+    **metadata**.
   - Filter expressions also have access to three aggregated objects in
     variables named **aggrDoc**, **aggrDocSeg**, and **aggrDocSegSys**.
     The aggrDocSegSys dict also contains aggrDocSeg (with the key
@@ -217,9 +248,11 @@ filters.
       - **aggrDocSeg.sevcatsBySystem**,
       - **aggrDocSeg.sevcatsByRater**,
       - **aggrDocSeg.source_tokens**,
-      - **aggrDocSeg.source_sentence_tokens**,
+      - **aggrDocSeg.source_sentence_splits**,
       - **aggrDocSeg.starts_paragraph**,
-      - **aggrDocSeg.references** (if available),
+      - **aggrDocSeg.num_source_chars**,
+      - **aggrDocSeg.reference_tokens** (if available),
+      - **aggrDocSeg.reference_sentence_splits** (if available),
       - **aggrDocSeg.primary_reference** (if available),
       Each of these properties is an object keyed by system or rater, with the
       values being arrays of strings. The "sevcats\*" values look like
@@ -228,20 +261,59 @@ filters.
       to select specific segments rather than just specific error ratings.
     - **aggrDocSeg.metrics** is an object keyed by the metric name and then by
       system name. It provides the segment's metric scores (including MQM) for
-      all systems for which a metric is available for that segment.
+      all systems for which a metric is available for that segment. Note that
+      the metric scores in this are unfiltered.
     - **aggrDocSegSys** is just an alias for metadata.segment.
   - **Example**: docSegId > 10 || severity == 'Major'
   - **Example**: target.indexOf('thethe') >= 0
   - **Example**: metadata.marked_text.length >= 10
   - **Example**: aggrDocSeg.sevsBySystem['System-42'].includes('Major')
+  - **Example**: aggrDocSeg.metrics['MQM']['System-42'] < 3. This only
+    includes segments on which System-42's MQM score is < 3.
   - **Example**: aggrDocSegSys.metrics['MQM'] > 4 &&
-    (aggrDocSegSys.metrics['BLEURT-X'] ?? 1) < 0.1.
+    (aggrDocSegSys.metrics['BLEURT-X'] ?? 0) < 0.6. this selects doc+seg+sys
+    where MQM scor/nume is > 1 and Bleurt-X score is < 0.6, with a missing
+    Bleurt-X score being treated as 0.
   - **Example**: JSON.stringify(aggrDocSeg.sevcatsBySystem).includes('Major/Fl')
   - You can examine the metadata associated with any using the **Log metadata**
     interface shown in the **Filters** section. This can be useful for crafting
     filter expressions.
+  - If the filter expression throws an error an any data row (because of some
+    missing fields, for example), then that row is considered to be excluded by
+    the filter.
+
+## Examples table
+
+The interface shows the first few examples of translated segments with the
+any filtering applied. The number if rows shown is controlled by a parameter
+that can be set withing the Filtering section. It is 2000 by default (it's
+usually unnecessary to make this too big as that might slow the interface down).
+You can click on column entries within the exampes table to create filters
+that look for specific values (of document, system, rater, etc.).
+
+The text segments in the examples table are broken up into sub-paragraphs
+and any hovered-upon sub-paragraph is highlighted for ease of navigation
+(this is especially useful when there are long segments). The interface also
+shows *approximate* alignment: when you hover over a sub-paragraph in a source
+segment, then approximately aligned sub-paragraphs in all translations of that
+segment (as well as references) are also highlighted. Similarly, hovering over a
+sub-paragraph in a translation segment or reference segment will also highlight
+approximately aligned sub-paragraphs on the source side. You can click on a
+sub-paragraph to "pin" such an alignment, allowing you to move away the mouse
+and/or scroll through the examples table while keeping the approximate alignment
+highlighted. Clicking on arrow keys will move any such alignment
+forward/backward (and clicking on any segment while there is a pinned
+sub-paragraph will "unpin" it).
+
+You can narrow the annotations shown in the Examples table temporarily to those
+made by any specific rater (including an AutoMQM rater if applicable) by
+hovering the mouse over the rater's ID in the last column. Each rater has a
+unique flag color associated with them, and this temporary narrowing is
+indicated in the UI by showing the rater's flag next to the text. You can also
+hover over a rater's flag to activate this narrowing.
 
 ## Significance tests
+
 When there are multiple systems that have been evaluated on common document
 segments, significance tests are run for each pair of systems and the resulting
 p-values are displayed in a table. The testing is done via paired one-sided
@@ -253,6 +325,7 @@ computations are run in a background Worker thread. The tests include any
 available automated metrics in addition to MQM.
 
 ## Data Notes
+
 There are some nuances to the data format which are useful to be aware of:
 
   - Marked spans are noted in the source/target text using `<v>...</v>` tags
@@ -266,5 +339,4 @@ There are some nuances to the data format which are useful to be aware of:
   - Error spans may include leading/trailing whitespace if the annotation tool
     allows for this, which may or may not be part of the actual errors.
     For example, `The error is<v> here</v>.`
-    The error spans themselves can also be entirely whitespace.
-
+  - The error spans themselves can also be entirely whitespace.

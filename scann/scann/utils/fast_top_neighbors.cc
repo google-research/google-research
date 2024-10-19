@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,14 +15,21 @@
 #include "scann/utils/fast_top_neighbors.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <string>
+#include <type_traits>
+#include <utility>
 
+#include "absl/base/optimization.h"
+#include "absl/log/log.h"
+#include "absl/numeric/int128.h"
 #include "absl/strings/str_cat.h"
 #include "scann/utils/bits.h"
-#include "scann/utils/intrinsics/avx2.h"
+#include "scann/utils/common.h"
+#include "scann/utils/hwy-compact.h"
+#include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/flags.h"
-#include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
 
 namespace research_scann {
@@ -47,11 +54,23 @@ SCANN_INLINE std::string DebugLogArrayContents(DatapointIndexT* indices,
         sep = ".  END: ";
       }
       if (idx_is_masked) {
-        StrAppendFormat(&txt, "%s%d:[%d, %s]", sep, idx, indices[idx],
-                        absl::StrCat(values[idx]));
+        if constexpr (std::is_same_v<DatapointIndexT,
+                                     std::pair<uint64_t, uint64_t>>) {
+          StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx, indices[idx].first,
+                          absl::StrCat(values[idx]));
+        } else {
+          StrAppendFormat(&txt, "%s%d:[%d, %s]", sep, idx, indices[idx],
+                          absl::StrCat(values[idx]));
+        }
       } else {
-        StrAppendFormat(&txt, "%s%d:{%d, %s}", sep, idx, indices[idx],
-                        absl::StrCat(values[idx]));
+        if constexpr (std::is_same_v<DatapointIndexT,
+                                     std::pair<uint64_t, uint64_t>>) {
+          StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx, indices[idx].first,
+                          absl::StrCat(values[idx]));
+        } else {
+          StrAppendFormat(&txt, "%s%d:{%d, %s}", sep, idx, indices[idx],
+                          absl::StrCat(values[idx]));
+        }
       }
       sep = ", ";
       if (idx == sz) {
@@ -128,12 +147,23 @@ namespace avx2 {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx2
 
-namespace sse4 {
-#define SCANN_SIMD_ATTRIBUTE SCANN_SSE4
+#endif
+
+#if HWY_HAVE_SCALABLE == 0
+HWY_BEFORE_NAMESPACE();
+namespace highway {
+#define SCANN_SIMD_ATTRIBUTE
+
 #include "scann/utils/fast_top_neighbors_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
-}  // namespace sse4
-
+}  // namespace highway
+HWY_AFTER_NAMESPACE();
+#else
+namespace fallback {
+#define SCANN_SIMD_ATTRIBUTE
+#include "scann/utils/fast_top_neighbors_impl.inc"
+#undef SCANN_SIMD_ATTRIBUTE
+}  // namespace fallback
 #endif
 
 template <typename DistT, typename DatapointIndexT>
@@ -144,26 +174,10 @@ size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
 #ifdef __x86_64__
   if (RuntimeSupportsAvx2()) {
     return avx2::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
-  } else if (RuntimeSupportsSse4()) {
-    return sse4::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
   }
 #endif
 
-  SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-      "ZipNthElementBranchOptimized from %d => %d elements", sz, keep_min);
-  vector<pair<DatapointIndexT, DistT>> tmp(sz);
-  for (size_t i : Seq(sz)) {
-    tmp[i] = {ii[i], dd[i]};
-  }
-  ZipNthElementBranchOptimized(DistanceComparatorBranchOptimized(),
-                               keep_min - 1, tmp.begin(), tmp.end());
-  for (size_t i : Seq(sz)) {
-    std::tie(ii[i], dd[i]) = tmp[i];
-  }
-
-  dd[keep_min] = dd[keep_min - 1];
-  ii[keep_min] = ii[keep_min - 1];
-  return keep_min;
+  return highway::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
 }
 
 template <typename DistT, typename DatapointIndexT>
@@ -215,29 +229,31 @@ void FastTopNeighbors<DistT, DatapointIndexT>::GarbageCollect(size_t keep_min,
                          distances_.get(), masks_.get());
   const DistT old_epsilon = epsilon_;
   epsilon_ = distances_[sz_];
-  SCANN_LOG_NOOP(INFO, kShouldLog)
+  DLOG_IF(INFO, kShouldLog)
       << DebugLogArrayContents(indices_.get(), distances_.get(), nullptr, sz_);
-  SCANN_LOG_NOOP(INFO, kShouldLog) << StrFormat(
-      "Threshold change: %f => %f (sz = %d)", static_cast<double>(old_epsilon),
-      static_cast<double>(epsilon_), sz_);
+  DLOG_IF(INFO, kShouldLog) << StrFormat("Threshold change: %f => %f (sz = %d)",
+                                         static_cast<double>(old_epsilon),
+                                         static_cast<double>(epsilon_), sz_);
 }
 
 template <typename DistT, typename DatapointIndexT>
 pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
-FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted() {
+FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted(size_t max_results) {
   MutableSpan<DatapointIndexT> ii;
   MutableSpan<DistT> vv;
-  std::tie(ii, vv) = FinishUnsorted();
+  std::tie(ii, vv) = FinishUnsorted(max_results);
 
   ZipSortBranchOptimized(vv.begin(), vv.end(), ii.begin(), ii.end());
 
   return {ii, vv};
 }
 
-template class FastTopNeighbors<int16_t, DatapointIndex>;
-template class FastTopNeighbors<float, DatapointIndex>;
+template class FastTopNeighbors<int16_t, uint32_t>;
+template class FastTopNeighbors<float, uint32_t>;
 template class FastTopNeighbors<int16_t, uint64_t>;
 template class FastTopNeighbors<float, uint64_t>;
+template class FastTopNeighbors<int16_t, absl::uint128>;
 template class FastTopNeighbors<float, absl::uint128>;
+template class FastTopNeighbors<float, std::pair<uint64_t, size_t>>;
 
 }  // namespace research_scann

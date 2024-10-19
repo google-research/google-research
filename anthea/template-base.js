@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -57,10 +57,10 @@ const antheaTemplateBase = {
       <p>
         The content for annotation consists of documents that are broken down
         into parallel segments. A segment may be one sentence, multiple
-        sentences, or an entire paragraph. You will be able to read and annotate
-        each segment in steps of sentences (on both the source side and the
-        translation side). Navigation through the document is explained in
-        detail in the "Navigation" subsection.
+        sentences, an entire paragraph, or an entire document. You will be able
+        to read and annotate each segment in steps of groups of sentences (on
+        both the source side and the translation side). Navigation through the
+        document is explained in detail in the "Navigation" subsection.
       </p>
       `,
     'General Guidelines': `
@@ -108,14 +108,15 @@ const antheaTemplateBase = {
             <li>If a translation might be questionable on its own but is
                 acceptable in the context of the document, then it should not be
                 considered as an error. For example, a noun may get replaced
-                by a pronoun in the target even though a noun was used in the
-                source, and unless this change makes the target awkward to read,
-                it should not be marked as an error.</li>
+                by a pronoun in the translation even though a noun was used in
+                the source, and unless this change makes the translation awkward
+                to read, it should not be marked as an error.</li>
             <li>Similarly, it is OK for the translation to make use of the
                 context to omit some part of the source text that is obvious
                 from the context (even if it is not omitted in the source text).
                 For example, an adjective may not have to be repeated in the
-                target text, if it is naturally obvious from the context.</li>
+                translated text, if it is naturally obvious from the context.
+            </li>
           </ul>
         </li>
         <li>
@@ -147,49 +148,49 @@ const antheaTemplateBase = {
     'Navigation': `
       <h2>Navigation</h2>
       <p>
-        Please note how the document is broken up into parallel segments and how
-        segments are to be evaluated sentence-by-sentence.
+        Each task consists of text from a single document alongside its
+        translation. Sometimes it can be a very short document (even a single
+        sentence), but typically a document will have 10-20 sentences.
       </p>
       <ul>
         <li>
-        Each task consists of text from a single document. Sometimes it can be
-        a very short document, even a single sentence, but typically a document
-        will have 10-20 sentences.
+        You will go through a document in convenient steps of small
+        "sub-paragraphs" (groups of consecutive sentences from the same
+        paragraph). You can move from one sub-paragraph to the next (and back)
+        using the arrow keys or using the buttons labeled with left and right
+        arrows. Note that these sub-paragraphs are automatically created on the
+        source side and the translation side, <i>independently</i> of each
+        other, purely for convenient navigation through potentially long
+        documents. In particular, they are <i>not</i> expected to be
+        aligned—i.e., the translation of the third (say) sub-paragraph on the
+        source side need not be exactly just the third sub-paragraph on the
+        translation side.
         </li>
         <li>
-        You should read each source segment in its entirety, going
-        sentence-by-sentence. The right arrow keyboard key and the right
-        arrow button in the Evaluation column will let you move to the next
-        sentence when you've finished reading and comprehending a sentence.
-        Once you finish going through a source segment, the right arrow
-        key/button will take the focus to the first sentence of the target
-        segment, which you will then proceed to read and annotate,
-        sentence-by-sentence.
+        If the document was translated in steps of segments that were smaller
+        than the whole document, then at the end of the last sub-paragraph on
+        the source side of each segment, the right arrow key/button will take
+        you to the start (i.e., the first sub-paragraph) of the translation of
+        that segment. And, at the end of the translation side of that segment,
+        it will take you to the start of the source side of the next segment.
         </li>
         <li>
-        The ideal navigation flow is as described above, as it allows you to
-        focus on either the source side or the translation side, at any moment,
-        rather than having both of them compete for your attention (which tends
-        to favor unnatural translations that unnecessarily copy sentence
-        structure across languages).
+        If the entire document was translated as one segment, then the right
+        arrow key/button will take you to the start of the translation only at
+        the end of the source side of the whole document.
         </li>
         <li>
-        When the focus is on the source side, you would typically be only
-        marking any "Source issue" errors in the source text (such as garbled or
-        nonsensical text).
+        If a source segment appears to be too long, you can (at any time) choose
+        to jump to the translation side after reading some part of the source,
+        using the Tab key. The Tab key will similarly allow you to jump back to
+        the source side from the translation side. We leave the judgment to you,
+        as to how to divide your annotation process for long segments into
+        smaller units.
         </li>
         <li>
-        If the source segment appears too long, you can (at any time) choose
-        to jump to the target segment after reading some source sentences, using
-        the Tab key. The Tab key will similarly allow you to jump back to the
-        source segment from the target segment. We leave the judgment of how
-        to break long segments into smaller units that are easier to evaluate
-        up to you.
-        </li>
-        <li>
-        You can use the left arrow key or button to go back through the
-        sentences and segments. You can also directly click on any previously
-        read sentence to jump to it.
+        You can also use the left arrow key/button to go <i>back</i> through the
+        sub-paragraphs and segments. You can also directly click on any
+        previously read part of the text to jump back to it.
         </li>
       </ul>
       `,
@@ -211,6 +212,10 @@ const antheaTemplateBase = {
                 words that are not directly affected by the identified issue and
                 do not need to be modified in order for the issue to be
                 fixed.</li>
+            <li>You can only mark spans within sentences. In the rare case that
+                an error straddles multiple sentences (e.g., when there is an
+                incorrect sentence break), just mark the first part of the span
+                that lies within a sentence.</li>
             <li>The shorter the span, the more useful it is.</li>
             <li>When it comes to "Style/Unnatural or awkward" errors, please
                 pinpoint the error rather than extend the span to an entire
@@ -241,9 +246,9 @@ const antheaTemplateBase = {
         <li>Select the <b>category</b> (also called <b>type</b>) and
             <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
             found. For example: Accuracy &gt; Mistranslation.</li>
-        <li>After annotating all identified issues in a sentence, use the
+        <li>After annotating all identified issues in a sub-paragraph, use the
             <b>right arrow key</b> (or the <b>button</b>) to go to the next
-            sentence.</li>
+            sub-paragraph.</li>
       </ol>`,
     'Annotation Tips': `
       <details>
@@ -252,11 +257,11 @@ const antheaTemplateBase = {
         </summary>
         <ol>
           <li>
-            You can modify or delete any rating in the current sentence by using
-            the menu shown to the right of the rating. The menu is revealed
-            when you hover your mouse over the hamburger icon (&#9776;). If
-            deleted, the rating is shown with a strikethrough line. You can
-            undelete a deleted rating using the menu, if desired.
+            You can modify or delete any rating in the current sub-paragraph
+            by using the menu shown to the right of the rating. The menu is
+            revealed when you hover your mouse over the hamburger icon
+            (&#9776;). If deleted, the rating is shown with a strikethrough
+            line. You can undelete a deleted rating using the menu, if desired.
           </li>
           <li>
             While editing a rating, its text will be shown with a
@@ -265,10 +270,9 @@ const antheaTemplateBase = {
             to abort an ongoing modification to a rating.
           </li>
           <li>
-              To modify or delete a rating for a previous sentence in the
-              current document, you can first click on it to navigate to it (or
-              use the arrow keys or "Previous" button) and then use the
-              hamburger menu.
+            To modify or delete a rating for a previous sentence in the
+            current document, you can first click on it to navigate to it (or
+            use the arrow key/button) and then use the hamburger menu.
           </li>
           <li>
             Sometimes, you might be re-evaluating a document that was already
@@ -320,7 +324,7 @@ const antheaTemplateBase = {
                   <tr>
                     <th>Language pair</th>
                     <th>Source</th>
-                    <th>Target</th>
+                    <th>Translation</th>
                     <th>Comments</th>
                   </tr>
                   <tr>
@@ -435,7 +439,7 @@ const antheaTemplateBase = {
                   <tr>
                     <th>Language pair</th>
                     <th>Source</th>
-                    <th>Target</th>
+                    <th>Translation</th>
                     <th>Comments</th>
                   </tr>
                   <tr>
@@ -541,17 +545,17 @@ const antheaTemplateBase = {
       <ul>
         <li>
           <b>Accuracy</b>.
-          The target text does not accurately reflect the source text.
+          The translated text does not accurately reflect the source text.
           <details>
             <summary>Subtypes of Accuracy:</summary>
             <ul>
               <li>
                 <b>Creative Reinterpretation</b>.
-                The target text <i>reinterprets the source, but preserves its
-                intent</i>. Note that if the translation reinterprets the source
-                text to such a great degree that it <i>changes</i> the intent,
-                then it should be marked as using Mistranslation, Addition, or
-                Omission subtypes, as appropriate.
+                The translated text <i>reinterprets the source, but preserves
+                its intent</i>. Note that if the translation reinterprets the
+                source text to such a great degree that it <i>changes</i> the
+                intent, then it should be marked as using Mistranslation,
+                Addition, or Omission subtypes, as appropriate.
                 <ul>
                   <li>
                     Mark Creative Reinterpretation if the translation includes
@@ -564,26 +568,38 @@ const antheaTemplateBase = {
                   </li>
                   <li>
                     The translation edits the source creatively, perhaps to make
-                    the target text more fluent or expressive or localized. For
-                    example, a reordering of sentences or an addition of text
-                    that is supported by the overall passage being translated
-                    and does not change the intent of the source text. Another
-                    example would be that of the name of an exemplifying entity
-                    being changed to a better local equivalent.
+                    the translated text more fluent or expressive or localized.
+                    For example, a reordering of sentences or an addition of
+                    text that is supported by the overall passage being
+                    translated and does not change the intent of the source
+                    text. Another example would be that of the name of an
+                    exemplifying entity being changed to a better local
+                    equivalent.
                   </li>
                 </ul>
               </li>
               <li>
                 <b>Mistranslation</b>.
-                The target text does not accurately represent the source text.
-                Examples: (1) The source text talks about a person A knowing
-                another person B, but the English translation says "A was
-                intimate with B." (2) The source text states that something
-                never happens, whereas the translation says it happens "often"
-                or "rarely." (3) Incorrectly gendered pronouns not warranted by
-                the context, such as "Mary slammed the door as he left."
-                Misgendering errors typically have a major severity as they
-                significantly alter the meaning of the source text.
+                The translated text does not accurately represent the source
+                text. Examples: (1) The source text talks about a person A
+                knowing another person B, but the English translation says
+                "A was intimate with B." (2) The source text states that
+                something never happens, whereas the translation says it happens
+                "often" or "rarely."
+              </li>
+              <li>
+                <b>Gender Mismatch</b>.
+                Given the context, the gender is incorrect (incorrect pronouns,
+                noun/adjective endings, etc). Misgendering errors typically have
+                a major severity as they significantly alter the meaning of the
+                source text. If the correct gender is not clear from the source
+                context, assume the first instance of gender is correct and mark
+                subsequent gender inconsistencies as errors. Examples: (1) "Mary
+                slammed the door as he left." (2) Given the source text "My
+                friend is an engineer. She is great at coding.", if its
+                translation used a male form for the term "engineer", it would
+                be incorrect, as we know the subject is female from the source
+                context.
               </li>
               <li>
                 <b>Source language fragment</b>.
@@ -598,8 +614,8 @@ const antheaTemplateBase = {
               </li>
               <li>
                 <b>Addition</b>.
-                The target text includes information not present in the source.
-                Example: A translated sentence that includes adverbs or
+                The translated text includes information not present in the
+                source. Example: A translated sentence that includes adverbs or
                 adjectives without equivalents in the original text, even after
                 taking context into account.
               </li>
@@ -668,6 +684,32 @@ const antheaTemplateBase = {
                 severity Spelling error because of the missing whitespace.
               </li>
               <li>
+                <b>Text-Breaking</b>.
+                Issues related to paragraph breaks and line breaks.
+                If a sentence ends with an incorrect or missing paragraph break
+                or line break, then mark the last part of it (word or
+                punctuation) with this error type. Examples: (1) There should be
+                a paragraph break but there is only a line break or there is not
+                even a line break. (2) There should not be any break but a
+                paragraph break is present in the middle of a sentence.
+                <br><br>
+                Certain paragraph breaks are very
+                important for establishing the proper flow of the text: for
+                example, before and after a section heading or a block-quote.
+                If an important paragraph break is completely missing (there is
+                not even a line break), then that is a major error, as it
+                severely degrades the quality of the text. If an unwarranted
+                paragraph break is seen in the middle of a sentence, that is
+                also a major error. Most other errors of type
+                "Fluency / Text-Breaking" are usually minor errors.
+                <br><br>
+                Note that if sentences in the translated text are structured
+                differently compared to the source (eg., a source sentence has
+                been translated into two sentences, or two source sentences
+                have been combined into a single translated sentence), that
+                by itself is not a text-breaking error.
+              </li>
+              <li>
                 <b>Punctuation</b>.
                 Punctuation is used incorrectly (for the locale or style).
                 Example: An English compound adjective appearing before a noun
@@ -722,6 +764,25 @@ const antheaTemplateBase = {
                 better as a single sentence that makes it clearer who accepted
                 the reward. This example is a minor error, without additional
                 contextual information.
+              </li>
+              <li>
+                <b>Archaic or obscure word choice</b>.
+                The text contains archaic or obscure words that an average
+                speaker of the target language may find hard to understand. This
+                includes cases where obscure translations of terms are used,
+                where instead transliterating or copying the source language
+                would be more natural. (Archaic/formal terms may be okay in
+                certain contexts such as government or historical documents,
+                academic papers, etc.) Examples: (1) "He was transparently evil"
+                gets translated to "वह पारदर्शी रूप से दुष्ट था।" in Hindi which uses an
+                obscure term for "transparently" instead of the more common
+                "स्पष्ट". (2) The term "computer" is translated into Hindi as
+                "संगणक" (saṅgaṇaka) but the transliterated version "कंप्यूटर"
+                (kampyootar) is much more common and easily understood. (3) In
+                the sentence "Last night we went to a bar and drank a homerkin
+                of beer", the term 'homerkin' (meaning 'several gallons') is
+                unnecessarily obscure. It would be much more colloquial to say
+                'we drank a ton of beer', or similar.
               </li>
             </ul>
           </details>
@@ -837,7 +898,7 @@ const antheaTemplateBase = {
           <tr>
             <th>Language pair</th>
             <th>Source</th>
-            <th>Target</th>
+            <th>Translation</th>
             <th>Correct annotations</th>
             <th>Comments</th>
           </tr>
@@ -936,8 +997,8 @@ const antheaTemplateBase = {
                 the public auction was conducted on the Ali auction
                 platform.</td>
             <td>Accuracy - Mistranslation - Major</td>
-            <td>The meaning of the target text is completely altered since it
-                should read "the department responsible for this auction". In
+            <td>The meaning of the translated text is completely altered since
+                it should read "the department responsible for this auction". In
                 this case, the error should be rated as major.</td>
           </tr>
           <tr>
@@ -965,6 +1026,26 @@ const antheaTemplateBase = {
                 should be replaced by "Zuteilung" or "Verteilung." However, this
                 error should be marked as minor since the meaning is not
                 severely affected.</td>
+          </tr>
+          <tr>
+            <td>EN_FR</td>
+            <td>Opinion
+                <p>I believe the honourable Prime Minister made a serious error.
+                We should never have negotiated under the present circumstances.
+                </p>
+            <td><span class="span-major">Avis</span>
+                Je crois que l'honorable premier ministre a commis une grave
+                erreur.<br><span class="span-minor">Nous</span><br>n’aurions
+                jamais dû négocier dans les
+                circonstances actuelles.</td>
+            <td>
+              1. Fluency - Text-Breaking - Major <br>
+              2. Fluency - Text-Breaking - Minor
+            </td>
+            <td>The translation is missing the important paragraph break needed
+                between the section heading and the section body. The
+                second error is an extraneous line-break in the middle of a
+                sentence, which is a minor error.</td>
           </tr>
           <tr>
             <td>ZH_EN</td>
@@ -1056,11 +1137,11 @@ const antheaTemplateBase = {
         </p>
         <ul>
           <li><b>Acronyms</b>:Acronyms should be translated (with an equivalent
-              acronym in the target language or a spelled out target version)
-              where the translated version is more common than the source
-              language version. Conversely, if the untranslated version is more
-              common, a target version has not been established or the
-              abbreviation or acronym constitutes a registered name or
+              acronym in the target language or a spelled out translated
+              version) where the translated version is more common than the
+              source language version. Conversely, if the untranslated version
+              is more common, a translated version has not been established or
+              the abbreviation or acronym constitutes a registered name or
               trademark, the abbreviation or acronym should be kept in the
               source language.</li>
           <li><b>Books, movies, songs, games, research papers, academic journal

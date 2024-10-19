@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -49,7 +49,7 @@ class CheckpointsTest(absltest.TestCase):
             "replicated": replicated,
         },
     ]
-    self.params = jax.tree_map(jnp.asarray, params)
+    self.params = jax.tree.map(jnp.asarray, params)
 
   def test_save_and_restore_parameters(self):
     # Process 1 only saves sharded parameters, not the replicated ones.
@@ -86,7 +86,7 @@ class CheckpointsTest(absltest.TestCase):
               sharded_match_fn=lambda name: "sharded" in name,
               process_id=process_id,
               process_count=2))
-    restored_params = jax.tree_map(np.asarray, restored_params)
+    restored_params = jax.tree.map(np.asarray, restored_params)
 
     # Ensure that the restored parameters match the original values.
     np.testing.assert_allclose(restored_params[0]["sharded"],
@@ -138,7 +138,7 @@ class CheckpointsTest(absltest.TestCase):
               sharded_match_fn=lambda name: "sharded" in name,
               process_id=process_id,
               process_count=2))
-    restored_params = jax.tree_map(np.asarray, restored_params)
+    restored_params = jax.tree.map(np.asarray, restored_params)
 
     # Ensure that the restored parameters match the last values.
     np.testing.assert_allclose(restored_params[0]["sharded"],
@@ -155,7 +155,7 @@ class CheckpointsTest(absltest.TestCase):
         "a": jax.random.normal(jax.random.PRNGKey(0), (4, 3, 2)),
         "b": jax.random.normal(jax.random.PRNGKey(1), (1, 2)),
     }
-    params = jax.tree_map(lambda x: jnp.asarray(x, jnp.bfloat16), params)
+    params = jax.tree.map(lambda x: jnp.asarray(x, jnp.bfloat16), params)
     sharded_match_fn = lambda name: name == "b"
     checkpoints.save_checkpoint(
         self.ckpt_dir,
@@ -178,8 +178,8 @@ class CheckpointsTest(absltest.TestCase):
     # Bitcast bfloat16 to int16 and compare values. Numpy does not have bfloat16
     # type.
     bitcast_int16_fn = lambda x: jax.lax.bitcast_convert_type(x, jnp.int16)
-    params_int16 = jax.tree_map(bitcast_int16_fn, params)
-    restored_params_int16 = jax.tree_map(bitcast_int16_fn, restored_params)
+    params_int16 = jax.tree.map(bitcast_int16_fn, params)
+    restored_params_int16 = jax.tree.map(bitcast_int16_fn, restored_params)
     np.testing.assert_array_equal(restored_params_int16["a"], params_int16["a"])
     np.testing.assert_array_equal(restored_params_int16["b"], params_int16["b"])
 

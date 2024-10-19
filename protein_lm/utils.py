@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -255,7 +255,7 @@ def compute_weighted_soft_accuracy(logits, targets, weights=None, matrix=None):
 
 
 def _psum(target_tree, axis_name='batch'):
-  return jax.tree_map(lambda x: lax.psum(x, axis_name), target_tree)
+  return jax.tree.map(lambda x: lax.psum(x, axis_name), target_tree)
 
 
 def compute_metrics(logits, labels, token_weights, example_weights=None):
@@ -284,7 +284,7 @@ def get_params(model):
 def param_count(model):
   """Get total parameter count."""
   params = get_params(model)
-  num_params = sum(x.size for x in jax.tree_leaves(params))
+  num_params = sum(x.size for x in jax.tree.leaves(params))
   return num_params
 
 

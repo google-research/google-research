@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -283,7 +283,7 @@ def plot_reward(rews):
   axes[1].set_xlabel("Timestep")
   axes[1].set_ylabel("Cumulative Reward")
   for ax in axes:
-    ax.grid(b=True, which="major", linestyle="-")
-    ax.grid(b=True, which="minor", linestyle="-", alpha=0.2)
+    ax.grid(visible=True, which="major", linestyle="-")
+    ax.grid(visible=True, which="minor", linestyle="-", alpha=0.2)
   plt.minorticks_on()
   plt.show()

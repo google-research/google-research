@@ -8,9 +8,9 @@ package(
 cc_library(
     name = "pre_quantized_fixed_point",
     hdrs = ["pre_quantized_fixed_point.h"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:dataset",
         "//scann/utils:types",
+        "@com_google_absl//absl/types:span",
     ],
 )

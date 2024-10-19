@@ -1,0 +1,18 @@
+---
+title: Users prefer Jpegli over same-sized libjpeg-turbo or MozJPEG
+author: Martin Bruse^[Google Research, Kungsbron 2, 111 22 Stockholm, Sweden], Luca Versari^[Google Research, Brandschenkestrasse 110, 8002 Zürich, Switzerland], Zoltan Szabadka\footnotemark[2], Jyrki Alakuijala\footnotemark[2]
+papersize: a4
+geometry:
+  - top=30mm
+  - left=30mm
+  - right=30mm
+abstract: |
+  \noindent We performed pairwise comparisons by human raters of JPEG images
+  from MozJPEG[@mozjpeg], libjpeg-turbo[@libjpegturbo] and our new
+  Jpegli[@jpegli] encoder. When compressing images at a quality similar to
+  libjpeg-turbo quality 95, the Jpegli images were 54% likely to be preferred
+  over both libjpeg-turbo and MozJPEG images, but used only 2.8 bits per pixel
+  compared to libjpeg-turbo and MozJPEG that used 3.8 and 3.5 bits per pixel
+  respectively.
+  \vskip1em\noindent The raw ratings[@mucped23answers] and source images are
+  publicly available for further analysis and study.

@@ -1,0 +1,56 @@
+image_path: "demo/pokemon1.jpg"
+image_caption: ['Charmander', 'Bulbasaur', 'Squirtle']
+
+clip:
+  semantic_clip_model_name: 'ViT-L/14'
+  semantic_pretrained_data: 'openai'
+  clip_model_name: 'ViT-B/16'
+  pretrained_data: 'openai'
+
+car:
+  iom_thres: 0.6
+  mask_threshold: 0.5
+  confidence_threshold: 0 # 0.2
+  clipes_threshold: 0.6
+  visual_prompt_type: ['gray', 'blur']
+  semantic_templates: ['a clean origami {}.',
+                        'a photo of a {}.',
+                    'This is a photo of a {}',
+                    'There is a {} in the scene',
+                    'There is the {} in the scene',
+                    'a photo of a {} in the scene',
+                    'a photo of a small {}.',
+                    'a photo of a medium {}.',
+                    'a photo of a large {}.',
+                    'This is a photo of a small {}.',
+                    'This is a photo of a medium {}.',
+                    'This is a photo of a large {}.',
+                    'There is a small {} in the scene.',
+                    'There is a medium {} in the scene.',
+                    'There is a large {} in the scene.']
+  bg_cls: ['ground', 'land', 'grass', 'tree', 'building',
+            'wall', 'sky', 'lake', 'water', 'river', 'sea',
+            'railway', 'railroad', 'helmet', 'cloud', 'house',
+            'mountain', 'ocean', 'road', 'rock', 'street',
+            'valley', 'bridge']
+
+sam:
+  model_dir: "/homes/53/kevinsun/google-research/clip_as_rnn"
+  sam_checkpoint: "sam_hq_vit_h.pth"   # "./sam_hq_vit_l.pth"
+  model_type: "vit_h"
+  min_pred_threshold: 0.01
+  points_per_side: 64
+  pred_iou_thresh: 0.88
+  stability_score_thresh: 0.95
+  box_nms_thresh: 0.7
+
+test:
+  confidence_threshold: 0.7
+  algo: "maskcut"
+  ds_name: "voc"
+  seg_mode: "semantic"
+  split: 'val'
+  output_path: "./outputs/"
+  use_pseudo: False
+  # use_iterative: False
+  num_iteration: 1

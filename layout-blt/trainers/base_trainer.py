@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,7 +55,7 @@ class LayoutBaseTrainer(abc.ABC):
       return jnp.float32, tf.float32
 
   def merge_model_state(self, state):
-    if jax.tree_leaves(state.model_state):
+    if jax.tree.leaves(state.model_state):
       cross_replica_mean = jax.pmap(lambda x: jax.lax.pmean(x, "x"), "x")
       return state.replace(model_state=cross_replica_mean(state.model_state))
     else:
@@ -225,7 +225,7 @@ class LayoutBaseTrainer(abc.ABC):
     eval_metrics = None
     eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
     for _, eval_batch in zip(range(num_eval_steps), eval_iter):
-      eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+      eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
       eval_batch, eval_label = self.preprocess_batch(eval_batch, batch_size,
                                                      dataset, use_vertical)
       if eval_batch is None:
@@ -331,7 +331,7 @@ class LayoutBaseTrainer(abc.ABC):
         # devices.
         is_last_step = step == self.config.num_train_steps
         with jax.profiler.StepTraceContext("train", step_num=step):
-          batch = jax.tree_map(np.asarray, next(train_iter))
+          batch = jax.tree.map(np.asarray, next(train_iter))
           batch, label = self.preprocess_batch(batch, batch_size, dataset,
                                                use_vertical)
           if batch is None:

@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -150,7 +150,7 @@ Status AppendGfvValuesToVector(const GenericFeatureVector& gfv, VecT* result) {
 template <typename VecT>
 Status GfvValuesToVector(const GenericFeatureVector& gfv, VecT* result) {
   DCHECK(result);
-  TF_ASSIGN_OR_RETURN(size_t to_reserve, GetGfvVectorSize(gfv));
+  SCANN_ASSIGN_OR_RETURN(size_t to_reserve, GetGfvVectorSize(gfv));
   result->clear();
   result->reserve(to_reserve);
   using T = decay_t<decltype((*result)[0])>;

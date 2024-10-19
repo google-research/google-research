@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -62,7 +62,7 @@ def dataset_with_custom_labels(
     ):
   """Returns a dataset with a controlled label set (should be reshuffled)."""
   custom_labels = copy.copy(dataset_config.use_label_subset)
-  dataset_config = dataclasses.replace(
+  dataset_config = dataclasses.replace(  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
       dataset_config, use_label_subset=lambda: custom_labels)
   dataset, _ = train_lib.make_dataset(model_config=model_config,
                                       data_config=dataset_config,

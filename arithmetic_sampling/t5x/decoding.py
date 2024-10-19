@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -438,7 +438,7 @@ def _arithmetic_sample_single_trial(
     # Different elements in the batch can be at different loop indices, if any
     # of our examples are not at the end, keep going.
     all_sequences_ended = jnp.all(state.ended)
-    return ~all_sequences_ended
+    return ~all_sequences_ended  # pytype: disable=bad-return-type  # jnp-type
 
   def sampling_loop_body_fn(
       state):

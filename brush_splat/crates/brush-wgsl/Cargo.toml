@@ -1,0 +1,15 @@
+[package]
+name = "brush-wgsl"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+naga_oil.workspace = true
+naga.workspace = true
+anyhow.workspace = true
+regex = "1.10.4"
+regex-syntax = "0.8.3"
+data-encoding = "2.6.0"
+thiserror.workspace = true

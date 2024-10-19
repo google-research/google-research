@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -66,14 +66,14 @@ class TrainTest(parameterized.TestCase):
     rng = jax.random.PRNGKey(rng_key)
     rng, dataset_rng = jax.random.split(rng)
     dataset = input_pipeline.get_dataset(config, dataset_rng)
-    graph, labels, _ = jax.tree_map(jnp.asarray, dataset)
+    graph, labels, _ = jax.tree.map(jnp.asarray, dataset)
     labels = jax.nn.one_hot(labels, config.num_classes)
     num_nodes = labels.shape[0]
 
     # Create subgraphs.
-    graph = jax.tree_map(np.asarray, graph)
+    graph = jax.tree.map(np.asarray, graph)
     subgraphs = train.get_subgraphs(graph, config.pad_subgraphs_to)
-    graph = jax.tree_map(jnp.asarray, graph)
+    graph = jax.tree.map(jnp.asarray, graph)
 
     # Initialize model.
     rng, init_rng = jax.random.split(rng)
@@ -89,7 +89,7 @@ class TrainTest(parameterized.TestCase):
     per_example_grads = train.compute_updates_for_dp(
         state, graph, labels, subgraphs, indices,
         config.adjacency_normalization)
-    per_example_grads_summed = jax.tree_map(lambda grad: jnp.sum(grad, axis=0),
+    per_example_grads_summed = jax.tree.map(lambda grad: jnp.sum(grad, axis=0),
                                             per_example_grads)
 
     # Compute batched gradients.

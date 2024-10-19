@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,15 +21,18 @@
 #include <cstdlib>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <type_traits>
 #include <utility>
 
 #include "absl/base/thread_annotations.h"
 #include "absl/functional/function_ref.h"
+#include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/utils/common.h"
+#include "scann/utils/threads.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
@@ -43,13 +46,13 @@ struct ParallelForOptions {
 
 template <size_t kItersPerBatch = kDynamicBatchSize, typename SeqT,
           typename Function>
-SCANN_INLINE void ParallelFor(SeqT seq, ThreadPool* pool, Function func,
+SCANN_INLINE void ParallelFor(SeqT seq, ThreadPoolInterface pool, Function func,
                               ParallelForOptions opts = ParallelForOptions());
 
 template <size_t kItersPerBatch = kDynamicBatchSize, typename SeqT,
           typename Function>
 SCANN_INLINE Status
-ParallelForWithStatus(SeqT seq, ThreadPool* pool, Function Func,
+ParallelForWithStatus(SeqT seq, ThreadPoolInterface pool, Function Func,
                       ParallelForOptions opts = ParallelForOptions()) {
   Status finite_check_status = OkStatus();
 
@@ -84,11 +87,15 @@ class ParallelForClosure : public std::function<void()> {
         range_end_(*seq.end()),
         reference_count_(1) {}
 
-  SCANN_INLINE void RunParallel(ThreadPool* pool, size_t desired_threads) {
+  SCANN_INLINE void RunParallel(ThreadPoolInterface pool,
+                                size_t desired_threads) {
     DCHECK(pool);
 
-    size_t n_threads =
-        std::min<size_t>(desired_threads - 1, pool->NumThreads());
+    size_t n_threads = desired_threads - 1;
+    std::optional<size_t> num_workers = pool.num_threads();
+    if (num_workers.has_value()) {
+      n_threads = std::min(n_threads, *num_workers);
+    }
 
     if (kIsDynamicBatch) {
       batch_size_ =
@@ -97,7 +104,9 @@ class ParallelForClosure : public std::function<void()> {
 
     reference_count_ += n_threads;
     while (n_threads--) {
-      pool->Schedule([this]() { Run(); });
+      if (!pool.TrySchedule([this]() { this->Run(); })) {
+        --reference_count_;
+      }
     }
 
     DoWork();
@@ -152,7 +161,7 @@ class ParallelForClosure : public std::function<void()> {
 }  // namespace parallel_for_internal
 
 template <size_t kItersPerBatch, typename SeqT, typename Function>
-SCANN_INLINE void ParallelFor(SeqT seq, ThreadPool* pool, Function func,
+SCANN_INLINE void ParallelFor(SeqT seq, ThreadPoolInterface pool, Function func,
                               ParallelForOptions opts) {
   constexpr size_t kMinItersPerBatch =
       kItersPerBatch == kDynamicBatchSize ? 1 : kItersPerBatch;
@@ -160,7 +169,10 @@ SCANN_INLINE void ParallelFor(SeqT seq, ThreadPool* pool, Function func,
       opts.max_parallelism, DivRoundUp(*seq.end() - *seq.begin(),
                                        SeqT::Stride() * kMinItersPerBatch));
 
-  if (!pool || desired_threads <= 1) {
+  constexpr int kMaxQueueCount = 1024;
+
+  if (!pool || desired_threads <= 1 ||
+      pool.num_pending_closures() >= kMaxQueueCount) {
     for (size_t idx : seq) {
       func(idx);
     }

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -153,7 +153,7 @@ def get_ui_objects_feature_dict(view_hierarchy_leaf_nodes,
       'ui_obj_str_seq':
           padding_array(
               ui_object_attributes['obj_str_seq'], (max_object_num,),
-              padding_type=np.string_,
+              padding_type=np.bytes_,
               padding_value=''),
       'ui_obj_word_id_seq':
           padding_array(
@@ -348,15 +348,15 @@ def padding_array(orig_array,
   #   >>> a[0] = 'foo'
   #   >>> a
   #   array(['f'], dtype='|S1')
-  if padding_type == np.string_:
+  if padding_type == np.bytes_:
     used_pad_type = object
   else:
     used_pad_type = padding_type
   target_array = np.full(
       shape=padding_shape, fill_value=padding_value, dtype=used_pad_type)
   _fill_array(orig_array, target_array)
-  if padding_type == np.string_:
-    target_array = target_array.astype(np.string_)
+  if padding_type == np.bytes_:
+    target_array = target_array.astype(np.bytes_)
   return target_array
 
 
@@ -415,7 +415,7 @@ def features_to_tf_example(features):
     if not isinstance(v, np.ndarray):
       raise ValueError('Value field: %s is not numpy array' % str((k, v)))
     v = v.flatten()
-    if np.issubdtype(v.dtype.type, np.string_):
+    if np.issubdtype(v.dtype.type, np.bytes_):
       new_features[k] = tf.train.Feature(bytes_list=tf.train.BytesList(value=v))
     elif np.issubdtype(v.dtype.type, np.integer):
       new_features[k] = tf.train.Feature(int64_list=tf.train.Int64List(value=v))

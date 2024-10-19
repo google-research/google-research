@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,8 +23,8 @@
 #include "absl/time/clock.h"
 #include "absl/time/time.h"
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/distance_measure.pb.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -105,8 +105,8 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
     }
     return sampled_mutable->Append(dptr, "");
   };
-  TF_ASSIGN_OR_RETURN(unique_ptr<Projection<T>> projection,
-                      ProjectionFactory(config.projection(), dataset));
+  SCANN_ASSIGN_OR_RETURN(unique_ptr<Projection<T>> projection,
+                         ProjectionFactory(config.projection(), dataset));
   Datapoint<float> projected;
   for (DatapointIndex i : sample) {
     SCANN_RETURN_IF_ERROR(projection->ProjectInput(dataset->at(i), &projected));
@@ -114,11 +114,11 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
   }
   LOG(INFO) << "Size of sampled dataset for training partition: "
             << sampled->size();
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto raw_partitioner,
       PartitionerFactoryPreSampledAndProjected(sampled, config, pool));
-  return MakeProjectingDecorator<T, float>(std::move(projection),
-                                           std::move(raw_partitioner));
+  return MakeProjectingDecorator<T>(std::move(projection),
+                                    std::move(raw_partitioner));
 }
 }  // namespace
 

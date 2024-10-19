@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,7 @@ import jax.numpy as jnp
 import tensorflow.compat.v2 as tf
 import numpy as onp
 import functools
+from jax import config
 
 from bnn_hmc.core import hmc
 from bnn_hmc.utils import data_utils
@@ -45,8 +46,8 @@ from bnn_hmc.utils import metrics
 
 def set_up_jax(tpu_ip, use_float64):
   if tpu_ip is not None:
-    jax.config.FLAGS.jax_xla_backend = "tpu_driver"
-    jax.config.FLAGS.jax_backend_target = "grpc://{}:8470".format(tpu_ip)
+    config.update("jax_xla_backend", "tpu_driver")
+    config.update("jax_backend_target", "grpc://{}:8470".format(tpu_ip))
   if use_float64:
     jax.config.update("jax_enable_x64", True)
   tf.config.set_visible_devices([], "GPU")
@@ -124,7 +125,7 @@ def _make_perdevice_minibatch_log_prob_and_grad(
     likelihood_grad = jax.lax.psum(likelihood_grad, axis_name="i")
 
     log_prob = likelihood * num_batches + prior
-    grad = jax.tree_map(lambda gl, gp: gl * num_batches + gp,
+    grad = jax.tree.map(lambda gl, gp: gl * num_batches + gp,
                              likelihood_grad, prior_grad)
     return log_prob, grad, net_state
 
@@ -239,11 +240,11 @@ def make_sgd_train_epoch(net_apply, log_likelihood_fn, log_prior_fn, optimizer,
     n_data = train_set[0].shape[0]
     batch_size = n_data // num_batches
     indices = jax.random.permutation(key, jnp.arange(n_data))
-    indices = jax.tree_map(lambda x: x.reshape((num_batches, batch_size)),
+    indices = jax.tree.map(lambda x: x.reshape((num_batches, batch_size)),
                            indices)
 
     def train_step(carry, batch_indices):
-      batch = jax.tree_map(lambda x: x[batch_indices], train_set)
+      batch = jax.tree.map(lambda x: x[batch_indices], train_set)
       params_, net_state_, opt_state_ = carry
       loss, grad, net_state_ = _perdevice_log_prob_and_grad(
           batch, params_, net_state_)
@@ -285,7 +286,7 @@ def make_get_predictions(activation_fn, num_batches=1, is_training=False):
       ))
   def get_predictions(net_apply, params, net_state, dataset):
     batch_size = dataset[0].shape[0] // num_batches
-    dataset = jax.tree_map(
+    dataset = jax.tree.map(
         lambda x: x.reshape((num_batches, batch_size, *x.shape[1:])), dataset)
 
     def get_batch_predictions(current_net_state, x):

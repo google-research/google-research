@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -288,12 +288,12 @@ def evaluate(p_eval_step, params, eval_ds, rng):
   eval_metrics = []
 
   for eval_batch in eval_ds:
-    eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+    eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
     eval_batch = common_utils.shard(eval_batch)
     metrics, rng = p_eval_step(rng, params, eval_batch)
     eval_metrics.append(metrics)
   eval_metrics = common_utils.get_metrics(eval_metrics)
-  eval_summary = jax.tree_map(np.mean, eval_metrics)
+  eval_summary = jax.tree.map(np.mean, eval_metrics)
   return eval_summary, rng
 
 
@@ -326,7 +326,7 @@ def eval_policy(policy, rng, state, model, test_ds):
   eval_metrics = []
 
   for eval_batch in test_ds:
-    eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+    eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
     eval_batch = common_utils.shard(eval_batch)
     metrics, rng = eval_step_policy(rng, eval_batch, state, model, policy)
 
@@ -334,7 +334,7 @@ def eval_policy(policy, rng, state, model, test_ds):
     eval_metrics.append(metrics)
 
   eval_metrics = common_utils.get_metrics(eval_metrics)
-  eval_summary = jax.tree_map(np.mean, eval_metrics)
+  eval_summary = jax.tree.map(np.mean, eval_metrics)
   return eval_summary
 
 
@@ -582,7 +582,7 @@ def train_and_evaluate(config, workdir):
 
       # Shard data to devices and do a training step.
       with jax.profiler.StepTraceAnnotation('train', step_num=step):
-        batch = common_utils.shard(jax.tree_map(np.asarray, next(train_iter)))
+        batch = common_utils.shard(jax.tree.map(np.asarray, next(train_iter)))
         state, metrics = p_train_step(
             state, batch, rng=train_rngs)
         train_metrics.append(metrics)
@@ -608,7 +608,7 @@ def train_and_evaluate(config, workdir):
           kl_history = kl_history[-100:]  # Keep last 100 items only.
 
           # Handle remaining `standard` metrics
-          summary = jax.tree_map(jnp.mean, train_metrics)
+          summary = jax.tree.map(jnp.mean, train_metrics)
           summary = {'train_' + k: v for k, v in summary.items()}
           writer.write_scalars(step, summary)
           train_metrics = []

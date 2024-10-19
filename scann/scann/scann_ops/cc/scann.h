@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <string>
 
 #include "absl/memory/memory.h"
+#include "absl/status/statusor.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "google/protobuf/text_format.h"
@@ -29,14 +30,27 @@
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/base/single_machine_factory_scann.h"
 #include "scann/data_format/dataset.h"
-#include "scann/oss_wrappers/scann_status.h"
 #include "scann/scann_ops/scann_assets.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/threads.h"
 
 namespace research_scann {
 
 class ScannInterface {
  public:
+  using ScannArtifacts =
+      std::tuple<ScannConfig, shared_ptr<DenseDataset<float>>,
+                 SingleMachineFactoryOptions>;
+
+  static StatusOr<ScannArtifacts> LoadArtifacts(const ScannConfig& config,
+                                                const ScannAssets& orig_assets);
+  static StatusOr<ScannArtifacts> LoadArtifacts(
+      const std::string& artifacts_dir,
+      const std::string& scann_assets_pbtxt = "");
+
+  static StatusOr<std::unique_ptr<SingleMachineSearcherBase<float>>>
+  CreateSearcher(ScannArtifacts artifacts);
+
   Status Initialize(const std::string& config_pbtxt,
                     const std::string& scann_assets_pbtxt);
   Status Initialize(ScannConfig config, SingleMachineFactoryOptions opts,
@@ -48,9 +62,14 @@ class ScannInterface {
                     ConstSpan<float> dp_norms, DatapointIndex n_points);
   Status Initialize(ConstSpan<float> dataset, DatapointIndex n_points,
                     const std::string& config, int training_threads);
-  Status Initialize(
-      shared_ptr<DenseDataset<float>> dataset,
-      SingleMachineFactoryOptions opts = SingleMachineFactoryOptions());
+  Status Initialize(ScannArtifacts artifacts);
+
+  StatusOr<typename SingleMachineSearcherBase<float>::Mutator*> GetMutator()
+      const {
+    return scann_->GetMutator();
+  }
+
+  StatusOr<ScannConfig> RetrainAndReindex(const string& config);
 
   Status Search(const DatapointPtr<float> query, NNResultsVector* res,
                 int final_nn, int pre_reorder_nn, int leaves) const;
@@ -59,8 +78,9 @@ class ScannInterface {
                        int pre_reorder_nn, int leaves) const;
   Status SearchBatchedParallel(const DenseDataset<float>& queries,
                                MutableSpan<NNResultsVector> res, int final_nn,
-                               int pre_reorder_nn, int leaves) const;
-  StatusOr<ScannAssets> Serialize(std::string path);
+                               int pre_reorder_nn, int leaves,
+                               int batch_size = 256) const;
+  StatusOr<ScannAssets> Serialize(std::string path, bool relative_path = false);
   StatusOr<SingleMachineFactoryOptions> ExtractOptions();
 
   template <typename T_idx>
@@ -74,9 +94,23 @@ class ScannInterface {
     return scann_->SharedFloatDatasetIfNeeded();
   }
 
-  size_t n_points() const { return n_points_; }
+  size_t n_points() const { return scann_->DatasetSize().value(); }
   DimensionIndex dimensionality() const { return dimensionality_; }
-  const ScannConfig* config() const { return &config_; }
+  const ScannConfig* config() {
+    if (scann_->config().has_value()) config_ = *scann_->config();
+    return &config_;
+  }
+
+  std::shared_ptr<ThreadPool> parallel_query_pool() const {
+    return parallel_query_pool_;
+  }
+
+  void SetNumThreads(int num_threads) {
+    parallel_query_pool_ = StartThreadPool("ScannQueryingPool", num_threads);
+  }
+
+  using ScannHealthStats = SingleMachineSearcherBase<float>::HealthStats;
+  StatusOr<ScannHealthStats> GetHealthStats() const;
 
  private:
   SearchParameters GetSearchParameters(int final_nn, int pre_reorder_nn,
@@ -84,7 +118,6 @@ class ScannInterface {
   vector<SearchParameters> GetSearchParametersBatched(
       int batch_size, int final_nn, int pre_reorder_nn, int leaves,
       bool set_unspecified) const;
-  size_t n_points_;
   DimensionIndex dimensionality_;
   std::unique_ptr<SingleMachineSearcherBase<float>> scann_;
   ScannConfig config_;
@@ -93,7 +126,7 @@ class ScannInterface {
 
   size_t min_batch_size_;
 
-  std::unique_ptr<ThreadPool> parallel_query_pool_;
+  std::shared_ptr<ThreadPool> parallel_query_pool_;
 };
 
 template <typename T_idx>
@@ -121,6 +154,12 @@ void ScannInterface::ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res,
       *(distances++) = std::numeric_limits<float>::quiet_NaN();
     }
   }
+}
+
+template <typename T>
+Status ParseTextProto(T* proto, const string& proto_str) {
+  ::google::protobuf::TextFormat::ParseFromString(proto_str, proto);
+  return OkStatus();
 }
 
 }  // namespace research_scann

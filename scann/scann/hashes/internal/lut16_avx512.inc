@@ -8,10 +8,10 @@
 
 #ifdef __x86_64__
 
+#include "absl/base/prefetch.h"
 #include "scann/hashes/internal/lut16_avx512_swizzle.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/intrinsics/avx512.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace avx512 {
@@ -40,7 +40,7 @@ SCANN_AVX512_INLINE Avx512<uint8_t, 2> LoadDatabaseCodes(
     DCHECK(IsCacheAligned(data_start));
   }
   if constexpr (Tuning::kPrefetch != PrefetchStrategy::kOff) {
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
+    absl::PrefetchToLocalCache(
         data_start + asymmetric_hashing_internal::kPrefetchBytesAhead);
   }
   Avx512<uint8_t> interleaved_codes =
@@ -699,7 +699,13 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
           push_mask &= (push_mask - 1);
           const size_t dp_idx = first_dp_index + 64 * mm + offset;
           const T distance = distances_buffer[64 * mm + offset];
-          const bool needs_collection = topn_mutators[j].Push(dp_idx, distance);
+
+          if (kNumQueriesFloat > 0) {
+            DCHECK_LE(distance,
+                      topn_mutators[j].epsilon() + (*simd_inv_mults[j])[0]);
+          }
+          const bool needs_collection =
+              topn_mutators[j].PushNoEpsilonCheck(dp_idx, distance);
           if (ABSL_PREDICT_FALSE(needs_collection)) {
             topn_mutators[j].GarbageCollect();
 
@@ -754,7 +760,13 @@ SCANN_AVX512_OUTLINE void GetTopDistancesImpl(LUT16ArgsTopN<T, TopN> args) {
         push_mask &= (push_mask - 1);
         const size_t dp_idx = first_dp_index + 32 * k + offset;
         const T distance = distances_buffer[offset];
-        const bool needs_collection = topn_mutators[j].Push(dp_idx, distance);
+
+        if (kNumQueriesFloat > 0) {
+          DCHECK_LE(distance,
+                    topn_mutators[j].epsilon() + (*simd_inv_mults[j])[0]);
+        }
+        const bool needs_collection =
+            topn_mutators[j].PushNoEpsilonCheck(dp_idx, distance);
         if (ABSL_PREDICT_FALSE(needs_collection)) {
           topn_mutators[j].GarbageCollect();
 

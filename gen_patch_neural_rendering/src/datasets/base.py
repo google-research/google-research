@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ class BaseDataset(threading.Thread):
     while self.queue.empty():
       x = None
     # Make a copy of the front of the queue.
-    x = jax.tree_map(lambda x: x.copy(), self.queue.queue[0])
+    x = jax.tree.map(lambda x: x.copy(), self.queue.queue[0])
     if self.split == "train":
       return data_utils.shard(x)
     else:
@@ -97,7 +97,7 @@ class BaseDataset(threading.Thread):
 
     if args.dataset.batching == "single_image":
       self.images = self.images.reshape([-1, self.resolution, 3])
-      self.rays = jax.tree_map(
+      self.rays = jax.tree.map(
           lambda r: r.reshape([-1, self.resolution, r.shape[-1]]), self.rays)
     else:
       raise NotImplementedError(
@@ -119,7 +119,7 @@ class BaseDataset(threading.Thread):
       ray_indices = np.random.randint(0, self.rays.batch_shape[1],
                                       (self.batch_size,))
       batch_pixels = self.images[image_index][ray_indices]
-      batch_rays = jax.tree_map(lambda r: r[image_index][ray_indices],
+      batch_rays = jax.tree.map(lambda r: r[image_index][ray_indices],
                                 self.rays)
 
     else:
@@ -135,12 +135,12 @@ class BaseDataset(threading.Thread):
     self.it = (self.it + 1) % self.n_examples
 
     if self.render_path:
-      rays = jax.tree_map(lambda r: r[idx], self.render_rays)
+      rays = jax.tree.map(lambda r: r[idx], self.render_rays)
       target_view = data_types.Views(rays=rays)
       return data_types.Batch(target_view=target_view)
 
     else:
-      rays = jax.tree_map(lambda r: r[idx], self.rays)
+      rays = jax.tree.map(lambda r: r[idx], self.rays)
       pixels = self.images[idx]
       target_view = data_types.Views(rays=rays, rgb=pixels)
       return data_types.Batch(target_view=target_view)

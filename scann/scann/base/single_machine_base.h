@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,25 +17,33 @@
 #ifndef SCANN_BASE_SINGLE_MACHINE_BASE_H_
 #define SCANN_BASE_SINGLE_MACHINE_BASE_H_
 
+#include <cstddef>
 #include <cstdint>
+#include <cstdlib>
 #include <functional>
 #include <optional>
+#include <ostream>
 #include <vector>
 
+#include "absl/log/check.h"
+#include "absl/status/status.h"
+#include "absl/synchronization/mutex.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
-#include "scann/data_format/docid_collection.h"
 #include "scann/data_format/docid_collection_interface.h"
-#include "scann/hashes/hashing_base.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/scann.pb.h"
-#include "scann/utils/reordering_helper.h"
+#include "scann/utils/common.h"
+#include "scann/utils/fast_top_neighbors.h"
+#include "scann/utils/reordering_helper_interface.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
@@ -49,9 +57,14 @@ class SingleMachineSearcherBase;
 template <typename T>
 class BruteForceSearcher;
 
+template <typename T>
+void RetrainAndReindexFixup(UntypedSingleMachineSearcherBase* result,
+                            const shared_ptr<Dataset>& dataset,
+                            bool retraining_requires_dataset = false);
+
 class UntypedSingleMachineSearcherBase {
  public:
-  SCANN_DECLARE_MOVE_ONLY_CLASS(UntypedSingleMachineSearcherBase);
+  SCANN_DECLARE_IMMOBILE_CLASS(UntypedSingleMachineSearcherBase);
 
   virtual ~UntypedSingleMachineSearcherBase();
 
@@ -68,9 +81,6 @@ class UntypedSingleMachineSearcherBase {
   Status set_docids(shared_ptr<const DocidCollectionInterface> docids);
 
   shared_ptr<const DocidCollectionInterface> docids() const { return docids_; }
-
-  int64_t creation_timestamp() const { return creation_timestamp_; }
-  void set_creation_timestamp(int64_t x) { creation_timestamp_ = x; }
 
   virtual bool needs_dataset() const { return true; }
 
@@ -146,10 +156,66 @@ class UntypedSingleMachineSearcherBase {
 
   virtual DatapointIndex optimal_batch_size() const;
 
+  virtual vector<uint32_t> SizeByPartition() const;
+
+  virtual uint32_t NumPartitions() const { return 0; }
+
   class PrecomputedMutationArtifacts : public VirtualDestructor {};
+
+  struct MutationOptions {
+    PrecomputedMutationArtifacts* precomputed_mutation_artifacts = nullptr;
+
+    bool reassignment_in_flight = false;
+  };
+
+  class UntypedMutator {
+   public:
+    virtual ~UntypedMutator() {}
+
+    virtual Status RemoveDatapoint(string_view docid) = 0;
+
+    virtual bool LookupDatapointIndex(string_view docid,
+                                      DatapointIndex* index) const = 0;
+
+    virtual void Reserve(size_t size) = 0;
+
+    virtual Status RemoveDatapoint(DatapointIndex index) = 0;
+
+    using DatapointIndexRenameFn =
+        std::function<void(DatapointIndex old_idx, DatapointIndex new_idx)>;
+    void AddOnDatapointIndexRenameFn(DatapointIndexRenameFn fn) {
+      on_datapoint_index_rename_fns_.push_back(fn);
+    }
+
+   protected:
+    struct MutateBaseOptions {
+      std::optional<DatapointPtr<uint8_t>> hashed;
+    };
+
+    void OnDatapointIndexRename(DatapointIndex old_idx,
+                                DatapointIndex new_idx) const {
+      for (auto& fn : on_datapoint_index_rename_fns_) {
+        fn(old_idx, new_idx);
+      }
+    }
+
+    virtual StatusOr<DatapointIndex> RemoveDatapointFromBase(
+        DatapointIndex index) = 0;
+
+    virtual void ReserveInBase(DatapointIndex num_datapoints) = 0;
+
+   private:
+    vector<DatapointIndexRenameFn> on_datapoint_index_rename_fns_;
+  };
+
+  virtual StatusOr<typename UntypedSingleMachineSearcherBase::UntypedMutator*>
+  GetUntypedMutator() const = 0;
 
   virtual StatusOr<SingleMachineFactoryOptions>
   ExtractSingleMachineFactoryOptions() = 0;
+
+  std::optional<ScannConfig> config() const { return config_; }
+  void set_config(ScannConfig config) { config_ = config; }
 
  protected:
   virtual bool impl_needs_dataset() const;
@@ -165,11 +231,11 @@ class UntypedSingleMachineSearcherBase {
 
  private:
   UntypedSingleMachineSearcherBase(
-      const shared_ptr<const DenseDataset<uint8_t>> hashed_dataset,
-      const int32_t default_pre_reordering_num_neighbors,
-      const float default_pre_reordering_epsilon);
+      shared_ptr<const DenseDataset<uint8_t>> hashed_dataset,
+      int32_t default_pre_reordering_num_neighbors,
+      float default_pre_reordering_epsilon);
 
-  UntypedSingleMachineSearcherBase() {}
+  UntypedSingleMachineSearcherBase() = default;
 
   shared_ptr<const DenseDataset<uint8_t>> hashed_dataset_ = nullptr;
 
@@ -185,8 +251,25 @@ class UntypedSingleMachineSearcherBase {
 
   bool mutator_outstanding_ = false;
 
+  bool exact_reordering_enabled_ = false;
+
+  bool retraining_requires_dataset_ = false;
+
   template <typename T>
   friend class SingleMachineSearcherBase;
+
+  template <typename T>
+  friend void RetrainAndReindexFixup(UntypedSingleMachineSearcherBase* result,
+                                     const shared_ptr<Dataset>& dataset,
+                                     bool retraining_requires_dataset);
+
+  template <typename T>
+  friend StatusOrSearcherUntyped RetrainAndReindexSearcherImpl(
+      UntypedSingleMachineSearcherBase* untyped_searcher,
+      absl::Mutex* searcher_pointer_mutex, ScannConfig config,
+      shared_ptr<ThreadPool> parallelization_pool);
+
+  std::optional<ScannConfig> config_ = std::nullopt;
 };
 
 template <typename T>
@@ -194,7 +277,7 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
  public:
   using DataType = T;
 
-  SCANN_DECLARE_MOVE_ONLY_CLASS(SingleMachineSearcherBase);
+  SCANN_DECLARE_IMMOBILE_CLASS(SingleMachineSearcherBase);
 
   SingleMachineSearcherBase(
       shared_ptr<const TypedDataset<T>> dataset,
@@ -250,6 +333,10 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   Status FindNeighborsBatchedNoSortNoExactReorder(
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
       MutableSpan<NNResultsVector> results) const;
+  Status FindNeighborsBatchedNoSortNoExactReorder(
+      const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+      MutableSpan<FastTopNeighbors<float>*> results,
+      ConstSpan<DatapointIndex> datapoint_index_lookup) const;
 
   virtual Status PreprocessQueryIntoParamsUnlocked(
       const DatapointPtr<T>& query, SearchParameters& search_params) const {
@@ -260,11 +347,14 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   virtual StatusOr<shared_ptr<const DenseDataset<float>>>
   SharedFloatDatasetIfNeeded();
 
-  Status GetNeighborProto(const pair<DatapointIndex, float> neighbor,
+  virtual StatusOr<shared_ptr<const DenseDataset<float>>>
+  ReconstructFloatDataset();
+
+  Status GetNeighborProto(pair<DatapointIndex, float> neighbor,
                           const DatapointPtr<T>& query,
                           NearestNeighbors::Neighbor* result) const;
 
-  Status GetNeighborProtoNoMetadata(const pair<DatapointIndex, float> neighbor,
+  Status GetNeighborProtoNoMetadata(pair<DatapointIndex, float> neighbor,
                                     const DatapointPtr<T>& query,
                                     NearestNeighbors::Neighbor* result) const;
 
@@ -287,22 +377,17 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
                         const int32_t default_post_reordering_num_neighbors,
                         const float default_post_reordering_epsilon) {
     reordering_helper_ = reorder_helper;
+    exact_reordering_enabled_ =
+        (reordering_helper_ && reordering_helper_->name() == "ExactReordering");
     default_search_parameters_.set_post_reordering_num_neighbors(
         default_post_reordering_num_neighbors);
     default_search_parameters_.set_post_reordering_epsilon(
         default_post_reordering_epsilon);
   }
 
-  void DisableReordering() { reordering_helper_ = nullptr; }
-
-  void EnableExactReordering(
-      shared_ptr<const DistanceMeasure> exact_reordering_distance,
-      const int32_t default_post_reordering_num_neighbors,
-      const float default_post_reordering_epsilon) {
-    EnableReordering(std::make_shared<ExactReorderingHelper<T>>(
-                         exact_reordering_distance, dataset_),
-                     default_post_reordering_num_neighbors,
-                     default_post_reordering_epsilon);
+  void DisableReordering() {
+    reordering_helper_ = nullptr;
+    exact_reordering_enabled_ = false;
   }
 
   bool reordering_enabled() const final {
@@ -312,8 +397,7 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   void DisableExactReordering() { DisableReordering(); }
 
   bool exact_reordering_enabled() const final {
-    return (reordering_helper_ &&
-            reordering_helper_->name() == "ExactReordering");
+    return exact_reordering_enabled_;
   }
 
   bool fixed_point_reordering_enabled() const final;
@@ -321,6 +405,153 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   const ReorderingInterface<T>& reordering_helper() const {
     return *reordering_helper_;
   }
+
+  class Mutator : public UntypedSingleMachineSearcherBase::UntypedMutator {
+   public:
+    virtual unique_ptr<PrecomputedMutationArtifacts>
+    ComputePrecomputedMutationArtifacts(const DatapointPtr<T>& dptr) const {
+      return nullptr;
+    }
+
+    virtual vector<unique_ptr<PrecomputedMutationArtifacts>>
+    ComputePrecomputedMutationArtifacts(const TypedDataset<T>& batch) const {
+      vector<unique_ptr<PrecomputedMutationArtifacts>> result(batch.size());
+      for (size_t i : IndicesOf(batch)) {
+        result[i] = ComputePrecomputedMutationArtifacts(batch[i]);
+      }
+      return result;
+    }
+
+    virtual vector<unique_ptr<PrecomputedMutationArtifacts>>
+    ComputePrecomputedMutationArtifacts(
+        const TypedDataset<T>& batch,
+        shared_ptr<ThreadPool> parallelization_pool) const {
+      return ComputePrecomputedMutationArtifacts(batch);
+    }
+    virtual shared_ptr<ThreadPool> mutation_threadpool() const {
+      return mutation_threadpool_;
+    }
+    virtual void set_mutation_threadpool(shared_ptr<ThreadPool> pool) {
+      mutation_threadpool_ = pool;
+    }
+
+    virtual StatusOr<Datapoint<T>> GetDatapoint(DatapointIndex i) const {
+      return UnimplementedError("GetDatapoint not implemented.");
+    }
+
+    virtual StatusOr<DatapointIndex> AddDatapoint(
+        const DatapointPtr<T>& dptr, string_view docid,
+        const MutationOptions& mo) = 0;
+
+    virtual StatusOr<DatapointIndex> UpdateDatapoint(
+        const DatapointPtr<T>& dptr, string_view docid,
+        const MutationOptions& mo) = 0;
+    virtual StatusOr<DatapointIndex> UpdateDatapoint(
+        const DatapointPtr<T>& dptr, DatapointIndex index,
+        const MutationOptions& mo) = 0;
+
+    virtual Status EnableIncrementalTraining(const ScannConfig& config) {
+      return UnimplementedError("EnableIncrementalTraining not implemented.");
+    }
+    bool LookupDatapointIndex(string_view docid,
+                              DatapointIndex* index) const override;
+
+    StatusOr<DatapointIndex> AddDatapoint(const DatapointPtr<T>& dptr,
+                                          string_view docid) {
+      return AddDatapoint(dptr, docid, MutationOptions());
+    }
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<T>& dptr,
+                                             string_view docid) {
+      return UpdateDatapoint(dptr, docid, MutationOptions());
+    }
+    StatusOr<DatapointIndex> UpdateDatapoint(const DatapointPtr<T>& dptr,
+                                             DatapointIndex index) {
+      return UpdateDatapoint(dptr, index, MutationOptions());
+    }
+
+    Status PrepareForBaseMutation(SingleMachineSearcherBase<T>* searcher);
+
+    virtual StatusOr<std::optional<ScannConfig>> IncrementalMaintenance() {
+      return std::nullopt;
+    }
+
+    Status ValidateForAdd(const DatapointPtr<T>& dptr, string_view docid,
+                          const MutationOptions& mo) const;
+    Status ValidateForUpdate(const DatapointPtr<T>& dptr, DatapointIndex idx,
+                             const MutationOptions& mo) const;
+    Status ValidateForRemove(DatapointIndex idx) const;
+
+   protected:
+    StatusOr<Datapoint<T>> GetDatapointFromBase(DatapointIndex i) const;
+    StatusOr<DatapointIndex> AddDatapointToBase(const DatapointPtr<T>& dptr,
+                                                string_view docid,
+                                                const MutateBaseOptions& opts);
+    Status UpdateDatapointInBase(const DatapointPtr<T>& dptr,
+                                 DatapointIndex idx,
+                                 const MutateBaseOptions& opts);
+    StatusOr<DatapointIndex> RemoveDatapointFromBase(DatapointIndex idx) final;
+    void ReserveInBase(DatapointIndex num_datapoints) final;
+
+   private:
+    StatusOr<DatapointIndex> GetNextDatapointIndex() const;
+
+    Status CheckAddDatapointToBaseOptions(const MutateBaseOptions& opts) const;
+
+    Status ValidateForUpdateOrAdd(const DatapointPtr<T>& dptr,
+                                  string_view docid,
+                                  const MutationOptions& mo) const;
+
+    SingleMachineSearcherBase<T>* searcher_ = nullptr;
+
+    typename TypedDataset<T>::Mutator* dataset_mutator_ = nullptr;
+
+    typename TypedDataset<uint8_t>::Mutator* hashed_dataset_mutator_ = nullptr;
+
+    DocidCollectionInterface::Mutator* docid_mutator_ = nullptr;
+
+    typename ReorderingInterface<T>::Mutator* reordering_mutator_ = nullptr;
+
+    shared_ptr<ThreadPool> mutation_threadpool_ = nullptr;
+  };
+
+  virtual StatusOr<typename SingleMachineSearcherBase::Mutator*> GetMutator()
+      const {
+    return FailedPreconditionError("Cannot be dynamically updated.");
+  }
+  StatusOr<typename UntypedSingleMachineSearcherBase::UntypedMutator*>
+  GetUntypedMutator() const final {
+    SCANN_ASSIGN_OR_RETURN(auto mutator, GetMutator());
+    return mutator;
+  }
+
+  struct HealthStats {
+    double partition_avg_relative_imbalance = 0;
+
+    double avg_quantization_error = 0;
+
+    uint64_t sum_partition_sizes = 0;
+
+    bool operator==(const HealthStats& rhs) const {
+      return partition_avg_relative_imbalance ==
+                 rhs.partition_avg_relative_imbalance &&
+             sum_partition_sizes == rhs.sum_partition_sizes &&
+
+             abs(avg_quantization_error - rhs.avg_quantization_error) < 1e-5;
+    }
+
+    template <typename Sink>
+    friend void AbslStringify(Sink& sink, const HealthStats& s) {
+      absl::Format(&sink,
+                   "{partition_avg_relative_imbalance = %f; "
+                   "avg_quantization_error = %f; sum_partition_sizes = %u}",
+                   s.partition_avg_relative_imbalance, s.avg_quantization_error,
+                   s.sum_partition_sizes);
+    }
+  };
+
+  virtual StatusOr<HealthStats> GetHealthStats() const { return HealthStats(); }
+
+  virtual Status InitializeHealthStats() { return OkStatus(); }
 
  protected:
   SingleMachineSearcherBase() {}
@@ -338,9 +569,19 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
       MutableSpan<NNResultsVector> results) const;
 
+  virtual Status FindNeighborsBatchedImpl(
+      const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+      MutableSpan<FastTopNeighbors<float>*> results,
+      ConstSpan<DatapointIndex> datapoint_index_lookup) const;
+
  private:
   Status PopulateDefaultParameters(const ScannConfig& config);
   Status BaseInitImpl();
+
+  template <typename ResultElem>
+  Status ValidateFindNeighborsBatched(const TypedDataset<T>& queries,
+                                      ConstSpan<SearchParameters> params,
+                                      MutableSpan<ResultElem> results) const;
 
   Status ReorderResults(const DatapointPtr<T>& query,
                         const SearchParameters& params,
@@ -354,7 +595,29 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   shared_ptr<const ReorderingInterface<T>> reordering_helper_ = nullptr;
 
   friend class Mutator;
+
+  friend void RetrainAndReindexFixup<T>(
+      UntypedSingleMachineSearcherBase* result,
+      const shared_ptr<Dataset>& dataset, bool retraining_requires_dataset);
+
+  friend StatusOrSearcherUntyped RetrainAndReindexSearcherImpl<T>(
+      UntypedSingleMachineSearcherBase* untyped_searcher,
+      absl::Mutex* searcher_pointer_mutex, ScannConfig config,
+      shared_ptr<ThreadPool> parallelization_pool);
+
+  friend class BruteForceSearcher<T>;
 };
+
+template <typename T>
+void RetrainAndReindexFixup(UntypedSingleMachineSearcherBase* result,
+                            const shared_ptr<Dataset>& dataset,
+                            bool retraining_requires_dataset) {
+  result->retraining_requires_dataset_ = retraining_requires_dataset;
+  down_cast<SingleMachineSearcherBase<T>*>(result)->dataset_ =
+      std::dynamic_pointer_cast<TypedDataset<T>>(dataset);
+
+  result->docids_ = dataset->docids();
+}
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, SingleMachineSearcherBase);
 

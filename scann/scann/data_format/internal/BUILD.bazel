@@ -10,7 +10,6 @@ package(
 cc_library(
     name = "short_string_optimized_string",
     hdrs = ["short_string_optimized_string.h"],
-    tags = ["local"],
     deps = [
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
@@ -19,6 +18,7 @@ cc_library(
         "//scann/utils:types",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/log",
         "@com_google_absl//absl/types:optional",
     ],
 )
@@ -26,7 +26,6 @@ cc_library(
 cc_library(
     name = "string_view32",
     hdrs = ["string_view32.h"],
-    tags = ["local"],
     deps = [
         "//scann/utils:types",
     ],

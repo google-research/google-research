@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,13 +17,12 @@
 import numpy as np
 from numpy import dot
 from numpy.linalg import norm
-import scipy
 from scipy.spatial.distance import pdist, squareform
 
 
 def rbf(X, sigma=0.5):
   pairwise_dists = squareform(pdist(X, 'euclidean'))
-  A = scipy.exp(-pairwise_dists**2 / (2. * sigma**2))
+  A = np.exp(-pairwise_dists**2 / (2. * sigma**2))
   return A
 
 

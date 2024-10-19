@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
 
 #include "npy_array/npy_array.h"
 
+#include <complex>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -86,10 +87,12 @@ TEST(Npy, NpyLoadRoundtrip) {
     VerifyRoundTrip(RandomScalarArray<int16_t>());
     VerifyRoundTrip(RandomScalarArray<uint32_t>());
     VerifyRoundTrip(RandomScalarArray<uint16_t>());
+    VerifyRoundTrip(RandomScalarArray<std::complex<float>>());
   }
   // Rank 1.
   {
     VerifyRoundTrip(RandomArray<float, 1>({3}));
+    VerifyRoundTrip(RandomArray<std::complex<float>, 1>({3}));
     VerifyRoundTrip(RandomArray<int, 1>({4}));
     VerifyRoundTrip(RandomArray<int16_t, 1>({4}));
     VerifyRoundTrip(RandomArray<uint32_t, 1>({5}));
@@ -98,6 +101,7 @@ TEST(Npy, NpyLoadRoundtrip) {
   // Rank 2.
   {
     VerifyRoundTrip(RandomArray<float, 2>({13, 3}));
+    VerifyRoundTrip(RandomArray<std::complex<float>, 2>({13, 3}));
     VerifyRoundTrip(RandomArray<int, 2>({3, 13}));
     VerifyRoundTrip(RandomArray<int16_t, 2>({3, 13}));
     VerifyRoundTrip(RandomArray<uint32_t, 2>({11, 9}));
@@ -106,6 +110,7 @@ TEST(Npy, NpyLoadRoundtrip) {
   // Rank 3.
   {
     VerifyRoundTrip(RandomArray<float, 3>({8, 6, 3}));
+    VerifyRoundTrip(RandomArray<std::complex<float>, 3>({8, 6, 3}));
     VerifyRoundTrip(RandomArray<int, 3>({2, 11, 9}));
     VerifyRoundTrip(RandomArray<int16_t, 3>({2, 11, 9}));
     VerifyRoundTrip(RandomArray<uint32_t, 3>({4, 1, 7}));

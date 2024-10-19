@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -230,7 +230,7 @@ def train_model():
     script_utils.write_to_tensorboard(tf_writer, logging_dict, iteration)
     # Add a histogram of MFVI stds
     with tf_writer.as_default():
-      stds = jax.tree_map(jax.nn.softplus, params["inv_softplus_std"])
+      stds = jax.tree.map(jax.nn.softplus, params["inv_softplus_std"])
       stds = jnp.concatenate([std.reshape(-1) for std in jax.tree.leaves(stds)])
       tf.summary.histogram("MFVI/param_stds", stds, step=iteration)
 

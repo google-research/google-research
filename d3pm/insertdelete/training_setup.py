@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -218,7 +218,7 @@ def sample_based_elbo_term_loss(
     realign_0_tplus1 = jax.vmap(draw_sample)(
         jax.random.split(xt_resample_key, num_resamples)
     )
-    all_align_0_tplus1 = jax.tree_map(
+    all_align_0_tplus1 = jax.tree.map(
         lambda a, b: jnp.concatenate([a[None], b], axis=0),
         align_0_tplus1,
         realign_0_tplus1,
@@ -289,7 +289,7 @@ def sample_based_elbo_term_loss(
       **extra_cross_entropy_info,
   }
   valid = xtplus1.is_valid()
-  results = jax.tree_map(
+  results = jax.tree.map(
       lambda v: jnp.where(valid, v, jnp.zeros_like(v)), results
   )
   denominator = (valid).astype(jnp.float32)
@@ -325,7 +325,7 @@ def sample_forward_chain(
   _, sequences = jax.lax.scan(
       step, init=x0, xs=(jnp.arange(T), jax.random.split(rng, T))
   )
-  return jax.tree_map(
+  return jax.tree.map(
       lambda a, b: jnp.concatenate([jnp.array(a)[None], b]), x0, sequences
   )
 
@@ -455,7 +455,7 @@ def sample_based_elbo(
     p_xT_term = jnp.where(reached_all_deletes, p_xT_term, -jnp.inf)
 
     results = elbo_terms, p_xT_term, aux_metrics, {**extras, "final_x": xT}
-    results = jax.tree_map(
+    results = jax.tree.map(
         lambda v: jnp.where(good, v, jnp.zeros_like(v)), results
     )
 
@@ -474,7 +474,7 @@ def sample_based_elbo(
   good_ct = jnp.sum(good)
   elbo_terms = jnp.sum(elbo_terms, axis=0) / good_ct
   p_xT_term_mean = jnp.sum(p_xT_term, axis=0) / good_ct
-  aux_metrics_mean = jax.tree_map(
+  aux_metrics_mean = jax.tree.map(
       lambda v: jnp.sum(v, axis=0) / good_ct, aux_metrics
   )
 
@@ -544,7 +544,7 @@ def state_init_fn(
     max_len=None,
 ):
   """Initialization helper for training logic."""
-  dim = len(dataset_info.vocab)
+  dim = len(dataset_info.vocab)  # pytype: disable=wrong-arg-types  # dataclasses-replace
 
   if transition_type == "text8_nn":
     assert dim == 27

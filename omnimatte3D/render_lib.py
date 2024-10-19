@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -145,7 +145,7 @@ def evaluate(config, workdir):
         if idx == 10:
           break
       logging.info("Evaluating [%d / %d].", idx, eval_ds.cardinality())
-      batch = jax.tree_map(np.asarray, batch)
+      batch = jax.tree.map(np.asarray, batch)
       out_pred = flax_utils.unreplicate(p_eval_step(state=state, batch=batch))
 
       viz_batch = jax.tree_util.tree_map(lambda x: x[0], batch)

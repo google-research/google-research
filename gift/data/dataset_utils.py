@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -57,7 +57,7 @@ def shard(pytree, n_devices=None):
   def _shard_array(array):
     return array.reshape((n_devices, -1) + array.shape[1:])
 
-  return jax.tree_map(_shard_array, pytree)
+  return jax.tree.map(_shard_array, pytree)
 
 
 def normalize(image, dtype=tf.float32):

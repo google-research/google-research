@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,6 +65,11 @@ _MODEL_CONFIG_PATH = flags.DEFINE_string(
     'model_config_path',
     './configs/export_model.gin',
     'The path to model gin config.',
+)
+_CONFIG_OVERRIDES = flags.DEFINE_multi_string(
+    'config_overrides',
+    None,
+    'Gin bindings to override the config given in model_config_path flag.',
 )
 
 
@@ -183,16 +188,22 @@ class Anchor:
     return self.unpack_labels(self.boxes, is_box=True)
 
 
-def generate_anchors_info():
+@gin.configurable
+def generate_anchors_info(
+    min_level=2,
+    max_level=6,
+    aspect_ratios=(1.0, 2.0, 0.5),
+):
   """Generate anchors and image info."""
   original_height, original_width = 512, 640
   input_anchor = Anchor(
-      min_level=2,
-      max_level=6,
+      min_level=min_level,
+      max_level=max_level,
       num_scales=1,
-      aspect_ratios=[1.0, 2.0, 0.5],
+      aspect_ratios=list(aspect_ratios),
       anchor_size=8,
-      image_size=(_IMAGE_SIZE.value, _IMAGE_SIZE.value))
+      image_size=(_IMAGE_SIZE.value, _IMAGE_SIZE.value),
+  )
   anchor_boxes = input_anchor.multilevel_boxes
   for key in anchor_boxes:
     anchor_boxes[key] = anchor_boxes[key].numpy()
@@ -206,17 +217,20 @@ def generate_anchors_info():
   return anchor_boxes, image_info
 
 
-def load_fvlm_gin_configs():
-  """Load gin configs for F-VLM model."""
+def load_gin_configs():
+  """Load gin configs for F-VLM/DITO model."""
   clip_model_embed_dim = {
       'resnet_50': (1024, 32, 7),
       'resnet_50x4': (640, 40, 9),
       'resnet_50x16': (768, 48, 12),
       'resnet_50x64': (1024, 64, 14),
+      'vit_l16': (1024, 0, 14),
   }
   config_path = _MODEL_CONFIG_PATH.value
   text_dim, model_num_heads, roi_size = clip_model_embed_dim[_MODEL_NAME.value]
-  gin.parse_config_file(config_path)
+  gin.parse_config_files_and_bindings(
+      [config_path], _CONFIG_OVERRIDES.value, finalize_config=False
+  )
   gin.parse_config(f'CATG_PAD_SIZE = {_MAX_NUM_CLASSES.value}')
   gin.parse_config(f'CLIP_NAME = "{_MODEL_NAME.value}"')
   gin.parse_config(f'TEXT_DIM = {text_dim}')
@@ -273,7 +287,7 @@ def create_predict_step(model_fn = gin.REQUIRED):
 
 def get_fvlm_predict_fn(serving_batch_size):
   """Get predict function and input signatures for F-VLM model."""
-  num_classes, text_dim = load_fvlm_gin_configs()
+  num_classes, text_dim = load_gin_configs()
   predict_step = create_predict_step()
   anchor_boxes, image_info = generate_anchors_info()
 

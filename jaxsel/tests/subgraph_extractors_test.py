@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,8 +35,8 @@ def check_sparse_against_dense(sparse, dense):
 
 
 def diff_norm(tree, other_tree):
-  tree_diff = jax.tree_map(lambda x, y: x - y, tree, other_tree)
-  return jax.tree_map(jnp.linalg.norm, tree_diff).sum()
+  tree_diff = jax.tree.map(lambda x, y: x - y, tree, other_tree)
+  return jax.tree.map(jnp.linalg.norm, tree_diff).sum()
 
 
 # TODO(gnegiar): add test comparing sparse implementation to
@@ -138,11 +138,11 @@ class ISTASubgraphExtractorsTest(base_graph_test.BaseGraphTest):
     delta_params = tm.Vector(
         self.extractor.init(delta_rng, self.start_node_id, self.graph))
     # Normalize
-    delta_params = jax.tree_map(lambda x: x / max(1e-9, jnp.linalg.norm(x)),
+    delta_params = jax.tree.map(lambda x: x / max(1e-9, jnp.linalg.norm(x)),
                                 delta_params).tree
 
     # Directional derivative given by jax
-    deriv_jax = tm.Vector(jax.tree_map(jnp.vdot, delta_params, grad)).sum()
+    deriv_jax = tm.Vector(jax.tree.map(jnp.vdot, delta_params, grad)).sum()
 
     # Directional derivative given by finite differences
     agent_plus_eps = (tm.Vector(params) + eps * tm.Vector(delta_params)).tree
@@ -152,7 +152,7 @@ class ISTASubgraphExtractorsTest(base_graph_test.BaseGraphTest):
 
     err = diff_norm(deriv_jax, deriv_diff)
     assert jax.tree_util.tree_all(
-        jax.tree_map(
+        jax.tree.map(
             functools.partial(jnp.allclose, atol=1e-3), deriv_jax,
             deriv_diff)), f"Difference between FDM and autograd is {err}"
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -99,7 +99,7 @@ def get_data_model_fns(args):
       args.weight_decay, args.temperature)
 
   key, net_init_key = jax.random.split(jax.random.PRNGKey(args.seed), 2)
-  init_data = jax.tree_map(lambda elem: elem[0][:1], train_set)
+  init_data = jax.tree.map(lambda elem: elem[0][:1], train_set)
   params, net_state = net_init(net_init_key, init_data, True)
 
   param_types = tree_utils.tree_get_types(params)

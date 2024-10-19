@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -173,7 +173,7 @@ class RpnScoreLoss(object):
     score_losses = []
     for level in levels:
       score_losses.append(
-          self._rpn_score_loss(
+          self._rpn_score_loss(  # pytype: disable=wrong-arg-types
               score_outputs[level],
               labels[level],
               normalizer=jnp.array(

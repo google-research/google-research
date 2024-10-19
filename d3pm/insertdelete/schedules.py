@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,8 +59,8 @@ class SentinelInsertDeleteSchedule:
     Returns:
       Tuple of distributions (d_start_to_here, d_here_to_next).
     """
-    d_start_to_here = jax.tree_map(lambda x: x[step_number], self.cumulative)
-    d_here_to_next = jax.tree_map(lambda x: x[step_number], self.steps)
+    d_start_to_here = jax.tree.map(lambda x: x[step_number], self.cumulative)
+    d_here_to_next = jax.tree.map(lambda x: x[step_number], self.steps)
     return d_start_to_here, d_here_to_next
 
   def sample_step_distns(self, rng):
@@ -75,7 +75,7 @@ class SentinelInsertDeleteSchedule:
     return self.weights.shape[0]
 
   def terminal_distn(self):
-    return jax.tree_map(lambda x: x[-1], self.cumulative)
+    return jax.tree.map(lambda x: x[-1], self.cumulative)
 
 
 def build_schedule(
@@ -107,8 +107,8 @@ def build_schedule(
     cumulative.append(accumulator)
 
   stacker = lambda *args: jnp.stack(list(args))
-  stacked_steps = jax.tree_map(stacker, *steps)
-  stacked_cumulative = jax.tree_map(stacker, *cumulative)
+  stacked_steps = jax.tree.map(stacker, *steps)
+  stacked_cumulative = jax.tree.map(stacker, *cumulative)
 
   if weights is None:
     stacked_weights = jnp.full((len(steps),), 1. / len(steps))

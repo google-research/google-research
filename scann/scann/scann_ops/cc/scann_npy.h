@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,12 +22,14 @@
 #include <string>
 #include <utility>
 
+#include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "pybind11/numpy.h"
 #include "pybind11/pybind11.h"
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/data_format/dataset.h"
 #include "scann/scann_ops/cc/scann.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -46,8 +48,27 @@ class ScannNumpy {
       int leaves);
   std::pair<pybind11::array_t<DatapointIndex>, pybind11::array_t<float>>
   SearchBatched(const np_row_major_arr<float>& queries, int final_nn,
-                int pre_reorder_nn, int leaves, bool parallel = false);
-  void Serialize(std::string path);
+                int pre_reorder_nn, int leaves, bool parallel = false,
+                int batch_size = 256);
+  void Serialize(std::string path, bool relative_path = false);
+
+  vector<DatapointIndex> Upsert(
+      std::vector<std::optional<DatapointIndex>> indices,
+      std::vector<np_row_major_arr<float>>& vecs, int batch_size = 256);
+  vector<DatapointIndex> Delete(std::vector<DatapointIndex> indices);
+
+  int Rebalance(const string& config = "");
+
+  size_t Size() const;
+
+  void SetNumThreads(int num_threads);
+
+  void Reserve(size_t num_datapoints);
+
+  static string SuggestAutopilot(const std::string& config, DatapointIndex n,
+                                 DimensionIndex dim);
+
+  string Config();
 
  private:
   ScannInterface scann_;

@@ -1,0 +1,15 @@
+numpy
+scikit-learn
+prv_accountant
+torch>=2.2.0
+accelerate
+datasets
+tokenizers
+transformers>=4.38.2
+SentencePiece
+bitsandbytes
+peft
+protobuf
+nltk
+absl-py
+openai

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -131,4 +131,4 @@ def load_and_shard_tf_batch(config, xs):
       x = x._numpy()  # pylint: disable=protected-access
       return x.reshape((local_device_count, -1) + x.shape[1:])
 
-  return jax.tree_map(_prepare, xs)
+  return jax.tree.map(_prepare, xs)

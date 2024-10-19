@@ -1,0 +1,27 @@
+name: dpok
+channels:
+  - pytorch
+  - defaults
+dependencies:
+  - python=3.7
+  - pip=20.3
+  - cudatoolkit=11.3
+  - pytorch=1.12.1
+  - torchvision=0.13.1
+  - numpy=1.21
+  - pip:
+    - accelerate==0.17.0
+    - diffusers==0.14.0
+    - opencv-python==4.1.2.30
+    - imageio==2.9.0
+    - imageio-ffmpeg==0.4.2
+    - einops==0.3.0
+    - tensorboard
+    - transformers
+    - kornia
+    - fairscale
+    - importlib-metadata
+    - timm
+    - datasets
+    - huggingface_hub==0.14.1
+    - -e git+https://github.com/openai/CLIP.git@main#egg=clip

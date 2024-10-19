@@ -40,10 +40,10 @@ of these loanwords are multi-word expressions in English.
     curl \
         --silent \
         --output "${TEMPDATA}/pairs.tsv" \
-        "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fb0e66d31e021fca7adec4c2104ffea0e879f2e4/pairs.tsv"
+        "https://gist.githubusercontent.com/kylebgorman/01adff5799edb0edf3bcce20187c833a/raw/fef45022cd11a6f4ddeb4569be48797638a036f8/pairs.tsv"
     curl \
         --silent \
-        --output "${TEMPDATA}/lexicon.txt"
+        --output "${TEMPDATA}/lexicon.txt" \
         "http://cvsweb.netbsd.org/bsdweb.cgi/src/share/dict/web2?rev=1.54"
     ```
 
@@ -65,12 +65,14 @@ of these loanwords are multi-word expressions in English.
 
     ```bash
     python -m train \
-        --seed 10037 \
-        --batch-size 128
-        --max-iters 10 \
-        --order 6 \
-        --size 100000
         --tsv "${TEMPDATA}/train.tsv" \
+        --insertions 2 \
+        --deletions 1 \
+        --seed 10037 \
+        --batch_size 128 \
+        --max_iters 10 \
+        --order 6 \
+        --size 100000 \
         --fst "${TEMPDATA}/plm.fst"
     ```
 
@@ -111,16 +113,9 @@ of these loanwords are multi-word expressions in English.
         --hypo "${TEMPDATA}/hypo.txt"
     ```
 
-With the random seeds used in the [demo](run.sh), we obtain an error rate of
-35.71 on the development set.
-
-A better model can be had by constraining the output to consist of known English
-words. For this, see [`predict_lexicon`](predict_lexicon.py). With
-the random seeds used in the [demo](run.sh), we obtain an error rate of 31.77 on
-the development set.
-
 Naturally, we would normally use the development set to tune hyperparameters,
-such as the model order (here, 6).
+such as the model order (here, 6) and the number of insertions and deletions
+permitted.
 
 Authors
 -------

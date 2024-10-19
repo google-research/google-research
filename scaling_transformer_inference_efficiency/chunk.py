@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -126,7 +126,7 @@ class Chunk:
   @classmethod
   def physical_axes(cls):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(partitioning.logical_to_physical, Chunk.logical_axes())
+    return jax.tree.map(partitioning.logical_to_physical, Chunk.logical_axes())
 
   @classmethod
   def zeros(cls, batch, seqlen):
@@ -373,13 +373,13 @@ class ChunkResult:
   @classmethod
   def physical_axes(cls, circular=False):
     """Returns the partition specs for the weights in their physical axes."""
-    return jax.tree_map(
+    return jax.tree.map(
         partitioning.logical_to_physical,
         ChunkResult.logical_axes(circular=circular),
     )
 
   def copy_to_host(self):
-    return jax.tree_map(jax.device_get, self)
+    return jax.tree.map(jax.device_get, self)
 
   @classmethod
   def zeros(

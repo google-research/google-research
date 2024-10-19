@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,9 +16,12 @@
 
 #include <cstdint>
 #include <utility>
+
+#include "scann/data_format/datapoint.h"
+#include "scann/utils/intrinsics/attributes.h"
 #ifdef __x86_64__
 
-#include "scann/utils/intrinsics/sse4.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 namespace l2_internal {
@@ -77,8 +80,8 @@ SCANN_SSE4_INLINE double DenseSquaredL2DistanceByteImpl(const Byte* aptr,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
-      __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
+      __m128i bvals = _mm_cvtsi32_si128(UnalignedLoad<int>(bptr));
       __m128i diff = SseFuncs::AbsDiff(avals, bvals);
       __m128i lower = _mm_unpacklo_epi8(diff, _mm_setzero_si128());
       lower = _mm_mullo_epi16(lower, lower);

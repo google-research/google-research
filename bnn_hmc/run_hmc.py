@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -110,7 +110,7 @@ def train_model():
 
   # manually convert all params to dtype
   dtype = script_utils.get_dtype(args)
-  params = jax.tree_map(lambda p: p.astype(dtype), params)
+  params = jax.tree.map(lambda p: p.astype(dtype), params)
 
   update, get_log_prob_and_grad = train_utils.make_hmc_update(
       net_apply, log_likelihood_fn, log_prior_fn, log_prior_diff_fn,

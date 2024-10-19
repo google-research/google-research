@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -155,7 +155,7 @@ def main(_):
   rng = jax.random.fold_in(state.rng, jax.process_index())
   for step in range(init_step, n_steps + 1, n_jitted_steps):
     # Convert data to NumPy arrays and normalize them.
-    batch = jax.tree_map(lambda x: scaler(x._numpy()), next(train_iter))  # pylint: disable=protected-access
+    batch = jax.tree.map(lambda x: scaler(x._numpy()), next(train_iter))  # pylint: disable=protected-access
 
     # Update RNG.
     rng, step_rngs = utils.psplit(rng)
@@ -185,7 +185,7 @@ def main(_):
 
     if step % config.training.eval_freq == 0:
       # Eval step.
-      eval_batch = jax.tree_map(lambda x: scaler(x._numpy()), next(eval_iter))  # pylint: disable=protected-access
+      eval_batch = jax.tree.map(lambda x: scaler(x._numpy()), next(eval_iter))  # pylint: disable=protected-access
       rng, next_rngs = utils.psplit(rng)
       (_, _), peval_loss = p_eval_step((next_rngs, pstate), eval_batch)
 

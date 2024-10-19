@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <atomic>
 
 #include "absl/base/internal/spinlock.h"
+#include "absl/base/prefetch.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -26,9 +27,9 @@
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 
@@ -92,6 +93,17 @@ class EpsilonFilteringCallback {
 
 #endif
 
+  SCANN_INLINE void InvokeOptimized(Highway<float, 2> simd_dists,
+                                    size_t first_dp_idx, size_t query_idx) {
+    float best_dist = epsilons_[query_idx].load(std::memory_order_relaxed);
+
+    auto cmp = (simd_dists < Highway<float>::Broadcast(best_dist));
+    if (ABSL_PREDICT_TRUE((cmp[0] | cmp[1]).MaskFromHighBits() == 0)) return;
+
+    auto dists = simd_dists.Store();
+    slow_path_fn_(MakeMutableSpan(dists), first_dp_idx, query_idx);
+  }
+
   SCANN_INLINE void operator()(MutableSpan<FloatT> block, size_t first_dp_idx,
                                size_t query_idx) {
     Invoke(block, first_dp_idx, query_idx);
@@ -142,9 +154,8 @@ class ManyToManyTop1Callback {
     auto& top1 = top1_result_by_query_[query_idx];
     const size_t mutex_idx = query_idx & (kNumSpinLocks - 1);
     auto mutex_ptr = &(*mutexes_)[mutex_idx];
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(&top1);
-    ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_T0>(
-        mutex_ptr);
+    absl::PrefetchToLocalCache(&top1);
+    absl::PrefetchToLocalCache(mutex_ptr);
 
     FloatT best_dist = block[0];
     DCHECK(!std::isnan(best_dist)) << "NAN at DP idx 0";
@@ -183,10 +194,13 @@ class ManyToManyTopKCallback {
   static_assert((kNumMutexes & (kNumMutexes - 1)) == 0,
                 "kNumMutexes has to be power of 2");
 
-  explicit ManyToManyTopKCallback(MutableSpan<FastTopNeighbors<float>> topns)
+  explicit ManyToManyTopKCallback(MutableSpan<FastTopNeighbors<float>> topns,
+                                  bool needs_thread_safety)
       : topns_(topns.data()),
         epsilons_(make_unique<std::atomic<float>[]>(topns.size())),
-        mutexes_(make_shared<std::array<absl::Mutex, kNumMutexes>>()) {
+        mutexes_(needs_thread_safety
+                     ? make_shared<std::array<absl::Mutex, kNumMutexes>>()
+                     : nullptr) {
     for (size_t i : IndicesOf(topns)) {
       epsilons_[i].store(topns[i].epsilon(), std::memory_order_relaxed);
     }
@@ -195,17 +209,96 @@ class ManyToManyTopKCallback {
   void operator()(MutableSpan<float> block, size_t first_dp_idx,
                   size_t query_idx) {
     auto& topn = topns_[query_idx];
-    const size_t mutex_idx = query_idx & (kNumMutexes - 1);
-    absl::MutexLock lock(&(*mutexes_)[mutex_idx]);
-    topn.PushBlock(block, first_dp_idx);
-    epsilons_[query_idx].store(topns_[query_idx].epsilon(),
-                               std::memory_order_relaxed);
+
+    auto impl = [&]() SCANN_INLINE_LAMBDA {
+      topn.PushBlock(block, first_dp_idx);
+      epsilons_[query_idx].store(topns_[query_idx].epsilon(),
+                                 std::memory_order_relaxed);
+    };
+    if (ABSL_PREDICT_FALSE(mutexes_)) {
+      const size_t mutex_idx = query_idx & (kNumMutexes - 1);
+      absl::MutexLock lock(&(*mutexes_)[mutex_idx]);
+      impl();
+    } else {
+      impl();
+    }
   }
 
   std::atomic<float>* epsilons() const { return epsilons_.get(); }
 
  private:
   FastTopNeighbors<float>* topns_;
+
+  shared_ptr<std::atomic<float>[]> epsilons_;
+  shared_ptr<std::array<absl::Mutex, kNumMutexes>> mutexes_;
+};
+
+class ManyToManyTopKCallbackRemapped {
+ public:
+  SCANN_DECLARE_COPYABLE_CLASS(ManyToManyTopKCallbackRemapped);
+
+  static constexpr int kNumMutexes = 512;
+  static_assert((kNumMutexes & (kNumMutexes - 1)) == 0,
+                "kNumMutexes has to be power of 2");
+
+  explicit ManyToManyTopKCallbackRemapped(
+      MutableSpan<FastTopNeighbors<float>*> topns,
+      ConstSpan<DatapointIndex> datapoint_index_mapping,
+      bool needs_thread_safety)
+      : topns_(topns.data()),
+        datapoint_index_mapping_(datapoint_index_mapping.empty()
+                                     ? nullptr
+                                     : datapoint_index_mapping.data()),
+        epsilons_(make_unique<std::atomic<float>[]>(topns.size())),
+        mutexes_(needs_thread_safety
+                     ? make_shared<std::array<absl::Mutex, kNumMutexes>>()
+                     : nullptr) {
+    for (size_t i : IndicesOf(topns)) {
+      epsilons_[i].store(topns[i]->epsilon(), std::memory_order_relaxed);
+    }
+  }
+
+  void operator()(MutableSpan<float> block, size_t first_dp_idx,
+                  size_t query_idx) {
+    auto impl2 = [&](auto remap) SCANN_INLINE_LAMBDA {
+      auto& topn = *topns_[query_idx];
+      FastTopNeighbors<float>::Mutator mut;
+      topn.AcquireMutator(&mut);
+      float eps = topn.epsilon();
+      for (size_t i : IndicesOf(block)) {
+        const float dist = block[i];
+        if (dist <= eps && mut.Push(remap(first_dp_idx + i), dist)) {
+          mut.GarbageCollect();
+          eps = topn.epsilon();
+        }
+      }
+      epsilons_[query_idx].store(eps, std::memory_order_relaxed);
+    };
+
+    auto impl1 = [&]() SCANN_INLINE_LAMBDA {
+      if (datapoint_index_mapping_) {
+        impl2([this](DatapointIndex dp_idx) {
+          return datapoint_index_mapping_[dp_idx];
+        });
+      } else {
+        impl2([](DatapointIndex dp_idx) { return dp_idx; });
+      }
+    };
+
+    if (ABSL_PREDICT_FALSE(mutexes_)) {
+      const size_t mutex_idx = query_idx & (kNumMutexes - 1);
+      absl::MutexLock lock(&(*mutexes_)[mutex_idx]);
+      impl1();
+    } else {
+      impl1();
+    }
+  }
+
+  std::atomic<float>* epsilons() const { return epsilons_.get(); }
+
+ private:
+  FastTopNeighbors<float>** topns_;
+  const DatapointIndex* datapoint_index_mapping_;
 
   shared_ptr<std::atomic<float>[]> epsilons_;
   shared_ptr<std::array<absl::Mutex, kNumMutexes>> mutexes_;
@@ -249,6 +342,12 @@ class EpsilonFilteringOffsetWrapper {
 #endif
 
   SCANN_INLINE void InvokeOptimized(fallback::Simd<float, 2> dists,
+                                    size_t first_dp_idx, size_t query_idx) {
+    base_.InvokeOptimized(dists, first_dp_idx + dp_idx_offset_,
+                          query_idx_table_[query_idx]);
+  }
+
+  SCANN_INLINE void InvokeOptimized(Highway<float, 2> dists,
                                     size_t first_dp_idx, size_t query_idx) {
     base_.InvokeOptimized(dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
@@ -307,7 +406,7 @@ struct IsOptimizedCallback<ManyToManyTopKCallback> {
 #define SCANN_INSTANTIATE_MANY_TO_MANY_2(EXTERN_OR_NOTHING, METHOD_NAME, T, \
                                          CALLBACK)                          \
   EXTERN_OR_NOTHING template void METHOD_NAME(                              \
-      const DistanceMeasure& dist, const DenseDataset<T>& queries,          \
+      const DistanceMeasure& dist, DefaultDenseDatasetView<T> queries,      \
       const DenseDataset<T>& database, ThreadPool* pool, CALLBACK callback);
 
 #define SCANN_INSTANTIATE_MANY_TO_MANY_1(EXTERN_OR_NOTHING, METHOD_NAME, T) \

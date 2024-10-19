@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -353,7 +353,7 @@ def l2_regularization(params, include_bias_terms=False):
     l2 norm.
 
   """
-  weight_penalty_params = jax.tree_leaves(params)
+  weight_penalty_params = jax.tree.leaves(params)
   if include_bias_terms:
     dim_th = 0
   else:
@@ -493,13 +493,13 @@ def parameter_distance(params, base_params, norm_factor, mode):
     A scalar reflecting distance between the given models.
   """
   if mode == 'dot':
-    params_dists = jax.tree_map(cosine_distance, params, base_params)
+    params_dists = jax.tree.map(cosine_distance, params, base_params)
   elif mode == 'l2':
-    params_dists = jax.tree_map(l2_distance, params, base_params)
+    params_dists = jax.tree.map(l2_distance, params, base_params)
   else:
     raise ValueError('The specified parameter distance mode is not valid.')
 
-  return norm_factor * jnp.mean(jnp.array(jax.tree_leaves(params_dists)))
+  return norm_factor * jnp.mean(jnp.array(jax.tree.leaves(params_dists)))
 
 
 def mean_logits_entropy(logits, one_hot_targets, weights=None, axis=-1):

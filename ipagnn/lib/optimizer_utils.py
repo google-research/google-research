@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,7 @@ def clip_grad(grad, config):
     global_norm = jnp.sqrt(
         sum([jnp.sum(jnp.square(x)) for x in jax.tree_util.tree_leaves(grad)]))
     should_clip = global_norm > clip_value
-    grad = jax.tree_map(
+    grad = jax.tree.map(
         lambda g: jnp.where(should_clip, g * clip_value / global_norm, g),
         grad
     )

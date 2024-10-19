@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,7 +135,7 @@ def construct_mipnerf(rng, rays, config):
     state: flax.Module.state. Nerf model state for stateful parameters.
   """
   # Grab just 10 rays, to minimize memory overhead during construction.
-  ray = jax.tree_map(lambda x: jnp.reshape(x, [-1, x.shape[-1]])[:10], rays)
+  ray = jax.tree.map(lambda x: jnp.reshape(x, [-1, x.shape[-1]])[:10], rays)
   model = MipNerfModel(config=config)
   init_variables = model.init(
       rng, rng=None, rays=ray, resample_padding=0., compute_extras=False)
@@ -296,7 +296,7 @@ def render_image(render_fn, rays, rng, config):
   """
   height, width = rays.origins.shape[:2]
   num_rays = height * width
-  rays = jax.tree_map(lambda r: r.reshape((num_rays, -1)), rays)
+  rays = jax.tree.map(lambda r: r.reshape((num_rays, -1)), rays)
 
   host_id = jax.host_id()
   chunks = []
@@ -306,19 +306,19 @@ def render_image(render_fn, rays, rng, config):
     if i_chunk % max(1, len(idx0s) // 10) == 0:
       print(f'Rendering chunk {i_chunk}/{len(idx0s)-1}')
     chunk_rays = (
-        jax.tree_map(lambda r: r[idx0:idx0 + config.render_chunk_size], rays))
+        jax.tree.map(lambda r: r[idx0:idx0 + config.render_chunk_size], rays))
     actual_chunk_size = chunk_rays.origins.shape[0]
     rays_remaining = actual_chunk_size % jax.device_count()
     if rays_remaining != 0:
       padding = jax.device_count() - rays_remaining
-      chunk_rays = jax.tree_map(
+      chunk_rays = jax.tree.map(
           lambda r: jnp.pad(r, ((0, padding), (0, 0)), mode='edge'), chunk_rays)
     else:
       padding = 0
     # After padding the number of chunk_rays is always divisible by host_count.
     rays_per_host = chunk_rays.origins.shape[0] // jax.host_count()
     start, stop = host_id * rays_per_host, (host_id + 1) * rays_per_host
-    chunk_rays = jax.tree_map(lambda r: utils.shard(r[start:stop]), chunk_rays)
+    chunk_rays = jax.tree.map(lambda r: utils.shard(r[start:stop]), chunk_rays)
     chunk_renderings = render_fn(rng, chunk_rays)
 
     # Unshard the renderings

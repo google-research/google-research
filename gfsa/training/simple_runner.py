@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -296,7 +296,7 @@ def training_loop(
           "wb") as fp:
         fp.write(
             flax.serialization.to_bytes(
-                jax.tree_map(np.asarray,
+                jax.tree.map(np.asarray,
                              flax.jax_utils.unreplicate(replicated_optimizer))))
 
       nonlocal last_best_at_step
@@ -361,7 +361,7 @@ def training_loop(
             }
             pickle.dump(postmortem, fp, protocol=pickle.HIGHEST_PROTOCOL)
 
-        bad_grads = jax.tree_map(
+        bad_grads = jax.tree.map(
             lambda x: float(jnp.count_nonzero(~jnp.isfinite(x)) / x.size),
             flax.serialization.to_state_dict(agg_grads))
         bad_grads_str = json.dumps(bad_grads, indent=2)
@@ -400,7 +400,7 @@ def training_loop(
         if objective < best_objective_value:
           # Copy the current optimizer state into the checkpoint. Don't save
           # it to disk yet to reduce disk writes.
-          best_optimizer = jax.tree_map(
+          best_optimizer = jax.tree.map(
               np.asarray, flax.jax_utils.unreplicate(replicated_optimizer))
           best_objective_value = objective
           best_at_step = step

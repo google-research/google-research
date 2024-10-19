@@ -1,4 +1,4 @@
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-BAZEL_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
+BAZEL_PREFIX="bazel-bin/build_pip_pkg.runfiles/_main/"
 TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
 # set variable equal to "python" by default
 : ${PYTHON:=python}
@@ -39,7 +39,8 @@ cp ${BAZEL_PREFIX}requirements.txt "${TMPDIR}"
 cp ${BAZEL_PREFIX}setup.py "${TMPDIR}"
 rsync -avm -L --exclude='*_test.py' ${BAZEL_PREFIX}scann "${TMPDIR}"
 
-echo "from scann.scann_ops.py.scann_builder import ScannBuilder" > "${TMPDIR}"/scann/__init__.py
+echo "from scann.scann_ops.py.scann_builder import ReorderType" >> "${TMPDIR}"/scann/__init__.py
+echo "from scann.scann_ops.py.scann_builder import ScannBuilder" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops_pybind" >> "${TMPDIR}"/scann/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/__init__.py

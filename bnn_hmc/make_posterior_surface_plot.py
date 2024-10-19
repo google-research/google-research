@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,7 +106,7 @@ def get_u_v_o(params1, params2, params3):
   u_params = tree_utils.tree_scalarmul(u_params, 1 / u_norm)
   v_params = tree_utils.tree_diff(params3, params1)
   uv_dot = tree_utils.tree_dot(u_params, v_params)
-  v_params = jax.tree_map(lambda v, u: v - uv_dot * u, v_params, u_params)
+  v_params = jax.tree.map(lambda v, u: v - uv_dot * u, v_params, u_params)
   v_norm = tree_utils.tree_norm(v_params)
   v_params = tree_utils.tree_scalarmul(v_params, 1 / v_norm)
 
@@ -131,7 +131,7 @@ def run_visualization():
 
   net_apply, net_init = models.get_model(args.model_name, data_info)
   net_apply = precision_utils.rewrite_high_precision(net_apply)
-  init_data = jax.tree_map(lambda elem: elem[0][:1], train_set)
+  init_data = jax.tree.map(lambda elem: elem[0][:1], train_set)
   net_init_key = jax.random.PRNGKey(0)
   params, net_state = net_init(net_init_key, init_data, True)
 
@@ -171,7 +171,7 @@ def run_visualization():
   def eval_row_of_plot(u_t_, dataset):
 
     def loop_body(_, v_t_):
-      params = jax.tree_map(
+      params = jax.tree.map(
           lambda u, v, o: o + u * u_t_ * u_norm + v * v_t_ * v_norm, u_vec,
           v_vec, origin)
       logprob, likelihood, prior = eval(params, net_state, dataset)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -41,9 +41,9 @@ from __future__ import print_function
 
 from absl import app
 from absl import flags
-from rouge import io
-from rouge import rouge_scorer
-from rouge import scoring
+from rouge_score import io
+from rouge_score import rouge_scorer
+from rouge_score import scoring
 
 flags.DEFINE_string("target_filepattern", None,
                     "Files containing target text.")

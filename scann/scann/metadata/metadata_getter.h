@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/data_format/features.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -51,6 +52,9 @@ class MetadataGetter : public UntypedMetadataGetter {
  public:
   MetadataGetter() {}
 
+  MetadataGetter(const MetadataGetter&) = delete;
+  MetadataGetter& operator=(const MetadataGetter&) = delete;
+
   research_scann::TypeTag TypeTag() const final { return TagForType<T>(); }
 
   virtual Status GetMetadata(const TypedDataset<T>* dataset,
@@ -65,9 +69,6 @@ class MetadataGetter : public UntypedMetadataGetter {
                "metadata getter type ",
                typeid(*this).name(), "."));
   }
-
- private:
-  TF_DISALLOW_COPY_AND_ASSIGN(MetadataGetter);
 };
 
 }  // namespace research_scann

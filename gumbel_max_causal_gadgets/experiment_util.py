@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -101,14 +101,14 @@ class CouplingExperimentConfig:
     def batch_loss(params, rng):
       stuff = jax.vmap(lambda rng: self.loss_and_metrics_one_pair(params, rng))(
           jax.random.split(rng, self.batch_size))
-      return jax.tree_map(jnp.mean, stuff)
+      return jax.tree.map(jnp.mean, stuff)
 
     grads, metrics = jax.grad(batch_loss, has_aux=True)(params, rng)
     updates, new_opt_state = self.tx.update(grads, opt_state, params)
     new_params = optax.apply_updates(params, updates)
     any_was_nan = jax.tree_util.tree_reduce(
-        jnp.logical_or, jax.tree_map(lambda v: jnp.any(jnp.isnan(v)), grads))
-    new_opt_state, new_params = jax.tree_map(
+        jnp.logical_or, jax.tree.map(lambda v: jnp.any(jnp.isnan(v)), grads))
+    new_opt_state, new_params = jax.tree.map(
         lambda a, b: jnp.where(any_was_nan, a, b), (opt_state, params),
         (new_opt_state, new_params))
     return new_opt_state, new_params, metrics, grads, any_was_nan
@@ -142,7 +142,7 @@ class CouplingExperimentConfig:
         # Pass the inputs in and take a gradient step.
         opt_state, params, metrics, grads, bad = self.opt_step(
             opt_state, params, key)
-        all_metrics.append(jax.tree_map(np.array, metrics))
+        all_metrics.append(jax.tree.map(np.array, metrics))
         if bad:
           finished_reason = "nan"
           return types.SimpleNamespace(**locals())
@@ -153,7 +153,7 @@ class CouplingExperimentConfig:
           rate = count_since_reset / (now - start_time)
           start_time = now
           count_since_reset = 0
-          print(f"{i} [{rate}/s]:", jax.tree_map(float, metrics))
+          print(f"{i} [{rate}/s]:", jax.tree.map(float, metrics))
           sys.stdout.flush()
           time.sleep(0.02)
         i += 1
@@ -163,7 +163,7 @@ class CouplingExperimentConfig:
       return types.SimpleNamespace(**locals())
 
     finished_reason = "done"
-    (opt_state, params) = jax.tree_map(np.array, (opt_state, params))
+    (opt_state, params) = jax.tree.map(np.array, (opt_state, params))
     return types.SimpleNamespace(**locals())
     # pylint: enable=possibly-unused-variable
 

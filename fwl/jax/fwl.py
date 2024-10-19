@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -117,14 +117,14 @@ class FWModule(nn.Module):
   """A flax module using fast weights."""
 
   def replicated_params(self, x):
-    return jax.tree_map(
+    return jax.tree.map(
         lambda v: jnp.tile(v, (x.shape[0], x.shape[1], 1)), self.variables)
 
   def get_perturbation(self, x):
-    return jax.tree_map(jnp.zeros_like, self.replicated_params(x))
+    return jax.tree.map(jnp.zeros_like, self.replicated_params(x))
 
   def fwd_with_perturbation(self, x, perturbation):
-    new_params = jax.tree_map(
+    new_params = jax.tree.map(
         lambda v, p: v + p, self.replicated_params(x), perturbation)
     return jax.vmap(jax.vmap(self.apply))(new_params, x)
 

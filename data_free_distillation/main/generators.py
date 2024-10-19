@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
 
-def simple_generator(z,
+def simple_generator(z,  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
                      image_size,
                      num_interpolate = 2,
                      channels = None,
@@ -112,7 +112,7 @@ def simple_generator(z,
       return x
 
 
-def conditioned_generator(z,
+def conditioned_generator(z,  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
                           one_hot_label,
                           image_size,
                           num_interpolate = 2,
@@ -141,7 +141,7 @@ def conditioned_generator(z,
 # This is the function we would typically use in generator training and
 # distillation script. We wrap the `conditioned_generator` and name it as
 # `generator` for compatibility.
-def generator(z,
+def generator(z,  # pytype: disable=annotation-type-mismatch  # dataclasses-replace
               label,
               image_size,
               n_classes,

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -58,7 +58,7 @@ def tree_sum(tree):
 
 
 def tree_norm(tree):
-  return jnp.sqrt(tree_sum(jax.tree_map(lambda x: jnp.sum(x**2), tree)))
+  return jnp.sqrt(tree_sum(jax.tree.map(lambda x: jnp.sum(x**2), tree)))
 
 
 def train_step(
@@ -94,8 +94,8 @@ def train_step(
   def loss_fn(variables):
 
     weight_l2 = (
-        tree_sum(jax.tree_map(lambda z: jnp.sum(z**2), variables)) / tree_sum(
-            jax.tree_map(lambda z: jnp.prod(jnp.array(z.shape)), variables)))
+        tree_sum(jax.tree.map(lambda z: jnp.sum(z**2), variables)) / tree_sum(
+            jax.tree.map(lambda z: jnp.prod(jnp.array(z.shape)), variables)))
 
     renderings = model.apply(
         variables,
@@ -177,10 +177,10 @@ def train_step(
   losses_georeg = jax.lax.pmean(losses_georeg, axis_name='batch')
 
   if config.check_grad_for_nans:
-    grad = jax.tree_map(jnp.nan_to_num, grad)
+    grad = jax.tree.map(jnp.nan_to_num, grad)
 
   if config.grad_max_val > 0:
-    grad = jax.tree_map(
+    grad = jax.tree.map(
         lambda z: jnp.clip(z, -config.grad_max_val, config.grad_max_val), grad)
 
   grad_abs_max = jax.tree_util.tree_reduce(
@@ -190,7 +190,7 @@ def train_step(
   if config.grad_max_norm > 0:
     mult = jnp.minimum(
         1, config.grad_max_norm / (jnp.finfo(jnp.float32).eps + grad_norm))
-    grad = jax.tree_map(lambda z: mult * z, grad)
+    grad = jax.tree.map(lambda z: mult * z, grad)
   grad_norm_clipped = tree_norm(grad)
 
   new_optimizer = state.optimizer.apply_gradient(
@@ -348,7 +348,7 @@ def main(unused_argv):
         avg_psnr_denom = 0
 
         # For some reason, the `stats` object has a superfluous dimension.
-        stats = jax.tree_map(lambda x: x[0], stats)
+        stats = jax.tree.map(lambda x: x[0], stats)
         summary_writer.scalar('num_params', num_params, step)
         summary_writer.scalar('train_loss', stats.loss, step)
         summary_writer.scalar('train_psnr', stats.psnr, step)
@@ -390,7 +390,7 @@ def main(unused_argv):
         train_start_time = time.time()
 
       if step % config.checkpoint_every == 0:
-        state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
+        state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
         checkpoints.save_checkpoint(
             config.checkpoint_dir, state_to_save, int(step), keep=100)
 
@@ -400,7 +400,7 @@ def main(unused_argv):
       # here on purpose so that the visualization matches what happened in
       # training.
       eval_start_time = time.time()
-      eval_variables = jax.device_get(jax.tree_map(lambda x: x[0],
+      eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
                                                    state)).optimizer.target
       test_case = next(test_dataset)
       rendering = models.render_image(
@@ -434,7 +434,7 @@ def main(unused_argv):
           summary_writer.image('test_pred_' + k, v, step)
 
   if config.max_steps % config.checkpoint_every != 0:
-    state = jax.device_get(jax.tree_map(lambda x: x[0], state))
+    state = jax.device_get(jax.tree.map(lambda x: x[0], state))
     checkpoints.save_checkpoint(
         config.checkpoint_dir, state, int(config.max_steps), keep=100)
 

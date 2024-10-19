@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 #ifndef SCANN_UTILS_INTRINSICS_HORIZONTAL_SUM_H_
 #define SCANN_UTILS_INTRINSICS_HORIZONTAL_SUM_H_
 
+#include "hwy/highway.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/intrinsics/simd.h"
 
 namespace research_scann {
@@ -42,6 +44,37 @@ SCANN_INLINE void HorizontalSum4X(Simd<FloatT> a, Simd<FloatT> b,
 }
 
 }  // namespace fallback
+
+HWY_BEFORE_NAMESPACE();
+namespace highway {
+
+namespace hn = hwy::HWY_NAMESPACE;
+
+template <typename FloatT>
+SCANN_INLINE FloatT HorizontalSum(Highway<FloatT> a) {
+  return hn::ReduceSum(hn::ScalableTag<FloatT>(), *a);
+}
+
+template <typename FloatT>
+SCANN_INLINE void HorizontalSum2X(Highway<FloatT> a, Highway<FloatT> b,
+                                  FloatT* resulta, FloatT* resultb) {
+  *resulta = HorizontalSum(a);
+  *resultb = HorizontalSum(b);
+}
+
+template <typename FloatT>
+SCANN_INLINE void HorizontalSum4X(Highway<FloatT> a, Highway<FloatT> b,
+                                  Highway<FloatT> c, Highway<FloatT> d,
+                                  FloatT* resulta, FloatT* resultb,
+                                  FloatT* resultc, FloatT* resultd) {
+  *resulta = HorizontalSum(a);
+  *resultb = HorizontalSum(b);
+  *resultc = HorizontalSum(c);
+  *resultd = HorizontalSum(d);
+}
+
+}  // namespace highway
+HWY_AFTER_NAMESPACE();
 
 #ifdef __x86_64__
 

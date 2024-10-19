@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -255,7 +255,7 @@ def next_production_rule_info_batch(
         unmasked_probabilities=unmasked_probabilities_batch[i],
         masked_probabilities=masked_probabilities_batch[i],
         grammar=grammar))
-  return np.asarray(output_info, dtype=np.unicode_)
+  return np.asarray(output_info, dtype=np.str_)
 
 
 def next_production_rule_info_batch_text_summary(

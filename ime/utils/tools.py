@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ class EarlyStopping:
     self.counter = 0
     self.best_score = None
     self.early_stop = False
-    self.val_loss_min = np.Inf
+    self.val_loss_min = np.inf
     self.delta = delta
 
   def __call__(self, val_loss, model, path):

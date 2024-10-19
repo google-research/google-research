@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -118,6 +118,21 @@ class InverseSTFT(tf.keras.layers.Layer):
     })
     return config
 
+  def call(self, inputs):
+    if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
+      return self._streaming_internal_state(inputs)
+    elif self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
+      # in streaming inference mode with external state
+      # in addition to the output we return the output state.
+      output, self.output_state = self._streaming_external_state(
+          inputs, self.input_state)
+      return output
+    elif self.mode in (modes.Modes.TRAINING, modes.Modes.NON_STREAM_INFERENCE):
+      # run non streamable training or non streamable inference
+      return self._non_streaming(inputs)
+    else:
+      raise ValueError(f'Encountered unexpected mode `{self.mode}`.')
+
   def get_input_state(self):
     # input state will be used only for STREAM_EXTERNAL_STATE_INFERENCE mode
     if self.mode == modes.Modes.STREAM_EXTERNAL_STATE_INFERENCE:
@@ -135,6 +150,9 @@ class InverseSTFT(tf.keras.layers.Layer):
                        f'not `{self.mode}`.')
 
   def _streaming_internal_state(self, inputs):
+    if not hasattr(self, 'states'):
+      raise ValueError(f'States are not created for mode {self.mode}.')
+
     inversed_frames, new_states = self._streaming_external_state(
         inputs, self.states)
     assign_states = self.states.assign(new_states)
@@ -168,7 +186,12 @@ class InverseSTFT(tf.keras.layers.Layer):
 
       # shift frame samples by frame_step to the left: ring buffer
       new_frame_state = tf.concat(
-          [new_frame_state, tf.zeros([1, self.frame_step])], axis=1)
+          [
+              new_frame_state,
+              tf.zeros([self.inference_batch_size, self.frame_step]),
+          ],
+          axis=1,
+      )
       new_frame_state = new_frame_state[:, -self.frame_size:]
     else:  # streaming with several input frames
       previous_state = state + inversed_frame[:, 0:self.frame_size]
@@ -182,7 +205,12 @@ class InverseSTFT(tf.keras.layers.Layer):
 
       # shift frame samples by frame_step to the left: ring buffer
       new_frame_state = tf.concat(
-          [new_frame_state, tf.zeros([1, self.frame_step])], axis=1)
+          [
+              new_frame_state,
+              tf.zeros([self.inference_batch_size, self.frame_step]),
+          ],
+          axis=1,
+      )
       new_frame_state = new_frame_state[:, -self.frame_size:]
 
     return inversed_frames, new_frame_state

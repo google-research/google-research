@@ -11,8 +11,8 @@ package(
 proto_library(
     name = "scann_proto",
     srcs = ["scann.proto"],
-    tags = ["local"],
     deps = [
+        ":auto_tuning_proto",
         ":brute_force_proto",
         ":crowding_proto",
         ":disjoint_restrict_token_proto",
@@ -21,13 +21,13 @@ proto_library(
         ":hash_proto",
         ":input_output_proto",
         ":metadata_proto",
+        ":min_distance_proto",
         ":partitioning_proto",
     ],
 )
 
 cc_proto_library(
     name = "scann_cc_proto",
-    tags = ["local"],
     deps = [":scann_proto"],
 )
 
@@ -36,6 +36,7 @@ scann_py_proto_library(
     srcs = ["scann.proto"],
     proto_deps = [":scann_proto"],
     py_proto_deps = [
+        ":auto_tuning_py_pb2",
         ":brute_force_py_pb2",
         ":crowding_py_pb2",
         ":disjoint_restrict_token_py_pb2",
@@ -44,22 +45,20 @@ scann_py_proto_library(
         ":hash_py_pb2",
         ":input_output_py_pb2",
         ":metadata_py_pb2",
+        ":min_distance_py_pb2",
         ":partitioning_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "crowding_proto",
     srcs = ["crowding.proto"],
-    tags = ["local"],
     deps = [
     ],
 )
 
 cc_proto_library(
     name = "crowding_cc_proto",
-    tags = ["local"],
     deps = [":crowding_proto"],
 )
 
@@ -67,13 +66,11 @@ scann_py_proto_library(
     name = "crowding_py_pb2",
     srcs = ["crowding.proto"],
     proto_deps = [":crowding_proto"],
-    tags = ["local"],
 )
 
 proto_library(
     name = "input_output_proto",
     srcs = ["input_output.proto"],
-    tags = ["local"],
     deps = [
         ":incremental_updates_proto",
     ],
@@ -81,7 +78,6 @@ proto_library(
 
 cc_proto_library(
     name = "input_output_cc_proto",
-    tags = ["local"],
     deps = [":input_output_proto"],
 )
 
@@ -92,20 +88,17 @@ scann_py_proto_library(
     py_proto_deps = [
         ":incremental_updates_py_pb2",
     ],
-    tags = ["local"],
 )
 
 scann_py_proto_library(
     name = "restricts_py_pb2",
     srcs = ["restricts.proto"],
     proto_deps = [":restricts_proto"],
-    tags = ["local"],
 )
 
 proto_library(
     name = "hash_proto",
     srcs = ["hash.proto"],
-    tags = ["local"],
     deps = [
         ":distance_measure_proto",
         ":projection_proto",
@@ -114,7 +107,6 @@ proto_library(
 
 cc_proto_library(
     name = "hash_cc_proto",
-    tags = ["local"],
     deps = [":hash_proto"],
 )
 
@@ -126,13 +118,11 @@ scann_py_proto_library(
         ":distance_measure_py_pb2",
         ":projection_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "metadata_proto",
     srcs = ["metadata.proto"],
-    tags = ["local"],
     deps = [
         ":distance_measure_proto",
     ],
@@ -145,19 +135,16 @@ scann_py_proto_library(
     py_proto_deps = [
         ":distance_measure_py_pb2",
     ],
-    tags = ["local"],
 )
 
 cc_proto_library(
     name = "metadata_cc_proto",
-    tags = ["local"],
     deps = [":metadata_proto"],
 )
 
 proto_library(
     name = "brute_force_proto",
     srcs = ["brute_force.proto"],
-    tags = ["local"],
     deps = [
         ":exact_reordering_proto",
     ],
@@ -170,19 +157,16 @@ scann_py_proto_library(
     py_proto_deps = [
         ":exact_reordering_py_pb2",
     ],
-    tags = ["local"],
 )
 
 cc_proto_library(
     name = "brute_force_cc_proto",
-    tags = ["local"],
     deps = [":brute_force_proto"],
 )
 
 proto_library(
     name = "exact_reordering_proto",
     srcs = ["exact_reordering.proto"],
-    tags = ["local"],
     deps = [
         ":distance_measure_proto",
     ],
@@ -190,7 +174,6 @@ proto_library(
 
 cc_proto_library(
     name = "exact_reordering_cc_proto",
-    tags = ["local"],
     deps = [":exact_reordering_proto"],
 )
 
@@ -201,17 +184,14 @@ scann_py_proto_library(
     py_proto_deps = [
         ":distance_measure_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "partitioning_proto",
     srcs = ["partitioning.proto"],
-    tags = ["local"],
     deps = [
         ":distance_measure_proto",
         ":exact_reordering_proto",
-        ":input_output_proto",
         ":projection_proto",
         "@com_google_protobuf//:duration_proto",
     ],
@@ -219,7 +199,6 @@ proto_library(
 
 cc_proto_library(
     name = "partitioning_cc_proto",
-    tags = ["local"],
     deps = [":partitioning_proto"],
 )
 
@@ -233,20 +212,17 @@ scann_py_proto_library(
         ":input_output_py_pb2",
         ":projection_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "projection_proto",
     srcs = ["projection.proto"],
-    tags = ["local"],
     deps = [
     ],
 )
 
 cc_proto_library(
     name = "projection_cc_proto",
-    tags = ["local"],
     deps = [":projection_proto"],
 )
 
@@ -254,13 +230,11 @@ scann_py_proto_library(
     name = "projection_py_pb2",
     srcs = ["projection.proto"],
     proto_deps = [":projection_proto"],
-    tags = ["local"],
 )
 
 proto_library(
     name = "distance_measure_proto",
     srcs = ["distance_measure.proto"],
-    tags = ["local"],
     deps = [
     ],
 )
@@ -269,19 +243,16 @@ scann_py_proto_library(
     name = "distance_measure_py_pb2",
     srcs = ["distance_measure.proto"],
     proto_deps = [":distance_measure_proto"],
-    tags = ["local"],
 )
 
 cc_proto_library(
     name = "distance_measure_cc_proto",
-    tags = ["local"],
     deps = [":distance_measure_proto"],
 )
 
 proto_library(
     name = "results_proto",
     srcs = ["results.proto"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:features_proto",
     ],
@@ -289,14 +260,12 @@ proto_library(
 
 cc_proto_library(
     name = "results_cc_proto",
-    tags = ["local"],
     deps = [":results_proto"],
 )
 
 proto_library(
     name = "centers_proto",
     srcs = ["centers.proto"],
-    tags = ["local"],
     deps = [
         ":hash_proto",
         "//scann/data_format:features_proto",
@@ -305,7 +274,6 @@ proto_library(
 
 cc_proto_library(
     name = "centers_cc_proto",
-    tags = ["local"],
     deps = [":centers_proto"],
 )
 
@@ -317,13 +285,11 @@ scann_py_proto_library(
         ":hash_py_pb2",
         "//scann/data_format:features_py_pb2",
     ],
-    tags = ["local"],
 )
 
 proto_library(
     name = "hashed_proto",
     srcs = ["hashed.proto"],
-    tags = ["local"],
     deps = [
         "//scann/data_format:features_proto",
     ],
@@ -331,14 +297,12 @@ proto_library(
 
 cc_proto_library(
     name = "hashed_cc_proto",
-    tags = ["local"],
     deps = [":hashed_proto"],
 )
 
 proto_library(
     name = "disjoint_restrict_token_proto",
     srcs = ["disjoint_restrict_token.proto"],
-    tags = ["local"],
     deps = [
     ],
 )
@@ -347,13 +311,11 @@ scann_py_proto_library(
     name = "disjoint_restrict_token_py_pb2",
     srcs = ["disjoint_restrict_token.proto"],
     proto_deps = [":disjoint_restrict_token_proto"],
-    tags = ["local"],
 )
 
 proto_library(
     name = "incremental_updates_proto",
     srcs = ["incremental_updates.proto"],
-    tags = ["local"],
     deps = [
         "@com_google_protobuf//:duration_proto",
         "@com_google_protobuf//:timestamp_proto",
@@ -362,7 +324,6 @@ proto_library(
 
 cc_proto_library(
     name = "incremental_updates_cc_proto",
-    tags = ["local"],
     deps = [":incremental_updates_proto"],
 )
 
@@ -370,5 +331,42 @@ scann_py_proto_library(
     name = "incremental_updates_py_pb2",
     srcs = ["incremental_updates.proto"],
     proto_deps = [":incremental_updates_proto"],
-    tags = ["local"],
+)
+
+proto_library(
+    name = "auto_tuning_proto",
+    srcs = ["auto_tuning.proto"],
+)
+
+cc_proto_library(
+    name = "auto_tuning_cc_proto",
+    deps = [":auto_tuning_proto"],
+)
+
+scann_py_proto_library(
+    name = "auto_tuning_py_pb2",
+    srcs = ["auto_tuning.proto"],
+    proto_deps = [":auto_tuning_proto"],
+)
+
+scann_py_proto_library(
+    name = "scoring_extension_py_pb2",
+    srcs = ["scoring_extension.proto"],
+    proto_deps = [":scoring_extension_proto"],
+)
+
+proto_library(
+    name = "min_distance_proto",
+    srcs = ["min_distance.proto"],
+)
+
+cc_proto_library(
+    name = "min_distance_cc_proto",
+    deps = [":min_distance_proto"],
+)
+
+scann_py_proto_library(
+    name = "min_distance_py_pb2",
+    srcs = ["min_distance.proto"],
+    proto_deps = [":scoring_extension_proto"],
 )

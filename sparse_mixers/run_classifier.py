@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -394,15 +394,15 @@ def _evaluate(p_eval_step,
       assert x.shape[0] == batch_size
       return np.concatenate([x] + [x[:1]] * pad_amount, axis=0)
 
-    eval_batch = jax.tree_map(pad, eval_batch)
+    eval_batch = jax.tree.map(pad, eval_batch)
 
   eval_batch = common_utils.shard(eval_batch)
   metrics = p_eval_step(params, eval_batch)
 
-  metrics = jax.tree_map(np.array, metrics)
-  metrics = jax.tree_map(lambda x: x.reshape((-1,) + x.shape[2:]), metrics)
+  metrics = jax.tree.map(np.array, metrics)
+  metrics = jax.tree.map(lambda x: x.reshape((-1,) + x.shape[2:]), metrics)
   if remainder:
-    metrics = jax.tree_map(lambda x: x[:-pad_amount], metrics)
+    metrics = jax.tree.map(lambda x: x[:-pad_amount], metrics)
 
   return metrics
 
@@ -571,7 +571,7 @@ def train_and_evaluate(config, workdir,
       # We allow all hosts to potentially save checkpoints because some model
       # parameters are sharded across devices. Parameters replicated across
       # devices (i.e. not sharded) will only be checkpointed by host 0.
-      unreplicated_train_state = jax.tree_map(
+      unreplicated_train_state = jax.tree.map(
           np.array,
           core_utils.tree_unreplicate_by_name(state, not_sharded_match_fn))
       checkpoints.save_checkpoint(

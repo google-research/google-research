@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include <utility>
 
 #include "scann/base/search_parameters.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -41,6 +42,35 @@ Status TreeXOptionalParameters::EnablePreTokenization(
   }
 
   leaf_tokens_to_search_ = std::move(leaf_tokens_to_search);
+  return OkStatus();
+}
+
+Status TreeXOptionalParameters::EnablePreTokenizationWithDistances(
+    vector<pair<DatapointIndex, float>> centers_to_search) {
+  if (centers_to_search.empty()) {
+    return InvalidArgumentError(
+        "centers_to_search cannot be empty on calls to "
+        "EnablePreTokenizationWithDistances.");
+  }
+
+  if (pre_tokenization_with_distances_enabled()) {
+    return FailedPreconditionError(
+        "Pre-tokenization with distances cannot be enabled if it is already "
+        "enabled.");
+  }
+
+  if (pre_tokenization_enabled()) {
+    return FailedPreconditionError(
+        "Pre-tokenization cannot be enabled if it is already enabled.");
+  }
+
+  centers_to_search_ = std::move(centers_to_search);
+
+  leaf_tokens_to_search_.reserve(centers_to_search_.size());
+  for (const auto& center : centers_to_search_) {
+    leaf_tokens_to_search_.push_back(center.first);
+  }
+
   return OkStatus();
 }
 

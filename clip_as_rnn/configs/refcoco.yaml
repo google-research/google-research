@@ -1,0 +1,34 @@
+clip:
+  semantic_clip_model_name: 'ViT-B/16'
+  semantic_pretrained_data: 'openai'
+  clip_model_name: "ViT-B/16"
+  pretrained_data: 'openai'
+
+car:
+  iom_thres: 0.5
+  mask_threshold: 0.5
+  confidence_threshold: 0.3
+  clipes_threshold: 0.5
+  color: [255, 0, 0]  # red
+  visual_prompt_type: ['circle']
+  min_area_ratio: 0.2
+  bg_cls: ['ground', 'land', 'grass', 'tree', 'building',
+           'wall', 'sky', 'lake', 'water', 'river', 'sea',
+           'railway', 'railroad', 'helmet', 'cloud', 'house',
+           'mountain', 'ocean', 'road', 'rock', 'street',
+           'valley', 'bridge']
+
+test:
+  algo: "car"
+  ds_name: "refcoco"
+  seg_mode: "refer"
+  split: 'val'
+  data_root: "$YOUR_DATA_DIR"
+  output_path: "./outputs/"
+  prompts_augment: False
+  use_pseudo: True
+
+sentence_process:
+  mixing_alpha: 0.
+
+save_path: "./outputs"

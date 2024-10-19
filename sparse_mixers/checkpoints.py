@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -166,16 +166,16 @@ def restore_checkpoint(ckpt_dir,
 
   if target is None:
     target = target_to_replicate
-  treedef = jax.tree_structure(target)
+  treedef = jax.tree.structure(target)
   names = [name for name, _ in core_utils.tree_flatten_with_names(target)[0]]
-  values_to_replicate = jax.tree_leaves(target_to_replicate)
-  values_to_shard = jax.tree_leaves(target_to_shard)
-  target = jax.tree_unflatten(treedef, [
+  values_to_replicate = jax.tree.leaves(target_to_replicate)
+  values_to_shard = jax.tree.leaves(target_to_shard)
+  target = jax.tree.unflatten(treedef, [
       vs if sharded_match_fn(name) else vr
       for name, vr, vs in zip(names, values_to_replicate, values_to_shard)
   ])
 
-  target = jax.tree_map(_recover_bfloat16_dtype, target)
+  target = jax.tree.map(_recover_bfloat16_dtype, target)
 
   return target
 

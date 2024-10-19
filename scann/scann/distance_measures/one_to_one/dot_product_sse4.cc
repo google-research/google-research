@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,9 +15,13 @@
 #include "scann/distance_measures/one_to_one/dot_product_sse4.h"
 
 #include <cstdint>
+
+#include "scann/data_format/datapoint.h"
+#include "scann/oss_wrappers/scann_aligned_malloc.h"
+#include "scann/utils/intrinsics/attributes.h"
 #ifdef __x86_64__
 
-#include "scann/utils/intrinsics/sse4.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 namespace dp_internal {
@@ -68,8 +72,8 @@ SCANN_SSE4_INLINE double DenseDotProductByteImpl(const Byte* aptr,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
-      __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
+      __m128i bvals = _mm_cvtsi32_si128(UnalignedLoad<int>(bptr));
       __m128i avals_low = SseFuncs::ExtendLower8To16(avals);
       __m128i bvals_low = SseFuncs::ExtendLower8To16(bvals);
       do_accumulations(_mm_mullo_epi16(avals_low, bvals_low));
@@ -409,7 +413,7 @@ SCANN_SSE4_OUTLINE double DenseDotProductSse4(const DatapointPtr<int8_t>& a,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
       __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
       __m128 bvals0 = _mm_loadu_ps(bptr);
       __m128 cvals0 = _mm_loadu_ps(cptr);
@@ -513,9 +517,9 @@ SCANN_SSE4_OUTLINE double DenseDotProductSse4(const DatapointPtr<int8_t>& a,
     }
 
     if (aptr + 4 <= aend) {
-      __m128i avals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(aptr));
+      __m128i avals = _mm_cvtsi32_si128(UnalignedLoad<int>(aptr));
       __m128 avals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(avals));
-      __m128i bvals = _mm_cvtsi32_si128(*reinterpret_cast<const int*>(bptr));
+      __m128i bvals = _mm_cvtsi32_si128(UnalignedLoad<int>(bptr));
       __m128 bvals0 = _mm_cvtepi32_ps(_mm_cvtepi8_epi32(bvals));
       __m128 cvals0 = _mm_loadu_ps(cptr);
       __m128 prod0 = _mm_mul_ps(_mm_mul_ps(avals0, bvals0), cvals0);

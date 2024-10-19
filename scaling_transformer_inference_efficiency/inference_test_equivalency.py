@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -241,7 +241,7 @@ def xmap_pjit_equivalency(
         return result.logits.mean()
 
       loss, grads = jax.value_and_grad(loss_fn)(params, token_chunk)
-      grads = jax.tree_map(
+      grads = jax.tree.map(
           partitioning._with_sharding_constraint,
           grads,
           weights.Weights.logical_axes(),
@@ -254,7 +254,7 @@ def xmap_pjit_equivalency(
         return result.logits.mean()
 
       loss, grads = jax.value_and_grad(loss_fn)(params, token_chunk)
-      grads = jax.tree_map(
+      grads = jax.tree.map(
           partitioning._with_sharding_constraint,
           grads,
           weights.Weights.logical_axes(),
@@ -266,7 +266,7 @@ def xmap_pjit_equivalency(
         loss_pjit, grads_pjit = jax.jit(grads_pjit)(params, token_chunk)
         loss, grads = jax.jit(grads)(params, token_chunk)
 
-      # jax.tree_map(
+      # jax.tree.map(
       #     partial(np.testing.assert_allclose, atol=atol),
       #     grads_pjit,
       #     grads,

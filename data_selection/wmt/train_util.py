@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -630,10 +630,10 @@ def per_host_sum_pmap(in_tree):
   host_psum = jax.pmap(lambda x: jax.lax.psum(x, 'i'), 'i', devices=devices)
 
   def pre_pmap(xs):
-    return jax.tree_map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
+    return jax.tree.map(lambda x: jnp.broadcast_to(x, (1,) + x.shape), xs)
 
   def post_pmap(xs):
-    return jax.tree_map(lambda x: x[0], xs)
+    return jax.tree.map(lambda x: x[0], xs)
 
   return post_pmap(host_psum(pre_pmap(in_tree)))
 
@@ -651,14 +651,14 @@ def evaluate(*, p_eval_step, target, eval_ds,
   eval_metrics = []
   eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
   for _, eval_batch in zip(range(num_eval_steps), eval_iter):
-    eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+    eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
     eval_batch = common_utils.shard(eval_batch)
     metrics = p_eval_step(target, eval_batch)
     eval_metrics.append(metrics)
   eval_metrics = common_utils.get_metrics(eval_metrics)
-  eval_metrics_sums = jax.tree_map(jnp.sum, eval_metrics)
+  eval_metrics_sums = jax.tree.map(jnp.sum, eval_metrics)
   eval_denominator = eval_metrics_sums.pop('denominator')
-  eval_summary = jax.tree_map(
+  eval_summary = jax.tree.map(
       lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
       eval_metrics_sums)
   return eval_summary
@@ -672,7 +672,7 @@ def write_per_example_losses(*, p_eval_step, target, eval_ds,
   lengths = []
   eval_iter = iter(eval_ds)  # pytype: disable=wrong-arg-types
   for _, eval_batch in zip(range(num_eval_steps), eval_iter):
-    eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+    eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
     eval_batch = common_utils.shard(eval_batch)
     loss, length = p_eval_step(target, eval_batch)
     losses.append(common.tohost(loss))
@@ -704,12 +704,12 @@ def translate_and_calculate_bleu(*, p_pred_step, p_init_cache, target,
   for counter, pred_batch in zip(range(num_eval_steps), predict_ds):
     print(counter)
     start_batch = time.time()
-    pred_batch = jax.tree_map(lambda x: x._numpy(), pred_batch)  # pylint: disable=protected-access
+    pred_batch = jax.tree.map(lambda x: x._numpy(), pred_batch)  # pylint: disable=protected-access
     # Handle final odd-sized batch by padding instead of dropping it.
     cur_pred_batch_size = pred_batch['inputs'].shape[0]
     if cur_pred_batch_size % n_devices:
       padded_size = int(np.ceil(cur_pred_batch_size / n_devices) * n_devices)
-      pred_batch = jax.tree_map(
+      pred_batch = jax.tree.map(
           lambda x: pad_examples(x, padded_size),  # pylint: disable=cell-var-from-loop
           pred_batch)
     pred_batch = common_utils.shard(pred_batch)

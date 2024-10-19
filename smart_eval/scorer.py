@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -50,6 +50,7 @@ class SmartScorer:
       matching_fn = mf.ChrfMatchingFunction(),
       split_fn = tokenize.sent_tokenize,
       aggregate_fn = af.MeanAggregateFunction(),
+      is_symmetric_matching = True,
   ):
     """Initializes a new SmartScorer.
 
@@ -71,6 +72,7 @@ class SmartScorer:
       split_fn: Function used to split the text. The default is to use the
         sentence splitter in NLTK.
       aggregate_fn: Function used to aggregate sentence-level scores.
+      is_symmetric_matching: if True, matching_fn(i,j) = matching_fn(j,i).
     """
     if smart_types:
       self.smart_types = smart_types
@@ -79,42 +81,63 @@ class SmartScorer:
     self.matching_fn = matching_fn
     self.split_fn = split_fn
     self.aggregate_fn = aggregate_fn
+    self.is_symmetric_matching = is_symmetric_matching
 
   def _smart_1(
-      self, score_matrix):
+      self,
+      score_matrix,
+      rev_score_matrix,
+  ):
     """Calculate SMART-1 score."""
     if isinstance(score_matrix, list):
       score_matrix = np.array(score_matrix)
+    if isinstance(rev_score_matrix, list):
+      rev_score_matrix = np.array(rev_score_matrix)
 
     recall = self.aggregate_fn(np.max(score_matrix, 1))
-    precision = self.aggregate_fn(np.max(score_matrix, 0))
-    f = (2 * precision * recall) / (precision +
-                                    recall) if precision + recall != 0 else 0.0
+    precision = self.aggregate_fn(np.max(rev_score_matrix, 1))
+    f = (
+        (2 * precision * recall) / (precision + recall)
+        if precision + recall != 0
+        else 0.0
+    )
     return {'recall': recall, 'precision': precision, 'fmeasure': f}
 
   def _smart_2(
-      self, score_matrix):
+      self,
+      score_matrix,
+      rev_score_matrix,
+  ):
     """Calculate SMART-2 score."""
     # Pad matrix with zeros in for cases where there is only one sentence.
     # This changes the algorithm (i.e., using R-1 for one-sentence summaries)
     # but improves overall correlation.
     score_matrix = np.pad(score_matrix, [(1, 1), (1, 1)])
+    rev_score_matrix = np.pad(rev_score_matrix, [(1, 1), (1, 1)])
     # Calculate bigram scores.
     bigram_score_matrix = (score_matrix[:-1, :-1] + score_matrix[1:, 1:]) / 2.0
+    rev_bigram_score_matrix = (
+        rev_score_matrix[:-1, :-1] + rev_score_matrix[1:, 1:]
+    ) / 2.0
 
     recall = self.aggregate_fn(np.max(bigram_score_matrix, 1))
-    precision = self.aggregate_fn(np.max(bigram_score_matrix, 0))
-    f = (2 * precision * recall) / (precision +
-                                    recall) if precision + recall > 0 else 0.0
+    precision = self.aggregate_fn(np.max(rev_bigram_score_matrix, 1))
+    f = (
+        (2 * precision * recall) / (precision + recall)
+        if precision + recall > 0
+        else 0.0
+    )
     return {'recall': recall, 'precision': precision, 'fmeasure': f}
 
   def _smart_l(
-      self, score_matrix):
+      self,
+      score_matrix,
+      rev_score_matrix,
+  ):
     """Calculate SMART-L score."""
     if isinstance(score_matrix, list):
       score_matrix = np.array(score_matrix)
     row_len, col_len = score_matrix.shape
-    rev_score_matrix = np.transpose(score_matrix)
 
     recall = self._soft_lcs(score_matrix) / row_len
     precision = self._soft_lcs(rev_score_matrix) / col_len
@@ -157,7 +180,9 @@ class SmartScorer:
   def smart_score_precomputed(
       self,
       ref_score_matrix,
-      src_score_matrix = None
+      src_score_matrix = None,
+      rev_ref_score_matrix = None,
+      rev_src_score_matrix = None,
   ):
     """Calculates SMART scores given a precomputed score matrix.
 
@@ -166,11 +191,36 @@ class SmartScorer:
         is the score between reference sentence i and candidate sentence j.
       src_score_matrix: The pre-calculated scores, where src_score_matrix[i][j]
         is the score between source sentence i and candidate sentence j.
+      rev_ref_score_matrix: If the scorer is assymetric, the pre-calculated
+        scores between candidate sentence j and reference sentence i.
+      rev_src_score_matrix: If the scorer is assymetric, the pre-calculated
+        scores between candidate sentence j and source sentence i.
 
     Returns:
       A mapping of each SMART type to its scores.
     """
     return_dict = {}
+
+    if not self.is_symmetric_matching and rev_ref_score_matrix is None:
+      # Reverse matrices are required.
+      raise ValueError(
+          'Reverse matrices are required for symmetric matching. Ensure that'
+          ' you set both `rev_ref_score_matrix` and `rev_src_score_matrix`, or'
+          ' set `is_symmetric_matching` to True.'
+      )
+    if src_score_matrix is not None:
+      if not self.is_symmetric_matching and rev_src_score_matrix is None:
+        raise ValueError(
+            'Reverse matrices are required for symmetric matching. Ensure that'
+            ' you set both `rev_ref_score_matrix` and `rev_src_score_matrix`,'
+            ' or set `is_symmetric_matching` to True.'
+        )
+
+    if rev_ref_score_matrix is None:
+      rev_ref_score_matrix = np.transpose(ref_score_matrix)
+    if rev_src_score_matrix is None and src_score_matrix is not None:
+      # Only required if src_score_matrix is available.
+      rev_src_score_matrix = np.transpose(src_score_matrix)
 
     smart_fn_dict = {
         'smart1': self._smart_1,
@@ -180,9 +230,9 @@ class SmartScorer:
     for smart_type in self.smart_types:
       smart_fn = smart_fn_dict[smart_type]
 
-      ref_smart = smart_fn(ref_score_matrix)
+      ref_smart = smart_fn(ref_score_matrix, rev_ref_score_matrix)
       if src_score_matrix is not None:
-        src_smart = smart_fn(src_score_matrix)
+        src_smart = smart_fn(src_score_matrix, rev_src_score_matrix)
         return_dict[smart_type] = {
             x: max(ref_smart[x], src_smart[x])
             for x in ['precision', 'recall', 'fmeasure']
@@ -241,29 +291,49 @@ class SmartScorer:
     if isinstance(reference, str):
       ref_sentences = self.split_fn(reference)
       can_sentences = self.split_fn(candidate)
-      if source:
+      if source is not None:
         src_sentences = self.split_fn(source)
     else:
       ref_sentences = reference
       can_sentences = candidate
-      if source:
+      if source is not None:
         src_sentences = source
 
     # Calculate pairwise matching scores between sentences in ref and can.
     if self.matching_fn is None:
       raise NotImplementedError('A matching function should be implemented.')
     ref_score_matrix = self._get_score_matrix(ref_sentences, can_sentences)
+    if self.is_symmetric_matching:
+      rev_ref_score_matrix = np.transpose(ref_score_matrix)
+    else:
+      rev_ref_score_matrix = self._get_score_matrix(
+          can_sentences, ref_sentences
+      )
     if source is not None:
       src_score_matrix = self._get_score_matrix(src_sentences, can_sentences)
+      if self.is_symmetric_matching:
+        rev_src_score_matrix = np.transpose(src_score_matrix)
+      else:
+        rev_src_score_matrix = self._get_score_matrix(
+            can_sentences, src_sentences
+        )
     else:
       src_score_matrix = None
+      rev_src_score_matrix = None
 
-    return self.smart_score_precomputed(ref_score_matrix, src_score_matrix)
+    return self.smart_score_precomputed(
+        ref_score_matrix,
+        src_score_matrix,
+        rev_ref_score_matrix,
+        rev_src_score_matrix,
+    )
 
   def corpus_smart_score_precomputed(
       self,
       ref_score_matrix_list,
-      src_score_matrix_list = None
+      src_score_matrix_list = None,
+      rev_ref_score_matrix_list = None,
+      rev_src_score_matrix_list = None,
   ):
     """SMART scores for multiple examples with precomputed scores.
 
@@ -276,15 +346,42 @@ class SmartScorer:
         src_score_matrix is a matrix with pre-calculated scores, where
         src_score_matrix[i][j] is the score between source sentence i and
         candidate sentence j.
+      rev_ref_score_matrix_list: If the scorer is assymetric, the list of
+        reversed versions of ref_score_matrix.
+      rev_src_score_matrix_list: If the scorer is assymetric, the list of
+        reversed versions of src_score_matrix.
 
     Returns:
       A mapping of each SMART type to its scores.
     """
+
+    if not self.is_symmetric_matching and (
+        rev_ref_score_matrix_list is None or rev_src_score_matrix_list is None
+    ):
+      # Reverse matrices are required.
+      raise ValueError(
+          'Reverse matrices are required for symmetric matching. Ensure that'
+          ' you set both `rev_ref_score_matrix_list` and'
+          ' `rev_src_score_matrix_list`, or set `is_symmetric_matching` to'
+          ' True.'
+      )
+
     if src_score_matrix_list is None:
       src_score_matrix_list = [None] * len(ref_score_matrix_list)
+    if rev_ref_score_matrix_list is None:
+      rev_ref_score_matrix_list = [None] * len(ref_score_matrix_list)
+    if rev_src_score_matrix_list is None:
+      rev_src_score_matrix_list = [None] * len(src_score_matrix_list)
     final_return_dict = {smart_type: [] for smart_type in self.smart_types}
-    for ref_sm, src_sm in zip(ref_score_matrix_list, src_score_matrix_list):
-      return_dict = self.smart_score_precomputed(ref_sm, src_sm)
+    for ref_sm, src_sm, rev_ref_sm, rev_src_sm in zip(
+        ref_score_matrix_list,
+        src_score_matrix_list,
+        rev_ref_score_matrix_list,
+        rev_src_score_matrix_list,
+    ):
+      return_dict = self.smart_score_precomputed(
+          ref_sm, src_sm, rev_ref_sm, rev_src_sm
+      )
       for smart_type, score in return_dict.items():
         final_return_dict[smart_type].append(score)
     return {

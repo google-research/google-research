@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,18 +18,12 @@
 
 namespace research_scann {
 
-StatusOr<DatapointIndex> SingleMachineFactoryOptions::ComputeConsistentSize(
-    const Dataset* dataset) const {
-  return ComputeConsistentNumPointsFromIndex(dataset, hashed_dataset.get(),
-                                             pre_quantized_fixed_point.get(),
-                                             crowding_attributes.get());
-}
-
 StatusOr<DimensionIndex>
 SingleMachineFactoryOptions::ComputeConsistentDimensionality(
     const HashConfig& config, const Dataset* dataset) const {
   return ComputeConsistentDimensionalityFromIndex(
-      config, dataset, hashed_dataset.get(), pre_quantized_fixed_point.get());
+      config, dataset, hashed_dataset.get(), pre_quantized_fixed_point.get(),
+      bfloat16_dataset.get());
 }
 
 }  // namespace research_scann

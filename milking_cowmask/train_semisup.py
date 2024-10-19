@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -489,7 +489,7 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
       mix_conf_mask_rate = jnp.array(0.0, dtype=jnp.float32)
 
     if l2_reg > 0:
-      weight_penalty_params = jax.tree_leaves(model_stu.params)
+      weight_penalty_params = jax.tree.leaves(model_stu.params)
       weight_l2 = sum([jnp.sum(x ** 2)
                        for x in weight_penalty_params
                        if x.ndim > 1])
@@ -506,7 +506,7 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
       optimizer_stu.optimize(loss_fn, learning_rate=lr)
 
   if weight_decay > 0.0:
-    decayed_params = jax.tree_map(
+    decayed_params = jax.tree.map(
         lambda p: p * (1.0 - weight_decay * lr),
         new_optimizer_stu.target.params
     )
@@ -515,10 +515,10 @@ def train_step(optimizer_stu, state_stu, model_tea, state_tea,
 
   tea_alpha = teacher_alpha_fn(step)
 
-  model_tea_params = jax.tree_map(
+  model_tea_params = jax.tree.map(
       lambda p_tea, p_stu: p_tea * tea_alpha + p_stu * (1.0 - tea_alpha),
       model_tea.params, new_optimizer_stu.target.params)
-  new_state_tea = jax.tree_map(
+  new_state_tea = jax.tree.map(
       lambda p_tea, p_stu: p_tea * tea_alpha + p_stu * (1.0 - tea_alpha),
       state_tea, new_state_stu)
 
@@ -543,7 +543,7 @@ def eval_step(model, state, batch, eval_top_5=False):
 
 def shard(xs, rng=None):
   local_device_count = jax.local_device_count()
-  sharded_xs = jax.tree_map(
+  sharded_xs = jax.tree.map(
       lambda x: x.reshape((local_device_count, -1) + x.shape[1:]), xs)
   if rng is not None:
     keys = jax.random.split(rng, num=local_device_count)
@@ -842,7 +842,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
   # Teacher model is just the student as we duplicate it when we modify it
   model_tea = optimizer_stu.target
   # Replicate batch stats
-  state_tea = jax.tree_map(lambda x: x, state_stu)
+  state_tea = jax.tree.map(lambda x: x, state_stu)
 
   # Set up epoch and step counter
   # Load existing checkpoint if available
@@ -907,7 +907,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
   while step < num_steps:
     train_rng, iter_rng = jax.random.split(train_rng)
     batch = next(train_iter)
-    batch = jax.tree_map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
+    batch = jax.tree.map(lambda x: x._numpy(), batch)  # pylint: disable=protected-access
     batch = shard(batch, iter_rng)
 
     optimizer_stu, state_stu, metrics_stu, model_tea, state_tea = p_train_step(
@@ -919,7 +919,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
     epoch_metrics_stu.append(metrics_stu)
     if (step + 1) % steps_per_epoch == 0:
       epoch_metrics_stu = util.get_metrics(epoch_metrics_stu)
-      train_epoch_metrics = jax.tree_map(lambda x: x.mean(), epoch_metrics_stu)
+      train_epoch_metrics = jax.tree.map(lambda x: x.mean(), epoch_metrics_stu)
       if summary_writer is not None:
         for key, vals in epoch_metrics_stu.items():
           tag = 'train_%s' % key
@@ -932,7 +932,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
       for _ in range(steps_per_eval):
         eval_batch = next(eval_iter)
         # TF to NumPy
-        eval_batch = jax.tree_map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
+        eval_batch = jax.tree.map(lambda x: x._numpy(), eval_batch)  # pylint: disable=protected-access
         # Pad short batches
         eval_batch = util.pad_classification_batch(
             eval_batch, local_eval_batch_size)
@@ -944,8 +944,8 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
         eval_tea_metrics.append(metrics_tea)
       eval_stu_metrics = util.get_metrics(eval_stu_metrics)
       eval_tea_metrics = util.get_metrics(eval_tea_metrics)
-      eval_stu_epoch_metrics = jax.tree_map(lambda x: x.sum(), eval_stu_metrics)
-      eval_tea_epoch_metrics = jax.tree_map(lambda x: x.sum(), eval_tea_metrics)
+      eval_stu_epoch_metrics = jax.tree.map(lambda x: x.sum(), eval_stu_metrics)
+      eval_tea_epoch_metrics = jax.tree.map(lambda x: x.sum(), eval_tea_metrics)
       eval_stu_epoch_metrics = avg_eval_metrics(eval_stu_epoch_metrics)
       eval_tea_epoch_metrics = avg_eval_metrics(eval_tea_epoch_metrics)
 

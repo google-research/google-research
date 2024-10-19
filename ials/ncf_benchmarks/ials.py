@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ class Recommender():
       A tuple of (Recall@20, Recall@50 and nDCG@100).
     """
     scores = self.score(user_history)
-    scores[exclude] = -np.infty
+    scores[exclude] = -np.inf
     topk = np.argsort(scores)[::-1]
 
     def recall(k, gt_set, topk):

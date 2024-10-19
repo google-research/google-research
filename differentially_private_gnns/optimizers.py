@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,13 @@ def clip_by_norm(updates,
                  l2_norms_threshold):
   """Standard clipping by L2 norm."""
 
-  grad_norms = jax.tree_map(
+  grad_norms = jax.tree.map(
       jax.vmap(jnp.linalg.norm),
       updates)
-  divisors = jax.tree_map(
+  divisors = jax.tree.map(
       lambda g_norm, l2_norm_clip: jnp.maximum(g_norm / l2_norm_clip, 1.0),
       grad_norms, l2_norms_threshold)
-  return jax.tree_map(
+  return jax.tree.map(
       jax.vmap(lambda g, div: g / div),
       updates, divisors)
 
@@ -66,7 +66,7 @@ def dp_aggregate(
   Returns:
     A `GradientTransformation`.
   """
-  noise_stds = jax.tree_map(
+  noise_stds = jax.tree.map(
       lambda l2_norm_clip: l2_norm_clip * base_sensitivity * noise_multiplier,
       l2_norms_threshold)
 
@@ -77,7 +77,7 @@ def dp_aggregate(
 
   def update_fn(updates, state, params):
     del params
-    grads_flat, grads_treedef = jax.tree_flatten(updates)
+    grads_flat, grads_treedef = jax.tree.flatten(updates)
     batch_size = grads_flat[0].shape[0]
 
     if any(g.ndim == 0 or batch_size != g.shape[0] for g in grads_flat):
@@ -87,16 +87,16 @@ def dp_aggregate(
           ' function expects per-example gradients as input.')
 
     new_key, *rngs = jax.random.split(state.rng_key, len(grads_flat) + 1)
-    rng_tree = jax.tree_unflatten(grads_treedef, rngs)
+    rng_tree = jax.tree.unflatten(grads_treedef, rngs)
 
     clipped_updates = clip_by_norm(updates, l2_norms_threshold)
-    summed_updates = jax.tree_map(
+    summed_updates = jax.tree.map(
         lambda g: jnp.sum(g, axis=0),
         clipped_updates)
-    noise = jax.tree_map(
+    noise = jax.tree.map(
         lambda g, std, rng: (std * jax.random.normal(rng, g.shape, g.dtype)),
         summed_updates, noise_stds, rng_tree)
-    noisy_updates = jax.tree_map(lambda g, noise: (g + noise), summed_updates,
+    noisy_updates = jax.tree.map(lambda g, noise: (g + noise), summed_updates,
                                  noise)
     return (noisy_updates,
             optax.DifferentiallyPrivateAggregateState(rng_key=new_key))

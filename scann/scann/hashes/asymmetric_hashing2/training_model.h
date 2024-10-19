@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@
 #include "scann/data_format/dataset.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -28,6 +29,9 @@ namespace asymmetric_hashing2 {
 template <typename T>
 class Model {
  public:
+  Model(const Model&) = delete;
+  Model& operator=(const Model&) = delete;
+
   using FloatT = FloatingTypeFor<T>;
 
   static StatusOr<unique_ptr<Model<T>>> FromCenters(
@@ -63,8 +67,6 @@ class Model {
 
   AsymmetricHasherConfig::QuantizationScheme quantization_scheme_ =
       AsymmetricHasherConfig::PRODUCT;
-
-  TF_DISALLOW_COPY_AND_ASSIGN(Model);
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Model);

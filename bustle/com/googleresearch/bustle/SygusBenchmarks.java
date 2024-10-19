@@ -1,11 +1,11 @@
 package com.googleresearch.bustle;
 
-import com.google.common.base.Charsets;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Files;
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -63,7 +63,7 @@ final class SygusBenchmarks {
       }
     }
 
-    String content = Files.asCharSource(file, Charsets.UTF_8).read();
+    String content = Files.asCharSource(file, StandardCharsets.UTF_8).read();
     content = content.replaceAll("\\s+", " ");
 
     List<Example> examples = new ArrayList<>();

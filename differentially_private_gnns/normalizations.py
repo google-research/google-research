@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,7 +25,7 @@ import jraph
 def compute_num_nodes(graph):
   """Computes the number of nodes in the graph, statically if possible."""
   if graph.nodes is not None:
-    return jax.tree_leaves(graph.nodes)[0].shape[0]
+    return jax.tree.leaves(graph.nodes)[0].shape[0]
 
   return jnp.sum(graph.n_node)
 
@@ -33,7 +33,7 @@ def compute_num_nodes(graph):
 def compute_num_edges(graph):
   """Computes the number of edges in the graph, statically if possible."""
   if graph.edges is not None:
-    return jax.tree_leaves(graph.edges)[0].shape[0]
+    return jax.tree.leaves(graph.edges)[0].shape[0]
 
   return jnp.sum(graph.n_edge)
 

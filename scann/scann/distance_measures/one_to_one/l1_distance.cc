@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
 // limitations under the License.
 
 #include "scann/distance_measures/one_to_one/l1_distance.h"
+
+#include "scann/distance_measures/one_to_one/common.h"
 
 namespace research_scann {
 

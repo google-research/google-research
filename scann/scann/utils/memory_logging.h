@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -37,23 +37,6 @@ size_t VectorStorage(const vector<T>& vec) {
 }
 
 template <typename T>
-size_t HashSetStorage(const absl::node_hash_set<T>& set) {
-  return sizeof(set) + set.bucket_count() * sizeof(void*) +
-         set.size() * sizeof(pair<T, void*>);
-}
-
-template <typename T, typename U, typename Hash>
-size_t HashMapStorage(const std::unordered_map<T, U, Hash>& map) {
-  return sizeof(map) + map.bucket_count() * sizeof(void*) +
-         map.size() * sizeof(std::tuple<T, U, void*>);
-}
-
-template <typename K, typename V, typename... Args>
-size_t HashMapStorage(const flat_hash_map<K, V, Args...>& map) {
-  return sizeof(map) + map.bucket_count() * (sizeof(pair<K, V>) + 1);
-}
-
-template <typename T>
 size_t HashSetStorage(const flat_hash_set<T>& set) {
   return sizeof(set) + set.bucket_count() * (sizeof(T) + 1);
 }
@@ -68,23 +51,9 @@ size_t TwoDimensionalVectorStorage(const Vector& vec) {
   return result;
 }
 
-size_t GfvStorage(const GenericFeatureVector& gfv);
-
-size_t GfvStorage(const vector<GenericFeatureVector>& gfvs);
-
 template <typename T>
 size_t DatapointStorage(const Datapoint<T>& dp) {
   return sizeof(dp) + VectorStorage(dp.indices()) + VectorStorage(dp.values());
-}
-
-template <typename T>
-size_t DatapointStorage(const vector<Datapoint<T> >& dps) {
-  size_t result = sizeof(dps);
-  for (const auto& dp : dps) {
-    result += DatapointStorage(dp);
-  }
-
-  return result;
 }
 
 std::string GetTcMallocLogString();

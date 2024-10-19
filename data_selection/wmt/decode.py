@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -96,7 +96,7 @@ def gather_beams(nested, beam_indices, batch_size, new_beam_size):
       return x
     else:
       return x[batch_indices, beam_indices]
-  return jax.tree_map(gather_fn, nested)
+  return jax.tree.map(gather_fn, nested)
 
 
 def gather_topk_beams(nested, score_or_log_prob, batch_size, new_beam_size):
@@ -152,7 +152,7 @@ def beam_init(batch_size, beam_size, max_decode_len, cache):
       (batch_size, beam_size, max_decode_len), jnp.int32)
   finished_flags0 = jnp.zeros((batch_size, beam_size), jnp.bool_)
   # add beam dimension to attention cache pytree elements
-  beam_cache0 = jax.tree_map(lambda x: add_beam_dim(x, beam_size), cache)
+  beam_cache0 = jax.tree.map(lambda x: add_beam_dim(x, beam_size), cache)
   return BeamState(cur_index=cur_index0,
                    live_logprobs=live_logprobs0,
                    finished_scores=finished_scores0,
@@ -237,7 +237,7 @@ def beam_search(inputs,
         (batch_size, beam_size, 1)))
     # Flatten beam dimension into batch to be compatible with model.
     # {[batch, beam, ...], ...} --> {[batch * beam, ...], ...}
-    flat_cache = jax.tree_map(flatten_beam_dim, state.cache)
+    flat_cache = jax.tree.map(flatten_beam_dim, state.cache)
 
     # Call fast-decoder model on current tokens to get next-position logits.
     # --> [batch * beam, vocab]
@@ -248,7 +248,7 @@ def beam_search(inputs,
     logits = unflatten_beam_dim(flat_logits, batch_size, beam_size)
     # Unflatten beam dimension in attention cache arrays
     # {[batch * beam, ...], ...} --> {[batch, beam, ...], ...}
-    new_cache = jax.tree_map(
+    new_cache = jax.tree.map(
         lambda x: unflatten_beam_dim(x, batch_size, beam_size), new_flat_cache)
 
     # Gather log probabilities from logits

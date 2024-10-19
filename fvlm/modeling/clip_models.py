@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ https://github.com/openai/CLIP to JAX by Ben Poole.
 """
 
 import functools
-from typing import Any, Optional, Sequence, Union
+from typing import Any, Mapping, Optional, Sequence, Union
 
 import flax.linen as nn
 import gin
@@ -521,9 +521,292 @@ class StochasticDepth(nn.Module):
         rate=self.rate, broadcast_dims=broadcast_dims)(x, deterministic)
 
 
+class WindowTransformer(Transformer):
+  """Window Transformer module without the patchifying stem layer.
+
+  Attributes:
+    window_attention_size: Sequence of window attention grid size of all
+      transformer layers.
+    feat_h: int, height of the 2D features.
+    feat_w: int, width of the 2D features.
+    droppath: Drop path ratio. Defaults to 0.
+  """
+  window_attention_size: Optional[Union[int, Sequence[Optional[int]]]] = None
+  feat_h: Optional[int] = None
+  feat_w: Optional[int] = None
+  droppath: float = 0.0
+
+  def window_split(self, seq,
+                   window_attention_size):
+    """Window-partitions a sequence then merge along the batch dimension.
+
+    Args:
+      seq: jnp.ndarray, [B, N, D].
+      window_attention_size: int, number of windows along height and width.
+
+    Returns:
+      windowed_feats: jnp.ndarray, [K*K*B, N/K**2, D].
+    """
+    assert self.feat_h % window_attention_size == 0
+    assert self.feat_w % window_attention_size == 0
+
+    batch_size, feat_c = seq.shape[0], seq.shape[-1]
+    feat = jnp.reshape(seq, [-1, self.feat_h, self.feat_w, feat_c])
+    h_new = self.feat_h // window_attention_size
+    w_new = self.feat_w // window_attention_size
+
+    tmp = [
+        jnp.split(f, window_attention_size, axis=2)
+        for f in jnp.split(feat, window_attention_size, axis=1)
+    ]
+    window_feats = []
+    for t in tmp:
+      window_feats += t
+
+    # Concate window splits at the batch dimension.
+    window_feats = jnp.concatenate([
+        jnp.reshape(
+            x, [batch_size, h_new * w_new, feat_c]) for x in window_feats
+        ], axis=0)
+    return window_feats
+
+  def window_merge(self, seqs, batch_size_model,
+                   window_attention_size):
+    """Merges sequences along spatial dimensions then reshape to a sequence.
+
+    Args:
+      seqs: jnp.ndarray, [K*K*B, N/K**2, D].
+      batch_size_model: int, the original batch size of the model.
+      window_attention_size: int, number of windows along height or width.
+
+    Returns:
+      feats: jnp.ndarray, [B, N, D].
+    """
+    batch_size, feat_c = seqs.shape[0], seqs.shape[-1]
+
+    # Return if no window partition.
+    if batch_size == batch_size_model:
+      return seqs
+
+    n_windows = batch_size // batch_size_model
+    h_new = self.feat_h // window_attention_size
+    w_new = self.feat_w // window_attention_size
+    seqs = jnp.split(seqs, n_windows, axis=0)
+    window_feats = [
+        jnp.reshape(seq, [-1, h_new, w_new, feat_c]) for seq in seqs]
+
+    column_feats = []
+    for i in range(window_attention_size):
+      column_feats.append(
+          jnp.concatenate(
+              window_feats[i * window_attention_size:(i + 1) *
+                           window_attention_size], axis=2))
+    merged_feats = jnp.concatenate(column_feats, axis=1)
+    return jnp.reshape(
+        merged_feats, [batch_size_model, self.feat_h * self.feat_w, feat_c])
+
+  @nn.compact
+  def __call__(self,
+               x,
+               attn_mask = None,
+               deterministic = True,
+               shift_size = 0):
+    window_attention_size = self.window_attention_size
+    if window_attention_size is None:
+      x_out = super().__call__(x, attn_mask=attn_mask)
+      return x_out
+
+    # Prepend and append 'None' to indicate the full attention window at
+    # input and outputs.
+    assert len(window_attention_size) == self.num_layers
+    window_attention_size = [None] + list(window_attention_size) + [None]
+
+    x_out = x
+    for layer_idx in range(self.num_layers):
+      x_in = x_out
+      window_size = window_attention_size[layer_idx + 1]
+
+      # Only reshape input/output when next layer has different window size.
+      reshape_input = window_size and (
+          window_attention_size[layer_idx] != window_size)
+      reshape_output = window_size and (
+          window_attention_size[layer_idx + 2] != window_size)
+
+      if reshape_input:
+        inputs_shape = x_in.shape
+        assert self.feat_h * self.feat_w == inputs_shape[1]
+        x_in = self.window_split(
+            seq=x_in,
+            window_attention_size=window_size)
+
+      attn_mask = None
+      x_out = ResidualAttentionBlock(
+          num_heads=self.num_heads, use_quick_gelu=self.use_quick_gelu,
+          stochastic_depth=(
+              layer_idx / max(self.num_layers - 1, 1)) * self.droppath,
+          name=f'resblocks.{layer_idx}')(x_in, attn_mask,
+                                         deterministic=deterministic)
+
+      if reshape_output:
+        x_out = self.window_merge(
+            seqs=x_out,
+            batch_size_model=inputs_shape[0],
+            window_attention_size=window_size)
+    return x_out
+
+
+class VisionTransformer(nn.Module):
+  """Vision Transformer backbone.
+
+  Attributes:
+    patch_size: The size of the patches to embed.
+    features: Number of features.
+    num_layers: Number of transformer blocks (self-attn + MLP).
+    num_heads: Number of attention heads.
+    window_attention_size: Window attention size.
+    droppath: Drop path ratio.
+    pretrained_pos_emb_size: Height/width of 2D positional embeddings of the
+      pretrained ViT.
+    window_attention_shift_size: Window attention shift size.
+  """
+  patch_size: int
+  features: int
+  num_layers: int
+  num_heads: int
+  window_attention_size: Sequence[Optional[int]] = (
+      _WINDOW_ATTENTION_SIZE_VIT_BASE)
+  droppath: float = 0.0
+  pretrained_pos_emb_size: int = 14  # Not used if 0.
+  window_attention_shift_size: int = 0
+
+  def interpolate_embedding_2d(self, emb,
+                               source_emb_shape,
+                               target_emb_shape):
+    """Interpolates a 2D positional embedding to a new shape.
+
+    Args:
+      emb: JTensor, (1, H1xW1, D), flattened 2D positional embedding.
+      source_emb_shape: Tuple, (H1, W1), height and width of source embedding.
+      target_emb_shape: Tuple, (H2, W2), height and width of target embedding.
+
+    Returns:
+      Flattened, interpolated embedding of shape (1, H2xW2, D)
+    """
+    if len(emb.shape) > 3 or emb.shape[0] != 1:
+      raise ValueError('The shape of the embedding should be (1, H * W, D)')
+
+    if emb.shape[1] != source_emb_shape[0] * source_emb_shape[1]:
+      raise ValueError('The shape of the embedding does NOT match input specs.')
+
+    emb_dims = emb.shape[2]
+    emb = jnp.reshape(emb, (source_emb_shape[0], source_emb_shape[1], emb_dims))
+
+    target_emb = jax.image.resize(
+        emb, (target_emb_shape[0], target_emb_shape[1], emb_dims),
+        method='bilinear')
+    target_emb = jnp.reshape(
+        target_emb, (1, target_emb_shape[0] * target_emb_shape[1], emb_dims))
+
+    return target_emb
+
+  def _forward(self,
+               x,
+               conv,
+               positional_embedding,
+               window_transformer,
+               shift_size = 0):
+    """Forward function."""
+    _, height, width, _ = x.shape
+    x = conv(x)
+    # Shift
+    x = jnp.roll(x, shift=(-shift_size, shift_size), axis=(1, 2))
+    x = x.reshape(x.shape[0], -1, x.shape[-1])
+    if self.pretrained_pos_emb_size != 0:
+      num_patches = self.pretrained_pos_emb_size**2
+    else:
+      num_patches = x.shape[1]
+    row_count = height // self.patch_size
+    col_count = width // self.patch_size
+    if x.shape[1] != num_patches:
+      positional_embedding = self.interpolate_embedding_2d(
+          positional_embedding,
+          (self.pretrained_pos_emb_size, self.pretrained_pos_emb_size),
+          (row_count, col_count),)
+    x = x + positional_embedding
+    x = window_transformer(x, shift_size=shift_size)
+    x = jnp.reshape(x, [x.shape[0], row_count, col_count, x.shape[-1]])
+    # Unshift
+    x = jnp.roll(x, shift=(shift_size, -shift_size), axis=(1, 2))
+    return x
+
+  @nn.compact
+  def __call__(self,
+               x,
+               attn_mask = None,
+               train = False):
+    _, height, width, _ = x.shape
+    conv = nn.Conv(
+        self.features,
+        kernel_size=(self.patch_size, self.patch_size),
+        strides=(self.patch_size, self.patch_size),
+        use_bias=True,
+        name='conv1')
+    scale = 1.0 / jnp.sqrt(self.features)
+    if self.pretrained_pos_emb_size != 0:
+      num_patches = self.pretrained_pos_emb_size**2
+    else:
+      num_patches = x.shape[1]
+    row_count = height // self.patch_size
+    col_count = width // self.patch_size
+    positional_embedding = self.param('positional_embedding',
+                                      jax.nn.initializers.normal(stddev=scale),
+                                      (num_patches, self.features))[None]
+    window_transformer = WindowTransformer(
+        features=self.features,
+        num_layers=self.num_layers,
+        num_heads=self.num_heads,
+        use_quick_gelu=False,
+        window_attention_size=self.window_attention_size,
+        feat_h=row_count,
+        feat_w=col_count,
+        droppath=self.droppath,
+        name='transformer')
+    ln_post = LayerNorm(name='ln_post')
+
+    x_out = self._forward(
+        x, conv, positional_embedding, window_transformer)
+    if self.window_attention_shift_size != 0:
+      x_out_shift = self._forward(
+          x, conv, positional_embedding, window_transformer,
+          shift_size=self.window_attention_shift_size)
+      # Average the shifted and unshifted outputs.
+      x = (x_out + x_out_shift) * 0.5
+    else:
+      x = x_out
+
+    x = jnp.reshape(x, [x.shape[0], row_count * col_count, x.shape[-1]])
+    x = ln_post(x)
+    x = jnp.reshape(x, [x.shape[0], row_count, col_count, x.shape[-1]])
+    feature_map = {4: x}
+    return feature_map
+
+
 @gin.configurable
-def get_clip_vision_model(model_name):
-  """Returns ResNet of ViT model."""
+def get_clip_vision_model(model_name,
+                          use_window_attention_size_frozen = False,
+                          window_attention_shift_size = 0):
+  """Returns ResNet of ViT model.
+
+  Args:
+    model_name: Model name.
+    use_window_attention_size_frozen: If set True, it uses window attention in
+      all layers but the last global attention layer, instead of having four
+      global attention layers evenly spaced throughout the vision transformer.
+    window_attention_shift_size: The roll shift size of window attention.
+      Defaults to 0 which is non-shifted window attention baseline. For shifted
+      window learning, it is set to 8 which is half the window attention cell
+      size (e.g., 16 with image size 1024, patch size 16).
+  """
   cfg = _CLIP_MODEL_CFG[model_name]
   if 'resnet' in model_name:
     return functools.partial(
@@ -532,6 +815,18 @@ def get_clip_vision_model(model_name):
         features=cfg['vision_features'],
         num_heads=cfg['vision_features'] // 2,
         out_features=None)
+  elif 'vit' in model_name:
+    return functools.partial(
+        VisionTransformer,
+        patch_size=cfg['vision_patch_size'],
+        num_layers=cfg['vision_num_layers'],
+        features=cfg['vision_features'],
+        num_heads=cfg['vision_num_heads'],
+        window_attention_size=(
+            cfg['window_attention_size']
+            if not use_window_attention_size_frozen
+            else cfg['window_attention_size_frozen']),
+        window_attention_shift_size=window_attention_shift_size)
   else:
     raise ValueError(f'model_name {model_name} is not supported')
 
@@ -541,7 +836,8 @@ def get_clip_frozen_vision_model(model_name):
   """Returns frozen ViT model."""
   if 'vit' in model_name:
     # Frozen vision backbone performs better with window attention size v2.
-    return get_clip_vision_model(model_name)
+    return get_clip_vision_model(model_name,
+                                 use_window_attention_size_frozen=True)
   else:
     raise ValueError(f'model_name {model_name} is not supported with frozen'
                      'backbone inference.')

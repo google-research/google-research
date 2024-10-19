@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,14 +26,20 @@
 #include <vector>
 
 #include "absl/base/attributes.h"
+#include "absl/base/prefetch.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_map.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/flags/flag.h"
+#include "absl/log/check.h"
+#include "absl/log/log.h"
 #include "absl/memory/memory.h"
+#include "absl/status/status.h"
+#include "absl/status/statusor.h"
 #include "absl/strings/match.h"
 #include "absl/strings/str_format.h"
+#include "absl/strings/str_join.h"
 #include "absl/strings/str_replace.h"
 #include "absl/strings/str_split.h"
 #include "absl/strings/string_view.h"
@@ -41,11 +47,6 @@
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/oss_wrappers/scann_status.h"
-#include "tensorflow/core/lib/core/errors.h"
-#include "tensorflow/core/lib/core/status.h"
-#include "tensorflow/core/platform/logging.h"
-#include "tensorflow/core/platform/prefetch.h"
-#include "tensorflow/core/platform/types.h"
 
 namespace research_scann {
 
@@ -83,29 +84,19 @@ using ::absl::Mutex;
 using ::absl::MutexLock;
 using ::absl::ReaderMutexLock;
 
-using ::tensorflow::Status;
-using OkStatus = Status;
-using ::tensorflow::StatusOr;
+using ::absl::OkStatus;
+using ::absl::Status;
+using ::absl::StatusOr;
 
-#define MAKE_TF_ERROR_FORWARDER(ERRNAME)                                      \
-  ABSL_MUST_USE_RESULT inline Status ERRNAME##Error(absl::string_view s) {    \
-    return ::tensorflow::errors::ERRNAME(std::forward<absl::string_view>(s)); \
-  }
-
-MAKE_TF_ERROR_FORWARDER(Aborted);
-MAKE_TF_ERROR_FORWARDER(AlreadyExists);
-MAKE_TF_ERROR_FORWARDER(Cancelled);
-MAKE_TF_ERROR_FORWARDER(FailedPrecondition);
-MAKE_TF_ERROR_FORWARDER(Internal);
-MAKE_TF_ERROR_FORWARDER(InvalidArgument);
-MAKE_TF_ERROR_FORWARDER(NotFound);
-MAKE_TF_ERROR_FORWARDER(OutOfRange);
-MAKE_TF_ERROR_FORWARDER(Unauthenticated);
-MAKE_TF_ERROR_FORWARDER(Unavailable);
-MAKE_TF_ERROR_FORWARDER(Unimplemented);
-MAKE_TF_ERROR_FORWARDER(Unknown);
-
-#undef MAKE_TF_ERROR_FORWARDER
+using ::absl::AlreadyExistsError;
+using ::absl::FailedPreconditionError;
+using ::absl::InternalError;
+using ::absl::InvalidArgumentError;
+using ::absl::NotFoundError;
+using ::absl::OutOfRangeError;
+using ::absl::UnavailableError;
+using ::absl::UnimplementedError;
+using ::absl::UnknownError;
 
 template <typename T>
 using ConstSpan = absl::Span<const T>;
@@ -139,10 +130,6 @@ const std::string& EmptyString();
 template <typename CollectionT>
 bool IsEmpty(const CollectionT& c) {
   return c.empty();
-}
-
-inline bool IsEmpty(const absl::Flag<std::string>& flag) {
-  return absl::GetFlag(flag).empty();
 }
 
 template <typename CollectionT>
@@ -249,7 +236,7 @@ T ValueOrDie(StatusOr<T> statusor) {
   if (!statusor.ok()) {
     LOG(FATAL) << "VALUE_OR_DIE_FAILURE: " << statusor.status();
   }
-  return std::move(statusor).value();
+  return *std::move(statusor);
 }
 
 template <ssize_t kStride = 1>
@@ -545,6 +532,13 @@ static_assert(IsSame<pair<const int, volatile float>,
 static_assert(IsSame<pair<int, float>,
                      RecursivelyRemoveCV<pair<const int, volatile float>>>(),
               "");
+
+template <typename T>
+T ABSL_ATTRIBUTE_NO_SANITIZE_MEMORY UnalignedLoad(const void* p) {
+  T t;
+  memcpy(&t, p, sizeof(T));
+  return t;
+}
 
 }  // namespace research_scann
 

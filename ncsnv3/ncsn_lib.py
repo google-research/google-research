@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -159,7 +159,7 @@ def train(config, workdir):
     # devices.
 
     # Convert data to JAX arrays. Use ._numpy() to avoid copy.
-    batch = jax.tree_map(lambda x: scaler(x._numpy()), next(train_iter))  # pylint: disable=protected-access
+    batch = jax.tree.map(lambda x: scaler(x._numpy()), next(train_iter))  # pylint: disable=protected-access
 
     rng, *next_rng = jax.random.split(rng, num=jax.local_device_count() + 1)
     next_rng = jnp.asarray(next_rng)
@@ -184,7 +184,7 @@ def train(config, workdir):
     if step % 100 == 0:
       rng, *next_rng = jax.random.split(rng, num=jax.local_device_count() + 1)
       next_rng = jnp.asarray(next_rng)
-      eval_batch = jax.tree_map(lambda x: scaler(x._numpy()), next(eval_iter))  # pylint: disable=protected-access
+      eval_batch = jax.tree.map(lambda x: scaler(x._numpy()), next(eval_iter))  # pylint: disable=protected-access
       eval_loss, _ = p_eval_step(next_rng, state, eval_batch)
       eval_loss = flax.jax_utils.unreplicate(eval_loss)
       if jax.host_id() == 0:
@@ -370,7 +370,7 @@ def evaluate(config,
     for i, batch in enumerate(eval_iter):
       rng, *next_rng = jax.random.split(rng, num=jax.local_device_count() + 1)
       next_rng = jnp.asarray(next_rng)
-      eval_batch = jax.tree_map(lambda x: scaler(x._numpy()), batch)  # pylint: disable=protected-access
+      eval_batch = jax.tree.map(lambda x: scaler(x._numpy()), batch)  # pylint: disable=protected-access
       eval_loss, _ = p_eval_step(next_rng, pstate, eval_batch)
       eval_loss = flax.jax_utils.unreplicate(eval_loss)
       all_losses.append(eval_loss)

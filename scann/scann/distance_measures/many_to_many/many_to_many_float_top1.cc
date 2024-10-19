@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,7 +23,25 @@ namespace research_scann {
 namespace mm_internal {
 
 template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, const DenseDataset<float> &queries,
+    const DistanceMeasure &dist, DefaultDenseDatasetView<float> queries,
+    const DenseDataset<float> &database, ThreadPool *pool,
+    EpsilonFilteringCallback<float> callback);
+
+template void DenseManyToManyOrthogonalityAmplifiedImpl(
+    const DenseDataset<float> &queries,
+    const DenseDataset<float> &normalized_residuals, float lambda,
+    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
+    EpsilonFilteringOffsetWrapper<float> callback);
+
+template void DenseManyToManyOrthogonalityAmplifiedImpl(
+    const DenseDataset<float> &queries,
+    const DenseDataset<float> &normalized_residuals, float lambda,
+    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
+    ManyToManyResultsCallback<float> callback);
+
+template void DenseManyToManyOrthogonalityAmplifiedImpl(
+    const DenseDataset<float> &queries,
+    const DenseDataset<float> &normalized_residuals, float lambda,
     const DenseDataset<float> &database, ThreadPool *pool,
     EpsilonFilteringCallback<float> callback);
 

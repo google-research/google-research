@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -64,11 +64,11 @@ def get_long_description():
 
 setuptools.setup(
     name="scann",
-    version="1.2.10",
+    version="1.3.4",
     author="Google Inc.",
     url="https://github.com/google-research/google-research/tree/master/scann",
     author_email="opensource@google.com",
-    description="Scalable Approximate Nearest Neighbor search library",
+    description="Scalable Nearest Neighbor search library",
     long_description=get_long_description(),
     long_description_content_type="text/markdown",
     packages=setuptools.find_packages(),
@@ -83,10 +83,10 @@ setuptools.setup(
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: Apache Software License",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Topic :: Scientific/Engineering :: Mathematics",
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: Software Development :: Libraries",

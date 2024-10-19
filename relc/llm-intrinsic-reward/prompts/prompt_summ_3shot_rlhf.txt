@@ -1,0 +1,69 @@
+##### Instruction for Annotation: Identifying Flaws in Machine-Generated Summaries #####
+
+Imagine you are a human annotator. You will be given a source document, a machine generated summary and summary quality score. This score represents the overall quality of the generated summary. Your task is to identify spans (segments of text) in the low-score summary that contain factual errors, grammar errors or irrelevant content.
+
+Here are the detailed annotation steps:
+
+1. Familiarize with the Source: Begin by reading the original document in its entirety to fully grasp its content.
+2. Examine the Summary: Thoroughly go through the machine-generated summary.
+3. Indentify Flaws: Using the summary quality score as a guide, highlight spans that are irrelevant, misplaced, incoherent, or factually incorrect. Ensure you base your assessment on both the summary content and its quality score. A lower score indicates a higher likelihood of errors within the summary. Avoid marking errors for summaries with high scores.
+4. Annotate Identified Issues: Next to each highlighted segment, jot down a concise description of the flaw. Use labels like "Factually Incorrect", "Irrelevant", "Incoherent" or other short descriptions.
+5. Be Precise: Rather than marking entire sentences, strive to pinpoint the most concise and shortest problematic segment possible.
+6. Be Cautious with Marking: Mark only the errors you are confident about. If the summary seems mostly correct, just note "None identified".
+
+Examples:
+
+##### Example 1 #####
+Source Document:
+SUBREDDIT: r/relationship_advice TITLE: [20/f] My boyfriend (26/m) thinks I stay over too much. POST: We are both really busy (especially my bf) and the only way we can see each other during the week is to spend the night together. Even on weekends, we usually have heaps of assignments to do so we can't really go out. We spend about 4 nights a week together I think? And it's mostly me staying over at his. I LOVE sleeping next to him. It's almost ridiculous how much I like it. He's recently told me (twice) that I shouldn't stay over too much so I can study more. He's afraid that I spend too much time with him and procrastinate studying. I'm glad that he told me what he was thinking and I understand that he wants me to do well at uni, I even told him to tell me straight away if he ever feels like I'm over too often as I respect his place. But now that I have him saying that to me, I feel like the whole world is going to end D: I feel like a child who lost her favourite toy. We can't date like we used to anymore as he has no time to go out nor can afford it. I miss going for a walk or coffee in the evenings and the alternative I found is to spend nights with him so I can at least see his face and talk a bit. Sleeping next to him was pretty much the only activity(?) I can do with him during the week and it's frustrating that I have to cut it down. I understand in my head, that I should suck it up and study hard, but I'm really sad that I can't spend many nights with him anymore. Like, what are we if we don't date or spend the nights together? I don't know what to do as I'm afraid I'd sound clingy/childish if I told him what I feel like.
+
+Summary to be Labeled:
+My boyfriend thinks I stay over too much. I don't know what to do.
+
+Summary Score:
+9/10
+
+Problematic Spans Identified in the Summary:
+None identified
+
+
+##### Example 2 #####
+Source Document:
+SUBREDDIT: r/college TITLE: People who transferred between universities (not CC to university) one or more times, why did you decide to switch and – in retrospect – how do you feel about your decision? POST: First, I have no desire to transfer, so you needn't talk me into or out of anything. That being said, I *always* see people on this sub asking for advice about transferring, as a first or second year, from [X University] to [University of Y] because they're "not happy" or it's "not what they expected". My opinion – based purely on second-hand, anecdotal evidence – is that in some cases it might be that these students simply weren't adjusting to *college* in general, rather than specific problems with the school itself. I have known people who decided to switch schools, only to realize that the second school was *even worse* and want to transfer somewhere else, perhaps even back to the first one they attended. Since I've seen people on this sub post about similar things, I thought this might be a good place to ask. So, /r/college, I'm very curious to hear your stories. I welcome the idea that I'm totally wrong and/or misunderstanding why people decide to switch universities, so please educate me if this is the case!
+
+Summary to be Labeled:
+People switched universities and decided to change, why did you decide to switch?
+
+Summary Score:
+3/10
+
+Problematic Spans Identified in the Summary:
+Span 1: why did you decide to switch? (Label: Irrelevant)
+
+
+##### Example 3 #####
+Source Document:
+SUBREDDIT: r/relationships TITLE: Is my 23GF realistically upset about me (23M) about celebrities? POST: I like watching movies and like saying if an actor or actress does a good job in a movie. My girlfriend gets upset about this. She gets upset that I place so much value on a person who has a meaningless job (acting). I explain to her that I like watching movies and can notice if someone is doing a good job or not. Ever since she first brought it up, I don't talk about their performance. She also doesn't like actresses, particularly big names like Anne Hathaway, Jennifer Lawrence etc. She says people that like them (whether for their "talent (in her opinion)" or their looks are individuals who only follow the general consensus and can't make their own opinion. I obviously cannot comment on these individuals. When she found out I looked at the fappening pictures she was furious. She says I'm a weak person and that most people would not do this. She thinks I'm more attracted to them than to her because they don't look like her. She also thinks that because they don't look like her (and b/c I was looking at their pictures) that I am obviously not attracted to her and only like girls with their features (hair color, body and boob size). Am I in the wrong here? Should I be censured for doing all of this? Can someone speak some sense here? To add, we've been together for 5 years believe it or not.
+
+Summary to be Labeled:
+My girlfriend views me like only watch movies people with no skill in do. I view her like I like people with no skill in do.
+
+Summary Score:
+1/10
+
+Problematic Spans Identified in the Summary:
+Span 1: in do (Label: Incoherent)
+Span 2: I view her like I like people with no skill in do. (Label: Factually Incorrect)
+
+
+##### Example 4 #####
+Source Document:
+{}
+
+Summary to be Labeled:
+{}
+
+Summary Score:
+{}/10
+
+Problematic Spans Identified in the Summary:

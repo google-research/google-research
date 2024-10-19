@@ -1,5 +1,5 @@
 bs4
-importlib-resources
 nltk
 pandas
+requests
 spacy

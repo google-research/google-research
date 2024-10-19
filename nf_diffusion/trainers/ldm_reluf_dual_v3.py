@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -268,7 +268,7 @@ def train_step(
   new_mutable_state = metrics_dict["mutable_state"]
   new_state.replace(mutable_state=new_mutable_state)
 
-  metrics_dict["scalars"] = jax.tree_map(
+  metrics_dict["scalars"] = jax.tree.map(
       lambda x: jax.lax.pmean(x, axis_name="batch"),
       metrics_dict["scalars"])
 
@@ -338,7 +338,7 @@ def evaluate(
     if config.trainer.get("add_label", True) and "label" not in batch:
       batch["label"] = jnp.zeros(batch["vox"].shape[0], jnp.int32)
     rng_i = jax.random.fold_in(rng, curr_eval_step)
-    batch = jax.tree_map(jnp.asarray, batch)
+    batch = jax.tree.map(jnp.asarray, batch)
     eval_with_ema_params = config.trainer.get("eval_with_ema_params", True)
     _, outputs = p_curr_loss_fn(
         (pstate.ema_params if eval_with_ema_params else pstate.params),

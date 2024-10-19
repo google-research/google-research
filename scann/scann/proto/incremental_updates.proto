@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -52,6 +52,16 @@ message IncrementalUpdateConfig {
     optional bool use_mod_term_filter = 7 [default = false];
 
     optional string mod_term_filter_signature = 8 [default = "fprint"];
+
+    message Fifo {
+      optional bool enabled = 1 [default = false];
+
+      optional google.protobuf.Duration max_msg_pending_time = 2;
+
+      optional google.protobuf.Duration initial_msg_buffering_period = 3;
+    }
+
+    optional Fifo fifo = 9;
   }
 
   oneof DurabilityReplication {

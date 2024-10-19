@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -362,7 +362,7 @@ class Model:
           # need use the fixed w in config (cond_uncond_coefs)
           cond_coef, uncond_coef = self.cond_uncond_coefs
         else:
-          cond_coef, uncond_coef = 1 + ws, -ws
+          cond_coef, uncond_coef = 1 + ws, -ws  # pytype: disable=unsupported-operands  # dataclasses-replace
         eps_target = cond_coef * cond_eps_pred + uncond_coef * uncond_eps_pred
         x_target = predict_x_from_eps(z=z, eps=eps_target, logsnr=logsnr)
 
@@ -955,7 +955,7 @@ class Model:
     if w_schedule_fn is None:  # need use the fixed w in config (cond_uncond_coefs)
       cond_coef, uncond_coef = self.cond_uncond_coefs
     else:
-      cond_coef, uncond_coef = 1 + ws, -ws
+      cond_coef, uncond_coef = 1 + ws, -ws  # pytype: disable=unsupported-operands  # dataclasses-replace
 
     # two forward steps of DDIM from z_t using teacher
     cond_teach_out_start = self._run_model(

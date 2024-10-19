@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -250,7 +250,7 @@ def train_and_evaluate(config,
       is_last_step = step == config.num_train_steps
 
       with jax.profiler.StepTraceAnnotation("train", step_num=step):
-        batch = jax.tree_map(np.asarray, next(train_iter))
+        batch = jax.tree.map(np.asarray, next(train_iter))
         (opt_state, params, state_vars, rng, metrics_update, p_step
          ) = p_train_step(
              model, tx, state.rng, state.step, state.variables,
@@ -282,7 +282,7 @@ def train_and_evaluate(config,
 
       if step % config.log_loss_every_steps == 0 or is_last_step:
         metrics_res = train_metrics.compute()
-        writer.write_scalars(step, jax.tree_map(np.array, metrics_res))
+        writer.write_scalars(step, jax.tree.map(np.array, metrics_res))
         train_metrics = None
 
       if step % config.eval_every_steps == 0 or is_last_step:
@@ -314,10 +314,10 @@ def evaluate(model, state, eval_ds, loss_fn_eval, eval_metrics_cls, config,
 
   metrics_res = eval_metrics.compute()
   writer.write_scalars(
-      step, jax.tree_map(np.array, utils.flatten_named_dicttree(metrics_res)))
+      step, jax.tree.map(np.array, utils.flatten_named_dicttree(metrics_res)))
   writer.write_images(
       step,
-      jax.tree_map(
+      jax.tree.map(
           np.array,
           utils.prepare_images_for_logging(
               config,

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -347,7 +347,7 @@ def get_nearest_neighbors(embeddings,
     arr = arr[:embeddings.shape[0]]
     return arr
 
-  return jax.tree_map(_reshape, result)
+  return jax.tree.map(_reshape, result)
 
 
 def naive_expm(matrix, iterations=10):

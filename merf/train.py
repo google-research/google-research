@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -203,7 +203,7 @@ def main(unused_argv):
           config,
           verbose=False,
       )
-      cpu = jax.devices('cpu')[0]
+      cpu = jax.local_devices(backend='cpu')[0]
       metric = metric_harness(
           jax.device_put(rendering['rgb'], cpu),
           jax.device_put(rendered_dataset.images[img_idx], cpu),
@@ -455,7 +455,7 @@ def main(unused_argv):
 
   def to_gpu(*x):
     fn = lambda x: jnp.array(x) if x is not None else None
-    return jax.tree_map(fn, x)
+    return jax.tree.map(fn, x)
 
   (
       planes_features_gpu,
@@ -505,7 +505,7 @@ def main(unused_argv):
     img_dir = path.join(baked_render_dir, f'rgb.test.{render_index:03d}.png')
     utils.save_img_u8(rendering['rgb'], img_dir)
 
-    cpu = jax.devices('cpu')[0]
+    cpu = jax.local_devices(backend='cpu')[0]
     metric = metric_harness(
         jax.device_put(rendering['rgb'], cpu),
         jax.device_put(test_dataset.images[render_index], cpu),

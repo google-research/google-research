@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -132,6 +132,57 @@ class ScorerTest(absltest.TestCase):
     self.assertAlmostEqual(0, score['smart1']['fmeasure'])
     self.assertAlmostEqual(0, score['smart2']['fmeasure'])
     self.assertAlmostEqual(0, score['smartL']['fmeasure'])
+
+  def test_assymetric_matching(self):
+    # Example assymetric matching fn
+    def assym_matching_fn(alist, blist):
+      return [min(len(a), len(b)) / len(a) for a, b in zip(alist, blist)]
+
+    can = [
+        'abcde',
+        'ab'
+    ]
+    ref = [
+        'ab',
+        'a'
+    ]
+    # Resulting score_matrix should be
+    # 1.0 1.0
+    # 1.0 1.0
+    # Resulting rev_score_matrix should be
+    # 0.4 0.2
+    # 1.0 0.5
+
+    smart_scorer = scorer.SmartScorer(
+        matching_fn=assym_matching_fn, is_symmetric_matching=False)
+    score = smart_scorer.smart_score(ref, can)
+
+    # SMART-1
+    r1_rec = (1.0 + 1.0) / 2
+    r1_prec = (0.4 + 1.0) / 2
+
+    # SMART-2
+    # bigram_score_matrix would be
+    # 0.5 0.5 0.0
+    # 0.5 1.0 0.5
+    # 0.0 0.5 0.5
+    # rev_bigram_score_matrix would be
+    # 0.2 0.1  0.0
+    # 0.5 0.45 0.1
+    # 0.0 0.5  0.25
+    r2_rec = (0.5 + 1.0 + 0.5) / 3
+    r2_prec = (0.2 + 0.5 + 0.5) / 3
+
+    # SMART-L
+    rl_rec = (1.0 + 1.0) / 2
+    rl_prec = (0.4 + 1.0) / 2
+
+    self.assertAlmostEqual(r1_rec, score['smart1']['recall'])
+    self.assertAlmostEqual(r1_prec, score['smart1']['precision'])
+    self.assertAlmostEqual(r2_rec, score['smart2']['recall'])
+    self.assertAlmostEqual(r2_prec, score['smart2']['precision'])
+    self.assertAlmostEqual(rl_rec, score['smartL']['recall'])
+    self.assertAlmostEqual(rl_prec, score['smartL']['precision'])
 
 
 if __name__ == '__main__':

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -59,7 +59,7 @@ from typing import NamedTuple, Optional, Any, Union
 import numpy as onp
 
 import jax
-from jax.config import config
+from jax import config
 # config.update('jax_disable_jit', True)
 print(jax.devices())
 import jax.numpy as jnp
@@ -457,7 +457,7 @@ def full_pes_grad(key, params, data, targets, K, sigma, N):
 
   T = len(data)
   t = 0
-  gradient_estimate = jax.tree_map(lambda x: jnp.zeros(x.shape), theta)
+  gradient_estimate = jax.tree.map(lambda x: jnp.zeros(x.shape), theta)
   while t < T:
     grad_pes_term = estimator.grad_estimate(theta, update_state=True)
     gradient_estimate += grad_pes_term

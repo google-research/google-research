@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -172,7 +172,7 @@ def _read_lookbacks(tables, lookbacks):
   def go(table, lookback_dict):
     return {k: table[indices] for k, indices in lookback_dict.items()}
 
-  return jax.tree_map(go, tables, lookbacks)
+  return jax.tree.map(go, tables, lookbacks)
 
 
 def _add_lookbacks(tables, lookbacks, updates):
@@ -182,7 +182,7 @@ def _add_lookbacks(tables, lookbacks, updates):
       table = table.at[indices].add(updates[k])
     return table
 
-  return jax.tree_map(go, tables, lookbacks, updates)
+  return jax.tree.map(go, tables, lookbacks, updates)
 
 
 def dynamic_program(destination,
@@ -217,13 +217,13 @@ def dynamic_program(destination,
     # we can take gradients with respect to the ndarrays accessed while running
     # kernel_fn. Those args will be captured into `kernel_args` and threaded
     # through custom gradient logic.
-    example_indices = jax.tree_map(lambda b: b[0], schedule.indices(0))
+    example_indices = jax.tree.map(lambda b: b[0], schedule.indices(0))
     # TODO(ddjohnson): this may not allow gradients when under batch tracers.
     lookback_closure, lookback_args = jax.closure_convert(
         lookback_fn, example_indices)
 
     example_lookback_ixs = jax.eval_shape(lookback_fn, example_indices)
-    example_lookback_ixs = jax.tree_map(lambda s: jnp.zeros(s.shape, s.dtype),
+    example_lookback_ixs = jax.tree.map(lambda s: jnp.zeros(s.shape, s.dtype),
                                         example_lookback_ixs)
     example_lookback_reads = _read_lookbacks(destination, example_lookback_ixs)
 
@@ -250,7 +250,7 @@ def _dynamic_program(destination, lookback_fn, kernel_fn, schedule):
 
     outs = jax.vmap(go)(indices)
     # Scatter into our table in parallel.
-    return jax.tree_map(lambda st, sv: st.at[indices].set(sv), table, outs)
+    return jax.tree.map(lambda st, sv: st.at[indices].set(sv), table, outs)
 
   return jax.lax.fori_loop(0, schedule.num_steps, step, destination)
 
@@ -305,7 +305,7 @@ def _dynamic_program_bwd(schedule, lookback_closure, kernel_closure, saved,
       outs = jax.vmap(lambda vs, i: kernel_closure(vs, i, *kernel_args))(
           lookback_values, indices
       )
-      new_table = jax.tree_map(
+      new_table = jax.tree.map(
           lambda st, sv: st.at[indices].set(sv), table, outs
       )
       return new_table, kernel_args

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ def sm3(
       return ParameterStats(accumulators, momentum)  # pytype: disable=wrong-arg-types  # numpy-scalars
 
     return SM3State(
-        count=jnp.zeros([], jnp.int32), stats=jax.tree_map(_init, params))
+        count=jnp.zeros([], jnp.int32), stats=jax.tree.map(_init, params))
 
   def _get_expanded_shape(shape, i):
     rank = len(shape)
@@ -119,11 +119,11 @@ def sm3(
   def update_fn(updates, state, params):
     stats = state.stats
     if normalize_grads:
-      updates = jax.tree_map(
+      updates = jax.tree.map(
           lambda g: g / (jnp.linalg.norm(g) + 1e-16), updates)
     # Reshape all vectors into N-d tensors to compute min over them.
     # [n], [m] -> [n, 1], [1, m]
-    expanded_diagonal_statistics = jax.tree_map(
+    expanded_diagonal_statistics = jax.tree.map(
         lambda grad, state:  # pylint:disable=g-long-lambda
         [
             jnp.reshape(state.diagonal_statistics[i],
@@ -134,28 +134,28 @@ def sm3(
         stats)
 
     # Compute new diagonal statistics
-    new_diagonal_statistics = jax.tree_map(_moving_averages, updates,
+    new_diagonal_statistics = jax.tree.map(_moving_averages, updates,
                                            expanded_diagonal_statistics)
 
     # Compute preconditioners (1/sqrt(s)) where s is the statistics.
-    new_preconditioners = jax.tree_map(
+    new_preconditioners = jax.tree.map(
         lambda t: 1.0 / jnp.sqrt(t + diagonal_epsilon), new_diagonal_statistics)
-    preconditioned_grads = jax.tree_map(lambda g, p: g * p, updates,
+    preconditioned_grads = jax.tree.map(lambda g, p: g * p, updates,
                                         new_preconditioners)
 
     # Compute updated momentum (also handle quantization)
-    updated_momentum = jax.tree_map(
+    updated_momentum = jax.tree.map(
         lambda preconditioned_grad, state:  # pylint:disable=g-long-lambda
         _moving_averages_momentum(preconditioned_grad, state.diagonal_momentum),
         preconditioned_grads,
         stats)
 
     # Update diagonal statistics.
-    updated_diagonal_statistics = jax.tree_map(_sketch_diagonal_statistics,
+    updated_diagonal_statistics = jax.tree.map(_sketch_diagonal_statistics,
                                                updates, new_diagonal_statistics)
 
     # Update momentum.
-    new_sm3_stats = jax.tree_map(
+    new_sm3_stats = jax.tree.map(
         lambda momentum, diagonal_stats:  # pylint:disable=g-long-lambda
         ParameterStats(diagonal_stats, _quantize_momentum(momentum)),
         updated_momentum,
@@ -164,14 +164,14 @@ def sm3(
     # Apply weight decay
     updated_momentum_with_wd = updated_momentum
     if weight_decay > 0.0:
-      updated_momentum_with_wd = jax.tree_map(lambda g, p: g + weight_decay * p,
+      updated_momentum_with_wd = jax.tree.map(lambda g, p: g + weight_decay * p,
                                               updated_momentum, params)
 
     lr = learning_rate
     if callable(learning_rate):
       lr = learning_rate(state.count)
 
-    new_updates = jax.tree_map(lambda pg: -lr * pg, updated_momentum_with_wd)
+    new_updates = jax.tree.map(lambda pg: -lr * pg, updated_momentum_with_wd)
     return new_updates, SM3State(count=state.count+1, stats=new_sm3_stats)
 
   return optax.GradientTransformation(init_fn, update_fn)

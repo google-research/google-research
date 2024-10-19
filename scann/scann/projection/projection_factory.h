@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -58,8 +58,9 @@ inline StatusOr<unique_ptr<ChunkingProjection<T>>> ChunkingProjectionFactory(
     case ProjectionConfig::IDENTITY_CHUNK:
       break;
     default: {
-      TF_ASSIGN_OR_RETURN(initial_projection,
-                          ProjectionFactory<T>(config, dataset, seed_offset));
+      SCANN_ASSIGN_OR_RETURN(
+          initial_projection,
+          ProjectionFactory<T>(config, dataset, seed_offset));
       break;
     }
   }

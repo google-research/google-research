@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -323,4 +323,70 @@ class RpnAnchorLabeler(AnchorLabeler):
     score_targets_dict = self._anchor.unpack_labels(score_targets)
     box_targets_dict = self._anchor.unpack_labels(box_targets)
 
+    return score_targets_dict, box_targets_dict
+
+
+class RpnAnchorCenternessLabeler(RpnAnchorLabeler):
+  """Centerness labeler for Region Proposal Network."""
+
+  def __init__(self,
+               anchor,
+               match_threshold=0.7,
+               unmatched_threshold=0.3,
+               rpn_batch_size_per_im=256,
+               rpn_fg_fraction=0.5):
+    RpnAnchorLabeler.__init__(self,
+                              anchor=anchor,
+                              match_threshold=match_threshold,
+                              unmatched_threshold=unmatched_threshold,
+                              rpn_batch_size_per_im=rpn_batch_size_per_im,
+                              rpn_fg_fraction=rpn_fg_fraction)
+    similarity_calc = region_similarity_calculator.IouSimilarity()
+    matcher = argmax_matcher.ArgMaxMatcher(
+        match_threshold,
+        unmatched_threshold=unmatched_threshold,
+        negatives_lower_than_unmatched=True,
+        force_match_for_each_row=True)
+    box_coder = faster_rcnn_box_coder.LRTBBoxCoder()
+    self._target_assigner = target_assigner.CenternessTargetAssigner(
+        similarity_calc, matcher, box_coder)
+
+  def label_anchors(self,
+                    gt_boxes,
+                    gt_labels):
+    """Labels anchors with ground truth inputs with centerness targets.
+
+    Args:
+      gt_boxes: a float tensor with shape [N, 4] representing groundtruth boxes.
+        For each row, it stores [y0, x0, y1, x1] for four corners of a box.
+      gt_labels: an integer tensor with shape [N, 1] representing groundtruth
+        classes.
+    Returns:
+      score_targets_dict: ordered dictionary with keys
+        [min_level, min_level+1, ..., max_level]. The values are tensor with
+        shape [height_l, width_l, num_anchors]. The height_l and width_l
+        represent the dimension of class logits at l-th level.
+      box_targets_dict: ordered dictionary with keys
+        [min_level, min_level+1, ..., max_level]. The values are tensor with
+        shape [height_l, width_l, num_anchors * 4]. The height_l and
+        width_l represent the dimension of bounding box regression output at
+        l-th level.
+    """
+    gt_box_list = box_list.BoxList(gt_boxes)
+    anchor_box_list = box_list.BoxList(self._anchor.boxes)
+
+    # cls_targets, cls_weights, box_weights are not used.
+    center_targets, _, box_targets, _, matches = self._target_assigner.assign(
+        anchor_box_list, gt_box_list, gt_labels)
+
+    # score_targets contains the subsampled positive and negative anchors.
+    score_targets, _, _ = self._get_rpn_samples(matches.match_results)
+    ignore_masks = tf.equal(score_targets, -1)
+    center_targets = tf.where(ignore_masks,
+                              (-1) * tf.ones_like(center_targets),
+                              center_targets)
+    score_targets_dict = self._anchor.unpack_labels(center_targets)
+
+    # Unpacks labels.
+    box_targets_dict = self._anchor.unpack_labels(box_targets)
     return score_targets_dict, box_targets_dict

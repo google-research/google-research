@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,10 +21,10 @@
 #include <array>
 #include <type_traits>
 
+#include "absl/base/prefetch.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace zip_sort_internal {
@@ -44,11 +44,11 @@ inline size_t MedianOf3(Comparator comp, T iter, size_t index1, size_t index2) {
   DCHECK_GT(index2, index1);
   const size_t mid_index = index1 + (index2 - index1) / 2;
   const auto& mid = iter[mid_index];
-  ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(&mid);
+  absl::PrefetchToLocalCacheNta(&mid);
   const auto& first = iter[index1];
-  ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(&first);
+  absl::PrefetchToLocalCacheNta(&first);
   const auto& last = iter[index2 - 1];
-  ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(&last);
+  absl::PrefetchToLocalCacheNta(&last);
 
   if (comp(mid, first)) {
     if (comp(last, mid)) {
@@ -71,7 +71,7 @@ inline size_t MedianOf3(Comparator comp, T iter, size_t index1, size_t index2) {
 
 template <typename T>
 void PrefetchIter(T iter) {
-  ::tensorflow::port::prefetch<::tensorflow::port::PREFETCH_HINT_NTA>(&(*iter));
+  absl::PrefetchToLocalCacheNta(&(*iter));
 }
 
 template <typename T, typename Comparator>

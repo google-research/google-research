@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -33,8 +33,8 @@ import six
 from six.moves import range
 import tensorflow.compat.v1 as tf
 
-from rouge import rouge_scorer
-from rouge import scoring
+from rouge_score import rouge_scorer
+from rouge_score import scoring
 from summae import p2s_eval
 from summae import util
 

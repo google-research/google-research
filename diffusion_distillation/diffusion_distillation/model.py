@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class Model:
     init_params = self.make_init_params(
         global_rng=jax.random.PRNGKey(self.config.seed))
     logging.info('Param shapes: {}'.format(
-        jax.tree_map(lambda a: a.shape, init_params)))
+        jax.tree.map(lambda a: a.shape, init_params)))
     logging.info('Number of trainable parameters: {:,}'.format(
         utils.count_params(init_params)))
 
@@ -117,7 +117,7 @@ class Model:
     loaded_state = checkpoints.restore_from_path(ckpt_path, target=None)
     teacher_params = loaded_state['ema_params']
     teacher_params = flax.core.unfreeze(teacher_params)
-    teacher_params = jax.tree_map(
+    teacher_params = jax.tree.map(
         lambda x, y: onp.reshape(x, y.shape) if hasattr(y, 'shape') else x,
         teacher_params,
         flax.core.unfreeze(teacher_state.ema_params))
@@ -239,9 +239,9 @@ class Model:
       if config.train.get('enable_update_skip', True):
         # Apply update if the new optimizer state is all finite
         ok = jnp.all(jnp.asarray([
-            jnp.all(jnp.isfinite(p)) for p in jax.tree_leaves(new_optimizer)]))
+            jnp.all(jnp.isfinite(p)) for p in jax.tree.leaves(new_optimizer)]))
         new_state_no_update = state.replace(step=step + 1)
-        state = jax.tree_map(
+        state = jax.tree.map(
             lambda a, b: jnp.where(ok, a, b), new_state, new_state_no_update)
       else:
         logging.info('Update skipping disabled')

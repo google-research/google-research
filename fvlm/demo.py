@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -121,7 +121,7 @@ def main(argv):
   # Parse the image data.
   parser_fn = input_utils.get_maskrcnn_parser()
   data = parser_fn({'image': np_image, 'source_id': np.array([0])})
-  np_data = jax.tree_map(lambda x: x.numpy()[np.newaxis, Ellipsis], data)
+  np_data = jax.tree.map(lambda x: x.numpy()[np.newaxis, Ellipsis], data)
   np_data['text'] = text_embeddings
   np_data['image'] = np_data.pop('images')
   labels = np_data.pop('labels')

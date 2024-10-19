@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -151,17 +151,7 @@ class Task : public TaskInterface {
         valid_labels_(std::move(other.valid_labels_)),
         valid_epochs_(std::move(other.valid_epochs_)) {}
 
-  Task& operator=(Task&& other) {
-    this->index_ = other.index_;
-    this->eval_type_ = other.eval_type_;
-    this->train_features_ = std::move(other.train_features_);
-    this->train_labels_ = std::move(other.train_labels_);
-    this->train_epochs_ = std::move(other.train_epochs_);
-    this->valid_features_ = std::move(other.valid_features_);
-    this->valid_labels_ = std::move(other.valid_labels_);
-    this->valid_epochs_ = std::move(other.valid_epochs_);
-    return *this;
-  }
+  Task& operator=(Task&& other) = delete;
 
   bool operator==(const Task<F>& other) const {
     CHECK_EQ(train_features_.size(), train_labels_.size());

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -204,7 +204,7 @@ class GraphBundleTest(absltest.TestCase):
       self.assertEqual(x.shape, y.shape)
       self.assertEqual(x.dtype, y.dtype)
 
-    jax.tree_map(_check, generated, padded_example)
+    jax.tree.map(_check, generated, padded_example)
 
 
 if __name__ == "__main__":

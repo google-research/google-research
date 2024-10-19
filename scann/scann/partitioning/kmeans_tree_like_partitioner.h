@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,22 +20,19 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/status/status.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/lib/core/status.h"
 
 namespace research_scann {
 
 template <typename T>
 class KMeansTreeLikePartitioner : public Partitioner<T> {
  public:
-  virtual const shared_ptr<const DistanceMeasure>&
-  database_tokenization_distance() const = 0;
-
   virtual const shared_ptr<const DistanceMeasure>& query_tokenization_distance()
       const = 0;
 
@@ -48,28 +45,24 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
 
   virtual Status TokensForDatapointWithSpilling(
       const DatapointPtr<T>& dptr, int32_t max_centers_override,
-      vector<KMeansTreeSearchResult>* result) const = 0;
+      vector<pair<DatapointIndex, float>>* result) const = 0;
 
   virtual Status TokensForDatapointWithSpillingBatched(
       const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<KMeansTreeSearchResult>> results,
-      ThreadPool* pool) const = 0;
-  Status TokensForDatapointWithSpillingBatched(
-      const TypedDataset<T>& queries, ConstSpan<int32_t> max_centers_override,
-      MutableSpan<std::vector<KMeansTreeSearchResult>> results) const {
-    return TokensForDatapointWithSpillingBatched(queries, max_centers_override,
-                                                 results, nullptr);
-  }
+      MutableSpan<std::vector<pair<DatapointIndex, float>>> results,
+      ThreadPool* pool = nullptr) const = 0;
 
-  virtual Status TokenForDatapoint(const DatapointPtr<T>& dptr,
-                                   KMeansTreeSearchResult* result) const = 0;
+  virtual Status TokenForDatapoint(
+      const DatapointPtr<T>& dptr,
+      pair<DatapointIndex, float>* result) const = 0;
 
   virtual Status TokenForDatapointBatched(
       const TypedDataset<T>& queries,
-      std::vector<KMeansTreeSearchResult>* result, ThreadPool* pool) const = 0;
+      std::vector<pair<DatapointIndex, float>>* result,
+      ThreadPool* pool) const = 0;
   Status TokenForDatapointBatched(
       const TypedDataset<T>& queries,
-      std::vector<KMeansTreeSearchResult>* result) const {
+      std::vector<pair<DatapointIndex, float>>* result) const {
     return TokenForDatapointBatched(queries, result, nullptr);
   }
 
@@ -80,6 +73,10 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
                                                 int32_t token, bool) const {
     return ResidualizeToFloat(dptr, token);
   }
+
+  virtual const DenseDataset<float>& LeafCenters() const = 0;
+
+  virtual uint32_t query_spilling_max_centers() const = 0;
 };
 
 }  // namespace research_scann

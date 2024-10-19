@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -156,15 +156,18 @@ class Concat(Program):
     return (functools.reduce(lambda a, b: a + b, sub_token_ids)
             + [token_id_table[EOS]])
 
-  def to_python_program(self, name = 'program'):
-    code_lines = []
-    code_lines.append(f'def {name}(x):')
-    code_lines.append('  parts = [')
-    for e in self.expressions:
-      code_lines.append(f'      {e.to_python_expression()},')
-    code_lines.append('  ]')
-    code_lines.append("  return ''.join(parts)")
-    return '\n'.join(code_lines)
+  def to_python_program(self, name = 'program', version = 1):
+    if version == 1:
+      code_lines = []
+      code_lines.append(f'def {name}(x):')
+      code_lines.append('  parts = [')
+      for e in self.expressions:
+        code_lines.append(f'      {e.to_python_expression()},')
+      code_lines.append('  ]')
+      code_lines.append("  return ''.join(parts)")
+      return '\n'.join(code_lines)
+    else:
+      raise ValueError(f'Unhandled version: {version}')
 
 
 class Expression(Base):

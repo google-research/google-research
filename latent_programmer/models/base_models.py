@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -380,10 +380,10 @@ class EncoderDecoderBlock(nn.Module):
           use_bias=False,
           broadcast_dropout=False,
           dropout_rate=cfg.attention_dropout_rate,
-          deterministic=cfg.deterministic)(y, encoded, encoder_decoder_mask)
+          deterministic=cfg.deterministic,
+      )(y, encoded, mask=encoder_decoder_mask)
 
-    y = nn.Dropout(rate=cfg.dropout_rate)(
-        y, deterministic=cfg.deterministic)
+    y = nn.Dropout(rate=cfg.dropout_rate)(y, deterministic=cfg.deterministic)
     y = y + x
 
     # MLP block.

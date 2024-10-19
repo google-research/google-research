@@ -1,0 +1,154 @@
+<!--
+   Copyright 2024 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+
+<!-- Disable zooming: -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+
+<head>
+    <!-- change this to your project name -->
+    <title>Brush 🖌️</title>
+
+    <!-- config for our rust wasm binary. go to https://trunkrs.dev/assets/#rust for more customization -->
+    <link data-trunk rel="rust" data-wasm-opt="2" />
+    
+    <!-- this is the base url relative to which other urls will be constructed. trunk will insert this from the public-url option -->
+    <base data-trunk-public-url />
+
+    <link data-trunk rel="icon" href="assets/favicon.ico">
+
+    <link data-trunk rel="copy-file" href="assets/sw.js" />
+    <link data-trunk rel="copy-file" href="assets/manifest.json" />
+    <link data-trunk rel="copy-file" href="assets/icon-1024.png" />
+    <link data-trunk rel="copy-file" href="assets/icon-256.png" />
+    <link data-trunk rel="copy-file" href="assets/icon_ios_touch_192.png" />
+    <link data-trunk rel="copy-file" href="assets/maskable_icon_x512.png" />
+
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon_ios_touch_192.png">
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="white">
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#404040">
+
+    <style>
+        html {
+            /* Remove touch delay: */
+            touch-action: manipulation;
+        }
+
+        body {
+            /* Light mode background color for what is not covered by the egui canvas,
+            or where the egui canvas is translucent. */
+            background: #909090;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body {
+                /* Dark mode background color for what is not covered by the egui canvas,
+                or where the egui canvas is translucent. */
+                background: #404040;
+            }
+        }
+
+        /* Allow canvas to fill entire web page: */
+        html,
+        body {
+            overflow: hidden;
+            margin: 0 !important;
+            padding: 0 !important;
+            height: 100%;
+            width: 100%;
+        }
+
+        /* Position canvas in center-top: */
+        canvas {
+            margin-right: auto;
+            margin-left: auto;
+            display: block;
+            position: absolute;
+            top: 0%;
+            left: 50%;
+            height: 100%;
+            width: 100%;
+            transform: translate(-50%, 0%);
+        }
+
+        .centered {
+            margin-right: auto;
+            margin-left: auto;
+            display: block;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #f0f0f0;
+            font-size: 24px;
+            font-family: Ubuntu-Light, Helvetica, sans-serif;
+            text-align: center;
+        }
+
+        /* ---------------------------------------------- */
+        /* Loading animation from https://loading.io/css/ */
+        .lds-dual-ring {
+            display: inline-block;
+            width: 24px;
+            height: 24px;
+        }
+
+        .lds-dual-ring:after {
+            content: " ";
+            display: block;
+            width: 24px;
+            height: 24px;
+            margin: 0px;
+            border-radius: 50%;
+            border: 3px solid #fff;
+            border-color: #fff transparent #fff transparent;
+            animation: lds-dual-ring 1.2s linear infinite;
+        }
+
+        @keyframes lds-dual-ring {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- The WASM code will resize the canvas dynamically -->
+    <!-- the id is hardcoded in main.rs . so, make sure both match. -->
+    <canvas id="main_canvas"></canvas>
+
+    <!--Register Service Worker. this will cache the wasm / js scripts for offline use (for PWA functionality). -->
+    <!-- Force refresh (Ctrl + F5) to load the latest files instead of cached files  -->
+    <script>
+        // We disable caching during development so that we always view the latest version.
+        if ('serviceWorker' in navigator && window.location.hash !== "#dev") {
+            window.addEventListener('load', function () {
+                navigator.serviceWorker.register('sw.js');
+            });
+        }
+    </script>
+</body>
+
+</html>

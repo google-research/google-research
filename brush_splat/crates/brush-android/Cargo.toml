@@ -1,0 +1,20 @@
+[package]
+name = "brush-android"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+winit = { version = "0.30", features = ["android-game-activity"] }
+eframe.workspace = true
+brush-viewer.path = "../brush-viewer"
+rrfd.path = "../rrfd"
+
+android_logger = "0.14.1"
+jni = "0.21.1"
+log.workspace = true
+
+[lib]
+name = "main"
+crate-type = ["cdylib"]

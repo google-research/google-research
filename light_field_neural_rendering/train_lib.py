@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -104,7 +104,7 @@ def train_step(
 
     #------------------------------------------------------------------------
     # Weight Regularization
-    weight_penalty_params = jax.tree_leaves(variables["params"])
+    weight_penalty_params = jax.tree.leaves(variables["params"])
     weight_l2 = sum(
         [jnp.sum(x**2) for x in weight_penalty_params if x.ndim > 1])
     weight_penalty = weight_decay * 0.5 * weight_l2
@@ -157,7 +157,7 @@ def eval_step(state, rng, batch,
   """
   logging.info("eval_step=================")
   variables = {
-      "params": jax.device_get(jax.tree_map(lambda x: x[0], state)).params,
+      "params": jax.device_get(jax.tree.map(lambda x: x[0], state)).params,
   }
   pred_color, pred_disp, pred_acc = render_utils.render_image(
       functools.partial(render_pfn, variables),
@@ -334,7 +334,7 @@ def train_and_evaluate(config, workdir):
             log_dict[k] = v.item()
           f.write(json.dumps(log_dict))
         with report_progress.timed("checkpoint"):
-          state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
+          state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
           checkpoints.save_checkpoint(workdir, state_to_save, step, keep=100)
 
   logging.info("Finishing training at step %d", num_train_steps)

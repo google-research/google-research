@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -80,7 +80,7 @@ class TreeTest(absltest.TestCase):
 
     # Check that values match regular JAX tree_flatten.
     self.assertEqual([x for _, x in names_and_values],
-                     jax.tree_flatten(tree)[0])
+                     jax.tree.flatten(tree)[0])
 
   def test_tree_map_with_names(self):
     tree = {"a": 1, "b": 2}
@@ -98,13 +98,8 @@ class TreeTest(absltest.TestCase):
     self.assertIsInstance(replicated_tree["a"], jax.Array)
     self.assertIsInstance(replicated_tree["b"], int)
     self.assertEqual(replicated_tree["a"].shape, (n, 4))
-
-    expected_sharding = (
-        jax.interpreters.pxla.Unstacked(n),
-        jax.interpreters.pxla.NoSharding(),
-    )
-    self.assertEqual(replicated_tree["a"].sharding.sharding_spec.sharding,
-                     expected_sharding)
+    self.assertEqual(replicated_tree["a"].sharding,
+                     jax.sharding.PmapSharding.default((n, 4), 0))
 
   def test_tree_shard_by_name(self):
     n = jax.local_device_count()
@@ -115,12 +110,8 @@ class TreeTest(absltest.TestCase):
     self.assertIsInstance(sharded_tree["b"], int)
 
     self.assertEqual(sharded_tree["a"].shape, (n, 4))
-    expected_sharding = (
-        jax.interpreters.pxla.Unstacked(n),
-        jax.interpreters.pxla.NoSharding(),
-    )
-    self.assertEqual(sharded_tree["a"].sharding.sharding_spec.sharding,
-                     expected_sharding)
+    self.assertEqual(sharded_tree["a"].sharding,
+                     jax.sharding.PmapSharding.default((n, 4), 0))
 
   def test_tree_unreplicate_by_name(self):
     tree = dict(a=jnp.ones((8, 4)), b=25)

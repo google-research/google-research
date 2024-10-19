@@ -1,0 +1,25 @@
+RecentEarthquakesEncoder.prepare_features:
+  limit_lookback_seconds = 1000
+  max_earthquakes = 50
+
+BiggestEarthquakesEncoder.prepare_features:
+  limit_lookback_seconds = 1000
+  max_earthquakes = 50
+
+SeismicityRateEncoder.prepare_features:
+  grid_side_deg = 0.5
+  # The lookbacks are log-spaced, that is the diff is 1h, 4h, 16h, etc.
+  lookback_seconds = [3600,18000,75600,306000,1227600,4914000,19659600,78642000]
+  magnitudes = [2, 2.5, 3, 3.5, 4, 4.5, 5]
+
+_project_utm.projection = @california_projection()
+
+rnn_model:
+  units = (13, 7)
+
+magnitude_prediction_model:
+  n_model_parameters = 6
+  hidden_layer_sizes = [16, 8]
+
+_mock_earthquake:
+  add_angles = True

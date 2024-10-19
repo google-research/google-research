@@ -1,0 +1,7 @@
+tensorflow_text>=2.15,<2.16
+tensorflow>=2.15,<2.16
+transformers>=4.34.1,<=4.37
+numpy>=1.23.5,<=1.26
+absl-py>=1.2.0
+clu>=0.0.12,<0.1
+tensorflow-datasets>=4.8,<4.10

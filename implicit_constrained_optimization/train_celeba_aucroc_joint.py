@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -256,7 +256,7 @@ def train_step(model, threshold_var, loss_op, constraint_op, optimizer,
             -1 * grad_loss_th,
             tf.sign(grad_constraint_th + 1e-10) * tf.clip_by_value(
                 tf.abs(grad_constraint_th), FLAGS.clip_grad_min_ratio,
-                np.infty))
+                np.inf))
       constraint_weighted = tf.reduce_sum(
           tf.multiply(constraint_per_label, ratio_grads_th))
       del tape2

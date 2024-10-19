@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,25 +56,30 @@ class SACConvNetwork(nn.Module):
 
   def setup(self):
     self._encoder = internal_continuous_networks.SACEncoderNetwork()
-    self._sac_network = continuous_networks.SACNetwork(
-        self.action_shape, self.num_layers,
-        self.hidden_units, self.action_limits)
+    self._sac_network = continuous_networks.ActorCriticNetwork(
+        self.action_shape,
+        self.num_layers,
+        self.hidden_units,
+        self.action_limits,
+    )
 
-  def __call__(self,
-               state,
-               key,
-               mean_action = True):
+  def __call__(
+      self, state, key, mean_action = True
+  ):
     """Calls the SAC actor/critic networks."""
     encoding = self._encoder(state)
 
     actor_output = self._sac_network.actor(encoding.actor_z, key)
-    action = actor_output.mean_action if mean_action else actor_output.sampled_action
+    action = (
+        actor_output.mean_action if mean_action else actor_output.sampled_action
+    )
     critic_output = self._sac_network.critic(encoding.critic_z, action)
 
     return SacOutput(actor_output, critic_output, encoding.critic_z)
 
-  def actor(self, state,
-            key):
+  def actor(
+      self, state, key
+  ):
     """Calls the SAC actor network."""
     encoding = self._encoder(state)
     return self._sac_network.actor(encoding.actor_z, key)

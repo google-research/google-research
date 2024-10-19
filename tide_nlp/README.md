@@ -31,7 +31,6 @@ Finally, download the default spaCy model.
 python -m spacy download en_core_web_sm
 ```
 
-
 ## Citations
 If you would like to cite the paper/code, please use the following BibTeX entry:
 

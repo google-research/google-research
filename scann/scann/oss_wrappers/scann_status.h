@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 #ifndef SCANN_OSS_WRAPPERS_SCANN_STATUS_H_
 #define SCANN_OSS_WRAPPERS_SCANN_STATUS_H_
 
+#include "absl/base/optimization.h"
+#include "absl/status/status.h"
 #include "absl/strings/string_view.h"
 #include "scann/oss_wrappers/scann_status_builder.h"
 
@@ -56,9 +58,26 @@
 #define SCANN_LOG_NOOP(...) \
   while (false) LOG(ERROR)
 
+#define VLOG SCANN_LOG_NOOP
+#define DVLOG SCANN_LOG_NOOP
+
+#define SCANN_ASSIGN_OR_RETURN(lhs, rexpr) \
+  SCANN_ASSIGN_OR_RETURN_IMPL(             \
+      SCANN_MACROS_CONCAT_NAME(_status_or_value, __COUNTER__), lhs, rexpr)
+
+#define SCANN_ASSIGN_OR_RETURN_IMPL(statusor, lhs, rexpr) \
+  auto statusor = (rexpr);                                \
+  if (ABSL_PREDICT_FALSE(!statusor.ok())) {               \
+    return statusor.status();                             \
+  }                                                       \
+  lhs = std::move(statusor).value()
+
+#define SCANN_MACROS_CONCAT_NAME(x, y) SCANN_MACROS_CONCAT_IMPL(x, y)
+#define SCANN_MACROS_CONCAT_IMPL(x, y) x##y
+
 namespace research_scann {
 
-Status AnnotateStatus(const Status& s, absl::string_view msg);
+absl::Status AnnotateStatus(const absl::Status& s, absl::string_view msg);
 
 StatusBuilder RetCheckFail(absl::string_view msg);
 

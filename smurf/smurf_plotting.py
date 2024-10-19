@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ This library provides some plotting functionality for optical flow.
 
 # pylint:skip-file
 import io
+import math
 import os
 import time
 
@@ -107,10 +108,14 @@ def flow_to_rgb(flow):
 
   # Visualize flow using the HSV color space, where angles are represented by
   # hue and magnitudes are represented by saturation.
-  flow_hsv = tf.stack([((motion_angle / np.math.pi) + 1.) / 2.,
-                       tf.clip_by_value(motion_magnitude * scaling, 0.0, 1.0),
-                       tf.ones_like(motion_magnitude)],
-                      axis=-1)
+  flow_hsv = tf.stack(
+      [
+          ((motion_angle / math.pi) + 1.0) / 2.0,
+          tf.clip_by_value(motion_magnitude * scaling, 0.0, 1.0),
+          tf.ones_like(motion_magnitude),
+      ],
+      axis=-1,
+  )
 
   # Transform colors from HSV to RGB color space for plotting.
   return tf.image.hsv_to_rgb(flow_hsv)

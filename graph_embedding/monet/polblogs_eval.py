@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -216,7 +216,7 @@ def results_lineplot(df,
   plt.ylabel(y_title)
   if order is None:
     leg = plt.legend(loc=0, bbox_to_anchor=(1, 1), markerscale=3)
-    handles = leg.legendHandles
+    handles = leg.legend_handles
   else:
     ax = plt.gca()
     handles, labels = ax.get_legend_handles_labels()

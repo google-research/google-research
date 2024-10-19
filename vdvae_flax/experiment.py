@@ -87,7 +87,7 @@ class Experiment:
           jnp.ones(input_shape, dtype=jnp.uint8))
       parameter_overview.log_parameter_overview(params)
       # Use the same rng to init with the same params.
-      ema_params = jax.tree_map(jnp.array, params)
+      ema_params = jax.tree.map(jnp.array, params)
 
       opt_init, _ = self.optimizer(
           learning_rate=self.config.optimizer.base_learning_rate)
@@ -193,7 +193,7 @@ class Experiment:
         is_last_step = step + substeps >= num_train_steps
 
         with jax.profiler.StepTraceAnnotation('train', step_num=step):
-          inputs = jax.tree_map(np.asarray, next(self._train_iter))
+          inputs = jax.tree.map(np.asarray, next(self._train_iter))
           state, outputs = self._update_func(state, inputs)
 
         # Quick indication that training is happening.
@@ -214,7 +214,7 @@ class Experiment:
 
           # Extract scalars and images.
           outputs = flax_utils.unreplicate(outputs)
-          outputs = jax.tree_map(avg_over_substeps, outputs)
+          outputs = jax.tree.map(avg_over_substeps, outputs)
           scalars = outputs['scalars']
           writer.write_scalars(step, scalars)
 
@@ -256,7 +256,7 @@ class Experiment:
 
     # Update ema params
     ema_rate = self.config.evaluation.ema_rate
-    new_ema_params = jax.tree_map(
+    new_ema_params = jax.tree.map(
         lambda x, y: x + (1 - ema_rate) * (y - x),
         state.ema_params,
         new_params,
@@ -268,7 +268,7 @@ class Experiment:
         opt_state=new_opt_state)
 
     # Rescale loss dict and return
-    loss_dict['scalars'] = jax.tree_map(
+    loss_dict['scalars'] = jax.tree.map(
         lambda x: jax.lax.psum(x, axis_name='batch') / jax.device_count(),
         loss_dict['scalars'],
     )
@@ -361,11 +361,11 @@ class Experiment:
     rng = jax.random.fold_in(base_rng, jax.lax.axis_index('batch'))
     rng = jax.random.fold_in(rng, step)
     _, loss_dict = self._loss_fn(params, inputs, rng, for_evaluation=True)
-    loss_dict['scalars'] = jax.tree_map(
+    loss_dict['scalars'] = jax.tree.map(
         lambda x: jax.lax.psum(x, axis_name='batch') / jax.device_count(),
         loss_dict['scalars'],
     )
-    loss_dict['images'] = jax.tree_map(
+    loss_dict['images'] = jax.tree.map(
         lambda x: vdvae_utils.generate_image_grids(x)[None, :, :, :],
         loss_dict['images'])
 
@@ -378,7 +378,7 @@ class Experiment:
     i = 0
 
     for i, inputs in enumerate(self._eval_ds):
-      inputs = jax.tree_map(np.asarray, inputs)
+      inputs = jax.tree.map(np.asarray, inputs)
       outputs = self._eval_batch(
           params=params,
           inputs=inputs,
@@ -392,11 +392,11 @@ class Experiment:
         summed_scalars = scalars
         concat_images = images
       else:
-        summed_scalars = jax.tree_map(jnp.add, summed_scalars, scalars)
-        concat_images = jax.tree_map(
+        summed_scalars = jax.tree.map(jnp.add, summed_scalars, scalars)
+        concat_images = jax.tree.map(
             lambda x, y: jnp.concatenate((x, y), axis=1), concat_images, images)
 
-    mean_scalars = jax.tree_map(lambda x: x / (i + 1),
+    mean_scalars = jax.tree.map(lambda x: x / (i + 1),
                                 summed_scalars)
 
     return {'scalars': mean_scalars, 'images': concat_images}

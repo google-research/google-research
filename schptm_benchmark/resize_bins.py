@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -65,7 +65,7 @@ def save_anndata(adata, output_dir,
   """Saves AnnData object in 10X format."""
   tf.io.gfile.makedirs(output_dir)
   with tf.io.gfile.GFile(os.path.join(output_dir, 'matrix.mtx'), mode='w') as f:
-    scipy.io.mmwrite(f, adata.X.transpose())
+    scipy.io.mmwrite(f, adata.X.transpose())  # pytype: disable=attribute-error  # scipy
   new_bins = pd.DataFrame(adata.var_names, columns=['var_names'])
   with tf.io.gfile.GFile(os.path.join(output_dir, 'bins.tsv'), mode='w') as f:
     new_bins.to_csv(

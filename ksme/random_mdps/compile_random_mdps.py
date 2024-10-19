@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ def main(_):
         data['avg_gap'].append(run.avg_gap)
         data['max_gap'].append(run.max_gap)
   df = pd.DataFrame(data=data)
-  plt.style.use('seaborn-colorblind')
+  plt.style.use('seaborn-v0_8-colorblind')
   # First generate plots for each state-action pair.
   for ns in total_num_states:
     for na in total_num_actions:
@@ -126,7 +126,7 @@ def main(_):
     ax.set_ylabel(Y_LABELS[value], fontsize=24)
     if value == 'avg_gap':
       ax.legend(prop={'size': 24}, bbox_to_anchor=(0.5, 1.25), ncol=4)
-      for legobj in ax.get_legend().legendHandles:
+      for legobj in ax.get_legend().legend_handles:
         legobj.set_linewidth(6.0)
     else:
       ax.get_legend().remove()

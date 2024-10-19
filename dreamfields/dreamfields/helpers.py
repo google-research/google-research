@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,13 +100,13 @@ def all_finite(array):
 
 
 def all_finite_tree(tree):
-  finite_tree = jax.tree_map(all_finite, tree)
-  return all(jax.tree_leaves(finite_tree))
+  finite_tree = jax.tree.map(all_finite, tree)
+  return all(jax.tree.leaves(finite_tree))
 
 
 def state_to_variables(optimizer):
   """Convert an optimizer state to a variable dict."""
-  variables = jax.tree_map(operator.itemgetter(0), optimizer)
+  variables = jax.tree.map(operator.itemgetter(0), optimizer)
   variables = jax.device_get(variables).target
   return variables
 

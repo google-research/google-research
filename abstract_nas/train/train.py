@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -368,10 +368,10 @@ def train_and_eval(
           "ema_state": ema_state_cpu,
           "extra": checkpoint_extra
       }
-      checkpoint_tree = jax.tree_structure(checkpoint)
+      checkpoint_tree = jax.tree.structure(checkpoint)
       loaded = bv_utils.load_checkpoint(checkpoint_tree, checkpoint_path)
       # bfloat16 type gets lost when data is saved to disk, so we recover it.
-      checkpoint = jax.tree_map(bv_utils.recover_dtype, loaded)
+      checkpoint = jax.tree.map(bv_utils.recover_dtype, loaded)
       opt_cpu, coll_cpu, params_cpu, ema_state_cpu, checkpoint_extra = (
           checkpoint["opt"], checkpoint["coll"], checkpoint["params"],
           checkpoint["ema_state"], checkpoint["extra"])
@@ -409,10 +409,10 @@ def train_and_eval(
       if ema_manager_repl is None:
         return None
       ema_trainable_params_repl = ema_manager_repl.state["params"]
-      ema_trainable_params_cpu = jax.tree_map(lambda x: np.array(x[0]),
+      ema_trainable_params_cpu = jax.tree.map(lambda x: np.array(x[0]),
                                               ema_trainable_params_repl)
       ema_coll_repl = ema_manager_repl.state["coll"]
-      ema_coll_cpu = jax.tree_map(lambda x: np.array(x[0]), ema_coll_repl)
+      ema_coll_cpu = jax.tree.map(lambda x: np.array(x[0]), ema_coll_repl)
       ema_state_cpu = {"params": ema_trainable_params_cpu,
                        "coll": ema_coll_cpu}
       return ema_state_cpu
@@ -516,9 +516,9 @@ def train_and_eval(
         # alive while they'll be updated in a future step, creating hard to
         # debug memory errors (see b/160593526). Also, takes device 0's params
         # only.
-        opt_cpu = jax.tree_map(lambda x: np.array(x[0]), opt_repl)
-        coll_cpu = jax.tree_map(lambda x: np.array(x[0]), coll_repl)
-        trainable_params_cpu = jax.tree_map(lambda x: np.array(x[0]),
+        opt_cpu = jax.tree.map(lambda x: np.array(x[0]), opt_repl)
+        coll_cpu = jax.tree.map(lambda x: np.array(x[0]), coll_repl)
+        trainable_params_cpu = jax.tree.map(lambda x: np.array(x[0]),
                                             trainable_params_repl)
         params_cpu = {**trainable_params_cpu, **frozen_params}
         ema_state_cpu = ema_repl_to_state_cpu(ema_manager_repl)
@@ -534,9 +534,9 @@ def train_and_eval(
         }
         checkpoint_writer = pool.apply_async(bv_utils.save_checkpoint,
                                              (checkpoint, checkpoint_path))
-    coll_cpu = jax.tree_map(lambda x: np.array(x[0]), coll_repl)
-    opt_cpu = jax.tree_map(lambda x: np.array(x[0]), opt_repl)
-    trainable_params_cpu = jax.tree_map(lambda x: np.array(x[0]),
+    coll_cpu = jax.tree.map(lambda x: np.array(x[0]), coll_repl)
+    opt_cpu = jax.tree.map(lambda x: np.array(x[0]), opt_repl)
+    trainable_params_cpu = jax.tree.map(lambda x: np.array(x[0]),
                                         trainable_params_repl)
     params_cpu = {**trainable_params_cpu, **frozen_params}
     params_repl = {**trainable_params_repl, **frozen_repl}

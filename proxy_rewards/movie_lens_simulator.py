@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -138,8 +138,8 @@ class Response(user.AbstractResponse):
     # Ratings are cast into numpy floats to be consistent with the space
     # described by `spaces.Box` (see the response_space description below).
     return {
-        'rating': np.float_(self.rating),
-        'diversity': np.float_(self.diversity),
+        'rating': np.float64(self.rating),
+        'diversity': np.float64(self.diversity),
         'doc_id': np.int_(self.doc_id),
     }
 

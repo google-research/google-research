@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -149,7 +149,7 @@ class IPAGNN(nn.Module):
     def branch_decide_single_node(hidden_state):
       # leaves(hidden_state).shape: hidden_size
       hidden_state_concat = jnp.concatenate(
-          jax.tree_leaves(hidden_state), axis=0)
+          jax.tree.leaves(hidden_state), axis=0)
       return branch_decide_dense(hidden_state_concat)
     branch_decide = jax.vmap(branch_decide_single_node)
 
@@ -198,7 +198,7 @@ class IPAGNN(nn.Module):
         return (true_contributions + false_contributions) / denominators
       aggregate_component = jax.vmap(aggregate_component, in_axes=1, out_axes=1)
 
-      return jax.tree_map(aggregate_component, hidden_states)
+      return jax.tree.map(aggregate_component, hidden_states)
 
     def step_single_example(hidden_states, instruction_pointer,
                             node_embeddings, true_indexes, false_indexes,
@@ -215,7 +215,7 @@ class IPAGNN(nn.Module):
       def mask_h(h_contribution, h):
         return h_contribution.at[exit_index, :].set(h[exit_index, :])
 
-      hidden_state_contributions = jax.tree_map(mask_h,
+      hidden_state_contributions = jax.tree.map(mask_h,
                                                 hidden_state_contributions,
                                                 hidden_states)
 
@@ -256,7 +256,7 @@ class IPAGNN(nn.Module):
                 node_embeddings, true_indexes, false_indexes,
                 exit_index)
         )
-        carry = jax.tree_map(
+        carry = jax.tree.map(
             lambda new, old, index=index: jnp.where(index < steps, new, old),
             (hidden_states_new, instruction_pointer_new, index + 1),
             (hidden_states, instruction_pointer, index + 1),
@@ -269,9 +269,9 @@ class IPAGNN(nn.Module):
       (hidden_states, instruction_pointer, _), to_tag = lax.scan(
           step_, carry, None, length=max_steps)
 
-      final_state = jax.tree_map(lambda hs: hs[exit_index], hidden_states)
+      final_state = jax.tree.map(lambda hs: hs[exit_index], hidden_states)
       # leaves(final_state).shape: hidden_size
-      final_state_concat = jnp.concatenate(jax.tree_leaves(final_state), axis=0)
+      final_state_concat = jnp.concatenate(jax.tree.leaves(final_state), axis=0)
       logits = output_dense(final_state_concat)
       to_tag.update({
           'instruction_pointer_final': instruction_pointer,

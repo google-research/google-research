@@ -1,0 +1,8 @@
+tensorflow==2.15
+geopandas
+ipython
+xarray
+gin-config
+ipykernel
+tqdm
+tensorflow-probability

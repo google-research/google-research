@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -75,9 +75,9 @@ def optimization_manager(config):
     if grad_clip >= 0:
       # Compute global gradient norm
       grad_norm = jnp.sqrt(
-          sum([jnp.sum(jnp.square(x)) for x in jax.tree_leaves(grad)]))
+          sum([jnp.sum(jnp.square(x)) for x in jax.tree.leaves(grad)]))
       # Clip gradient
-      clipped_grad = jax.tree_map(
+      clipped_grad = jax.tree.map(
           lambda x: x * grad_clip / jnp.maximum(grad_norm, grad_clip), grad)
     else:  # disabling gradient clipping if grad_clip < 0
       clipped_grad = grad
@@ -262,7 +262,7 @@ def get_step_fn(sde, model, optimizer, train, optimize_fn=None,
       (loss, new_model_state), grad = grad_fn(step_rng, params, states, batch)
       grad = jax.lax.pmean(grad, axis_name='batch')
       new_params, new_opt_state = optimize_fn(state, grad, optimizer)
-      new_params_ema = jax.tree_map(
+      new_params_ema = jax.tree.map(
           lambda p_ema, p: p_ema * state.ema_rate + p * (1. - state.ema_rate),
           params, new_params)
       step = state.step + 1

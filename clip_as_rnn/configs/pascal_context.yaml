@@ -1,0 +1,60 @@
+clip:
+  semantic_clip_model_name: 'ViT-L/14'
+  semantic_pretrained_data: 'openai'
+  clip_model_name: "ViT-B/16"
+  pretrained_data: 'openai'
+
+
+car:
+  iom_thres: 0.5
+  mask_threshold: 0.6
+  stuff_mask_threshold: 0.6
+  min_area_ratio: 0.2
+  num_iteration: 1
+  confidence_threshold: 0.25
+  clipes_threshold: 0.4
+  bg_factor: 1
+  stuff_bg_factor: 1
+  has_pamr: False
+  visual_prompt_type: ['blur', 'circle']
+  stuff_visual_prompt_type: ['blur', 'gray']
+  semantic_templates: ['a clean origami {}.',
+                       'a photo of a {}.',
+                       'This is a photo of a {}',
+                       'There is a {} in the scene',
+                       'There is the {} in the scene',
+                       'a photo of a {} in the scene',
+                       'a photo of a small {}.',
+                       'a photo of a medium {}.',
+                       'a photo of a large {}.',
+                       'This is a photo of a small {}.',
+                       'This is a photo of a medium {}.',
+                       'This is a photo of a large {}.',
+                       'There is a small {} in the scene.',
+                       'There is a medium {} in the scene.',
+                       'There is a large {} in the scene.']
+
+
+
+  bg_cls: ['ground', 'land', 'grass', 'tree', 'building',
+            'wall', 'sky', 'lake', 'water', 'river', 'sea',
+            'railway', 'railroad', 'helmet', 'cloud', 'house',
+            'mountain', 'ocean', 'road', 'rock', 'street',
+            'valley', 'bridge']
+
+
+test:
+  algo: "car"
+  ds_name: "context"
+  seg_mode: "semantic"
+  n_class: 60
+  data_root: "$YOUR_DATA_DIR"
+  output_path: "./outputs/"
+  use_pseudo: True
+  split: "val"
+  num_chunks: 1
+  chunk_index: 0
+  ignore_background: False
+
+
+save_path: "./outputs"

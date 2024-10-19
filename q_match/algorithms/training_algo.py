@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -87,18 +87,18 @@ class TrainingAlgo(abc.ABC):
 
     self.rngs = {'dropout': jax.random.PRNGKey(0)}
 
-    batch_norm_mask = jax.tree_map(
+    batch_norm_mask = jax.tree.map(
         lambda x: not x,
         self.generate_parameter_ancestors(self.params, 'batch_norm'))
-    bias_mask = jax.tree_map(
+    bias_mask = jax.tree.map(
         lambda x: not x, self.is_leaf_name(self.params, 'bias'))
-    bias_and_bn_mask = jax.tree_map(lambda x, y: x and y, bias_mask,
+    bias_and_bn_mask = jax.tree.map(lambda x, y: x and y, bias_mask,
                                     batch_norm_mask)
 
     if weight_decay_mask is None:
       weight_decay_mask = bias_and_bn_mask
     else:
-      weight_decay_mask = jax.tree_map(lambda x, y: x and y,
+      weight_decay_mask = jax.tree.map(lambda x, y: x and y,
                                        weight_decay_mask, bias_and_bn_mask)
 
     optimizer = optax.adamw(

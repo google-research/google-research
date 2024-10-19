@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -114,7 +114,7 @@ class JaxUtilTest(absltest.TestCase):
         y=Foo(a=jnp.array([5, 6]), b=(jnp.array(7.), jnp.array(8.))),
     )
 
-    bar_plus_ten = jax.tree_map(lambda x: x + 10, bar)
+    bar_plus_ten = jax.tree.map(lambda x: x + 10, bar)
     expected = Bar(
         x=Foo(a=jnp.array([11, 12]), b=(jnp.array(13.), jnp.array(14.))),
         y=Foo(a=jnp.array([15, 16]), b=(jnp.array(17.), jnp.array(18.))),

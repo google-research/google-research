@@ -1,6 +1,6 @@
-# A Machine Learning Data Fusion Model for Soil Moisture Retrieval
+# A Deep Learning Data Fusion Model Using Sentinel-1/2, SoilGrids, SMAP, and GLDAS for Soil Moisture Retrieval
 
-This repository is the official supporting codebase of [A Machine Learning Data Fusion Model for Soil Moisture Retrieval](https://arxiv.org/abs/2206.09649). We release the following code, data and models along with our paper.
+This repository is the official supporting codebase of [A Deep Learning Data Fusion Model Using Sentinel-1/2, SoilGrids, SMAP, and GLDAS for Soil Moisture Retrieval](https://journals.ametsoc.org/view/journals/hydr/24/10/JHM-D-22-0118.1.xml) submitted to the [Journal of Hydrometeorology](https://www.ametsoc.org/index.cfm/ams/publications/journals/journal-of-hydrometeorology/) (JHM). We release the following code, data and models along with our paper.
 
 ## Overview
 
@@ -10,14 +10,13 @@ This repository is the official supporting codebase of [A Machine Learning Data 
   - If you use our dataset, please cite us using
 
   ```
-  @misc{batchu2022-dk,
-    doi = {10.48550/ARXIV.2206.09649},
-    url = {https://arxiv.org/abs/2206.09649},
-    author = {Batchu, Vishal and Nearing, Grey and Gulshan, Varun},
-    title = {A Machine Learning Data Fusion Model for Soil Moisture Retrieval},
-    publisher = {arXiv},
-    year = {2022},
-    copyright = {arXiv.org perpetual, non-exclusive license}
+  @article{batchu2023deep,
+    doi = {10.1175/JHM-D-22-0118.1},
+    url = {https://journals.ametsoc.org/view/journals/hydr/24/10/JHM-D-22-0118.1.xml},
+    title={A Deep Learning Data Fusion Model using Sentinel-1/2, SoilGrids, SMAP-USDA, and GLDAS for Soil Moisture Retrieval},
+    author={Batchu, Vishal and Nearing, Grey and Gulshan, Varun},
+    journal={Journal of Hydrometeorology},
+    year={2023}
   }
 
   ```
@@ -206,22 +205,22 @@ Note: exported_model_dir should point to the root directory of the downloaded mo
 
 ## Results
 
-A comparison of our model performance vs baselines on the soil moisture data:
+A comparison of our model performance vs baselines on the validation and test sets of the Sentinel-1 anchored full dataset (for more details and additional results, please refer to the paper):
 
 |                                                          |     | Validation  | |    | Test |  |
 | -------------------------------------------------------- | -------------- | -------------- | ----------- | ------ | ------- | ----------- |
 | **Experiment**                                               | **ubRMSE**         | **RMSE**           | **Correlation** | **ubRMSE** | **RMSE** | **Correlation** |
 | **Baselines (Low-resolution)**                               |
-| SMAP                                                     | 0.097          | 0.144          | 0.638 | 0.1 | 0.134 | 0.638 |
-| GLDAS                                                    | 0.07           | 0.114          | 0.572 | 0.07 | 0.11 | 0.58 |
-| SMAP + GLDAS NN                                          | 0.061          | 0.102          | 0.663 | 0.063 | 0.099 | 0.668 |
+| SMAP                                                     | 0.098          | 0.144          | 0.634 | 0.1 | 0.135 | 0.634 |
+| GLDAS                                                    | 0.07           | 0.114          | 0.568 | 0.07 | 0.11 | 0.579 |
+| SMAP + GLDAS NN                                          | 0.062          | 0.099          | 0.658 | 0.063 | 0.098 | 0.666 |
 | **Ours (High-resolution)**                                  |
-| Sentinel-1 + DEM                                         | 0.073          | 0.099          | 0.474 | 0.075 | 0.109 | 0.437 |
-| Sentinel-1 + DEM + Sentinel-2                            | 0.067          | 0.094          | 0.587 | 0.069 | 0.099 | 0.56 |
-| Sentinel-1 + DEM + Sentinel-2 + SoilGrids                | 0.058 (+4.9%)  | 0.089 (+12.7%) | 0.675 (+1.8%) | 0.06 (+4.7%) | 0.096 (+3%) | 0.647 (-3.1%) |
-| Sentinel-1 + DEM + Sentinel-2 + SoilGrids + SMAP + GLDAS | 0.054 (+11.5%) | 0.085 (+16.7%) | 0.727 (+9.7%) | 0.055 (+12.7%) | 0.088 (+11.1%) | 0.729 (+9.1%) |
+| Sentinel-1 + DEM                                         | 0.073          | 0.099          | 0.474 | 0.076 | 0.109 | 0.432 |
+| Sentinel-1 + DEM + Sentinel-2                            | 0.069          | 0.094          | 0.587 | 0.069 | 0.097 | 0.57 |
+| Sentinel-1 + DEM + Sentinel-2 + SoilGrids                | 0.06 (+3.2%)  | 0.095 (+4%) | 0.674 (+2.4%) | 0.061 (+3.2%) | 0.095 (+3.1%) | 0.647 (-2.9%) |
+| Sentinel-1 + DEM + Sentinel-2 + SoilGrids + SMAP + GLDAS | 0.055 (+11.3%) | 0.085 (+14.1%) | 0.729 (+10.8%) | 0.056 (+11.1%) | 0.087 (+11.2%) | 0.729 (+9.5%) |
 
-Validation and test results. A ‘+’ in percentage change denotes an increase in correlation (decrease in ubRMSE) relative to the SMAP + GLDAS NN baseline. Please refer to the paper for additional results.
+Validation and test results. A ‘+’ in percentage change denotes an increase in correlation (decrease in ubRMSE/RMSE) relative to the SMAP + GLDAS NN baseline.
 
 ## Contributing
 

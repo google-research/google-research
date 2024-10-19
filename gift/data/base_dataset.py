@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -176,12 +176,12 @@ class ImageDataset(object):
         # (local_devices, device_batch_size, height, width, 3)
         return x.reshape((self.num_shards, -1) + x.shape[1:])
 
-      return jax.tree_map(_prepare, xs)
+      return jax.tree.map(_prepare, xs)
 
     def to_numpy(xs):
       """Convert a input batch from tf Tensors to numpy arrays."""
 
-      return jax.tree_map(
+      return jax.tree.map(
           lambda x: x._numpy(),  # pylint: disable=protected-access
           xs)
 
@@ -211,7 +211,7 @@ class ImageDataset(object):
         pad_with = [(0, batch_pad)] + [(0, 0)] * (array.ndim - 1)
         return onp.pad(array, pad_with, mode='constant')
 
-      padded_batch = jax.tree_map(zero_pad, batch)
+      padded_batch = jax.tree.map(zero_pad, batch)
       padded_batch_mask = zero_pad(
           onp.ones(unpadded_mask_shape, dtype=onp.float32))
       if 'weights' in padded_batch:

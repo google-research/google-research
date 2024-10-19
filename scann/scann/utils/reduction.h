@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,13 +24,13 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 
 template <typename T, typename U, typename Reduce>
-auto DensePairAccumulate(T* a, U* b, size_t size, Reduce reduce)
-    -> AccumulatorTypeFor<T, U> {
+
+__attribute__((no_sanitize("alignment"))) auto DensePairAccumulate(
+    T* a, U* b, size_t size, Reduce reduce) -> AccumulatorTypeFor<T, U> {
   using AT = AccumulatorTypeFor<T, U>;
   AT result0 = 0;
   AT result1 = 0;
@@ -278,14 +278,14 @@ AccumulatorTypeFor<T, U> HybridPairAccumulateImpl2(const DatapointPtr<T>& a,
 
   auto cur_dense = b.values();
   auto end_dense = cur_dense + b.nonzero_entries();
-  for (; cur_dense + 3 < end_dense; cur_dense += 4) {
+  for (; end_dense - cur_dense > 3; cur_dense += 4) {
     reduce_one(&result0, *cur_dense);
     reduce_one(&result1, cur_dense[1]);
     reduce_one(&result2, cur_dense[2]);
     reduce_one(&result3, cur_dense[3]);
   }
 
-  if (cur_dense + 1 < end_dense) {
+  if (end_dense - cur_dense > 1) {
     reduce_one(&result0, *cur_dense);
     reduce_one(&result1, cur_dense[1]);
     cur_dense += 2;
@@ -303,7 +303,7 @@ AccumulatorTypeFor<T, U> HybridPairAccumulateImpl2(const DatapointPtr<T>& a,
   auto sparse_index_ptr = a.indices();
   auto sparse_value_ptr = a.values();
   auto sparse_index_end = a.indices() + a.nonzero_entries();
-  for (; sparse_index_ptr + 3 < sparse_index_end;
+  for (; sparse_index_end - sparse_index_ptr > 3;
        sparse_index_ptr += 4, sparse_value_ptr += 4) {
     reduce_one(&throw_away0, b.values()[sparse_index_ptr[0]]);
     reduce_two(&result0, b.values()[sparse_index_ptr[0]], *sparse_value_ptr);
@@ -315,7 +315,7 @@ AccumulatorTypeFor<T, U> HybridPairAccumulateImpl2(const DatapointPtr<T>& a,
     reduce_two(&result3, b.values()[sparse_index_ptr[3]], sparse_value_ptr[3]);
   }
 
-  if (sparse_index_ptr + 1 < sparse_index_end) {
+  if (sparse_index_end - sparse_index_ptr > 1) {
     reduce_one(&throw_away0, b.values()[sparse_index_ptr[0]]);
     reduce_two(&result0, b.values()[sparse_index_ptr[0]], *sparse_value_ptr);
     reduce_one(&throw_away1, b.values()[sparse_index_ptr[1]]);
@@ -358,6 +358,8 @@ template <typename T, typename Reduce>
 AccumulatorTypeFor<T> DenseSingleAccumulate(ConstSpan<T> values,
                                             Reduce reduce) {
   using AT = AccumulatorTypeFor<T>;
+  if (values.empty()) return 0;
+
   AT result0 = 0;
   AT result1 = 0;
   AT result2 = 0;

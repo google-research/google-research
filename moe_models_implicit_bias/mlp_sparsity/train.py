@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ def train_step(state, batch, learning_rate_fn, config):
         batch[0],
         mutable=['batch_stats'])
     loss = projected_mse_loss(logits, batch[1])
-    weight_penalty_params = jax.tree_leaves(params)
+    weight_penalty_params = jax.tree.leaves(params)
     weight_decay = config.weight_decay
     weight_l2 = sum(jnp.sum(x**2) for x in weight_penalty_params if x.ndim > 1)
     weight_penalty = weight_decay * 0.5 * weight_l2
@@ -142,10 +142,10 @@ def train_step(state, batch, learning_rate_fn, config):
     # if is_fin == False the gradients contain Inf/NaNs and optimizer state and
     # params should be restored (= skip this step).
     new_state = new_state.replace(
-        opt_state=jax.tree_map(
+        opt_state=jax.tree.map(
             functools.partial(jnp.where, is_fin), new_state.opt_state,
             state.opt_state),
-        params=jax.tree_map(
+        params=jax.tree.map(
             functools.partial(jnp.where, is_fin), new_state.params,
             state.params),
         dynamic_scale=dynamic_scale)
@@ -164,7 +164,7 @@ def prepare_tf_data(xs):
     # (local_devices, device_batch_size, height, width, 3)
     return x.reshape((local_device_count, -1) + x.shape[1:])
 
-  return jax.tree_map(_prepare, xs)
+  return jax.tree.map(_prepare, xs)
 
 
 def create_input_iter(config, batch_size):
@@ -186,7 +186,7 @@ def restore_checkpoint(state, workdir):
 def save_checkpoint(state, workdir):
   if jax.process_index() == 0:
     # get train state from the first replica
-    state = jax.device_get(jax.tree_map(lambda x: x[0], state))
+    state = jax.device_get(jax.tree.map(lambda x: x[0], state))
     step = int(state.step)
     checkpoints.save_checkpoint(workdir, state, step, keep=3)
 
@@ -289,7 +289,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict,
         train_metrics = common_utils.get_metrics(train_metrics)
         summary = {
             f'{k}': v
-            for k, v in jax.tree_map(lambda x: x.mean(), train_metrics).items()
+            for k, v in jax.tree.map(lambda x: x.mean(), train_metrics).items()
         }
         summary['steps_per_second'] = config.log_every_steps / (
             time.time() - train_metrics_last_t)

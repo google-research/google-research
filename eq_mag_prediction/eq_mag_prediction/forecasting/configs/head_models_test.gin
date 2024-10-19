@@ -1,0 +1,40 @@
+earthquakes_catalog = @random_catalog()
+train_start_time = 0
+validation_start_time = 700
+test_start_time = 900
+test_end_time = 999
+
+CatalogDomain:
+  train_start_time = %train_start_time
+  validation_start_time = %validation_start_time
+  test_start_time = %test_start_time
+  test_end_time = %test_end_time
+  earthquakes_catalog = %earthquakes_catalog
+
+
+spatial_order_invariant_cnn_model:
+  cnn_filters = (13, 7)
+
+same_output_size_3d_cnn_model:
+  filter_shapes = [(5, 5, 3), (3, 3, 3), (3, 3, 2)]
+
+_project_utm.projection = @california_projection()
+
+SeismicityRateEncoder:
+  catalog = %earthquakes_catalog
+
+RecentEarthquakesEncoder:
+  catalog = %earthquakes_catalog
+  magnitude_threshold = 5
+
+BiggestEarthquakesEncoder:
+  catalog = %earthquakes_catalog
+
+CatalogColumnsEncoder:
+  catalog = %earthquakes_catalog
+  
+rnn_model:
+  units = (13, 7)
+
+fully_connected_model:
+  layer_sizes = (4,)

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@ PyTree = Any  # typing for humans
 
 def global_norm(tree):
   """Takes a PyTree and returns its global L2 norm."""
-  leaf_norms2 = jax.tree_map(lambda x: jnp.linalg.norm(x)**2, tree)
+  leaf_norms2 = jax.tree.map(lambda x: jnp.linalg.norm(x)**2, tree)
   return jnp.sqrt(jax.tree_util.tree_reduce(lambda x, y: x + y, leaf_norms2, 0))  # pytype: disable=bad-return-type  # jax-types
 
 
@@ -48,7 +48,7 @@ def tree_stack(trees):
   leaves_list = []
   treedef_list = []
   for tree in trees:
-    leaves, treedef = jax.tree_flatten(tree)
+    leaves, treedef = jax.tree.flatten(tree)
     leaves_list.append(leaves)
     treedef_list.append(treedef)
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,6 +67,8 @@ class FP8SimdBlockTransposedDatabase {
                                           ? static_cast<size_t>(dimensionality_)
                                           : 0};
   }
+
+  Datapoint<int8_t> ReconstructDatapoint(DatapointIndex idx) const;
 
  private:
   void TransposeOneBlock(const int8_t* src, size_t block_size, int8_t* dest);

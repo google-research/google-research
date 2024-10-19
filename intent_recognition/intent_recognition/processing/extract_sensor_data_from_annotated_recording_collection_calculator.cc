@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -155,7 +155,7 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
         return absl::InvalidArgumentError(absl::StrCat(
             "Bad configuration: duplicate_timestamps_handling_strategy must be "
             "set. ",
-            sensor_options.DebugString(), " ", options.DebugString()));
+            sensor_options, " ", options));
       }
       SensorType sensor_type = {sensor_options.type(),
                                 sensor_options.subtype()};
@@ -164,9 +164,9 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
       auto emplace2 = sensor_options_map_.emplace(sensor_type, sensor_options);
 
       if (!emplace1.second || !emplace2.second) {
-        return absl::InvalidArgumentError(absl::StrCat(
-            "Invalid options: repeated type/subtype combination ",
-            sensor_options.DebugString(), " ", options.DebugString()));
+        return absl::InvalidArgumentError(
+            absl::StrCat("Invalid options: repeated type/subtype combination ",
+                         sensor_options, " ", options));
       }
     }
 
@@ -287,10 +287,9 @@ class ExtractSensorDataFromAnnotatedRecordingCollectionCalculator
             case RecordingCollectionSensorOptions::UNKNOWN:
               return absl::InternalError("Internal error");
             case RecordingCollectionSensorOptions::RAISE_ERROR:
-              return absl::InvalidArgumentError(
-                  absl::StrCat("Duplicate timestamp for stream ",
-                               sensor_options.DebugString(), " at offset ",
-                               absl::FormatDuration(datapoint_offset)));
+              return absl::InvalidArgumentError(absl::StrCat(
+                  "Duplicate timestamp for stream ", sensor_options,
+                  " at offset ", absl::FormatDuration(datapoint_offset)));
           }
         }
       }

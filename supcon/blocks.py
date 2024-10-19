@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -55,10 +55,11 @@ class BatchNormalization(tf.layers.BatchNormalization):
     num_shards = tpu_function.get_tpu_context().number_of_shards
     return tf.tpu.cross_replica_sum(t) / tf.cast(num_shards, t.dtype)
 
-  def _moments(self, inputs, reduction_axes, keep_dims):
+  def _moments(self, inputs, reduction_axes, keep_dims, **kwargs):
     """Compute the mean and variance: it overrides the original _moments."""
     shard_mean, shard_variance = super(BatchNormalization, self)._moments(
-        inputs, reduction_axes, keep_dims=keep_dims)
+        inputs, reduction_axes, keep_dims=keep_dims, **kwargs
+    )
 
     num_shards = tpu_function.get_tpu_context().number_of_shards
     if num_shards and num_shards > 1:

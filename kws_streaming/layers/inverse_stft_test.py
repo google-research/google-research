@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -79,6 +79,8 @@ class InverseSTFTTest(tf.test.TestCase, parameterized.TestCase):
     net = inverse_stft_layer(input_tf)
     model_non_stream = tf.keras.models.Model(input_tf, net)
 
+    self.non_stream_out = model_non_stream.predict(self.signal_stft)
+
     # Convert TF non-streaming model to TFLite internal-state streaming model.
     tflite_streaming_model = utils.model_to_tflite(
         None,
@@ -87,8 +89,6 @@ class InverseSTFTTest(tf.test.TestCase, parameterized.TestCase):
         modes.Modes.STREAM_INTERNAL_STATE_INFERENCE,
     )
     self.assertTrue(tflite_streaming_model)
-
-    self.non_stream_out = model_non_stream.predict(self.signal_stft)
 
     # convert it to streaming model
     model_stream = utils.to_streaming_inference(

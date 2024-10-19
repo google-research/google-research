@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -106,10 +106,8 @@ class AutomatonLayerTest(parameterized.TestCase):
     class TestModel(flax.deprecated.nn.Module):
 
       def apply(self, dummy_ignored):
-        abstract_encoded_graph = jax.tree_map(
-            lambda y: jax.lax.tie_in(dummy_ignored, y), encoded_graph)
-        abstract_variant_weights = jax.tree_map(
-            lambda y: jax.lax.tie_in(dummy_ignored, y), variant_weights())
+        abstract_encoded_graph = encoded_graph
+        abstract_variant_weights = variant_weights()
         return automaton_layer.FiniteStateGraphAutomaton(
             encoded_graph=abstract_encoded_graph,
             variant_weights=abstract_variant_weights,

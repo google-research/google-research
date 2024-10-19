@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
 #include "scann/hashes/internal/stacked_quantizers.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <limits>
@@ -22,8 +23,11 @@
 #include <utility>
 
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/data_format/docid_collection.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
+#include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/dataset_sampling.h"
@@ -218,14 +222,14 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   const auto num_datapoints = dataset.size();
   const auto num_codebooks = opts.projector()->num_blocks();
   const auto num_centers = opts.config().num_clusters_per_block();
-  const auto quantization_distance = opts.quantization_distance();
+  const auto& quantization_distance = opts.quantization_distance();
   const auto& sq_config = opts.config().stacked_quantizers_config();
 
   DenseDataset<double> buffer;
-  TF_ASSIGN_OR_RETURN(const auto* converted,
-                      SampledDataset(dataset, opts, &buffer));
+  SCANN_ASSIGN_OR_RETURN(const auto* converted,
+                         SampledDataset(dataset, opts, &buffer));
   VLOG(1) << "SQ training, sampled training set size = " << converted->size();
-  TF_ASSIGN_OR_RETURN(
+  SCANN_ASSIGN_OR_RETURN(
       auto codebook_list,
       HierarchicalKMeans(*converted, opts, num_codebooks, pool));
   CodesList codes_list(num_datapoints, num_codebooks);
@@ -233,7 +237,7 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   SCANN_RETURN_IF_ERROR(InitializeCodes(*converted, *quantization_distance,
                                         codebook_list, &codes_list, &residual,
                                         pool.get()));
-  TF_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
+  SCANN_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
 
   auto mse = AverageSquaredL2Norm(residual);
   VLOG(1) << "SQ training, initial mse = " << mse;
@@ -241,7 +245,7 @@ StackedQuantizers<T>::Train(const DenseDataset<T>& dataset,
   for (int iter = 0; iter < sq_config.max_num_iterations(); ++iter) {
     for (int codebook_i = 0; codebook_i < num_codebooks; ++codebook_i) {
       auto& codebook = codebook_list[codebook_i];
-      TF_ASSIGN_OR_RETURN(auto* codebook_mutator, codebook.GetMutator());
+      SCANN_ASSIGN_OR_RETURN(auto* codebook_mutator, codebook.GetMutator());
       const auto deltas = ComputeUpdatesToCodebook(
           codebook_i, dataset.dimensionality(), num_centers,
           *quantization_distance, codes_list, residual);
@@ -313,7 +317,7 @@ StatusOr<const DenseDataset<double>*> StackedQuantizers<T>::SampledDataset(
     const auto max_sample_size = opts.config().max_sample_size()
                                      ? opts.config().max_sample_size()
                                      : dataset_size;
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         auto sampled_indices,
         internal::CreateSampledIndexList<DatapointIndex>(
             dataset_size, opts.config().sampling_seed(),
@@ -335,18 +339,18 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
                                          int num_codebooks,
                                          shared_ptr<ThreadPool> pool) {
   const auto num_centers = opts.config().num_clusters_per_block();
-
   GmmUtils::Options gmm_opts;
   gmm_opts.seed = opts.config().clustering_seed();
   gmm_opts.max_iterations = opts.config().max_clustering_iterations();
   gmm_opts.epsilon = opts.config().clustering_convergence_tolerance();
   gmm_opts.parallelization_pool = std::move(pool);
+  gmm_opts.center_initialization_type =
+      GmmUtils::Options::RANDOM_INITIALIZATION;
   GmmUtils gmm(opts.quantization_distance(), gmm_opts);
-
   CodebookList<double> codebook_list;
   codebook_list.reserve(num_codebooks);
   auto residual = CopyDenseDatasetIntoNewType<double>(dataset);
-  TF_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
+  SCANN_ASSIGN_OR_RETURN(auto* residual_mutator, residual.GetMutator());
 
   for (auto _ : Seq(num_codebooks)) {
     DenseDataset<double> centers;
@@ -368,7 +372,6 @@ StackedQuantizers<T>::HierarchicalKMeans(const DenseDataset<double>& dataset,
       }
     }
   }
-
   return std::move(codebook_list);
 }
 

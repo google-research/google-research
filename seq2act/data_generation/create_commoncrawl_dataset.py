@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ def _task_to_features_dict(task, do_stats):
   """
   answer = task['instruction'].lower()
   features = {}
-  features['instruction_str'] = np.array([answer], dtype=np.string_)
+  features['instruction_str'] = np.array([answer], dtype=np.bytes_)
   tokens, _ = string_utils.tokenize_to_ids(answer)
   features['instruction_word_id_seq'] = np.array(tokens, dtype=np.int64)
 

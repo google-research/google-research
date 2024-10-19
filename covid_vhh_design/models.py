@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -74,7 +74,7 @@ class LGBMBoosterRegressor(sk_base.RegressorMixin, sk_base.BaseEstimator):
     return True
 
   def predict(self, *args, **kwargs):
-    return self.booster.predict(*args, **kwargs)
+    return self.booster.predict(*args, **kwargs)  # pytype: disable=bad-return-type  # scipy
 
 
 class LGBMBoosterClassifier(sk_base.ClassifierMixin, sk_base.BaseEstimator):

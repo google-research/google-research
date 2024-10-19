@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -123,7 +123,7 @@ def construct_soft_target_params_update_fn(
   ):
     # The current step is unused as we just EMA the params.
     ema = lambda new, old: (1.0 - tau) * new + tau * old
-    return jax.tree_map(ema, new_params, old_params)
+    return jax.tree.map(ema, new_params, old_params)
 
   return wrapper
 
@@ -145,7 +145,7 @@ def train_step(
     if name == 'observation' or name == 'next_observation':
       x = jnp.transpose(x, axes=[3, 0, 1, 2])
     return mesh_utils.with_sharding_constraint(
-        x, mesh_utils.map_leading_axis_to_pspec(x, 'data')
+        x, mesh_utils.map_leading_axis_to_pspec(x, 'data')  # pytype: disable=wrong-arg-types  # jnp-type
     )
 
   with jax.profiler.TraceAnnotation('transpose-observation'):
@@ -270,7 +270,7 @@ def train_step(
           indicator_state.step < config.offline.indicator.num_qr_steps
       ) * proportion_loss
 
-    return loss, (train_infos, indicator_infos)
+    return loss, (train_infos, indicator_infos)  # pytype: disable=bad-return-type  # jnp-type
 
   grad_fn = jax.grad(loss_fn, argnums=(0, 1), has_aux=True, allow_int=True)
   (train_grads, indicator_grads), (train_infos, indicator_infos) = grad_fn(

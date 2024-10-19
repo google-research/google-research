@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,14 +81,14 @@ def dino_loss(teacher_embs_1,
 @jax.jit
 def _update_ema_params(ema_params, new_params, tau):
   """Returns new EMA params."""
-  return jax.tree_map(lambda x, y: x * tau + (1. - tau) * y, ema_params,
+  return jax.tree.map(lambda x, y: x * tau + (1. - tau) * y, ema_params,
                       new_params)
 
 
 @jax.jit
 def _update_center(center, new_center, tau):
   """Returns new Center params."""
-  return jax.tree_map(lambda x, y: x * tau + (1. - tau) * y, center,
+  return jax.tree.map(lambda x, y: x * tau + (1. - tau) * y, center,
                       new_center)
 
 

@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,18 @@
 #include <vector>
 
 #include "absl/container/flat_hash_set.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
+#include "scann/oss_wrappers/scann_castops.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/proto/partitioning.pb.h"
+#include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
+#include "scann/trees/kmeans_tree/training_options.h"
+#include "scann/utils/common.h"
+#include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/gmm_utils.h"
-#include "scann/utils/parallel_for.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
@@ -41,7 +47,16 @@
 
 namespace research_scann {
 
-KMeansTreeNode::KMeansTreeNode() {}
+KMeansTreeNode::KMeansTreeNode() = default;
+
+KMeansTreeNode KMeansTreeNode::CreateFlat(DenseDataset<float> centers) {
+  KMeansTreeNode root;
+  root.float_centers_ = std::move(centers);
+  root.children_ = vector<KMeansTreeNode>(root.float_centers_.size());
+  root.NumberLeaves(0);
+  root.MaybeInitializeThreadSharding();
+  return root;
+}
 
 void KMeansTreeNode::Reset() {
   leaf_id_ = -1;
@@ -127,7 +142,7 @@ Status PostprocessDistancesForSpilling(
 
     float spill_thresh = std::nextafter(DoubleToFloat(spilling_threshold),
                                         std::numeric_limits<float>::infinity());
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         float max_dist_to_consider,
         ComputeThreshold(nearest_center_distance, spill_thresh, spilling_type));
     epsilon = std::nextafter(max_dist_to_consider,
@@ -181,7 +196,7 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
       opts->learned_spilling_type;
   if (spilling_type != DatabaseSpillingConfig::NO_SPILLING &&
       opts->per_node_spilling_factor > 1.0) {
-    TF_ASSIGN_OR_RETURN(
+    SCANN_ASSIGN_OR_RETURN(
         learned_spilling_threshold_,
         gmm.ComputeSpillingThreshold(
             training_data, indices_, centers, opts->learned_spilling_type,

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -69,7 +69,7 @@ class HyperparamOptManager:
     self.fixed_params = fixed_params
     self.saved_params = pd.DataFrame()
 
-    self.best_score = np.Inf
+    self.best_score = np.inf
     self.optimal_name = ""
 
     # Setup
@@ -209,7 +209,7 @@ class HyperparamOptManager:
     """
 
     if np.isnan(loss):
-      loss = np.Inf
+      loss = np.inf
 
     if not os.path.isdir(self.hyperparam_folder):
       os.makedirs(self.hyperparam_folder)

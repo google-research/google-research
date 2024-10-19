@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,39 +14,58 @@
 
 /**
  * This file contains the JavaScript code for MarotHistogram, a component of
- * Marot that can show a segment-wise histogram of scores or score differences.
+ * Marot that can show a scoring-unit-wise histogram of scores or score
+ * differences. Scoring units can be segments or subparas.
  */
 
 /**
- * Helper class for building a segment scores histogram. Call addSegment() on it
- * multiple times to record segment scores. Then call display().
+ * Helper class for building a scoring unit scores histogram. Call
+ * addScoringUnit() on it multiple times to record unit scores. Then call
+ * display().
  *
  * In most cases, the rendered histogram treats X = 0 differently, showing a
  * slim gray bar for that exact value. This is always done for difference
  * histograms. For non-difference histograms, this is only done for metrics for
  * which 0 means a perfect score (such as MQM).
+ *
+ * The class can be used to compare raters or to compare systems.
  */
 class MarotHistogram {
   /**
+   * @param {string} sysOrRater is either 'sys' or 'rater'
    * @param {number} m The index of the metric in marot.metrics.
-   * @param {string} sys The name of the system.
-   * @param {string} color The color to use for system.
-   * @param {string=} sysCmp if the histogram is for diffs, then the name of
-   *     the system being compared against.
-   * @param {string=} colorCmp if the histogram is for diffs, then the color of
-   *     the system being compared against.
+   * @param {string} unitName is a descriptive name for the scoring unit, such
+   *     as 'segment' or 'sentence'.
+   * @param {string} sr1 The name of the first system/rater.
+   * @param {string} color1 The color to use for the first system/rater.
+   * @param {string=} sr2 if the histogram is for diffs, then the name of
+   *     the system/rater being compared against.
+   * @param {string=} color2 if the histogram is for diffs, then the color of
+   *     the system/rater being compared against.
    */
-   constructor(m, sys, color, sysCmp='', colorCmp='') {
+   constructor(sysOrRater, m, unitName, sr1, color1, sr2='', color2='') {
+    this.sysOrRater = sysOrRater;
     this.metricIndex = m;
-    this.sys = sys;
-    this.sysCmp = sysCmp;
-    this.hasDiffs = sysCmp ? true : false;
+    this.unitName = unitName;
+    this.sr1 = sr1;
+    this.sr2 = sr2;
+    this.hasDiffs = sr2 ? true : false;
     this.metric = marot.metrics[m];
-    this.color = color;
-    this.colorCmp = colorCmp;
+    this.color1 = color1;
+    this.color2 = color2;
 
     const metricInfo = marot.metricsInfo[this.metric];
     this.lowerBetter = metricInfo.lowerBetter || false;
+
+    if (sysOrRater == 'sys') {
+      this.hasOrGives = 'has';
+      this.haveOrGive = 'have';
+      this.betterOrLenient = 'better';
+    } else {
+      this.hasOrGives = 'gives';
+      this.haveOrGive = 'give';
+      this.betterOrLenient = 'more lenient';
+    }
 
     /**
      * Is there a dedicated bin for value == 0?
@@ -54,8 +73,8 @@ class MarotHistogram {
     this.hasZeroBin = this.hasDiffs ? true : (this.lowerBetter ? true : false);
 
     /** @const {number} Width of a histogram bin, in score units */
-    this.BIN_WIDTH = (this.metric == 'MQM') ? 0.5 : 0.05;
-    this.BIN_PRECISION = (this.metric == 'MQM') ? 1 : 2;
+    this.BIN_WIDTH = marot.isMQMOrAutoMQM(this.metric) ? 0.5 : 0.05;
+    this.BIN_PRECISION = marot.isMQMOrAutoMQM(this.metric) ? 1 : 2;
 
     /** @const {number} Width of a histogram bin, in pixels */
     this.BIN_WIDTH_PIXELS = 10 + (this.BIN_PRECISION * 3);
@@ -78,11 +97,11 @@ class MarotHistogram {
     this.COLOR_LINES = 'lightgray';
 
     /**
-     * @const {!Object} Dict keyed by bin. Each bin has an array of doc-seg keys.
-     *    The only non-numeric key possibly present is 'zero' (when
+     * @const {!Object} Dict keyed by bin. Each bin has an array of doc-unit
+     *    keys. The only non-numeric key possibly present is 'zero' (when
      *    this.hasZeroBin is true).
      */
-    this.segsInBin = {};
+    this.docSegsInBin = {};
 
     /**
      * @const {number} The largest bin visible on the X-axis.
@@ -97,8 +116,8 @@ class MarotHistogram {
     this.maxCount = 8;
 
     this.totalCount = 0;
-    this.sys1BetterCount = 0;
-    this.sys2BetterCount = 0;
+    this.sr1BetterCount = 0;
+    this.sr2BetterCount = 0;
   }
 
   /**
@@ -118,23 +137,23 @@ class MarotHistogram {
   }
 
   /**
-   * Adds a segment to the histogram, updating the appropriate bin.
+   * Adds a scoring unit to the histogram, updating the appropriate bin.
    * @param {string} doc
-   * @param {string|number} docSegId
-   * @param {number} value The score for the first system
+   * @param {string|number} unit
+   * @param {number} value The score for the first system/rater
    */
-  addSegment(doc, docSegId, value) {
+  addScoringUnit(doc, unit, value) {
     const bin = this.binOf(value);
     const numericBin = (bin == 'zero') ? 0 : parseFloat(bin);
     if (numericBin < this.minBin) this.minBin = numericBin;
     if (numericBin > this.maxBin) this.maxBin = numericBin;
-    const docsegKey = marot.docsegKey(doc, docSegId);
-    if (!this.segsInBin.hasOwnProperty(bin)) {
-      this.segsInBin[bin] = [];
+    const docColonSeg = marot.aColonB(doc, marot.unitIdToDocSegId(unit));
+    if (!this.docSegsInBin.hasOwnProperty(bin)) {
+      this.docSegsInBin[bin] = [];
     }
-    this.segsInBin[bin].push(docsegKey);
-    if (this.segsInBin[bin].length > this.maxCount) {
-      this.maxCount = this.segsInBin[bin].length;
+    this.docSegsInBin[bin].push(docColonSeg);
+    if (this.docSegsInBin[bin].length > this.maxCount) {
+      this.maxCount = this.docSegsInBin[bin].length;
     }
     this.totalCount++;
     if (this.hasDiffs && bin != 'zero') {
@@ -142,9 +161,9 @@ class MarotHistogram {
       const firstBetter = (firstLower && this.lowerBetter) ||
                           (!firstLower && !this.lowerBetter);
       if (firstBetter) {
-        this.sys1BetterCount++;
+        this.sr1BetterCount++;
       } else {
-        this.sys2BetterCount++;
+        this.sr2BetterCount++;
       }
     }
   }
@@ -171,7 +190,7 @@ class MarotHistogram {
 
   /**
    * Creates a histogram bar with a given description, makes it clickable to
-   * constrain the view to the docsegs passed.
+   * constrain the view to the docColonSegs passed.
    * @param {!Element} plot
    * @param {number} x
    * @param {number} y
@@ -179,28 +198,29 @@ class MarotHistogram {
    * @param {number} h
    * @param {string} color
    * @param {string} desc
-   * @param {!Array<string>} docsegs
+   * @param {!Array<string>} docColonSegs
    */
-  makeHistBar(plot, x, y, w, h, color, desc, docsegs) {
+  makeHistBar(plot, x, y, w, h, color, desc, docColonSegs) {
     /**
      * Need to wrap the rect in a g (group) element to be able to show
      * the description when hovering ("title" attribute does not work with SVG
      * elements).
      */
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.setAttributeNS(null, 'class', 'marot-sys-v-sys-hist');
+    g.setAttributeNS(null, 'class', 'marot-histogram');
     g.insertAdjacentHTML('beforeend',
                          `<title>Click to see examples of ${desc}</title>`);
     const rect = this.getRect(x, y, w, h, color);
     g.appendChild(rect);
     const viewingConstraints = {};
-    for (let ds of docsegs) {
+    for (let ds of docColonSegs) {
       viewingConstraints[ds] = true;
     }
     viewingConstraints.description = desc;
     viewingConstraints.color = color;
+    viewingConstraints.rect = rect;
     g.addEventListener('click', (e) => {
-      marot.show(viewingConstraints);
+      marot.showSegments(viewingConstraints);
     });
     plot.appendChild(g);
   }
@@ -264,12 +284,12 @@ class MarotHistogram {
       return this.COLOR_ZERO;
     }
     if (!this.hasDiffs) {
-      return this.color;
+      return this.color1;
     } else {
       const firstLower = (numericBin < 0);
       const firstBetter = (firstLower && this.lowerBetter) ||
                           (!firstLower && !this.lowerBetter);
-      return firstBetter ? this.color : this.colorCmp;
+      return firstBetter ? this.color1 : this.color2;
     }
   }
 
@@ -283,8 +303,9 @@ class MarotHistogram {
   binDesc(bin, numericBin, count) {
     if (!this.hasDiffs) {
       if (bin == 'zero') {
-        return '' + count + ' segment(s) where ' + this.sys +
-               ' has ' + this.metric + ' score exactly equal to 0';
+        return '' + count + ' ' + this.unitName + '(s) where ' +
+               this.sr1 + ' ' + this.hasOrGives + ' ' + this.metric +
+               ' score exactly equal to 0';
       }
       const binLeft = numericBin;
       const binRight = numericBin + this.BIN_WIDTH;
@@ -292,27 +313,30 @@ class MarotHistogram {
                       ((numericBin == 0 && this.hasZeroBin) ? '(' : '[');
       let rightParen = (numericBin < 0) ?
                        ((binRight == 0 && this.hasZeroBin) ? ')' : ']') : ')';
-      return '' + count + ' segment(s) where ' + this.sys + ' has ' +
+      return '' + count + ' ' + this.unitName + '(s) where ' +
+             this.sr1 + ' ' + this.hasOrGives + ' ' +
              this.metric + ' score in ' + 'range ' + leftParen +
              this.binDisplay(binLeft) +
              ',' + this.binDisplay(binRight) + rightParen;
     } else {
       if (bin == 'zero') {
-        return '' + count + ' segment(s) where ' + this.sys + ' and ' +
-               this.sysCmp + ' have identical ' + this.metric + ' scores';
+        return '' + count + ' ' + this.unitName + '(s) where ' + this.sr1 +
+               ' and ' + this.sr2 + ' ' + this.haveOrGive + ' identical ' +
+               this.metric + ' scores';
       }
       const firstLower = (numericBin < 0);
       const firstBetter = (firstLower && this.lowerBetter) ||
                           (!firstLower && !this.lowerBetter);
-      const betterSys = firstBetter ? this.sys : this.sysCmp;
-      const worseSys = firstBetter ? this.sysCmp : this.sys;
+      const better = firstBetter ? this.sr1 : this.sr2;
+      const worse = firstBetter ? this.sr2 : this.sr1;
       const binLeft = numericBin;
       const binRight = numericBin + this.BIN_WIDTH;
       const absBinLeft = (numericBin < 0) ? (0 - binRight) : binLeft;
       const absBinRight = absBinLeft + this.BIN_WIDTH;
       const firstParen = (absBinLeft == 0 && this.hasZeroBin) ? '(' : '[';
-      return '' + count + ' segment(s) where ' + betterSys + ' is better than ' +
-             worseSys + ' with ' + this.metric + ' score diff in range ' +
+      return '' + count + ' ' + this.unitName + '(s) where ' + better +
+             ' is ' + this.betterOrLenient + ' than ' +
+             worse + ' with their ' + this.metric + ' score diff in range ' +
              firstParen + this.binDisplay(absBinLeft) + ',' +
              this.binDisplay(absBinRight) + ')';
     }
@@ -339,15 +363,15 @@ class MarotHistogram {
   }
 
   /**
-   * Displays the histogram using the data collected through prior addSegment()
-   * calls.
+   * Displays the histogram using the data collected through prior
+   * addScoringUnit() calls.
    * @param {!Element} plot
    */
   display(plot) {
     /** Create some buffer space above the plot. */
     this.maxCount += 10;
 
-    const binKeys = Object.keys(this.segsInBin);
+    const binKeys = Object.keys(this.docSegsInBin);
     /** Sort so that 'zero' bin is drawn at the end. */
     binKeys.sort((a, b) => {
       let a2 = (a == 'zero') ? Number.MAX_VALUE : a;
@@ -380,12 +404,14 @@ class MarotHistogram {
       /* legend, shown in the area above the plot */
       const legends = [
         {
-          color: this.color,
-          desc: this.sys1BetterCount + ' better segments for ' + this.sys,
+          color: this.color1,
+          desc: this.sr1BetterCount + ' ' + this.unitName + '(s) where ' +
+                this.sr1 + ' is ' + this.betterOrLenient,
         },
         {
-          color: this.colorCmp,
-          desc: this.sys2BetterCount + ' better segments for ' + this.sysCmp,
+          color: this.color2,
+          desc: this.sr2BetterCount + ' ' + this.unitName + '(s) where ' +
+                this.sr2 + ' is ' + this.betterOrLenient,
         },
       ];
       for (let s = 0; s < legends.length; s++) {
@@ -400,8 +426,8 @@ class MarotHistogram {
     }
 
     for (let bin of binKeys) {
-      const segs = this.segsInBin[bin];
-      if (segs.length == 0) continue;
+      const units = this.docSegsInBin[bin];
+      if (units.length == 0) continue;
       const numericBin = (bin == 'zero') ? 0 : parseFloat(bin);
       let x = this.xPixels(numericBin);
       const binWidth = (bin == 'zero') ? this.ZERO_BIN_WIDTH_PIXELS :
@@ -410,11 +436,11 @@ class MarotHistogram {
         x -= (binWidth / 2.0);
       }
       const color = this.binColor(bin, numericBin);
-      const desc = this.binDesc(bin, numericBin, segs.length);
-      const h = this.heightInPixels(segs.length);
+      const desc = this.binDesc(bin, numericBin, units.length);
+      const h = this.heightInPixels(units.length);
       this.makeHistBar(
             plot, x, plotHeight - h, binWidth, h,
-            color, desc, segs);
+            color, desc, units);
     }
 
     /** Draw x-axis labels */
@@ -443,8 +469,8 @@ class MarotHistogram {
     /* X-axis name */
     this.makeText(plot, this.X_OFFSET_PIXELS, plotHeight + 40,
                   (this.hasDiffs ? this.metric + ' score differences' :
-                   this.sys + ': ' + this.totalCount + ' segments with ' +
-                   this.metric + ' scores'),
+                   this.sr1 + ': ' + this.totalCount + ' ' + this.unitName +
+                   '(s) with ' + this.metric + ' scores'),
                   this.COLOR_LEGEND);
   }
 }

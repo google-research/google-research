@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,21 +18,23 @@
 #include <cstdint>
 
 #include "scann/utils/intrinsics/flags.h"
+#include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
 
 namespace {
 uint8_t SimdBlockSize() {
+#ifdef __x86_64__
+
   if (RuntimeSupportsAvx512()) {
     return 16;
   } else if (RuntimeSupportsAvx1()) {
     return 8;
-  } else if (RuntimeSupportsSse4()) {
-    return 4;
-  } else {
-    return 1;
   }
+#endif
+
+  return Highway<float>::kElementsPerRegister;
 }
 }  // namespace
 
@@ -91,6 +93,22 @@ void FP8SimdBlockTransposedDatabase::TransposeOneBlock(const int8_t* src,
       dest[dim_idx * block_size + dp_idx] = dp_start[dim_idx];
     }
   }
+}
+
+Datapoint<int8_t> FP8SimdBlockTransposedDatabase::ReconstructDatapoint(
+    DatapointIndex idx) const {
+  CHECK(idx < size_);
+  const DatapointIndex local_idx = idx % simd_block_size_;
+  const DatapointIndex block_start = idx - local_idx;
+  const DatapointIndex block_size =
+      std::min<DatapointIndex>(simd_block_size_, size_ - block_start);
+
+  std::vector<int8_t> data(dimensionality_);
+  for (DimensionIndex dim_idx : Seq(dimensionality_)) {
+    data[dim_idx] = payload_[block_start * dimensionality_ +
+                             dim_idx * block_size + local_idx];
+  }
+  return Datapoint<int8_t>({}, std::move(data), dimensionality_);
 }
 
 }  // namespace research_scann

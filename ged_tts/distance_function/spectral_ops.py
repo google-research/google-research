@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -78,7 +78,7 @@ def get_spectral_matrix(n, num_spec_bins=256, use_mel_scale=True,
                                     num_spec_bins)
 
   time_col_vec = (tf.reshape(tf.range(n, dtype=tf.float32), [n, 1])
-                  * np.cast[np.float32](2. * np.pi / sample_rate))
+                  * np.asarray(2. * np.pi / sample_rate, dtype=np.float32))
   tmat = tf.reshape(hertz_frequencies, [1, num_spec_bins]) * time_col_vec
   dct_mat = tf.math.cos(tmat)
   dst_mat = tf.math.sin(tmat)

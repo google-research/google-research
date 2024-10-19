@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -72,7 +72,7 @@ def train_step(
 
   step = state.step + 1
   lr = learning_rate_fn(step)
-  alpha_dict = jax.tree_map(lambda fn: fn(step), alpha_fn_dict)
+  alpha_dict = jax.tree.map(lambda fn: fn(step), alpha_fn_dict)
 
   def loss_fn(params):
     variables = {"params": params}
@@ -248,7 +248,7 @@ def train_and_evaluate(config, workdir):
       # devices.
       is_last_step = step == num_train_steps
       with jax.profiler.StepTraceAnnotation("train", step_num=step):
-        batch = jax.tree_map(np.asarray, next(train_iter))
+        batch = jax.tree.map(np.asarray, next(train_iter))
         state, metrics_update, keys = p_train_step(
             rng=keys, state=state, batch=batch
         )
@@ -270,7 +270,7 @@ def train_and_evaluate(config, workdir):
           step % config.train.checkpoint_every_steps == 0 or is_last_step
       ):
         with report_progress.timed("checkpoint"):
-          state_to_save = jax.device_get(jax.tree_map(lambda x: x[0], state))
+          state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
           checkpoints.save_checkpoint(workdir, state_to_save, step, keep=100)
 
   logging.info("Finishing training at step %d", num_train_steps)

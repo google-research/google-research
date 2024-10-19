@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ def train_step(state, x, y, *, model, learning_rate_fn, dropout_rng=None):
 
     reg_loss = sum(
         linear_model.l2_loss(w, alpha=model.config.alpha)
-        for w in jax.tree_leaves(params))
+        for w in jax.tree.leaves(params))
 
     loss = y_loss + reg_loss
 

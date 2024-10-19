@@ -1,4 +1,4 @@
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,4 +21,4 @@ source ./bin/activate
 
 pip install .
 python -m spacy download en_core_web_sm
-python example_main.py '''Black Americans have a hive mind mentality and automatically switch political party preferences just like that. Even to the parties who have white in there flags.'''
+python example_main.py '''Love your white car! Transaxle FWD cards are great for Black Americans.'''

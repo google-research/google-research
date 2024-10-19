@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -32,7 +32,6 @@
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/prefetch.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {

@@ -1,0 +1,17 @@
+[package]
+name = "brush-dataset"
+edition.workspace = true
+version.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+brush-render.path = "../brush-render"
+brush-train.path = "../brush-train"
+anyhow.workspace = true
+image.workspace = true
+serde_json.workspace = true
+zip.workspace = true
+glam.workspace = true
+burn.workspace = true
+byteorder = "1.5.0"

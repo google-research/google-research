@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,7 @@ import jax
 
 
 def compute_num_params(params_cpu):
-  return sum(p.size for p in jax.tree_flatten(params_cpu)[0])
+  return sum(p.size for p in jax.tree.flatten(params_cpu)[0])
 
 
 def compute_num_flops(f, optimize, *a, **kw):

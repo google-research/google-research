@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -66,11 +66,11 @@ double MedianDestructive(MutableSpan<T> nums);
 template <typename Float>
 Float InverseErf(Float x);
 
-template <typename T>
-void PermuteInPlace(MutableSpan<T> a, MutableSpan<uint32_t> perm);
+template <typename T, typename U>
+void PermuteInPlace(MutableSpan<T> a, MutableSpan<U> perm);
 
-template <typename T>
-void PermuteInPlaceInverse(MutableSpan<T> a, MutableSpan<uint32_t> perm);
+template <typename T, typename U>
+void PermuteInPlaceInverse(MutableSpan<T> a, MutableSpan<U> perm);
 
 template <typename Uint>
 void InvertPermutationInPlace(MutableSpan<Uint> perm);
@@ -212,13 +212,13 @@ inline double Sum<double>(ConstSpan<double> terms) {
   const double* cur = terms.data();
   const double* end = cur + terms.size();
   __m128d accumulator = _mm_setzero_pd();
-  if (cur + 8 <= end) {
+  if (end - cur >= 8) {
     __m128d accumulator0 = _mm_loadu_pd(cur);
     __m128d accumulator1 = _mm_loadu_pd(cur + 2);
     __m128d accumulator2 = _mm_loadu_pd(cur + 4);
     __m128d accumulator3 = _mm_loadu_pd(cur + 6);
     cur += 8;
-    for (; cur + 8 <= end; cur += 8) {
+    for (; end - cur >= 8; cur += 8) {
       accumulator0 = _mm_add_pd(accumulator0, _mm_loadu_pd(cur));
       accumulator1 = _mm_add_pd(accumulator1, _mm_loadu_pd(cur + 2));
       accumulator2 = _mm_add_pd(accumulator2, _mm_loadu_pd(cur + 4));
@@ -229,7 +229,7 @@ inline double Sum<double>(ConstSpan<double> terms) {
                              _mm_add_pd(accumulator2, accumulator3));
   }
 
-  while (cur + 2 <= end) {
+  while (end - cur >= 2) {
     accumulator = _mm_add_pd(accumulator, _mm_loadu_pd(cur));
     cur += 2;
   }
@@ -286,13 +286,14 @@ Float InverseErf(Float x) {
   return static_cast<Float>(0.5) * max + static_cast<Float>(0.5) * min;
 }
 
-template <typename T>
-void PermuteInPlace(MutableSpan<T> a, MutableSpan<uint32_t> perm) {
-  constexpr uint32_t kDoneMask = static_cast<uint32_t>(1) << 31;
-  constexpr uint32_t kIndexMask = ~kDoneMask;
+template <typename T, typename U>
+void PermuteInPlace(MutableSpan<T> a, MutableSpan<U> perm) {
+  constexpr uint8_t kNumBits = sizeof(U) * 8;
+  constexpr U kDoneMask = U{1} << (kNumBits - 1);
+  constexpr U kIndexMask = ~kDoneMask;
   auto set_done = [&perm](size_t i) -> void { perm[i] |= kDoneMask; };
 
-  auto permutation_index = [&perm](size_t i) -> uint32_t {
+  auto permutation_index = [&perm](size_t i) -> U {
     return perm[i] & kIndexMask;
   };
 
@@ -303,7 +304,7 @@ void PermuteInPlace(MutableSpan<T> a, MutableSpan<uint32_t> perm) {
   for (size_t i = 0; i < a.size(); ++i) {
     if (is_done(i)) continue;
     set_done(i);
-    for (uint32_t j = permutation_index(i); j != i; j = permutation_index(j)) {
+    for (U j = permutation_index(i); j != i; j = permutation_index(j)) {
       DCHECK(!is_done(j));
       using std::swap;
       swap(a[i], a[j]);
@@ -311,18 +312,19 @@ void PermuteInPlace(MutableSpan<T> a, MutableSpan<uint32_t> perm) {
     }
   }
 
-  for (uint32_t& u : perm) {
+  for (U& u : perm) {
     u &= kIndexMask;
   }
 }
 
-template <typename T>
-void PermuteInPlaceInverse(MutableSpan<T> a, MutableSpan<uint32_t> perm) {
-  constexpr uint32_t kDoneMask = static_cast<uint32_t>(1) << 31;
-  constexpr uint32_t kIndexMask = ~kDoneMask;
+template <typename T, typename U>
+void PermuteInPlaceInverse(MutableSpan<T> a, MutableSpan<U> perm) {
+  constexpr uint8_t kNumBits = sizeof(U) * 8;
+  constexpr U kDoneMask = U{1} << (kNumBits - 1);
+  constexpr U kIndexMask = ~kDoneMask;
   auto set_done = [&perm](size_t i) -> void { perm[i] |= kDoneMask; };
 
-  auto permutation_index = [&perm](size_t i) -> uint32_t {
+  auto permutation_index = [&perm](size_t i) -> U {
     return perm[i] & kIndexMask;
   };
 
@@ -333,8 +335,8 @@ void PermuteInPlaceInverse(MutableSpan<T> a, MutableSpan<uint32_t> perm) {
   for (size_t start = 0; start < a.size(); ++start) {
     if (is_done(start)) continue;
     set_done(start);
-    uint32_t i = start;
-    for (uint32_t j = permutation_index(i); j != start;
+    U i = start;
+    for (U j = permutation_index(i); j != start;
          i = j, j = permutation_index(j)) {
       DCHECK(!is_done(j));
       using std::swap;
@@ -343,7 +345,7 @@ void PermuteInPlaceInverse(MutableSpan<T> a, MutableSpan<uint32_t> perm) {
     }
   }
 
-  for (uint32_t& u : perm) {
+  for (U& u : perm) {
     u &= kIndexMask;
   }
 }

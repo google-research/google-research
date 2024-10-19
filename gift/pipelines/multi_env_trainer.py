@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -135,7 +135,7 @@ class MultiEnvTrainer(trainer.Trainer):
     Returns:
       List of batches.
     """
-    return jax.tree_map(next, data_iter)
+    return jax.tree.map(next, data_iter)
 
   def train_step(self, train_state, batch, env_ids):
     """Runs a single step of training.
@@ -264,7 +264,7 @@ class MultiEnvTrainer(trainer.Trainer):
       self.train_state, t_metrics = self.pmapped_train_step(
           self.train_state, train_batches)
 
-      t_metrics = jax.tree_map(lambda x: x[0], t_metrics)
+      t_metrics = jax.tree.map(lambda x: x[0], t_metrics)
       train_metrics.append(t_metrics)
 
       eval_summary, train_metrics, train_summary, tick = self.maybe_eval_and_log(

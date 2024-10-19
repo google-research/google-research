@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -119,7 +119,7 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
         config.kernel_prior == 'none' and config.bias_prior == 'none' and
         config.kernel_prior == 'none')
     assert l2_reg == 0 or no_prior, 'Either set priors or l2_reg > 0, not both.'
-    weight_penalty_params = jax.tree_leaves(model.params)
+    weight_penalty_params = jax.tree.leaves(model.params)
     weight_l2 = sum(
         [jnp.sum(x**2) for x in weight_penalty_params if x.ndim > 1])
     weight_penalty = l2_reg * 0.5 * weight_l2
@@ -248,7 +248,7 @@ def make_training_steps(config, learning_rate_fn, l2_reg, train_size,
     _, grad = grad_fn(optimizer.target)
     grad = train_functions.pmean(grad, config, 'batch')
 
-    values = jax.tree_map(lambda v, g: v + jnp.square(g), values, grad)
+    values = jax.tree.map(lambda v, g: v + jnp.square(g), values, grad)
     return values
 
   return train_step, update_grad_vars
@@ -380,7 +380,7 @@ def train(config, model_def, device_batch_size, eval_ds, num_steps,
     logging.log_first_n(logging.INFO, 'Finished training step %d.', 5, step)
     if step == initial_step:
       initial_train_metrics = get_metrics(config, train_metrics)
-      train_summary = jax.tree_map(lambda x: x.mean(), initial_train_metrics)
+      train_summary = jax.tree.map(lambda x: x.mean(), initial_train_metrics)
       train_summary = {'train_' + k: v for k, v in train_summary.items()}
       logging.log(logging.INFO, 'initial metrics = %s',
                   str(train_summary.items()))
@@ -391,7 +391,7 @@ def train(config, model_def, device_batch_size, eval_ds, num_steps,
 
       train_metrics = get_metrics(config, train_metrics)
       # Get training epoch summary for logging
-      train_summary = jax.tree_map(lambda x: x.mean(), train_metrics)
+      train_summary = jax.tree.map(lambda x: x.mean(), train_metrics)
 
       train_summary = {'train_' + k: v for k, v in train_summary.items()}
 
@@ -417,7 +417,7 @@ def train(config, model_def, device_batch_size, eval_ds, num_steps,
           eval_labels.append(labels)
         eval_metrics = get_metrics(config, eval_metrics)
         # Get eval epoch summary for logging
-        eval_summary = jax.tree_map(lambda x: x.mean(), eval_metrics)
+        eval_summary = jax.tree.map(lambda x: x.mean(), eval_metrics)
         eval_summary = {'eval_' + k: v for k, v in eval_summary.items()}
         writer.write_scalars(epoch, eval_summary)
 
@@ -445,7 +445,7 @@ def train(config, model_def, device_batch_size, eval_ds, num_steps,
             jnp.array(ensemble_probs[-config.ensemble_size:]), axis=0)
         ensemble_metrics = train_functions.compute_metrics_probs(
             ensemble_last_probs, ensemble_labels[0])
-        ensemble_summary = jax.tree_map(lambda x: x.mean(), ensemble_metrics)
+        ensemble_summary = jax.tree.map(lambda x: x.mean(), ensemble_metrics)
         ensemble_summary = {'ens_' + k: v for k, v in ensemble_summary.items()}
         ensemble_summary['ensemble_size'] = min(config.ensemble_size,
                                                 len(ensemble_probs))
@@ -460,7 +460,7 @@ def update_preconditioner(config, optimizer, p_update_grad_vars, rng, state,
                           train_iter):
   """Computes preconditioner state using samples from dataloader."""
   # TODO(basv): support multiple hosts.
-  values = jax.tree_map(jnp.zeros_like, optimizer.target)
+  values = jax.tree.map(jnp.zeros_like, optimizer.target)
 
   eps = config.precon_est_eps
   n_batches = config.precon_est_batches
@@ -474,11 +474,11 @@ def update_preconditioner(config, optimizer, p_update_grad_vars, rng, state,
     else:
       sharded_keys = est_key
     values = p_update_grad_vars(optimizer, state, batch, sharded_keys, values)
-  stds = jax.tree_map(lambda v: jnp.sqrt(eps + (1 / n_batches) * jnp.mean(v)),
+  stds = jax.tree.map(lambda v: jnp.sqrt(eps + (1 / n_batches) * jnp.mean(v)),
                       values)
-  std_min = jnp.min(jnp.asarray(jax.tree_leaves(stds)))
+  std_min = jnp.min(jnp.asarray(jax.tree.leaves(stds)))
   # TODO(basv): verify preconditioner estimate.
-  new_precon = jax.tree_map(lambda s, x: jnp.ones_like(x) * (s / std_min), stds,
+  new_precon = jax.tree.map(lambda s, x: jnp.ones_like(x) * (s / std_min), stds,
                             optimizer.target)
 
   def convert_momentum(
@@ -496,7 +496,7 @@ def update_preconditioner(config, optimizer, p_update_grad_vars, rng, state,
     return m
 
   # TODO(basv): verify momentum convert.
-  new_momentum = jax.tree_map(convert_momentum, new_precon,
+  new_momentum = jax.tree.map(convert_momentum, new_precon,
                               optimizer.state.param_states)
   # TODO(basv): verify this is replaced correctly, check replicated.
   optimizer = replace_param_state(
@@ -509,7 +509,7 @@ def replace_param_state(config, optimizer, **replacements):
 
   new_param_states = optimizer.state.param_states
   for key, val in replacements.items():
-    val_flat, treedef = jax.tree_flatten(val)
+    val_flat, treedef = jax.tree.flatten(val)
     states_flat = treedef.flatten_up_to(new_param_states)
     if config.weight_norm == 'learned':
       # Accommodate nested state parameters.
@@ -526,7 +526,7 @@ def replace_param_state(config, optimizer, **replacements):
           s.replace(**{key: flat_val})
           for s, flat_val in zip(states_flat, val_flat)
       ]
-    new_param_states = jax.tree_unflatten(treedef, new_states_flat)
+    new_param_states = jax.tree.unflatten(treedef, new_states_flat)
   new_state = optimizer.state.replace(param_states=new_param_states)
 
   optimizer = optimizer.replace(state=new_state)

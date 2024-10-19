@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -114,16 +114,22 @@ def _clone_model(model, input_tensors):
   return new_model
 
 
+def _weight_get_basename(weight):
+  pos = weight.name.rfind('/')
+  return weight.name if pos == -1 else weight.name[pos + 1 :]
+
+
 def _copy_weights(new_model, model):
   """Copy weights of trained model to an inference one."""
 
   def _same_weights(weight, new_weight):
     # Check that weights are the same
     # Note that states should be marked as non trainable
-    return (weight.trainable == new_weight.trainable and
-            weight.shape == new_weight.shape and
-            weight.name[weight.name.rfind('/'):None] ==
-            new_weight.name[new_weight.name.rfind('/'):None])
+    return (
+        weight.trainable == new_weight.trainable
+        and weight.shape == new_weight.shape
+        and _weight_get_basename(weight) == _weight_get_basename(new_weight)
+    )
 
   if len(new_model.layers) != len(model.layers):
     raise ValueError(
@@ -299,16 +305,28 @@ def to_streaming_inference(model_non_stream, flags, mode):
 
   if (isinstance(model_non_stream.input, (tuple, list)) and
       len(model_non_stream.input) > 1):
-    if len(model_non_stream.input) > 2:
-      raise ValueError(
-          'Maximum number of inputs supported is 2 (input_audio and '
-          'cond_features), but got %d inputs' % len(model_non_stream.input))
     input_tensors.append(
         tf.keras.layers.Input(
             shape=flags.cond_shape,
             batch_size=1,
             dtype=model_non_stream.input[1].dtype,
             name='cond_features'))
+    if len(model_non_stream.input) > 2:
+      # Optionally allows a third input called cond_audio, the shape of which is
+      # recorded in flags.cond_audio_shape.
+      input_tensors.append(
+          tf.keras.layers.Input(
+              shape=flags.cond_audio_shape,
+              batch_size=1,
+              dtype=model_non_stream.input[2].dtype,
+              name='cond_audio',
+          )
+      )
+    if len(model_non_stream.input) > 3:
+      raise ValueError(
+          'Maximum number of inputs supported is 3 (input_audio, cond_features,'
+          ' and cond_audio), but got %d inputs' % len(model_non_stream.input)
+      )
 
   quantize_stream_scope = quantize.quantize_scope()
   with quantize_stream_scope:
@@ -617,10 +635,20 @@ def ds_tc_resnet_model_params(use_tf_fft=False):
   frames_per_call = total_stride
   frames_number = (frames_number // frames_per_call) * frames_per_call
   # number of input audio samples required to produce one output frame
+  if params.window_stride_samples is None:
+    raise ValueError(
+        'params.window_stride_samples is None in generating parameters for'
+        ' ds_tc_resnet model.'
+    )
+  if params.window_size_samples is None:
+    raise ValueError(
+        'params.window_size_samples is None in generating parameters for'
+        ' ds_tc_resnet model.'
+    )
   framing_stride = max(
       params.window_stride_samples,
-      max(0, params.window_size_samples -
-          params.window_stride_samples))
+      max(0, params.window_size_samples - params.window_stride_samples),
+  )
   signal_size = framing_stride * frames_number
 
   # desired number of samples in the input data to train non streaming model

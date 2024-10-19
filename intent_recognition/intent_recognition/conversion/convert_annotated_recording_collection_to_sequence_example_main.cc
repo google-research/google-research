@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -51,7 +51,7 @@ int main(int argc, char* argv[]) {
   }
 
   std::unique_ptr<tensorflow::WritableFile> output_file;
-  tensorflow::Status tf_status = tensorflow::Env::Default()->NewWritableFile(
+  absl::Status tf_status = tensorflow::Env::Default()->NewWritableFile(
       absl::GetFlag(FLAGS_tf_record_output_filename), &output_file);
   tensorflow::io::RecordWriter output_writer(output_file.get());
 

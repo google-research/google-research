@@ -1,0 +1,38 @@
+# @package _global_
+model:
+  name: G-Net
+  g_net:
+    _target_: src.models.gnet.GNet
+
+    # Representation network
+    seq_hidden_units:
+    num_layer:
+    r_size:
+
+    # Conditional networks
+    fc_hidden_units:
+    num_comp: 1
+    mc_samples: 50
+    fit_vitals: True
+    comp_sizes:
+
+    # Other params
+    batch_size:
+    dropout_rate:
+    optimizer:
+      optimizer_cls: adam
+      learning_rate:
+      weight_decay: 0.0
+      lr_scheduler: False
+
+    tune_hparams: False
+    tune_range: 50
+    hparams_grid:
+    resources_per_trial:
+
+dataset:
+  holdout_ratio: 0.1
+  val_batch_size: 4096
+
+exp:
+  update_alpha: False

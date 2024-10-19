@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,31 +20,6 @@
 #include "scann/oss_wrappers/scann_malloc_extension.h"
 
 namespace research_scann {
-
-size_t GfvStorage(const GenericFeatureVector& gfv) {
-  size_t result = sizeof(gfv);
-  result += gfv.feature_index().Capacity() * sizeof(gfv.feature_index(0));
-  result +=
-      gfv.feature_value_int64().Capacity() * sizeof(gfv.feature_value_int64(0));
-  result +=
-      gfv.feature_value_float().Capacity() * sizeof(gfv.feature_value_float(0));
-  result += gfv.feature_value_double().Capacity() *
-            sizeof(gfv.feature_value_double(0));
-  if (gfv.has_data_id_str()) {
-    result += gfv.data_id_str().size();
-  }
-
-  return result;
-}
-
-size_t GfvStorage(const vector<GenericFeatureVector>& gfvs) {
-  size_t result = sizeof(gfvs);
-  for (const auto& gfv : gfvs) {
-    result += GfvStorage(gfv);
-  }
-
-  return result;
-}
 
 std::string GetTcMallocLogString() {
   size_t allocated_bytes = *tcmalloc::MallocExtension::GetNumericProperty(

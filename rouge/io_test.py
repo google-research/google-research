@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -22,10 +22,10 @@ from __future__ import print_function
 import tempfile
 
 from absl.testing import absltest
-from rouge import io
-from rouge import rouge_scorer
-from rouge import scoring
-from rouge import test_util
+from rouge_score import io
+from rouge_score import rouge_scorer
+from rouge_score import scoring
+from rouge_score import test_util
 
 
 class IoTest(absltest.TestCase):

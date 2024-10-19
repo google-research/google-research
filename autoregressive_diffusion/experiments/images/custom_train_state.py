@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -67,7 +67,7 @@ class TrainState(struct.PyTreeNode):  # pytype: disable=invalid-function-definit
     def update_ema(ema, p):
       return ema_momentum * ema + (1. - ema_momentum) * p
 
-    new_ema_params = jax.tree_map(update_ema, self.ema_params, new_params)
+    new_ema_params = jax.tree.map(update_ema, self.ema_params, new_params)
 
     return self.replace(
         step=self.step + 1,

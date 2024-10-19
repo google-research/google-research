@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -160,14 +160,14 @@ def _parallel_train_step(
   agg_metrics["gradient_global_norm"] = global_norm
   if max_global_norm is not None:
     should_clip = global_norm > max_global_norm
-    agg_grads = jax.tree_map(
+    agg_grads = jax.tree.map(
         lambda g: jnp.where(should_clip, g * max_global_norm / global_norm, g),
         agg_grads)
     agg_metrics["gradient_was_clipped"] = should_clip.astype("float32")  # pytype: disable=attribute-error  # numpy-scalars
 
   # Check for non-finite gradients.
   grads_ok = jnp.all(
-      jnp.stack([jnp.all(jnp.isfinite(x)) for x in jax.tree_leaves(agg_grads)]))
+      jnp.stack([jnp.all(jnp.isfinite(x)) for x in jax.tree.leaves(agg_grads)]))
 
   # Apply updates.
   updated_optimizer = optimizer.apply_gradient(agg_grads,
@@ -236,7 +236,7 @@ def warmup_train_step(
     replicated_optimizer = device_broadcast(optimizer, num_devices)
 
   (replicated_optimizer,
-   batched_example) = jax.tree_map(jax.device_put,
+   batched_example) = jax.tree.map(jax.device_put,
                                    (replicated_optimizer, batched_example))
 
   try:
@@ -256,7 +256,7 @@ def warmup_train_step(
         loss_fn,
         max_global_norm=max_global_norm,
         learning_rate=0.0)
-    jax.tree_map(lambda x: x.block_until_ready(), res)
+    jax.tree.map(lambda x: x.block_until_ready(), res)
 
   if profile:
     stats = runner.try_run_and_profile(go, catch_resource_exhausted=False)
@@ -302,9 +302,9 @@ def build_averaging_validator(
     loss, metrics = jax.vmap(loss_fn, (None, 0, None))(model, batched_examples,
                                                        static_metadata)
     metrics["loss"] = loss
-    metrics = jax.tree_map(
+    metrics = jax.tree.map(
         lambda x: jnp.where(batch_mask, x, jnp.zeros_like(x)), metrics)
-    metrics = jax.tree_map(lambda x: jax.lax.psum(jnp.sum(x), "devices"),
+    metrics = jax.tree.map(lambda x: jax.lax.psum(jnp.sum(x), "devices"),
                            metrics)
     return metrics
 
@@ -319,12 +319,12 @@ def build_averaging_validator(
       for batch in valid_iterator:
         results = parallel_metrics_batch(model, batch.example, batch.mask,
                                          batch.static_metadata)
-        metrics = jax.tree_map(float, flax.jax_utils.unreplicate(results))
+        metrics = jax.tree.map(float, flax.jax_utils.unreplicate(results))
         metrics["epoch"] = np.sum(batch.epoch)
         if accumulated is None:
           accumulated = metrics
         else:
-          accumulated = jax.tree_map(operator.add, accumulated, metrics)
+          accumulated = jax.tree.map(operator.add, accumulated, metrics)
         example_count += jnp.count_nonzero(batch.mask)
 
       assert example_count > 0, "Validation iterator must be nonempty"

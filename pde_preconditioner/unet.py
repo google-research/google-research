@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -400,7 +400,7 @@ class UNet:
               objective_value=og_loss, step=0)
     for i in range(self.training_iter):
       m = bs.shape[0]
-      order = random.shuffle(random.PRNGKey(i), np.arange(m))
+      order = random.permutation(random.PRNGKey(i), m)
       for _ in range(50):
         for b in bs[order]:
           current_loss, grad, opt_state = self.step(i,
@@ -467,4 +467,4 @@ class UNet:
                                                           1)).reshape(-1)
 
   def print_layer_shape(self):
-    print([array.shape for array in jax.tree_flatten(self.net_params)[0]])
+    print([array.shape for array in jax.tree.flatten(self.net_params)[0]])

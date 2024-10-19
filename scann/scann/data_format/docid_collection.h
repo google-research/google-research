@@ -1,4 +1,4 @@
-// Copyright 2023 The Google Research Authors.
+// Copyright 2024 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -27,17 +27,17 @@
 #include "scann/data_format/internal/short_string_optimized_string.h"
 #include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_serialize.h"
+#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/lib/core/errors.h"
 
 namespace research_scann {
 
 class VariableLengthDocidCollection final : public DocidCollectionInterface {
  public:
-  VariableLengthDocidCollection() {}
-  ~VariableLengthDocidCollection() final {}
+  VariableLengthDocidCollection() = default;
+  ~VariableLengthDocidCollection() final = default;
 
   VariableLengthDocidCollection(const VariableLengthDocidCollection& rhs);
   VariableLengthDocidCollection& operator=(
@@ -128,7 +128,7 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
       default;
 
   explicit FixedLengthDocidCollection(size_t length) : docid_length_(length) {}
-  ~FixedLengthDocidCollection() final {}
+  ~FixedLengthDocidCollection() final = default;
 
   static StatusOr<FixedLengthDocidCollection> Iota(uint32_t length) {
     FixedLengthDocidCollection docids(sizeof(uint32_t));

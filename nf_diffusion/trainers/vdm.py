@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -125,7 +125,7 @@ def ema_apply_gradients(
   """EMD Gradients Update."""
   updates, new_opt_state = opt.update(grads, state.opt_state, state.params)
   new_params = optax.apply_updates(state.params, updates)
-  new_ema_params = jax.tree_map(
+  new_ema_params = jax.tree.map(
       lambda x, y: x + (1.0 - ema_rate) * (y - x),
       state.ema_params,
       new_params,
@@ -247,7 +247,7 @@ def train_step(
       state, opt=opt, grads=grads, ema_rate=config.opt.ema_rate
   )
 
-  metrics_dict["scalars"] = jax.tree_map(
+  metrics_dict["scalars"] = jax.tree.map(
       lambda x: jax.lax.pmean(x, axis_name="batch"), metrics_dict["scalars"]
   )
 
@@ -317,7 +317,7 @@ def evaluate(
   logging.info("=== Eval set loss ===")
   eval_metrics = []
   for curr_eval_step, batch in enumerate(eval_ds):
-    batch = jax.tree_map(jnp.asarray, batch)
+    batch = jax.tree.map(jnp.asarray, batch)
     metrics_dict = p_eval_step(
         pparams, batch, flax_utils.replicate(curr_eval_step)
     )
@@ -327,7 +327,7 @@ def evaluate(
 
   # average over eval metrics
   eval_metrics = vdm_utils.get_metrics(eval_metrics)
-  eval_metrics = jax.tree_map(jnp.mean, eval_metrics)
+  eval_metrics = jax.tree.map(jnp.mean, eval_metrics)
   eval_metrics = EvalMetrics.single_from_model_output(**eval_metrics)
 
   # sample a batch of images

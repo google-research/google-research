@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2023 The Google Research Authors.
+# Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -35,7 +35,7 @@ def unshard_env_batch(pytree):
     new_shape = (envs, ndev * bs) + array.shape[3:]
     return array.reshape(new_shape)
 
-  return jax.tree_map(_unshard_array, pytree)
+  return jax.tree.map(_unshard_array, pytree)
 
 
 def unshard(pytree):
@@ -53,4 +53,4 @@ def unshard(pytree):
     new_shape = (ndev * bs,) + array.shape[2:]
     return array.reshape(new_shape)
 
-  return jax.tree_map(_unshard_array, pytree)
+  return jax.tree.map(_unshard_array, pytree)
