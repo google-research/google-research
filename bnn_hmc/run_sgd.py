@@ -52,8 +52,11 @@ train_utils.set_up_jax(args.tpu_ip, args.use_float64)
 def get_dirname_tfwriter(args):
   method_name = "sgd_mom_{}".format(args.momentum_decay)
   lr_schedule_name = "lr_sch_i_{}".format(args.init_step_size)
-  hypers_name = "_epochs_{}_wd_{}_batchsize_{}_temp_{}".format(
-      args.num_epochs, args.weight_decay, args.batch_size, args.temperature)
+  prior_name = "wd_{}".format(args.weight_decay) \
+               if not args.pretrained_prior_checkpoint else \
+               "pretr_{:.0f}".format(hash(args.pretrained_prior_checkpoint) % 1e7)
+  hypers_name = "_epochs_{}_{}_batchsize_{}_temp_{}".format(
+      args.num_epochs, prior_name, args.batch_size, args.temperature)
   subdirname = "{}__{}__{}__seed_{}".format(method_name, lr_schedule_name,
                                             hypers_name, args.seed)
   dirname, tf_writer = script_utils.prepare_logging(subdirname, args)
@@ -132,6 +135,23 @@ def train_model():
                                      args.tabulate_freq)
     print(table)
 
+  print("Final evaluation:")
+
+  # Evaluate the model
+  train_stats, test_stats = {"log_prob": None}, {}
+  _, test_predictions, train_predictions, test_stats, train_stats_ = (
+      script_utils.evaluate(net_apply, params, net_state, train_set,
+                            test_set, predict_fn, metrics_fns,
+                            log_prior_fn))
+  train_stats.update(train_stats_)
+
+  logging_dict = logging_utils.make_logging_dict(train_stats, test_stats, {})
+  logging_dict["telemetry/iteration"] = None
+  logging_dict["telemetry/iteration_time"] = None
+  tabulate_dict = script_utils.get_tabulate_dict(tabulate_metrics,
+                                                  logging_dict)
+  table = logging_utils.make_table(tabulate_dict, 0, args.tabulate_freq)
+  print(table)
 
 if __name__ == "__main__":
   script_utils.print_visible_devices()

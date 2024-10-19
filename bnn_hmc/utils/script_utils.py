@@ -31,6 +31,7 @@
 
 import os
 import jax
+import logging
 import time
 import numpy as onp
 from jax import numpy as jnp
@@ -47,10 +48,14 @@ from bnn_hmc.utils import precision_utils  # pytype: disable=import-error
 from bnn_hmc.utils import train_utils  # pytype: disable=import-error
 from bnn_hmc.utils import tree_utils  # pytype: disable=import-error
 
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 def print_visible_devices():
-  print("JAX sees the following devices:", jax.devices())
-  print("TF sees the following devices:", tf.config.get_visible_devices())
+  logger.info("JAX sees the following devices: " + str(jax.devices()))
+  logger.info("TF sees the following devices: " + str(tf.config.get_visible_devices()))
 
 
 def prepare_logging(subdirname, args):
@@ -68,7 +73,10 @@ def get_dtype(args):
 def get_data_model_fns(args):
   dtype = get_dtype(args)
   train_set, test_set, task, data_info = data_utils.make_ds_pmap_fullbatch(
-      args.dataset_name, dtype, truncate_to=args.subset_train_to)
+      args.dataset_name, dtype, truncate_to=args.subset_train_to, sequential=args.sequential_training,
+      num_sequential_training_folds=args.num_sequential_training_folds,
+      index_sequential_training_fold=args.index_sequential_training_fold,
+      stratified=args.stratified_folds)
 
   net_apply, net_init = models.get_model(args.model_name, data_info)
   net_apply = precision_utils.rewrite_high_precision(net_apply)
@@ -76,7 +84,18 @@ def get_data_model_fns(args):
   (likelihood_factory, predict_fn, ensemble_upd_fn, metrics_fns,
    tabulate_metrics) = train_utils.get_task_specific_fns(task, data_info)
   log_likelihood_fn = likelihood_factory(args.temperature)
-  log_prior_fn, log_prior_diff_fn = losses.make_gaussian_log_prior(
+  if args.pretrained_prior_checkpoint:
+    logger.info("Using pretrained prior")
+    try:
+      pretrained_checkpoint = checkpoint_utils.load_checkpoint(
+        args.pretrained_prior_checkpoint)
+    except Exception as e:
+      logger.error(f"Could not load checkpoint {args.pretrained_prior_checkpoint}")
+      raise e
+    log_prior_fn, log_prior_diff_fn = losses.make_pretrained_gaussian_log_prior(
+      pretrained_checkpoint["params"], args.temperature)
+  else:
+    log_prior_fn, log_prior_diff_fn = losses.make_gaussian_log_prior(
       args.weight_decay, args.temperature)
 
   key, net_init_key = jax.random.split(jax.random.PRNGKey(args.seed), 2)
@@ -120,13 +139,13 @@ def get_initialization_dict(dirname, args, init_dict):
   checkpoint_dict, status = checkpoint_utils.initialize(dirname,
                                                         args.init_checkpoint)
   if status == checkpoint_utils.InitStatus.LOADED_PREEMPTED:
-    print("Continuing the run from the last saved checkpoint")
+    logger.info("Continuing the run from the last saved checkpoint")
     return checkpoint_dict
   if status == checkpoint_utils.InitStatus.INIT_RANDOM:
-    print("Starting from random initialization with provided seed")
+    logger.info("Starting from random initialization with provided seed")
     return init_dict
   if status == checkpoint_utils.InitStatus.INIT_CKPT:
-    print("Starting the run from the provided init_checkpoint")
+    logger.info("Starting the run from the provided init_checkpoint")
     init_dict.update({"params": checkpoint_dict["params"]})
     init_dict.update({"net_state": checkpoint_dict["net_state"]})
     return init_dict
@@ -135,10 +154,11 @@ def get_initialization_dict(dirname, args, init_dict):
 
 def evaluate(net_apply, params, net_state, train_set, test_set, predict_fn,
              metrics_fns, log_prior_fn):
-  net_state, test_predictions = onp.asarray(
-      predict_fn(net_apply, params, net_state, test_set))
-  net_state, train_predictions = onp.asarray(
-      predict_fn(net_apply, params, net_state, train_set))
+  net_state, test_predictions = predict_fn(
+    net_apply, params, net_state, test_set)
+  net_state, train_predictions = predict_fn(
+    net_apply, params, net_state, train_set)
+  plot_1d_predictions(test_set[0], test_predictions[..., 0], test_predictions[..., 1])
   test_stats = train_utils.evaluate_metrics(test_predictions, test_set[1],
                                             metrics_fns)
   train_stats = train_utils.evaluate_metrics(train_predictions, train_set[1],
@@ -172,7 +192,8 @@ def get_common_logs(iteration, iteration_time, args):
 def write_to_tensorboard(tf_writer, logging_dict, iteration):
   with tf_writer.as_default():
     for stat_name, stat_val in logging_dict.items():
-      tf.summary.scalar(stat_name, stat_val, step=iteration)
+      if not stat_name.endswith("str"):
+        tf.summary.scalar(stat_name, stat_val, step=iteration)
 
 
 def get_tabulate_dict(tabulate_metrics, logging_dict):
@@ -185,3 +206,10 @@ def get_tabulate_dict(tabulate_metrics, logging_dict):
     else:
       tabulate_dict[metric_name] = None
   return tabulate_dict
+
+
+def plot_1d_predictions(x, y_mean, y_scale):
+  return
+  import matplotlib.pyplot as plt
+  plt.errorbar(x.squeeze(), y_mean.squeeze(), yerr=y_scale.squeeze())
+  plt.show()

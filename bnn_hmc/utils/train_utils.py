@@ -34,7 +34,6 @@ import jax.numpy as jnp
 import tensorflow.compat.v2 as tf
 import numpy as onp
 import functools
-from jax.config import config
 
 from bnn_hmc.core import hmc
 from bnn_hmc.utils import data_utils
@@ -46,10 +45,10 @@ from bnn_hmc.utils import metrics
 
 def set_up_jax(tpu_ip, use_float64):
   if tpu_ip is not None:
-    config.FLAGS.jax_xla_backend = "tpu_driver"
-    config.FLAGS.jax_backend_target = "grpc://{}:8470".format(tpu_ip)
+    jax.config.FLAGS.jax_xla_backend = "tpu_driver"
+    jax.config.FLAGS.jax_backend_target = "grpc://{}:8470".format(tpu_ip)
   if use_float64:
-    config.update("jax_enable_x64", True)
+    jax.config.update("jax_enable_x64", True)
   tf.config.set_visible_devices([], "GPU")
 
 
@@ -58,7 +57,11 @@ def get_task_specific_fns(task, data_info):
     likelihood_fn = losses.make_xent_log_likelihood
     ensemble_fn = (
         ensemble_utils.compute_updated_ensemble_predictions_classification)
-    predict_fn = get_softmax_predictions
+    predict_batch_size = 1_024  # want 1024 samples to be predicted together
+    assert data_info["train_shape"][0][1] % predict_batch_size == 0, (
+        "train shape should be devisible by predict batch size, but got values "
+        f"train shape={data_info['train_shape'][0][1]}, predict batch size={predict_batch_size}")
+    predict_fn = get_softmax_predictions(num_batches=data_info['train_shape'][0][1] // predict_batch_size)
     metrics_fns = {
         "accuracy": metrics.accuracy,
         "nll": metrics.nll,
@@ -71,7 +74,7 @@ def get_task_specific_fns(task, data_info):
   elif task == data_utils.Task.REGRESSION:
     likelihood_fn = losses.make_gaussian_likelihood
     ensemble_fn = ensemble_utils.compute_updated_ensemble_predictions_regression
-    predict_fn = get_regression_gaussian_predictions
+    predict_fn = get_regression_gaussian_predictions(num_batches=1)
 
     data_scale = data_info["y_scale"]
     metrics_fns = {
@@ -81,10 +84,11 @@ def get_task_specific_fns(task, data_info):
         "nll": lambda preds, y: metrics.regression_nll(preds, y, data_scale),
         "mse": lambda preds, y: metrics.mse(preds, y, data_scale),
         "rmse": lambda preds, y: metrics.rmse(preds, y, data_scale),
+        "str": lambda preds, y: metrics.summarize_1d_regr(preds, y, data_scale),
     }
     tabulate_metrics = [
         "train/rmse", "train/nll", "test/rmse", "test/nll", "test/ens_rmse",
-        "test/ens_nll"
+        "test/ens_nll", "test/str"
     ]
   return likelihood_fn, predict_fn, ensemble_fn, metrics_fns, tabulate_metrics
 
@@ -299,6 +303,6 @@ def make_get_predictions(activation_fn, num_batches=1, is_training=False):
   return get_predictions
 
 
-get_softmax_predictions = make_get_predictions(jax.nn.softmax)
-get_regression_gaussian_predictions = make_get_predictions(
-    losses.preprocess_network_outputs_gaussian)
+get_softmax_predictions = lambda num_batches: make_get_predictions(jax.nn.softmax, num_batches)
+get_regression_gaussian_predictions = lambda num_batches: make_get_predictions(
+    losses.preprocess_network_outputs_gaussian, num_batches=num_batches)

@@ -227,6 +227,29 @@ def _parse_uci_regression_dataset(name_str):
   return None, None
 
 
+def generate_test_regression_dataset(which='both', dataset='one'):
+  x_train = onp.array([[-1.], [+1.]])
+  x_test = onp.linspace(-2, +2, num=5, endpoint=True).reshape((-1, 1))
+  if dataset == "zero":
+    y_train = onp.zeros((2, 1))
+    y_test = onp.zeros((5, 1))
+  elif dataset == "linear":
+    y_train = -x_train
+    y_test = -x_test
+  elif dataset == "one":
+    y_train = 2*onp.ones((2, 1))
+    y_test = 2*onp.ones((5, 1))
+
+  data_info = {"y_scale": 0.1}
+
+  if str(which) == "-1":
+    x_train, y_train = x_train[:1], y_train[:1]
+  elif str(which) == "1":
+    x_train, y_train = x_train[1:], y_train[1:]
+
+  return (x_train, y_train), (x_test, y_test), data_info
+
+
 def load_npz_array(filename):
   arr = onp.load(filename, allow_pickle=True)
   return ((arr["x_train"], arr["y_train"]), (arr["x_test"], arr["y_test"]),
@@ -258,7 +281,9 @@ def pmap_dataset(ds, n_devices):
   return jax.pmap(lambda x: x)(batch_split_axis(ds, n_devices))
 
 
-def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
+def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None,
+                           sequential=False, num_sequential_training_folds=2,
+                           index_sequential_training_fold=0, stratified=False):
   """Make train and test sets sharded over batch dim."""
   name = name.lower()
   n_devices = n_devices or len(jax.local_devices())
@@ -275,6 +300,14 @@ def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
     train_set, test_set, data_info = load_npz_array(name)
     loaded = True
     task = Task.CLASSIFICATION
+  elif name.startswith("regtest"):
+    if "_" not in name:
+      which = "both"
+    else:
+      which = name.split('_')[-1]
+    train_set, test_set, data_info = generate_test_regression_dataset(which)
+    loaded = True
+    task = Task.REGRESSION
   else:
     name, seed = _parse_uci_regression_dataset(name)
     loaded = name is not None
@@ -289,14 +322,39 @@ def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None):
 
   if truncate_to:
     assert truncate_to % n_devices == 0, (
-        "truncate_to should be devisible by n_devices, but got values "
+        "truncate_to should be divisible by n_devices, but got values "
         "truncate_to={}, n_devices={}".format(truncate_to, n_devices))
     train_set = tuple(arr[:truncate_to] for arr in train_set)
+
+  if sequential:
+    if task != task.CLASSIFICATION:
+      raise NotImplementedError("Sequential only supported for classification")
+
+    assert len(train_set[0]) % (num_sequential_training_folds * n_devices) == 0, (
+        "Each sequential fold has to be divisible by n_devices, but got values "
+        "truncate_to={}, num_sequential_training_folds={}, n_devices={}".format(
+          truncate_to, num_sequential_training_folds, n_devices))
+
+    if stratified:
+      # Sort classes by increasing order
+      # This means e.g. some classes will be present only in the first half,
+      # some only in the second half
+      order = onp.argsort(train_set[1])
+      train_set = tuple(arr[order] for arr in train_set)
+
+    fold_len = len(train_set[0]) // num_sequential_training_folds
+    train_set = tuple(arr[
+      index_sequential_training_fold*fold_len:(index_sequential_training_fold+1)*fold_len]
+      for arr in train_set
+    )
 
   train_set, test_set = tuple(
       pmap_dataset(ds, n_devices) for ds in (train_set, test_set))
 
   train_set, test_set = map(lambda ds: (ds[0].astype(dtype), ds[1]),
                             (train_set, test_set))
+
+  data_info["train_shape"] = (train_set[0].shape, train_set[1].shape)
+  data_info["test_shape"] = (test_set[0].shape, test_set[1].shape)
 
   return train_set, test_set, task, data_info

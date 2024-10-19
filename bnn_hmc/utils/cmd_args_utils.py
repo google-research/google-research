@@ -47,6 +47,11 @@ def add_common_flags(parser):
       default=15.,
       help="Weight decay, equivalent to setting prior std")
   parser.add_argument(
+      "--pretrained_prior_checkpoint",
+      type=str,
+      required=False,
+      help="Pretrained mean-field Gaussian prior on the parameters, in the VI dict format")
+  parser.add_argument(
       "--temperature",
       type=float,
       default=1.,
@@ -75,6 +80,19 @@ def add_common_flags(parser):
       default=None,
       help="Size of the subset of train data to use; "
       "full dataset is used by default")
+  # Sequential training args
+  parser.add_argument(
+      "--sequential_training", action="store_true", help="Split training data into folds")
+  # Further sequential flags only take effect when --sequential_training is enabled
+  parser.add_argument(
+      "--num_sequential_training_folds", type=int, default=2)
+  parser.add_argument(
+      "--index_sequential_training_fold", type=int, default=0,
+      help="0-indexed count of current sequential fold to train on")
+  parser.add_argument(
+      "--stratified_folds", action="store_true",
+      help="Split folds for sequential training stratified by class")
+  # Model
   parser.add_argument(
       "--model_name", type=str, default="lenet", help="Name of the dataset")
   parser.add_argument(

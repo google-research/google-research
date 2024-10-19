@@ -114,3 +114,7 @@ def regression_nll(predictions, targets, y_scale=1.):
   nll = 0.5 * (se / sigmas**2 + onp.log(2 * onp.pi * sigmas**2)).mean()
   nll += onp.log(y_scale)
   return nll
+
+def summarize_1d_regr(predictions, targets, y_scale=1.):
+  pred_means, pred_stds = onp.split(predictions, [1], axis=-1)
+  return ",".join([f"{mu:.1f}+-{std:.1f}" for mu, std in zip(pred_means[0][:, 0], pred_stds[0][:, 0])])

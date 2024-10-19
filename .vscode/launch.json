@@ -1,0 +1,550 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "SGD_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar10/test/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=500",
+                "--subset_train_to=40960",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_CIFAR100",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar100/",
+                "--dataset_name=cifar100",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-6",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=500",
+                "--subset_train_to=40960",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_REGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/regtest_const_noise/",
+                "--dataset_name=regtest_-1",
+                "--model_name=bayesian_regression_const_noise",
+                "--init_step_size=5e-4",
+                "--num_epochs=500",
+                "--eval_freq=100",
+                "--batch_size=1",
+                "--save_freq=100",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_SEQREGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                // "--weight_decay=10",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/vi/regtest_const_noise/mfvi_initsigma_0.1_meaninit__opt_adam__lr_sch_i_0.02___epochs_200_wd_0.1_batchsize_1_temp_1.0__seed_11/model_step_199.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/seqregtest/",
+                "--dataset_name=regtest_1",
+                "--model_name=bayesian_regression_const_noise",
+                "--init_step_size=5e-4",
+                "--num_epochs=500",
+                "--eval_freq=50",
+                "--batch_size=1",
+                "--save_freq=100",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SGD_SEQREGTEST_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgd/seqregtest_cifar10/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=500",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=0",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/cifar10/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=300",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_CIFAR100",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/cifar100/",
+                "--dataset_name=cifar100",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=300",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/cifar100/sgd_mom_0.9__lr_sch_i_1e-06___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_REGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                "--weight_decay=0.1",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/regtest_const_noise/",
+                "--dataset_name=regtest_-1",
+                "--model_name=bayesian_regression_const_noise",
+                "--init_step_size=2e-2",
+                "--num_epochs=200",
+                "--eval_freq=100",
+                "--batch_size=1",
+                "--save_freq=50",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.1",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/regtest_const_noise/sgd_mom_0.9__lr_sch_i_0.0005___epochs_500_wd_10.0_batchsize_1_temp_1.0__seed_1/model_step_499.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_SEQREGTEST",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=11",
+                // "--weight_decay=10",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/vi/regtest_const_noise/mfvi_initsigma_0.1_meaninit__opt_adam__lr_sch_i_0.02___epochs_200_wd_0.1_batchsize_1_temp_1.0__seed_11/model_step_199.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/vi/seqregtest/",
+                "--dataset_name=regtest_1",
+                "--model_name=bayesian_regression_const_noise",
+                "--init_step_size=5e-2",
+                "--num_epochs=200",
+                "--eval_freq=100",
+                "--batch_size=1",
+                "--save_freq=50",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                // "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/regtest_const_noise/sgd_mom_0.9__lr_sch_i_0.0005___epochs_500_wd_10.0_batchsize_1_temp_1.0__seed_1/model_step_499.pt"
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgd/seqregtest/sgd_mom_0.9__lr_sch_i_0.0005___epochs_500_wd_15.0_batchsize_1_temp_1.0__seed_1/model_step_499.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        // SEQUENTIAL CIFAR-10 EXPERIMENT
+        {
+            "name": "SEQ_CIFAR10_1_OF_2_SGD",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=100",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=0",
+                // "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_1_OF_2_MFVI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_1_of_2/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=150",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=50",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=0",
+                // "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_SGD",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_1_of_2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_0/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=250",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                // "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_MFVI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_1_of_2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_0/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_2_of_2/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=150",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=50",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_1063296_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                // "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_SGD_FROM_SPLIT1_INIT",
+            // Do further training (no pretrained prior) from previous SGD solution for guidance.
+            // Expect this to do similarly to random-split sequential training.
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10", // No pretrained prior
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_from_split1_init/",
+                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=250",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                // "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_1_OF_2_STRATIFIED_SGD",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2_stratified/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=100",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=0",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_1_OF_2_STRATIFIED_MFVI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_1_of_2_stratified/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=150",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=50",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=0",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_SGD",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_1_of_2_stratified/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_0/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_stratified/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=250",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_MFVI",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_1_of_2_stratified/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_0/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/mfvi_2_of_2_stratified/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=150",
+                "--subset_train_to=40960",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=50",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_1849984_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_SGD_FROM_SPLIT1_INIT",
+            // Do further training (no pretrained prior) from previous SGD solution for guidance.
+            // Expect this to do similarly to random-split sequential training.
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=10", // No pretrained prior
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_2_of_2_stratified_from_split1_init/",
+                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq/cifar10/sgd_1_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_1/model_step_499.pt",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=3e-7",
+                "--num_epochs=500",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=250",
+                "--subset_train_to=40960",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--stratified_folds",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+    ]
+}
