@@ -207,10 +207,8 @@ def train_model():
       del train_stats["prior"]
 
       # Evaluate the ensemble
-      def wrap(res):
-          return res if True else onp.asarray(res)
-      net_state, ensemble_predictions =wrap(
-          vi_ensemble_predict_fn(net_apply, params, net_state, test_set))
+      net_state, ensemble_predictions = vi_ensemble_predict_fn(
+        net_apply, params, net_state, test_set)
       ensemble_stats = train_utils.evaluate_metrics(ensemble_predictions,
                                                     test_set[1], metrics_fns)
 
