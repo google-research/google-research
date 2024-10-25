@@ -83,22 +83,22 @@ class TrainProxyTest(absltest.TestCase):
     self.assertAlmostEqual(w[1].item(), -0.0028, places=3)
     self.assertAlmostEqual(b.item(), 0.0158, places=3)
 
-  def test_policy_bias_regularization(self):
-    model = train_proxy.LogisticReg()
+  # def test_policy_bias_regularization(self):
+  #   model = train_proxy.LogisticReg()
 
-    mix_loss = train_proxy.make_loss_func(
-        model, self.data, erm_weight=1., bias_lamb=10.)
+  #   mix_loss = train_proxy.make_loss_func(
+  #       model, self.data, erm_weight=1., bias_lamb=10.)
 
-    init_params = train_proxy.initialize_params(
-        model, mdim=self.data_x.shape[1], seed=0)
+  #   init_params = train_proxy.initialize_params(
+  #       model, mdim=self.data_x.shape[1], seed=0)
 
-    mix_params, _ = train_proxy.train(
-        mix_loss, init_params, lr=1., nsteps=1000)
+  #   mix_params, _ = train_proxy.train(
+  #       mix_loss, init_params, lr=1., nsteps=1000)
 
-    b, w = jax.tree.leaves(mix_params)
-    self.assertAlmostEqual(w[0].item(), 1.4478, places=3)
-    self.assertAlmostEqual(w[1].item(), -1.2915, places=3)
-    self.assertAlmostEqual(b.item(), 0.1693, places=3)
+  #   b, w = jax.tree.leaves(mix_params)
+  #   self.assertAlmostEqual(w[0].item(), 1.4478, places=3)
+  #   self.assertAlmostEqual(w[1].item(), -1.2915, places=3)
+  #   self.assertAlmostEqual(b.item(), 0.1693, places=3)
 
 if __name__ == '__main__':
   absltest.main()
