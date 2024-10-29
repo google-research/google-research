@@ -96,7 +96,7 @@ REGISTER_OP("NTComputeInputAndInternalParamsGradientsOp")
       // grad_loss_wrt_leaf_weights
       c->set_output(2, leaf_weights_shape);
 
-      return Status();
+      return absl::Status();
     });
 
 // This op performs a forward pass over the tree and
@@ -157,7 +157,7 @@ REGISTER_OP("NTComputeOutputOp")
       auto output_logits_shape = c->MakeShape({batch_size, output_logits_dim});
       c->set_output(0, output_logits_shape);
       c->set_output(1, c->MakeShape({}));
-      return Status();
+      return absl::Status();
     });
 
 }  // namespace tensorflow
