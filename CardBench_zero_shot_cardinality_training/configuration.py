@@ -15,85 +15,67 @@
 
 """Table names that store statistics."""
 
-# Before using replace:
-# 1) project_name.table_name with your project and dataset name
-# for the metadata database.
-# 2) project_name.table_name_sampled_tables with your project and dataset name
-# for the sample table database.
-# 3) the json, query and training querygraph paths
-# 4) the projectname and datasetnames of the data databases.
-
+# Before using replace X and None with the appropriate values.
 
 import enum
+from CardBench_zero_shot_cardinality_training import database_connector
 
-# Big Query specific tables
+
+# Big Query schema pesudo-tables
 BQ_INFO_SCHEMA_TABLES = ".INFORMATION_SCHEMA.TABLES"
 BQ_INFO_SCHEMA_COLUMNS = ".INFORMATION_SCHEMA.COLUMNS"
 
+DATA_DBTYPE = None  # replace with database_connector.DBType.X
+METADATA_DBTYPE = None  # replace with database_connector.DBType.X
+
 # Tables names where calculated statistics are stored
-TABLES_INFO_TABLE = "project_name.table_name.tables_info"
-COLUMNS_INFO_TABLE = "project_name.table_name.columns_info"
-COLUMNS_STATS_TABLE = "project_name.table_name.columns_stats"
-COLUMNS_INT64_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_int64_extra_stats"
-)
-COLUMNS_FLOAT64_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_float64_extra_stats"
-)
-COLUMNS_NUMERIC_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_numeric_extra_stats"
-)
+TABLES_INFO_TABLE = "X.tables_info"
+COLUMNS_INFO_TABLE = "X.columns_info"
+COLUMNS_STATS_TABLE = "X.columns_stats"
+COLUMNS_INT64_EXTRA_STATS_TABLE = "X.columns_int64_extra_stats"
+COLUMNS_INT32_EXTRA_STATS_TABLE = COLUMNS_INT64_EXTRA_STATS_TABLE
+COLUMNS_UINT64_EXTRA_STATS_TABLE = "X.columns_uint64_extra_stats"
+
+COLUMNS_UINT32_EXTRA_STATS_TABLE = COLUMNS_UINT64_EXTRA_STATS_TABLE
+COLUMNS_FLOAT64_EXTRA_STATS_TABLE = "X.columns_float64_extra_stats"
+COLUMNS_NUMERIC_EXTRA_STATS_TABLE = "X.columns_numeric_extra_stats"
 # alias for numeric
 COLUMNS_DECIMAL_EXTRA_STATS_TABLE = COLUMNS_NUMERIC_EXTRA_STATS_TABLE
-COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_bignumeric_extra_stats"
-)
+COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE = "X.columns_bignumeric_extra_stats"
 # alias for bignumeric
 COLUMNS_BIGDECIMAL_EXTRA_STATS_TABLE = COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE
-COLUMNS_STRING_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_string_extra_stats"
-)
-COLUMNS_DATE_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_date_extra_stats"
-)
-COLUMNS_DATETIME_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_datetime_extra_stats"
-)
-COLUMNS_TIME_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_time_extra_stats"
-)
-COLUMNS_TIMESTAMP_EXTRA_STATS_TABLE = (
-    "project_name.table_name.columns_timestamp_extra_stats"
-)
-CORRELATION_TABLE = "project_name.table_name.columns_correlation"
-PK_FK_TABLE = "project_name.table_name.pk_fk"
-COLUMNS_HISTOGRAM_TABLE = "project_name.table_name.histograms_table"
+COLUMNS_STRING_EXTRA_STATS_TABLE = "X.columns_string_extra_stats"
+COLUMNS_DATE_EXTRA_STATS_TABLE = "X.columns_date_extra_stats"
+COLUMNS_DATETIME_EXTRA_STATS_TABLE = "X.columns_datetime_extra_stats"
+COLUMNS_TIME_EXTRA_STATS_TABLE = "X.columns_time_extra_stats"
+COLUMNS_TIMESTAMP_EXTRA_STATS_TABLE = "X.columns_timestamp_extra_stats"
+CORRELATION_TABLE = "X.columns_correlation"
+PK_FK_TABLE = "X.pk_fk"
+COLUMNS_HISTOGRAM_TABLE = "X.histograms_table"
 # 4k row tables
-SAMPLE_PROJECTNAME_DATASET_NAME_4K = "project_name.table_name_sampled_tables."
+SAMPLE_PROJECTNAME_DATASET_NAME_4K = "X_sampled_tables"
+WORKLOAD_DEFINITION_TABLE = "X.workload_definition"
+QUERY_RUN_INFORMATION_TABLE = "X.query_run_information"
+TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = "X."
 
-WORKLOAD_DEFINITION_TABLE = "project_name.table_name.workload_definition"
+DIRECTORY_PATH_JSON_FILES = None
+DIRECTORY_PATH_QUERY_FILES = None
+DIRECTORY_TRAINING_QUERYGRAPH_OUTPUT = None
 
-DIRECTORY_PATH_JSON_FILES = "json_files_path"
+PROJECT_NAME = []
+DATASET_NAMES = []
 
-DIRECTORY_PATH_QUERY_FILES = "query_files_path"
-
-DIRECTORY_TRAINING_QUERYGRAPH_OUTPUT = "training_querygraph_path"
-
-WORKLOAD_DEFINITION_TABLE = "project_name.table_name.workload_definition"
-
-QUERY_RUN_INFORMATION_TABLE = "project_name.table_name.query_run_information"
-
-TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = "project_name.table_name."
-
-PROJECTNAME = "project_name"
-DATASETNAMES = ["dataset_name_1", "dataset_name_2"]
 
 
 ##############################################################################
 
 TYPES_TO_TABLES = {
     "INT64": COLUMNS_INT64_EXTRA_STATS_TABLE,
+    "INT32": COLUMNS_INT32_EXTRA_STATS_TABLE,
+    "UINT32": COLUMNS_UINT32_EXTRA_STATS_TABLE,
+    "UINT64": COLUMNS_UINT64_EXTRA_STATS_TABLE,
     "FLOAT64": COLUMNS_FLOAT64_EXTRA_STATS_TABLE,
+    "DOUBLE": COLUMNS_FLOAT64_EXTRA_STATS_TABLE,
     "NUMERIC": COLUMNS_NUMERIC_EXTRA_STATS_TABLE,
     "DECIMAL": COLUMNS_DECIMAL_EXTRA_STATS_TABLE,
     "BIGNUMERIC": COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE,
@@ -138,12 +120,16 @@ class Datatype(enum.Enum):
 TYPES_TO_COLLECT_STATS = {
     "INT64": Datatype.INT,
     "FLOAT64": Datatype.FLOAT,
+    "INT32": Datatype.INT,
+    "UINT32": Datatype.INT,
+    "UINT64": Datatype.INT,
     "NUMERIC": Datatype.NUMERIC,
     "TIME": Datatype.TIME,
     "TIMESTAMP": Datatype.TIMESTAMP,
     "DATE": Datatype.DATE,
     "DATETIME": Datatype.DATETIME,
     "STRING": Datatype.STRING,
+    "DOUBLE": Datatype.FLOAT,
 }
 
 

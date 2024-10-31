@@ -46,13 +46,20 @@ def get_info_from_histogram(
   high = -1
   calculated_pos_from_from_histogram = False
 
-  if colnode["column_type"] in ["INT64", "NUMERIC", "BIGNUMERIC"]:
+  if colnode["column_type"] in [
+      "INT64",
+      "INT32",
+      "NUMERIC",
+      "BIGNUMERIC",
+      "UINT64",
+      "UINT32",
+  ]:
     constant = int(node["constant"])
     low, high, minv, maxv, first_percentile, last_percentile, no_precentiles = (
         get_pos_int(colnode["percentiles_100"], constant)
     )
     calculated_pos_from_from_histogram = True
-  elif colnode["column_type"] in ["FLOAT64", "DECIMAL", "BIGDECIMAL"]:
+  elif colnode["column_type"] in ["FLOAT64", "DOUBLE", "DECIMAL", "BIGDECIMAL"]:
     constant = float(node["constant"])
     low, high, minv, maxv, first_percentile, last_percentile, no_precentiles = (
         get_pos_float(colnode["percentiles_100"], constant)
@@ -254,7 +261,14 @@ def estimate_selectivity_gt_gte_no_percentiles(
   minv = colnode["min_val"]
   maxv = colnode["max_val"]
   constant = node["constant"]
-  if colnode["column_type"] in ["INT64", "NUMERIC", "BIGNUMERIC"]:
+  if colnode["column_type"] in [
+      "INT64",
+      "INT32",
+      "NUMERIC",
+      "BIGNUMERIC",
+      "UINT64",
+      "UINT32",
+  ]:
     minv = int(minv)
     maxv = int(maxv)
     constant = int(constant)
@@ -262,7 +276,7 @@ def estimate_selectivity_gt_gte_no_percentiles(
       return (maxv - constant) / (maxv - minv)
     else:
       return 1 / 3
-  elif colnode["column_type"] in ["FLOAT64", "DECIMAL", "BIGDECIMAL"]:
+  elif colnode["column_type"] in ["FLOAT64", "DOUBLE", "DECIMAL", "BIGDECIMAL"]:
     minv = float(minv)
     maxv = float(maxv)
     constant = float(constant)
@@ -289,7 +303,14 @@ def estimate_selectivity_lt_lte_no_percentiles(
   minv = colnode["min_val"]
   maxv = colnode["max_val"]
   constant = node["constant"]
-  if colnode["column_type"] in ["INT64", "NUMERIC", "BIGNUMERIC"]:
+  if colnode["column_type"] in [
+      "INT64",
+      "INT32",
+      "NUMERIC",
+      "BIGNUMERIC",
+      "UINT64",
+      "UINT32",
+  ]:
     minv = int(minv)
     maxv = int(maxv)
     constant = int(constant)
@@ -301,7 +322,7 @@ def estimate_selectivity_lt_lte_no_percentiles(
       else:
         return 0
 
-  elif colnode["column_type"] in ["FLOAT64", "DECIMAL", "BIGDECIMAL"]:
+  elif colnode["column_type"] in ["FLOAT64", "DOUBLE", "DECIMAL", "BIGDECIMAL"]:
     minv = float(minv)
     maxv = float(maxv)
     constant = float(constant)
@@ -331,7 +352,14 @@ def estimate_selectivity_between(
   minv = colnode["min_val"]
   maxv = colnode["max_val"]
   constant = node["constant"]
-  if colnode["column_type"] in ["INT64", "NUMERIC", "BIGNUMERIC"]:
+  if colnode["column_type"] in [
+      "INT64",
+      "INT32",
+      "NUMERIC",
+      "BIGNUMERIC",
+      "UINT64",
+      "UINT32",
+  ]:
     minv = int(minv)
     maxv = int(maxv)
     constant1 = constant.split(", ")[0]
