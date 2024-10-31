@@ -41,9 +41,9 @@ def sql_datatype_to_generator_datatype(datatype):
   match datatype:
     case "NUMERIC" | "BIGNUMERIC":
       return Datatype.NUMERIC
-    case "INT64":
+    case "INT64" | "INT32" | "UINT64" | "UINT32":
       return Datatype.INT
-    case "FLOAT64":
+    case "FLOAT64" | "DOUBLE":
       return Datatype.FLOAT
     case "STRING":
       return Datatype.STRING
@@ -71,7 +71,7 @@ def write_dataset_column_statistics_to_json_file(
   )
   queryjob = None
   try:
-    queryjob = run_query(
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
   except Exception as e:  # pylint: disable=broad-exception-caught
@@ -106,7 +106,7 @@ def write_dataset_column_statistics_to_json_file(
     )
     extra_stats_row = None
     try:
-      queryjob = run_query(
+      queryjob, _ = run_query(
           dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
       )
       extra_stats_row = get_query_result_first_row(
@@ -126,9 +126,13 @@ def write_dataset_column_statistics_to_json_file(
 
     if (
         columntype == "INT64"
+        or columntype == "INT32"
+        or columntype == "DOUBLE"
         or columntype == "FLOAT64"
         or columntype == "BIGNUMERIC"
         or columntype == "NUMERIC"
+        or columntype == "UINT64"
+        or columntype == "UINT32"
     ):
       column_statistics_json[tablename][columnname]["mean"] = extra_stats_row[
           "mean_val"

@@ -35,6 +35,7 @@ CORRELATION_TABLE = configuration.CORRELATION_TABLE
 SAMPLE_PROJECTNAME_DATASET_NAME_4K = (
     configuration.SAMPLE_PROJECTNAME_DATASET_NAME_4K
 )
+get_sql_table_string = database_connector.get_sql_table_string
 
 
 def writes_correlations(
@@ -61,7 +62,7 @@ def writes_correlations(
     if len(insert_query_preamble) + len(insert_query_body) > 100000:
       query = insert_query_preamble + insert_query_body[:-1]
       try:
-        _ = run_query(metadata_dbtype, query, metadata_dbclient)
+        _, _ = run_query(metadata_dbtype, query, metadata_dbclient)
         insert_query_body = ""
       except Exception as e:  # pylint: disable=broad-exception-caught
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
@@ -71,7 +72,7 @@ def writes_correlations(
   if insert_query_body:
     query = insert_query_preamble + insert_query_body[:-1]
     try:
-      _ = run_query(metadata_dbtype, query, metadata_dbclient)
+      _, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
@@ -113,9 +114,14 @@ def run_calculate_correlations_query_bq(
     data_dbclient,
 ):
   """Run the query to calculate the correlations, result is stored in work_orders."""
-  full_query = f"select {query_corr} from `{sample_table_path}` as talias"
+  sample_table_path_sql_string = get_sql_table_string(
+      data_dbtype, sample_table_path
+  )
+  full_query = (
+      f"select {query_corr} from {sample_table_path_sql_string} as talias"
+  )
   try:
-    query_job = run_query(data_dbtype, full_query, data_dbclient)
+    query_job, _ = run_query(data_dbtype, full_query, data_dbclient)
     for row in query_job:
       for key in row.keys():
         wo_key = key.replace("id_", "")
@@ -205,7 +211,7 @@ def get_collected_correlation_for_dataset(
   )
   exists = set()
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     for row in queryjob:
       exists.add(
           f'{row["table_name_a"]}.{row["column_name_a"]}.{row["column_name_b"]}'
@@ -245,19 +251,23 @@ def get_cols_per_table_dataset(
     datasetname,
     metadata_dbtype,
     metadata_dbclient,
+    data_dbtype,
 ):
   """Returns the columns of each table in the dataset."""
 
-  query = (
-      "select project_name, dataset_name, table_name, column_name from"
-      f" `{COLUMNS_INFO_TABLE}` WHERE project_name = '{projectname}' and"
-      f" dataset_name = '{datasetname}' AND column_type in ('INT64', 'INT32',"
-      " 'NUMERIC', 'FLOAT64', 'BIGNUMERIC', 'DECIMAL','BIGDECIMAL')"
-  )
+  if data_dbtype == DBType.BIGQUERY:
+    query = (
+        "select project_name, dataset_name, table_name, column_name from"
+        f" `{COLUMNS_INFO_TABLE}` WHERE project_name = '{projectname}' and"
+        f" dataset_name = '{datasetname}' AND column_type in ('INT64', 'INT32',"
+        " 'NUMERIC', 'FLOAT64', 'BIGNUMERIC', 'DECIMAL','BIGDECIMAL')"
+    )
+  else:
+    raise ValueError(f'Dbtype not supported yet: {str("data_dbtype")}')
   cols_per_table = {}
 
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     for row in queryjob:
       key = f'{row["project_name"]}.{row["dataset_name"]}.{row["table_name"]}'
       if key not in cols_per_table:
@@ -285,6 +295,7 @@ def calculate_and_write_pearson_correlation(
       datasetname,
       dbs["metadata_dbtype"],
       dbs["metadata_dbclient"],
+      dbs["data_dbtype"],
   )
   # Produce all unique pairs of columns for each table, the columns
   # in each pair are sorted
@@ -329,7 +340,10 @@ def calculate_and_write_pearson_correlation(
     datasetname = table_path_split[1].strip()
     tablename = table_path_split[2].strip()
 
-    sample_table_path = f"{SAMPLE_PROJECTNAME_DATASET_NAME_4K}{projectname}_{datasetname}_{tablename}"
+    sample_projectname_dataset_name_4k = SAMPLE_PROJECTNAME_DATASET_NAME_4K
+    if sample_projectname_dataset_name_4k[-1] != ".":
+      sample_projectname_dataset_name_4k += "."
+    sample_table_path = f"{sample_projectname_dataset_name_4k}{projectname}_{datasetname}_{tablename}"
 
     work_orders = create_work_orders_correlations(
         table_cols_pair[k], tablename, collected_correlations

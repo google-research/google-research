@@ -33,6 +33,7 @@ COLUMNS_INFO_TABLE = configuration.COLUMNS_INFO_TABLE
 COLUMNS_STATS_TABLE = configuration.COLUMNS_STATS_TABLE
 BQ_INFO_SCHEMA_COLUMNS = configuration.BQ_INFO_SCHEMA_COLUMNS
 TYPES_TO_TABLES = configuration.TYPES_TO_TABLES
+get_sql_table_string = database_connector.get_sql_table_string
 
 
 def calculate_and_store_percentiles_bq(
@@ -41,20 +42,44 @@ def calculate_and_store_percentiles_bq(
     tablename,
     columnname,
     extra_stats_table,
+    columntype,
     dbs,
 ):
   """Collects columnn percentiles to build histograms, Big Query version."""
+  table_sql_string = get_sql_table_string(
+      dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
+  )
   query = (
-      f"UPDATE `{extra_stats_table}` SET percentiles = (select"
-      f" approx_quantiles(`{columnname}`, 9) FROM"
-      f" `{projectname}.{datasetname}.{tablename}` ) WHERE"
+      f" select approx_quantiles(`{columnname}`, 9) as quantiles FROM"
+      f" {table_sql_string}"
+  )
+  quantiles = None
+  try:
+    queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+    quantiles = get_query_result_first_row(dbs["data_dbtype"], queryjob)[
+        "quantiles"
+    ]
+  except Exception as e:  # pylint: disable=broad-exception-caught
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
+    print(">>>> " + str(e))
+    print(">>>> " + query)
+
+
+  if columntype in ["UINT32", "UINT64"]:
+    quantiles = [str(x) for x in quantiles]
+    quantiles = (
+        "(SELECT ARRAY(select cast(_ as BIGNUMERIC) FROM UNNEST((select"
+        f" {quantiles})) _))"
+    )
+  query = (
+      f"UPDATE `{extra_stats_table}` SET percentiles = {quantiles} WHERE"
       f" project_name='{projectname}' AND dataset_name='{datasetname}' AND"
       f" table_name='{tablename}' AND column_name='{columnname}'"
   )
 
   success = True
   try:
-    _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+    _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
     print(">>>> " + str(e))
@@ -86,7 +111,14 @@ def calculate_and_write_percentiles_internal(
       " ",
       columntype,
   )
-  assert columntype in ["INT64", "FLOAT64", "NUMERIC"]
+  assert columntype in [
+      "INT64",
+      "FLOAT64",
+      "NUMERIC",
+      "UINT32",
+      "UINT64",
+      "INT32",
+  ]
 
   if dbs["data_dbtype"] == DBType.BIGQUERY:
     return calculate_and_store_percentiles_bq(
@@ -95,6 +127,7 @@ def calculate_and_write_percentiles_internal(
         tablename,
         columnname,
         extra_stats_table,
+        columntype,
         dbs,
     )
   else:
@@ -106,20 +139,33 @@ def calculate_and_write_percentiles(
 ):
   """Collects columnn percentiles to build histograms."""
   tasks = []
-  for column_type in ["INT64", "FLOAT64", "NUMERIC"]:
+  for column_type in [
+      "INT64",
+      "FLOAT64",
+      "NUMERIC",
+      "UINT32",
+      "UINT64",
+      "INT32",
+  ]:
     type_table = TYPES_TO_TABLES[column_type]
-    query = (
-        "select ci.dataset_name, ci.table_name, ci.column_name,"
-        f" ci.column_type FROM `{COLUMNS_STATS_TABLE}` as ci  WHERE"
-        f" ci.dataset_name = '{datasetname}' AND ci.project_name ="
-        f" '{projectname}' AND ci.column_type LIKE '{column_type}%' and"
-        " ci.num_unique > 0 and ci.null_frac <> 1 AND EXISTS (select * from"
-        f" `{type_table}` as est where est.column_name = ci.column_name and"
-        " est.table_name = ci.table_name and est.dataset_name ="
-        " ci.dataset_name AND est.project_name = ci.project_name and"
-        " array_length(est.percentiles) = 0)"
+    type_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], type_table
     )
-    queryjob = run_query(
+    columns_stats_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], COLUMNS_STATS_TABLE
+    )
+    query = (
+        "select ci.dataset_name, ci.table_name, ci.column_name, ci.column_type"
+        f" FROM {columns_stats_table_sql_string} as ci  WHERE ci.dataset_name ="
+        f" '{datasetname}' AND ci.project_name = '{projectname}' AND"
+        f" ci.column_type LIKE '{column_type}%' and ci.num_unique > 0 and"
+        " ci.null_frac <> 1 AND EXISTS (select * from"
+        f" {type_table_sql_string} as est where est.column_name ="
+        " ci.column_name and est.table_name = ci.table_name and"
+        " est.dataset_name = ci.dataset_name AND est.project_name ="
+        " ci.project_name and array_length(est.percentiles) = 0)"
+    )
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
     for row in queryjob:

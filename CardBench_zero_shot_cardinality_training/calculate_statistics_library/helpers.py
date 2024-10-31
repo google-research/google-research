@@ -31,6 +31,11 @@ def remove_anything_after_first_parenthesis(column_type):
   return column_type.split("(")[0]
 
 
+def printif(flag, msg):
+  if flag:
+    print(msg)
+
+
 table_info_cache = {}
 
 
@@ -53,7 +58,7 @@ def copy_table(
     )
   """
   try:
-    _ = run_query(dbs["data_dbtype"], copy_query, dbs["data_dbclient"])
+    _, _ = run_query(dbs["data_dbtype"], copy_query, dbs["data_dbclient"])
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(e)
     print(">>>>>>>>>>>> ERROR IN QUERY :\n" + copy_query)
@@ -76,7 +81,7 @@ def get_partitioning_info(
         "is_partitioned, partition_column, partition_column_type "
         f"FROM `{TABLES_INFO_TABLE}` where dataset_name = '{datasetname}'"
     )
-    queryjob = run_query(dbtype, query, dbclient)
+    queryjob, _ = run_query(dbtype, query, dbclient)
     for rowres in queryjob:
       key = f"{rowres['project_name']}.{rowres['dataset_name']}.{rowres['table_name']}"
       table_info_cache[key] = {

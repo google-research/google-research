@@ -33,6 +33,7 @@ COLUMNS_INFO_TABLE = configuration.COLUMNS_INFO_TABLE
 COLUMNS_STATS_TABLE = configuration.COLUMNS_STATS_TABLE
 BQ_INFO_SCHEMA_COLUMNS = configuration.BQ_INFO_SCHEMA_COLUMNS
 TYPES_TO_TABLES = configuration.TYPES_TO_TABLES
+get_sql_table_string = database_connector.get_sql_table_string
 
 
 def calculate_and_write_unique_values_internal(
@@ -60,13 +61,16 @@ def calculate_and_write_unique_values_internal(
         is_partitioned, tablename, partition_column, partition_column_type
     )
     queryjob = []
+    table_sql_string = get_sql_table_string(
+        dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
+    )
     query = (
         f"SELECT distinct `{columnname}` as val FROM"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE"
+        f" {table_sql_string} WHERE"
         f" {partitioning_predicate}"
     )
     try:
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
@@ -75,10 +79,13 @@ def calculate_and_write_unique_values_internal(
     for row in queryjob:
       unique_vals.append(row["val"])
 
+    extra_stats_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], extra_stats_table
+    )
     query = (
-        f"UPDATE `{extra_stats_table}` SET uniq_vals = (( SELECT"
+        f"UPDATE {extra_stats_table_sql_string} SET uniq_vals = (( SELECT"
         f" ARRAY_AGG(distinct  `{columnname}`) as val  FROM"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE"
+        f" {table_sql_string} WHERE"
         f" {partitioning_predicate} and `{columnname}` is not null))"
     )
 
@@ -89,7 +96,7 @@ def calculate_and_write_unique_values_internal(
     )
     count_total += 1
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
@@ -112,20 +119,26 @@ def calculate_and_write_unique_values(
         "table": type_table,
         "column_list": [],
     }
+    columns_stats_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], COLUMNS_STATS_TABLE
+    )
+    type_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], type_table
+    )
     query = (
         "SELECT  ci.dataset_name, ci.table_name, ci.column_name,"
-        f" ci.column_type FROM `{COLUMNS_STATS_TABLE}` as ci  WHERE"
+        f" ci.column_type FROM {columns_stats_table_sql_string} as ci  WHERE"
         f" ci.dataset_name = '{datasetname}' AND ci.project_name ="
-        f" '{projectname}' AND ci.column_type = '{sqltype}' AND"
-        f" ci.num_unique	 <= {str(categorical_threshold)} and ci.num_unique >"
-        f" 0 and ci.null_frac <> 1 AND EXISTS (select * from `{type_table}`"
-        " as est where est.column_name = ci.column_name and  est.table_name"
-        " = ci.table_name and est.dataset_name = ci.dataset_name AND"
-        " est.project_name = ci.project_name and array_length(uniq_vals)"
-        " = 0)"
+        f" '{projectname}' AND ci.column_type = '{sqltype}' AND ci.num_unique	"
+        f" <= {str(categorical_threshold)} and ci.num_unique > 0 and"
+        " ci.null_frac <> 1 AND EXISTS (select * from"
+        f" {type_table_sql_string} as est where est.column_name ="
+        " ci.column_name and  est.table_name = ci.table_name and"
+        " est.dataset_name = ci.dataset_name AND est.project_name ="
+        " ci.project_name and array_length(uniq_vals) = 0)"
     )
 
-    queryjob = run_query(
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
     for row in queryjob:

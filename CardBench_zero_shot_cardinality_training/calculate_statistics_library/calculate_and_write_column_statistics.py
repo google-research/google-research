@@ -35,6 +35,8 @@ COLUMNS_INFO_TABLE = configuration.COLUMNS_INFO_TABLE
 COLUMNS_STATS_TABLE = configuration.COLUMNS_STATS_TABLE
 BQ_INFO_SCHEMA_COLUMNS = configuration.BQ_INFO_SCHEMA_COLUMNS
 TYPES_TO_TABLES = configuration.TYPES_TO_TABLES
+get_sql_table_string = database_connector.get_sql_table_string
+printif = helpers.printif
 
 
 def calculate_and_write_column_statistics_internal(
@@ -55,21 +57,31 @@ def calculate_and_write_column_statistics_internal(
   partitioned_predicate = build_partitioned_predicate(
       is_partitioned, tablename, partition_column, partition_column_type
   )
-
+  table_sql_string = get_sql_table_string(
+      dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
+  )
   # Find columns we need to collect stats for. These are the columns of the
   # specified tables that are not alreay in the
   # configuration.COLUMNS_STATS_TABLE.
   queryjob_col = []
+  columns_info_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], COLUMNS_INFO_TABLE
+  )
+  columns_stats_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], COLUMNS_STATS_TABLE
+  )
+
   query = (
-      f"SELECT it.column_name, it.column_type FROM `{COLUMNS_INFO_TABLE}` as it"
-      f" WHERE it.project_name = '{projectname}' AND it.dataset_name ="
-      f" '{datasetname}' AND it.table_name = '{tablename}' AND not exists"
-      f" (select * from `{COLUMNS_STATS_TABLE}` as ts where ts.project_name ="
+      "SELECT it.column_name, it.column_type FROM"
+      f" {columns_info_table_sql_string} as it WHERE it.project_name ="
+      f" '{projectname}' AND it.dataset_name = '{datasetname}' AND"
+      f" it.table_name = '{tablename}' AND not exists (select * from"
+      f" {columns_stats_table_sql_string} as ts where ts.project_name ="
       f" '{projectname}'  and ts.dataset_name = '{datasetname}'  and"
       f" ts.table_name = '{tablename}' and ts.column_name = it.column_name )"
   )
   try:
-    queryjob_col = run_query(
+    queryjob_col, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
   except Exception as e:  # pylint: disable=broad-exception-caught
@@ -79,9 +91,9 @@ def calculate_and_write_column_statistics_internal(
 
   count = 0
   preamble = (
-      f"INSERT INTO `{COLUMNS_STATS_TABLE}` (`project_name`, `dataset_name`,"
-      " `table_name`, `column_name`,`column_type`, `null_frac`,"
-      " `num_unique`,`row_count`)VALUES "
+      f"INSERT INTO {columns_stats_table_sql_string} (`project_name`,"
+      " `dataset_name`, `table_name`, `column_name`,`column_type`,"
+      " `null_frac`, `num_unique`,`row_count`)VALUES "
   )
   newvals = ""
   count_null = -1
@@ -94,11 +106,11 @@ def calculate_and_write_column_statistics_internal(
       continue
     query = (
         f"SELECT count(distinct `{columname}`) as num_unique FROM"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE"
+        f" {table_sql_string} WHERE"
         f" {partitioned_predicate}"
     )
     try:
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
       rowres = get_query_result_first_row(dbs["data_dbtype"], queryjob)
       num_unique = rowres["num_unique"]
     except Exception as e:  # pylint: disable=broad-exception-caught
@@ -108,11 +120,11 @@ def calculate_and_write_column_statistics_internal(
 
     query = (
         "SELECT  count(*) as count_null FROM"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE `{columname}` IS"
+        f" {table_sql_string} WHERE `{columname}` IS"
         f" NULL AND {partitioned_predicate}"
     )
     try:
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
       rowres = get_query_result_first_row(dbs["data_dbtype"], queryjob)
       count_null = rowres["count_null"]
     except Exception as e:  # pylint: disable=broad-exception-caught
@@ -137,7 +149,9 @@ def calculate_and_write_column_statistics_internal(
       query = preamble + newvals
       count_total = count_total + count
       try:
-        _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+        _, _ = run_query(
+            dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+        )
         count = 0
         newvals = ""
       except Exception as e:  # pylint: disable=broad-exception-caught
@@ -149,7 +163,7 @@ def calculate_and_write_column_statistics_internal(
     query = preamble + newvals
     count_total = count_total + count
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
       print(">>>> " + str(e))
@@ -165,13 +179,20 @@ def calculate_and_write_column_statistics(
   # Find tables of datasets and store them in a list of lists
   num_rows_written = 0
   dataset_table_pairs = []
-  query = (
-      f"SELECT table_name FROM `{TABLES_INFO_TABLE}` WHERE dataset_name ="
-      f" '{datasetname}' AND project_name = '{projectname}'"
+  tables_info_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], TABLES_INFO_TABLE
   )
-  queryjob = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+  query = (
+      f"SELECT table_name FROM {tables_info_table_sql_string} WHERE"
+      f" dataset_name = '{datasetname}' AND project_name = '{projectname}'"
+  )
+  print(query)
+  queryjob, _ = run_query(
+      dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+  )
   for row in queryjob:
     dataset_table_pairs.append([datasetname, row["table_name"]])
+    print(f"table considered for columns : {row['table_name']}")
 
   if not INTERNAL:
     for x in dataset_table_pairs:

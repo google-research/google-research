@@ -33,6 +33,7 @@ COLUMNS_INFO_TABLE = configuration.COLUMNS_INFO_TABLE
 COLUMNS_STATS_TABLE = configuration.COLUMNS_STATS_TABLE
 BQ_INFO_SCHEMA_COLUMNS = configuration.BQ_INFO_SCHEMA_COLUMNS
 TYPES_TO_TABLES = configuration.TYPES_TO_TABLES
+get_sql_table_string = database_connector.get_sql_table_string
 
 
 def calculate_and_write_frequent_words_internal_bq(
@@ -48,113 +49,78 @@ def calculate_and_write_frequent_words_internal_bq(
   for task in column_list:
     print(" calculating frequent words for: ", task)
     datasetname, tablename, columnname = task
-    is_partitioned, partition_column, partition_column_type, _ = (
-        get_partitioning_info(
-            projectname,
-            datasetname,
-            tablename,
-            dbs["metadata_dbclient"],
-            dbs["metadata_dbtype"],
-        )
-    )
-    partitioned_predicate = build_partitioned_predicate(
-        is_partitioned, tablename, partition_column, partition_column_type
+    table_sql_string = get_sql_table_string(
+        dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
     )
     # get size of table
-    query = (
-        f"select count(*) as cnt from `{projectname}.{datasetname}.{tablename}`"
-    )
-    rowres = None
+    query = f"select count(*) as cnt from {table_sql_string}"
+    count = -1
     try:
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
       rowres = get_query_result_first_row(dbs["data_dbtype"], queryjob)
+      count = rowres["cnt"]
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
       print(">>>> " + query)
-    count = rowres["cnt"]
 
     # The threshold is the minimum number of times a word must appear in the
     # sample to be considered frequent.
-    threshold = count * min_str_occ
-    query = (
-        "select array_agg(words) as words from (Select words, count(*) as cnt"
-        f" from (select SPLIT(`{columnname}`, ' ') as word  FROM"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE"
-        f" {partitioned_predicate} order by rand() limit {max_sample_vas} )  as"
-        " t cross join t.word as words where  words != '' group by words"
-        f" having cnt >=  {threshold} )"
+    threshold = int(count * min_str_occ)
+    table_sql_string = get_sql_table_string(
+        dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
     )
-    success = False
-    tries_remaining = 2
+    if dbs["data_dbtype"] == DBType.BIGQUERY:
+      query = (
+          "SELECT array_agg(words) AS words FROM   ( SELECT words, COUNT(*) AS"
+          f" cnt FROM   ( SELECT SPLIT(`{columnname}`, ' ') AS word FROM"
+          f" {table_sql_string} WHERE 1 = 1 ORDER BY rand() LIMIT"
+          f" {max_sample_vas} ) AS t CROSS JOIN t.word AS words WHERE words !="
+          " '' AND words != ' ' AND words IS NOT NULL AND words != ',' GROUP"
+          f" BY words HAVING cnt >= {threshold} )"
+      )
+    else:
+      raise ValueError("Unsupported database type: " + dbs["data_dbtype"])
     feqwords_array = []
-    while not success and tries_remaining > 0:
-      tries_remaining -= 1
+    try:
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      feqwords_array = get_query_result_first_row(dbs["data_dbtype"], queryjob)[
+          "words"
+      ]
+      rows_updated_with_freq_words += 1
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(
+          ">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY RETRYING"
+          " >>>>>>>>>>>>>>>>>>>"
+      )
+      print(">>>> " + str(e))
+      print(">>>>" + query)
+
+    # if we do not find enough frequent words, we pick the most frequent 200
+    # words and set the flag
+    # did_not_find_enough_for_freq_word_picked_200_most_frequent to true
+    if feqwords_array:
+      did_not_find_enough_for_freq_word_picked_200_most_frequent = "false"
+    else:
+      did_not_find_enough_for_freq_word_picked_200_most_frequent = "true"
+      if dbs["data_dbtype"] == DBType.BIGQUERY:
+        query = (
+            "SELECT array_agg(words) AS words FROM   ( SELECT words, COUNT(*)"
+            f" AS cnt FROM   ( SELECT SPLIT(`{columnname}`, ' ') AS word FROM"
+            f" {table_sql_string} WHERE 1 = 1 ORDER BY rand() LIMIT"
+            f" {max_sample_vas} ) AS t CROSS JOIN t.word AS words WHERE words"
+            " != '' AND words != ' ' AND words IS NOT NULL AND words != ','"
+            " GROUP BY words LIMIT 200 )"
+        )
+      else:
+        raise ValueError("Unsupported database type: " + dbs["data_dbtype"])
+
       try:
-        queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+        queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
         feqwords_array = get_query_result_first_row(
             dbs["data_dbtype"], queryjob
         )["words"]
-        rows_updated_with_freq_words += 1
-        success = True
       except Exception as e:  # pylint: disable=broad-exception-caught
-        success = False
-        print(
-            ">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY RETRYING"
-            " >>>>>>>>>>>>>>>>>>>"
-        )
-        print(">>>> " + str(e))
-        print(">>>>" + query)
-
-    # if we do not find enough frequent words, we pick 200 words at random
-    # and set the flag did_not_find_enough_for_freq_word_picked_200_at_random
-    # to true
-    if feqwords_array:
-      did_not_find_enough_for_freq_word_picked_200_at_random = "false"
-    else:
-      did_not_find_enough_for_freq_word_picked_200_at_random = "true"
-      query = (
-          " SELECT ARRAY_AGG(words) as words FROM (SELECT words, COUNT(*) AS"
-          f" cnt  FROM (SELECT SPLIT(`{columnname}`, ' ') AS word FROM"
-          f" `{projectname}.{datasetname}.{tablename}` WHERE 1 = 1  ORDER BY"
-          " RAND() LIMIT 200) AS t CROSS JOIN t.word AS words WHERE words !="
-          " '' GROUP BY words) "
-      )
-
-      success = False
-      while not success:
-        try:
-          queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
-          feqwords_array = get_query_result_first_row(
-              dbs["data_dbtype"], queryjob
-          )["words"]
-          success = True
-        except Exception as e:  # pylint: disable=broad-exception-caught
-          success = False
-          print(
-              ">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY RETRYING"
-              " >>>>>>>>>>>>>>>>>>>"
-          )
-          print(">>>> " + str(e))
-          print(">>>> " + query)
-          if "due to concurrent update" not in str(e):
-            break
-
-    query = (
-        f"UPDATE `{extra_stats_table}` SET freq_str_words = {feqwords_array},"
-        " did_not_find_enough_for_freq_word_picked_200_at_random ="
-        f" {did_not_find_enough_for_freq_word_picked_200_at_random} WHERE"
-        f" project_name='{projectname}' AND dataset_name='{datasetname}' AND"
-        f" table_name='{tablename}' AND column_name='{columnname}'"
-    )
-    success = False
-    while not success:
-      try:
-        _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
-        rows_updated_with_freq_words += 1
-        success = True
-      except Exception as e:  # pylint: disable=broad-exception-caught
-        success = False
         print(
             ">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY RETRYING"
             " >>>>>>>>>>>>>>>>>>>"
@@ -163,7 +129,28 @@ def calculate_and_write_frequent_words_internal_bq(
         print(">>>> " + query)
         if "due to concurrent update" not in str(e):
           break
-        rows_updated_with_freq_words -= 1
+    if feqwords_array is None:
+      feqwords_array = []
+    query = (
+        f"UPDATE `{extra_stats_table}` SET freq_str_words = {feqwords_array},"
+        " did_not_find_enough_for_freq_word_picked_200_most_frequent ="
+        f" {did_not_find_enough_for_freq_word_picked_200_most_frequent} WHERE"
+        f" project_name='{projectname}' AND dataset_name='{datasetname}' AND"
+        f" table_name='{tablename}' AND column_name='{columnname}'"
+    )
+    try:
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      rows_updated_with_freq_words += 1
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(
+          ">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY RETRYING"
+          " >>>>>>>>>>>>>>>>>>>"
+      )
+      print(">>>> " + str(e))
+      print(">>>> " + query)
+      if "due to concurrent update" not in str(e):
+        break
+      rows_updated_with_freq_words -= 1
 
   return rows_updated_with_freq_words
 
@@ -203,17 +190,25 @@ def calculate_and_write_frequent_words(
   count = 0
   sqltype = "STRING"
   type_table = TYPES_TO_TABLES[sqltype]
+  columns_stats_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], COLUMNS_STATS_TABLE
+  )
+  type_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], type_table
+  )
   query = (
       "SELECT ci.dataset_name, ci.table_name, ci.column_name, ci.column_type"
-      f" FROM `{COLUMNS_STATS_TABLE}` as ci  WHERE ci.dataset_name ="
+      f" FROM {columns_stats_table_sql_string} as ci  WHERE ci.dataset_name ="
       f" '{datasetname}' AND ci.project_name = '{projectname}' AND"
-      f" ci.column_type = 'STRING' AND EXISTS (select * from `{type_table}`"
-      " as est where est.column_name = ci.column_name and est.table_name ="
-      " ci.table_name and est.dataset_name = ci.dataset_name AND"
-      " est.project_name = ci.project_name and array_length(freq_str_words)"
-      " = 0)"
+      " ci.column_type = 'STRING' AND EXISTS (select * from"
+      f" {type_table_sql_string} as est where est.column_name = ci.column_name"
+      " and est.table_name = ci.table_name and est.dataset_name ="
+      " ci.dataset_name AND est.project_name = ci.project_name and"
+      " array_length(freq_str_words) = 0)"
   )
-  queryjob = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+  queryjob, _ = run_query(
+      dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+  )
   for row in queryjob:
     count += 1
     columns_to_collect_freq_words.append(

@@ -35,6 +35,7 @@ columns_string_extra_stats_table = (
     configuration.COLUMNS_STRING_EXTRA_STATS_TABLE
 )
 types_to_collect_stats = configuration.TYPES_TO_COLLECT_STATS
+get_sql_table_string = database_connector.get_sql_table_string
 
 
 def calculate_and_write_column_histograms_internal_bq(
@@ -46,59 +47,73 @@ def calculate_and_write_column_histograms_internal_bq(
     dbclient,
 ):
   """Generate the query to get column histogram."""
-  histograms = []
-  # Get table level information from columns.
-  if not columns:
-    return
-  is_partitioned = columns[0]["is_partitioned"]
-  partition_column = columns[0]["partition_column"]
-  partition_column_type = columns[0]["partition_column_type"]
-  partitioned_predicate = build_partitioned_predicate(
-      is_partitioned, tablename, partition_column, partition_column_type
-  )
-
-  # Generate approx quantitles for all columns.
-  approx_quantiles_list = [
-      f'APPROX_QUANTILES(`{column["column_name"]}`, {column["num_quantiles"]})'
-      f' AS `{column["column_name"]}`'
-      for column in columns
-      if column["num_quantiles"] > 0
+  # do work in smaller chunks to avoid errors like
+  num_concurrent_histogram_processing = 1
+  columns_initial = columns
+  columns_chunks = [
+      columns_initial[i : i + num_concurrent_histogram_processing]
+      for i in range(
+          0, len(columns_initial), num_concurrent_histogram_processing
+      )
   ]
+  histograms = []
+  for columns in columns_chunks:
+    # Get table level information from columns.
+    if not columns:
+      return
+    is_partitioned = columns[0]["is_partitioned"]
+    partition_column = columns[0]["partition_column"]
+    partition_column_type = columns[0]["partition_column_type"]
+    partitioned_predicate = build_partitioned_predicate(
+        is_partitioned, tablename, partition_column, partition_column_type
+    )
 
-  if not approx_quantiles_list:
-    return []
+    # Generate approx quantitles for all columns.
+    approx_quantiles_list = [
+        f'APPROX_QUANTILES(`{column["column_name"]}`,'
+        f' {column["num_quantiles"]}) AS `{column["column_name"]}`'
+        for column in columns
+        if column["num_quantiles"] > 0
+    ]
 
-  print(
-      f"Getting histogram for {len(columns)} columns of the table"
-      f" `{projectname}.{datasetname}.{tablename}`"
-  )
-  generate_quantitles_query = (
-      f'SELECT {", ".join(approx_quantiles_list)} FROM'
-      f" `{projectname}.{datasetname}.{tablename}` WHERE"
-      f" {partitioned_predicate}"
-  )
+    if not approx_quantiles_list:
+      return []
 
-  try:
-    queryjob = run_query(dbtype, generate_quantitles_query, dbclient)
-    row = get_query_result_first_row(dbtype, queryjob)
-    for column in columns:
-      if column["num_quantiles"] > 0:
-        histograms.append({
-            "column_name": column["column_name"],
-            "column_type": column["column_type"],
-            "quantiles": [str(item) for item in row[column["column_name"]]],
-        })
-  except Exception as e:  # pylint: disable=broad-exception-caught
-    print(e)
-    print(">>>>>>>>>>>> ERROR IN QUERY :\n" + generate_quantitles_query)
-    # Retry to query for each column to get around error like
-    # "400 Cannot query rows larger than 100MB limit."
-    if len(columns) > 1:
+    print(
+        f"Getting histogram for {len(columns)} columns of the table"
+        f" `{projectname}.{datasetname}.{tablename}`"
+    )
+    table_sql_string = get_sql_table_string(
+        dbtype, f"{projectname}.{datasetname}.{tablename}"
+    )
+    generate_quantitles_query = (
+        f'SELECT {", ".join(approx_quantiles_list)} FROM'
+        f" {table_sql_string} WHERE"
+        f" {partitioned_predicate}"
+    )
+
+    try:
+      queryjob, _ = run_query(dbtype, generate_quantitles_query, dbclient)
+      row = get_query_result_first_row(dbtype, queryjob)
       for column in columns:
-        h = calculate_and_write_column_histograms_internal_bq(
-            projectname, datasetname, tablename, [column], dbtype, dbclient
-        )
-        histograms.extend(h)
+        if column["num_quantiles"] > 0:
+          if dbtype == DBType.BIGQUERY:
+            histograms.append({
+                "column_name": column["column_name"],
+                "column_type": column["column_type"],
+                "quantiles": [str(item) for item in row[column["column_name"]]],
+            })
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(e)
+      print(">>>>>>>>>>>> ERROR IN QUERY :\n" + generate_quantitles_query)
+      # Retry to query for each column to get around error like
+      # "400 Cannot query rows larger than 100MB limit."
+      if len(columns) > 1:
+        for column in columns:
+          h = calculate_and_write_column_histograms_internal_bq(
+              projectname, datasetname, tablename, [column], dbtype, dbclient
+          )
+          histograms.extend(h)
   return histograms
 
 
@@ -121,7 +136,7 @@ def calculate_and_write_column_histograms_internal(
         dbs["data_dbclient"],
     )
   else:
-    raise ValueError("Unsupported database type: " + dbs["data_dbtype"])
+    raise ValueError(f"Unsupported database type: {dbs['data_dbtype']}")
 
   insert_row_list = [
       f"('{projectname}', '{datasetname}', '{tablename}',"
@@ -130,14 +145,17 @@ def calculate_and_write_column_histograms_internal(
       for histogram in histograms
   ]
 
+  columns_histogram_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], columns_histogram_table
+  )
   insert_query = (
-      f"INSERT INTO `{columns_histogram_table}` (`project_name`,"
+      f"INSERT INTO {columns_histogram_table_sql_string} (`project_name`,"
       " `dataset_name`, `table_name`, `column_name`,`column_type`,"
       f" `approx_quantiles_100`) VALUES {', '.join(insert_row_list)}"
   )
 
   try:
-    _ = run_query(
+    _, _ = run_query(
         dbs["metadata_dbtype"], insert_query, dbs["metadata_dbclient"]
     )
   except Exception as e:  # pylint: disable=broad-exception-caught
@@ -155,10 +173,13 @@ def calculate_and_write_column_histograms(
       [f'"{type}"' for type in types_to_collect_stats.keys()]
   )
   # Get list of columns to collect histograms
+  columns_stats_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], columns_stats_table
+  )
   query = f"""WITH column_candidates AS (
       SELECT
         col.*,
-      FROM `{columns_stats_table}` AS col
+      FROM {columns_stats_table_sql_string} AS col
       WHERE TRUE
         AND col.project_name = \'{projectname}\'
         AND col.dataset_name = \'{datasetname}\'
@@ -195,7 +216,9 @@ def calculate_and_write_column_histograms(
     FROM column_candidates_group_by_table
   """
 
-  query_job = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+  query_job, _ = run_query(
+      dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+  )
 
   if not INTERNAL:
     for row in query_job:

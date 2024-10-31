@@ -35,6 +35,7 @@ COLUMNS_INFO_TABLE = configuration.COLUMNS_INFO_TABLE
 COLUMNS_STATS_TABLE = configuration.COLUMNS_STATS_TABLE
 BQ_INFO_SCHEMA_COLUMNS = configuration.BQ_INFO_SCHEMA_COLUMNS
 TYPES_TO_TABLES = configuration.TYPES_TO_TABLES
+get_sql_table_string = database_connector.get_sql_table_string
 
 
 def calculate_and_write_extra_column_statistics_internal_string(
@@ -63,47 +64,76 @@ def calculate_and_write_extra_column_statistics_internal_string(
         is_partitioned, tablename, partition_column, partition_column_type
     )
     rowres = {}
+    table_sql_string = get_sql_table_string(
+        dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
+    )
     query = (
         f"SELECT count(distinct `{columnname}`) as cnt from"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE"
+        f" {table_sql_string} WHERE"
         f" {partitioned_predicate}"
     )
 
     try:
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
       rowres = get_query_result_first_row(dbs["data_dbtype"], queryjob)
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
       print(">>>> " + query)
+    extra_stats_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], extra_stats_table
+    )
     if rowres["cnt"] == 0:
       query = (
-          f"INSERT INTO `{extra_stats_table}` (`project_name`,"
+          f"INSERT INTO {extra_stats_table_sql_string} (`project_name`,"
           " `dataset_name`,`table_name`, `column_name`, `allnull`) VALUES"
           f" ('{projectname}', '{datasetname}', '{tablename}', '{columnname}',"
           " true)"
       )
       try:
-        _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+        _, _ = run_query(
+            dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+        )
       except Exception as e:  # pylint: disable=broad-exception-caught
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
         print(">>>> " + str(e))
         print(">>>> " + query)
       continue
 
+    minval = "NULL"
+    maxval = "NULL"
+    maxlength = "NULL"
     query = (
-        f"INSERT INTO `{extra_stats_table}` (`project_name`, `dataset_name`,"
-        " `table_name`, `column_name`, `min_val`, `max_val`, `allnull`, "
-        f" `max_length`) SELECT '{projectname}', '{datasetname}',"
+        f"SELECT '{projectname}', '{datasetname}',"
         f" '{tablename}', '{columnname}', max(`{columnname}`) as maxval,"
         f" min(`{columnname}`) as minval, false, max(length(`{columnname}`)) as"
-        f" maxlength FROM `{projectname}.{datasetname}.{tablename}` WHERE"
-        f" {partitioned_predicate}"
+        f" maxlength FROM {table_sql_string} WHERE {partitioned_predicate}"
+    )
+    try:
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      firstrow = get_query_result_first_row(dbs["data_dbtype"], queryjob)
+      minval = firstrow["minval"]
+      maxval = firstrow["maxval"]
+      minval = minval.replace("'", "'").replace("\n", "\\n")
+      maxval = maxval.replace("'", "'").replace("\n", "\\n")
+      maxval = maxval.replace("'", "'")
+      maxlength = firstrow["maxlength"]
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
+      print(">>>> " + str(e))
+      print(">>>> " + query)
+
+    query = (
+        f"INSERT INTO {extra_stats_table_sql_string} (`project_name`,"
+        " `dataset_name`, `table_name`, `column_name`, `min_val`, `max_val`,"
+        f" `allnull`,  `max_length`) VALUES ('{projectname}', '{datasetname}',"
+        f" '{tablename}', '{columnname}', '{minval}', '{maxval}', false,"
+        f" {maxlength})"
     )
 
     success = True
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
       rows_written_to_extra_stats_table += 1
     except Exception as e:  # pylint: disable=broad-exception-caught
       success = False
@@ -123,7 +153,6 @@ def calculate_and_write_extra_column_statistics_internal(
     dbs,
 ):
   """Calculates column statistics and writes for all types except string."""
-
   # Return the number of rows written to configuration.COLUMNS_STATS_TABLE.
 
   if columntype == "STRING":
@@ -132,13 +161,21 @@ def calculate_and_write_extra_column_statistics_internal(
     )
 
   rows_written_to_extra_stats_table = 0
+  extra_stats_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], extra_stats_table
+  )
+
   preamble = (
-      f"INSERT INTO `{extra_stats_table}` (`project_name`, `dataset_name`,"
-      " `table_name`, `column_name`, `min_val`, `max_val` "
+      f"INSERT INTO {extra_stats_table_sql_string} (`project_name`,"
+      " `dataset_name`, `table_name`, `column_name`, `min_val`, `max_val` "
   )
   if (
       columntype == "INT64"
+      or columntype == "INT32"
       or columntype == "FLOAT64"
+      or columntype == "DOUBLE"
+      or columntype == "UINT64"
+      or columntype == "UINT32"
       or columntype == "NUMERIC"
       or columntype == "BIGNUMERIC"
       or columntype == "BIGDECIMAL"
@@ -164,13 +201,16 @@ def calculate_and_write_extra_column_statistics_internal(
         is_partitioned, tablename, partition_column, partition_column_type
     )
     rowres = {}
+    table_sql_string = get_sql_table_string(
+        dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
+    )
     query = (
         f"SELECT count(distinct `{columnname}`) as cnt from"
-        f" `{projectname}.{datasetname}.{tablename}` WHERE"
+        f" {table_sql_string} WHERE"
         f" {partitioned_predicate}"
     )
     try:
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
+      queryjob, _ = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"])
       rowres = get_query_result_first_row(dbs["data_dbtype"], queryjob)
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
@@ -178,10 +218,10 @@ def calculate_and_write_extra_column_statistics_internal(
       print(">>>> " + query)
     if rowres["cnt"] == 0:
       query = (
-          f"INSERT INTO `{extra_stats_table}` (`project_name`, `dataset_name`,"
-          " `table_name`, `column_name`, `allnull`) VALUES "
-          f"('{projectname}', '{datasetname}', '{tablename}',"
-          f" '{columnname}', true )"
+          f"INSERT INTO {extra_stats_table_sql_string} (`project_name`,"
+          " `dataset_name`, `table_name`, `column_name`, `allnull`) VALUES"
+          f" ('{projectname}', '{datasetname}', '{tablename}', '{columnname}',"
+          " true )"
       )
       try:
         run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
@@ -195,17 +235,22 @@ def calculate_and_write_extra_column_statistics_internal(
     )
     if (
         columntype == "INT64"
+        or columntype == "INT32"
         or columntype == "FLOAT64"
+        or columntype == "DOUBLE"
+        or columntype == "UINT64"
+        or columntype == "UINT32"
         or columntype == "NUMERIC"
     ):
       firstquery = f"{firstquery}, AVG(`{columnname}`) as meanval"
     firstquery = (
-        f"{firstquery} FROM `{projectname}.{datasetname}.{tablename}` WHERE"
-        f" {partitioned_predicate}"
+        f"{firstquery} FROM {table_sql_string} WHERE {partitioned_predicate}"
     )
     rowres_firstquery = {}
     try:
-      queryjob = run_query(dbs["data_dbtype"], firstquery, dbs["data_dbclient"])
+      queryjob, _ = run_query(
+          dbs["data_dbtype"], firstquery, dbs["data_dbclient"]
+      )
       rowres_firstquery = get_query_result_first_row(
           dbs["data_dbtype"], queryjob
       )
@@ -235,6 +280,12 @@ def calculate_and_write_extra_column_statistics_internal(
         columntype == "INT64"
         or columntype == "FLOAT64"
         or columntype == "NUMERIC"
+        or columntype == "INT32"
+        or columntype == "FLOAT64"
+        or columntype == "DOUBLE"
+        or columntype == "UINT64"
+        or columntype == "UINT32"
+        or columntype == "NUMERIC"
     ):
       mean_val = rowres_firstquery["meanval"]
       if mean_val in ["-inf", "inf", None, "nan"] or math.isinf(mean_val):
@@ -258,9 +309,18 @@ def calculate_and_write_extra_column_statistics_internal(
         f"{newvals} ('{projectname}', '{datasetname}', '{tablename}',"
         f" '{columnname}', "
     )
-    if columntype == "INT64" or columntype == "FLOAT64":
+    if columntype in [
+        "INT64",
+        "INT32",
+        "FLOAT64",
+        "DOUBLE",
+    ]:
       newvals += "" + min_val + ", "
       newvals += "" + max_val + ", "
+      newvals += "" + mean_val
+    elif columntype in ["UINT64", "UINT32"]:
+      newvals += "CAST('" + min_val + "' AS BIGNUMERIC), "
+      newvals += "CAST('" + max_val + "' AS BIGNUMERIC), "
       newvals += "" + mean_val
     elif (
         columntype == "NUMERIC"
@@ -292,7 +352,9 @@ def calculate_and_write_extra_column_statistics_internal(
       query = preamble + newvals
       # print(query)
       try:
-        _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+        _, _ = run_query(
+            dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+        )
       except Exception as e:  # pylint: disable=broad-exception-caught
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
         print(">>>> " + str(e))
@@ -305,7 +367,7 @@ def calculate_and_write_extra_column_statistics_internal(
     query = preamble + newvals
     rows_written_to_extra_stats_table += count
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       success = False
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
@@ -331,17 +393,23 @@ def calculate_and_write_extra_column_statistics(
         "stats_table": type_to_table[1],
         "column_list": [],
     }
+    columns_info_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], COLUMNS_INFO_TABLE
+    )
+    extra_stats_type_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], type_to_table[1]
+    )
     query = (
         "SELECT  ci.dataset_name, ci.table_name, ci.column_name,"
-        f" ci.column_type FROM `{COLUMNS_INFO_TABLE}` as ci  WHERE"
+        f" ci.column_type FROM {columns_info_table_sql_string} as ci  WHERE"
         f" ci.dataset_name = '{datasetname}' AND ci.project_name  ="
         f" '{projectname}' AND ci.column_type = '{type_to_table[0]}' AND NOT"
-        f" EXISTS (select * from `{type_to_table[1]}` as est where"
-        " est.column_name = ci.column_name and est.table_name ="
+        f" EXISTS (select * from {extra_stats_type_table_sql_string} as est"
+        " where est.column_name = ci.column_name and est.table_name ="
         " ci.table_name and est.dataset_name = ci.dataset_name AND"
         " est.project_name = ci.project_name)"
     )
-    queryjob = run_query(
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
     for row in queryjob:

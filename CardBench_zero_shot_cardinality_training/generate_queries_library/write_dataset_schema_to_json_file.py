@@ -55,7 +55,7 @@ def write_dataset_schema_to_json_file(
       f" '{datasetname}' and project_name = '{projectname}'"
   )
   try:
-    queryjob = run_query(
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
     for row in queryjob:
@@ -85,7 +85,7 @@ def write_dataset_schema_to_json_file(
   )
 
   try:
-    queryjob = run_query(
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
     for row in queryjob:

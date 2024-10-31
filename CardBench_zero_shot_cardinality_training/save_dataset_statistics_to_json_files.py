@@ -48,12 +48,14 @@ def write_dataset_statistics_to_json_files(_):
   # dataset containes multiple tables. The json files are required by
   # the query generator as input.
 
-  projectname = configuration.PROJECTNAME
-  datasetnames = configuration.DATASETNAMES
+  projectname = configuration.PROJECT_NAME
+  datasetnames = configuration.DATASET_NAMES
 
   dbs = {
-      "metadata_dbtype": DBType.BIGQUERY,
-      "metadata_dbclient": create_database_connection(DBType.BIGQUERY),
+      "metadata_dbtype": configuration.METADATA_DBTYPE,
+      "metadata_dbclient": create_database_connection(
+          configuration.METADATA_DBTYPE
+      ),
   }
 
   for datasetname in datasetnames:

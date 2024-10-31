@@ -34,6 +34,8 @@ columns_info_table = configuration.COLUMNS_INFO_TABLE
 columns_stats_table = configuration.COLUMNS_STATS_TABLE
 info_schema_columns = configuration.BQ_INFO_SCHEMA_COLUMNS
 types_to_tables = configuration.TYPES_TO_TABLES
+get_sql_table_string = database_connector.get_sql_table_string
+table_exists = database_connector.table_exists
 
 
 def create_table_samples_fixsize_internal_bq(
@@ -46,6 +48,7 @@ def create_table_samples_fixsize_internal_bq(
     partition_column,
     partition_column_type,
     sampled_tables_dataset_name,
+    sampled_table_path,
     dbs,
 ):
   """Calculates tabel sample, Big Query version."""
@@ -76,17 +79,24 @@ def create_table_samples_fixsize_internal_bq(
     )
     return
 
+  table_sql_string = get_sql_table_string(
+      dbs["data_dbtype"], f"{projectname}.{datasetname}.{tablename}"
+  )
+  sampled_table_sql_string = get_sql_table_string(
+      dbs["data_dbtype"], sampled_table_path
+  )
+
   sampling_query = f"""
-    CREATE OR REPLACE TABLE `{sampled_tables_dataset_name}.{projectname}_{datasetname}_{tablename}` AS(
+    CREATE OR REPLACE TABLE {sampled_table_sql_string} AS(
       SELECT *
-      FROM `{projectname}.{datasetname}.{tablename}`
+      FROM {table_sql_string}
       WHERE {partition_pred}
       ORDER BY FARM_FINGERPRINT(GENERATE_UUID())
       LIMIT {target_row_number}
     )
   """
   try:
-    _ = run_query(dbs["data_dbtype"], sampling_query, dbs["data_dbclient"])
+    _, _ = run_query(dbs["data_dbtype"], sampling_query, dbs["data_dbclient"])
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(e)
     print(">>>>>>>>>>>> ERROR IN QUERY :\n" + sampling_query)
@@ -102,6 +112,7 @@ def create_table_samples_fixsize_internal(
     partition_column,
     partition_column_type,
     sampled_tables_dataset_name,
+    sampled_table_path,
     dbs,
 ):
   """Calculates tabel sample."""
@@ -117,6 +128,7 @@ def create_table_samples_fixsize_internal(
         partition_column,
         partition_column_type,
         sampled_tables_dataset_name,
+        sampled_table_path,
         dbs,
     )
 
@@ -130,34 +142,45 @@ def create_table_samples_fixsize(
 ):
   """Create tables with fixed size."""
 
-  query = f"""
-    SELECT
-      tb.project_name,
-      tb.dataset_name,
-      tb.table_name,
-      tb.row_count,
-      tb.is_partitioned,
-      tb.partition_column,
-      tb.partition_column_type
-    FROM `{tables_info_table}` AS tb
-    WHERE TRUE
-      AND tb.table_name not like '_SEARCH_INDEX_%'
-      AND tb.project_name = "{projectname}"
-      AND tb.dataset_name = "{datasetname}"
-      AND NOT EXISTS(
-        SELECT 1
-        FROM `{sampled_tables_dataset_name}.__TABLES__` AS sample
-        WHERE TRUE
-          AND sample.table_id = CONCAT(tb.project_name, "_", tb.dataset_name, "_", tb.table_name)
-          # Conditions for correct sampled tables.
-          AND (sample.row_count = {target_row_number} OR sample.row_count = tb.row_count)
-      )
-  """
-
-  query_job = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+  tables_info_table_sql_string = get_sql_table_string(
+      dbs["metadata_dbtype"], tables_info_table
+  )
+  if dbs["data_dbtype"] == DBType.BIGQUERY:
+    sampled_tables_dataset_name_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], f"{sampled_tables_dataset_name}.__TABLES__"
+    )
+    query = f"""
+      SELECT
+        tb.project_name,
+        tb.dataset_name,
+        tb.table_name,
+        tb.row_count,
+        tb.is_partitioned,
+        tb.partition_column,
+        tb.partition_column_type
+      FROM {tables_info_table_sql_string} AS tb
+      WHERE TRUE
+        AND tb.table_name not like '_SEARCH_INDEX_%'
+        AND tb.project_name = "{projectname}"
+        AND tb.dataset_name = "{datasetname}"
+        AND NOT EXISTS(
+          SELECT 1
+          FROM {sampled_tables_dataset_name_sql_string} AS sample
+          WHERE TRUE
+            AND sample.table_id = CONCAT(tb.project_name, "_", tb.dataset_name, "_", tb.table_name)
+            # Conditions for correct sampled tables.
+            AND (sample.row_count = {target_row_number} OR sample.row_count = tb.row_count)
+        )
+    """
+  else:
+    raise ValueError(f"Unsupported database type: {dbs['metadata_dbtype']}")
+  query_job, _ = run_query(
+      dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+  )
 
   if not INTERNAL:
     for row in query_job:
+      sampled_table_path = f"{sampled_tables_dataset_name}.{row['project_name']}_{row['dataset_name']}_{row['table_name']}"
       create_table_samples_fixsize_internal(
           projectname=row["project_name"],
           datasetname=row["dataset_name"],
@@ -168,6 +191,7 @@ def create_table_samples_fixsize(
           partition_column=row["partition_column"],
           partition_column_type=row["partition_column_type"],
           sampled_tables_dataset_name=sampled_tables_dataset_name,
+          sampled_table_path=sampled_table_path,
           dbs=dbs,
       )
 

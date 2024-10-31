@@ -61,7 +61,7 @@ def write_dataset_string_statistics_to_json_file(
   )
   queryjob = None
   try:
-    queryjob = run_query(
+    queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
     )
   except Exception as e:  # pylint: disable=broad-exception-caught

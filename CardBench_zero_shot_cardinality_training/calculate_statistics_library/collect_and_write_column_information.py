@@ -47,7 +47,7 @@ def get_col_info_from_bq(
       " isc.table_name AND it.column_name = isc.column_name)"
   )
   try:
-    queryjob = run_query(data_dbtype, query, data_dbclient)
+    queryjob, _ = run_query(data_dbtype, query, data_dbclient)
     for row in queryjob:
       column_info.append({
           "table_name": row["table_name"],
@@ -100,7 +100,9 @@ def collect_and_write_column_information(
     if count >= 200:
       query = insert_query_preamble + newvals
       try:
-        _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+        _, _ = run_query(
+            dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+        )
         rows_added += count
         count = 0
         newvals = ""
@@ -112,7 +114,7 @@ def collect_and_write_column_information(
     query = insert_query_preamble + newvals
     rows_added += count
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))

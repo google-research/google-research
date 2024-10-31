@@ -172,7 +172,7 @@ def prefetch_correlations(
       f" project_name='{projectname}' AND dataset_name='{datasetname}'"
   )
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     for row in queryjob:
       dataset_name = row["dataset_name"]
       tbl_name = row["table_name_a"]
@@ -256,7 +256,7 @@ def get_table_rows(
         f" project_name='{table_ids[0]}' AND dataset_name='{table_ids[1]}'"
     )
     try:
-      queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+      queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
       for row in queryjob:
         table_path_temp = f"{table_ids[0]}.{table_ids[1]}.{row['table_name']}"
         table_stas_cache[table_path_temp] = row["row_count"]
@@ -273,7 +273,7 @@ def get_table_rows(
         f" table_name='{table_ids[2]}'"
     )
     try:
-      queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+      queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
       for row in queryjob:
         table_stas_cache[table_path] = row["row_count"]
     except Exception as e:  # pylint: disable=broad-except
@@ -314,7 +314,7 @@ def prefetch_column_info(
   )
   simple_column_information_dict = {}
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     for row in queryjob:
       ctype = row["ct"]
       nullfrac = row["nf"]
@@ -344,7 +344,7 @@ def prefetch_column_info(
         f" project_name='{table_ids[0]}' AND dataset_name='{table_ids[1]}'"
     )
     try:
-      queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+      queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
       for row in queryjob:
         minv = row["min_val"]
         maxv = row["max_val"]
@@ -369,7 +369,7 @@ def prefetch_column_info(
       f" project_name='{table_ids[0]}' AND dataset_name='{table_ids[1]}'"
   )
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     for row in queryjob:
       table_name = row["table_name"]
       col_name = row["column_name"]

@@ -17,6 +17,7 @@
 
 from collections.abc import Sequence
 import os
+import traceback
 from typing import Any
 
 from absl import app
@@ -34,6 +35,7 @@ DBType = database_connector.DBType
 create_database_connection = database_connector.create_database_connection
 run_query = database_connector.run_query
 get_query_result_first_row = database_connector.get_query_result_first_row
+get_query_cardinality = database_connector.get_query_cardinality
 get_workload_info = run_queries_helpers.get_workload_info
 select_next_query_run_id = run_queries_helpers.select_next_query_run_id
 create_temp_query_run_information_table = (
@@ -60,11 +62,13 @@ def run_queries(argv):
 
   dbs = {
       # used to query the database
-      "data_dbtype": DBType.BIGQUERY,
-      "data_dbclient": create_database_connection(DBType.BIGQUERY),
+      "data_dbtype": configuration.DATA_DBTYPE,
+      "data_dbclient": create_database_connection(configuration.DATA_DBTYPE),
       # used to stored the collected statistics
-      "metadata_dbtype": DBType.BIGQUERY,
-      "metadata_dbclient": create_database_connection(DBType.BIGQUERY),
+      "metadata_dbtype": configuration.METADATA_DBTYPE,
+      "metadata_dbclient": create_database_connection(
+          configuration.METADATA_DBTYPE
+      ),
   }
   if len(argv) == 1:
     print(
@@ -93,6 +97,7 @@ def run_queries(argv):
       dbs["metadata_dbclient"],
       dbs["metadata_dbtype"],
   )
+  print("Create temp table: ", temp_query_run_information_table)
 
   insert_result_query_preamble = get_preamble_insert_query_result(
       temp_query_run_information_table
@@ -144,15 +149,24 @@ def run_queries_worker(
     print("-----\nExecuting: ", query)
     try:
       # run with 7 minutes timeout
-      queryjob = run_query(dbs["data_dbtype"], query, dbs["data_dbclient"], 420)
-      cardinality = get_query_result_first_row(dbs["data_dbtype"], queryjob)[
-          "rwcnt"
-      ]
-      query_strings.append(query)
-      database_query_ids.append(queryjob.job_id)
+      queryjob, job_id = run_query(
+          dbs["data_dbtype"], query, dbs["data_dbclient"], 420
+      )
+      if "rwcnt" in query:
+        cardinality = get_query_result_first_row(dbs["data_dbtype"], queryjob)[
+            "rwcnt"
+        ]
+      else:
+        cardinality = get_query_cardinality(dbs["data_dbtype"], queryjob)
+      database_query_ids.append(job_id)
       cardinalities.append(cardinality)
+      query_strings.append(query)
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> Error in query :", query, str(e))
+      print(
+          ">>>>>>>>>>>>>>>>>>>>>>>>>>>> Error in query :",
+          traceback.format_exc(),
+      )
       database_query_ids.append("error in query execution")
       cardinalities.append(-1)
       query_strings.append(query)
@@ -163,13 +177,13 @@ def run_queries_worker(
       values = values + ", "
     cleaned_query_string = clean_query_string(query_strings[i])
     values = (
-        f"{values} ({workload_id}, {query_run_id}, \"{cleaned_query_string}\","
+        f'{values} ({workload_id}, {query_run_id}, "{cleaned_query_string}",'
         f" '{database_query_ids[i]}', {cardinalities[i]})"
     )
   query = insert_result_query_preamble + values
   if values:
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))

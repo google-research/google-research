@@ -35,13 +35,30 @@ def get_workload_info(
     workload_id_to_run, metadata_dbclient, metadata_dbtype
 ):
   """Get the workload information from the metadata database."""
+  id_of_num_queries = -1
   query = (
-      "SELECT  queries_file_path, parameter_values[6] as num_queries "
+      "SELECT  parameter_keys "
       f"FROM `{WORKLOAD_DEFINITION_TABLE}` "
       f"WHERE workload_id = {workload_id_to_run}"
   )
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
+    for row in queryjob:
+      for ki in enumerate(row["parameter_keys"]):
+        if ki[1] == "num_queries_to_generate":
+          id_of_num_queries = ki[0]
+  except Exception as e:  # pylint: disable=broad-exception-caught
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
+    return
+
+  query = (
+      f"SELECT  queries_file_path, parameter_values[{id_of_num_queries}] as"
+      f" num_queries FROM `{WORKLOAD_DEFINITION_TABLE}` WHERE workload_id ="
+      f" {workload_id_to_run}"
+  )
+  try:
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
@@ -65,9 +82,8 @@ def select_next_query_run_id(
       f"FROM `{QUERY_RUN_INFORMATION_TABLE}`"
       f"WHERE workload_id = {workload_id_to_run}"
   )
-
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
@@ -100,7 +116,7 @@ def create_temp_query_run_information_table(
   )
 
   try:
-    _ = run_query(metadata_dbtype, create_query, metadata_dbclient)
+    _, _ = run_query(metadata_dbtype, create_query, metadata_dbclient)
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + create_query)
     print(e)

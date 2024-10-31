@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Generate training graphs for a given workload id and query run id."""
+
 from collections.abc import Sequence
 import traceback
 from typing import Any
@@ -76,11 +77,13 @@ def print_progress(
     queries_information,
     query_ids_to_save,
     zero_cardinality_queries,
+    skipped_queries_with_no_operators,
 ):
   print(
       f"Progress: {processed_queries}/{len(queries_information)} queries,"
-      f" Successful: {len(query_ids_to_save)}, Zero-Cardinality:"
-      f" {zero_cardinality_queries} queries."
+      f" Successful: {len(query_ids_to_save)}, Zero-Cardinality queries:"
+      f" {zero_cardinality_queries}   Queries with no operators (skipped):"
+      f" {skipped_queries_with_no_operators}."
   )
 
 
@@ -95,7 +98,7 @@ def load_dataset_name(
       f" `{WORKLOAD_DEFINITION_TABLE}` WHERE workload_id = {workload_id}"
   )
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     dataset_name = get_query_result_first_row(metadata_dbtype, queryjob)[
         "dataset_name"
     ]
@@ -119,7 +122,7 @@ def load_queries_information(
       f" query_run_id = {query_run_id}"
   )
   try:
-    queryjob = run_query(metadata_dbtype, query, metadata_dbclient)
+    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
     for row in queryjob:
       query_information[row["database_query_id"]] = {
           "query_string": row["query_string"],
@@ -139,14 +142,18 @@ def generate_training_querygraphs_and_save_to_file(argv):
         " query run id."
     )
     return
+  workload_id = int(argv[1])
+  query_run_id = int(argv[2])
+  print(
+      f"Generating training query graphs for workload id: {workload_id} and"
+      f" query run id: {query_run_id}"
+  )
 
   dbs = {
       # used to stored the collected statistics
       "metadata_dbtype": DBType.BIGQUERY,
       "metadata_dbclient": create_database_connection(DBType.BIGQUERY),
   }
-  workload_id = int(argv[1])
-  query_run_id = int(argv[2])
 
   queries_information = load_queries_information(
       workload_id,
@@ -185,6 +192,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
   # END_GOOGLE_INTERNAL
   query_ids_to_save = []
   zero_cardinality_queries = 0
+  skipped_queries_with_no_operators = 0
   printif(debug, f"Processing {len(queries_information)} queries...")
   for database_query_id in queries_information:
     processed_queries += 1
@@ -227,8 +235,10 @@ def generate_training_querygraphs_and_save_to_file(argv):
           query_statistics_caches,
           debug,
       )
+      if not annotated_query_plan:
+        skipped_queries_with_no_operators += 1
+        continue
       annotated_query_plans[database_query_id] = annotated_query_plan
-
       printif(debug, "ANNOTATED QUERY PLAN <><><><><<><><><><><><><><><> ")
       for node in annotated_query_plan["nodes"]:
         printif(debug, node)
@@ -269,6 +279,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
           queries_information,
           query_ids_to_save,
           zero_cardinality_queries,
+          skipped_queries_with_no_operators,
       )
 
   database_query_ids_unique_queries, _ = (
@@ -281,6 +292,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
       queries_information,
       query_ids_to_save,
       zero_cardinality_queries,
+      skipped_queries_with_no_operators,
   )
   print(f"Zero cardinality queries: {zero_cardinality_queries}")
   print(

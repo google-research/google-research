@@ -52,21 +52,25 @@ def collect_and_write_table_information_bq(
   )
   queryjob = ""
   try:
-    queryjob = run_query(dbtype, query, dbclient)
+    queryjob, _ = run_query(dbtype, query, dbclient)
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
     print(">>>> " + str(e))
     print(">>>> " + query)
   for row in queryjob:
-    ispart = (row["ispart"] == "YES")
-    isclust = (row["isclust"] != "null")
+    ispart = False
+    if row["ispart"] == "YES":
+      ispart = True
+    isclust = False
+    if row["isclust"] != "null":
+      isclust = True
 
     table_name = row["table_name"]
     query2 = (
         "SELECT count(*) as cnt FROM"
         f" `{projectname}.{datasetname}.{table_name}`"
     )
-    queryjob2 = run_query(dbtype, query2, dbclient)
+    queryjob2, _ = run_query(dbtype, query2, dbclient)
     rowrescnt = get_query_result_first_row(dbtype, queryjob2)
 
     part_col_name = "empty"
@@ -89,7 +93,7 @@ def collect_and_write_table_information_bq(
              ELSE NULL
              END) as part_col_type
           """
-      queryjob3 = run_query(dbtype, query3, dbclient)
+      queryjob3, _ = run_query(dbtype, query3, dbclient)
       rowres3 = get_query_result_first_row(dbtype, queryjob3)
       part_col_type = rowres3["part_col_type"]
       part_col_name = rowres3["part_col_name"]
@@ -105,6 +109,8 @@ def collect_and_write_table_information_bq(
         "clustered_columns": [],  # list of strings TODO
     }
   return table_comb_info
+
+
 
 
 def collect_and_write_table_information(
@@ -159,7 +165,9 @@ def collect_and_write_table_information(
     if count >= 200:
       query = insert_query_preamble + newvals
       try:
-        _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+        _, _ = run_query(
+            dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+        )
       except Exception as e:  # pylint: disable=broad-exception-caught
         print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
         print(">>>> " + str(e))
@@ -172,7 +180,7 @@ def collect_and_write_table_information(
     total_rows_added = total_rows_added + count
     query = insert_query_preamble + newvals
     try:
-      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+      _, _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
