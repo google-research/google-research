@@ -61,12 +61,6 @@ class Aggregator(Enum):
   AVG = 'AVG'
   SUM = 'SUM'
   COUNT = 'COUNT'
-
-  def __str__(self):
-    return self.value
-
-
-class ExtendedAggregator(Enum):
   MIN = 'MIN'
   MAX = 'MAX'
 
@@ -96,6 +90,7 @@ def sample_acyclic_aggregation_query(
     groupby_limit_probability,
     groupby_having_probability,
     allowed_predicate_operators,
+    allowed_aggregate_functions,
 ):
   """Sample acyclic aggregation query.
 
@@ -125,9 +120,10 @@ def sample_acyclic_aggregation_query(
     groupby_limit_probability: The probability of group by limit.
     groupby_having_probability: The probability of group by having.
     allowed_predicate_operators: The allowed predicate operators.
+    allowed_aggregate_functions: The allowed aggregate functions.
 
   Returns:
-    The acyclic aggregation query.
+    The query.
   """
   if max_nunmber_joins == 0:
     no_joins = 0
@@ -187,6 +183,7 @@ def sample_acyclic_aggregation_query(
       no_aggregates,
       numerical_aggregation_columns,
       randstate,
+      allowed_aggregate_functions,
       complex_predicates=complex_predicates,
   )
   having_clause = None
@@ -198,7 +195,6 @@ def sample_acyclic_aggregation_query(
     )
     op = rand_choice(randstate, [Operator.LEQ, Operator.GEQ, Operator.NEQ])
     having_clause = (idx, literal, op)
-
   q = GenQuery(
       aggregations,
       group_bys,
@@ -304,16 +300,18 @@ class GenQuery:
   def generate_sql_query(
       self,
       table_identifier,
+      quote_table_sql_string,
       partitioning_predicate_per_table,
       semicolon=True,
   ):
-    """Generate SQL query string.
+    """Generate SQL query.
 
     Args:
       table_identifier: id for table to be used in the sql query like
         table_identifiertable_name
+      quote_table_sql_string: The string to quote table names in SQL.
       partitioning_predicate_per_table: The partitioning predicate per table.
-      semicolon: Whether to add semicolon at the end of the query.
+      semicolon: Whether to end the query with a semicolon.
 
     Returns:
       The SQL query.
@@ -329,7 +327,7 @@ class GenQuery:
       ]
       group_by_col_str = ', '.join(group_by_cols)
       group_by_str = f' GROUP BY {group_by_col_str}'
-      order_by_str = f' ORDER BY {group_by_col_str}'
+      # order_by_str = f' ORDER BY {group_by_col_str}'
 
     # aggregations
     aggregation_str_list = []
@@ -364,25 +362,6 @@ class GenQuery:
       order_by_str = order_by_str.replace(f'{t}', alias_t)
       having_str = having_str.replace(f'{t}', alias_t)
 
-    if self.exists_predicates:
-      exists_preds = []
-      for q_rec, not_exist in self.exists_predicates:
-        if not_exist:
-          exists_preds.append(
-              'NOT EXISTS'
-              f' ({q_rec.generate_sql_query(table_identifier, partitioning_predicate_per_table, semicolon=False)})'
-          )
-        else:
-          exists_preds.append(
-              'EXISTS'
-              f' ({q_rec.generate_sql_query(table_identifier, partitioning_predicate_per_table, semicolon=False)})'
-          )
-      exists_preds = ' AND '.join(exists_preds)
-      if not predicate_str:
-        predicate_str += f' WHERE {exists_preds} '
-      else:
-        predicate_str += f' AND {exists_preds}'
-
     # join
     def repl_alias(t, no_alias_intro=False):
       if t in self.alias_dict:
@@ -396,14 +375,14 @@ class GenQuery:
     join_tables = set()
     if self.inner_groupby is not None:
       join_str = (
-          f'({self.inner_groupby.generate_sql_query(table_identifier, partitioning_predicate_per_table, semicolon=False)})'
+          f'({self.inner_groupby.generate_sql_query(table_identifier, quote_table_sql_string, partitioning_predicate_per_table, semicolon=False)})'
           f' {self.subquery_alias}'
       )
     else:
       already_repl = set()
 
       join_str = (
-          f'`{table_identifier}{repl_alias(self.start_t)}` as'
+          f'{quote_table_sql_string}{table_identifier}{repl_alias(self.start_t)}{quote_table_sql_string} as'
           f' {repl_alias(self.start_t)}'
       )
 
@@ -413,8 +392,8 @@ class GenQuery:
         if left_outer:
           join_kw = 'LEFT OUTER JOIN'
         join_str += (
-            f' {join_kw} `{table_identifier}{repl_alias(table_r)}`'
-            f' as {repl_alias(table_r)}'
+            f' {join_kw} {quote_table_sql_string}{table_identifier}{repl_alias(table_r)}{quote_table_sql_string} as'
+            f' {repl_alias(table_r)}'
         )
         join_cond = ' AND '.join([
             f'{repl_alias(table_l, no_alias_intro=True)}.{col_l} = '
@@ -439,7 +418,7 @@ class GenQuery:
         if part_pred in partitioning_preds:
           continue
         partitioning_preds += f' AND {part_pred}'
-    if partitioning_preds and not predicate_str:
+    if partitioning_preds and predicate_str == 'None':
       predicate_str = 'WHERE '
       partitioning_preds = partitioning_preds.replace('AND', '', 1)
     sql_query = (
@@ -456,11 +435,13 @@ class GenQuery:
 
 def generate_queries(
     table_identifier,
+    quote_table_sql_string,
     dataset_name,
     dataset_json_input_directory_path,
     query_file_output_path,
     partitioning_predicate_per_table,
     allowed_predicate_operators,
+    allowed_aggregate_functions,
     num_queries_to_generate,
     max_nunmber_joins,
     max_number_filter_predicates,
@@ -479,21 +460,21 @@ def generate_queries(
     left_outer_join_ratio,
     groupby_limit_probability,
     groupby_having_probability,
-    exists_predicate_probability,
-    max_no_exists,
-    outer_groupby_probability,
     min_number_joins,
+    min_number_predicates,
 ):
-  """Generate queries.
+  """Generate SQL queries.
 
   Args:
     table_identifier: id for table to be used in the sql query like
       table_identifiertable_name
+    quote_table_sql_string: The string to quote table names in SQL.
     dataset_name: The dataset name.
     dataset_json_input_directory_path: The dataset json input directory path.
     query_file_output_path: The query file output path.
     partitioning_predicate_per_table: The partitioning predicate per table.
     allowed_predicate_operators: The allowed predicate operators.
+    allowed_aggregate_functions: The allowed aggregate functions.
     num_queries_to_generate: The number of queries to generate.
     max_nunmber_joins: The maximum number of joins.
     max_number_filter_predicates: The maximum number of filter predicates.
@@ -504,7 +485,8 @@ def generate_queries(
     int_neq_predicate_threshold: The int neq predicate threshold.
     seed: The seed.
     complex_predicates: Whether the predicates are complex.
-    recreate_query_file_if_exists: Whether to recreate the query file if exists.
+    recreate_query_file_if_exists: Whether to recreate the query file if it
+      exists.
     always_create_the_maximum_number_of_joins: Whether to always create the
       maximum number of joins.
     always_create_the_maximum_number_of_aggregates: Whether to always create the
@@ -516,10 +498,8 @@ def generate_queries(
     left_outer_join_ratio: The ratio of left outer joins.
     groupby_limit_probability: The probability of group by limit.
     groupby_having_probability: The probability of group by having.
-    exists_predicate_probability: The probability of exists predicate.
-    max_no_exists: The maximum number of exists predicates.
-    outer_groupby_probability: The probability of outer group by.
     min_number_joins: The minimum number of joins.
+    min_number_predicates: The minimum number of predicates.
 
   Returns:
     The query file output path.
@@ -580,6 +560,7 @@ def generate_queries(
           groupby_limit_probability,
           groupby_having_probability,
           allowed_predicate_operators,
+          allowed_aggregate_functions,
       )
 
       # Check if query matches criteria otherwise retry
@@ -595,34 +576,14 @@ def generate_queries(
           max_number_filter_predicates,
           always_create_the_maximum_number_of_predicates,
           min_number_joins,
+          min_number_predicates,
       )
-
-      # samples subqueries (self joins) for exists / not exists predicates and
-      # adds to query
-      if exists_predicate_probability > 0.0:
-        sample_exists_subqueries(
-            column_stats,
-            complex_predicates,
-            exists_predicate_probability,
-            group_by_threshold,
-            int_neq_predicate_threshold,
-            max_no_exists,
-            q,
-            randstate,
-            relationships_table,
-            string_stats,
-            allowed_predicate_operators,
-        )
-
-      # potentially sample outer query with another group by
-      if outer_groupby_probability > 0.0:
-        outer_groupby = randstate.rand() < outer_groupby_probability
-        if outer_groupby:
-          q = sample_outer_groupby(complex_predicates, q, randstate)
 
       if desired_query:
         sql_query = q.generate_sql_query(
-            table_identifier, partitioning_predicate_per_table
+            table_identifier,
+            quote_table_sql_string,
+            partitioning_predicate_per_table,
         )
         queries.append(sql_query)
       else:
@@ -639,23 +600,23 @@ def generate_queries(
   return query_file_output_path
 
 
-def sample_outer_groupby(complex_predicates, q, randstate):
-  """Sample outer group by.
+def sample_outer_groupby(
+    allowed_aggregate_functions, q, randstate
+):
+  """Sample outer groupby.
 
   Args:
-    complex_predicates: Whether the predicates are complex.
-    q: The query to sample outer group by for.
+    allowed_aggregate_functions: The allowed aggregate functions.
+    q: The query to sample outer groupby for.
     randstate: The random state.
 
   Returns:
-    The query with outer group by.
+    The outer groupby query.
   """
   subquery_alias = 'subgb'
   outer_aggs = []
   for i, (_, _) in enumerate(q.aggregations):
-    l = list(Aggregator)
-    if complex_predicates:
-      l += list(ExtendedAggregator)
+    l = list(allowed_aggregate_functions)
     agg_type = rand_choice(randstate, l)
     outer_aggs.append((agg_type, [[subquery_alias, f'agg_{i}']]))
   outer_groupby = []
@@ -783,8 +744,9 @@ def check_matches_criteria(
     max_number_filter_predicates,
     always_create_the_maximum_number_of_predicates,
     min_number_joins,
+    min_number_predicates,
 ):
-  """Check if the query matches the criteria.
+  """Check if query matches criteria.
 
   Args:
     q: The query to check.
@@ -802,6 +764,7 @@ def check_matches_criteria(
     always_create_the_maximum_number_of_predicates: Whether to always create the
       maximum number of predicates.
     min_number_joins: The minimum number of joins.
+    min_number_predicates: The minimum number of predicates.
 
   Returns:
     Whether the query matches the criteria.
@@ -829,6 +792,8 @@ def check_matches_criteria(
     else:
       if len(q.predicates.children) != max_number_filter_predicates:
         desired_query = False
+  if min_number_predicates > str(q.predicates).count('AND'):
+    desired_query = False
   return desired_query
 
 
@@ -841,7 +806,7 @@ def sample_group_bys(no_group_bys, possible_group_by_columns, randstate):
     randstate: The random state.
 
   Returns:
-    The group bys.
+    The group by columns
   """
   group_bys = []
   if no_group_bys > 0:
@@ -860,30 +825,29 @@ def sample_aggregations(
     no_aggregates,
     numerical_aggregation_columns,
     randstate,
-    complex_predicates=False,
+    allowed_aggregate_functions,
 ):
   """Sample aggregations.
 
   Args:
-    max_cols_per_agg: The maximum number of columns per aggregation.
+    max_cols_per_agg: The maximum number of columns per aggregate.
     no_aggregates: The number of aggregates.
     numerical_aggregation_columns: The numerical aggregation columns.
     randstate: The random state.
-    complex_predicates: Whether the predicates are complex.
+    allowed_aggregate_functions: The allowed aggregate functions.
 
   Returns:
     The aggregations.
   """
   aggregations = []
+  already_produced_count = False
   if no_aggregates > 0:
     for _ in range(no_aggregates):
       no_agg_cols = min(
           randstate.randint(1, max_cols_per_agg + 1),
           len(numerical_aggregation_columns),
       )
-      l = list(Aggregator)
-      if complex_predicates:
-        l += list(ExtendedAggregator)
+      l = list(allowed_aggregate_functions)
       agg = rand_choice(randstate, l)
       cols = rand_choice(
           randstate,
@@ -891,12 +855,13 @@ def sample_aggregations(
           no_elements=no_agg_cols,
           replace=False,
       )
-      # cols = randstate.sample(numerical_aggregation_columns, no_agg_cols)
+      if agg == Aggregator.COUNT and already_produced_count:
+        continue
       if agg == Aggregator.COUNT:
+        already_produced_count = True
         cols = []
       if no_agg_cols == 0 and agg != Aggregator.COUNT:
         continue
-
       aggregations.append((agg, cols))
     if not aggregations:
       aggregations.append((Aggregator.COUNT, []))
@@ -1153,6 +1118,7 @@ def sample_predicate(
   """
   literal = None
   col_stats = vars(vars(column_stats)[t]).get(col_name)
+
   if complex_predicate:
     # LIKE / NOT LIKE
     if (
@@ -1250,20 +1216,28 @@ def sample_predicate(
         return ColumnPredicate(t, col_name, Operator.BETWEEN, literal)
 
   # simple predicates
-  if col_stats.datatype == str(Datatype.INT):
-    reasonable_ops = [Operator.LEQ, Operator.GEQ]
+  if col_stats.datatype.lower() in [
+      'int',
+      'int64',
+      'uint64',
+      'int32',
+      'uint32',
+  ]:
+    reasonable_ops = [
+        Operator.LEQ,
+        Operator.GEQ,
+    ]
     if col_stats.num_unique < int_neq_predicate_threshold:
       reasonable_ops.append(Operator.EQ)
       reasonable_ops.append(Operator.NEQ)
-      reasonable_ops.append(Operator.LEQ)
-      reasonable_ops.append(Operator.GEQ)
+      reasonable_ops.append(Operator.EQ)
       reasonable_ops.append(Operator.IS_NOT_NULL)
       reasonable_ops.append(Operator.IS_NULL)
     literal = sample_literal_from_percentiles(col_stats.percentiles, randstate)
     if literal is None:
       return None
 
-  elif col_stats.datatype == str(Datatype.FLOAT):
+  elif col_stats.datatype.lower() in ['float64', 'float', 'double']:
     reasonable_ops = [
         Operator.LEQ,
         Operator.GEQ,
@@ -1302,6 +1276,7 @@ def sample_predicate(
   if not reasonable_ops:
     return None
   operator = rand_choice(randstate, reasonable_ops)
+
   return ColumnPredicate(t, col_name, operator, literal)
 
 
@@ -1380,7 +1355,9 @@ def analyze_columns(
     if t not in vars(column_stats):
       continue
     for col_name, col_stats in vars(vars(column_stats)[t]).items():
-      if col_stats.datatype in {str(d) for d in [Datatype.INT, Datatype.FLOAT]}:
+      if col_stats.datatype in {
+          str(d).lower() for d in ['int', 'int64', 'uint64', 'int32', 'uint32']
+      }:
         possible_columns.append([t, col_name])
         table_predicates[t] += 1
 
@@ -1422,6 +1399,8 @@ def sample_literal_from_percentiles(percentiles, randstate):
   """
   if not percentiles:
     return None
+  if isinstance(percentiles[0], str):
+    percentiles = [int(x) for x in percentiles]
   if np.all(np.isnan(percentiles)):
     return None
   percentiles_non_nan = [x for x in percentiles if not math.isnan(x)]

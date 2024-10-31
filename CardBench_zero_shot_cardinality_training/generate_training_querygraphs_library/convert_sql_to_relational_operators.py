@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Convert a SQL query to relational operators."""
+
 import re
 from typing import Any
 
@@ -85,6 +86,8 @@ def parse_pred_rec(
     debug = False,
 ):
   """Recursively parse a predicate string into a predicate tree."""
+  if not pred.strip():
+    return {}
   if pred.count(" AND ") + pred.count(" OR ") == 0:
     conjucts_split = re.findall(r"'[^']*'$|'[^']*' |[^ ]+", pred)
     pred_node = {
@@ -258,6 +261,27 @@ def parse_pred(
   return pred_per_table, referenced_columns_per_table
 
 
+def process_select_clause(select_clause):
+  """Parse the select clause of a query into aggregate functions."""
+  aggregate_functions = []
+  select_clause = select_clause.strip()
+  items = select_clause.split(",")
+  if len(items) == 1:
+    return aggregate_functions
+  for item in items:
+    if "rwcnt" in item:
+      continue
+    if "as" in item:
+      item = item.split("as")[0].strip()
+    agg_fn = item.split("(")[0].strip()
+    agg_fn_args = item.split("(")[1].split(")")[0].strip()
+    columns = []
+    for agg_fn_arg in agg_fn_args.split(","):
+      columns.append(agg_fn_arg.strip())
+    aggregate_functions.append([agg_fn, columns])
+  return aggregate_functions
+
+
 def process_from_clause(
     from_clause, debug = False
 ):
@@ -274,7 +298,7 @@ def process_from_clause(
   alias_a = splitfrom[0].split(" as ")[1]
   table_a = splitfrom[0].split(" as ")[0]
   table_a = table_a.strip()
-  table_a = table_a[1:-1]
+  table_a = table_a.replace("`", "")
   printif(debug, f"alias_a: {alias_a}")
   printif(debug, f"table_a: {table_a}")
 
@@ -327,6 +351,7 @@ def process_where_clause(
   # database ssytem quirks
   where_clause = where_clause.replace("AND 1 = 1", "")
   where_clause = where_clause.replace("1 = 1", "")
+  where_clause = where_clause.strip()
   if not where_clause:
     return {}, {}
   predicates_per_table, referenced_columns_per_table = parse_pred(
@@ -337,6 +362,21 @@ def process_where_clause(
         debug, f"For alias:{alias} preds: {str(predicates_per_table[alias])}"
     )
   return predicates_per_table, referenced_columns_per_table
+
+
+def process_group_by_clause(
+    group_by_clause, debug = False
+):
+  """Parse the group by clause string into grouping columns."""
+  grouping_columns = []
+  if not group_by_clause:
+    return grouping_columns
+  group_by_clause = group_by_clause.replace(";", "")
+  for g in group_by_clause.split(","):
+    g = g.strip()
+    grouping_columns.append(g)
+  printif(debug, f"grouping_columns: {grouping_columns}")
+  return grouping_columns
 
 
 def convert_sql_to_relational_operators(
@@ -354,13 +394,20 @@ def convert_sql_to_relational_operators(
   select_clause = query_sql_string.split("FROM")[0]
   from_clause = query_sql_string.split("FROM")[1].split("WHERE")[0]
   if "WHERE" in query_sql_string:
-    where_clause = query_sql_string.split("FROM")[1].split("WHERE")[1]
+    where_clause = (
+        query_sql_string.split("FROM")[1].split("WHERE")[1].split("GROUP BY")[0]
+    )
   else:
     where_clause = ""
+  if "GROUP BY" in query_sql_string:
+    group_by_clause = query_sql_string.split("GROUP BY")[1]
+  else:
+    group_by_clause = ""
 
-  printif(debug, "select_clause: " + select_clause)
-  printif(debug, "from_clause: " + from_clause)
-  printif(debug, "where_clause: " + where_clause)
+  printif(debug, f"select_clause: {select_clause}")
+  printif(debug, f"from_clause: {from_clause}")
+  printif(debug, f"where_clause: {where_clause}")
+  printif(debug, f"group_by_clause: {group_by_clause}")
 
   tables, table_aliases, join_preds = process_from_clause(from_clause, debug)
 
@@ -369,6 +416,12 @@ def convert_sql_to_relational_operators(
   predicates_per_table, referenced_columns_per_table = process_where_clause(
       where_clause, debug
   )
+
+  grouping_columns = process_group_by_clause(group_by_clause, debug)
+  aggregate_functions = process_select_clause(select_clause)
+
+  printif(debug, f"aggregate_functions: {aggregate_functions}")
+  printif(debug, f"grouping_columns: {grouping_columns}")
 
   # predicates_per_table and referenced_columns_per_table must contains all
   # the aliases
@@ -385,6 +438,12 @@ def convert_sql_to_relational_operators(
           join_pred, alias, referenced_columns_per_table[alias]
       )
 
+  for grouping_column in grouping_columns:
+    table, col = grouping_column.split(".")
+    table = table.strip()
+    col = col.strip()
+    referenced_columns_per_table[table].append(col)
+
   for alias in table_aliases:
     referenced_columns_per_table[alias] = list(
         dict.fromkeys(referenced_columns_per_table[alias])
@@ -397,6 +456,7 @@ def convert_sql_to_relational_operators(
       join_preds,
       predicates_per_table,
       referenced_columns_per_table,
+      grouping_columns,
       debug,
   )
 
@@ -408,6 +468,7 @@ def convert_parsed_string_to_relational_operators(
     join_preds,
     predicates_per_table,
     referenced_columns_per_table,
+    grouping_columns,
     debug = False,
 ):
   """Create the SCAN and JOIN operators of the plan from the parsed query."""
@@ -444,6 +505,16 @@ def convert_parsed_string_to_relational_operators(
         "input_opid_b": input_opid_b,
     }
     parsed_query["ops"].append(joinop)
+    nextopid += 1
+
+  if grouping_columns:
+    aggregateop = {
+        "relop_id": nextopid,
+        "reloptype": "GROUPBY",
+        "input_opid": nextopid - 1,
+        "grouping_columns": grouping_columns,
+    }
+    parsed_query["ops"].append(aggregateop)
     nextopid += 1
 
   printif(debug, "---- Query plan start <><><><>")

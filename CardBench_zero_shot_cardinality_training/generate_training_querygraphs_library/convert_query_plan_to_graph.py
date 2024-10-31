@@ -36,7 +36,8 @@ def add_table_node(
 
 
 def add_column_node(
-    node, graph_nodes,
+    node,
+    graph_nodes,
     annotated_query_planid_to_node_per_type_pods,
 ):
   """Add column node to the graph."""
@@ -118,10 +119,7 @@ def add_column_node(
     for _ in range(1001):
       perc1000_string.append(str(-1.0))
 
-  if (
-      "percentiles_100_encoded" in node
-      and node["percentiles_100_encoded"]
-  ):
+  if "percentiles_100_encoded" in node and node["percentiles_100_encoded"]:
     for i in node["percentiles_100_encoded"]:
       perc100_encoded.append(i)
   else:
@@ -175,12 +173,12 @@ def add_predicate_operator_node(
   )
 
 
-def add_scan_join_node(
+def add_operator_node(
     node,
     graph_nodes,
     annotated_query_planid_to_node_per_type_pods,
 ):
-  """Add scan/join node to the graph_nodes object.
+  """Add scan/join/groupy node to the graph_nodes object.
 
   Args:
     node: the node to be added
@@ -279,7 +277,7 @@ def add_graph_edges(
     id_to_type,
     graph_edges,
 ):
-  """Add edges to the grapht.
+  """Add edges to the graph.
 
   Args:
     annotated_query_plan: the annotated query plan
@@ -302,9 +300,9 @@ def add_graph_edges(
       edge_type = "attr_to_pred"
     elif ft == "predicate_operator" and et == "predicate_operator":
       edge_type = "pred_to_pred"
-    elif ft == "column" and et in ["scan", "join"]:
+    elif ft == "column" and et in ["scan", "join", "groupby"]:
       edge_type = "attr_to_op"
-    elif ft in ["scan", "join"] and et in ["scan", "join"]:
+    elif ft in ["scan", "join"] and et in ["scan", "join", "groupby"]:
       edge_type = "op_to_op"
     elif ft == "predicate_operator" and et in ["scan", "join"]:
       edge_type = "pred_to_op"
@@ -382,7 +380,8 @@ def convert_query_plan_to_graph(
   annotated_query_planid_to_node_per_type_pods = {}
 
   joinops = []
-  otheros = []
+  scanops = []
+  aggops = []
 
   ## parse the annotated_query_plan and covert to a graph_nodes object
   for node in annotated_query_plan["nodes"]:
@@ -399,12 +398,16 @@ def convert_query_plan_to_graph(
       add_predicate_operator_node(
           node, graph_nodes, annotated_query_planid_to_node_per_type_pods
       )
-    elif node["nodetype"] in ["scan", "join"]:
+    elif node["nodetype"] in ["scan", "join", "groupby"]:
       # processing of joins and scans is defferred
       if "join" == node["nodetype"]:
         joinops.append([node["id"], node["nodetype"]])
+      elif "scan" == node["nodetype"]:
+        scanops.append([node["id"], node["nodetype"]])
+      elif "groupby" == node["nodetype"]:
+        aggops.append([node["id"], node["nodetype"]])
       else:
-        otheros.append([node["id"], node["nodetype"]])
+        raise ValueError("nodetype not handled", node["nodetype"])
     elif node["nodetype"] == "correlation":
       add_correlation_node(
           node, graph_nodes, annotated_query_planid_to_node_per_type_pods
@@ -413,12 +416,16 @@ def convert_query_plan_to_graph(
   # add join and scan nodes -- the reason is that we want to add them ordered
   # first the join node and then the scan nodes
   for n in joinops:
-    add_scan_join_node(
+    add_operator_node(
+        n, graph_nodes, annotated_query_planid_to_node_per_type_pods
+    )
+  for n in scanops:
+    add_operator_node(
         n, graph_nodes, annotated_query_planid_to_node_per_type_pods
     )
 
-  for n in otheros:
-    add_scan_join_node(
+  for n in aggops:
+    add_operator_node(
         n, graph_nodes, annotated_query_planid_to_node_per_type_pods
     )
 

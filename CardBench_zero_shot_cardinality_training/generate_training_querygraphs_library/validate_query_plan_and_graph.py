@@ -45,6 +45,7 @@ def validate_query_plan(
       "predicate_operator": 0,
       "logical_predicate_operator": 0,
       "correlation": 0,
+      "groupby": 0
   }
   nodeid_to_type = {}
   logical_preds = []
@@ -69,6 +70,8 @@ def validate_query_plan(
     raise ValueError("Failed validation: two scan nodes per plan")
   if count_per_op_type["table"] != table_count:
     raise ValueError("Failed validation: two table nodes per plan")
+  if count_per_op_type["groupby"] > 1:
+    raise ValueError("Failed validation: at most one groupby node per plan")
 
   ######## Extra checks on statistics and graph structure
   e_dict_index_by_from = {}
@@ -168,6 +171,10 @@ def validate_query_plan(
         raise ValueError("at least one outgoing edge from a table", str(n))
     if optype == "column":
       count_attrs += 1
+    if optype == "groupby":
+      if len(e_dict_to_to_from[n["id"]]) < 1:
+        raise ValueError("at least one incoming edge to a groupby", str(n))
+
   if count_attrs == 0:
     raise ValueError("too few attributes", str(count_attrs))
 

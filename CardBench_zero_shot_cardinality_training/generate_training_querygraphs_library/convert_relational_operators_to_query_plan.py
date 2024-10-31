@@ -14,6 +14,7 @@
 # limitations under the License.
 
 """Converts relational operators to query plan annotated with statistics."""
+
 import datetime
 from typing import Any
 
@@ -599,9 +600,7 @@ def create_pred_tree_join(
     }
 
     table_alias1, column_name1, table_alias2, column_name2, _ = (
-        parse_two_col_pred(
-            preds[0], queryplan["table_aliases_and_names"]
-        )
+        parse_two_col_pred(preds[0], queryplan["table_aliases_and_names"])
     )
 
     col1id = queryplan["name_to_opid"][table_alias1 + "." + column_name1]
@@ -617,12 +616,8 @@ def create_pred_tree_join(
     queryplan["nodes"].append(predop)
     queryplan["nodedict"][predopid] = predop
 
-    add_correlation_nodes_for_colid_join_pred(
-        col1id, predopid, queryplan
-    )
-    add_correlation_nodes_for_colid_join_pred(
-        col2id, predopid, queryplan
-    )
+    add_correlation_nodes_for_colid_join_pred(col1id, predopid, queryplan)
+    add_correlation_nodes_for_colid_join_pred(col2id, predopid, queryplan)
     tl = [table_alias1 + "." + column_name1, table_alias2 + "." + column_name2]
     tl.sort()
     return predopid, [tl[0] + "__" + tl[1]]
@@ -672,9 +667,7 @@ def convert_string_to_data_type(x, col_type):
     return datetime.datetime.strptime(x, "%Y-%m-%d").date()
   elif col_type == "DATETIME" or col_type == "TIMESTAMP":
     if "." in x and "+" in x:
-      return datetime.datetime.strptime(
-          x, "%Y-%m-%d %H:%M:%S.%f%z"
-      ).timestamp()
+      return datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S.%f%z").timestamp()
     elif "." in x:
       return datetime.datetime.strptime(x, "%Y-%m-%d %H:%M:%S.%f").timestamp()
     elif "+" in x:
@@ -788,7 +781,7 @@ def convert_relational_operators_to_query_plan(
       break
 
   scanopids = []
-  # Add SCAN nodes for the table nodes and move predicates from
+  # Add SCAN nodes for the table nodes and move predicates to the scan node
   for n in queryplan["nodes"]:
     if n["nodetype"] == "table":
       scanopid = queryplan["nextmyplanopid"]
@@ -827,6 +820,8 @@ def convert_relational_operators_to_query_plan(
       for col in cols_referenced:
         colid = queryplan["name_to_opid"][n["alias"] + "." + col]
         queryplan["edges"].append({"from": colid, "to": scanopid})
+      if rootpredopid is None:
+        n["no_scan_preds"] = True
       n.pop("temp_ref_cols")
       n.pop("temp_scan_preds")
 
@@ -834,6 +829,7 @@ def convert_relational_operators_to_query_plan(
   for op in parsed_query["ops"]:
     if op["reloptype"] == "JOIN":
       joinopid = queryplan["nextmyplanopid"]
+      queryplan["nextmyplanopid"] = queryplan["nextmyplanopid"] + 1
       joinop = {
           "id": joinopid,
           "nodetype": "join",
@@ -841,7 +837,6 @@ def convert_relational_operators_to_query_plan(
       }
       queryplan["nodes"].append(joinop)
       queryplan["nodedict"][joinopid] = joinop
-      queryplan["nextmyplanopid"] = queryplan["nextmyplanopid"] + 1
       sql_plan_to_myplan_id[op["relop_id"]] = joinopid
 
       from1 = sql_plan_to_myplan_id[op["input_opid_a"]]
@@ -855,6 +850,29 @@ def convert_relational_operators_to_query_plan(
       )
       queryplan["edges"].append({"from": root_pred_id, "to": joinopid})
       queryplan["dup_join_preds"] = listcols
+
+  ## Add GROUPBY nodes from the parsed query
+  for op in parsed_query["ops"]:
+    if op["reloptype"] == "GROUPBY":
+      aggopid = queryplan["nextmyplanopid"]
+      queryplan["nextmyplanopid"] = queryplan["nextmyplanopid"] + 1
+      aggop = {
+          "id": aggopid,
+          "nodetype": "groupby",
+          "group_by_cols": str(op["grouping_columns"]),
+      }
+      queryplan["nodes"].append(aggop)
+      queryplan["nodedict"][aggopid] = aggop
+      sql_plan_to_myplan_id[op["relop_id"]] = aggopid
+      from1 = sql_plan_to_myplan_id[op["input_opid"]]
+
+      queryplan["edges"].append({"from": from1, "to": aggopid})
+
+      for col in op["grouping_columns"]:
+        print(queryplan["name_to_opid"])
+        colid = queryplan["name_to_opid"][col]
+        queryplan["edges"].append({"from": colid, "to": aggopid})
+      # do we need correlatiion nodes for group by?
 
   estimate_selectivity(queryplan)
 
@@ -872,5 +890,17 @@ def convert_relational_operators_to_query_plan(
       queryplan["edges"].remove(e)
 
   print_myplan_no_metadata(queryplan, debug)
-
+  count_join = 0
+  count_filters = 0
+  count_group_bys = 0
+  for n in queryplan["nodes"]:
+    if n["nodetype"] == "join":
+      count_join += 1
+    elif n["nodetype"] == "table" and "no_scan_preds" not in n:
+      count_filters += 1
+    elif n["nodetype"] == "group_by":
+      count_group_bys += 1
+  print(count_join, count_filters, count_group_bys)
+  if count_join + count_filters + count_group_bys == 0:
+    return {}
   return queryplan
