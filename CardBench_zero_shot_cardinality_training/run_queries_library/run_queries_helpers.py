@@ -36,8 +36,10 @@ def get_workload_info(
 ):
   """Get the workload information from the metadata database."""
   id_of_num_queries = -1
+  queries_file_path = ""
+  num_queries = -1
   query = (
-      "SELECT  parameter_keys "
+      "SELECT  queries_file_path, parameter_keys, parameter_values "
       f"FROM `{WORKLOAD_DEFINITION_TABLE}` "
       f"WHERE workload_id = {workload_id_to_run}"
   )
@@ -47,28 +49,12 @@ def get_workload_info(
       for ki in enumerate(row["parameter_keys"]):
         if ki[1] == "num_queries_to_generate":
           id_of_num_queries = ki[0]
+      num_queries = int(row["parameter_values"][id_of_num_queries])
+      queries_file_path = row["queries_file_path"]
   except Exception as e:  # pylint: disable=broad-exception-caught
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
     return
-
-  query = (
-      f"SELECT  queries_file_path, parameter_values[{id_of_num_queries}] as"
-      f" num_queries FROM `{WORKLOAD_DEFINITION_TABLE}` WHERE workload_id ="
-      f" {workload_id_to_run}"
-  )
-  try:
-    queryjob, _ = run_query(metadata_dbtype, query, metadata_dbclient)
-  except Exception as e:  # pylint: disable=broad-exception-caught
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
-    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
-    return
-
-  queries_file_path = ""
-  num_queries = -1
-  for row in queryjob:
-    queries_file_path = row["queries_file_path"]
-    num_queries = int(row["num_queries"])
 
   return queries_file_path, num_queries
 

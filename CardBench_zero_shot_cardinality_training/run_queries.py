@@ -187,6 +187,7 @@ def run_queries_worker(
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
+      print(traceback.print_exc())
 
   return len(query_strings)
 
