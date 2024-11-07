@@ -82,7 +82,7 @@ class Interpol():
     coordinates = jnp.concatenate(
         [jnp.expand_dims(coord, axis=0) for coord in [-y_image, x_image]],
         axis=0)
-    coordinates += jnp.reshape(a=offset, newshape=(*offset.shape, 1))
+    coordinates += jnp.reshape(a=offset, shape=(*offset.shape, 1))
     return dm_pix.flat_nd_linear_interpolate_constant(
         image, coordinates, cval=0.0)
 

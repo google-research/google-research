@@ -89,7 +89,7 @@ def get_othello_eval_metrics(
 
         max_action = pred_logits[:, :, i, :].argmax(axis=-1)
         pred_seq = np.hstack(
-            (batch[:, : (i + 1)], jnp.reshape(max_action, newshape=(-1, 1)))
+            (batch[:, : (i + 1)], jnp.reshape(max_action, shape=(-1, 1)))
         )
 
         for j in range(pred_seq.shape[0]):
@@ -431,7 +431,7 @@ def get_beam_search_candidates(
     for j in range(config.beam_search_n):
       cur_candidate = beam_search_candidates[i]
       new_beam_candidate = np.hstack(
-          (cur_candidate[0], jnp.reshape(max_pos[:, j], newshape=(-1, 1)))
+          (cur_candidate[0], jnp.reshape(max_pos[:, j], shape=(-1, 1)))
       )
       new_beam_candidate_likelihood = cur_candidate[1] + log_likelihood[:, j]
       new_beam_candidate_likelihood_list.append(new_beam_candidate_likelihood)
@@ -498,7 +498,7 @@ def get_greedy_row_col(
 
   # max_pos = pred_logits[:, :, pos-2, :].argmax(axis=-1).flatten()
   # cur_input_seq = np.hstack((
-      # cur_input_seq, jnp.reshape(max_pos, newshape=(-1, 1))))
+      # cur_input_seq, jnp.reshape(max_pos, shape=(-1, 1))))
   return beam_search_candidates
 
 
@@ -664,12 +664,12 @@ def get_position_hinted_eval_acc(
 
     # Append the row number from the ground truth sequence
     cur_input_seq = np.hstack(
-        (cur_input_seq, jnp.reshape(input_seq[:, 3 * i], newshape=(-1, 1)))
+        (cur_input_seq, jnp.reshape(input_seq[:, 3 * i], shape=(-1, 1)))
     )
 
     # Append the column number from the ground truth sequence
     cur_input_seq = np.hstack(
-        (cur_input_seq, jnp.reshape(input_seq[:, 3 * i + 1], newshape=(-1, 1)))
+        (cur_input_seq, jnp.reshape(input_seq[:, 3 * i + 1], shape=(-1, 1)))
     )
 
     padding = np.zeros(
@@ -685,7 +685,7 @@ def get_position_hinted_eval_acc(
     pred_logits = p_eval_step(state, concat_batch)
     max_number = pred_logits[:, :, (3 * i + 1), :].argmax(axis=-1).flatten()
     cur_input_seq = np.hstack(
-        (cur_input_seq, jnp.reshape(max_number, newshape=(-1, 1)))
+        (cur_input_seq, jnp.reshape(max_number, shape=(-1, 1)))
     )
     for j in range(
         len(cur_input_seq)

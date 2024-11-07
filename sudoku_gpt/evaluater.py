@@ -63,7 +63,7 @@ def get_othello_eval_metrics(state, eval_data_iter, p_eval_step, config):
   """Get evaluation metrics for Othello game.
 
   Args:
-    state: 
+    state:
     eval_data_iter: Iterator for evaluation dataset.
     p_eval_step: Function to compute forward pass on a single evaluation batch.
     config: The config for the experiment.
@@ -89,7 +89,7 @@ def get_othello_eval_metrics(state, eval_data_iter, p_eval_step, config):
 
         max_action = pred_logits[:, :, i, :].argmax(axis=-1)
         pred_seq = np.hstack((batch[:, :(i + 1)],
-                              jnp.reshape(max_action, newshape=(-1, 1))))
+                              jnp.reshape(max_action, shape=(-1, 1))))
 
         for j in range(pred_seq.shape[0]):
           ## When length of the game is small, then the model can simply keep
@@ -407,13 +407,13 @@ def get_set_accuracies(state, p_eval_step, input_seq, config):
 def get_sudoku_eval_metrics(state, eval_data_iter, p_eval_step, config):
   """This function computes given evaluation metrics (e.g, accuracy) in eval metrics for each batch and appends the metric in the list of eval_metrics.
 
-  Args: 
+  Args:
     state: contains model parameters, optimizer, etc.
     eval_data_iter: data iterator for evaluation dataset
     p_eval_step: pmap function for forward pass of model for evaluation
     config: general experiment config file
 
-  Returns: 
+  Returns:
     eval_metrics: contains list of evaluation metrics for each batch
   """
 
@@ -484,7 +484,7 @@ def get_sudoku_eval_metrics(state, eval_data_iter, p_eval_step, config):
           next_number = max_number * mask_arr + (1 - mask_arr) * input_seq[:, i]
 
           cur_input_seq = np.hstack(
-              (cur_input_seq, jnp.reshape(next_number, newshape=(-1, 1)))
+              (cur_input_seq, jnp.reshape(next_number, shape=(-1, 1)))
           )
 
           # Iterate through all examples in batch and calculate successful
@@ -514,7 +514,7 @@ def get_sudoku_eval_metrics(state, eval_data_iter, p_eval_step, config):
           mask = i >= (3 * starting_index)
           next_pos = max_pos * mask + (1 - mask) * input_seq[:, i]
           cur_input_seq = np.hstack(
-              (cur_input_seq, jnp.reshape(next_pos, newshape=(-1, 1)))
+              (cur_input_seq, jnp.reshape(next_pos, shape=(-1, 1)))
           )
 
       eval_metrics["acc"].append(sucess_pred * 1.0/ total_pred)
