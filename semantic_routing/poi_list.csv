@@ -1,0 +1,222 @@
+OSM Tag,General Category,Tag Name,Description,Freq,1
+amenity,Food,bar,"Bar is a purpose-built commercial establishment that sells alcoholic drinks to be consumed on the premises. They are characterised by a noisy and vibrant atmosphere, similar to a party and usually don't sell food.",597,2
+amenity,Food,cafe,"Cafe is generally an informal place that offers casual meals and beverages; typically, the focus is on coffee or tea. Also known as a coffeehouse/shop, bistro or sidewalk cafe.",1208,3
+amenity,Food,fast_food,Fast food restaurant.,1185,4
+amenity,Food,food_court,"An area with several different restaurant food counters and a shared eating area. Commonly found in malls, airports, etc.",28,5
+amenity,Food,ice_cream,Ice cream shop or ice cream parlour. A place that sells ice cream and frozen yoghurt over the counter,113,6
+amenity,Food,pub,A place selling beer and other alcoholic drinks; may also provide food or accommodation.,223,7
+amenity,Food,restaurant,Restaurant (not fast food).,3429,8
+amenity,Education,college,Campus or buildings of an institute of Further Education (aka continuing education),37,9
+amenity,Education,kindergarten,"For children too young for a regular school (also known as preschool, playschool or nursery school), in some countries including afternoon supervision of primary school children.",216,10
+amenity,Education,library,"A public library (municipal, university, …) to borrow books from.",122,11
+amenity,Education,training,Public place where you can get training.,20,12
+amenity,Education,music_school,"A music school, an educational institution specialized in the study, training, and research of music.",10,13
+amenity,Education,school,"School and grounds - primary, middle and seconday schools",1114,14
+amenity,Education,university,An university campus: an institute of higher education,51,15
+amenity,Transportation,bicycle_parking,Parking for bicycles,2639,16
+amenity,Transportation,bicycle_repair_station,"General tools for self-service bicycle repairs, usually on the roadside; no service",68,17
+amenity,Transportation,bicycle_rental,Rent a bicycle,311,18
+amenity,Transportation,bus_station,A public transport station serviced by busses.,34,19
+amenity,Transportation,car_rental,Rent a car,75,20
+amenity,Transportation,car_sharing,Share a car,178,21
+amenity,Transportation,car_wash,Wash a car,86,22
+amenity,Transportation,compressed_air,"A device to inflate tires/tyres (e.g. motorcar, bicycle)",17,23
+amenity,Transportation,charging_station,Charging facility for electric vehicles,179,24
+amenity,Transportation,ferry_terminal,Ferry terminal/stop. A place where people/cars/etc. can board and leave a ferry.,29,25
+amenity,Transportation,fuel,Petrol station; gas station; marine fuel.,500,26
+amenity,Transportation,motorcycle_parking,Parking for motorcycles,111,27
+amenity,Transportation,parking,A place to park cars and trucks.,6758,28
+amenity,Transportation,parking_space,A place to park a car or truck.,2582,29
+amenity,Transportation,taxi,A place where taxis wait for passengers.,74,30
+amenity,Transportation,weighbridge,A large weight scale to weigh vehicles and goods,10,31
+amenity,Financial,atm,ATM or cash point: a device that provides the clients of a financial institution with access to financial transactions.,298,32
+amenity,Financial,payment_terminal,Self-service payment kiosk/terminal,12,33
+amenity,Financial,bank,"Bank or credit union: a financial establishment where customers can deposit and withdraw money, take loans, make investments and transfer funds.",546,34
+amenity,Healthcare,clinic,A medium-sized medical facility or health centre.,149,35
+amenity,Healthcare,dentist,A dentist practice / surgery.,205,36
+amenity,Healthcare,doctors,A doctor's practice / surgery.,86,37
+amenity,Healthcare,hospital,A hospital providing in-patient medical treatment.,67,38
+amenity,Healthcare,pharmacy,A shop where a pharmacist sells medications,169,39
+amenity,Healthcare,social_facility,"A facility that provides social services: group & nursing homes, workshops for the disabled, homeless shelters, etc.",97,40
+amenity,Healthcare,veterinary,"A place where a veterinary surgeon, also known as a veterinarian or vet, practices.",70,41
+amenity,Entertainment and Culture,arts_centre,A venue where a variety of arts are performed or conducted,53,42
+amenity,Entertainment and Culture,casino,"A gambling venue with at least one table game(e.g. roulette, blackjack) that takes bets on sporting and other events at agreed upon odds.",13,43
+amenity,Entertainment and Culture,cinema,A place where films are shown (US: movie theater),38,44
+amenity,Entertainment and Culture,community_centre,"A place mostly used for local events, festivities and group activities; including special interest and special age groups. .",84,45
+amenity,Entertainment and Culture,conference_centre,A large building that is used to hold a convention,10,46
+amenity,Entertainment and Culture,events_venue,A building specifically used for organising events,27,47
+amenity,Entertainment and Culture,fountain,A fountain for cultural / decorational / recreational purposes.,169,48
+amenity,Entertainment and Culture,nightclub,"A place to drink and dance (nightclub). The German word is ""Disco"" or ""Discothek"".",65,49
+amenity,Entertainment and Culture,public_bookcase,A street furniture containing books. Take one or leave one.,113,50
+amenity,Entertainment and Culture,social_centre,A place for free and not-for-profit activities.,55,51
+amenity,Entertainment and Culture,studio,TV radio or recording studio,19,52
+amenity,Entertainment and Culture,theatre,"A theatre or opera house where live performances occur, such as plays, musicals and formal concerts.",122,53
+amenity,Public Service,courthouse,"A building home to a court of law, where justice is dispensed",23,54
+amenity,Public Service,fire_station,A station of a fire brigade,233,55
+amenity,Public Service,police,A police station where police officers patrol from and that is a first point of contact for civilians,89,56
+amenity,Public Service,post_box,A box for the reception of mail.,689,57
+amenity,Public Service,post_office,Post office building with postal services,206,58
+amenity,Public Service,prison,A prison or jail where people are incarcerated before trial or after conviction,12,59
+amenity,Public Service,townhall,"Building where the administration of a village, town or city may be located, or just a community meeting place",25,60
+amenity,Facility,bbq,"BBQ or Barbecue is a permanently built grill for cooking food, which is most typically used outdoors by the public. For example these may be found in city parks or at beaches.",106,61
+amenity,Facility,bench,A bench to sit down and relax a bit,4472,62
+amenity,Facility,drinking_water,"Drinking water is a place where humans can obtain potable water for consumption. Typically, the water is used for only drinking. Also known as a drinking fountain or bubbler.",417,63
+amenity,Facility,shelter,A small shelter against bad weather conditions.,375,64
+amenity,Facility,shower,Public shower.,11,65
+amenity,Facility,telephone,Public telephone,97,66
+amenity,Facility,toilets,Public toilets (might require a fee),611,67
+amenity,Waste Management,recycling,"Recycling facilities (bottle banks, etc.)",151,68
+amenity,Waste Management,waste_basket,A single small container for depositing garbage that is easily accessible for pedestrians.,1481,69
+amenity,Waste Management,waste_disposal,"A medium or large disposal bin, typically for bagged up household or industrial waste.",88,70
+amenity,Others,animal_boarding,"A facility where you, paying a fee, can bring your animal for a limited period of time (e.g. for holidays)",15,71
+amenity,Others,clock,A public visible clock,41,72
+amenity,Others,marketplace,A marketplace where goods and services are traded daily or weekly.,37,73
+amenity,Others,place_of_worship,"A church, mosque, or temple, etc.",1603,74
+amenity,Others,vending_machine,"A machine selling goods – food, tickets, newspapers, etc.",646,75
+healthcare,Healthcare,alternative,Healthcare provider that provides alternative medicine.,68,76
+healthcare,Healthcare,optometrist,A place offering optometry services.,25,77
+healthcare,Healthcare,physiotherapist,A place that is not a hospital but instead provides physiotherapy services.,28,78
+healthcare,Healthcare,psychotherapist,A place that is not a hospital but instead provides psychotherapy services.,11,79
+shop,Food,alcohol,Shop selling alcohol to take away,159,80
+shop,Food,bakery,Shop focused on selling bread,185,81
+shop,Food,butcher,Shop focused on selling meat,28,82
+shop,Food,chocolate,Shop focused on selling chocolate.,14,83
+shop,Food,confectionery,Shop focused on selling sweets or candy,54,84
+shop,Food,convenience,A small local shop carrying a small subset of the items you would find in a supermarket,570,85
+shop,Food,deli,"Shop focused on selling delicatessen (fine foods, gourmet foods), possibly also fine wine. Not to be confused with the US delis.",59,86
+shop,Food,greengrocer,Shop focused on selling vegetables and fruits.,48,87
+shop,Food,pastry,"Shop focused on selling baked sweets like cakes, biscuits, strudel and pies.",37,88
+shop,Food,seafood,Shop focused on selling fish/seafood.,17,89
+shop,Food,tea,Shop focused on selling tea.,14,90
+shop,Food,wine,Shop selling wine.,36,91
+shop,General,department_store,A single large store – often multiple storeys high – selling a large variety of goods.,76,92
+shop,General,kiosk,"A small shop on the pavement that sells magazines, tobacco, newspapers, sweets and stamps.",17,93
+shop,General,mall,A shopping mall – multiple stores under one roof.,34,94
+shop,General,supermarket,Supermarket – a large store with groceries and other items,333,95
+shop,General,wholesale,Wholesale/warehouse club or cash and carry - a store that sells items in bulk to retailers.,14,96
+shop,Clothing,bag,Shop focused on selling bags.,11,97
+shop,Clothing,boutique,"A small shopping outlet, especially one that specializes in elite and fashionable items",22,98
+shop,Clothing,clothes,Shop focused on selling clothes and/or underwear (other related value in use is fashion),583,99
+shop,Clothing,fashion_accessories,Shop focused on selling fashion accessories.,19,100
+shop,Clothing,jewelry,Jewellers shops.,146,101
+shop,Clothing,shoes,Shop focused on selling shoes.,117,102
+shop,Clothing,tailor,"A place where clothing is made, repaired, or altered professionally, especially suits and men's clothing",22,103
+shop,Clothing,watches,Shop focused on selling watches.,11,104
+shop,Discount store,charity,"A charity shop is a shop operated by a charity, for the purposes of fundraising.",32,105
+shop,Discount store,second_hand,A shop buying and selling used clothes and other things.,16,106
+shop,Discount store,variety_store,"A variety store retailer is a retail store that sells inexpensive items, sometimes with a single price point for all items in the store.",100,107
+shop,Health and beauty,beauty,"A non-hairdresser beauty shop, spa, nail salon, etc..",472,108
+shop,Health and beauty,cosmetics,Shop focused on selling cosmetics,53,109
+shop,Health and beauty,hairdresser,"Here you can get your hair cut, coloured.",464,110
+shop,Health and beauty,hairdresser_supply,"A shop, where you can buy hairdressing supplies.",10,111
+shop,Health and beauty,herbalist,"Shop focused on selling herbs, often for medical purposes.",14,112
+shop,Health and beauty,massage,A massage shop,95,113
+shop,Health and beauty,medical_supply,Shop focused on selling medical supplies.,17,114
+shop,Health and beauty,nutrition_supplements,"Shops that sells one or more nutritional supplements (of vitamins, minerals and/or herbs)",25,115
+shop,Health and beauty,optician,"Shop focused on selling eyeglasses, contact lenses (may also check your eyes).",114,116
+shop,Health and beauty,tattoo,A tattoo parlour.,46,117
+shop,Do-it-yourself,appliance,"Shop focused on selling large electrical items (aka white goods) washing machines, fridges, cookers, ovens, fans, etc.",14,118
+shop,Do-it-yourself,florist,Shop focused on selling bouquets of flowers.,81,119
+shop,Do-it-yourself,hardware,"Shop focused on selling building supplies including screws, bolts & paints",73,120
+shop,Do-it-yourself,locksmith,Shop focused on selling keys,11,121
+shop,Do-it-yourself,paint,Shop focused on selling paints.,36,122
+shop,Furniture and interior,antiques,Shop focused on selling antiques.,40,123
+shop,Furniture and interior,bed,"Shop focused on selling beds, mattresses and other bedding products.",46,124
+shop,Furniture and interior,carpet,Shop focused on selling carpets,14,125
+shop,Furniture and interior,furniture,"Shop focused on selling furniture, might range from small decorational items to a whole flat interior",114,126
+shop,Furniture and interior,interior_decoration,Shop focused on selling interior decorations.,48,127
+shop,Furniture and interior,kitchen,A shop where you can plan and buy your kitchen.,21,128
+shop,Electronics,computer,"Shop focused on selling computers, peripherals, software, …",16,129
+shop,Electronics,electronics,"Shop focused on selling consumer electronics (TV, radio, …). Larger ones may also sell computers, fridges, …",48,130
+shop,Electronics,mobile_phone,Shop focused on selling mobile phones and accessories,150,131
+shop,Outdoors and vehicles,bicycle,"Shop focused on selling bicycles, bicycle equipment and may rent or repair them",116,132
+shop,Outdoors and vehicles,car,Car store – a place to buy cars or to get your car repaired,151,133
+shop,Outdoors and vehicles,car_repair,Shop focused on car repair.,357,134
+shop,Outdoors and vehicles,car_parts,"Shop focused on selling auto parts, auto accessories, motor oil, car chemicals, etc.",76,135
+shop,Outdoors and vehicles,motorcycle,"Shop focused on selling motorcycles and/or related accessories, clothes, parts, and rental services.",12,136
+shop,Outdoors and vehicles,outdoor,"Shop focused on selling camping, walking, climbing, and other outdoor sports equipment (GPSes, etc.)",26,137
+shop,Outdoors and vehicles,sports,Shop focused on selling sporting goods.,72,138
+shop,Outdoors and vehicles,tyres,Shop focused on selling tyres/tires.,38,139
+shop,Art,art,"Shop which sells works of art. May be paintings, sculpture, or other types of art",72,140
+shop,Art,craft,"An arts and crafts supply store. Commonly sold items are paper, canvas, paint, pencils, crafting wood, crafting tools, etc.",29,141
+shop,Art,frame,Shop focused on selling frames.,19,142
+shop,Art,games,"Shop focused on selling board games, card games and/or role-playing games.",11,143
+shop,Art,music,Shop focused on selling recorded music (vinyl/CDs/...),22,144
+shop,Art,musical_instrument,"Shop focused on selling musical instruments, lyrics, scores.",34,145
+shop,Art,video_games,Shop focused on selling video games.,11,146
+shop,Art,books,Shop focused on selling books (not a library).,104,147
+shop,Art,gift,"Shop focused on selling gifts, greeting cards, or tourist gifts (souvenirs)",261,148
+shop,Art,stationery,Shop focused on selling office supplies,33,149
+shop,Others,party,"A shop for party and festival supplies, like costumes, etc.",14,150
+shop,Others,storage_rental,self storage,71,151
+shop,Others,toys,Shop focused on selling toys.,23,152
+shop,Others,travel_agency,Shop focused on selling tickets for travelling. Also known as a tour operator.,19,153
+shop,Others,laundry,"A shop to get your normal clothes washed. Might be self service coin operated, with service staff for drop off, …",203,154
+shop,Others,copyshop,Shop focused on selling photocopying and printing services.,94,155
+shop,Others,dry_cleaning,Shop or kiosk offering a clothes dry cleaning service. The actual cleaning may be done elsewhere.,172,156
+shop,Others,pet,"A shop for pets, animals and toys or food for them.",88,157
+shop,Others,pet_grooming,A shop offering grooming services for pets (most frequently dogs),28,158
+historic,,building,Unspecified historic building.,70,159
+historic,,cannon,A historic/retired cannon. Usually found on forts or battlefields.,12,160
+historic,,district,A designated historic district.,19,161
+historic,,fort,"A military fort, a stand-alone defensive structure which differs from a castle in that there is no permanent residence.",38,162
+historic,,memorial,"Small memorials, usually remembering special persons, people who lost their lives in the wars, past events or missing places.",274,163
+historic,,monument,"A memorial object, which is especially large, built to remember, show respect to a person or group of people or to commemorate an event.",69,164
+historic,,ruins,"Remains of structures that were once complete, but have fallen into partial or complete disrepair.",90,165
+historic,,ship,A decommissioned ship/submarine which generally remains in one place.,10,166
+historic,,tomb,A structure where somebody has been buried.,16,167
+leisure,,amusement_arcade,A venue with pay-to-play games.,26,168
+leisure,,dance,A dance venue or dance hall.,27,169
+leisure,,disc_golf_course,A place to play disc golf.,25,170
+leisure,,dog_park,"A designated area, with or without a fenced boundary, where dog-owners are permitted to exercise their pets unrestrained.",76,171
+leisure,,firepit,"A fire ring or fire pit, often at a campsite or picnic site.",10,172
+leisure,,fitness_centre,"Fitness centre, health club or gym with exercise machines, fitness classes or both, for exercise.",270,173
+leisure,,fitness_station,An outdoor facility where people can practise typical fitness exercises.,136,174
+leisure,,garden,A place where flowers and other plants are grown in a decorative and structured manner or for scientific purposes.,2002,175
+leisure,,marina,A facility for mooring leisure yachts and motor boats.,23,176
+leisure,,nature_reserve,"A protected area of importance for wildlife, flora, fauna or features of geological or other special interest.",82,177
+leisure,,park,"A park, usually in an urban (municipal) setting, created for recreation and relaxation.",1251,178
+leisure,,picnic_table,A table with benches for food and rest.,1309,179
+leisure,,pitch,"An area designed for practising a particular sport, normally designated with appropriate markings.",3904,180
+leisure,,playground,A playground: an area designed for children to play.,983,181
+leisure,,slipway,A slipway: a ramp for launching a boat into water.,44,182
+leisure,,sports_centre,A sports centre is a distinct facility where sports take place within an enclosed area.,270,183
+leisure,,stadium,A major sports facility with substantial tiered seating.,31,184
+leisure,,swimming_pool,A swimming pool (water area only).,790,185
+leisure,,track,"A track for running, cycling and other non-motorised racing such as horses, greyhounds.",221,186
+tourism,,apartment,A furnished apartment or flat with cooking and bathroom facilities that can be rented for holiday vacations.,12,187
+tourism,,artwork,A public piece of art.,682,188
+tourism,,attraction,"An object of interest for a tourist, or a purpose-built tourist attraction.",201,189
+tourism,,camp_pitch,A tent or caravan pitch location within a campsite or caravan site.,23,190
+tourism,,camp_site,"An area where people can camp overnight using tents, camper vans, or caravans.",16,191
+tourism,,caravan_site,A place where you can stay in a caravan overnight or for longer periods.,10,192
+tourism,,gallery,An area or building that displays a variety of visual art exhibitions.,80,193
+tourism,,guest_house,"Accommodation smaller than a hotel and typically owner-operated, such as bed&breakfasts etc.",73,194
+tourism,,hostel,Cheap accommodation with shared bedrooms.,25,195
+tourism,,hotel,Hotel – an establishment that provides paid lodging.,621,196
+tourism,,information,"Information for tourists and visitors, including information offices.",911,197
+tourism,,motel,"Short term accommodation, particularly for people travelling by car.",99,198
+tourism,,museum,"A museum: an institution with exhibitions on scientific, historical, cultural topics.",135,199
+tourism,,picnic_site,"A locality that is suitable for outdoors eating, with facilities to aid a picnic such as tables and benches.",222,200
+tourism,,viewpoint,"A place worth visiting, often high, with a good view of surrounding countryside or notable buildings.",217,201
+cuisine,,steak_house,A steak house.,30,202
+cuisine,,barbecue,A restaurant that sells barbecue.,33,203
+cuisine,,ramen,A restaurant that smells ramen.,34,204
+cuisine,,french,A restaurant specializing in French cuisine.,39,205
+cuisine,,mediterranean,A restaurant specializing in Mediterranean food.,46,206
+cuisine,,korean,A restaurant specializinng in Korean food.,48,207
+cuisine,,breakfast,A restaurant primarily serving breakfast foods.,49,208
+cuisine,,burger,A restaurant specializing in selling burgers.,66,209
+cuisine,,sandwich,A restaurant specializing in selling sandwiches.,72,210
+cuisine,,indian,A restaurant specializing in selling indian food.,87,211
+cuisine,,asian,A restaurant specializing in selling asian food.,90,212
+cuisine,,thai,,93,213
+cuisine,,seafood,,102,214
+cuisine,,vietnamese,,109,215
+cuisine,,sushi,,115,216
+cuisine,,american,,175,217
+cuisine,,italian,,179,218
+cuisine,,japanese,,209,219
+cuisine,,pizza,,209,220
+cuisine,,mexican,,248,221
+cuisine,,chinese,,276,222
