@@ -898,6 +898,11 @@ class AntheaEval {
 
     /** function */
     this.resizeListener_ = null;
+
+    /** @private {string} Source language */
+    this.srcLang = '';
+    /** @private {string} Target language */
+    this.tgtLang = '';
   }
   /**
    * Escapes HTML to safely render as text.
@@ -1841,6 +1846,7 @@ class AntheaEval {
     if (this.error_ && (this.errorIndex_ == index)) {
       textCls += ' anthea-being-edited';
     }
+    const lang = error.location == 'source' ? this.srcLang : this.tgtLang;
     /**
      * Use 0-width spaces to ensure leading/trailing spaces get shown.
      */
@@ -1849,6 +1855,7 @@ class AntheaEval {
         googdom.createDom(
             'span', {
               dir: 'auto',
+              lang: lang,
               style: 'background-color:' + color,
             },
             '\u200b' + error.selected + '\u200b')));
@@ -2522,9 +2529,10 @@ class AntheaEval {
    * documentation.
    * @param {!Array<string>} tokens
    * @param {!Object} subparaInfo
+   * @param {string} tgtLang
    * @return {?Object}
    */
-  static injectHotwWordsFlipped(tokens, subparaInfo) {
+  static injectHotwWordsFlipped(tokens, subparaInfo, tgtLang) {
     /**
      * Error injection is done by reversing a sequence from tokens that starts
      * and ends within spaces/punctuation (or any single-char tokens) and is
@@ -2552,10 +2560,11 @@ class AntheaEval {
     // Reverse tokens in the range (starti, endi)
     const reversed = tokens.slice(starti + 1, endi).reverse();
     return {
-      tokens: tokens.slice(0, starti + 1).concat(reversed).concat(
-          tokens.slice(endi)),
-      hotwError: '<span class="anthea-hotw-revealed">' + reversed.join('') +
-                 '</span>',
+      tokens: tokens.slice(0, starti + 1)
+                  .concat(reversed)
+                  .concat(tokens.slice(endi)),
+      hotwError: `<span class="anthea-hotw-revealed" lang="${tgtLang}">` +
+          reversed.join('') + '</span>',
       hotwType: 'words-flipped',
     };
   }
@@ -2567,9 +2576,10 @@ class AntheaEval {
    * documentation.
    * @param {!Array<string>} tokens
    * @param {!Object} subparaInfo
+   * @param {string} tgtLang
    * @return {?Object}
    */
-  static injectHotwLettersFlipped(tokens, subparaInfo) {
+  static injectHotwLettersFlipped(tokens, subparaInfo, tgtLang) {
     /**
      * Error injection is done by reversing a long word.
      */
@@ -2609,8 +2619,9 @@ class AntheaEval {
     };
     ret.tokens[index] = tokenLetters.slice(0, startOffset).join('') + rev +
                         tokenLetters.slice(startOffset + sliceLength).join('');
-    ret.hotwError = '<span class="anthea-hotw-revealed">' +
-                    ret.tokens[index] + '</span>';
+    ret.hotwError =
+        `<span class="anthea-hotw-revealed" lang="${tgtLang}">` +
+        ret.tokens[index] + '</span>';
     return ret;
   }
 
@@ -2639,21 +2650,23 @@ class AntheaEval {
    * @param {!Array<string>} tokens
    * @param {!Object} subparaInfo
    * @param {boolean} hotwPretend Only pretend to insert error, for training.
+   * @param {string} tgtLang The target language, for text direction.
    * @return {?Object}
    */
-  static injectHotw(tokens, subparaInfo, hotwPretend) {
+  static injectHotw(tokens, subparaInfo, hotwPretend, tgtLang) {
     if (hotwPretend) {
       return AntheaEval.injectHotwPretend(tokens, subparaInfo);
     }
     /* 60% chance for words-flipped, 40% for letter-flipped */
     const tryWordsFlipped = this.getRandomInt(100) < 60;
     if (tryWordsFlipped) {
-      const ret = AntheaEval.injectHotwWordsFlipped(tokens, subparaInfo);
+      const ret =
+          AntheaEval.injectHotwWordsFlipped(tokens, subparaInfo, tgtLang);
       if (ret) {
         return ret;
       }
     }
-    return AntheaEval.injectHotwLettersFlipped(tokens, subparaInfo);
+    return AntheaEval.injectHotwLettersFlipped(tokens, subparaInfo, tgtLang);
   }
 
   /**
@@ -2742,11 +2755,12 @@ class AntheaEval {
    * @param {number} subparaTokens,
    * @param {number} hotwPercent
    * @param {boolean=} hotwPretend
+   * @param {string=} tgtLang
    * @return {!Array<!Object>}
    */
   static splitAndSpannify(text, addEndSpaces,
                           subparaSentences, subparaTokens,
-                          hotwPercent, hotwPretend=false) {
+                          hotwPercent, hotwPretend=false, tgtLang='') {
     const sentences = text.split('\u200b\u200b');
     const spacesNormalizer = (s) => s.replace(/[\s]+/g, ' ');
     const sentInfos = [];
@@ -2805,7 +2819,8 @@ class AntheaEval {
       subparaInfo.spanHTML = AntheaEval.spannifyTokens(
           tokens, subparaInfo.sentInfos);
       if (hotwPercent > 0 && (100 * Math.random()) < hotwPercent) {
-        const hotw = AntheaEval.injectHotw(tokens, subparaInfo, hotwPretend);
+        const hotw =
+            AntheaEval.injectHotw(tokens, subparaInfo, hotwPretend, tgtLang);
         if (hotw) {
           subparaInfo.hotwSpanHTML = AntheaEval.spannifyTokens(
               hotw.tokens, subparaInfo.sentInfos);
@@ -4056,8 +4071,8 @@ class AntheaEval {
     this.contextRow_.style.display = 'none';
 
     const parameters = projectData.parameters || {};
-    const srcLang = parameters.source_language || '';
-    const tgtLang = parameters.target_language || '';
+    this.srcLang = parameters.source_language || '';
+    this.tgtLang = parameters.target_language || '';
 
     let noteToRaters = parameters.hasOwnProperty('note_to_raters') ?
         parameters.note_to_raters :
@@ -4079,17 +4094,19 @@ class AntheaEval {
     /** Are we only pretending to add hotw errors, for training? */
     const hotwPretend = parameters.hotw_pretend || false;
 
-    const srcHeading = srcLang ? ('Source (' + srcLang + ')') : 'Source';
+    const srcHeading =
+        this.srcLang ? ('Source (' + this.srcLang + ')') : 'Source';
     const srcHeadingDiv = googdom.createDom('div', null, srcHeading);
 
     const targetLabel = config.TARGET_SIDE_ONLY ? 'Text' : 'Translation';
-    const tgtHeading = tgtLang ?
-        (targetLabel + ' (' + tgtLang + ')') : targetLabel;
+    const tgtHeading = this.tgtLang ?
+        (targetLabel + ' (' + this.tgtLang + ')') : targetLabel;
     const tgtHeadingDiv = googdom.createDom('div', null, tgtHeading);
 
     // Set up second target column in the sideBySide mode.
     const targetLabel2 = `${targetLabel} 2`;
-    const tgtHeading2 = tgtLang ? `${targetLabel2} (${tgtLang})` : targetLabel2;
+    const tgtHeading2 =
+        this.tgtLang ? `${targetLabel2} (${this.tgtLang})` : targetLabel2;
     const tgtHeadingDiv2 = googdom.createDom('div', null, tgtHeading2);
 
     const evalHeading = this.READ_ONLY ?
@@ -4142,8 +4159,10 @@ class AntheaEval {
     }
     evalDiv.appendChild(docTextTable);
 
-    const srcParaBreak = '</p><p class="anthea-source-para" dir="auto">';
-    const tgtParaBreak = '</p><p class="anthea-target-para" dir="auto">';
+    const srcParaBreak =
+        `</p><p class="anthea-source-para" dir="auto" lang="${this.srcLang}">`;
+    const tgtParaBreak =
+        `</p><p class="anthea-target-para" dir="auto" lang="${this.tgtLang}">`;
 
     let priorResults = [];
     let priorRaters = [];
@@ -4212,11 +4231,15 @@ class AntheaEval {
       // Create the second target column for sideBySide templates.
       const tgtSegments2 = config.SIDE_BY_SIDE ? docsys2.tgtSegments : null;
       const annotations = docsys.annotations;
-      let srcSpannified = '<p class="anthea-source-para" dir="auto">';
-      let tgtSpannified = '<p class="anthea-target-para" dir="auto">';
-      let tgtSpannified2 = config.SIDE_BY_SIDE ? '<p class="anthea-target-para" dir="auto">' : '';
-      const addEndSpacesSrc = this.isSpaceSepLang(srcLang);
-      const addEndSpacesTgt = this.isSpaceSepLang(tgtLang);
+      let srcSpannified =
+          `<p class="anthea-source-para" dir="auto" lang="${this.srcLang}">`;
+      let tgtSpannified =
+          `<p class="anthea-target-para" dir="auto" lang="${this.tgtLang}">`;
+      let tgtSpannified2 = config.SIDE_BY_SIDE ?
+          `<p class="anthea-target-para" dir="auto" lang="${this.tgtLang}">` :
+          '';
+      const addEndSpacesSrc = this.isSpaceSepLang(this.srcLang);
+      const addEndSpacesTgt = this.isSpaceSepLang(this.tgtLang);
       for (let j = 0; j < srcSegments.length; j++) {
         if (srcSegments[j].length == 0) {
           /* New paragraph. */
@@ -4280,11 +4303,11 @@ class AntheaEval {
           tgtSubparas: AntheaEval.splitAndSpannify(
               tgtSegments[j], addEndSpacesTgt,
               subparaSentences, subparaTokens,
-              this.READ_ONLY ? 0 : hotwPercent, hotwPretend),
+              this.READ_ONLY ? 0 : hotwPercent, hotwPretend, this.tgtLang),
           tgtSubparas2: config.SIDE_BY_SIDE ? AntheaEval.splitAndSpannify(
               tgtSegments2[j], addEndSpacesTgt,
               subparaSentences, subparaTokens,
-              this.READ_ONLY ? 0 : hotwPercent, hotwPretend) : [],
+              this.READ_ONLY ? 0 : hotwPercent, hotwPretend, this.tgtLang) : [],
         };
         const segIndex = this.segments_.length;
         this.segments_.push(segment);

@@ -14,7 +14,34 @@
  * limitations under the License.
  */
 
-
+*:lang(ar) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+*:lang(fa) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+*:lang(he) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+*:lang(iw) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+*:lang(ur) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+*:lang(ps) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
+*:lang(yi) {
+  direction: rtl;
+  unicode-bidi: embed;
+}
 .anthea-bold {
   font-weight: bold;
 }
