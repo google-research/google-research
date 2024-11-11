@@ -260,6 +260,9 @@ def get_table_rows(
       for row in queryjob:
         table_path_temp = f"{table_ids[0]}.{table_ids[1]}.{row['table_name']}"
         table_stas_cache[table_path_temp] = row["row_count"]
+        queryplan["query_statistics_caches"][
+            "table_stats_cache_prefetched"
+        ] = True
     except Exception as e:  # pylint: disable=broad-except
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + query)
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
