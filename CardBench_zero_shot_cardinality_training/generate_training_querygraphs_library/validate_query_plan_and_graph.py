@@ -45,7 +45,7 @@ def validate_query_plan(
       "predicate_operator": 0,
       "logical_predicate_operator": 0,
       "correlation": 0,
-      "groupby": 0
+      "groupby": 0,
   }
   nodeid_to_type = {}
   logical_preds = []

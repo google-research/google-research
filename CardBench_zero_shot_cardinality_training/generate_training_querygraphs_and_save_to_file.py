@@ -218,7 +218,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
       printif(debug, "QUERY <><><><><<><><><><><><><><><> ")
       printif(debug, top_level_query_information["cardinality"])
       printif(debug, top_level_query_information["query_string"])
-      # arse sql into a plan. The plan is a graph of JOIN and SCAN operators.
+      # Parse sql into a plan. The plan is a graph of JOIN and SCAN operators.
       parsed_query = convert_sql_to_relational_operators(
           query_information, debug
       )
