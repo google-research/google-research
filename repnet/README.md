@@ -5,4 +5,4 @@ This directory contains a colab that allows you to run the RepNet model on video
 
 Open the notebook in Colab with this [link](https://colab.research.google.com/github/google-research/google-research/blob/master/repnet/repnet_colab.ipynb).
 
-NOTE: We modify some parts of the architecture for releasing on Colab.
+RepNet checkpoint updated. Eval scripts coming soon.
