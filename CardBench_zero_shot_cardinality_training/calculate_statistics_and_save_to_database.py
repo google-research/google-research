@@ -71,28 +71,29 @@ sample_projectname_dataset_name_4k = (
 )
 
 
-def calculate_statistics_and_save_to_database(_):
+def calculate_statistics_and_save_to_file(_):
   """Calculate statistics for a set of datasets and write them to the metadata database."""
 
   # The list of datasets of a project to calculate statistics for
   # The project name and dataset name are Big Query terminology. Each
   # dataset containes multiple tables.
 
-  datasetnames = configuration.DATASETNAMES
-  projectname = configuration.PROJECTNAME
+  projectname = configuration.PROJECT_NAME
+  datasetnames = configuration.DATASET_NAMES
 
-  # The code is designed to work with BigQuery but to also be extensible to
-  # other databases. Further the code uses two databases one that contains the
+  # The code uses two databases one that contains the
   # data we are calculating statistics for and one that stores the calculated
   # statistics.
 
   dbs = {
       # used to query the database
-      "data_dbtype": DBType.BIGQUERY,
-      "data_dbclient": create_database_connection(DBType.BIGQUERY),
+      "data_dbtype": configuration.DATA_DBTYPE,
+      "data_dbclient": create_database_connection(configuration.DATA_DBTYPE),
       # used to stored the collected statistics
-      "metadata_dbtype": DBType.BIGQUERY,
-      "metadata_dbclient": create_database_connection(DBType.BIGQUERY),
+      "metadata_dbtype": configuration.METADATA_DBTYPE,
+      "metadata_dbclient": create_database_connection(
+          configuration.METADATA_DBTYPE
+      ),
   }
 
   for datasetname in datasetnames:
@@ -117,4 +118,4 @@ def calculate_statistics_and_save_to_database(_):
 
 
 if __name__ == "__main__":
-  app.run(calculate_statistics_and_save_to_database)
+  app.run(calculate_statistics_and_save_to_file)
