@@ -184,7 +184,6 @@ def sample_acyclic_aggregation_query(
       numerical_aggregation_columns,
       randstate,
       allowed_aggregate_functions,
-      complex_predicates=complex_predicates,
   )
   having_clause = None
   if randstate.rand() < groupby_having_probability:
@@ -462,6 +461,8 @@ def generate_queries(
     groupby_having_probability,
     min_number_joins,
     min_number_predicates,
+    min_grouping_cols,
+    min_aggregation_cols,
 ):
   """Generate SQL queries.
 
@@ -500,10 +501,19 @@ def generate_queries(
     groupby_having_probability: The probability of group by having.
     min_number_joins: The minimum number of joins.
     min_number_predicates: The minimum number of predicates.
+    min_grouping_cols: minimum number of grouping columns.
+    min_aggregation_cols: minimum number of aggregation columns.
 
   Returns:
     The query file output path.
   """
+
+  if min_grouping_cols > 0 or min_aggregation_cols > 0:
+    print(
+        'Support for min grouping and aggregation columns is not'
+        ' implemented yet'
+    )
+
   randstate = np.random.RandomState(seed)
 
   print('Generate workload: ', query_file_output_path)
@@ -585,8 +595,12 @@ def generate_queries(
             quote_table_sql_string,
             partitioning_predicate_per_table,
         )
-        queries.append(sql_query)
-      else:
+        if 'WHERE' not in sql_query:
+          desired_query = False
+        else:
+          queries.append(sql_query)
+
+      if not desired_query:
         tries += 1
         if tries > 10000:
           raise ValueError(
@@ -600,9 +614,7 @@ def generate_queries(
   return query_file_output_path
 
 
-def sample_outer_groupby(
-    allowed_aggregate_functions, q, randstate
-):
+def sample_outer_groupby(allowed_aggregate_functions, q, randstate):
   """Sample outer groupby.
 
   Args:
@@ -786,11 +798,23 @@ def check_matches_criteria(
       or (len(q.joins) < min_number_joins)
   ):
     desired_query = False
+  if len(q.joins) < min_number_joins:
+    desired_query = False
+
+  if not q.predicates or not q.predicates.children:
+    num_preds = 0
+  else:
+    num_preds = len(q.predicates.children)
+
+  if min_number_predicates > num_preds:
+    desired_query = False
+  if num_preds and not q.joins:
+    desired_query = False
   if always_create_the_maximum_number_of_predicates:
     if complex_predicates:
       raise NotImplementedError('Check not implemented for complex predicates')
     else:
-      if len(q.predicates.children) != max_number_filter_predicates:
+      if num_preds != max_number_filter_predicates:
         desired_query = False
   if min_number_predicates > str(q.predicates).count('AND'):
     desired_query = False

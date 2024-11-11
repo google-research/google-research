@@ -135,55 +135,6 @@ def get_table_partitioning_predicates(
   return partitioning_predidate_per_table
 
 
-def get_sample_simple_configuration(
-    projectname,
-    datasetname,
-    queries_output_file_name,
-    partitioning_pred_per_table,
-):
-  """Returns a sample simple configuration."""
-  conf = {
-      "project_name": projectname,
-      "dataset_name": datasetname,
-      "dataset_json_input_directory_path": DIRECTORY_PATH_JSON_FILES,
-      "query_file_output_path": queries_output_file_name,
-      "partitioning_predicate_per_table": partitioning_pred_per_table,
-      "allowed_predicate_operators": [
-          query_generator.Operator.NEQ,
-          query_generator.Operator.EQ,
-          query_generator.Operator.LEQ,
-          query_generator.Operator.GEQ,
-          query_generator.Operator.IS_NOT_NULL,
-          query_generator.Operator.IS_NULL,
-      ],
-      "allowed_aggregate_functions": [],
-      "num_queries_to_generate": 100,
-      "max_nunmber_joins": 2,
-      "max_number_filter_predicates": 2,
-      "max_number_aggregates": 0,
-      "max_number_group_by": 0,
-      "max_cols_per_agg": 0,
-      "group_by_threshold": 0,
-      "int_neq_predicate_threshold": 100,
-      "seed": 0,
-      "complex_predicates": True,
-      "recreate_query_file_if_exist": True,
-      "always_create_the_maximum_number_of_joins": False,
-      "always_create_the_maximum_number_of_aggregates": False,
-      "always_create_the_maximum_number_of_predicates": False,
-      "always_create_the_maximum_number_of_group_bys": False,
-      "left_outer_join_ratio": 0,
-      "groupby_limit_probability": 0.0,
-      "groupby_having_probability": 0.0,
-      "exists_predicate_probability": 0.0,
-      "max_no_exists": 0,
-      "outer_groupby_probability": 0.0,
-      "min_number_joins": 0,
-      "min_number_predicates": 0,
-  }
-  return conf
-
-
 def generate_queries_and_save_to_file(_):
   """Generate and write queries to file."""
 
@@ -191,16 +142,15 @@ def generate_queries_and_save_to_file(_):
   datasetnames = configuration.DATASET_NAMES
 
   dbs = {
-      # used to query the database
       "data_dbtype": configuration.DATA_DBTYPE,
       "data_dbclient": create_database_connection(configuration.DATA_DBTYPE),
-      # used to stored the collected statistics
       "metadata_dbtype": configuration.METADATA_DBTYPE,
       "metadata_dbclient": create_database_connection(
           configuration.METADATA_DBTYPE
       ),
   }
 
+  produced_files = []
   for datasetname in datasetnames:
     print(f"Generating queries for: {projectname}, {datasetname}")
 
@@ -211,12 +161,49 @@ def generate_queries_and_save_to_file(_):
         projectname, datasetname, dbs
     )
 
-    parameters = get_sample_simple_configuration(
-        projectname,
-        datasetname,
-        queries_output_file_name,
-        partitioning_pred_per_table,
-    )
+    parameters = {
+        "project_name": projectname,
+        "dataset_name": datasetname,
+        "dataset_json_input_directory_path": DIRECTORY_PATH_JSON_FILES,
+        "query_file_output_path": queries_output_file_name,
+        "partitioning_predicate_per_table": partitioning_pred_per_table,
+        "allowed_predicate_operators": [
+            query_generator.Operator.NEQ,
+            query_generator.Operator.EQ,
+            query_generator.Operator.LEQ,
+            query_generator.Operator.GEQ,
+            query_generator.Operator.IS_NOT_NULL,
+            query_generator.Operator.IS_NULL,
+        ],
+        "allowed_aggregate_functions": [],
+        "num_queries_to_generate": 35000,
+        "max_nunmber_joins": 7,
+        "max_number_filter_predicates": 2,
+        "max_number_aggregates": 0,
+        "max_number_group_by": 0,
+        "max_cols_per_agg": 0,
+        "group_by_threshold": 0,
+        "int_neq_predicate_threshold": 100,
+        "seed": 0,
+        "complex_predicates": False,
+        "recreate_query_file_if_exist": True,
+        "always_create_the_maximum_number_of_joins": False,
+        "always_create_the_maximum_number_of_aggregates": False,
+        "always_create_the_maximum_number_of_predicates": False,
+        "always_create_the_maximum_number_of_group_bys": False,
+        "left_outer_join_ratio": 0,
+        "groupby_limit_probability": 0.0,
+        "groupby_having_probability": 0.0,
+        "exists_predicate_probability": 0.0,
+        "max_no_exists": 0,
+        "outer_groupby_probability": 0.0,
+        "min_number_joins": 1,
+        "min_number_predicates": 0,
+        "min_grouping_cols": (
+            0
+        ),  # not implemented as a check in the query generator
+        "min_aggregation_cols": 0,  # not implemented in the query generator
+    }
 
     save_workload_information(
         projectname,
@@ -273,21 +260,23 @@ def generate_queries_and_save_to_file(_):
           left_outer_join_ratio=parameters["left_outer_join_ratio"],
           groupby_limit_probability=parameters["groupby_limit_probability"],
           groupby_having_probability=parameters["groupby_having_probability"],
-          exists_predicate_probability=parameters[
-              "exists_predicate_probability"
-          ],
-          max_no_exists=parameters["max_no_exists"],
-          outer_groupby_probability=parameters["outer_groupby_probability"],
           min_number_joins=parameters["min_number_joins"],
           min_number_predicates=parameters["min_number_predicates"],
-          debug=False,
+          min_grouping_cols=parameters["min_grouping_cols"],
+          min_aggregation_cols=parameters["min_aggregation_cols"],
+      )
+      produced_files.append(
+          [datasetname, next_workload_id, queries_output_file_name]
       )
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN GENERATING :" + datasetname)
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> error: " + str(e))
-      print(traceback.format_exc())
-      return
+      print(traceback.print_exc())
+      produced_files.append([datasetname, "failed", "failed"])
 
+  print("Produced files summary:")
+  for info in produced_files:
+    print(f"{info[0]} {info[1]} {info[2]}")
 
 if __name__ == "__main__":
   app.run(generate_queries_and_save_to_file)
