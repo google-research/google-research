@@ -145,6 +145,32 @@ def calculate_and_write_extra_column_statistics_internal_string(
   return rows_written_to_extra_stats_table
 
 
+def is_numeric_type(columntype):
+  return (
+      columntype == "INT64"
+      or columntype == "INT32"
+      or columntype == "UINT32"
+      or columntype == "UINT64"
+      or columntype == "FLOAT64"
+      or columntype == "DOUBLE"
+      or columntype == "NUMERIC"
+      or columntype == "BIGNUMERIC"
+      or columntype == "BIGDECIMAL"
+      or columntype == "DECIMAL"
+  )
+
+
+def return_null_if_invalid_value(value, columntype):
+  if is_numeric_type(columntype) and math.isinf(value):
+    return "NULL"
+  if value in ["-inf", "inf", None, "nan"]:
+    return "NULL"
+  else:
+    if value in ["inf", "nan"]:
+      return "NULL"
+    return value
+
+
 def calculate_and_write_extra_column_statistics_internal(
     projectname,
     column_list,
@@ -169,17 +195,7 @@ def calculate_and_write_extra_column_statistics_internal(
       f"INSERT INTO {extra_stats_table_sql_string} (`project_name`,"
       " `dataset_name`, `table_name`, `column_name`, `min_val`, `max_val` "
   )
-  if (
-      columntype == "INT64"
-      or columntype == "INT32"
-      or columntype == "FLOAT64"
-      or columntype == "DOUBLE"
-      or columntype == "UINT64"
-      or columntype == "UINT32"
-      or columntype == "NUMERIC"
-      or columntype == "BIGNUMERIC"
-      or columntype == "BIGDECIMAL"
-  ):
+  if is_numeric_type(columntype):
     preamble += ", `mean_val`"
   preamble = preamble + ", `allnull` ) VALUES "
 
@@ -216,7 +232,9 @@ def calculate_and_write_extra_column_statistics_internal(
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
       print(">>>> " + query)
+
     if rowres["cnt"] == 0:
+      allnulls = "true"
       query = (
           f"INSERT INTO {extra_stats_table_sql_string} (`project_name`,"
           " `dataset_name`, `table_name`, `column_name`, `allnull`) VALUES"
@@ -230,18 +248,16 @@ def calculate_and_write_extra_column_statistics_internal(
         print(">>>> " + str(e))
         print(">>>> " + query)
       continue
+
+    min_val = None
+    max_val = None
+    mean_val = None
+    allnulls = False
+
     firstquery = (
         f"SELECT max(`{columnname}`) as maxval, min(`{columnname}`) as minval"
     )
-    if (
-        columntype == "INT64"
-        or columntype == "INT32"
-        or columntype == "FLOAT64"
-        or columntype == "DOUBLE"
-        or columntype == "UINT64"
-        or columntype == "UINT32"
-        or columntype == "NUMERIC"
-    ):
+    if is_numeric_type(columntype):
       firstquery = f"{firstquery}, AVG(`{columnname}`) as meanval"
     firstquery = (
         f"{firstquery} FROM {table_sql_string} WHERE {partitioned_predicate}"
@@ -261,44 +277,17 @@ def calculate_and_write_extra_column_statistics_internal(
 
     min_val = rowres_firstquery["minval"]
     max_val = rowres_firstquery["maxval"]
-    mean_val = "NULL"
+    mean_val = None
 
-    if min_val in ["-inf", "inf", None]:
-      min_val = "NULL"
-    else:
-      min_val = str(min_val)
-      if min_val == "inf":
-        min_val = "NULL"
-
-    if max_val in ["-inf", "inf", None]:
-      max_val = "NULL"
-    else:
-      max_val = str(max_val)
-      if max_val == "inf":
-        max_val = "NULL"
-    if (
-        columntype == "INT64"
-        or columntype == "FLOAT64"
-        or columntype == "NUMERIC"
-        or columntype == "INT32"
-        or columntype == "FLOAT64"
-        or columntype == "DOUBLE"
-        or columntype == "UINT64"
-        or columntype == "UINT32"
-        or columntype == "NUMERIC"
-    ):
-      mean_val = rowres_firstquery["meanval"]
-      if mean_val in ["-inf", "inf", None, "nan"] or math.isinf(mean_val):
-        mean_val = "NULL"
-      else:
-        mean_val = str(mean_val)
-        if mean_val in ["inf", "nan"]:
-          mean_val = "NULL"
-
-    allnulls = "false"
+    min_val = str(return_null_if_invalid_value(min_val, columntype))
+    max_val = str(return_null_if_invalid_value(max_val, columntype))
+    if is_numeric_type(columntype):
+      mean_val = str(
+          return_null_if_invalid_value(rowres_firstquery["meanval"], columntype)
+      )
     if mean_val == "NULL" or max_val == "NULL" or min_val == "NULL":
       # if min, max or mean contains then the all null flag is set
-      allnulls = "true"
+      allnulls = True
       mean_val = "NULL"
       min_val = "NULL"
       max_val = "NULL"
@@ -309,36 +298,28 @@ def calculate_and_write_extra_column_statistics_internal(
         f"{newvals} ('{projectname}', '{datasetname}', '{tablename}',"
         f" '{columnname}', "
     )
-    if columntype in [
-        "INT64",
-        "INT32",
-        "FLOAT64",
-        "DOUBLE",
-    ]:
-      newvals += "" + min_val + ", "
-      newvals += "" + max_val + ", "
-      newvals += "" + mean_val
-    elif columntype in ["UINT64", "UINT32"]:
-      newvals += "CAST('" + min_val + "' AS BIGNUMERIC), "
-      newvals += "CAST('" + max_val + "' AS BIGNUMERIC), "
-      newvals += "" + mean_val
-    elif (
-        columntype == "NUMERIC"
-        or columntype == "BIGNUMERIC"
-        or columntype == "DECIMAL"
-        or columntype == "BIGDECIMAL"
-    ):
-      newvals += "" + min_val
-      if "." in min_val:
-        newvals += ","
+    if is_numeric_type(columntype):
+      if (
+          columntype == "NUMERIC"
+          or columntype == "BIGNUMERIC"
+          or columntype == "DECIMAL"
+          or columntype == "BIGDECIMAL"
+      ):
+        newvals += "" + min_val
+        if "." in min_val:
+          newvals += ","
+        else:
+          newvals += ".0, "
+        newvals += "" + max_val
+        if "." in max_val:
+          newvals += ","
+        else:
+          newvals += ".0, "
+        newvals += "" + mean_val
       else:
-        newvals += ".0, "
-      newvals += "" + max_val
-      if "." in max_val:
-        newvals += ","
-      else:
-        newvals += ".0, "
-      newvals += "" + mean_val
+        newvals += min_val + ", "
+        newvals += max_val + ", "
+        newvals += mean_val
     else:
       if columntype in ["DATE", "DATETIME", "TIMESTAMP", "TIME"]:
         newvals += "CAST('" + min_val + "' AS " + columntype + "), "
@@ -346,22 +327,20 @@ def calculate_and_write_extra_column_statistics_internal(
       else:
         newvals += "'" + min_val + "', "
         newvals += "'" + max_val + "'"
-    newvals += ", " + allnulls + " )"
+    newvals += ", " + str(allnulls) + " )"
     count += 1
-    if count >= 100:
-      query = preamble + newvals
-      # print(query)
-      try:
-        _, _ = run_query(
-            dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
-        )
-      except Exception as e:  # pylint: disable=broad-exception-caught
-        print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
-        print(">>>> " + str(e))
-        print(">>>> " + query)
-      rows_written_to_extra_stats_table += count
-      count = 0
-      newvals = ""
+  if count >= 10:
+    query = preamble + newvals
+    try:
+      _ = run_query(dbs["metadata_dbtype"], query, dbs["metadata_dbclient"])
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
+      print(">>>> " + str(e))
+      print(">>>> " + query)
+    rows_written_to_extra_stats_table += count
+    count = 0
+    newvals = ""
+
   success = True
   if newvals:
     query = preamble + newvals
@@ -409,15 +388,22 @@ def calculate_and_write_extra_column_statistics(
         " ci.table_name and est.dataset_name = ci.dataset_name AND"
         " est.project_name = ci.project_name)"
     )
-    queryjob, _ = run_query(
-        dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
-    )
-    for row in queryjob:
-      columns_to_collect_stats_by_type[type_to_table[0]]["column_list"].append([
-          row["dataset_name"],
-          row["table_name"],
-          row["column_name"],
-      ])
+    try:
+      queryjob, _ = run_query(
+          dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]
+      )
+      for row in queryjob:
+        columns_to_collect_stats_by_type[type_to_table[0]][
+            "column_list"
+        ].append([
+            row["dataset_name"],
+            row["table_name"],
+            row["column_name"],
+        ])
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
+      print(">>>> " + str(e))
+      print(">>>> " + query)
 
   # Now that the tasks are created, we calculate the extra column statistics
   num_rows_written_to_extra_column_stats_table = 0

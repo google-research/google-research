@@ -91,6 +91,19 @@ def calculate_and_store_percentiles_bq(
   return 0
 
 
+def types_to_collect_percentiles(columntype):
+  return (
+      columntype == "INT64"
+      or columntype == "INT32"
+      or columntype == "UINT32"
+      or columntype == "UINT64"
+      or columntype == "FLOAT64"
+      or columntype == "DOUBLE"
+      or columntype == "NUMERIC"
+      or columntype == "DECIMAL"
+  )
+
+
 def calculate_and_write_percentiles_internal(
     projectname,
     datasetname,
@@ -111,14 +124,7 @@ def calculate_and_write_percentiles_internal(
       " ",
       columntype,
   )
-  assert columntype in [
-      "INT64",
-      "FLOAT64",
-      "NUMERIC",
-      "UINT32",
-      "UINT64",
-      "INT32",
-  ]
+  assert types_to_collect_percentiles(columntype)
 
   if dbs["data_dbtype"] == DBType.BIGQUERY:
     return calculate_and_store_percentiles_bq(
@@ -139,14 +145,9 @@ def calculate_and_write_percentiles(
 ):
   """Collects columnn percentiles to build histograms."""
   tasks = []
-  for column_type in [
-      "INT64",
-      "FLOAT64",
-      "NUMERIC",
-      "UINT32",
-      "UINT64",
-      "INT32",
-  ]:
+  for column_type in TYPES_TO_TABLES.keys():
+    if not types_to_collect_percentiles(column_type):
+      continue
     type_table = TYPES_TO_TABLES[column_type]
     type_table_sql_string = get_sql_table_string(
         dbs["metadata_dbtype"], type_table

@@ -246,6 +246,21 @@ def create_column_pairs(collist):
   return pairs_sorted
 
 
+def is_numeric_type(columntype):
+  return (
+      columntype == "INT64"
+      or columntype == "INT32"
+      or columntype == "UINT32"
+      or columntype == "UINT64"
+      or columntype == "FLOAT64"
+      or columntype == "DOUBLE"
+      or columntype == "NUMERIC"
+      or columntype == "BIGNUMERIC"
+      or columntype == "BIGDECIMAL"
+      or columntype == "DECIMAL"
+  )
+
+
 def get_cols_per_table_dataset(
     projectname,
     datasetname,
@@ -260,7 +275,8 @@ def get_cols_per_table_dataset(
         "select project_name, dataset_name, table_name, column_name from"
         f" `{COLUMNS_INFO_TABLE}` WHERE project_name = '{projectname}' and"
         f" dataset_name = '{datasetname}' AND column_type in ('INT64', 'INT32',"
-        " 'NUMERIC', 'FLOAT64', 'BIGNUMERIC', 'DECIMAL','BIGDECIMAL')"
+        " 'NUMERIC', 'FLOAT64', 'FLOAT', 'DOUBLE',  'BIGNUMERIC',"
+        " 'DECIMAL','BIGDECIMAL')"
     )
   else:
     raise ValueError(f'Dbtype not supported yet: {str("data_dbtype")}')
@@ -288,7 +304,8 @@ def calculate_and_write_pearson_correlation(
 
   # Find the column names and types of each table in the dataset
   # Restrict to 'INT64', 'INT32', 'NUMERIC', 'FLOAT64', 'BIGNUMERIC',
-  # 'DECIMAL','BIGDECIMAL types, as the BigQuery function corr() only supports
+  # 'DECIMAL','BIGDECIMAL, UINT32', 'UINT64' types,
+  # as the BigQuery function corr() only supports
   # these types.
   cols_per_table = get_cols_per_table_dataset(
       projectname,
@@ -340,10 +357,7 @@ def calculate_and_write_pearson_correlation(
     datasetname = table_path_split[1].strip()
     tablename = table_path_split[2].strip()
 
-    sample_projectname_dataset_name_4k = SAMPLE_PROJECTNAME_DATASET_NAME_4K
-    if sample_projectname_dataset_name_4k[-1] != ".":
-      sample_projectname_dataset_name_4k += "."
-    sample_table_path = f"{sample_projectname_dataset_name_4k}{projectname}_{datasetname}_{tablename}"
+    sample_table_path = f"{SAMPLE_PROJECTNAME_DATASET_NAME_4K}.{projectname}_{datasetname}_{tablename}"
 
     work_orders = create_work_orders_correlations(
         table_cols_pair[k], tablename, collected_correlations
