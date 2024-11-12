@@ -24,7 +24,9 @@ from models import model_config_pb2
 
 _MODEL_CONFIG_PATHS = [
     "google_research/fm4tlp/models/configs/dyrep.pbtxt",
+    "google_research/fm4tlp/models/configs/dyrep_structmap.pbtxt",
     "google_research/fm4tlp/models/configs/jodie.pbtxt",
+    "google_research/fm4tlp/models/configs/jodie_structmap.pbtxt",
     "google_research/fm4tlp/models/configs/tgn.pbtxt",
     "google_research/fm4tlp/models/configs/tgn_structmap.pbtxt",
     "google_research/fm4tlp/models/configs/tgn_structmap_alpha10.pbtxt",
