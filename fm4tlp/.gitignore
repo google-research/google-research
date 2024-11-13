@@ -1,0 +1,6 @@
+datasets
+job_scripts
+jobs
+experiments
+.ipynb_checkpoints/*
+*.swp
