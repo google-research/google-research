@@ -25,7 +25,7 @@ python google_research/fm4tlp/tgbl_comment_dataprep -- \
 
 import os
 import pickle
-
+import sys
 from absl import app
 from absl import flags
 import networkx as nx
@@ -34,6 +34,8 @@ import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
 
+if 'gfile' not in sys.modules:
+  gfile = tf.io.gfile
 
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',
@@ -46,8 +48,8 @@ _ROOT_DIR = flags.DEFINE_string(
 def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_comment')
-  with tf.io.gfile.GFile(
-      os.path.join(dataset_root, 'tgbl-comment-edgelist.csv'), 'r'
+  with gfile.GFile(
+      os.path.join(dataset_root, 'tgbl-comment_edgelist.csv'), 'r'
   ) as f:
     tgbl_comment_edgelist = pd.read_csv(f)
 
@@ -61,7 +63,7 @@ def main(_):
     if dst not in node_mapping:
       node_mapping[dst] = len(node_mapping)
 
-  with tf.io.gfile.GFile(
+  with gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_user_index_map.pkl'), 'wb'
   ) as f:
     pickle.dump(node_mapping, f)
@@ -69,7 +71,7 @@ def main(_):
   user_count = pd.DataFrame()
   user_count['num_nodes'] = [len(node_mapping)]
 
-  with tf.io.gfile.GFile(
+  with gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_total_count.csv'), 'w'
   ) as f:
     user_count.to_csv(f, index=False)
@@ -84,6 +86,8 @@ def main(_):
       G_user, resolution=1, threshold=1e-07, seed=123
   )
 
+  louvain_communities_user = dict(enumerate(louvain_communities_user))
+
   # Community index determines the size of communities.
   community_index_len_dict = {}
 
@@ -92,7 +96,7 @@ def main(_):
 
   sorted_community_indices = [
       k
-      for k, unused_v in sorted(
+      for k, v in sorted(
           community_index_len_dict.items(),
           reverse=True,
           key=lambda item: item[1],
@@ -110,7 +114,7 @@ def main(_):
     )
     community_index += 1
 
-  with tf.io.gfile.GFile(
+  with gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_user_community_map.pkl'), 'wb'
   ) as f:
     pickle.dump(community_user_map, f)
@@ -131,7 +135,7 @@ def main(_):
       {'val_time': [int(val_time)], 'test_time': [int(test_time)]}
   )
 
-  with tf.io.gfile.GFile(
+  with gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_timesplit.csv'), 'w'
   ) as f:
     timesplit.to_csv(f, index=False)
