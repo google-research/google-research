@@ -57,7 +57,7 @@ estimate_completeness.method = 'MBS'
 # Parameters for catalog/hauksson_dataframe:
 # ==============================================================================
 catalog/hauksson_dataframe.clean_columns = True
-catalog/hauksson_dataframe.csv_path = 'hauksson.csv'
+
 
 # Parameters for magnitude_prediction_model:
 # ==============================================================================
@@ -93,7 +93,7 @@ target_catalog.smear_binned_magnitudes = False
 # Parameters for train_and_evaluate_magnitude_prediction_model:
 # ==============================================================================
 train_and_evaluate_magnitude_prediction_model.batch_size = 256
-train_and_evaluate_magnitude_prediction_model.epochs = 250
+train_and_evaluate_magnitude_prediction_model.epochs = 150
 train_and_evaluate_magnitude_prediction_model.learning_rate = 0.0001
 train_and_evaluate_magnitude_prediction_model.loss_function = None
 train_and_evaluate_magnitude_prediction_model.metric_functions = ()

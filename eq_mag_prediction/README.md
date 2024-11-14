@@ -9,9 +9,13 @@ The package was tested using a python env created with conda package manager.
 From the root of project, perform:
 
 ```
-conda create --name <environment_name> --file requirements.txt -c conda-forge
+conda create --name <environment_name> --file requirements.txt -c conda-forge 
+conda activate <environment_name> 
 pip install --no-deps -e .
 ```
+
+# Quick start
+A tutorial for this package can be seen in the ```tutorial_run_this_first.ipynb``` notebook.
 
 # Model training procedure
 
@@ -60,8 +64,6 @@ eq_mag_prediction
 ## notebooks
 ipynb notebooks exemplifying usage of model loading and result analysis.
 
-A tutorial for this package can be seen in the ```Intro_run_this.ipynb``` notebook.
-
 
 ## scripts
 
@@ -93,12 +95,14 @@ Some scripts are directed to a default gin configuration file.
 For more details on how to use gin see:
 https://github.com/google/gin-config?tab=readme-ov-file
 
-## ingestions
+## ingestion (a.k.a "Work on you own catalog")
 
-Scripts that transform raw downloaded catalogs into standardized format 
-(=ingestion) for model training and analysis.
+In order to use a catalog with MAGNET it should be transformed from its 
+raw format  into a standard format, this is the ***ingestion*** process.
 
+The standard form which can be used by MAGNET can be seen in the mock catalog produced by the tutorial ```tutorial_run_this_first.ipynb```. 
 
+Ingestion scripts for the catalogs we have worked on can be found in this code base, and are meant to be run via the command line interface. 
 By default, ingestion scripts will look for the raw catalog in
 `eq_mag_prediction/results/catalogs/raw` and cache the modified in
 `eq_mag_prediction/results/catalogs/ingested`. In order to change this behavior
@@ -113,10 +117,20 @@ major earthquakes in the catalog region. By the notebook design,  the list of
 major earthquakes are given by the ingested major earthquakes catalog, per
 region. See description in ```ingest_***_major_earthquakes.py``` scripts.
 
+For technical reasons, we cannot include in this code base the catalogs we have analysed themselves. You can download the catalogs from the following links and ingest them with the relevant script:
+
+
+
+* Hauksson catalog for Southern California:<br> https://service.scedc.caltech.edu/ftp/catalogs/hauksson/Socal_focal/
+
+*  JMA catalog for Japan:<br> 
+https://www.data.jma.go.jp/svd/eqev/data/bulletin/hypo_e.html
+* The New Zealand GeoNet catalog:<br> 
+https://www.geonet.org.nz/data/types/eq_catalogue
 
 ## results
 Where trained models are stored, and cached by default.
 
 Default cache location for benchmarks, features and ingested catalogs as well.
 
-Pre-trained models, encoders, and calculated benchmarks can be found in: https://zenodo.org/records/13387662 . The mentioned zenodo repository containes a full "results" directory.
+Pre-trained models, encoders, and calculated benchmarks can be found in: https://zenodo.org/records/13387662 . The mentioned zenodo repository contains a full "results" directory.

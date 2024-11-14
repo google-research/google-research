@@ -63,9 +63,6 @@ earthquake_criterion.start_timestamp = %feature_prep_start
 # ==============================================================================
 estimate_completeness.method = 'MAXC'
 
-# Parameters for catalog/nz_geonet_dataframe:
-# ==============================================================================
-catalog/nz_geonet_dataframe.csv_path = 'nz_geonet.csv'
 
 # Parameters for magnitude_prediction_model:
 # ==============================================================================
@@ -100,7 +97,7 @@ target_catalog.smear_binned_magnitudes = False
 # Parameters for train_and_evaluate_magnitude_prediction_model:
 # ==============================================================================
 train_and_evaluate_magnitude_prediction_model.batch_size = 64
-train_and_evaluate_magnitude_prediction_model.epochs = 250
+train_and_evaluate_magnitude_prediction_model.epochs = 150
 train_and_evaluate_magnitude_prediction_model.learning_rate = 0.0001
 train_and_evaluate_magnitude_prediction_model.loss_function = None
 train_and_evaluate_magnitude_prediction_model.metric_functions = ()

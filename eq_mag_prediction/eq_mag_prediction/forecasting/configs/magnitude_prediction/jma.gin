@@ -1,4 +1,7 @@
-include 'intelligence/earthquakes/forecasting/configs/magnitude_prediction/magnitude_prediction_general.gin'
+# CHANGE THE PATH BELOW ACCORDING TO YOUR WORKING DIRECTORY
+# or add the following line to your script:
+# gin.add_config_file_search_path('relative/or/absolute/path/to/forecasting/configs/magnitude_prediction')
+include 'magnitude_prediction_general.gin'
 
 # Data for experiment
 catalog = @jma_dataframe()
@@ -120,4 +123,3 @@ train_and_evaluate_magnitude_prediction_model:
   learning_rate = 1e-4
   batch_size = 128
   epochs = 250
-  store_every_nth_epoch = 25

@@ -46,7 +46,7 @@ _GIN_PATH = flags.DEFINE_string("gin_path", None, "gin config file path.")
 def features_cache_dir():
   assert_msg = (
       "cache_dir is empty, define in command line or in"
-      " eq_mag_prediction/forecasting/magnitude_prediction_compute_features.py"
+      " eq_mag_prediction/scripts/magnitude_prediction_compute_features.py"
   )
   assert _CACHE_DIR.value, assert_msg
   return _CACHE_DIR.value

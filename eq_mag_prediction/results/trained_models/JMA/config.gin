@@ -67,12 +67,6 @@ earthquake_criterion.max_depth = %target_max_depth
 earthquake_criterion.min_magnitude = 0.5
 earthquake_criterion.start_timestamp = %feature_prep_start
 
-# Parameters for catalog/jma_dataframe:
-# ==============================================================================
-catalog/jma_dataframe.cdf_path = 'jma.cdf'
-
-
-
 
 # Parameters for magnitude_prediction_model:
 # ==============================================================================
@@ -107,7 +101,7 @@ target_catalog.smear_binned_magnitudes = True
 # Parameters for train_and_evaluate_magnitude_prediction_model:
 # ==============================================================================
 train_and_evaluate_magnitude_prediction_model.batch_size = 64
-train_and_evaluate_magnitude_prediction_model.epochs = 450
+train_and_evaluate_magnitude_prediction_model.epochs = 50
 train_and_evaluate_magnitude_prediction_model.learning_rate = 0.001
 train_and_evaluate_magnitude_prediction_model.loss_function = None
 train_and_evaluate_magnitude_prediction_model.metric_functions = ()

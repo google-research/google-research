@@ -155,7 +155,6 @@ class EarthquakePropertiesTest(parameterized.TestCase):
       rotation = earthquake_properties._rotation_from_x1x2x3_to_ned(
           strike_i, rake_i, dips[i]
       )
-      print(f'dip={dips[i]}')
       expected_rotation = geometry.rotation_matrix_about_axis(
           dips[i], np.array([1, 0, 0])
       )
@@ -166,7 +165,6 @@ class EarthquakePropertiesTest(parameterized.TestCase):
     # Only dip as zero - expected a rotation about the z axis of strike+rake
     dip_i = 0
     for i in range(n_tests):
-      print(f'strike={strikes[i]} ; rake={rakes[i]}, dip={dip_i}')
       rotation = earthquake_properties._rotation_from_x1x2x3_to_ned(
           strikes[i], rakes[i], dip_i
       )

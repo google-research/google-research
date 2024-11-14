@@ -70,4 +70,3 @@ train_and_evaluate_magnitude_prediction_model:
   learning_rate = 1e-4
   batch_size = 128
   epochs = 150
-  store_every_nth_epoch = 25
