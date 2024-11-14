@@ -15,11 +15,16 @@
 
 """Table names that store statistics."""
 
-# Before using replace X and None with the appropriate values.
+# Before using replace:
+# 1) project_name.table_name with your project and dataset name
+# for the metadata database.
+# 2) project_name.table_name_sampled_tables with your project and dataset name
+# for the sample table database.
+# 3) the json, query and training querygraph paths
+# 4) the projectname and datasetnames of the data databases.
 
-import enum
 from CardBench_zero_shot_cardinality_training import database_connector
-
+from CardBench_zero_shot_cardinality_training.definitions import Datatype
 
 # Big Query schema pesudo-tables
 BQ_INFO_SCHEMA_TABLES = ".INFORMATION_SCHEMA.TABLES"
@@ -33,17 +38,12 @@ TABLES_INFO_TABLE = "X.tables_info"
 COLUMNS_INFO_TABLE = "X.columns_info"
 COLUMNS_STATS_TABLE = "X.columns_stats"
 COLUMNS_INT64_EXTRA_STATS_TABLE = "X.columns_int64_extra_stats"
-COLUMNS_INT32_EXTRA_STATS_TABLE = COLUMNS_INT64_EXTRA_STATS_TABLE
 COLUMNS_UINT64_EXTRA_STATS_TABLE = "X.columns_uint64_extra_stats"
-
-COLUMNS_UINT32_EXTRA_STATS_TABLE = COLUMNS_UINT64_EXTRA_STATS_TABLE
 COLUMNS_FLOAT64_EXTRA_STATS_TABLE = "X.columns_float64_extra_stats"
 COLUMNS_NUMERIC_EXTRA_STATS_TABLE = "X.columns_numeric_extra_stats"
 # alias for numeric
-COLUMNS_DECIMAL_EXTRA_STATS_TABLE = COLUMNS_NUMERIC_EXTRA_STATS_TABLE
 COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE = "X.columns_bignumeric_extra_stats"
 # alias for bignumeric
-COLUMNS_BIGDECIMAL_EXTRA_STATS_TABLE = COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE
 COLUMNS_STRING_EXTRA_STATS_TABLE = "X.columns_string_extra_stats"
 COLUMNS_DATE_EXTRA_STATS_TABLE = "X.columns_date_extra_stats"
 COLUMNS_DATETIME_EXTRA_STATS_TABLE = "X.columns_datetime_extra_stats"
@@ -57,6 +57,10 @@ SAMPLE_PROJECTNAME_DATASET_NAME_4K = "X_sampled_tables"
 WORKLOAD_DEFINITION_TABLE = "X.workload_definition"
 QUERY_RUN_INFORMATION_TABLE = "X.query_run_information"
 TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = "X."
+COLUMNS_BIGDECIMAL_EXTRA_STATS_TABLE = COLUMNS_BIGNUMERIC_EXTRA_STATS_TABLE
+COLUMNS_UINT32_EXTRA_STATS_TABLE = COLUMNS_UINT64_EXTRA_STATS_TABLE
+COLUMNS_INT32_EXTRA_STATS_TABLE = COLUMNS_INT64_EXTRA_STATS_TABLE
+COLUMNS_DECIMAL_EXTRA_STATS_TABLE = COLUMNS_NUMERIC_EXTRA_STATS_TABLE
 
 DIRECTORY_PATH_JSON_FILES = None
 DIRECTORY_PATH_QUERY_FILES = None
@@ -66,8 +70,6 @@ PROJECT_NAME = []
 DATASET_NAMES = []
 
 
-
-##############################################################################
 
 TYPES_TO_TABLES = {
     "INT64": COLUMNS_INT64_EXTRA_STATS_TABLE,
@@ -88,40 +90,10 @@ TYPES_TO_TABLES = {
 }
 
 
-class Datatype(enum.Enum):
-  """Column Data Types."""
-
-  INT = "int"
-  FLOAT = "float"
-  CATEGORICAL = "categorical"
-  STRING = "string"
-  MISC = ("misc",)
-  ARRAY = ("array",)
-  JSON = ("json",)
-  ENUM = ("enum",)
-  GEOGRAPHY = ("geography",)
-  PROTO = ("proto",)
-  STRUCT = ("struct",)
-  UNKNOWN_TYPE = ("UNKNOWN_TYPE",)
-  BYTES = ("bytes",)
-  BOOLEAN = "boolean"
-  INTERVAL = ("interval",)
-  RANGE = "range"
-  TIME = "time"
-  TIMESTAMP = ("timestamp",)
-  DATE = ("date",)
-  DATETIME = ("datetime",)
-  NUMERIC = "numeric"
-
-  def __str__(self):
-    return "%s" % self.value
-
-
 TYPES_TO_COLLECT_STATS = {
+    "INT32": Datatype.INT,
     "INT64": Datatype.INT,
     "FLOAT64": Datatype.FLOAT,
-    "INT32": Datatype.INT,
-    "UINT32": Datatype.INT,
     "UINT64": Datatype.INT,
     "NUMERIC": Datatype.NUMERIC,
     "TIME": Datatype.TIME,
@@ -130,6 +102,8 @@ TYPES_TO_COLLECT_STATS = {
     "DATETIME": Datatype.DATETIME,
     "STRING": Datatype.STRING,
     "DOUBLE": Datatype.FLOAT,
+    "BIGNUMERIC": Datatype.NUMERIC,
+    "BIGDECIMAL": Datatype.NUMERIC,
 }
 
 
