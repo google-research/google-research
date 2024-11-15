@@ -20,14 +20,111 @@ Tests Fast Self Attention mechanism based on random feature maps.
 
 import functools
 import time
+from typing import Iterable
+
 from absl import logging
 from absl.testing import absltest
-from flax.deprecated.nn import attention
 import jax
+from jax import lax
 from jax import random
 import jax.numpy as jnp
 import numpy as onp
+
 from performer.fast_attention.jax import fast_attention
+
+
+def dot_product_attention(query,
+                          key,
+                          value,
+                          dtype=jnp.float32,
+                          bias=None,
+                          axis=None,
+                          precision=None):
+  """Computes dot-product attention given query, key, and value.
+
+  This is the core function for applying attention based on
+  https://arxiv.org/abs/1706.03762. It calculates the attention weights given
+  query and key and combines the values using the attention weights. This
+  function supports multi-dimensional inputs.
+
+
+  Args:
+    query: queries for calculating attention with shape of `[batch_size, dim1,
+      dim2, ..., dimN, num_heads, mem_channels]`.
+    key: keys for calculating attention with shape of `[batch_size, dim1, dim2,
+      ..., dimN, num_heads, mem_channels]`.
+    value: values to be used in attention with shape of `[batch_size, dim1,
+      dim2,..., dimN, num_heads, value_channels]`.
+    dtype: the dtype of the computation (default: float32)
+    bias: bias for the attention weights. This can be used for incorporating
+      autoregressive mask, padding mask, proximity bias.
+    axis: axises over which the attention is applied.
+    precision: numerical precision of the computation see `jax.lax.Precision`
+      for details.
+
+  Returns:
+    Output of shape `[bs, dim1, dim2, ..., dimN,, num_heads, value_channels]`.
+  """
+  assert key.shape[:-1] == value.shape[:-1]
+  assert (query.shape[0:1] == key.shape[0:1] and
+          query.shape[-1] == key.shape[-1])
+
+  if axis is None:
+    axis = tuple(range(1, key.ndim - 2))
+  if not isinstance(axis, Iterable):
+    axis = (axis,)
+  assert key.ndim == query.ndim
+  assert key.ndim == value.ndim
+  for ax in axis:
+    if not (query.ndim >= 3 and 1 <= ax < query.ndim - 2):
+      raise ValueError("Attention axis must be between the batch "
+                       "axis and the last-two axes.")
+  depth = query.shape[-1]
+  n = key.ndim
+  # batch_dims is  <bs, <non-attention dims>, num_heads>
+  batch_dims = tuple(onp.delete(range(n), axis + (n - 1,)))
+  # q & k -> (bs, <non-attention dims>, num_heads, <attention dims>, channels)
+  qk_perm = batch_dims + axis + (n - 1,)
+  key = key.transpose(qk_perm)
+  query = query.transpose(qk_perm)
+  # v -> (bs, <non-attention dims>, num_heads, channels, <attention dims>)
+  v_perm = batch_dims + (n - 1,) + axis
+  value = value.transpose(v_perm)
+
+  query = query / jnp.sqrt(depth).astype(dtype)
+  batch_dims_t = tuple(range(len(batch_dims)))
+  attn_weights = lax.dot_general(
+      query,
+      key, (((n - 1,), (n - 1,)), (batch_dims_t, batch_dims_t)),
+      precision=precision)
+
+  # apply attention bias: masking, droput, proximity bias, ect.
+  if bias is not None:
+    attn_weights = attn_weights + bias
+
+  # normalize the attention weights
+  norm_dims = tuple(range(attn_weights.ndim - len(axis), attn_weights.ndim))
+  attn_weights = jax.nn.softmax(attn_weights, axis=norm_dims)
+  attn_weights = attn_weights.astype(dtype)
+
+  # compute the new values given the attention weights
+  wv_contracting_dims = (norm_dims, range(value.ndim - len(axis), value.ndim))
+  y = lax.dot_general(
+      attn_weights,
+      value, (wv_contracting_dims, (batch_dims_t, batch_dims_t)),
+      precision=precision)
+
+  # back to (bs, dim1, dim2, ..., dimN, num_heads, channels)
+  perm_inv = _invert_perm(qk_perm)
+  y = y.transpose(perm_inv)
+  return y
+
+
+def _invert_perm(perm):
+  perm_inv = [0] * len(perm)
+  for i, j in enumerate(perm):
+    perm_inv[j] = i
+  return tuple(perm_inv)
 
 
 def kernel_feature_creator(data,
@@ -86,7 +183,7 @@ class FSAAccuracyTest(absltest.TestCase):
         renormalize_attention, numerical_stabilizer, redraw_features,
         unidirectional)
 
-    standard_attention_result = attention.dot_product_attention(
+    standard_attention_result = dot_product_attention(
         query, key, value)
     unstruct_rfm_attention_result = fast_unstruct_rfm_dot_product_attention.dot_product_attention(
         query, key, value)
@@ -187,7 +284,7 @@ class FSAAccuracyTest(absltest.TestCase):
           nb_features=nb_features,
           unidirectional=unidirectional)
     else:
-      raw_attention_fn = attention.dot_product_attention
+      raw_attention_fn = dot_product_attention
 
     def sum_attention_fn(*args, **kwargs):
       return jnp.sum(raw_attention_fn(*args, **kwargs))
