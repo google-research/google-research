@@ -44,7 +44,7 @@ class PredictionAggregator(tf.keras.layers.Layer):
     super(PredictionAggregator, self).__init__(name=name)
     self._num_test_clips = num_test_clips
 
-  def call(self,
+  def call(self,  # pytype: disable=annotation-type-mismatch
            inputs,
            training = None):
     if training or self._num_test_clips == 1:
@@ -123,7 +123,7 @@ class VideoModel(tf.keras.Model):
 
     return losses
 
-  def call(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def call(self,  # pytype: disable=annotation-type-mismatch,signature-mismatch
            inputs,
            training = None):
     """Call the layer.

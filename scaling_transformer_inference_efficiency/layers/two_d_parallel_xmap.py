@@ -50,7 +50,7 @@ def assert_equal(x, y):
   assert x == y, f'{x} != {y}'
 
 
-def allgather_layernorm(x,
+def allgather_layernorm(x,  # pytype: disable=annotation-type-mismatch
                         shard_seqlen_vs_batch,
                         batch_unsharded = False,
                         scale = None):

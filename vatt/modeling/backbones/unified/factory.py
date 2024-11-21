@@ -59,7 +59,7 @@ class UnifiedModule(tf.keras.Model):
       pred_name = "classification/probabilities"
       self._ops["softmax"] = functools.partial(tf.nn.softmax, name=pred_name)
 
-  def call(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def call(self,  # pytype: disable=annotation-type-mismatch,signature-mismatch
            video,
            audio,
            word_ids,

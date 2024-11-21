@@ -65,7 +65,7 @@ class HeadStack(tf.keras.layers.Layer):
           head_modules["bridge"][head_name](**module_kwargs)
           )
 
-  def call(self,
+  def call(self,  # pytype: disable=annotation-type-mismatch
            inputs,
            training = None,
            mask = None):

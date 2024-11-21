@@ -99,7 +99,7 @@ class MMRLModel(tf.keras.Model):
                    'total_loss': total_loss})
     return losses
 
-  def call(self,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
+  def call(self,  # pytype: disable=annotation-type-mismatch,signature-mismatch
            inputs,
            training = None):
     """Call the layer.

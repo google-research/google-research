@@ -438,7 +438,7 @@ class _Conv(nn.Module):
       'locally connected layer', 'unshared convolution', or 'local convolution'.
 
     """
-    Ellipsis
+    Ellipsis  # pytype: disable=bad-return-type
 
   @nn.compact
   def __call__(self, inputs):
