@@ -190,7 +190,7 @@ tinycss2==1.2.1
 tomli==2.0.1
 torch==1.8.0
 torchvision==0.8.2
-tornado==6.3.2
+tornado==6.4.2
 tqdm @ file:///croot/tqdm_1679561862951/work
 traitlets==5.9.0
 trimesh==3.22.1
