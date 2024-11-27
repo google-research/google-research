@@ -125,7 +125,7 @@ class InstructionTest(parameterized.TestCase):
 
     self.assertAlmostEqual(
         workspace['output'],
-        symbolic_workspace['output'].subs({'input1': input1}))
+        float(symbolic_workspace['output'].subs({'input1': input1})))
 
   @parameterized.parameters(
       instructions.AdditionInstruction,
@@ -145,8 +145,9 @@ class InstructionTest(parameterized.TestCase):
 
     self.assertAlmostEqual(
         workspace['output'],
-        symbolic_workspace['output'].subs(
-            {'input1': input1, 'input2': input2}))
+        float(
+            symbolic_workspace['output'].subs(
+                {'input1': input1, 'input2': input2})))
 
   # test instructions with bound parameters
   @parameterized.parameters(
