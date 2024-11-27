@@ -7,9 +7,17 @@ The model is also supported on the Cloud Vertex API [here](https://console.cloud
 ## Installation
 We use the Python built-in virtual env to set up the environment. Run the following commands:
 
-```
-svn export https://github.com/google-research/google-research/trunk/fvlm
+Shallow clone the parent `google-research` github repository, and sparse-checkout just the `fvlm` sub-directory. 
+This helps avoid the need to clone the full parent repositiory and just access the fvlm sub-directory
 
+```
+git clone --depth=1 --filter=blob:none https://github.com/google-research/google-research.git
+cd ./google-research && git sparse-checkout set fvlm
+```
+
+Set up the venv path and activate it.
+
+```
 PATH_TO_VENV=/path/to/your/venv
 python3 -m venv ${PATH_TO_VENV}
 source ${PATH_TO_VENV}/bin/activate
@@ -18,6 +26,7 @@ source ${PATH_TO_VENV}/bin/activate
 Install the requirements from the root fvlm directory.
 
 ```
+cd ./fvlm
 pip install -r requirements.txt
 ```
 
