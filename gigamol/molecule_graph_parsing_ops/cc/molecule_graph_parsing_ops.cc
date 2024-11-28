@@ -205,7 +205,7 @@ REGISTER_OP("MoleculeGraphParser")
 
       // pair_mask
       c->set_output(4, c->MakeShape({batch_size, max_atoms, max_atoms}));
-      return Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Unpack atom and atom pair features from MoleculeGraph protos.
