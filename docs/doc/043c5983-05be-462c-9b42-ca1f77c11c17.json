@@ -1,0 +1,15 @@
+{
+    "summary": "This code repository implements unsupervised learning of object structure and dynamics from videos, written in Python and requiring specific packages. It has been tested on Linux and can run on GPU or CPU depending on the environment variable.",
+    "details": [
+        {
+            "comment": "This code repository contains the implementation of a model for unsupervised learning of object structure and dynamics from videos. The code is written in Python and requires specific packages, which can be installed via pip. It has been tested on Linux, and can run either on GPU or CPU depending on the CUDA_VISIBLE_DEVICES environment variable. The authors provide a minimal example for running the code and ask to cite their paper when using this implementation.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_structure/README.md\":0-56",
+            "content": "# Unsupervised Learning of Object Structure and Dynamics from Videos\nThis reprository contains code for the model described in\nhttps://arxiv.org/abs/1906.07889.\nAlso see the [project website](https://mjlm.github.io/video_structure/).\n## Usage\n### Installation\nThis code has been tested on Linux.\n1. Clone the repository.\n  ```\n  git clone -b master --single-branch https://github.com/google-research/google-research.git\n  ```\n2. Make sure `google-research` is the current directory:\n  ```\n  cd google-research\n  ```\n3. Create and activate a new virtualenv:\n  ```\n  virtualenv -p python3 video_structure\n  source video_structure/bin/activate\n  ```\n4. Install required packages:\n  ```\n  pip install -r video_structure/requirements.txt\n  ```\n### Run minimal example\nRun on GPU device 0:\n```\nCUDA_VISIBLE_DEVICES=0 python -m video_structure.train\n```\nRun on CPU:\n```\nCUDA_VISIBLE_DEVICES= python -m video_structure.train\n```\n## Citation\n```\n@inproceedings{minderer2019unsupervised,\n\ttitle = {Unsupervised Learning of Object Structure and Dynamics from Videos},"
+        },
+        {
+            "comment": "The code represents a citation for a research paper published on the arXiv preprint server in 2019. The paper was authored by Minderer, Sun, Villegas, Cole, Murphy, and Lee.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_structure/README.md\":57-61",
+            "content": "\tauthor = {Minderer, Matthias and Sun, Chen and Villegas, Ruben and Cole, Forrester and Murphy, Kevin and Lee, Honglak},\n\tbooktitle = {arXiv: 1906.07889},\n\tyear = {2019},\n}\n```"
+        }
+    ]
+}
