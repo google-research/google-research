@@ -61,11 +61,7 @@ from utils import evaluate
 from utils import train_test_helper
 from utils import utils
 
-if 'gfile' not in sys.modules:
-  gfile = tf.io.gfile
-  gfile_makedirs = gfile.makedirs
-  gfile_isdir = gfile.isdir
-
+from tensorflow.compat.v1.io import *
 
 _DATA = flags.DEFINE_string(
     'data',
@@ -289,7 +285,7 @@ def main(_):
       structural_feature_dim=test_feature_dim,
   )
 
-  MODEL_NAME = '_'.join(
+  model_name = '_'.join(
       [model.model_name, _DATA.value, _TRAIN_GROUP.value, _VAL_GROUP.value]
   )
 
@@ -300,7 +296,7 @@ def main(_):
   run_directory = os.path.join(
       _ROOT_DIR.value, 'experiments', _OUTPUT_SUBDIR.value, _DATA.value
   )
-  results_path = os.path.join(run_directory, 'results', MODEL_NAME)
+  results_path = os.path.join(run_directory, 'results', model_name)
   if not gfile_isdir(results_path):
     print('INFO: Create directory {}'.format(results_path))
     gfile_makedirs(results_path)
@@ -318,7 +314,7 @@ def main(_):
   # define an early stopper
   save_model_dir = os.path.join(run_directory, 'saved_models')
   save_model_id = (
-      f'{MODEL_NAME}_{_SEED.value}_{_RUN_ID.value}_{experiment_name}'
+      f'{model_name}_{_SEED.value}_{_RUN_ID.value}_{experiment_name}'
   )
   early_stopper = early_stopping.EarlyStopMonitor(
       save_model_dir=save_model_dir,
@@ -404,7 +400,7 @@ def main(_):
 
   utils.save_results(
       {
-          'model': MODEL_NAME,
+          'model': model_name,
           'data': _DATA.value,
           'run': _RUN_ID.value,
           'seed': _SEED.value,

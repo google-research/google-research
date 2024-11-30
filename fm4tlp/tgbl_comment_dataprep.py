@@ -33,9 +33,7 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
-
-if 'gfile' not in sys.modules:
-  gfile = tf.io.gfile
+from tensorflow.compat.v1.io import *
 
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',

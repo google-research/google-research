@@ -33,12 +33,10 @@ from absl import flags
 import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
+from tensorflow.compat.v1.io import *
 import tqdm
 from utils import negative_sampler
 
-
-if 'gfile' not in sys.modules:
-  gfile = tf.io.gfile
 
 _CONTINENT = flags.DEFINE_string(
     'continent',

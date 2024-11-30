@@ -92,9 +92,7 @@ import tqdm
 
 from utils import communities
 from utils import negative_sampler
-
-if 'gfile' not in sys.modules:
-  gfile = tf.io.gfile
+from tensorflow.compat.v1.io import *
 
 
 _GRAPH_FRACTION = flags.DEFINE_float(

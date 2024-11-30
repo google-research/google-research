@@ -293,10 +293,6 @@ def main(_):
   )
   vac4 = structural_feature_helper.VertexAutomorphismCounter(k=4)
 
-  # print('!!!vac3', vac3)
-  # print('!!!vac4', vac4)
-  # print('!!!dataset_specs', dataset_specs)
-
   begin_index = _ARRAY_TASK_ID.value * _ARRAY_TASK_COUNT.value
   end_index = begin_index +  _ARRAY_TASK_COUNT.value
   logging.info('[!!Array] begin_index: {} end_index: {} | total: {}'.format(begin_index, end_index, len(dataset_specs)))
