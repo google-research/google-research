@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+import dataclasses
+from typing import Optional
+import xmile_globals
+import xmile_time_format_grouping
 
-virtualenv -p python3 .
-source ./bin/activate
+__NAMESPACE__ = "http://iseesystems.com/XMILE"
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+
+@dataclasses.dataclass(kw_only=True)
+class XmileTimeFormatGroupings:
+
+  class Meta:
+    name = "time_format_groupings"
+    namespace = xmile_globals.ISEE_NAMESPACE
+
+  time_format_grouping: Optional[xmile_time_format_grouping.XmileTimeFormatGrouping] = dataclasses.field(
+      default=None,
+      metadata={
+          "type": "Element",
+      }
+  )

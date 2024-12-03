@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""IgnoredWords. Part of ISEE XMILE standard"""
 
-virtualenv -p python3 .
-source ./bin/activate
+import dataclasses
+from typing import List
+import xmile_globals
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+__NAMESPACE__ = "http://iseesystems.com/XMILE"
+
+
+@dataclasses.dataclass
+class XmileIgnoredWords:
+
+  class Meta:
+    name = "ignored_words"
+    namespace = xmile_globals.ISEE_NAMESPACE
+
+  ignored_word: List[str] = dataclasses.field(
+      default_factory=list,
+      metadata={
+          "type": "Element",
+          "min_occurs": 1,
+      },
+  )

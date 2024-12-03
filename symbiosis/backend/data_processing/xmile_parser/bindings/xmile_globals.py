@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""Globals defined for XMILE."""
 
-virtualenv -p python3 .
-source ./bin/activate
+XMILE_NAMESPACE = "http://docs.oasis-open.org/xmile/ns/XMILE/v1.0"
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+ISEE_NAMESPACE = "http://iseesystems.com/XMILE"
+
+SMILE_NAMESPACE = "http://www.systemdynamics.org/XMILE"

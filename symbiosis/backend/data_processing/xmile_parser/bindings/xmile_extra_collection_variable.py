@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""Extra Collection Variable."""
 
-virtualenv -p python3 .
-source ./bin/activate
+import dataclasses
+import xmile_globals
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+__NAMESPACE__ = "http://iseesystems.com/XMILE"
+
+
+@dataclasses.dataclass(kw_only=True)
+class XmileExtraCollectionVariable:
+  """ExtraCollectionVariable."""
+
+  class Meta:
+    name = "extra_collection_variable"
+    namespace = xmile_globals.ISEE_NAMESPACE
+
+  name: str = dataclasses.field(
+      metadata={
+          "type": "Attribute",
+          "required": True,
+      }
+  )

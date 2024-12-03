@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,32 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""Sound class."""
 
-virtualenv -p python3 .
-source ./bin/activate
+import dataclasses
+from typing import Optional
+import xmile_globals
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+__NAMESPACE__ = "http://docs.oasis-open.org/xmile/ns/XMILE/v1.0"
+
+
+@dataclasses.dataclass(kw_only=True)
+class XmileSound:
+  """Sound class."""
+
+  class Meta:
+    name = "sound"
+    namespace = xmile_globals.XMILE_NAMESPACE
+
+  value: str = dataclasses.field(
+      default="",
+      metadata={
+          "required": True,
+      },
+  )
+  resource: Optional[str] = dataclasses.field(
+      default=None,
+      metadata={
+          "type": "Attribute",
+      },
+  )

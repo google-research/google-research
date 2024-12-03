@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""PayoffSpecsList - ISEE standard."""
 
-virtualenv -p python3 .
-source ./bin/activate
+import dataclasses
+from typing import List
+import xmile_globals
+import xmile_payoff_specs
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+
+__NAMESPACE__ = "http://iseesystems.com/XMILE"
+
+
+@dataclasses.dataclass(kw_only=True)
+class XmilePayoffSpecsList:
+  """PayoffSpecsList - ISEE standard."""
+
+  class Meta:
+    name = "payoff_specs_list"
+    namespace = xmile_globals.ISEE_NAMESPACE
+
+  payoff_specs: List[xmile_payoff_specs.XmilePayoffSpecs] = dataclasses.field(
+      default_factory=list,
+      metadata={
+          "type": "Element",
+          "required": True,
+      },
+  )

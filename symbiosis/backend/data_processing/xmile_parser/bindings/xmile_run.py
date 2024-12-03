@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,29 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+import dataclasses
+from typing import Optional
+import xmile_globals
 
-virtualenv -p python3 .
-source ./bin/activate
+__NAMESPACE__ = "http://docs.oasis-open.org/xmile/ns/XMILE/v1.0"
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+
+@dataclasses.dataclass(kw_only=True)
+class XmileRun:
+
+  class Meta:
+    name = "run"
+    namespace = xmile_globals.XMILE_NAMESPACE
+
+  by: str = dataclasses.field(
+      metadata={
+          "type": "Attribute",
+          "required": True,
+      }
+  )
+  out_of_sector: Optional[bool] = dataclasses.field(
+      default=None,
+      metadata={
+          "type": "Attribute",
+      },
+  )

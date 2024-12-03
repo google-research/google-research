@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,25 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+"""List of views or diagrams pertaining to the model."""
 
-virtualenv -p python3 .
-source ./bin/activate
+import dataclasses
+from typing import List, Optional
+import xmile_globals
+import xmile_view_no_ns
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+
+@dataclasses.dataclass(kw_only=True)
+class XmileViewsNoNs:
+  """List of views or diagrams pertaining to the model."""
+
+  class Meta:
+    name = "views"
+    namespace = ""
+
+  view: xmile_view_no_ns.XmileViewNoNs = dataclasses.field(
+      metadata={
+          "type": "Element",
+          "required": True,
+      },
+  )

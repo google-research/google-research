@@ -1,6 +1,0 @@
-numpy==1.24.4
-pandas==2.0.3
-scikit_learn==1.5.2
-tensorflow==2.17.0
-tqdm==4.66.5
-transformers==4.46.2

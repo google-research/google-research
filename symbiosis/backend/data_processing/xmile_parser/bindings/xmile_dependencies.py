@@ -1,3 +1,4 @@
+# coding=utf-8
 # Copyright 2024 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,12 +13,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
-set -e
-set -x
+import dataclasses
+from typing import List
 
-virtualenv -p python3 .
-source ./bin/activate
+import xmile_globals
+import xmile_var
 
-pip install -r requirements.txt
-python -m symbiosis.backend.data_processing.sdg_multilabel.train.py
+__NAMESPACE__ = "http://iseesystems.com/XMILE"
+
+
+@dataclasses.dataclass(kw_only=True)
+class XmileDependencies:
+    class Meta:
+        name = "dependencies"
+        namespace = xmile_globals.ISEE_NAMESPACE
+
+    var: List[xmile_var.XmileVar] = dataclasses.field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": xmile_globals.XMILE_NAMESPACE,
+            "min_occurs": 1,
+        },
+    )
+
