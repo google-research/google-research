@@ -301,6 +301,7 @@ def copy_to_device(x, sharding,
     def sharded_zeros():
       return jnp.zeros(x.shape, expected.dtype)
 
+    assert isinstance(sharding.mesh, jax.sharding.Mesh)
     with sharding.mesh:
       return pjit.pjit(
           sharded_zeros, in_shardings=(), out_shardings=sharding.spec
