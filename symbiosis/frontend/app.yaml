@@ -1,0 +1,21 @@
+env: standard
+runtime: nodejs18
+service: default
+
+automatic_scaling:
+  max_instances: 10
+
+handlers:
+  - url: /.*
+    secure: always
+    script: auto
+
+env_variables:
+  GOOGLE_ID: 'FOLLOW_INSTRUCTIONS_IN_READEME'
+  GOOGLE_SECRET: 'FOLLOW_INSTRUCTIONS_IN_README'
+  NEXTAUTH_URL_INTERNAL: 'http://localhost:8000'
+  NEXTAUTH_SECRET: 'FOLLOW_INSTRUCTIONS_IN_README'
+  GEMINI_API_KEY: 'FOLLOW_INSTRUCTIONS_IN_README'
+
+vpc_access_connector:
+  name: 'FOLLOW_INSTRUCTIONS_IN_READEME'

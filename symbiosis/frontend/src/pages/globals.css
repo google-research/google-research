@@ -1,0 +1,1096 @@
+/*
+ * Copyright 2024 The Google Research Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+.react-flow {
+  --bg-color: rgb(17, 17, 17);
+  --text-color: rgb(243, 244, 246);
+  --node-border-radius: 10px;
+  --panel-background: #f8fafc;
+  --text: #0a0a0a;
+  --node-box-shadow: 10px 0 15px rgba(42, 138, 246, 0.3),
+  -10px 0 15px rgba(233, 42, 103, 0.3);
+  background-color: var(--bg-color);
+  color: var(--text-color);
+}
+
+.react-flow.dark {
+  --background: #0f172a;
+  --panel-background: #1e293b;
+  --panel-shadow: 0 0 8px 0 rgb(0 0 0 / 0.4);
+  --text: #fafafa;
+}
+
+/*SDG Node Styles*/
+.react-flow__node-focus {
+  border-radius: var(--node-border-radius);
+  display: flex;
+  height: auto;
+  width: auto;
+  /*min-width: 150px;*/
+  /*max-width: 350px;*/
+  font-family: 'Fira Mono', Monospace;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  box-shadow: var(--node-box-shadow);
+}
+
+.react-flow__node-focus .wrapper {
+  overflow: hidden;
+  display: flex;
+  padding: 2px;
+  position: relative;
+  border-radius: var(--node-border-radius);
+  flex-grow: 1;
+}
+
+.gradient:before {
+  content: '';
+  position: absolute;
+  padding-bottom: calc(100% * 1.41421356237);
+  width: calc(100% * 1.41421356237);
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 100%;
+}
+
+.react-flow__node-focus.selected .wrapper.gradient:before {
+  content: '';
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      rgba(42, 138, 246, 0) 360deg
+  );
+  animation: spinner 4s linear infinite;
+  transform: translate(-50%, -50%) rotate(0deg);
+  z-index: -1;
+}
+
+@keyframes spinner {
+  100% {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+.react-flow__node-focus .inner {
+  background: var(--bg-color);
+  padding: 16px 20px;
+  border-radius: var(--node-border-radius);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /*flex-grow: 1;*/
+  position: relative;
+
+  height: fit-content;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  width: 250px;
+}
+
+.inner .expanded {
+  height: auto;
+}
+
+.react-flow__node-focus .icon {
+  margin-right: 8px;
+}
+
+.react-flow__node-focus .body {
+  display: flex;
+}
+
+.react-flow__node-focus .title {
+  font-size: 12px;
+  margin-bottom: 2px;
+  line-height: 1;
+  max-width: 250px;
+  text-wrap: wrap;
+}
+
+.react-flow__node-focus .subline {
+  font-size: 10px;
+  color: #777;
+  word-wrap: break-word;
+}
+
+.react-flow__node-focus .cloud {
+  border-radius: 100%;
+  width: 30px;
+  height: 30px;
+  right: 0;
+  position: absolute;
+  top: 0;
+  transform: translate(50%, -50%);
+  display: flex;
+  transform-origin: center center;
+  padding: 2px;
+  overflow: hidden;
+  box-shadow: var(--node-box-shadow);
+  z-index: 1;
+}
+
+.react-flow__node-focus .cloud div {
+  background-color: var(--bg-color);
+  flex-grow: 1;
+  border-radius: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+
+/*Graph Node Styles*/
+.react-flow__node-graph {
+  border-radius: 50%;
+  display: flex;
+  aspect-ratio: 1/1;
+  height: 10px;
+  width: 10px;
+  /*min-width: 150px;*/
+  /*max-width: 350px;*/
+  font-family: 'Fira Mono', Monospace;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  box-shadow: var(--node-box-shadow);
+}
+
+.react-flow__node-graph .graphwrapper {
+  overflow: hidden;
+  display: flex;
+  /*padding: 0px;*/
+  /*position: relative;*/
+  border-radius: 50%;
+  /*flex-grow: 1;*/
+}
+
+.graphgradient:before {
+  content: '';
+  position: absolute;
+  padding-bottom: calc(100% * 1.41421356237);
+  width: calc(100% * 1.41421356237);
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.react-flow__node-graph.selected .wrapper.graphgradient:before {
+  content: '';
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      rgba(42, 138, 246, 0) 360deg
+  );
+  animation: graphspinner 4s linear infinite;
+  transform: translate(-50%, -50%) rotate(0deg);
+  z-index: -1;
+}
+
+@keyframes graphspinner {
+  100% {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+.react-flow__node-graph .inner {
+  background: var(--bg-color);
+  padding: 3px 5px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+  position: relative;
+}
+
+.react-flow__node-graph .icon {
+  margin-right: 8px;
+}
+
+.react-flow__node-graph .body {
+  display: flex;
+}
+
+.react-flow__node-graph .subline {
+  font-size: 10px;
+  color: #777;
+  word-wrap: break-word;
+}
+
+.react-flow__node-graph .react-flow__node-toolbar { /* Target the GraphNode's toolbar specifically */
+  backgroundColor: transparent;
+  border: 2px solid #673ab7;
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 200px;
+  height: fit-content;
+  position: relative; /* For positioning the gradient */
+}
+
+.react-flow__node-graph .react-flow__node-toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Use the same conic-gradient as the GraphNode background */
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  border-radius: 8px;
+  z-index: -1;
+}
+
+/*Stock Node Styles*/
+.react-flow__node-stock {
+  border-radius: var(--node-border-radius);
+  display: flex;
+  height: auto;
+  width: auto;
+  /*min-width: 150px;*/
+  /*max-width: 350px;*/
+  font-family: 'Fira Mono', Monospace;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  box-shadow: var(--node-box-shadow);
+}
+
+.react-flow__node-stock .modelwrapper {
+  overflow: hidden;
+  display: flex;
+  padding: 2px;
+  position: relative;
+  border-radius: var(--node-border-radius);
+  flex-grow: 1;
+}
+
+.modelgradient:before {
+  content: '';
+  position: absolute;
+  padding-bottom: calc(100% * 1.41421356237);
+  width: calc(100% * 1.41421356237);
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.react-flow__node-stock.selected .wrapper.modelgradient:before {
+  content: '';
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      rgba(42, 138, 246, 0) 360deg
+  );
+  animation: modelspinner 4s linear infinite;
+  transform: translate(-50%, -50%) rotate(0deg);
+  z-index: -1;
+}
+
+/*@keyframes stockspinner {*/
+/*  100% {*/
+/*    transform: translate(-50%, -50%) rotate(-360deg);*/
+/*  }*/
+/*}*/
+
+.react-flow__node-stock .inner {
+  background: var(--bg-color);
+  padding: 16px 20px;
+  border-radius: var(--node-border-radius);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  /*flex-grow: 1;*/
+  position: relative;
+
+  height: fit-content;
+  overflow: hidden;
+  transition: height 0.3s ease;
+  width: 20px;
+}
+
+.react-flow__node-stock .icon {
+  margin-right: 8px;
+}
+
+.react-flow__node-stock .body {
+  display: flex;
+}
+
+.react-flow__node-stock .subline {
+  font-size: 10px;
+  color: #777;
+  word-wrap: break-word;
+}
+
+.react-flow__node-stock .react-flow__node-toolbar { /* Target the GraphNode's toolbar specifically */
+  backgroundColor: transparent;
+  border: 2px solid #673ab7;
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 50px;
+  height: fit-content;
+  position: relative; /* For positioning the gradient */
+}
+
+.react-flow__node-stock .react-flow__node-toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Use the same conic-gradient as the GraphNode background */
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  border-radius: 8px;
+  z-index: -1;
+}
+/*Flow Node Styles*/
+/*.react-flow__node-flow {*/
+/*  border-radius: 50%;*/
+/*  display: flex;*/
+/*  aspect-ratio: 1/1;*/
+/*  height: 10px;*/
+/*  width: 10px;*/
+/*  !*min-width: 150px;*!*/
+/*  !*max-width: 350px;*!*/
+/*  font-family: 'Fira Mono', Monospace;*/
+/*  font-weight: 500;*/
+/*  letter-spacing: -0.2px;*/
+/*  box-shadow: var(--node-box-shadow);*/
+/*}*/
+
+.react-flow__node-flow {
+  border-radius: 50%;
+  display: flex;
+  aspect-ratio: 1/1;
+  height: 40px;
+  width: 40px;
+  /*min-width: 150px;*/
+  /*max-width: 350px;*/
+  font-family: 'Fira Mono', Monospace;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  box-shadow: var(--node-box-shadow);
+  clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+}
+
+.react-flow__node-flow .modelwrapper {
+  overflow: hidden;
+  display: flex;
+  /*padding: 0px;*/
+  /*position: relative;*/
+  border-radius: 50%;
+  /*flex-grow: 1;*/
+  /*clip-path: polygon(50% 0%, 0% 100%, 100% 100%);*/
+}
+
+.modelgradient:before {
+  content: '';
+  position: absolute;
+  padding-bottom: calc(100% * 1.41421356237);
+  width: calc(100% * 1.41421356237);
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.react-flow__node-flow.selected .wrapper.modelgradient:before {
+  content: '';
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      rgba(42, 138, 246, 0) 360deg
+  );
+  animation: modelspinner 4s linear infinite;
+  transform: translate(-50%, -50%) rotate(0deg);
+  z-index: -1;
+}
+
+
+.react-flow__node-flow .inner {
+  background: var(--bg-color);
+  /*padding: 7px 7px;*/
+  /*clip-path: polygon(50% 0%, 0% 100%, 100% 100%); !* Make it triangular *!*/
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+  position: relative;
+}
+
+.react-flow__node-flow .icon {
+  margin-right: 8px;
+}
+
+.react-flow__node-flow .body {
+  display: flex;
+}
+
+.react-flow__node-flow .subline {
+  font-size: 10px;
+  color: #777;
+  word-wrap: break-word;
+}
+
+.react-flow__node-flow .react-flow__node-toolbar { /* Target the GraphNode's toolbar specifically */
+  backgroundColor: transparent;
+  border: 2px solid #673ab7;
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 50px;
+  height: fit-content;
+  position: relative; /* For positioning the gradient */
+}
+
+.react-flow__node-flow .react-flow__node-toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Use the same conic-gradient as the GraphNode background */
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  border-radius: 8px;
+  z-index: -1;
+}
+
+/*Graph Node Styles*/
+.react-flow__node-aux {
+  border-radius: 50%;
+  display: flex;
+  aspect-ratio: 1/1;
+  height: 30px;
+  width: 30px;
+  /*min-width: 150px;*/
+  /*max-width: 350px;*/
+  font-family: 'Fira Mono', Monospace;
+  font-weight: 500;
+  letter-spacing: -0.2px;
+  box-shadow: var(--node-box-shadow);
+}
+
+.react-flow__node-aux .modelwrapper {
+  overflow: hidden;
+  display: flex;
+  /*padding: 0px;*/
+  /*position: relative;*/
+  border-radius: 50%;
+  /*flex-grow: 1;*/
+}
+
+.modelgradient:before {
+  content: '';
+  position: absolute;
+  padding-bottom: calc(100% * 1.41421356237);
+  width: calc(100% * 1.41421356237);
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+}
+
+.react-flow__node-aux.selected .wrapper.modelgradient:before {
+  content: '';
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      rgba(42, 138, 246, 0) 360deg
+  );
+  animation: modelspinner 4s linear infinite;
+  transform: translate(-50%, -50%) rotate(0deg);
+  z-index: -1;
+}
+
+@keyframes modelspinner {
+  100% {
+    transform: translate(-50%, -50%) rotate(-360deg);
+  }
+}
+
+.react-flow__node-aux .inner {
+  background: var(--bg-color);
+  padding: 3px 15px;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-grow: 1;
+  position: relative;
+}
+
+.react-flow__node-aux .icon {
+  margin-right: 8px;
+}
+
+.react-flow__node-aux .body {
+  display: flex;
+}
+
+.react-flow__node-aux .subline {
+  font-size: 10px;
+  color: #777;
+  word-wrap: break-word;
+}
+
+.react-flow__node-aux .react-flow__node-toolbar { /* Target the GraphNode's toolbar specifically */
+  backgroundColor: transparent;
+  border: 2px solid #673ab7;
+  color: white;
+  padding: 8px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  width: 50px;
+  height: fit-content;
+  position: relative; /* For positioning the gradient */
+}
+
+.react-flow__node-aux .react-flow__node-toolbar::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Use the same conic-gradient as the GraphNode background */
+  background: conic-gradient(
+      from -160deg at 50% 50%,
+      #e92a67 0deg,
+      #a853ba 120deg,
+      #2a8af6 240deg,
+      #e92a67 360deg
+  );
+  border-radius: 8px;
+  z-index: -1;
+}
+
+/*Other styles*/
+.react-flow__handle {
+  /*opacity: 0;*/
+}
+
+.react-flow__handle.source {
+  /*right: -10px;*/
+}
+
+.react-flow__handle.target {
+  /*left: -10px;*/
+}
+
+.react-flow__node:focus {
+  outline: none;
+}
+
+.react-flow__edge .react-flow__edge-path {
+  stroke: url(#edge-gradient);
+  stroke-width: 2;
+  stroke-opacity: 0.75;
+  marker-end: url(#edge-arrow);
+  /*stroke-dasharray: 5 5;*/
+}
+
+.react-flow__controls button {
+  background-color: var(--bg-color);
+  color: var(--text-color);
+  border: 1px solid #95679e;
+  border-bottom: none;
+}
+
+.react-flow__controls button:hover {
+  background-color: rgb(37, 37, 37);
+}
+
+.react-flow__controls button:first-child {
+  border-radius: 5px 5px 0 0;
+}
+
+.react-flow__controls button:last-child {
+  border-bottom: 1px solid #95679e;
+  border-radius: 0 0 5px 5px;
+}
+
+.react-flow__controls button path {
+  fill: var(--text-color);
+}
+
+.react-flow__panel,
+.react-flow__node-toolbar {
+  background-color: var(--panel-background);
+  box-shadow: var(--panel-shadow);
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 3;
+}
+
+.react-flow svg {
+  display: block;
+}
+
+.react-flow__minimap-mask {
+  fill: var(--background);
+  fill-opacity: 0.85;
+}
+
+.react-flow__node-toolbar {
+  display: flex;
+  gap: 8px;
+}
+
+.react-flow__controls-button,
+.react-flow__controls-button:hover {
+  background: var(--panel-background);
+  border-bottom: none;
+}
+
+.react-flow__controls-button > svg {
+  fill: var(--text);
+}
+
+.react-flow__handle {
+  opacity: 0;
+  z-index: 10;
+}
+
+.react-flow__node.selected .react-flow__handle {
+  opacity: 1;
+}
+
+.react-flow__handle,
+.react-flow__resize-control.handle {
+  border: 1px solid var(--background);
+}
+
+.sidebar-label {
+  color: var(--text);
+  font-size: 12px;
+  margin-bottom: 4px;
+  user-select: none;
+}
+
+.sidebar-items {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2px;
+}
+
+.sidebar-item {
+  opacity: 0.5;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.sidebar-item > svg {
+  stroke: var(--text);
+}
+
+.sidebar-item:hover {
+  opacity: 1;
+  background-color: var(--background);
+}
+
+.sidebar-item-drag-image {
+  transform: translate(0, 0);
+  position: absolute;
+  top: -100000px;
+  left: -1000000px;
+}
+
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  outline: none;
+  box-shadow: none;
+  border: 1px solid var(--panel-background);
+  cursor: pointer;
+}
+
+.color-swatch.active {
+  outline: 2px solid var(--text);
+}
+
+.node-label {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  background: none;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  color: var(--text);
+}
+
+.node-label::placeholder {
+  color: var(--text);
+  opacity: 0.5;
+}
+
+/* Draw Node Sidebar Styles */
+.drawsidebarwrapper {
+  flex-direction: row;
+  display: flex;
+  height: 100%;
+}
+
+.drawsidebarwrapper aside {
+  border: 1px solid #333;
+  padding: 25px;
+  font-size: 12px;
+  background-color: #222;
+  color: #fff;
+}
+
+.react-flow__node-variablenode {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  width: 40px;
+  height: 40px;
+  position: relative;
+  color: #fff;
+  cursor: grab;
+  margin-bottom: 35px;
+}
+
+.react-flow__node-group {
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 12px;
+  width: 40px;
+  height: 40px;
+  position: relative;
+  color: #fff;
+  cursor: grab;
+  margin-bottom: 35px;
+}
+
+.react-flow__edge-customcircular .react-flow__edge-path {
+  stroke: 'white';
+  stroke-width: 2;
+  /*stroke-opacity: 0.75;*/
+  marker-end: url(#edge-arrow);
+  /*stroke-dasharray: 5 5;*/
+}
+
+.drawsidebarwrapper {
+  display: flex;
+  height: 80vh;
+  width: 80vw;
+}
+
+.drawsidebarwrapper .rfWrapper {
+  flex-grow: 1;
+  height: 100%;
+}
+
+.drawsidebarwrapper > Sidebar { /* Directly target the Sidebar component */
+  width: 20%; /* Example: Sidebar takes 20% of the viewport width */
+  /* Add more styles as needed */
+}
+
+/* Media Queries for Responsiveness */
+@media (max-width: 768px) { /* Example for tablet or smaller */
+  .drawsidebarwrapper > Sidebar {
+    width: 30%; /* Adjust sidebar width for smaller screens */
+  }
+  .drawsidebarwrapper .variablenodelabel {
+    font-size: 10px; /* Adjust font size */
+  }
+  .drawsidebarwrapper .stocknodelabel {
+    font-size: 10px; /* Adjust font size */
+  }
+  .drawsidebarwrapper .flownodelabel {
+    font-size: 10px; /* Adjust font size */
+  }
+}
+
+@media (max-width: 600px) { /* Example for mobile */
+  .drawsidebarwrapper {
+    flex-direction: column; /* Stack sidebar on top of React Flow */
+  }
+  .drawsidebarwrapper > Sidebar {
+    width: 100%; /* Sidebar takes full width on mobile */
+    height: auto; /* Adjust height as needed */
+  }
+}
+
+/* Variable Node */
+.drawsidebarwrapper .react-flow__node-variablenode .react-flow__handle {
+  background: #ddd;
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+}
+
+.drawsidebarwrapper .react-flow__node-variablenode {
+  /*background: rgba(180, 75, 159, 0.5);*/
+  /*box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.4);*/
+  border: 1px solid rgba(238, 238, 238, 0);
+  text-align: center;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.drawsidebarwrapper .variablenodelabel {
+  position: absolute;
+  bottom: 0;
+  /*width: 100px;*/
+  left: 50%;
+  transform: translate(-50%, 120%);
+  color: #f5f5f5;
+  font-size: 12px;
+}
+
+.drawsidebarwrapper .variablenodeicon {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  color: #f5f5f5;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.drawsidebarwrapper .react-flow__node-variablenode.selected,
+.drawsidebarwrapper .react-flow__node-variablenode:hover {
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.8);
+}
+
+.drawsidebarwrapper .react-flow__node-variablenode.selected {
+  box-shadow: 0px 0px 10px 0px rgba(255, 255, 255, 1.2);
+}
+
+/* Stock Node */
+.drawsidebarwrapper .react-flow__node-stocknode .react-flow__handle {
+  background: #ddd;
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+}
+
+.drawsidebarwrapper .react-flow__node-stocknode {
+  /*background: rgba(180, 75, 159, 0.5);*/
+  /*box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.4);*/
+  border: 1px solid rgba(238, 238, 238, 0);
+  text-align: center;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.drawsidebarwrapper .stocknodelabel {
+  position: absolute;
+  bottom: 0;
+  /*width: 100px;*/
+  left: 50%;
+  transform: translate(-50%, 120%);
+  color: #f5f5f5;
+  font-size: 12px;
+}
+
+.drawsidebarwrapper .stocknodeicon {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  color: #f5f5f5;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.drawsidebarwrapper .react-flow__node-stocknode.selected,
+.drawsidebarwrapper .react-flow__node-stocknode:hover {
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.8);
+}
+
+.drawsidebarwrapper .react-flow__node-stocknode.selected {
+  box-shadow: 0px 0px 10px 0px rgba(255, 255, 255, 1.2);
+}
+
+/* Flow Node */
+.drawsidebarwrapper .react-flow__node-flownode .react-flow__handle {
+  background: #ddd;
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+}
+
+.drawsidebarwrapper .react-flow__node-flownode {
+  /*background: rgba(180, 75, 159, 0.5);*/
+  /*box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.4);*/
+  border: 1px solid rgba(238, 238, 238, 0);
+  text-align: center;
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.drawsidebarwrapper .flownodelabel {
+  position: absolute;
+  bottom: 0;
+  /*width: 100px;*/
+  left: 50%;
+  transform: translate(-50%, 120%);
+  color: #f5f5f5;
+  font-size: 12px;
+}
+
+.drawsidebarwrapper .flownodeicon {
+  position: absolute;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  color: #f5f5f5;
+  font-size: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.drawsidebarwrapper .react-flow__node-flownode.selected,
+.drawsidebarwrapper .react-flow__node-flownode:hover {
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.8);
+}
+
+.drawsidebarwrapper .react-flow__node-flownode.selected {
+  box-shadow: 0px 0px 10px 0px rgba(255, 255, 255, 1.2);
+}
+
+/* Group Node */
+
+.drawsidebarwrapper .react-flow__node-group {
+  background: rgba(153, 26, 152, 0.1);
+  border: 1px solid #fff;
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+  resize: both;
+  width: auto;
+}
+
+.drawsidebarwrapper .react-flow__node-group.active {
+  box-shadow: 0px 0px 12px 0px rgba(255, 255, 255, 0.9);
+}
+
+.drawsidebarwrapper .react-flow__node-group.selected,
+.drawsidebarwrapper .react-flow__node-group:hover {
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+}
+
+.drawsidebarwrapper .react-flow__node-group.selected {
+  border-width: 2px;
+}
+
+.drawsidebarwrapper .react-flow__variablenode-toolbar {
+  border-radius: 2px;
+  overflow: hidden;
+  box-shadow: 0px 0px 8px 0px rgba(255, 255, 255, 0.5);
+}
+
+.drawsidebarwrapper .react-flow__variablenode-toolbar button {
+  border-radius: 0;
+  background: #eee;
+  color: #111;
+  font-size: 11px;
+  border: none;
+  padding: 5px 15px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.drawsidebarwrapper .react-flow__variablenode-toolbar button:hover {
+  background-color: #ddd;
+}
+
+.drawsidebarwrapper .react-flow__variablenode-toolbar button:nth-child(even) {
+  border-left: 1px solid #999;
+}
