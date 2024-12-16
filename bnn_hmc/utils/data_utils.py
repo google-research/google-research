@@ -35,6 +35,7 @@ import numpy as onp
 from jax import numpy as jnp
 import tensorflow as tf
 import tensorflow_datasets as tfds
+from sklearn.decomposition import PCA
 from enum import Enum
 import re
 import os
@@ -283,7 +284,7 @@ def pmap_dataset(ds, n_devices):
 
 def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None,
                            sequential=False, num_sequential_training_folds=2,
-                           index_sequential_training_fold=0, stratified=False):
+                           index_sequential_training_fold=0, stratified=None):
   """Make train and test sets sharded over batch dim."""
   name = name.lower()
   n_devices = n_devices or len(jax.local_devices())
@@ -335,11 +336,23 @@ def make_ds_pmap_fullbatch(name, dtype, n_devices=None, truncate_to=None,
         "truncate_to={}, num_sequential_training_folds={}, n_devices={}".format(
           truncate_to, num_sequential_training_folds, n_devices))
 
-    if stratified:
-      # Sort classes by increasing order
-      # This means e.g. some classes will be present only in the first half,
-      # some only in the second half
-      order = onp.argsort(train_set[1])
+    if stratified is not None:
+      if stratified == "classes":
+        # Sort classes by increasing order
+        # This means e.g. some classes will be present only in the first half,
+        # some only in the second half
+        order = onp.argsort(train_set[1])
+      elif stratified == "pca":
+        train_set_X, _ = train_set
+        image_repr_len = onp.prod(train_set_X.shape[1:])
+        train_set_X_flattened = train_set_X.reshape((-1, image_repr_len))
+        assert onp.all(train_set_X_flattened.reshape(train_set_X.shape) == train_set_X, axis=None),\
+          "Flattening and unflattening are not inverses"
+        pca = PCA(n_components=1)
+        pca1 = pca.fit_transform(train_set_X_flattened).reshape(-1)
+        order = onp.argsort(pca1)
+      else:
+        raise ValueError(f"'stratified' received unsupported mode: '{stratified}'")
       train_set = tuple(arr[order] for arr in train_set)
 
     fold_len = len(train_set[0]) // num_sequential_training_folds

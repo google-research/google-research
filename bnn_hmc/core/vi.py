@@ -144,7 +144,7 @@ def make_kl_with_pretrained_gaussian_prior(pretrained_params, temperature=1.):
     raise NotImplementedError()
 
   mu_pretrained_tree = pretrained_params["mean"]
-  sigma_pretrained_tree = jax.tree_map(jax.nn.softplus,
+  sigma_pretrained_tree = jax.tree.map(jax.nn.softplus,
                                         pretrained_params["inv_softplus_std"])
 
   def kl_fn(params):

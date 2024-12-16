@@ -11,7 +11,7 @@
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=6",
                 "--weight_decay=10",
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/multiseed/sgd/cifar10/",
                 "--dataset_name=cifar10",
@@ -22,6 +22,8 @@
                 "--batch_size=80",
                 "--save_freq=500",
                 "--subset_train_to=40960",
+                // "--subset_train_to=4080",
+                // "--use_float64",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -120,7 +122,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=0",
-                "--stratified_folds",
+                "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -134,7 +136,7 @@
             "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=6",
                 "--weight_decay=5.",
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/multiseed/vi/cifar10/",
                 "--dataset_name=cifar10",
@@ -145,11 +147,12 @@
                 "--batch_size=80",
                 "--save_freq=300",
                 "--subset_train_to=40960",
+                // "--subset_train_to=4080",
                 "--optimizer=Adam",
                 "--vi_sigma_init=0.01",
                 "--temperature=1.",
                 "--vi_ensemble_size=20",
-                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_3/model_step_499.pt"
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_6/model_step_499.pt"
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -243,6 +246,33 @@
                 "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
             }
         },
+        {
+            "name": "SGLD_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_sgmcmc.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/",
+                "--dataset_name=cifar10",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-6",
+                "--final_step_size=1e-6",
+                "--num_epochs=10000",
+                "--num_burnin_epochs=1000",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=10",
+                "--momentum=0.",
+                "--subset_train_to=4080",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
         // SEQUENTIAL CIFAR-10 EXPERIMENT
         {
             "name": "SEQ_CIFAR10_1_OF_2_SGD",
@@ -251,7 +281,7 @@
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=999",
                 "--weight_decay=10",
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2/",
                 "--dataset_name=cifar10",
@@ -265,7 +295,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=0",
-                // "--stratified_folds",
+                // "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -279,7 +309,7 @@
             "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=999",
                 "--weight_decay=5.",
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2/",
                 "--dataset_name=cifar10",
@@ -294,11 +324,11 @@
                 "--vi_sigma_init=0.01",
                 "--temperature=1.",
                 "--vi_ensemble_size=50",
-                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_3/model_step_499.pt",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_999/model_step_499.pt",
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=0",
-                // "--stratified_folds",
+                // "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -312,8 +342,8 @@
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
-                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_3/model_step_299.pt",
+                "--seed=999",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_999/model_step_299.pt",
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2/",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
@@ -326,7 +356,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
-                // "--stratified_folds",
+                // "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -340,8 +370,8 @@
             "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
-                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_3/model_step_299.pt",
+                "--seed=999",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_999/model_step_299.pt",
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_2_of_2/",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
@@ -355,11 +385,11 @@
                 "--vi_sigma_init=0.01",
                 "--temperature=1.",
                 "--vi_ensemble_size=50",
-                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_8374528_batchsize_80_temp_1.0__seed_3/model_step_499.pt",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_5938048_batchsize_80_temp_1.0__seed_999/model_step_499.pt",
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
-                // "--stratified_folds",
+                // "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -375,10 +405,10 @@
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=999",
                 "--weight_decay=10", // No pretrained prior
                 "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_from_split1_init/",
-                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_3/model_step_499.pt",
+                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_999/model_step_499.pt",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
                 "--init_step_size=3e-7",
@@ -390,7 +420,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
-                // "--stratified_folds",
+                // "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -398,15 +428,15 @@
             }
         },
         {
-            "name": "SEQ_CIFAR10_1_OF_2_STRATIFIED_SGD",
+            "name": "SEQ_CIFAR10_1_OF_2_PCA_SGD",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=999",
                 "--weight_decay=10",
-                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2_stratified/",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2_pca/",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
                 "--init_step_size=3e-7",
@@ -418,7 +448,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=0",
-                "--stratified_folds",
+                "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -426,15 +456,15 @@
             }
         },
         {
-            "name": "SEQ_CIFAR10_1_OF_2_STRATIFIED_MFVI",
+            "name": "SEQ_CIFAR10_1_OF_2_PCA_MFVI",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=999",
                 "--weight_decay=5.",
-                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2_stratified/",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2_pca/",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
                 "--init_step_size=1e-4",
@@ -447,11 +477,11 @@
                 "--vi_sigma_init=0.01",
                 "--temperature=1.",
                 "--vi_ensemble_size=50",
-                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_3/model_step_499.pt",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2_pca/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_999/model_step_499.pt",
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=0",
-                "--stratified_folds",
+                "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -459,15 +489,15 @@
             }
         },
         {
-            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_SGD",
+            "name": "SEQ_CIFAR10_2_OF_2_PCA_SGD",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
-                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2_stratified/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_3/model_step_299.pt",
-                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_stratified/",
+                "--seed=999",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2_pca/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_999/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_pca/",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
                 "--init_step_size=3e-7",
@@ -479,7 +509,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
-                "--stratified_folds",
+                "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -487,15 +517,15 @@
             }
         },
         {
-            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_MFVI",
+            "name": "SEQ_CIFAR10_2_OF_2_PCA_MFVI",
             "type": "debugpy",
             "request": "launch",
             "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
-                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2_stratified/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_3/model_step_299.pt",
-                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_2_of_2_stratified/",
+                "--seed=999",
+                "--pretrained_prior_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_1_of_2_pca/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_999/model_step_299.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/mfvi_2_of_2_pca/",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
                 "--init_step_size=1e-4",
@@ -508,11 +538,11 @@
                 "--vi_sigma_init=0.01",
                 "--temperature=1.",
                 "--vi_ensemble_size=50",
-                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_8748032_batchsize_80_temp_1.0__seed_3/model_step_499.pt",
+                "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_pca/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_1895680_batchsize_80_temp_1.0__seed_999/model_step_499.pt",
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
-                "--stratified_folds",
+                "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {
@@ -520,7 +550,7 @@
             }
         },
         {
-            "name": "SEQ_CIFAR10_2_OF_2_STRATIFIED_SGD_FROM_SPLIT1_INIT",
+            "name": "SEQ_CIFAR10_2_OF_2_PCA_SGD_FROM_SPLIT1_INIT",
             // Do further training (no pretrained prior) from previous SGD solution for guidance.
             // Expect this to do similarly to random-split sequential training.
             "type": "debugpy",
@@ -528,10 +558,10 @@
             "program": "${workspaceFolder}/bnn_hmc/run_sgd.py",
             "console": "integratedTerminal",
             "args": [
-                "--seed=3",
+                "--seed=999",
                 "--weight_decay=10", // No pretrained prior
-                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_stratified_from_split1_init/",
-                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2_stratified/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_3/model_step_499.pt",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_2_of_2_pca_from_split1_init/",
+                "--init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/seq_multiseed/cifar10/sgd_1_of_2_pca/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_999/model_step_499.pt",
                 "--dataset_name=cifar10",
                 "--model_name=resnet20_frn_swish",
                 "--init_step_size=3e-7",
@@ -543,7 +573,7 @@
                 "--sequential_training",
                 "--num_sequential_training_folds=2",
                 "--index_sequential_training_fold=1",
-                "--stratified_folds",
+                "--stratified_folds=pca",
             ],
             "cwd": "${workspaceFolder}",
             "env": {

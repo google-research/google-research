@@ -90,8 +90,8 @@ def add_common_flags(parser):
       "--index_sequential_training_fold", type=int, default=0,
       help="0-indexed count of current sequential fold to train on")
   parser.add_argument(
-      "--stratified_folds", action="store_true",
-      help="Split folds for sequential training stratified by class")
+      "--stratified_folds", choices=["class", "pca"], required=False, default=None,
+      help="Split folds for sequential training stratified by class, or by PCA1 dimension")
   # Model
   parser.add_argument(
       "--model_name", type=str, default="lenet", help="Name of the dataset")
