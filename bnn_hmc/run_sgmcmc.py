@@ -179,14 +179,14 @@ def train_model():
       datafilename += "_{}".format(args.stratified)
     onp.savez_compressed(
       os.path.join(dirname, f"{datafilename}.npz"),
-      x_train=train_set[0],
-      y_train=train_set[1],
-      x_test=test_set[0],
-      y_test=test_set[1],
+      x_train=onp.concatenate(train_set[0], axis=0),
+      y_train=onp.concatenate(train_set[1], axis=0),
+      x_test=onp.concatenate(test_set[0], axis=0),
+      y_test=onp.concatenate(test_set[1], axis=0),
       data_info={
         "num_classes": 10,  # XXX hard coded to CIFAR-10
-        "train_shape": tuple(t.shape for t in train_set),
-        "test_shape": tuple(t.shape for t in test_set),
+        "train_shape": tuple(t.shape[1:] for t in train_set),
+        "test_shape": tuple(t.shape[1:] for t in test_set),
       },
     )
     logger.info("Actual dataset successfully saved.")

@@ -149,14 +149,16 @@ def main():
   outfilename = "synth"
   synth_data_info = {
     "num_classes": predictions.shape[-1],
-    "train_shape": tuple(t.shape for t in train_set),
-    "test_shape": tuple(t.shape for t in test_set),
+    "train_shape": tuple(t.shape[1:] for t in train_set),
+    "test_shape": tuple(t.shape[1:] for t in test_set),
   }
   if args.append_synthetic_dataset_to:
     try:
       archive = onp.load(args.append_synthetic_dataset_to, allow_pickle=True)
-      assert onp.equal(test_set[0], archive["x_test"]).all(), "Test x mismatch with appendee"
-      assert onp.equal(test_set[1], archive["y_test"]).all(), "Test x mismatch with appendee"
+      assert onp.equal(onp.concatenate(test_set[0], axis=0),
+                       archive["x_test"]).all(), "Test x mismatch with appendee"
+      assert onp.equal(onp.concatenate(test_set[1], axis=0),
+                       archive["y_test"]).all(), "Test x mismatch with appendee"
       assert archive["data_info"].item()["num_classes"] == synth_data_info["num_classes"]
       synth_x_train_chunks.append(archive["x_train"])
       synth_y_train_chunks.append(archive["y_train"])
@@ -164,11 +166,11 @@ def main():
       raise FileNotFoundError(f"Dataset to append could not be read: {e}")
     outfilename += "_appended_{}".format(
       checkpoint_utils.hexdigest(args.append_synthetic_dataset_to))
-  synth_x_train_chunks.append(train_set[0])
-  synth_y_train_chunks.append(synthetic_labels)
+  synth_x_train_chunks.append(onp.concatenate(train_set[0], axis=0))
+  synth_y_train_chunks.append(onp.concatenate(synthetic_labels, axis=0))
   try:
-    synth_x_train = onp.concatenate(synth_x_train_chunks, axis=1)
-    synth_y_train = onp.concatenate(synth_y_train_chunks, axis=1)
+    synth_x_train = onp.concatenate(synth_x_train_chunks, axis=0)
+    synth_y_train = onp.concatenate(synth_y_train_chunks, axis=0)
   except Exception as e:
     raise ValueError("Could not stack appendee and synthetic datasets.", e)
 
@@ -176,8 +178,8 @@ def main():
     os.path.join(dirname, f"{outfilename}.npz"),
     x_train=synth_x_train,
     y_train=synth_y_train,
-    x_test=test_set[0],
-    y_test=test_set[1],
+    x_test=onp.concatenate(test_set[0], axis=0),
+    y_test=onp.concatenate(test_set[1], axis=0),
     data_info=synth_data_info,
   )
   logger.info("Synthetic dataset successfully saved.")
