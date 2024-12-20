@@ -273,6 +273,26 @@
                 "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
             }
         },
+        {
+            "name": "SAMPLE_VI_POSTERIOR",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/sample_synthetic_labels.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--dir=/tmp/sample_vi_posterior/",
+                "--dataset_name=cifar10",
+                "--subset_train_to=4096",
+                "--model_name=resnet20_frn_swish",
+                // "--params_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_6/model_step_499.pt",
+                "--vi_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/vi/cifar10/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_6/model_step_299.pt",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
         // SEQUENTIAL CIFAR-10 EXPERIMENT
         {
             "name": "SEQ_CIFAR10_1_OF_2_SGD",
