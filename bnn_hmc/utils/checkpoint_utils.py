@@ -31,6 +31,7 @@
 import os
 import pickle
 import re
+import hashlib
 from haiku._src.data_structures import FlatMapping
 from enum import Enum
 
@@ -163,3 +164,7 @@ def parse_sgmcmc_checkpoint_dict(checkpoint_dict):
       "predictions", "ensemble_predictions"
   ]
   return [checkpoint_dict[name] for name in field_names]
+
+
+def hexdigest(s: str, ndigits: int = 7) -> str:
+  return hashlib.md5(s.encode()).hexdigest()[:ndigits]

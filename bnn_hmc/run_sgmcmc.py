@@ -29,10 +29,12 @@
 """Run an SGLD chain on a cloud TPU. We are not using data augmentation."""
 
 import os
+import numpy as onp
 from jax import numpy as jnp
 import jax
 import argparse
 from collections import OrderedDict
+import logging
 
 from bnn_hmc.core import sgmcmc
 from bnn_hmc.utils import checkpoint_utils
@@ -41,6 +43,10 @@ from bnn_hmc.utils import logging_utils
 from bnn_hmc.utils import train_utils
 from bnn_hmc.utils import optim_utils
 from bnn_hmc.utils import script_utils
+
+logging.basicConfig()
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 parser = argparse.ArgumentParser(description="Run SG-MCMC training")
 cmd_args_utils.add_common_flags(parser)
@@ -93,6 +99,11 @@ parser.add_argument(
     default=50,
     help="Cycle length "
     "(epochs; used only with cyclic schedule; default: 50)")
+parser.add_argument(
+      "--save_actual_dataset",
+      action="store_true",
+      default=False,
+      help="Save down dataset to npz archive")
 
 args = parser.parse_args()
 train_utils.set_up_jax(args.tpu_ip, args.use_float64)
@@ -156,6 +167,29 @@ def train_model():
   (train_set, test_set, net_apply, params, net_state, key, log_likelihood_fn,
    log_prior_fn, _, predict_fn, ensemble_upd_fn, metrics_fns,
    tabulate_metrics) = script_utils.get_data_model_fns(args)
+
+  if args.save_actual_dataset:
+    datafilename="data"
+    if args.subset_train_to:
+      datafilename += "_subset_{}".format(args.subset_train_to)
+    if args.sequential_training:
+      datafilename += "_split_{}_of_{}".format(
+        1+args.index_sequential_training_fold, args.num_sequential_training_folds)
+    if args.stratified_folds:
+      datafilename += "_{}".format(args.stratified)
+    onp.savez_compressed(
+      os.path.join(dirname, f"{datafilename}.npz"),
+      x_train=train_set[0],
+      y_train=train_set[1],
+      x_test=test_set[0],
+      y_test=test_set[1],
+      data_info={
+        "num_classes": 10,  # XXX hard coded to CIFAR-10
+        "train_shape": tuple(t.shape for t in train_set),
+        "test_shape": tuple(t.shape for t in test_set),
+      },
+    )
+    logger.info("Actual dataset successfully saved.")
 
   # Initialize step-size schedule and optimizer
   num_batches, total_steps = script_utils.get_num_batches_total_steps(
