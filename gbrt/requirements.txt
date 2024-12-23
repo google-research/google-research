@@ -67,7 +67,7 @@ jaxlib==0.4.10
 jaxline @ git+https://github.com/deepmind/jaxline@cde8d1e5bc7212aebef2a52d15a19ca09f0a2ec6
 jaxtyping==0.2.24
 jedi==0.19.1
-Jinja2==3.1.2
+Jinja2==3.1.5
 joblib==1.3.2
 json5==0.9.14
 jsonpointer==2.4
