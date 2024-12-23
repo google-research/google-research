@@ -19,7 +19,6 @@ source "$(conda info --base)/etc/profile.d/conda.sh"
 conda activate /home/gabor/miniforge3/envs/bnn
 export PYTHONPATH="$RUNWD/:$PYTHONPATH"
 
-# Run SGD for the first half
 echo "Sampling synthetic labels..."
 python bnn_hmc/sample_synthetic_labels.py \
     --seed=$SEED \
@@ -46,9 +45,7 @@ if [ $(echo "$SYNTHDATADIR" | wc -l) -gt 1 ]; then
     exit 2
 fi
 
-# Run SGLD for the synthetic dataset
 echo "Running SGLD for the synthetic dataset"
-
 python bnn_hmc/run_sgmcmc.py \
     --seed=$SEED \
     --weight_decay=5. \
