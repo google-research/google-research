@@ -63,6 +63,5 @@ python bnn_hmc/run_sgmcmc.py \
     --eval_freq=10 \
     --batch_size=80 \
     --save_freq=100 \
-    --momentum=0. \
-    --subset_train_to=4080 \
+    --momentum=0.
 
