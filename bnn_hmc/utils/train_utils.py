@@ -66,7 +66,9 @@ def get_task_specific_fns(task, data_info):
     metrics_fns = {
         "accuracy": metrics.accuracy,
         "nll": metrics.nll,
-        "ece": lambda preds, y: metrics.calibration_curve(preds, y)["ece"]
+        "ece": lambda preds, y: metrics.calibration_curve(preds, y)["ece"],
+        # "full_calibr_dict": metrics.calibration_curve,
+        "full_calibr_dict_equispaced": lambda preds, y: metrics.calibration_curve(preds, y, equispaced=True),
     }
     tabulate_metrics = [
         "train/accuracy", "test/accuracy", "test/nll", "test/ens_accuracy",

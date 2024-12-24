@@ -52,16 +52,20 @@ def nll(outputs, labels, normalized=True):
     return -log_ps.sum()
 
 
-def calibration_curve(outputs, labels, num_bins=20):
+def calibration_curve(outputs, labels, num_bins=20, equispaced=False):
   """Compute calibration curve and ECE."""
   outputs, labels = _flatten_outputs_labels(outputs, labels)
+  predictions = onp.argmax(outputs, 1)
   confidences = onp.max(outputs, 1)
   num_inputs = confidences.shape[0]
-  step = (num_inputs + num_bins - 1) // num_bins
-  bins = onp.sort(confidences)[::step]
-  if num_inputs % step != 1:
-    bins = onp.concatenate((bins, [onp.max(confidences)]))
-  predictions = onp.argmax(outputs, 1)
+  if equispaced:
+    # Estimate ECE with confidence-equispaced bins as Guo et al., 2017
+    bins = onp.linspace(0., 1., num=1+num_bins)
+  else:
+    step = (num_inputs + num_bins - 1) // num_bins
+    bins = onp.sort(confidences)[::step]
+    if num_inputs % step != 1:
+      bins = onp.concatenate((bins, [onp.max(confidences)]))
   bin_lowers = bins[:-1]
   bin_uppers = bins[1:]
 
@@ -70,11 +74,13 @@ def calibration_curve(outputs, labels, num_bins=20):
   bin_confidences = []
   bin_accuracies = []
   bin_proportions = []
+  bin_samples = []
 
   ece = 0.0
   for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
     in_bin = (confidences > bin_lower) * (confidences < bin_upper)
     prop_in_bin = in_bin.mean()
+    samples_in_bin = in_bin.sum()
     if prop_in_bin > 0:
       accuracy_in_bin = accuracies[in_bin].mean()
       avg_confidence_in_bin = confidences[in_bin].mean()
@@ -82,16 +88,22 @@ def calibration_curve(outputs, labels, num_bins=20):
       bin_confidences.append(avg_confidence_in_bin)
       bin_accuracies.append(accuracy_in_bin)
       bin_proportions.append(prop_in_bin)
+      bin_samples.append(samples_in_bin)
 
-  bin_confidences, bin_accuracies, bin_proportions = map(
+  bin_confidences, bin_accuracies, bin_proportions, bin_samples = map(
       lambda lst: onp.array(lst),
-      (bin_confidences, bin_accuracies, bin_proportions))
+      (bin_confidences, bin_accuracies, bin_proportions, bin_samples))
 
+  bins[0] = 0.
+  bins[-1] = 1.
   return {
+      "num_inputs": num_inputs,
+      "bins": bins,
       "confidence": bin_confidences,
       "accuracy": bin_accuracies,
       "proportions": bin_proportions,
-      "ece": ece
+      "samples": bin_samples,  # Num samples in bins
+      "ece": ece,
   }
 
 
