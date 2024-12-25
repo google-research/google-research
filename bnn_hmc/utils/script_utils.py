@@ -193,7 +193,12 @@ def write_to_tensorboard(tf_writer, logging_dict, iteration):
   with tf_writer.as_default():
     for stat_name, stat_val in logging_dict.items():
       if not stat_name.endswith("str"):
-        tf.summary.scalar(stat_name, stat_val, step=iteration)
+        if "_dict" in stat_name:
+          for key, stat_subval in stat_val.items():
+            tf.summary.write(stat_name.replace("dict", key),
+                             stat_subval, step=iteration)
+        else:
+          tf.summary.scalar(stat_name, stat_val, step=iteration)
 
 
 def get_tabulate_dict(tabulate_metrics, logging_dict):
