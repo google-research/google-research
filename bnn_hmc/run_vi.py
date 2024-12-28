@@ -270,6 +270,8 @@ def train_model():
     print(table)
 
   logger.info("Final evaluation")
+  tf_writer = tf.summary.create_file_writer(dirname,
+                                            filename_suffix="_final_eval.v2")
 
   # Evaluate the model
   train_stats = {"ELBO": None, "KL": prior_kl(params)}
@@ -289,6 +291,15 @@ def train_model():
 
   logging_dict = logging_utils.make_logging_dict(train_stats, test_stats,
                                                  ensemble_stats)
+  script_utils.write_to_tensorboard(
+    tf_writer, {k: v for k, v in logging_dict.items() if v is not None},
+    args.num_epochs)
+  # Add a histogram of MFVI stds
+  with tf_writer.as_default():
+    stds = jax.tree.map(jax.nn.softplus, params["inv_softplus_std"])
+    stds = jnp.concatenate([std.reshape(-1) for std in jax.tree.leaves(stds)])
+    tf.summary.histogram("MFVI/param_stds", stds, step=args.num_epochs)
+
   logging_dict["telemetry/iteration"] = None
   logging_dict["telemetry/iteration_time"] = None
   tabulate_dict = script_utils.get_tabulate_dict(tabulate_metrics,
