@@ -188,7 +188,7 @@ Concatenates the sequences in two batches of sequences.
       TF_RETURN_IF_ERROR(c->input("lengths", &input_len_shapes));
       c->set_output(1, input_len_shapes[0]);
 
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_OP("NewId")
@@ -205,7 +205,7 @@ Computes the next entity ID for each position in the contrack input sequence.
       TF_RETURN_IF_ERROR(c->ReplaceDim(c->input(0), 1, seq_len, &output_shape));
       c->set_output(0, output_shape);
 
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_KERNEL_BUILDER(Name("SequenceConcat").Device(tensorflow::DEVICE_CPU),
