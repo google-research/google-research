@@ -153,7 +153,7 @@ def train_model():
   if args.vi_checkpoints:
     # Convert the model to MFVI parameterization
     net_apply, mean_apply, _, params, net_state = vi.get_mfvi_model_fn(
-        net_apply, params, net_state, seed=0, sigma_init=args.vi_sigma_init)
+        net_apply, params, net_state, seed=0, sigma_init=onp.nan)
     predict_fn = make_vi_ensemble_predict_fn(predict_fn, ensemble_upd_fn, args)
 
   ensemble_predictions = None
