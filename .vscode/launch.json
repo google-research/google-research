@@ -300,6 +300,30 @@
             }
         },
         {
+            "name": "ENSEMBLE_MARTINGALE_POSTERIORS",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/ensemble_checkpoints.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--dir=/tmp/ensemble_test/",
+                "--model_name=resnet20_frn_swish",
+                "--dataset_name=cifar10",
+                "--subset_train_to=8160",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--sgd_checkpoints",
+                "--",
+                "${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/sgld_mom_0.0_preconditioner_None__lr_sch_constant_i_1e-06_f_1e-06_c_50_bi_1000___epochs_10000_wd_5.0_batchsize_80_temp_1.0__seed_1/model_step_7000.pt",
+                "${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/sgld_mom_0.0_preconditioner_None__lr_sch_constant_i_1e-06_f_1e-06_c_50_bi_1000___epochs_10000_wd_5.0_batchsize_80_temp_1.0__seed_1/model_step_8000.pt",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
             "name": "MFVI_RETRAIN_CIFAR10",
             "type": "debugpy",
             "request": "launch",

@@ -158,7 +158,6 @@ def evaluate(net_apply, params, net_state, train_set, test_set, predict_fn,
     net_apply, params, net_state, test_set)
   net_state, train_predictions = predict_fn(
     net_apply, params, net_state, train_set)
-  plot_1d_predictions(test_set[0], test_predictions[..., 0], test_predictions[..., 1])
   test_stats = train_utils.evaluate_metrics(test_predictions, test_set[1],
                                             metrics_fns)
   train_stats = train_utils.evaluate_metrics(train_predictions, train_set[1],
