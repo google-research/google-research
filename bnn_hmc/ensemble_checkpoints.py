@@ -161,7 +161,7 @@ def train_model():
     checkpoint_dict = checkpoint_utils.load_checkpoint(checkpoint)
     iteration_num, params, net_state, _, _ = (
         checkpoint_utils.parse_sgd_checkpoint_dict(checkpoint_dict))
-    logger.info(f"Ensembling checkpoint with trained iteration no {iteration_num}")
+    logger.info(f"Ensembling checkpoint {checkpoint_index} with trained iteration no {iteration_num}")
 
     # Evaluate the model
     net_state, test_predictions = predict_fn(net_apply, params, net_state, test_set)
