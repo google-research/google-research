@@ -78,6 +78,10 @@ parser.add_argument(
     help="Size of the ensemble sampled in the VI evaluation "
     "(default: 20)")
 parser.add_argument(
+    "--save_ensembled_preds",
+    action="store_true",
+    help="Save final ensembled predictions for further access")
+parser.add_argument(
     "--sgd_checkpoints",
     action="store_true",
     help="Ensemble SGD checkpoints")
@@ -190,6 +194,10 @@ def train_model():
                                                    logging_dict)
     table = logging_utils.make_table(tabulate_dict, checkpoint_index, args.tabulate_freq)
     print(table)
+
+  if args.save_ensembled_preds:
+    logger.info("Saving ensembled predictions...")
+    onp.save(os.path.join(dirname, "ensembled_preds.npy"), ensemble_predictions)
 
 
 if __name__ == "__main__":
