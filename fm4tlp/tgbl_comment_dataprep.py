@@ -33,7 +33,6 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
-from tensorflow.compat.v1.io import *
 
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',
@@ -46,7 +45,7 @@ _ROOT_DIR = flags.DEFINE_string(
 def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_comment')
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl-comment_edgelist.csv'), 'r'
   ) as f:
     tgbl_comment_edgelist = pd.read_csv(f)
@@ -61,7 +60,7 @@ def main(_):
     if dst not in node_mapping:
       node_mapping[dst] = len(node_mapping)
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_user_index_map.pkl'), 'wb'
   ) as f:
     pickle.dump(node_mapping, f)
@@ -69,7 +68,7 @@ def main(_):
   user_count = pd.DataFrame()
   user_count['num_nodes'] = [len(node_mapping)]
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_total_count.csv'), 'w'
   ) as f:
     user_count.to_csv(f, index=False)
@@ -112,7 +111,7 @@ def main(_):
     )
     community_index += 1
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_user_community_map.pkl'), 'wb'
   ) as f:
     pickle.dump(community_user_map, f)
@@ -133,7 +132,7 @@ def main(_):
       {'val_time': [int(val_time)], 'test_time': [int(test_time)]}
   )
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'tgbl_comment_timesplit.csv'), 'w'
   ) as f:
     timesplit.to_csv(f, index=False)

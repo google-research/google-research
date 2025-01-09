@@ -17,15 +17,6 @@
 """
 
 import dataclasses
-import sys
-import tensorflow.compat.v1 as tf
-
-from google.protobuf import text_format
-from models import model_config_pb2
-
-
-if "gfile" not in sys.modules:
-  gfile = tf.io.gfile
 
 
 @dataclasses.dataclass(frozen=True)
@@ -69,27 +60,3 @@ EXPERIMENTS = [
     )
 ]
 
-
-_MODEL_CONFIG_PATHS = [
-    "models/configs/tgn.pbtxt",
-    "models/configs/tgn_structmap.pbtxt",
-    "models/configs/tgn_structmap_alpha10.pbtxt",
-    "models/configs/tgn_structmap_alpha100.pbtxt",
-    "models/configs/edgebank.pbtxt",
-]
-
-
-def get_model_config(model_name):
-  """Returns a model config from the specified model name."""
-  model_configs = {}
-  for model_config_path in _MODEL_CONFIG_PATHS:
-    model_config = model_config_pb2.TlpModelConfig()
-    filepath = str(model_config_path)
-    with gfile.GFile(filepath, "r") as f:
-      text_format.Parse(f.read(), model_config)
-    if model_config.model_name in model_configs:
-      raise ValueError(
-          f"Duplicate model name: {model_config.model_name}"
-      )
-    model_configs[model_config.model_name] = model_config
-  return model_configs[model_name]

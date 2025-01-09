@@ -51,7 +51,7 @@ import tensorflow.compat.v1 as tf
 import torch
 from torch_geometric import loader as torch_geo_data_loader
 
-import experiment_config
+import model_config as model_config_lib
 from models import all_models
 from models import model_template
 from modules import early_stopping
@@ -61,7 +61,6 @@ from utils import evaluate
 from utils import train_test_helper
 from utils import utils
 
-from tensorflow.compat.v1.io import *
 
 _DATA = flags.DEFINE_string(
     'data',
@@ -213,7 +212,7 @@ def main(_):
   test_data = test_data.to(device)
   metric = 'mrr'
 
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(dataset_root, _DATA.value + '_total_count.csv'), 'r'
   ) as f:
     airport_count = pd.read_csv(f)
@@ -251,7 +250,7 @@ def main(_):
       total_nodes, size=_NUM_NEIGHBORS.value, device=device
   )
 
-  model_config = experiment_config.get_model_config(_MODEL_NAME.value)
+  model_config = model_config_lib.get_model_config(_MODEL_NAME.value)
   test_feature_dim = 0
   test_structural_features = {}
   structural_feats_list = [
@@ -297,9 +296,9 @@ def main(_):
       _ROOT_DIR.value, 'experiments', _OUTPUT_SUBDIR.value, _DATA.value
   )
   results_path = os.path.join(run_directory, 'results', model_name)
-  if not gfile_isdir(results_path):
+  if not gfile.isdir(results_path):
     print('INFO: Create directory {}'.format(results_path))
-    gfile_makedirs(results_path)
+    gfile.makedirs(results_path)
 
   metrics_logger = evaluate.MetricsLogger()
 
@@ -352,7 +351,7 @@ def main(_):
     warmstart_loss['model_loss'] = warmstart_performance_lists.model_loss
     warmstart_loss['perf'] = warmstart_performance_lists.perf
     warmstart_loss['auc'] = warmstart_performance_lists.auc
-    with gfile.GFile(
+    with tf.io.gfile.GFile(
         os.path.join(
             results_path, f'{experiment_name}_test_{_TEST_GROUP.value}_warmstart_loss.csv'
         ),
@@ -393,7 +392,7 @@ def main(_):
   test_loss['model_loss'] = test_performance_lists.model_loss
   test_loss['perf'] = test_performance_lists.perf
   test_loss['auc'] = test_performance_lists.auc
-  with gfile.GFile(
+  with tf.io.gfile.GFile(
       os.path.join(results_path, f'{experiment_name}_test_{_TEST_GROUP.value}_loss.csv'), 'w'
   ) as f:
     test_loss.to_csv(f, index=False)
