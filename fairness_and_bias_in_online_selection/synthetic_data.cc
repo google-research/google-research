@@ -14,6 +14,7 @@
 
 #include "synthetic_data.h"
 
+#include <functional>
 #include <iostream>
 
 #include "random_handler.h"
