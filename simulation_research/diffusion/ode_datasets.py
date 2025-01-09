@@ -273,7 +273,7 @@ class HamiltonianDataset(ODEDataset):
     # convert the momentum into velocity
     qs, ps = unpack(self.Zs)
     Ms = vmap(vmap(self.mass))(qs)  # pylint: disable=invalid-name
-    vs = jnp.linalg.solve(Ms, ps)
+    vs = jnp.linalg.solve(Ms, ps[Ellipsis, None]).squeeze(-1)
     self.Zs = pack(qs, vs)
 
   def dynamics(self, z, t):
