@@ -30,7 +30,7 @@ class NodeDefContext {
       : node_def_(node_def) {}
 
   template <class T>
-  absl::Status GetAttr(tensorflow::StringPiece attr_name, T* value) const {
+  absl::Status GetAttr(absl::string_view attr_name, T* value) const {
     return tensorflow::GetNodeAttr(node_def_, attr_name, value);
   }
 
