@@ -166,7 +166,7 @@ class Avx2<T, kNumRegistersInferred> {
     if constexpr (IsSameAny<T, float>()) {
       return _mm256_setzero_ps();
     } else if constexpr (IsSameAny<T, double>()) {
-      return _mm256_setzero_ps();
+      return _mm256_setzero_pd();
     } else {
       return _mm256_setzero_si256();
     }

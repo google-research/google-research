@@ -150,7 +150,7 @@ class Avx512<T, kNumRegistersInferred> {
     if constexpr (IsSameAny<T, float>()) {
       return _mm512_setzero_ps();
     } else if constexpr (IsSameAny<T, double>()) {
-      return _mm512_setzero_ps();
+      return _mm512_setzero_pd();
     } else {
       return _mm512_setzero_si512();
     }
