@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Helpers to define experiments and models for xmanager runs.
+"""Helpers to define experiments for xmanager runs.
 """
 
 import dataclasses
