@@ -41,6 +41,7 @@ python google_research/fm4tlp/test -- \
 
 import datetime
 import os
+import sys
 import timeit
 
 from absl import app
@@ -195,7 +196,7 @@ def main(_):
   device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
   # Start...
-  unused_start_overall = timeit.default_timer()
+  start_overall = timeit.default_timer()
   # ==========
 
   # data loading
@@ -236,7 +237,7 @@ def main(_):
     ), int(warmstart_test_data.dst.max())
   else:
     # Do we need all these defined here?
-    unused_warmstart_test_data = torch.empty(0, dtype=torch.long, device=device)
+    warmstart_test_data = torch.empty(0, dtype=torch.long, device=device)
     warmstart_test_loader = None
     min_dst_idx_warmstart, max_dst_idx_warmstart = None, None
 
@@ -295,9 +296,9 @@ def main(_):
       _ROOT_DIR.value, 'experiments', _OUTPUT_SUBDIR.value, _DATA.value
   )
   results_path = os.path.join(run_directory, 'results', model_name)
-  if not tf.io.gfile.isdir(results_path):
+  if not gfile.isdir(results_path):
     print('INFO: Create directory {}'.format(results_path))
-    tf.io.gfile.makedirs(results_path)
+    gfile.makedirs(results_path)
 
   metrics_logger = evaluate.MetricsLogger()
 
@@ -318,7 +319,7 @@ def main(_):
       save_model_dir=save_model_dir,
       save_model_id=save_model_id,
   )
-  print('INFO: done setting up loading of saved models.')
+  print(f'INFO: done setting up loading of saved models.')
 
   # ==================================================== Test
   # first, load the best model
@@ -344,7 +345,7 @@ def main(_):
         structural_feats_list=structural_feats_list,
         structural_features=test_structural_features,
     )
-    print('INFO: Warmstart done.')
+    print(f'INFO: Warmstart done.')
     warmstart_loss = pd.DataFrame()
     warmstart_loss['loss'] = warmstart_performance_lists.loss
     warmstart_loss['model_loss'] = warmstart_performance_lists.model_loss
@@ -352,7 +353,7 @@ def main(_):
     warmstart_loss['auc'] = warmstart_performance_lists.auc
     with tf.io.gfile.GFile(
         os.path.join(
-            results_path, f'{experiment_name}_test_warmstart_loss.csv'
+            results_path, f'{experiment_name}_test_{_TEST_GROUP.value}_warmstart_loss.csv'
         ),
         'w',
     ) as f:
@@ -380,7 +381,7 @@ def main(_):
       structural_features=test_structural_features,
   )
 
-  print('INFO: Test: Evaluation Setting: >>> ONE-VS-MANY <<< ')
+  print(f'INFO: Test: Evaluation Setting: >>> ONE-VS-MANY <<< ')
   print(f'\tTest: {metric}: {perf_metric_test: .4f}')
   print(f'\tTest AUC: {auc: .4f}')
   test_time = timeit.default_timer() - start_test
@@ -392,7 +393,7 @@ def main(_):
   test_loss['perf'] = test_performance_lists.perf
   test_loss['auc'] = test_performance_lists.auc
   with tf.io.gfile.GFile(
-      os.path.join(results_path, f'{experiment_name}_test_loss.csv'), 'w'
+      os.path.join(results_path, f'{experiment_name}_test_{_TEST_GROUP.value}_loss.csv'), 'w'
   ) as f:
     test_loss.to_csv(f, index=False)
 

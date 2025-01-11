@@ -25,7 +25,7 @@ python google_research/fm4tlp/tgbl_comment_dataprep -- \
 
 import os
 import pickle
-
+import sys
 from absl import app
 from absl import flags
 import networkx as nx
@@ -33,7 +33,6 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
-
 
 _ROOT_DIR = flags.DEFINE_string(
     'root_dir',
@@ -47,7 +46,7 @@ def main(_):
 
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_comment')
   with tf.io.gfile.GFile(
-      os.path.join(dataset_root, 'tgbl-comment-edgelist.csv'), 'r'
+      os.path.join(dataset_root, 'tgbl-comment_edgelist.csv'), 'r'
   ) as f:
     tgbl_comment_edgelist = pd.read_csv(f)
 
@@ -84,6 +83,8 @@ def main(_):
       G_user, resolution=1, threshold=1e-07, seed=123
   )
 
+  louvain_communities_user = dict(enumerate(louvain_communities_user))
+
   # Community index determines the size of communities.
   community_index_len_dict = {}
 
@@ -92,7 +93,7 @@ def main(_):
 
   sorted_community_indices = [
       k
-      for k, unused_v in sorted(
+      for k, v in sorted(
           community_index_len_dict.items(),
           reverse=True,
           key=lambda item: item[1],

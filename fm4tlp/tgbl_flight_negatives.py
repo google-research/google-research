@@ -26,6 +26,7 @@ import collections
 import os
 import pickle
 import random
+import sys
 
 from absl import app
 from absl import flags
@@ -33,7 +34,6 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
-
 from utils import negative_sampler
 
 
@@ -69,7 +69,7 @@ def main(_):
   with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'airport_node_feat_v2.csv'), 'r'
   ) as f:
-    airport_feat = pd.read_csv(f)
+    airport_feat = pd.read_csv(f, keep_default_na=False)
 
   airport_feat_valid_continent = airport_feat[~airport_feat.continent.isna()]
 
