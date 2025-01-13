@@ -40,7 +40,7 @@ import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
 
-from utils import structural_feature_helper
+from fm4tlp.utils import structural_feature_helper
 
 
 _DATA = flags.DEFINE_string(

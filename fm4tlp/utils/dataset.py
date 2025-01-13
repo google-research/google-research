@@ -21,8 +21,8 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 
-from utils import negative_sampler
-from utils import utils
+from fm4tlp.utils import negative_sampler
+from fm4tlp.utils import utils
 
 
 _PROCESSED_DATASETS = ["comment"]

@@ -18,8 +18,8 @@ from typing import Callable, Optional
 import torch
 import torch_geometric
 
-from utils import dataset
-from utils import negative_sampler
+from fm4tlp.utils import dataset
+from fm4tlp.utils import negative_sampler
 
 
 class PyGLinkPropPredDataset(torch_geometric.data.Dataset):

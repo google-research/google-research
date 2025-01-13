@@ -40,7 +40,7 @@ import apache_beam as beam
 import networkx as nx
 import tensorflow.compat.v1 as tf
 
-from utils import structural_feature_helper
+from fm4tlp.utils import structural_feature_helper
 
 
 

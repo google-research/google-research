@@ -18,16 +18,16 @@
 import torch
 from torch_geometric import data as torch_geo_data
 
-from models import model_config_pb2
-from models import model_template
-from modules import decoder
-from modules import emb_module
-from modules import memory_module
-from modules import message_agg
-from modules import message_func
-from modules import neighbor_loader
-from modules import structural_mapper
-from utils import utils
+from fm4tlp.models import model_config_pb2
+from fm4tlp.models import model_template
+from fm4tlp.modules import decoder
+from fm4tlp.modules import emb_module
+from fm4tlp.modules import memory_module
+from fm4tlp.modules import message_agg
+from fm4tlp.modules import message_func
+from fm4tlp.modules import neighbor_loader
+from fm4tlp.modules import structural_mapper
+from fm4tlp.utils import utils
 
 
 class DyRep(model_template.TlpModel):

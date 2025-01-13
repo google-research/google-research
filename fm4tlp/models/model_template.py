@@ -21,8 +21,8 @@ import dataclasses
 import torch
 from torch_geometric import data as torch_geo_data
 
-from models import model_config_pb2
-from modules import neighbor_loader
+from fm4tlp.models import model_config_pb2
+from fm4tlp.modules import neighbor_loader
 
 
 @dataclasses.dataclass(frozen=True)

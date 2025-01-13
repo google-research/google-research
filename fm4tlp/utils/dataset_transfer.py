@@ -19,8 +19,8 @@ from typing import Any, Dict, Optional
 import numpy as np
 import pandas as pd
 
-from utils import negative_sampler
-from utils import pre_process
+from fm4tlp.utils import negative_sampler
+from fm4tlp.utils import pre_process
 
 
 class LinkPropPredDataset(object):

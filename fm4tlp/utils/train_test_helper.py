@@ -30,10 +30,10 @@ from torch_geometric import data as torch_geo_data
 from torch_geometric import loader as torch_geo_data_loader
 import tqdm
 
-from models import model_template
-from modules import neighbor_loader
-from utils import evaluate
-from utils import negative_sampler
+from fm4tlp.models import model_template
+from fm4tlp.modules import neighbor_loader
+from fm4tlp.utils import evaluate
+from fm4tlp.utils import negative_sampler
 
 
 @dataclasses.dataclass(frozen=True)

@@ -44,13 +44,13 @@ import tensorflow.compat.v1 as tf
 import torch
 import tqdm
 
-import model_config as model_config_lib
-from models import all_models
-from models import model_template
-from modules import early_stopping
-from utils import dataset_pyg_transfer
-from utils import structural_feature_helper
-from utils import utils
+from fm4tlp import model_config as model_config_lib
+from fm4tlp.models import all_models
+from fm4tlp.models import model_template
+from fm4tlp.modules import early_stopping
+from fm4tlp.utils import dataset_pyg_transfer
+from fm4tlp.utils import structural_feature_helper
+from fm4tlp.utils import utils
 
 
 _DATA = flags.DEFINE_string(

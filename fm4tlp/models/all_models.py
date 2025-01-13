@@ -15,10 +15,10 @@
 
 """Library to import and register all TLP models."""
 
-from models import dyrep
-from models import edgebank
-from models import jodie
-from models import tgn
+from fm4tlp.models import dyrep
+from fm4tlp.models import edgebank
+from fm4tlp.models import jodie
+from fm4tlp.models import tgn
 
 # keep-sorted start
 DyRep = dyrep.DyRep

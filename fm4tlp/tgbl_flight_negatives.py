@@ -34,7 +34,7 @@ import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
 
-from utils import negative_sampler
+from fm4tlp.utils import negative_sampler
 
 
 _CONTINENT = flags.DEFINE_string(

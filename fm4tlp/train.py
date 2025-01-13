@@ -52,15 +52,15 @@ import torch
 from torch_geometric import data as torch_geo_data
 from torch_geometric import loader as torch_geo_data_loader
 
-import model_config as model_config_lib
-from models import all_models
-from models import model_template
-from modules import early_stopping
-from modules import neighbor_loader
-from utils import dataset_pyg_transfer
-from utils import evaluate
-from utils import train_test_helper
-from utils import utils
+from fm4tlp import model_config as model_config_lib
+from fm4tlp.models import all_models
+from fm4tlp.models import model_template
+from fm4tlp.modules import early_stopping
+from fm4tlp.modules import neighbor_loader
+from fm4tlp.utils import dataset_pyg_transfer
+from fm4tlp.utils import evaluate
+from fm4tlp.utils import train_test_helper
+from fm4tlp.utils import utils
 
 
 _DATA = flags.DEFINE_string(

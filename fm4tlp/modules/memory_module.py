@@ -27,9 +27,9 @@ import torch
 from torch import nn
 import torch_geometric
 
-from modules import message_agg
-from modules import message_func
-from modules import time_enc
+from fm4tlp.modules import message_agg
+from fm4tlp.modules import message_func
+from fm4tlp.modules import time_enc
 
 
 TGNMessageStoreType = Dict[

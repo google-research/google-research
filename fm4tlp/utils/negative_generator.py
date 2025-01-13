@@ -27,7 +27,7 @@ import torch
 import torch_geometric
 import tqdm
 
-from utils import utils
+from fm4tlp.utils import utils
 
 
 class NegativeEdgeGenerator(object):

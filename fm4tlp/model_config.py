@@ -19,7 +19,7 @@
 import tensorflow.compat.v1 as tf
 
 from google.protobuf import text_format
-from models import model_config_pb2
+from fm4tlp.models import model_config_pb2
 
 
 _MODEL_CONFIG_PATHS = [

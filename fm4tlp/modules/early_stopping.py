@@ -18,7 +18,7 @@
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from models import model_template
+from fm4tlp.models import model_template
 
 
 class EarlyStopMonitor(object):
