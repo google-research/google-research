@@ -394,7 +394,7 @@ class DataUtilsTest(tf.test.TestCase):
 
     target_dict = {'a': 1, 'b': 2}
     source_dict = {'b': 3, 'c': 4}
-    with self.assertRaisesRegexp(ValueError, 'Key conflict: `b`.'):
+    with self.assertRaisesRegex(ValueError, 'Key conflict: `b`.'):
       data_utils.merge_dict(source_dict, target_dict)
 
 
