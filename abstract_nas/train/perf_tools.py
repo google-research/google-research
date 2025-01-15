@@ -27,7 +27,7 @@ def compute_num_params(params_cpu):
 def compute_num_flops(f, optimize, *a, **kw):
   m = jax.jit(f).lower(*a, **kw)
   if optimize:
-    analysis = m.compile(m).cost_analysis()[0]
+    analysis = m.compile(m).cost_analysis()
   else:
     analysis = m.cost_analysis()
   return int(analysis['flops'])
