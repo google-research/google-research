@@ -156,7 +156,7 @@ for i in range(args.iterations):
   gradient = estimator.grad_estimate(theta)
 
   if args.outer_clip > 0:
-    gradient = jnp.clip(gradient, a_min=-args.outer_clip, a_max=args.outer_clip)
+    gradient = jnp.clip(gradient, min=-args.outer_clip, max=args.outer_clip)
 
   outer_update, theta_opt_state = jax.jit(theta_opt.update)(gradient,
                                                             theta_opt_state)

@@ -394,7 +394,7 @@ def entmax(logits, alphas, n_iters, dim):
 
   def rho(logits):
     return jnp.clip(
-        logits, a_min=0.)**jnp.expand_dims((1. / (alphas - 1.)), axis=dim)
+        logits, min=0.)**jnp.expand_dims((1. / (alphas - 1.)), axis=dim)
 
   def loop_fn(tau_tree, _):
     tree_keys = ['tau_min', 'tau_max']

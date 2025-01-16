@@ -78,7 +78,7 @@ def interpolate_2d_bilinear(feat_grid, xy):
     return jnp.interp(ixy[Ellipsis, 0], jnp.arange(h), feat_grid[1])
 
   # For case h > 1 and w > 1, we will first find features at the four corners.
-  x_upper = jnp.ceil(jnp.clip(ixy, a_min=1)).astype(jnp.int64)
+  x_upper = jnp.ceil(jnp.clip(ixy, min=1)).astype(jnp.int64)
   x_lower = x_upper - 1
 
   # Now interpolate first the x-axis, then the y-axis

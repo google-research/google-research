@@ -912,8 +912,8 @@ def update_model_and_guidance_step(
       raw_vars_grad = jax.tree.map(
           lambda g_: jnp.clip(  # pylint: disable=g-long-lambda
               g_,
-              a_min=-grad_clip_limit,
-              a_max=grad_clip_limit),
+              min=-grad_clip_limit,
+              max=grad_clip_limit),
           raw_vars_grad)
 
     guided_update_kwargs = {'learning_rate': lr_guided_vars}

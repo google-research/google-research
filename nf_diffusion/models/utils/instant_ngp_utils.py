@@ -223,7 +223,7 @@ def render_rays(rays, vox, rng, config, jitter=True):
     # return x
     def inverse_sigmoid(y):
       def safe_log(x, eps=1e-8):
-        return jnp.log(jnp.clip(x, a_min=eps))
+        return jnp.log(jnp.clip(x, min=eps))
 
       return safe_log(y) - safe_log(1 - y)
 

@@ -75,10 +75,10 @@ cons_funcs = {
         jax.nn.sigmoid,
     'eps':
         lambda x: jnp.clip(
-            jnp.exp(x), a_min=cons_range['eps'][0], a_max=cons_range['eps'][1]),
+            jnp.exp(x), min=cons_range['eps'][0], max=cons_range['eps'][1]),
     'wd':
         lambda x: jnp.clip(
-            jnp.exp(x), a_min=cons_range['wd'][0], a_max=cons_range['wd'][1]),
+            jnp.exp(x), min=cons_range['wd'][0], max=cons_range['wd'][1]),
     'mask':
         jax.nn.sigmoid,
 }

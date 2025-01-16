@@ -233,7 +233,7 @@ def unroll(key, theta, inner_state, T, K):
 
     if args.inner_clip > 0:
       grads = jax.tree.map(
-          lambda g: jnp.clip(g, a_min=-args.inner_clip, a_max=args.inner_clip),
+          lambda g: jnp.clip(g, min=-args.inner_clip, max=args.inner_clip),
           grads)
     # =================
 
@@ -559,7 +559,7 @@ for outer_iteration in range(args.outer_iterations):
 
   if args.outer_clip > 0:
     outer_grad = jax.tree.map(
-        lambda g: jnp.clip(g, a_min=-args.outer_clip, a_max=args.outer_clip),
+        lambda g: jnp.clip(g, min=-args.outer_clip, max=args.outer_clip),
         outer_grad)
 
   outer_update, outer_opt_state = outer_opt.update(outer_grad, outer_opt_state)
