@@ -31,7 +31,7 @@ class HParamsTest(tf.test.TestCase):
     self.assertDictEqual({}, hparams.values())
     hparams.parse('')
     self.assertDictEqual({}, hparams.values())
-    with self.assertRaisesRegexp(ValueError, 'Unknown hyperparameter'):
+    with self.assertRaisesRegex(ValueError, 'Unknown hyperparameter'):
       hparams.parse('xyz=123')
 
   def testContains(self):
@@ -94,17 +94,17 @@ class HParamsTest(tf.test.TestCase):
     self.assertEqual(1.5, hparams.b)
     self.assertEqual('2.3"', hparams.c_c)
     self.assertEqual('/a=b/c/d', hparams.d)
-    with self.assertRaisesRegexp(ValueError, 'Unknown hyperparameter'):
+    with self.assertRaisesRegex(ValueError, 'Unknown hyperparameter'):
       hparams.parse('x=123')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('aaa=poipoi')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('aaa=1.0')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('b=12x')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('b=relu')
-    with self.assertRaisesRegexp(ValueError, 'Must not pass a list'):
+    with self.assertRaisesRegex(ValueError, 'Must not pass a list'):
       hparams.parse('aaa=[123]')
     self.assertEqual(10, hparams.aaa)
     self.assertEqual(1.5, hparams.b)
@@ -117,7 +117,7 @@ class HParamsTest(tf.test.TestCase):
     hparams.parse('a.b=1.0')
     self.assertEqual(1.0, getattr(hparams, 'a.b'))
     hparams.add_hparam(name='c.d', value=0.0)
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('c.d=abc')
     hparams.add_hparam(name='e.f', value='')
     hparams.parse('e.f=abc')
@@ -154,7 +154,7 @@ class HParamsTest(tf.test.TestCase):
 
   def testBoolParsingFail(self):
     hparams = hparam.HParams(use_gpu=True)
-    with self.assertRaisesRegexp(ValueError, r'Could not parse.*use_gpu'):
+    with self.assertRaisesRegex(ValueError, r'Could not parse.*use_gpu'):
       hparams.parse('use_gpu=yep')
 
   def testLists(self):
@@ -180,17 +180,17 @@ class HParamsTest(tf.test.TestCase):
     hparams.parse('c_c=[_12,3\'4"],aaa=[+3]')
     self.assertEqual([3], hparams.aaa)
     self.assertEqual(['_12', '3\'4"'], hparams.c_c)
-    with self.assertRaisesRegexp(ValueError, 'Unknown hyperparameter'):
+    with self.assertRaisesRegex(ValueError, 'Unknown hyperparameter'):
       hparams.parse('x=[123]')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('aaa=[poipoi]')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('aaa=[1.0]')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('b=[12x]')
-    with self.assertRaisesRegexp(ValueError, 'Could not parse'):
+    with self.assertRaisesRegex(ValueError, 'Could not parse'):
       hparams.parse('b=[relu]')
-    with self.assertRaisesRegexp(ValueError, 'Must pass a list'):
+    with self.assertRaisesRegex(ValueError, 'Must pass a list'):
       hparams.parse('aaa=123')
 
   def testParseValuesWithIndexAssigment1(self):
@@ -304,20 +304,20 @@ class HParamsTest(tf.test.TestCase):
 
   def testParseValuesWithBadIndexAssigment1(self):
     """Reject assignment of list to variable type."""
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  r'Assignment of a list to a list index.'):
       hparam.parse_values('arr[1]=[1,2,3]', {'arr': int})
 
   def testParseValuesWithBadIndexAssigment1_IgnoreUnknown(self):
     """Reject assignment of list to variable type."""
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  r'Assignment of a list to a list index.'):
       hparam.parse_values(
           'arr[1]=[1,2,3],c=8', {'arr': int}, ignore_unknown=True)
 
   def testParseValuesWithBadIndexAssigment2(self):
     """Reject if type missing."""
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  r'Unknown hyperparameter type for arr'):
       hparam.parse_values('arr[1]=5', {})
 
@@ -327,7 +327,7 @@ class HParamsTest(tf.test.TestCase):
 
   def testParseValuesWithBadIndexAssigment3(self):
     """Reject type of the form name[index]."""
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  'Unknown hyperparameter type for arr'):
       hparam.parse_values('arr[1]=1', {'arr[1]': int})
 
@@ -336,19 +336,19 @@ class HParamsTest(tf.test.TestCase):
     hparam.parse_values('arr[1]=1', {'arr[1]': int}, ignore_unknown=True)
 
   def testWithReusedVariables(self):
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  'Multiple assignments to variable \'x\''):
       hparam.parse_values('x=1,x=1', {'x': int})
 
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  'Multiple assignments to variable \'arr\''):
       hparam.parse_values('arr=[100,200],arr[0]=10', {'arr': int})
 
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError, r'Multiple assignments to variable \'arr\[0\]\''):
       hparam.parse_values('arr[0]=10,arr[0]=20', {'arr': int})
 
-    with self.assertRaisesRegexp(ValueError,
+    with self.assertRaisesRegex(ValueError,
                                  'Multiple assignments to variable \'arr\''):
       hparam.parse_values('arr[0]=10,arr=[100]', {'arr': int})
 
@@ -420,9 +420,9 @@ class HParamsTest(tf.test.TestCase):
 
   def testSetHParamListNonListMismatch(self):
     hparams = hparam.HParams(a=1, b=[2.0, 3.0])
-    with self.assertRaisesRegexp(ValueError, r'Must not pass a list'):
+    with self.assertRaisesRegex(ValueError, r'Must not pass a list'):
       hparams.set_hparam('a', [1.0])
-    with self.assertRaisesRegexp(ValueError, r'Must pass a list'):
+    with self.assertRaisesRegex(ValueError, r'Must pass a list'):
       hparams.set_hparam('b', 1.0)
 
   def testSetHParamTypeMismatch(self):
