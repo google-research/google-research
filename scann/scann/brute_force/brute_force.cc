@@ -25,7 +25,7 @@
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
-#include "scann/distance_measures/many_to_many/many_to_many.h"
+#include "scann/distance_measures/many_to_many/many_to_many_floating_point.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_status.h"

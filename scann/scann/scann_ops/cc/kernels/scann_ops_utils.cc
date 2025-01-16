@@ -17,8 +17,8 @@
 namespace tensorflow {
 namespace scann_ops {
 
-Status TensorFromProto(OpKernelContext* context, absl::string_view name,
-                       const protobuf::MessageLite* proto) {
+absl::Status TensorFromProto(OpKernelContext* context, absl::string_view name,
+                             const protobuf::MessageLite* proto) {
   if (proto == nullptr) return EmptyTensor(context, name);
 
   Tensor* tensor;
@@ -35,7 +35,7 @@ void TensorFromProtoRequireOk(OpKernelContext* context, absl::string_view name,
   OP_REQUIRES_OK(context, TensorFromProto(context, name, proto));
 }
 
-Status EmptyTensor(OpKernelContext* context, absl::string_view name) {
+absl::Status EmptyTensor(OpKernelContext* context, absl::string_view name) {
   Tensor* tensor;
   return context->allocate_output(name, TensorShape({}), &tensor);
 }

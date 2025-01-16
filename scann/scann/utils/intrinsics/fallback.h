@@ -436,7 +436,7 @@ class Simd<T, kNumElementsArg> {
     return ComparisonOperatorImpl(*this, other, &GreaterThan);
   }
 
-  SCANN_INLINE int MaskFromHighBits() const {
+  SCANN_INLINE uint32_t MaskFromHighBits() const {
     static_assert(0 != 1, "Not Implemented. TODO: implement if/when needed.");
   }
 

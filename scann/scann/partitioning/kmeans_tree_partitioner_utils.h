@@ -18,6 +18,7 @@
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/partitioning/partitioner_base.h"
+#include "scann/partitioning/tree_brute_force_second_level_wrapper.h"
 
 namespace research_scann {
 

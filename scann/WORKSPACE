@@ -37,9 +37,9 @@ git_repository(
 http_archive(
     name = "pybind11",
     build_file = "@pybind11_bazel//:pybind11.BUILD",
-    strip_prefix = "pybind11-2.11.1",
+    strip_prefix = "pybind11-2.13.6",
     urls = [
-        "https://github.com/pybind/pybind11/archive/v2.11.1.tar.gz",
+        "https://github.com/pybind/pybind11/archive/v2.13.6.tar.gz",
     ],
 )
 
@@ -132,3 +132,10 @@ http_archive(
 load("@rules_cc//cc:repositories.bzl", "rules_cc_dependencies")
 
 rules_cc_dependencies()
+
+git_repository(
+    name = "eigen",
+    commit = "33d0937c6bdf5ec999939fb17f2a553183d14a74",
+    remote = "https://gitlab.com/libeigen/eigen.git",
+    build_file = "//build_deps/eigen:eigen.BUILD",
+)

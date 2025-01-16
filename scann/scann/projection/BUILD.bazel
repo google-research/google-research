@@ -16,14 +16,9 @@ cc_library(
     deps = [
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
-        "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:tf_dependency",
+        "//scann/proto:projection_cc_proto",
         "//scann/utils:types",
         "//scann/utils:util_functions",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/log",
     ],
 )
 
@@ -53,6 +48,25 @@ cc_library(
         ":projection_base",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/distance_measures/one_to_many",
+        "//scann/proto:projection_cc_proto",
+        "//scann/utils:common",
+        "//scann/utils:datapoint_utils",
+        "//scann/utils:pca_utils",
+        "//scann/utils:types",
+    ],
+)
+
+cc_library(
+    name = "eigenvalue_opq_projection",
+    srcs = ["eigenvalue_opq_projection.cc"],
+    hdrs = ["eigenvalue_opq_projection.h"],
+    deps = [
+        ":projection_base",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/oss_wrappers:scann_threadpool",
+        "//scann/proto:projection_cc_proto",
         "//scann/utils:datapoint_utils",
         "//scann/utils:pca_utils",
         "//scann/utils:types",
@@ -81,12 +95,26 @@ cc_library(
         ],
     }) + [
         ":chunking_projection",
+        ":eigenvalue_opq_projection",
         ":identity_projection",
         ":pca_projection",
         ":projection_base",
+        ":truncate_projection",
         "//scann/data_format:dataset",
         "//scann/proto:projection_cc_proto",
         "//scann/utils:common",
+        "//scann/utils:types",
+    ],
+)
+
+cc_library(
+    name = "truncate_projection",
+    srcs = ["truncate_projection.cc"],
+    hdrs = ["truncate_projection.h"],
+    deps = [
+        ":projection_base",
+        "//scann/data_format:datapoint",
+        "//scann/utils:datapoint_utils",
         "//scann/utils:types",
     ],
 )

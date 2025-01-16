@@ -34,6 +34,7 @@
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/partitioning/partitioner_factory_base.h"
 #include "scann/partitioning/projecting_decorator.h"
+#include "scann/partitioning/tree_brute_force_second_level_wrapper.h"
 #include "scann/projection/projection_base.h"
 #include "scann/projection/projection_factory.h"
 #include "scann/proto/distance_measure.pb.h"
@@ -46,9 +47,9 @@ namespace research_scann {
 
 namespace {
 template <typename T>
-StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromKMeansTreeNoProjection(
-    shared_ptr<const KMeansTree> kmeans_tree,
-    const PartitioningConfig& config) {
+StatusOr<unique_ptr<KMeansTreePartitioner<T>>>
+PartitionerFromKMeansTreeNoProjection(shared_ptr<const KMeansTree> kmeans_tree,
+                                      const PartitioningConfig& config) {
   SCANN_ASSIGN_OR_RETURN(auto training_dist,
                          GetDistanceMeasure(config.partitioning_distance()));
 
@@ -114,8 +115,8 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromKMeansTreeNoProjection(
     km->SetDatabaseTokenizationType(
         research_scann::KMeansTreePartitioner<T>::ASYMMETRIC_HASHING);
   }
-
-  return unique_ptr<Partitioner<T>>(std::move(km));
+  km->SetNumTokenizedBranch(config.num_tokenized_branch());
+  return km;
 }
 }  // namespace
 
@@ -130,12 +131,24 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromSerializedImpl(
         "populated.");
   }
 
-  StatusOr<unique_ptr<Partitioner<T>>> result;
   if (proto.has_kmeans()) {
     auto kmeans_tree =
         std::make_shared<KMeansTree>(proto.kmeans().kmeans_tree());
-    return PartitionerFromKMeansTreeNoProjection<T>(std::move(kmeans_tree),
-                                                    config);
+    SCANN_ASSIGN_OR_RETURN(auto partitioner,
+                           PartitionerFromKMeansTreeNoProjection<T>(
+                               std::move(kmeans_tree), config));
+    if (config.bottom_up_top_level_partitioner().enabled() &&
+        proto.kmeans().has_next_bottom_up_level()) {
+      LOG(INFO) << "Deserializing top level partitioners.";
+      auto wrapper = make_unique<TreeBruteForceSecondLevelWrapper<T>>(
+          std::move(partitioner));
+      SCANN_RETURN_IF_ERROR(
+          wrapper->CreatePartitioning(config.bottom_up_top_level_partitioner(),
+                                      proto.kmeans().next_bottom_up_level()));
+      return wrapper;
+    } else {
+      return partitioner;
+    }
   } else if (proto.has_linear_projection()) {
     return InternalError("Linear projection tree partitioners not supported.");
   }

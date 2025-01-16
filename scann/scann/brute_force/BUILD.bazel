@@ -6,38 +6,34 @@ package(
     licenses = ["notice"],
 )
 
+# We build BruteForceSearcher as part of SingleMachineSearcherBase's build target so that some
+# member functions of SingleMachineSearcherBase can return a BruteForceSearcher.
+exports_files([
+    "brute_force.h",
+    "brute_force.cc",
+    "brute_force_mutator.cc",
+])
+
+# This target is kept for backward compatibility reasons.  Historically, BruteForceSearcher and
+# SingleMachineSearcherBase were built as separate targets.  Some users may still depend on
+# this target.
 cc_library(
     name = "brute_force",
-    srcs = [
-        "brute_force.cc",
-        "brute_force_mutator.cc",
+    hdrs = [
+        "brute_force.h",
     ],
-    hdrs = ["brute_force.h"],
     deps = [
-        "//scann/base:restrict_allowlist",
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
-        "//scann/distance_measures/many_to_many",
+        "//scann/distance_measures/many_to_many:many_to_many_floating_point",
         "//scann/distance_measures/one_to_many",
-        "//scann/oss_wrappers:scann_aligned_malloc",
-        "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
-        "//scann/utils:single_machine_autopilot",
-        "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
-        "//scann/utils/intrinsics:sse4",
-        "@com_google_absl//absl/base",
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/log",
-        "@com_google_absl//absl/strings",
-        "@com_google_absl//absl/synchronization",
     ],
 )
 

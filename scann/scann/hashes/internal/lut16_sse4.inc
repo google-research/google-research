@@ -225,6 +225,16 @@ SCANN_SSE4_INLINE void GetTopInt16DistancesImpl(
   auto restrict_whitelist_ptrs =
       args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
+    bool can_skip_batch = true;
+    for (size_t j : Seq(kNumQueries)) {
+      if (restrict_whitelist_ptrs[j] == nullptr ||
+          restrict_whitelist_ptrs[j][k] != 0) {
+        can_skip_batch = false;
+        break;
+      }
+    }
+    if (can_skip_batch) continue;
+
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
     auto int16_accums = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);
@@ -328,6 +338,16 @@ SCANN_SSE4_INLINE void GetTopFloatDistancesImpl(
   auto restrict_whitelist_ptrs =
       args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
+    bool can_skip_batch = true;
+    for (size_t j : Seq(kNumQueries)) {
+      if (restrict_whitelist_ptrs[j] == nullptr ||
+          restrict_whitelist_ptrs[j][k] != 0) {
+        can_skip_batch = false;
+        break;
+      }
+    }
+    if (can_skip_batch) continue;
+
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
     auto int16_accums = Sse4LUT16MiddleLoop<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks);

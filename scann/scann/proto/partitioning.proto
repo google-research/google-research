@@ -49,10 +49,6 @@ message PartitioningConfig {
 
   optional string partitioner_prefix = 8;
 
-  optional int32 max_num_levels = 2 [default = 1];
-
-  optional int32 max_leaf_size = 11 [default = 1];
-
   optional int32 clustering_seed = 27 [default = 0];
 
   optional ProjectionConfig projection = 12;
@@ -184,6 +180,10 @@ message PartitioningConfig {
 
   optional int32 max_sample_size = 33 [default = 2147483647, deprecated = true];
 
+  optional int32 max_num_levels = 2 [default = 1, deprecated = true];
+
+  optional int32 max_leaf_size = 11 [default = 1, deprecated = true];
+
   reserved 47, 48;
 }
 
@@ -307,4 +307,6 @@ message BottomUpTopLevelPartitioner {
   optional Quantization quantization = 6 [default = FLOAT32];
 
   optional float noise_shaping_threshold = 7 [default = nan];
+
+  optional BottomUpTopLevelPartitioner next_higher_level = 8;
 }

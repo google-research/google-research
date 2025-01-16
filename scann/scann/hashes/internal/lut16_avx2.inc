@@ -335,6 +335,16 @@ SCANN_AVX2_INLINE void GetTopInt16DistancesImpl(
   ssize_t next_prefetch_idx =
       ComputeSmartPrefetchIndex(num_blocks, num_32dp_simd_iters);
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
+    bool can_skip_batch = true;
+    for (size_t j : Seq(kNumQueries)) {
+      if (restrict_whitelist_ptrs[j] == nullptr ||
+          restrict_whitelist_ptrs[j][k] != 0) {
+        can_skip_batch = false;
+        break;
+      }
+    }
+    if (can_skip_batch) continue;
+
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
     auto int16_accums = PrefetchDispatcher<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks, next_partition, &next_prefetch_idx);
@@ -438,8 +448,17 @@ SCANN_AVX2_INLINE void GetTopFloatDistancesImpl(
   ssize_t next_prefetch_idx =
       ComputeSmartPrefetchIndex(num_blocks, num_32dp_simd_iters);
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
-    const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
+    bool can_skip_batch = true;
+    for (size_t j : Seq(kNumQueries)) {
+      if (restrict_whitelist_ptrs[j] == nullptr ||
+          restrict_whitelist_ptrs[j][k] != 0) {
+        can_skip_batch = false;
+        break;
+      }
+    }
+    if (can_skip_batch) continue;
 
+    const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
     auto int16_accums = PrefetchDispatcher<kNumQueries, kPrefetch>(
         data_start, lookups, num_blocks, next_partition, &next_prefetch_idx);
     for (size_t j : Seq(kNumQueries)) {

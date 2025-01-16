@@ -26,6 +26,7 @@
 
 #include "absl/base/optimization.h"
 #include "absl/log/log.h"
+#include "absl/types/span.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
@@ -199,7 +200,7 @@ StatusOr<SingleMachineFactoryOptions> MergeAHLeafOptions(
 }
 
 StatusOr<bool> ValidateDatapointsByToken(
-    const vector<std::vector<DatapointIndex>>& datapoints_by_token,
+    absl::Span<const std::vector<DatapointIndex>> datapoints_by_token,
     DatapointIndex num_datapoints);
 
 vector<uint32_t> SizeByPartition(

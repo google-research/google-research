@@ -38,6 +38,8 @@ message InputOutputConfig {
   optional InMemoryTypes in_memory_data_type = 2
       [default = IN_MEMORY_DATA_TYPE_NOT_SPECIFIED];
 
+  optional bool parallelize_disk_reads_on_startup = 27 [default = false];
+
   optional string database_wildcard = 3;
 
   optional bool allow_two_pass_read = 15 [default = false];

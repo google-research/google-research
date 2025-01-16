@@ -167,7 +167,8 @@ HashLeafHelpers<T>::LoadAsymmetricHashingModel(
   shared_ptr<const asymmetric_hashing2::Model<T>> model;
   if (preloaded_codebook) {
     SCANN_ASSIGN_OR_RETURN(
-        model, asymmetric_hashing2::Model<T>::FromProto(*preloaded_codebook));
+        model, asymmetric_hashing2::Model<T>::FromProto(*preloaded_codebook,
+                                                        config.projection()));
   } else {
     return InvalidArgumentError("Centers files are not supported.");
   }
@@ -185,7 +186,7 @@ HashLeafHelpers<T>::LoadAsymmetricHashingModel(
       CreateOrGetAymmetricHashingQuantizationDistance(config, params));
 
   SCANN_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<T>> projector,
-                         ChunkingProjectionFactory<T>(config.projection()));
+                         model->GetProjection(config.projection()));
   internal::TrainedAsymmetricHashingResults<T> result;
   result.indexer = std::make_shared<asymmetric_hashing2::Indexer<T>>(
       projector, quantization_distance, model);

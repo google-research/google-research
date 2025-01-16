@@ -19,9 +19,11 @@
 #include <utility>
 
 #include "scann/data_format/dataset.h"
+#include "scann/projection/eigenvalue_opq_projection.h"
 #include "scann/projection/identity_projection.h"
 #include "scann/projection/pca_projection.h"
 #include "scann/projection/projection_base.h"
+#include "scann/projection/truncate_projection.h"
 #include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -80,14 +82,45 @@ Status ValidateDimension(ProjectionConfig::ProjectionType projection_type,
 
 template <typename T>
 StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
-    const ProjectionConfig& config, const TypedDataset<T>* dataset,
-    int32_t seed_offset) {
+    const ProjectionConfig& config,
+    MaybeDatasetOrSerializedProjection<T> dataset_or_serialized_projection,
+    int32_t seed_offset, ThreadPool* parallelization_pool) {
   const int32_t effective_seed = config.seed() + seed_offset;
   if (!config.has_input_dim()) {
     return InvalidArgumentError(
         "Must set input_dim field in projection config");
   }
   const DimensionIndex input_dim = config.input_dim();
+  if (config.projection_type() == ProjectionConfig::EIGENVALUE_OPQ) {
+    const int32_t num_blocks = config.num_blocks();
+    if (num_blocks <= 0) {
+      return InvalidArgumentError(
+          "num_blocks must be positive for EIGENVALUE_OPQ projection.");
+    }
+    if (num_blocks > config.input_dim()) {
+      return InvalidArgumentError(
+          "num_blocks must be <= input_dim for EIGENVALUE_OPQ projection.  "
+          "(Got %d vs %d)",
+          config.num_blocks(), input_dim);
+    }
+    if (dataset_or_serialized_projection.index() == 0) {
+      return InvalidArgumentError(
+          "A dataset or serialized projection must be provided when "
+          "constructing a Eigenvalue OPQ projection");
+    }
+    auto result = make_unique<EigenvalueOpqProjection<T>>(input_dim);
+    if (dataset_or_serialized_projection.index() == 2) {
+      const SerializedProjection& serialized_projection =
+          *std::get<2>(dataset_or_serialized_projection);
+      SCANN_RETURN_IF_ERROR(result->Create(serialized_projection));
+    } else {
+      DCHECK_EQ(dataset_or_serialized_projection.index(), 1);
+      result->Create(*std::get<1>(dataset_or_serialized_projection),
+                     config.num_blocks(), config.build_covariance(),
+                     parallelization_pool);
+    }
+    return {std::move(result)};
+  }
 
   if (!config.has_num_dims_per_block() &&
       config.projection_type() != ProjectionConfig::NONE &&
@@ -122,20 +155,30 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
           "ProjectionFactory. Did you mean to call ChunkingProjectionFactory?");
     case ProjectionConfig::PCA: {
       SCANN_RETURN_IF_ERROR(fix_remainder_dims());
-      if (!dataset) {
+      if (dataset_or_serialized_projection.index() == 0) {
         return InvalidArgumentError(
-            "A dataset must be provided when constructing a PCA projection");
+            "A dataset or serialized projection must be provided when "
+            "constructing a PCA projection");
       }
       unique_ptr<PcaProjection<T>> result;
-      if (config.has_num_dims_per_block()) {
+      if (dataset_or_serialized_projection.index() == 2) {
+        const SerializedProjection& serialized_projection =
+            *std::get<2>(dataset_or_serialized_projection);
+        result = make_unique<PcaProjection<T>>(
+            input_dim, serialized_projection.rotation_vec_size());
+        SCANN_RETURN_IF_ERROR(result->Create(serialized_projection));
+      } else if (config.has_num_dims_per_block()) {
         result = make_unique<PcaProjection<T>>(input_dim,
                                                config.num_dims_per_block());
-        result->Create(*dataset, config.build_covariance());
+        result->Create(*std::get<1>(dataset_or_serialized_projection),
+                       config.build_covariance(), parallelization_pool);
       } else {
         if (config.has_pca_significance_threshold()) {
           result = make_unique<PcaProjection<T>>(input_dim, input_dim);
-          result->Create(*dataset, config.pca_significance_threshold(),
-                         config.pca_truncation_threshold());
+          result->Create(*std::get<1>(dataset_or_serialized_projection),
+                         config.pca_significance_threshold(),
+                         config.pca_truncation_threshold(), true,
+                         parallelization_pool);
         } else {
           return InvalidArgumentError(
               "Must specify num_dims_per_block or pca_significance_threshold "
@@ -144,7 +187,9 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
       }
       return {std::move(result)};
     }
-
+    case ProjectionConfig::TRUNCATE:
+      return {make_unique<TruncateProjection<T>>(input_dim,
+                                                 config.num_dims_per_block())};
     default:
       return UnimplementedError(
           "The specified projection type is not implemented.");

@@ -121,7 +121,6 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_serialize",
         "//scann/oss_wrappers:scann_status",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils:memory_logging",
         "//scann/utils:types",

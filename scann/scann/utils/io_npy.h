@@ -15,14 +15,17 @@
 #ifndef SCANN_UTILS_IO_NPY_H_
 #define SCANN_UTILS_IO_NPY_H_
 
+#include <cstddef>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/strings/str_format.h"
-#include "absl/types/span.h"
+#include "absl/strings/string_view.h"
 #include "cnpy/cnpy.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/utils/common.h"
 #include "scann/utils/io_oss_wrapper.h"
 #include "scann/utils/types.h"
 
@@ -90,7 +93,7 @@ StatusOr<pair<std::vector<T>, std::vector<size_t>>> NumpyToVectorAndShape(
     absl::string_view filename) {
   OpenSourceableFileReader reader(filename);
   std::string header;
-  reader.ReadLine(header);
+  SCANN_RETURN_IF_ERROR(reader.ReadLine(header));
 
   size_t word_size;
   vector<size_t> shape;
@@ -105,7 +108,8 @@ StatusOr<pair<std::vector<T>, std::vector<size_t>>> NumpyToVectorAndShape(
   size_t total_size = 1;
   for (size_t s : shape) total_size *= s;
   vector<T> buffer(total_size);
-  reader.Read(total_size * sizeof(T), reinterpret_cast<char*>(buffer.data()));
+  SCANN_RETURN_IF_ERROR(reader.Read(total_size * sizeof(T),
+                                    reinterpret_cast<char*>(buffer.data())));
   return std::make_pair(std::move(buffer), std::move(shape));
 }
 

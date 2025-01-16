@@ -6,10 +6,13 @@
 
 #undef HWY_TARGET_INCLUDE
 #define HWY_TARGET_INCLUDE "scann/hashes/internal/lut16_highway.inc"
-#include "absl/base/prefetch.h"
 #include "hwy/foreach_target.h"
-#include "hwy/highway.h"
 #include "scann/hashes/internal/lut16_args.h"
+
+#if !defined(__x86_64__) || defined(SCANN_FORCE_HIGHWAY_LUT16)
+
+#include "absl/base/prefetch.h"
+#include "hwy/highway.h"
 #include "scann/hashes/internal/lut16_highway.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/bits.h"
@@ -145,9 +148,8 @@ SCANN_HIGHWAY_INLINE void Accumulate(const D d, hn::Vec<D> res,
               hn::BitCast(dto16, hn::ShiftRight<8>(hn::BitCast(dtou16, res))));
 }
 
-template <class V16>
+template <PrefetchStrategy kPrefetch, class V16>
 SCANN_HIGHWAY_INLINE void HighwayLUT16BottomLoopAccum(
-    const PrefetchStrategy prefetch_strategy,
     const uint8_t* HWY_RESTRICT data_start, const uint8_t* lookup_starts,
     const DimensionIndex num_blocks, V16& int16_accums0, V16& int16_accums1,
     V16& int16_accums2, V16& int16_accums3) {
@@ -159,7 +161,7 @@ SCANN_HIGHWAY_INLINE void HighwayLUT16BottomLoopAccum(
   V bitmask = hn::Set(d, 0x0F);
 
   for (size_t i = 0; i < num_iters; ++i) {
-    if (prefetch_strategy != PrefetchStrategy::kOff) {
+    if constexpr (kPrefetch != PrefetchStrategy::kOff) {
       absl::PrefetchToLocalCacheNta((data_start + i * N) + kPrefetchBytesAhead);
     }
 
@@ -298,9 +300,8 @@ SCANN_HIGHWAY_INLINE void HighwayPostProcess512Bits(
   hn::StoreU(v_lo, d16_half, dist16.data() + 16);
 }
 
-template <size_t kNumQueries>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_INLINE void HighwayLUT16BottomLoop(
-    const PrefetchStrategy prefetch_strategy,
     const uint8_t* HWY_RESTRICT data_start,
     array<const uint8_t*, kNumQueries> lookup_starts,
     const DimensionIndex num_blocks,
@@ -326,17 +327,17 @@ SCANN_HIGHWAY_INLINE void HighwayLUT16BottomLoop(
   V16 int16_accums10 = int16_accums0;
   V16 int16_accums11 = int16_accums0;
 
-  HighwayLUT16BottomLoopAccum(prefetch_strategy, data_start, lookup_starts[0],
-                              num_blocks, int16_accums0, int16_accums1,
-                              int16_accums2, int16_accums3);
+  HighwayLUT16BottomLoopAccum<kPrefetch>(
+      data_start, lookup_starts[0], num_blocks, int16_accums0, int16_accums1,
+      int16_accums2, int16_accums3);
   if constexpr (kNumQueries > 1)
-    HighwayLUT16BottomLoopAccum(prefetch_strategy, data_start, lookup_starts[1],
-                                num_blocks, int16_accums4, int16_accums5,
-                                int16_accums6, int16_accums7);
+    HighwayLUT16BottomLoopAccum<kPrefetch>(
+        data_start, lookup_starts[1], num_blocks, int16_accums4, int16_accums5,
+        int16_accums6, int16_accums7);
   if constexpr (kNumQueries > 2)
-    HighwayLUT16BottomLoopAccum(prefetch_strategy, data_start, lookup_starts[2],
-                                num_blocks, int16_accums8, int16_accums9,
-                                int16_accums10, int16_accums11);
+    HighwayLUT16BottomLoopAccum<kPrefetch>(
+        data_start, lookup_starts[2], num_blocks, int16_accums8, int16_accums9,
+        int16_accums10, int16_accums11);
 
   if (num_32dp_blocks == 1) {
     HighwayPostProcess128Bits(d16, num_blocks, dist16[0], int16_accums0,
@@ -382,9 +383,8 @@ MakeBottomLevelBatchLookupArray(
   return result;
 }
 
-template <size_t kNumQueries>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_INLINE void HighwayLUT16MiddleLoop(
-    const PrefetchStrategy prefetch_strategy,
     const uint8_t* HWY_RESTRICT data_start,
     array<const uint8_t*, kNumQueries>& lookup_starts,
     const DimensionIndex num_blocks,
@@ -404,8 +404,8 @@ SCANN_HIGHWAY_INLINE void HighwayLUT16MiddleLoop(
     const size_t start = j * kSizeA;
     auto bottom_level_lookups =
         MakeBottomLevelBatchLookupArray<kSizeA>(lookup_starts, start);
-    HighwayLUT16BottomLoop<kSizeA>(prefetch_strategy, data_start,
-                                   bottom_level_lookups, num_blocks, dist16);
+    HighwayLUT16BottomLoop<kSizeA, kPrefetch>(data_start, bottom_level_lookups,
+                                              num_blocks, dist16);
     for (size_t jj : Seq(kSizeA)) {
       std::copy(dist16[jj].begin(), dist16[jj].end(),
                 result16[start + jj].begin());
@@ -417,8 +417,8 @@ SCANN_HIGHWAY_INLINE void HighwayLUT16MiddleLoop(
     const size_t start = kNumA * kSizeA + j * kSizeB;
     auto bottom_level_lookups =
         MakeBottomLevelBatchLookupArray<kSizeB>(lookup_starts, start);
-    HighwayLUT16BottomLoop<kSizeB>(prefetch_strategy, data_start,
-                                   bottom_level_lookups, num_blocks, dist16);
+    HighwayLUT16BottomLoop<kSizeB, kPrefetch>(data_start, bottom_level_lookups,
+                                              num_blocks, dist16);
     for (size_t jj : Seq(kSizeB)) {
       std::copy(dist16[jj].begin(), dist16[jj].end(),
                 result16[start + jj].begin());
@@ -426,9 +426,8 @@ SCANN_HIGHWAY_INLINE void HighwayLUT16MiddleLoop(
   }
 }
 
-template <size_t kNumQueries>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_INLINE void HighwayLUT16MiddleLoopInt32(
-    const PrefetchStrategy prefetch_strategy,
     const uint8_t* HWY_RESTRICT data_start,
     array<const uint8_t*, kNumQueries> lookup_starts,
     const DimensionIndex num_blocks,
@@ -442,9 +441,8 @@ SCANN_HIGHWAY_INLINE void HighwayLUT16MiddleLoopInt32(
   for (DimensionIndex k = 0; k < num_blocks;) {
     DimensionIndex reaccumulate_limit = std::min(num_blocks - k, uint64_t{256});
     k += reaccumulate_limit;
-    HighwayLUT16MiddleLoop<kNumQueries>(prefetch_strategy, data_start,
-                                        lookup_starts, reaccumulate_limit,
-                                        result16);
+    HighwayLUT16MiddleLoop<kNumQueries, kPrefetch>(
+        data_start, lookup_starts, reaccumulate_limit, result16);
     data_start += 16 * reaccumulate_limit;
     for (size_t j : Seq(kNumQueries)) {
       ExpandToInt32AccumAndStore(result16[j].data(), result32[j].data());
@@ -461,26 +459,33 @@ SCANN_HIGHWAY_INLINE array<T, size> ToLocalArray(ConstSpan<T> span) {
   return result;
 }
 
-#define SCANN_GET_INT16_DISTANCES(batch_size)                               \
-  SCANN_HIGHWAY_INLINE void GetInt16Distances##batch_size(                  \
-      const PrefetchStrategy prefetch_strategy, LUT16Args<int16_t> args) {  \
-    const uint8_t* packed_dataset = args.packed_dataset;                    \
-    const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;            \
-    const size_t num_blocks = args.num_blocks;                              \
-    auto lookups = ToLocalArray<batch_size>(args.lookups);                  \
-    auto distances = ToLocalArray<batch_size>(args.distances);              \
-    array<array<int16_t, 32>, batch_size> result16;                         \
-    for (size_t k : Seq(num_32dp_simd_iters)) {                             \
-      const size_t dp_idx = k * 32;                                         \
-      const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2; \
-      HWY_NAMESPACE::HighwayLUT16MiddleLoop<batch_size>(                    \
-          prefetch_strategy, data_start, lookups, num_blocks, result16);    \
-      for (size_t j : Seq(batch_size)) {                                    \
-        std::copy(result16[j].begin(), result16[j].end(),                   \
-                  distances[j] + dp_idx);                                   \
-      }                                                                     \
-    }                                                                       \
+#define SCANN_GET_INT16_DISTANCES_IMPL(batch_size, prefetch_strategy_int)    \
+  SCANN_HIGHWAY_INLINE void                                                  \
+      GetInt16Distances##batch_size##prefetch_strategy_int(                  \
+          LUT16Args<int16_t> args) {                                         \
+    const uint8_t* packed_dataset = args.packed_dataset;                     \
+    const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;             \
+    const size_t num_blocks = args.num_blocks;                               \
+    auto lookups = ToLocalArray<batch_size>(args.lookups);                   \
+    auto distances = ToLocalArray<batch_size>(args.distances);               \
+    array<array<int16_t, 32>, batch_size> result16;                          \
+    for (size_t k : Seq(num_32dp_simd_iters)) {                              \
+      const size_t dp_idx = k * 32;                                          \
+      const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2;  \
+      HWY_NAMESPACE::HighwayLUT16MiddleLoop<                                 \
+          batch_size, static_cast<PrefetchStrategy>(prefetch_strategy_int)>( \
+          data_start, lookups, num_blocks, result16);                        \
+      for (size_t j : Seq(batch_size)) {                                     \
+        std::copy(result16[j].begin(), result16[j].end(),                    \
+                  distances[j] + dp_idx);                                    \
+      }                                                                      \
+    }                                                                        \
   }
+
+#define SCANN_GET_INT16_DISTANCES(batch_size)    \
+  SCANN_GET_INT16_DISTANCES_IMPL(batch_size, 0); \
+  SCANN_GET_INT16_DISTANCES_IMPL(batch_size, 1); \
+  SCANN_GET_INT16_DISTANCES_IMPL(batch_size, 2);
 
 SCANN_GET_INT16_DISTANCES(1);
 SCANN_GET_INT16_DISTANCES(2);
@@ -492,27 +497,35 @@ SCANN_GET_INT16_DISTANCES(7);
 SCANN_GET_INT16_DISTANCES(8);
 SCANN_GET_INT16_DISTANCES(9);
 #undef SCANN_GET_INT16_DISTANCES
+#undef SCANN_GET_INT16_DISTANCES_IMPL
 
-#define SCANN_GET_INT32_DISTANCES(batch_size)                               \
-  SCANN_HIGHWAY_INLINE void GetInt32Distances##batch_size(                  \
-      const PrefetchStrategy prefetch_strategy, LUT16Args<int32_t> args) {  \
-    const uint8_t* packed_dataset = args.packed_dataset;                    \
-    const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;            \
-    const size_t num_blocks = args.num_blocks;                              \
-    auto lookups = ToLocalArray<batch_size>(args.lookups);                  \
-    auto distances = ToLocalArray<batch_size>(args.distances);              \
-    array<array<int32_t, 32>, batch_size> result32;                         \
-    for (size_t k : Seq(num_32dp_simd_iters)) {                             \
-      const size_t dp_idx = k * 32;                                         \
-      const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2; \
-      HWY_NAMESPACE::HighwayLUT16MiddleLoopInt32<batch_size>(               \
-          prefetch_strategy, data_start, lookups, num_blocks, result32);    \
-      for (size_t j : Seq(batch_size)) {                                    \
-        std::copy(result32[j].begin(), result32[j].end(),                   \
-                  distances[j] + dp_idx);                                   \
-      }                                                                     \
-    }                                                                       \
+#define SCANN_GET_INT32_DISTANCES_IMPL(batch_size, prefetch_strategy_int)    \
+  SCANN_HIGHWAY_INLINE void                                                  \
+      GetInt32Distances##batch_size##prefetch_strategy_int(                  \
+          LUT16Args<int32_t> args) {                                         \
+    const uint8_t* packed_dataset = args.packed_dataset;                     \
+    const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;             \
+    const size_t num_blocks = args.num_blocks;                               \
+    auto lookups = ToLocalArray<batch_size>(args.lookups);                   \
+    auto distances = ToLocalArray<batch_size>(args.distances);               \
+    array<array<int32_t, 32>, batch_size> result32;                          \
+    for (size_t k : Seq(num_32dp_simd_iters)) {                              \
+      const size_t dp_idx = k * 32;                                          \
+      const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2;  \
+      HWY_NAMESPACE::HighwayLUT16MiddleLoopInt32<                            \
+          batch_size, static_cast<PrefetchStrategy>(prefetch_strategy_int)>( \
+          data_start, lookups, num_blocks, result32);                        \
+      for (size_t j : Seq(batch_size)) {                                     \
+        std::copy(result32[j].begin(), result32[j].end(),                    \
+                  distances[j] + dp_idx);                                    \
+      }                                                                      \
+    }                                                                        \
   }
+
+#define SCANN_GET_INT32_DISTANCES(batch_size)    \
+  SCANN_GET_INT32_DISTANCES_IMPL(batch_size, 0); \
+  SCANN_GET_INT32_DISTANCES_IMPL(batch_size, 1); \
+  SCANN_GET_INT32_DISTANCES_IMPL(batch_size, 2);
 
 SCANN_GET_INT32_DISTANCES(1);
 SCANN_GET_INT32_DISTANCES(2);
@@ -524,29 +537,36 @@ SCANN_GET_INT32_DISTANCES(7);
 SCANN_GET_INT32_DISTANCES(8);
 SCANN_GET_INT32_DISTANCES(9);
 #undef SCANN_GET_INT32_DISTANCES
+#undef SCANN_GET_INT32_DISTANCES_IMPL
 
-#define SCANN_GET_FLOAT_DISTANCES(batch_size)                               \
-  SCANN_HIGHWAY_INLINE void GetFloatDistances##batch_size(                  \
-      const PrefetchStrategy prefetch_strategy, LUT16Args<float> args,      \
-      ConstSpan<float> inv_fp_multipliers) {                                \
-    const uint8_t* packed_dataset = args.packed_dataset;                    \
-    const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;            \
-    const size_t num_blocks = args.num_blocks;                              \
-    auto lookups = ToLocalArray<batch_size>(args.lookups);                  \
-    auto distances = ToLocalArray<batch_size>(args.distances);              \
-    auto mults = ToLocalArray<batch_size>(inv_fp_multipliers);              \
-    array<array<int32_t, 32>, batch_size> dist32;                           \
-    for (size_t k : Seq(num_32dp_simd_iters)) {                             \
-      const size_t dp_idx = k * 32;                                         \
-      const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2; \
-      HWY_NAMESPACE::HighwayLUT16MiddleLoopInt32<batch_size>(               \
-          prefetch_strategy, data_start, lookups, num_blocks, dist32);      \
-      for (size_t j : Seq(batch_size)) {                                    \
-        HWY_NAMESPACE::ConvertToFloatMultiplyAndStore(                      \
-            dist32[j].data(), mults[j], distances[j] + dp_idx);             \
-      }                                                                     \
-    }                                                                       \
+#define SCANN_GET_FLOAT_DISTANCES_IMPL(batch_size, prefetch_strategy_int)    \
+  SCANN_HIGHWAY_INLINE void                                                  \
+      GetFloatDistances##batch_size##prefetch_strategy_int(                  \
+          LUT16Args<float> args, ConstSpan<float> inv_fp_multipliers) {      \
+    const uint8_t* packed_dataset = args.packed_dataset;                     \
+    const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;             \
+    const size_t num_blocks = args.num_blocks;                               \
+    auto lookups = ToLocalArray<batch_size>(args.lookups);                   \
+    auto distances = ToLocalArray<batch_size>(args.distances);               \
+    auto mults = ToLocalArray<batch_size>(inv_fp_multipliers);               \
+    array<array<int32_t, 32>, batch_size> dist32;                            \
+    for (size_t k : Seq(num_32dp_simd_iters)) {                              \
+      const size_t dp_idx = k * 32;                                          \
+      const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2;  \
+      HWY_NAMESPACE::HighwayLUT16MiddleLoopInt32<                            \
+          batch_size, static_cast<PrefetchStrategy>(prefetch_strategy_int)>( \
+          data_start, lookups, num_blocks, dist32);                          \
+      for (size_t j : Seq(batch_size)) {                                     \
+        HWY_NAMESPACE::ConvertToFloatMultiplyAndStore(                       \
+            dist32[j].data(), mults[j], distances[j] + dp_idx);              \
+      }                                                                      \
+    }                                                                        \
   }
+
+#define SCANN_GET_FLOAT_DISTANCES(batch_size)    \
+  SCANN_GET_FLOAT_DISTANCES_IMPL(batch_size, 0); \
+  SCANN_GET_FLOAT_DISTANCES_IMPL(batch_size, 1); \
+  SCANN_GET_FLOAT_DISTANCES_IMPL(batch_size, 2);
 
 SCANN_GET_FLOAT_DISTANCES(1);
 SCANN_GET_FLOAT_DISTANCES(2);
@@ -558,10 +578,10 @@ SCANN_GET_FLOAT_DISTANCES(7);
 SCANN_GET_FLOAT_DISTANCES(8);
 SCANN_GET_FLOAT_DISTANCES(9);
 #undef SCANN_GET_FLOAT_DISTANCES
+#undef SCANN_GET_FLOAT_DISTANCES_IMPL
 
-template <size_t kNumQueries, typename TopN>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch, typename TopN>
 SCANN_HIGHWAY_INLINE void GetTopInt16DistancesImpl(
-    const PrefetchStrategy prefetch_strategy,
     LUT16ArgsTopN<int16_t, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
@@ -588,10 +608,20 @@ SCANN_HIGHWAY_INLINE void GetTopInt16DistancesImpl(
   auto restrict_whitelist_ptrs =
       args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
+    bool can_skip_batch = true;
+    for (size_t j : Seq(kNumQueries)) {
+      if (restrict_whitelist_ptrs[j] == nullptr ||
+          restrict_whitelist_ptrs[j][k] != 0) {
+        can_skip_batch = false;
+        break;
+      }
+    }
+    if (can_skip_batch) continue;
+
     const size_t dp_idx = k * 32;
     const uint8_t* data_start = packed_dataset + dp_idx * num_blocks / 2;
-    HWY_NAMESPACE::HighwayLUT16MiddleLoop<kNumQueries>(
-        prefetch_strategy, data_start, lookups, num_blocks, dist16);
+    HWY_NAMESPACE::HighwayLUT16MiddleLoop<kNumQueries, kPrefetch>(
+        data_start, lookups, num_blocks, dist16);
     for (size_t j : Seq(kNumQueries)) {
       uint32_t push_mask =
           HWY_NAMESPACE::ComputePushMask(dist16[j].data(), simd_thresholds[j]);
@@ -630,12 +660,19 @@ SCANN_HIGHWAY_INLINE void GetTopInt16DistancesImpl(
   }
 }
 
-#define SCANN_GET_TOP_INT16_DISTANCES(batch_size)                              \
-  SCANN_HIGHWAY_INLINE void GetTopInt16Distances1_##batch_size(                \
-      const PrefetchStrategy prefetch_strategy, LUT16ArgsTopN<int16_t> args) { \
-    return GetTopInt16DistancesImpl<batch_size>(prefetch_strategy,             \
-                                                std::move(args));              \
+#define SCANN_GET_TOP_INT16_DISTANCES_IMPL(batch_size, prefetch_strategy_int)  \
+  SCANN_HIGHWAY_INLINE void                                                    \
+      GetTopInt16Distances1_##batch_size##prefetch_strategy_int(               \
+          LUT16ArgsTopN<int16_t> args) {                                       \
+    return GetTopInt16DistancesImpl<batch_size, static_cast<PrefetchStrategy>( \
+                                                    prefetch_strategy_int)>(   \
+        std::move(args));                                                      \
   }
+
+#define SCANN_GET_TOP_INT16_DISTANCES(batch_size)    \
+  SCANN_GET_TOP_INT16_DISTANCES_IMPL(batch_size, 0); \
+  SCANN_GET_TOP_INT16_DISTANCES_IMPL(batch_size, 1); \
+  SCANN_GET_TOP_INT16_DISTANCES_IMPL(batch_size, 2);
 
 SCANN_GET_TOP_INT16_DISTANCES(1);
 SCANN_GET_TOP_INT16_DISTANCES(2);
@@ -647,16 +684,16 @@ SCANN_GET_TOP_INT16_DISTANCES(7);
 SCANN_GET_TOP_INT16_DISTANCES(8);
 SCANN_GET_TOP_INT16_DISTANCES(9);
 #undef SCANN_GET_TOP_INT16_DISTANCES
+#undef SCANN_GET_TOP_INT16_DISTANCES_IMPL
 
 SCANN_HIGHWAY_INLINE int16_t GetInt16Threshold(float float_threshold) {
   constexpr float kMaxValue = numeric_limits<int16_t>::max();
   return std::min(float_threshold, kMaxValue);
 }
 
-template <size_t kNumQueries, typename TopN>
+template <size_t kNumQueries, PrefetchStrategy kPrefetch, typename TopN>
 SCANN_HIGHWAY_INLINE void GetTopFloatDistancesImpl(
-    const PrefetchStrategy prefetch_strategy, const bool with_spilling,
-    LUT16ArgsTopN<float, TopN> args) {
+    const bool with_spilling, LUT16ArgsTopN<float, TopN> args) {
   const uint8_t* packed_dataset = args.packed_dataset;
   const size_t num_32dp_simd_iters = args.num_32dp_simd_iters;
   const size_t num_blocks = args.num_blocks;
@@ -696,9 +733,19 @@ SCANN_HIGHWAY_INLINE void GetTopFloatDistancesImpl(
   auto restrict_whitelist_ptrs =
       args.template GetRestrictWhitelistPtrs<kNumQueries>();
   for (DatapointIndex k : Seq(num_32dp_simd_iters)) {
+    bool can_skip_batch = true;
+    for (size_t j : Seq(kNumQueries)) {
+      if (restrict_whitelist_ptrs[j] == nullptr ||
+          restrict_whitelist_ptrs[j][k] != 0) {
+        can_skip_batch = false;
+        break;
+      }
+    }
+    if (can_skip_batch) continue;
+
     const uint8_t* data_start = packed_dataset + k * 16 * num_blocks;
-    HWY_NAMESPACE::HighwayLUT16MiddleLoop<kNumQueries>(
-        prefetch_strategy, data_start, lookups, num_blocks, dist16);
+    HWY_NAMESPACE::HighwayLUT16MiddleLoop<kNumQueries, kPrefetch>(
+        data_start, lookups, num_blocks, dist16);
     for (size_t j : Seq(kNumQueries)) {
       uint32_t push_mask =
           HWY_NAMESPACE::ComputePushMask(dist16[j].data(), simd_thresholds[j]);
@@ -755,12 +802,19 @@ SCANN_HIGHWAY_INLINE void GetTopFloatDistancesImpl(
   }
 }
 
-#define SCANN_GET_TOP_FLOAT_DISTANCES(batch_size)                            \
-  SCANN_HIGHWAY_INLINE void GetTopFloatDistances1_##batch_size(              \
-      const PrefetchStrategy prefetch_strategy, LUT16ArgsTopN<float> args) { \
-    return GetTopFloatDistancesImpl<batch_size>(prefetch_strategy, false,    \
-                                                std::move(args));            \
+#define SCANN_GET_TOP_FLOAT_DISTANCES_IMPL(batch_size, prefetch_strategy_int)  \
+  SCANN_HIGHWAY_INLINE void                                                    \
+      GetTopFloatDistances1_##batch_size##prefetch_strategy_int(               \
+          LUT16ArgsTopN<float> args) {                                         \
+    return GetTopFloatDistancesImpl<batch_size, static_cast<PrefetchStrategy>( \
+                                                    prefetch_strategy_int)>(   \
+        false, std::move(args));                                               \
   }
+
+#define SCANN_GET_TOP_FLOAT_DISTANCES(batch_size)   \
+  SCANN_GET_TOP_FLOAT_DISTANCES_IMPL(batch_size, 0) \
+  SCANN_GET_TOP_FLOAT_DISTANCES_IMPL(batch_size, 1) \
+  SCANN_GET_TOP_FLOAT_DISTANCES_IMPL(batch_size, 2)
 
 SCANN_GET_TOP_FLOAT_DISTANCES(1);
 SCANN_GET_TOP_FLOAT_DISTANCES(2);
@@ -772,13 +826,22 @@ SCANN_GET_TOP_FLOAT_DISTANCES(7);
 SCANN_GET_TOP_FLOAT_DISTANCES(8);
 SCANN_GET_TOP_FLOAT_DISTANCES(9);
 #undef SCANN_GET_TOP_FLOAT_DISTANCES
+#undef SCANN_GET_TOP_FLOAT_DISTANCES_IMPL
 
-#define SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(batch_size)                    \
-  SCANN_HIGHWAY_INLINE void GetTopFloatDistancesSpilled1_##batch_size(       \
-      const PrefetchStrategy prefetch_strategy, LUT16ArgsTopN<float> args) { \
-    return GetTopFloatDistancesImpl<batch_size>(prefetch_strategy, true,     \
-                                                std::move(args));            \
+#define SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED_IMPL(batch_size,                 \
+                                                   prefetch_strategy_int)      \
+  SCANN_HIGHWAY_INLINE void                                                    \
+      GetTopFloatDistancesSpilled1_##batch_size##prefetch_strategy_int(        \
+          LUT16ArgsTopN<float> args) {                                         \
+    return GetTopFloatDistancesImpl<batch_size, static_cast<PrefetchStrategy>( \
+                                                    prefetch_strategy_int)>(   \
+        true, std::move(args));                                                \
   }
+
+#define SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(batch_size)   \
+  SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED_IMPL(batch_size, 0) \
+  SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED_IMPL(batch_size, 1) \
+  SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED_IMPL(batch_size, 2)
 
 SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(1);
 SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(2);
@@ -790,6 +853,7 @@ SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(7);
 SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(8);
 SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED(9);
 #undef SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED
+#undef SCANN_GET_TOP_FLOAT_DISTANCES_SPILLED_IMPL
 
 }  // namespace HWY_NAMESPACE
 }  // namespace asymmetric_hashing_internal
@@ -800,12 +864,17 @@ HWY_AFTER_NAMESPACE();
 namespace research_scann {
 namespace asymmetric_hashing_internal {
 
-#define SCANN_HWY_EXPORT_ALL(batch_size)          \
-  HWY_EXPORT(GetInt16Distances##batch_size);      \
-  HWY_EXPORT(GetInt32Distances##batch_size);      \
-  HWY_EXPORT(GetFloatDistances##batch_size);      \
-  HWY_EXPORT(GetTopInt16Distances1_##batch_size); \
-  HWY_EXPORT(GetTopFloatDistances1_##batch_size);
+#define SCANN_EXPORT_ALL_PREFETCH_STRATEGIES(base_fn, batch_size) \
+  HWY_EXPORT(base_fn##batch_size##0);                             \
+  HWY_EXPORT(base_fn##batch_size##1);                             \
+  HWY_EXPORT(base_fn##batch_size##2);
+
+#define SCANN_HWY_EXPORT_ALL(batch_size)                                    \
+  SCANN_EXPORT_ALL_PREFETCH_STRATEGIES(GetInt16Distances, batch_size);      \
+  SCANN_EXPORT_ALL_PREFETCH_STRATEGIES(GetInt32Distances, batch_size);      \
+  SCANN_EXPORT_ALL_PREFETCH_STRATEGIES(GetFloatDistances, batch_size);      \
+  SCANN_EXPORT_ALL_PREFETCH_STRATEGIES(GetTopInt16Distances1_, batch_size); \
+  SCANN_EXPORT_ALL_PREFETCH_STRATEGIES(GetTopFloatDistances1_, batch_size);
 
 SCANN_HWY_EXPORT_ALL(1);
 SCANN_HWY_EXPORT_ALL(2);
@@ -817,50 +886,71 @@ SCANN_HWY_EXPORT_ALL(7);
 SCANN_HWY_EXPORT_ALL(8);
 SCANN_HWY_EXPORT_ALL(9);
 #undef SCANN_HWY_EXPORT_ALL
+#undef SCANN_EXPORT_ALL_PREFETCH_STRATEGIES
 
-#define SCANN_HWY_DYNAMIC_DISPATCH(batch_size, func_name, ...) \
-  switch (batch_size) {                                        \
-    case 1:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##1)(__VA_ARGS__);  \
-    case 2:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##2)(__VA_ARGS__);  \
-    case 3:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##3)(__VA_ARGS__);  \
-    case 4:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##4)(__VA_ARGS__);  \
-    case 5:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##5)(__VA_ARGS__);  \
-    case 6:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##6)(__VA_ARGS__);  \
-    case 7:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##7)(__VA_ARGS__);  \
-    case 8:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##8)(__VA_ARGS__);  \
-    case 9:                                                    \
-      return HWY_DYNAMIC_DISPATCH(func_name##9)(__VA_ARGS__);  \
-    default:                                                   \
-      DLOG(FATAL) << "Invalid Batch Size";                     \
+#define SCANN_HWY_DISPATCH_PREFETCH(batch_size, prefetch_strategy, func_name, \
+                                    ...)                                      \
+  if constexpr (prefetch_strategy == PrefetchStrategy::kOff) {                \
+    return HWY_DYNAMIC_DISPATCH(func_name##batch_size##0)(__VA_ARGS__);       \
+  } else if constexpr (prefetch_strategy == PrefetchStrategy::kSeq) {         \
+    return HWY_DYNAMIC_DISPATCH(func_name##batch_size##1)(__VA_ARGS__);       \
+  } else {                                                                    \
+    return HWY_DYNAMIC_DISPATCH(func_name##batch_size##2)(__VA_ARGS__);       \
+  }
+
+#define SCANN_HWY_DYNAMIC_DISPATCH(batch_size, prefetch_strategy, func_name, \
+                                   ...)                                      \
+  switch (batch_size) {                                                      \
+    case 1:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(1, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 2:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(2, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 3:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(3, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 4:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(4, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 5:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(5, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 6:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(6, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 7:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(7, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 8:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(8, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    case 9:                                                                  \
+      SCANN_HWY_DISPATCH_PREFETCH(9, prefetch_strategy, func_name,           \
+                                  __VA_ARGS__);                              \
+    default:                                                                 \
+      DLOG(FATAL) << "Invalid Batch Size";                                   \
   }
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_OUTLINE void
 LUT16Highway<kNumQueries, kPrefetch>::GetInt16Distances(
     LUT16Args<int16_t> args) {
-  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, GetInt16Distances, kPrefetch, args);
+  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, kPrefetch, GetInt16Distances, args);
 }
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_OUTLINE void
 LUT16Highway<kNumQueries, kPrefetch>::GetInt32Distances(
     LUT16Args<int32_t> args) {
-  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, GetInt32Distances, kPrefetch, args);
+  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, kPrefetch, GetInt32Distances, args);
 }
 
 template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_OUTLINE void
 LUT16Highway<kNumQueries, kPrefetch>::GetFloatDistances(
     LUT16Args<float> args, ConstSpan<float> inv_fp_multipliers) {
-  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, GetFloatDistances, kPrefetch, args,
+  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, kPrefetch, GetFloatDistances, args,
                              inv_fp_multipliers);
 }
 
@@ -868,7 +958,7 @@ template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_OUTLINE void
 LUT16Highway<kNumQueries, kPrefetch>::GetTopInt16Distances(
     LUT16ArgsTopN<int16_t> args) {
-  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, GetTopInt16Distances1_, kPrefetch,
+  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, kPrefetch, GetTopInt16Distances1_,
                              args);
 }
 
@@ -876,7 +966,7 @@ template <size_t kNumQueries, PrefetchStrategy kPrefetch>
 SCANN_HIGHWAY_OUTLINE void
 LUT16Highway<kNumQueries, kPrefetch>::GetTopFloatDistances(
     LUT16ArgsTopN<float> args) {
-  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, GetTopFloatDistances1_, kPrefetch,
+  SCANN_HWY_DYNAMIC_DISPATCH(kNumQueries, kPrefetch, GetTopFloatDistances1_,
                              args);
 }
 
@@ -884,4 +974,5 @@ LUT16Highway<kNumQueries, kPrefetch>::GetTopFloatDistances(
 
 }  // namespace asymmetric_hashing_internal
 }  // namespace research_scann
+#endif
 #endif

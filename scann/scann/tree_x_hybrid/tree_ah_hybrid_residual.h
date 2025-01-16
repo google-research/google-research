@@ -111,12 +111,14 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
   static StatusOr<DenseDataset<float>> ComputeResiduals(
       const DenseDataset<float>& dataset,
       const KMeansTreeLikePartitioner<float>* partitioner,
-      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
+      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+      ThreadPool* parallelization_pool = nullptr);
 
   static StatusOr<DenseDataset<float>> ComputeResiduals(
       const DenseDataset<float>& dataset,
       const DenseDataset<float>& kmeans_centers,
-      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token);
+      ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+      ThreadPool* parallelization_pool = nullptr);
 
   Status PreprocessQueryIntoParamsUnlocked(
       const DatapointPtr<float>& query,

@@ -24,6 +24,7 @@
 #include <vector>
 
 #include "absl/status/status.h"
+#include "absl/types/span.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
@@ -349,8 +350,7 @@ unique_ptr<float[]> PrepareForAsymmetricScalarQuantizedDotProduct(
   return result;
 }
 
-std::vector<float> Int8ToInt4Multipliers(
-    const std::vector<float>& multipliers) {
+std::vector<float> Int8ToInt4Multipliers(absl::Span<const float> multipliers) {
   std::vector<float> result;
   result.reserve(multipliers.size());
   for (float m : multipliers) {
@@ -360,7 +360,7 @@ std::vector<float> Int8ToInt4Multipliers(
 }
 
 std::vector<float> InverseInt8ToInt4Multipliers(
-    const std::vector<float>& multipliers) {
+    absl::Span<const float> multipliers) {
   std::vector<float> result;
   result.reserve(multipliers.size());
   for (float m : multipliers) {

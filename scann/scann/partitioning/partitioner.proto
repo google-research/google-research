@@ -16,9 +16,9 @@ syntax = "proto2";
 
 package research_scann;
 
-import "scann/data_format/features.proto";
 import "scann/partitioning/kmeans_tree_partitioner.proto";
 import "scann/partitioning/linear_projection_tree.proto";
+import "scann/proto/projection.proto";
 
 message SerializedPartitioner {
   optional int32 n_tokens = 1;
@@ -27,13 +27,8 @@ message SerializedPartitioner {
 
   oneof PartitionerPayload {
     SerializedKMeansTreePartitioner kmeans = 2;
-
     SerializedLinearProjectionTree linear_projection = 4;
   }
 
-  message PcaEigenvectors {
-    repeated GenericFeatureVector eigenvector = 1;
-  }
-
-  optional PcaEigenvectors pca_eigenvectors = 5;
+  optional SerializedProjection serialized_projection = 5;
 }

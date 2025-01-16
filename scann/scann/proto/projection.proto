@@ -18,6 +18,8 @@ syntax = "proto2";
 
 package research_scann;
 
+import "scann/data_format/features.proto";
+
 message ProjectionConfig {
   enum ProjectionType {
     NONE = 0;
@@ -33,6 +35,7 @@ message ProjectionConfig {
     MEANSTD_PROJECTION = 12;
     IDENTITY_CHUNK = 13;
     TRUNCATE = 14;
+    EIGENVALUE_OPQ = 15;
 
     reserved 11;
   }
@@ -49,6 +52,7 @@ message ProjectionConfig {
     required int32 num_blocks = 1;
     required int32 num_dims_per_block = 2;
   }
+
   repeated VariableBlock variable_blocks = 4;
 
   optional int32 seed = 5 [default = 1];
@@ -60,6 +64,7 @@ message ProjectionConfig {
   optional bool build_covariance = 8 [default = true];
 
   optional float pca_significance_threshold = 13 [default = inf];
+
   optional float pca_truncation_threshold = 14 [default = inf];
 
   optional RandomBilinearConfig random_bilinear_config = 10;
@@ -99,4 +104,12 @@ message RandomBilinearConfig {
   optional int32 proj_vector_rows = 3;
 
   optional int32 proj_vector_columns = 4;
+}
+
+message SerializedProjection {
+  repeated GenericFeatureVector rotation_vec = 1;
+
+  repeated int32 variable_dims_per_block = 2 [packed = true];
+
+  repeated float per_block_eigenvalue_sums = 3 [packed = true];
 }

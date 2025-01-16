@@ -19,16 +19,20 @@
 #include <utility>
 
 #include "scann/hashes/internal/lut16_args.h"
-#include "scann/hashes/internal/lut16_avx2.h"
-#include "scann/hashes/internal/lut16_avx512.h"
-#include "scann/hashes/internal/lut16_highway.h"
-#include "scann/hashes/internal/lut16_sse4.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/alignment.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/types.h"
+
+#if defined(__x86_64__) && !defined(SCANN_FORCE_HIGHWAY_LUT16)
+#include "scann/hashes/internal/lut16_avx2.h"
+#include "scann/hashes/internal/lut16_avx512.h"
+#include "scann/hashes/internal/lut16_sse4.h"
+#else
+#include "scann/hashes/internal/lut16_highway.h"
+#endif
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {
@@ -155,7 +159,7 @@ class LUT16Interface {
       DLOG(FATAL) << "Invalid Batch Size";                            \
   }
 
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(SCANN_FORCE_HIGHWAY_LUT16)
 
 #define SCANN_CALL_LUT16_FUNCTION(enable_avx512_codepath, batch_size,   \
                                   prefetch_strategy, Function, ...)     \

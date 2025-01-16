@@ -252,6 +252,70 @@ StatusOr<LookupTable> AsymmetricQueryer<T>::CreateLookupTable(
   }
 }
 
+template <typename Dataset>
+Status SetLUT16Hash(const DatapointPtr<uint8_t>& hashed, const size_t index,
+                    Dataset* __restrict__ packed_struct) {
+  MutableSpan<uint8_t> packed_dataset =
+      MakeMutableSpan(packed_struct->bit_packed_data);
+
+  const size_t hash_size = hashed.nonzero_entries();
+  const size_t block_offset = index & 0x0f;
+
+  const size_t offset = block_offset + (index & ~31) * hash_size / 2;
+  SCANN_RET_CHECK_LE(offset + (hashed.nonzero_entries() - 1) * 16,
+                     packed_dataset.size());
+  SCANN_RET_CHECK_EQ(hashed.nonzero_entries(), packed_struct->num_blocks);
+
+  if (index & 0x10) {
+    for (int i = 0; i < hashed.nonzero_entries(); ++i) {
+      packed_dataset[offset + i * 16] =
+          (hashed.values()[i] << 4) | (packed_dataset[offset + i * 16] & 0x0f);
+    }
+  } else {
+    for (int i = 0; i < hashed.nonzero_entries(); ++i) {
+      packed_dataset[offset + i * 16] =
+          hashed.values()[i] | (packed_dataset[offset + i * 16] & 0xf0);
+    }
+  }
+  return OkStatus();
+}
+
+template <typename Dataset>
+Datapoint<uint8_t> GetLUT16Hash(const size_t index,
+                                const Dataset& packed_dataset) {
+  const size_t hash_size = packed_dataset.num_blocks;
+  const size_t block_offset = index & 0x0f;
+
+  const size_t offset = block_offset + (index & ~31) * hash_size / 2;
+  DCHECK_LE(offset + (hash_size - 1) * 16,
+            packed_dataset.bit_packed_data.size());
+  Datapoint<uint8_t> result;
+  result.mutable_values()->reserve(hash_size);
+
+  if (index & 0x10) {
+    for (size_t i : Seq(hash_size)) {
+      result.mutable_values()->push_back(
+          (packed_dataset.bit_packed_data[offset + i * 16] >> 4));
+    }
+  } else {
+    for (size_t i : Seq(hash_size)) {
+      result.mutable_values()->push_back(
+          (packed_dataset.bit_packed_data[offset + i * 16] & 0x0f));
+    }
+  }
+  return result;
+}
+
+template Status SetLUT16Hash<PackedDataset>(
+    const DatapointPtr<uint8_t>& hashed, size_t index,
+    PackedDataset* __restrict__ packed_struct);
+template Status SetLUT16Hash<PackedDatasetMutableView>(
+    const DatapointPtr<uint8_t>& hashed, size_t index,
+    PackedDatasetMutableView* __restrict__ packed_struct);
+template Datapoint<uint8_t> GetLUT16Hash<PackedDataset>(
+    size_t index, const PackedDataset& packed_dataset);
+template Datapoint<uint8_t> GetLUT16Hash<PackedDatasetMutableView>(
+    size_t index, const PackedDatasetMutableView& packed_dataset);
 SCANN_INSTANTIATE_TYPED_CLASS(, AsymmetricQueryer);
 
 }  // namespace asymmetric_hashing2

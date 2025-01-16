@@ -16,6 +16,7 @@
 #ifndef SCANN_UTILS_REORDERING_HELPER_INTERFACE_H_
 #define SCANN_UTILS_REORDERING_HELPER_INTERFACE_H_
 
+#include <cstdint>
 #include <limits>
 #include <string>
 #include <utility>
@@ -54,6 +55,9 @@ class ReorderingInterface {
   }
 
   virtual StatusOr<ReorderingInterface<T>::Mutator*> GetMutator() const = 0;
+
+  virtual StatusOrPtr<SingleMachineSearcherBase<T>> CreateBruteForceSearcher(
+      int32_t num_neighbors, float epsilon) const = 0;
 
   virtual bool owns_mutation_data_structures() const = 0;
 
@@ -109,8 +113,14 @@ class ReorderingHelper : public ReorderingInterface<T> {
         StrCat("Mutation not supported for reordering helper of type ",
                this->name(), "."));
   }
+
+  StatusOrPtr<SingleMachineSearcherBase<T>> CreateBruteForceSearcher(
+      int32_t num_neighbors, float epsilon) const override;
+
   bool owns_mutation_data_structures() const override { return true; }
 };
+
+SCANN_INSTANTIATE_TYPED_CLASS(extern, ReorderingHelper);
 
 }  // namespace research_scann
 

@@ -225,6 +225,15 @@ void ChunkingProjection<T>::ComputeCumulativeDims() {
 }
 
 template <typename T>
+std::optional<SerializedProjection> ChunkingProjection<T>::SerializeToProto()
+    const {
+  if (initial_projection_) {
+    return initial_projection_->SerializeToProto();
+  }
+  return std::nullopt;
+}
+
+template <typename T>
 Status ChunkingProjection<T>::ProjectInput(
     const DatapointPtr<T>& input, ChunkedDatapoint<float>* chunked) const {
   SCANN_ASSIGN_OR_RETURN(*chunked, ProjectInputImpl<float>(input));

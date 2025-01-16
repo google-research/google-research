@@ -58,6 +58,11 @@ SCANN_INLINE std::string DebugLogArrayContents(DatapointIndexT* indices,
                                      std::pair<uint64_t, uint64_t>>) {
           StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx, indices[idx].first,
                           absl::StrCat(values[idx]));
+        } else if constexpr (std::is_same_v<DatapointIndexT,
+                                            std::shared_ptr<std::string>>) {
+          StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx,
+                          reinterpret_cast<uint64_t>(indices[idx].get()),
+                          absl::StrCat(values[idx]));
         } else {
           StrAppendFormat(&txt, "%s%d:[%d, %s]", sep, idx, indices[idx],
                           absl::StrCat(values[idx]));
@@ -66,6 +71,11 @@ SCANN_INLINE std::string DebugLogArrayContents(DatapointIndexT* indices,
         if constexpr (std::is_same_v<DatapointIndexT,
                                      std::pair<uint64_t, uint64_t>>) {
           StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx, indices[idx].first,
+                          absl::StrCat(values[idx]));
+        } else if constexpr (std::is_same_v<DatapointIndexT,
+                                            std::shared_ptr<std::string>>) {
+          StrAppendFormat(&txt, "%s%d:[%ld, %s]", sep, idx,
+                          reinterpret_cast<uint64_t>(indices[idx].get()),
                           absl::StrCat(values[idx]));
         } else {
           StrAppendFormat(&txt, "%s%d:{%d, %s}", sep, idx, indices[idx],
@@ -143,8 +153,11 @@ SCANN_INLINE DistT FastMedianOf3(DistT v0, DistT v1, DistT v2) {
 
 namespace avx2 {
 #define SCANN_SIMD_ATTRIBUTE SCANN_AVX2
+
+#define SCANN_TOPN_AVX2_ENABLED
 #include "scann/utils/fast_top_neighbors_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
+#undef SCANN_TOPN_AVX2_ENABLED
 }  // namespace avx2
 
 #endif
@@ -255,5 +268,6 @@ template class FastTopNeighbors<float, uint64_t>;
 template class FastTopNeighbors<int16_t, absl::uint128>;
 template class FastTopNeighbors<float, absl::uint128>;
 template class FastTopNeighbors<float, std::pair<uint64_t, size_t>>;
+template class FastTopNeighbors<float, std::shared_ptr<std::string>>;
 
 }  // namespace research_scann

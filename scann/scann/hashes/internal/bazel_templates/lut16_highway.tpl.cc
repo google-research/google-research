@@ -12,6 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#if !defined(__x86_64__) || defined(SCANN_FORCE_HIGHWAY_LUT16)
+
 #include "scann/hashes/internal/lut16_highway.inc"
 
 namespace research_scann {
@@ -23,3 +25,5 @@ template class LUT16Highway<{BATCH_SIZE}, PrefetchStrategy::kSmart>;
 
 }  // namespace asymmetric_hashing_internal
 }  // namespace research_scann
+
+#endif

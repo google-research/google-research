@@ -60,11 +60,11 @@ cc_library(
     srcs = ["flags.cc"],
     hdrs = ["flags.h"],
     deps = [
-        "//scann/oss_wrappers:tf_dependency",
+        "//scann/oss_wrappers:scann_cpu_info",
         "//scann/utils:common",
         "//scann/utils:types",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_highway//:hwy",
     ],
 )
 
@@ -160,6 +160,7 @@ cc_library(
     hdrs = ["highway.h"],
     deps = [
         ":attributes",
+        ":fallback",
         ":flags",
         "//scann/utils:index_sequence",
         "//scann/utils:types",

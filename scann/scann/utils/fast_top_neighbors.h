@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -113,6 +114,9 @@ class FastTopNeighbors {
                                        pair<uint64_t, uint64_t>>) {
             return std::make_pair(base_dp_idx.first + offset,
                                   base_dp_idx.second);
+          } else if constexpr (std::is_same_v<DatapointIndexT,
+                                              std::shared_ptr<std::string>>) {
+            return std::make_shared<std::string>();
           } else {
             return base_dp_idx + offset;
           }
@@ -270,6 +274,11 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
     if constexpr (std::is_same_v<DatapointIndexT, pair<uint64_t, uint64_t>>) {
       DVLOG(1) << StrFormat("Pushing {%d, %f}", dp_idx.first,
                             static_cast<double>(distance));
+    } else if constexpr (std::is_same_v<DatapointIndexT,
+                                        std::shared_ptr<std::string>>) {
+      DVLOG(1) << StrFormat("Pushing {%d, %f}",
+                            reinterpret_cast<uint64_t>(dp_idx.get()),
+                            static_cast<double>(distance));
     } else {
       DVLOG(1) << StrFormat("Pushing {%d, %f}", dp_idx,
                             static_cast<double>(distance));
@@ -388,6 +397,7 @@ extern template class FastTopNeighbors<int16_t, absl::uint128>;
 extern template class FastTopNeighbors<float, absl::uint128>;
 
 extern template class FastTopNeighbors<float, pair<uint64_t, uint64_t>>;
+extern template class FastTopNeighbors<float, std::shared_ptr<std::string>>;
 
 static_assert(std::is_same_v<uint32_t, DatapointIndex> ||
               std::is_same_v<uint64_t, DatapointIndex>);

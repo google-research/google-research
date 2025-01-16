@@ -29,8 +29,11 @@ namespace research_scann {
 StatusOr<unique_ptr<Bfloat16BruteForceSearcher::Mutator>>
 Bfloat16BruteForceSearcher::Mutator::Create(
     Bfloat16BruteForceSearcher* searcher) {
+  const_cast<DenseDataset<int16_t>*>(searcher->bfloat16_dataset_.get())
+      ->ReleaseDocids();
+
   SCANN_ASSIGN_OR_RETURN(auto quantized_dataset_mutator,
-                         searcher->bfloat16_dataset_.GetMutator());
+                         searcher->bfloat16_dataset_->GetMutator());
 
   return absl::WrapUnique<Bfloat16BruteForceSearcher::Mutator>(
       new Bfloat16BruteForceSearcher::Mutator(searcher,
@@ -58,7 +61,7 @@ StatusOr<DatapointIndex> Bfloat16BruteForceSearcher::Mutator::AddDatapoint(
     const DatapointPtr<float>& dptr, string_view docid,
     const MutationOptions& mo) {
   SCANN_RETURN_IF_ERROR(this->ValidateForAdd(dptr, docid, mo));
-  const DatapointIndex result = searcher_->bfloat16_dataset_.size();
+  const DatapointIndex result = searcher_->bfloat16_dataset_->size();
   vector<int16_t> storage(dptr.dimensionality());
   DatapointPtr<int16_t> quantized =
       std::isfinite(searcher_->noise_shaping_threshold_)
@@ -79,7 +82,7 @@ Status Bfloat16BruteForceSearcher::Mutator::RemoveDatapoint(
   SCANN_RETURN_IF_ERROR(quantized_dataset_mutator_->RemoveDatapoint(index));
   SCANN_ASSIGN_OR_RETURN(auto swapped_from,
                          this->RemoveDatapointFromBase(index));
-  SCANN_RET_CHECK_EQ(swapped_from, searcher_->bfloat16_dataset_.size());
+  SCANN_RET_CHECK_EQ(swapped_from, searcher_->bfloat16_dataset_->size());
   OnDatapointIndexRename(swapped_from, index);
   return OkStatus();
 }

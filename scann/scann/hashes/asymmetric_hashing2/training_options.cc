@@ -34,9 +34,10 @@ template <typename T>
 TrainingOptions<T>::TrainingOptions(
     const AsymmetricHasherConfig& config,
     shared_ptr<const DistanceMeasure> quantization_distance,
-    const TypedDataset<T>& dataset)
+    const TypedDataset<T>& dataset, ThreadPool* pool)
     : TrainingOptionsTyped<T>(config, std::move(quantization_distance)) {
-  auto statusor = ChunkingProjectionFactory<T>(config.projection(), &dataset);
+  auto statusor =
+      ChunkingProjectionFactory<T>(config.projection(), &dataset, 0, pool);
   if (statusor.ok()) {
     this->projector_ = ValueOrDie(std::move(statusor));
   } else {

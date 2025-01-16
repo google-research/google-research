@@ -79,12 +79,13 @@ StatusOrSearcherUntyped BruteForceFactory(
 StatusOrSearcherUntyped BruteForceFactory(const BruteForceConfig& config,
                                           const GenericSearchParameters& params,
                                           PreQuantizedFixedPoint* fixed_point) {
-  auto fixed_point_dataset = std::move(*(fixed_point->fixed_point_dataset));
+  shared_ptr<const DenseDataset<int8_t>> fixed_point_dataset =
+      std::move(fixed_point->fixed_point_dataset);
 
   std::vector<float> inverse_multipliers =
       internal::InverseMultiplier(fixed_point);
-  auto squared_l2_norm_by_datapoint =
-      std::move(*fixed_point->squared_l2_norm_by_datapoint);
+  shared_ptr<vector<float>> squared_l2_norm_by_datapoint =
+      std::move(fixed_point->squared_l2_norm_by_datapoint);
   const auto& distance_type = typeid(*params.reordering_dist);
 
   if (distance_type == typeid(const DotProductDistance) ||
@@ -92,7 +93,8 @@ StatusOrSearcherUntyped BruteForceFactory(const BruteForceConfig& config,
       distance_type == typeid(const SquaredL2Distance)) {
     auto result = make_unique<ScalarQuantizedBruteForceSearcher>(
         params.reordering_dist, std::move(squared_l2_norm_by_datapoint),
-        std::move(fixed_point_dataset), std::move(inverse_multipliers),
+        std::move(fixed_point_dataset),
+        make_shared<vector<float>>(std::move(inverse_multipliers)),
         params.pre_reordering_num_neighbors, params.pre_reordering_epsilon);
     result->set_min_distance(params.min_distance);
     return result;
@@ -105,9 +107,9 @@ StatusOrSearcherUntyped BruteForceFactory(const BruteForceConfig& config,
 
 StatusOrSearcherUntyped BruteForceFactory(
     const BruteForceConfig& config, const GenericSearchParameters& params,
-    DenseDataset<int16_t>* bfloat16_dataset) {
+    shared_ptr<DenseDataset<int16_t>> bfloat16_dataset) {
   return make_unique<Bfloat16BruteForceSearcher>(
-      params.reordering_dist, std::move(*bfloat16_dataset),
+      params.reordering_dist, std::move(bfloat16_dataset),
       params.pre_reordering_num_neighbors, params.pre_reordering_epsilon,
       config.bfloat16().noise_shaping_threshold());
 }
@@ -218,7 +220,7 @@ class ScannLeafSearcher {
                  config.brute_force().bfloat16().enabled() &&
                  opts->bfloat16_dataset) {
         return BruteForceFactory(config.brute_force(), params,
-                                 opts->bfloat16_dataset.get());
+                                 opts->bfloat16_dataset);
       } else {
         return BruteForceFactory(config.brute_force(), dataset, params);
       }

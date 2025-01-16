@@ -32,8 +32,11 @@
 #include "absl/strings/substitute.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"
+#include "scann/brute_force/brute_force.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/docid_collection_interface.h"
+#include "scann/distance_measures/distance_measure_base.h"
+#include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/results.pb.h"
@@ -614,6 +617,43 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatchedImpl(
     });
   }
   return OkStatus();
+}
+
+template <typename T>
+StatusOr<const SingleMachineSearcherBase<T>*>
+SingleMachineSearcherBase<T>::CreateBruteForceSearcher(
+    const DistanceMeasureConfig& distance_config,
+    unique_ptr<SingleMachineSearcherBase<T>>* storage) const {
+  SCANN_RET_CHECK(storage);
+  SingleMachineSearcherBase<T>* result = nullptr;
+  if (dataset()) {
+    SCANN_ASSIGN_OR_RETURN(auto dist, GetDistanceMeasure(distance_config));
+    SCANN_RET_CHECK(storage);
+    storage->reset(new BruteForceSearcher<T>(
+        std::move(dist), dataset_, default_post_reordering_num_neighbors(),
+        default_post_reordering_epsilon()));
+    result = storage->get();
+  } else if (reordering_helper_) {
+    SCANN_RET_CHECK(storage);
+    SCANN_ASSIGN_OR_RETURN(*storage,
+                           reordering_helper_->CreateBruteForceSearcher(
+                               default_post_reordering_num_neighbors(),
+                               default_post_reordering_epsilon()));
+    result = storage->get();
+    return result;
+  }
+
+  if (!result) {
+    return FailedPreconditionError(
+        "Cannot create brute force searcher from a non-brute force searcher "
+        "without reordering enabled.");
+  }
+  result->docids_ = docids_;
+  result->metadata_getter_ = metadata_getter_;
+  result->datapoint_index_to_crowding_attribute_ =
+      datapoint_index_to_crowding_attribute_;
+  result->creation_timestamp_ = creation_timestamp_;
+  return result;
 }
 
 template <typename T>

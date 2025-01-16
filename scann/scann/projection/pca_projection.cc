@@ -19,6 +19,9 @@
 #include <cstdint>
 #include <memory>
 
+#include "scann/distance_measures/one_to_many/one_to_many_symmetric.h"
+#include "scann/proto/projection.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/pca_utils.h"
 
@@ -36,19 +39,13 @@ PcaProjection<T>::PcaProjection(const int32_t input_dims,
 }
 
 template <typename T>
-void PcaProjection<T>::Create(const Dataset& data,
-                              const bool build_covariance) {
-  Create(data, build_covariance, false);
-}
-
-template <typename T>
 void PcaProjection<T>::Create(const Dataset& data, const bool build_covariance,
-                              const bool use_propack) {
+                              ThreadPool* parallelization_pool) {
   vector<float> eigen_vals;
 
   vector<Datapoint<float>> pca_vecs;
-  PcaUtils::ComputePca(use_propack, data, projected_dims_, build_covariance,
-                       &pca_vecs, &eigen_vals);
+  PcaUtils::ComputePca(false, data, projected_dims_, build_covariance,
+                       &pca_vecs, &eigen_vals, parallelization_pool);
 
   auto pca_vec_dataset = std::make_shared<DenseDataset<float>>();
   for (auto& vec : pca_vecs) {
@@ -64,12 +61,12 @@ void PcaProjection<T>::Create(const Dataset& data,
                               const float pca_significance_threshold,
                               const float pca_truncation_threshold,
                               const bool build_covariance,
-                              const bool use_propack) {
+                              ThreadPool* parallelization_pool) {
   vector<float> eigen_vals;
   vector<Datapoint<float>> pca_vecs;
   PcaUtils::ComputePcaWithSignificanceThreshold(
-      use_propack, data, pca_significance_threshold, pca_truncation_threshold,
-      build_covariance, &pca_vecs, &eigen_vals);
+      false, data, pca_significance_threshold, pca_truncation_threshold,
+      build_covariance, &pca_vecs, &eigen_vals, parallelization_pool);
 
   auto pca_vec_dataset = std::make_shared<DenseDataset<float>>();
   for (auto& vec : pca_vecs) {
@@ -86,6 +83,25 @@ void PcaProjection<T>::Create(DenseDataset<float> eigenvectors) {
 }
 
 template <typename T>
+Status PcaProjection<T>::Create(
+    const SerializedProjection& serialized_projection) {
+  if (serialized_projection.rotation_vec_size() == 0) {
+    return InvalidArgumentError(
+        "Serialized projection rotation matrix is empty in "
+        "PcaProjection::Create.");
+  }
+  auto pca_vecs = std::make_unique<DenseDataset<float>>();
+  pca_vecs->set_dimensionality(
+      serialized_projection.rotation_vec(0).feature_value_float_size());
+  pca_vecs->Reserve(serialized_projection.rotation_vec_size());
+  for (const auto& gfv : serialized_projection.rotation_vec()) {
+    SCANN_RETURN_IF_ERROR(pca_vecs->Append(gfv, ""));
+  }
+  pca_vecs_ = std::move(pca_vecs);
+  return OkStatus();
+}
+
+template <typename T>
 template <typename FloatT>
 Status PcaProjection<T>::ProjectInputImpl(const DatapointPtr<T>& input,
                                           Datapoint<FloatT>* projected) const {
@@ -98,8 +114,17 @@ Status PcaProjection<T>::ProjectInputImpl(const DatapointPtr<T>& input,
   }
 
   const auto& pca_vecs = *pca_vecs_;
-  for (size_t i = 0; i < projected_dims_; ++i) {
-    projected->mutable_values()->at(i) = DotProduct(input, pca_vecs[i]);
+  if constexpr (std::is_same_v<T, float>) {
+    DenseDotProductDistanceOneToMany<T, FloatT>(
+        input, pca_vecs, MakeMutableSpan(*projected->mutable_values()));
+
+    for (FloatT& val : *projected->mutable_values()) {
+      val = -val;
+    }
+  } else {
+    for (size_t i = 0; i < projected_dims_; ++i) {
+      projected->mutable_values()->at(i) = DotProduct(input, pca_vecs[i]);
+    }
   }
 
   return OkStatus();
@@ -109,6 +134,16 @@ template <typename T>
 StatusOr<shared_ptr<const TypedDataset<float>>>
 PcaProjection<T>::GetDirections() const {
   return std::dynamic_pointer_cast<const TypedDataset<float>>(pca_vecs_);
+}
+
+template <typename T>
+std::optional<SerializedProjection> PcaProjection<T>::SerializeToProto() const {
+  SerializedProjection result;
+  result.mutable_rotation_vec()->Reserve(pca_vecs_->size());
+  for (DatapointPtr<float> eigenvector : *pca_vecs_) {
+    *result.add_rotation_vec() = eigenvector.ToGfv();
+  }
+  return result;
 }
 
 DEFINE_PROJECT_INPUT_OVERRIDES(PcaProjection);

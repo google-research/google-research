@@ -31,6 +31,7 @@ message BruteForceConfig {
 
   optional float scalar_quantization_multiplier_quantile = 2
       [default = 1.0, deprecated = true];
+
   optional float scalar_quantization_noise_shaping_threshold = 3
       [default = nan];
 }

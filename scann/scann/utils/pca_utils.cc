@@ -51,8 +51,7 @@ void BuildCenteredMatrix(const Dataset& data, Matrix* centered_data) {
 template <typename T>
 void ComputePcaDenseWrapper(const Dataset& data, const int32_t num_eigenvectors,
                             vector<Datapoint<float>>* eigenvectors,
-                            vector<float>* eigenvalues,
-                            shared_ptr<ThreadPool> pool) {
+                            vector<float>* eigenvalues, ThreadPool* pool) {
   auto view =
       DefaultDenseDatasetView<T>(*dynamic_cast<const DenseDataset<T>*>(&data));
   ComputePcaDense(view, num_eigenvectors, eigenvectors, eigenvalues, pool);
@@ -93,8 +92,7 @@ void PcaUtils::ComputePca(bool use_propack_if_available, const Dataset& data,
                           const int32_t num_eigenvectors,
                           const bool build_covariance,
                           vector<Datapoint<float>>* eigenvectors,
-                          vector<float>* eigenvalues,
-                          shared_ptr<ThreadPool> pool) {
+                          vector<float>* eigenvalues, ThreadPool* pool) {
   if (!use_propack_if_available && build_covariance && data.IsDense()) {
     SCANN_CALL_FUNCTION_BY_TAG(data.TypeTag(), ComputePcaDenseWrapper, data,
                                num_eigenvectors, eigenvectors, eigenvalues,
@@ -108,7 +106,7 @@ void PcaUtils::ComputePcaWithSignificanceThreshold(
     bool use_propack_if_available, const Dataset& data,
     const float significance_threshold, const float truncation_threshold,
     const bool build_covariance, vector<Datapoint<float>>* eigenvectors,
-    vector<float>* eigenvalues, shared_ptr<ThreadPool> pool) {
+    vector<float>* eigenvalues, ThreadPool* pool) {
   PcaUtils::ComputePca(use_propack_if_available, data, data.dimensionality(),
                        build_covariance, eigenvectors, eigenvalues, pool);
   PostprocessPcaToSignificance(significance_threshold, truncation_threshold,

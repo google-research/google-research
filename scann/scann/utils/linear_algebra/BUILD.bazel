@@ -9,17 +9,19 @@ cc_library(
     hdrs = ["eigen_utils.h"],
     deps = [
         ":types",
+        "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/oss_wrappers:scann_status",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "@com_google_absl//absl/status",
         "@com_google_absl//absl/strings:str_format",
+        "@com_google_absl//absl/types:span",
+        "@eigen",
     ],
 )
 
 cc_library(
     name = "types",
     hdrs = ["types.h"],
-    deps = ["//scann/oss_wrappers:tf_dependency"],
+    deps = ["@eigen"],
 )

@@ -44,7 +44,6 @@
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
 

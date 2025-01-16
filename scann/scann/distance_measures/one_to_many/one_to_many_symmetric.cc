@@ -12,19 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
-
-#include "scann/distance_measures/many_to_many/many_to_many.h"
-#include "scann/distance_measures/many_to_many/many_to_many_common.h"
-#include "scann/distance_measures/many_to_many/many_to_many_templates.h"
+#include "scann/distance_measures/one_to_many/one_to_many_symmetric.h"
 
 namespace research_scann {
-namespace mm_internal {
 
-template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, DefaultDenseDatasetView<double> queries,
-    const DenseDataset<double> &database, ThreadPool *pool,
-    EpsilonFilteringCallback<double> callback);
+SCANN_INSTANTIATE_COMMON_FLOAT_ONE_TO_MANY()
+SCANN_INSTANTIATE_COMMON_DOUBLE_ONE_TO_MANY()
 
-}
 }  // namespace research_scann

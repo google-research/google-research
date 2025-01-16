@@ -1,5 +1,8 @@
 # ScaNN Release Notes
 
+### 1.3.5
+ScaNN may now be used without TensorFlow installed on the system; see README.md for how to do this. Added ARM binary releases to PyPI. Simplified API for using PCA and multi-level trees. The ScaNN TensorFlow ops have been updated to compile against TensorFlow 2.18; they are **not** backwards-compatible with earlier versions of TensorFlow.
+
 ### 1.3.4
 Internal changes and code cleanup.
 

@@ -24,23 +24,23 @@
 namespace tensorflow {
 namespace scann_ops {
 
-Status TensorFromProto(OpKernelContext* context, absl::string_view name,
-                       const protobuf::MessageLite* proto);
+absl::Status TensorFromProto(OpKernelContext* context, absl::string_view name,
+                             const protobuf::MessageLite* proto);
 void TensorFromProtoRequireOk(OpKernelContext* context, absl::string_view name,
                               const protobuf::MessageLite* proto);
 
-Status EmptyTensor(OpKernelContext* context, absl::string_view name);
+absl::Status EmptyTensor(OpKernelContext* context, absl::string_view name);
 
 void EmptyTensorRequireOk(OpKernelContext* context, absl::string_view name);
 
 Status ConvertStatus(const Status& status);
 
 template <typename DstType, typename SrcType = DstType>
-Status PopulateDenseDatasetFromTensor(
+absl::Status PopulateDenseDatasetFromTensor(
     const Tensor& tensor, research_scann::DenseDataset<DstType>* dataset);
 
 template <typename DstType, typename SrcType>
-Status PopulateDenseDatasetFromTensor(
+absl::Status PopulateDenseDatasetFromTensor(
     const Tensor& tensor, research_scann::DenseDataset<DstType>* dataset) {
   if (tensor.dims() != 2) {
     return errors::InvalidArgument("Dataset must be 2-dimensional",
@@ -66,8 +66,9 @@ Status PopulateDenseDatasetFromTensor(
 }
 
 template <typename T>
-Status TensorFromDenseDataset(OpKernelContext* context, absl::string_view name,
-                              const research_scann::DenseDataset<T>* dataset) {
+absl::Status TensorFromDenseDataset(
+    OpKernelContext* context, absl::string_view name,
+    const research_scann::DenseDataset<T>* dataset) {
   if (dataset == nullptr) return EmptyTensor(context, name);
   Tensor* tensor;
   TF_RETURN_IF_ERROR(context->allocate_output(
@@ -88,8 +89,8 @@ void TensorFromDenseDatasetRequireOk(
 }
 
 template <typename T>
-Status TensorFromSpan(OpKernelContext* context, absl::string_view name,
-                      research_scann::ConstSpan<T> span) {
+absl::Status TensorFromSpan(OpKernelContext* context, absl::string_view name,
+                            research_scann::ConstSpan<T> span) {
   if (span.empty()) return EmptyTensor(context, name);
   Tensor* tensor;
   TF_RETURN_IF_ERROR(context->allocate_output(

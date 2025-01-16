@@ -41,8 +41,15 @@ rsync -avm -L --exclude='*_test.py' ${BAZEL_PREFIX}scann "${TMPDIR}"
 
 echo "from scann.scann_ops.py.scann_builder import ReorderType" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py.scann_builder import ScannBuilder" >> "${TMPDIR}"/scann/__init__.py
-echo "from scann.scann_ops.py import scann_ops" >> "${TMPDIR}"/scann/__init__.py
 echo "from scann.scann_ops.py import scann_ops_pybind" >> "${TMPDIR}"/scann/__init__.py
+# Attempt to import TensorFlow, which is required for ScaNN TF ops, but
+# silently abort if this fails. TensorFlow and the ScaNN TF ops are optional
+# components.
+echo "try:" >> "${TMPDIR}"/scann/__init__.py
+echo "  import tensorflow as _tf" >> "${TMPDIR}"/scann/__init__.py
+echo "  from scann.scann_ops.py import scann_ops" >> "${TMPDIR}"/scann/__init__.py
+echo "except ModuleNotFoundError:" >> "${TMPDIR}"/scann/__init__.py
+echo "  pass" >> "${TMPDIR}"/scann/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/__init__.py
 touch "${TMPDIR}"/scann/scann_ops/py/__init__.py
 touch "${TMPDIR}"/scann/data_format/__init__.py

@@ -14,12 +14,12 @@
 
 
 
-#include "scann/base/search_parameters.h"
-#include "scann/data_format/datapoint.h"
-#include "scann/utils/types.h"
-
 #ifndef SCANN_TREE_X_HYBRID_LEAF_SEARCHER_OPTIONAL_PARAMETER_CREATOR_H_
 #define SCANN_TREE_X_HYBRID_LEAF_SEARCHER_OPTIONAL_PARAMETER_CREATOR_H_
+
+#include "scann/base/search_parameters.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 

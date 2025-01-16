@@ -16,6 +16,7 @@
 #define SCANN_BASE_SEARCH_PARAMETERS_H_
 
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <utility>

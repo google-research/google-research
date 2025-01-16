@@ -86,9 +86,24 @@ struct PackedDatasetView {
   DimensionIndex num_blocks = 0;
 };
 
+struct PackedDatasetMutableView {
+  MutableSpan<uint8_t> bit_packed_data = {};
+
+  DatapointIndex num_datapoints = 0;
+
+  DimensionIndex num_blocks = 0;
+};
+
 DenseDataset<uint8_t> UnpackDataset(const PackedDatasetView& packed);
 
 PackedDatasetView CreatePackedDatasetView(const PackedDataset& packed_dataset);
+
+template <typename Dataset>
+Status SetLUT16Hash(const DatapointPtr<uint8_t>& hashed, size_t index,
+                    Dataset* __restrict__ packed_struct);
+
+template <typename Dataset>
+Datapoint<uint8_t> GetLUT16Hash(size_t index, const Dataset& packed_dataset);
 
 template <typename PostprocessFunctor =
               asymmetric_hashing_internal::IdentityPostprocessFunctor,
@@ -831,6 +846,16 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
   return OkStatus();
 }
 
+extern template Status SetLUT16Hash<PackedDataset>(
+    const DatapointPtr<uint8_t>& hashed, size_t index,
+    PackedDataset* __restrict__ packed_struct);
+extern template Status SetLUT16Hash<PackedDatasetMutableView>(
+    const DatapointPtr<uint8_t>& hashed, size_t index,
+    PackedDatasetMutableView* __restrict__ packed_struct);
+extern template Datapoint<uint8_t> GetLUT16Hash<PackedDataset>(
+    size_t index, const PackedDataset& packed_dataset);
+extern template Datapoint<uint8_t> GetLUT16Hash<PackedDatasetMutableView>(
+    size_t index, const PackedDatasetMutableView& packed_dataset);
 SCANN_INSTANTIATE_TYPED_CLASS(extern, AsymmetricQueryer);
 
 }  // namespace asymmetric_hashing2

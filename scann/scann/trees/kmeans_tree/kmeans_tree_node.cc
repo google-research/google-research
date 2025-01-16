@@ -43,7 +43,6 @@
 #include "scann/utils/scalar_quantization_helpers.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
 

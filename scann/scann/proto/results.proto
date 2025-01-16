@@ -18,8 +18,6 @@ package research_scann;
 
 import "scann/data_format/features.proto";
 
-option cc_enable_arenas = true;
-
 message NearestNeighbors {
   required bytes docid = 1;
 
@@ -44,6 +42,8 @@ message NearestNeighbors {
 
 message NearestNeighborsFast {
   repeated fixed64 neighbor_ids = 2 [packed = true];
+
   repeated float neighbor_distances = 3 [packed = true];
+
   repeated int64 neighbor_crowding_attributes = 4 [packed = true];
 }

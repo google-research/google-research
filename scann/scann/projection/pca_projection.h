@@ -22,6 +22,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/projection/projection_base.h"
+#include "scann/proto/projection.pb.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -31,16 +32,16 @@ class PcaProjection : public Projection<T> {
  public:
   PcaProjection(const int32_t input_dims, const int32_t projected_dims);
 
-  void Create(const Dataset& data, const bool build_covariance);
-
-  void Create(const Dataset& data, const bool build_covariance,
-              const bool use_propack);
+  void Create(const Dataset& data, bool build_covariance,
+              ThreadPool* parallelization_pool = nullptr);
 
   void Create(const Dataset& data, float pca_significance_threshold,
               float pca_truncation_threshold, bool build_covariance = true,
-              bool use_propack = false);
+              ThreadPool* parallelization_pool = nullptr);
 
   void Create(DenseDataset<float> eigenvectors);
+
+  Status Create(const SerializedProjection& serialized_projection);
 
   StatusOr<shared_ptr<const TypedDataset<float>>> GetDirections()
       const override;
@@ -51,6 +52,8 @@ class PcaProjection : public Projection<T> {
                       Datapoint<double>* projected) const override;
 
   int32_t projected_dimensionality() const override { return projected_dims_; }
+
+  std::optional<SerializedProjection> SerializeToProto() const final;
 
  private:
   template <typename FloatT>

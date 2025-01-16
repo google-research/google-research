@@ -707,7 +707,7 @@ class Sse4<T, kNumRegistersInferred> {
     return ComparisonOperatorImpl(*this, other, &GreaterThan);
   }
 
-  SCANN_SSE4_INLINE int MaskFromHighBits() const {
+  SCANN_SSE4_INLINE uint32_t MaskFromHighBits() const {
     static_assert(kNumRegisters == 1);
     const auto& me = *this;
 

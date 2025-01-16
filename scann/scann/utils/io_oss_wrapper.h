@@ -16,7 +16,6 @@
 #define SCANN_UTILS_IO_OSS_WRAPPER_H_
 
 #include <fstream>
-#include <memory>
 #include <string>
 
 #include "google/protobuf/message.h"
@@ -36,15 +35,15 @@ class OpenSourceableFileWriter {
 class OpenSourceableFileReader {
  public:
   explicit OpenSourceableFileReader(absl::string_view filename);
-  void ReadLine(std::string& dest);
-  void Read(size_t bytes, char* buffer);
+  Status ReadLine(std::string& dest);
+  Status Read(size_t bytes, char* buffer);
 
  private:
   std::ifstream fin_;
 };
 
 Status WriteProtobufToFile(absl::string_view filename,
-                           google::protobuf::Message* message);
+                           const google::protobuf::Message& message);
 Status ReadProtobufFromFile(absl::string_view filename,
                             google::protobuf::Message* message);
 absl::StatusOr<std::string> GetContents(absl::string_view filename);

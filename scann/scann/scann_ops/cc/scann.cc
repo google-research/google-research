@@ -485,17 +485,17 @@ StatusOr<ScannAssets> ScannInterface::Serialize(std::string path,
   };
 
   SCANN_RETURN_IF_ERROR(
-      WriteProtobufToFile(path + "/scann_config.pb", &config_));
+      WriteProtobufToFile(path + "/scann_config.pb", config_));
   if (opts.ah_codebook != nullptr) {
     auto [rpath, fpath] = convert_path("ah_codebook.pb");
     add_asset(rpath, ScannAsset::AH_CENTERS);
-    SCANN_RETURN_IF_ERROR(WriteProtobufToFile(fpath, opts.ah_codebook.get()));
+    SCANN_RETURN_IF_ERROR(WriteProtobufToFile(fpath, *opts.ah_codebook));
   }
   if (opts.serialized_partitioner != nullptr) {
     auto [rpath, fpath] = convert_path("serialized_partitioner.pb");
     add_asset(rpath, ScannAsset::PARTITIONER);
     SCANN_RETURN_IF_ERROR(
-        WriteProtobufToFile(fpath, opts.serialized_partitioner.get()));
+        WriteProtobufToFile(fpath, *opts.serialized_partitioner));
   }
   if (opts.datapoints_by_token != nullptr) {
     vector<int32_t> datapoint_to_token;

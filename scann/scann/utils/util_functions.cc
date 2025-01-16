@@ -29,7 +29,6 @@
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
-#include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
 

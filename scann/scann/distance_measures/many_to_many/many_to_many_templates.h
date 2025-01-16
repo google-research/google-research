@@ -20,7 +20,8 @@
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/many_to_many/fp8_transposed.h"
-#include "scann/distance_measures/many_to_many/many_to_many.h"
+#include "scann/distance_measures/many_to_many/many_to_many_common.h"
+#include "scann/distance_measures/many_to_many/many_to_many_flags.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/utils/intrinsics/fma.h"
@@ -70,7 +71,11 @@
 
 namespace research_scann {
 
-#ifdef __x86_64__
+#if defined(__x86_64__) && !defined(SCANN_FORCE_SSE4)
+#define SCANN_MANY_TO_MANY_DYNAMIC_DISPATCH_X64
+#endif
+
+#ifdef SCANN_MANY_TO_MANY_DYNAMIC_DISPATCH_X64
 
 namespace avx1 {
 #define SCANN_SIMD_ATTRIBUTE SCANN_AVX1
@@ -90,13 +95,15 @@ namespace avx512 {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace avx512
 
-#endif
+#else
 
 namespace highway {
 #define SCANN_SIMD_ATTRIBUTE
 #include "scann/distance_measures/many_to_many/many_to_many_impl.inc"
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace highway
+
+#endif
 
 namespace mm_internal {
 
@@ -139,21 +146,22 @@ SCANN_INLINE void DenseDistanceManyToManyImpl2(
   DCHECK(IsSupportedDistanceMeasure(dist));
   DCHECK_NE(dist.specially_optimized_distance_tag(), DistanceMeasure::COSINE);
 
-#ifdef __x86_64__
+#ifdef SCANN_MANY_TO_MANY_DYNAMIC_DISPATCH_X64
   if (RuntimeSupportsAvx512()) {
     return avx512::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                                callback);
   } else if (RuntimeSupportsAvx2()) {
     return avx2::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                              std::move(callback));
-  } else if (RuntimeSupportsAvx1()) {
+  } else {
     return avx1::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                              std::move(callback));
   }
 
-#endif
+#else
   return highway::DenseDistanceManyToManyImpl(dist, queries, database, pool,
                                               std::move(callback));
+#endif
 }
 
 template <typename DatabaseT, typename CallbackT>
@@ -161,7 +169,7 @@ void DenseManyToManyOrthogonalityAmplifiedImpl(
     const DenseDataset<float>& queries,
     const DenseDataset<float>& normalized_residuals, float lambda,
     const DatabaseT& database, ThreadPool* pool, CallbackT callback) {
-#ifdef __x86_64__
+#ifdef SCANN_MANY_TO_MANY_DYNAMIC_DISPATCH_X64
   if (RuntimeSupportsAvx512()) {
     return avx512::DenseManyToManyOrthogonalityAmplifiedImpl(
         queries, normalized_residuals, lambda, database, pool,
@@ -170,17 +178,17 @@ void DenseManyToManyOrthogonalityAmplifiedImpl(
     return avx2::DenseManyToManyOrthogonalityAmplifiedImpl(
         queries, normalized_residuals, lambda, database, pool,
         std::move(callback));
-  } else if (RuntimeSupportsAvx1()) {
+  } else {
     return avx1::DenseManyToManyOrthogonalityAmplifiedImpl(
         queries, normalized_residuals, lambda, database, pool,
         std::move(callback));
   }
 
-#endif
-
+#else
   return highway::DenseManyToManyOrthogonalityAmplifiedImpl(
       queries, normalized_residuals, lambda, database, pool,
       std::move(callback));
+#endif
 }
 
 template <typename CallbackT>
@@ -192,7 +200,7 @@ SCANN_INLINE void DenseDistanceManyToManyFP8PretransposedImpl2(
   DCHECK(IsSupportedDistanceMeasure(dist));
   DCHECK_NE(dist.specially_optimized_distance_tag(), DistanceMeasure::COSINE);
 
-#ifdef __x86_64__
+#ifdef SCANN_MANY_TO_MANY_DYNAMIC_DISPATCH_X64
   if (RuntimeSupportsAvx512()) {
     return avx512::DenseManyToManyFP8PretransposedImpl(dist, queries, database,
                                                        pool, callback);
@@ -204,10 +212,10 @@ SCANN_INLINE void DenseDistanceManyToManyFP8PretransposedImpl2(
                                                      pool, std::move(callback));
   }
 
-#endif
-
+#else
   return highway::DenseManyToManyFP8PretransposedImpl(
       dist, queries, database, pool, std::move(callback));
+#endif
 }
 
 template <typename FloatT, typename CallbackT>

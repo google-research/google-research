@@ -35,6 +35,7 @@ template <typename T>
 StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
     const TypedDataset<T>& dataset, const TrainingOptions<T>& params,
     shared_ptr<ThreadPool> pool = nullptr) {
+  unique_ptr<Model<T>> result;
   if (params.config().quantization_scheme() ==
       AsymmetricHasherConfig::STACKED) {
     if (!dataset.IsDense())
@@ -45,11 +46,11 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
         auto centers,
         ::research_scann::asymmetric_hashing_internal::StackedQuantizers<
             T>::Train(dense, params, pool));
-    return Model<T>::FromCenters(std::move(centers),
-                                 params.config().quantization_scheme());
-  }
-  if (params.config().quantization_scheme() ==
-      AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
+    SCANN_ASSIGN_OR_RETURN(
+        result, Model<T>::FromCenters(std::move(centers),
+                                      params.config().quantization_scheme()));
+  } else if (params.config().quantization_scheme() ==
+             AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
     const auto& dense = down_cast<const DenseDataset<T>&>(dataset);
     DenseDataset<T> dataset_no_bias;
     dataset_no_bias.set_dimensionality(dense.dimensionality() - 1);
@@ -65,8 +66,9 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
             dataset_no_bias, params, pool));
     auto converted = asymmetric_hashing_internal::ConvertCentersIfNecessary<T>(
         std::move(centers));
-    return Model<T>::FromCenters(std::move(converted),
-                                 params.config().quantization_scheme());
+    SCANN_ASSIGN_OR_RETURN(
+        result, Model<T>::FromCenters(std::move(converted),
+                                      params.config().quantization_scheme()));
   } else {
     SCANN_ASSIGN_OR_RETURN(
         auto centers,
@@ -74,9 +76,12 @@ StatusOr<unique_ptr<Model<T>>> TrainSingleMachine(
             dataset, params, pool));
     auto converted = asymmetric_hashing_internal::ConvertCentersIfNecessary<T>(
         std::move(centers));
-    return Model<T>::FromCenters(std::move(converted),
-                                 params.config().quantization_scheme());
+    SCANN_ASSIGN_OR_RETURN(
+        result, Model<T>::FromCenters(std::move(converted),
+                                      params.config().quantization_scheme()));
   }
+  result->SetProjection(params.projector());
+  return {std::move(result)};
 }
 
 }  // namespace asymmetric_hashing2

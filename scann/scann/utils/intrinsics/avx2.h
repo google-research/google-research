@@ -166,7 +166,7 @@ class Avx2<T, kNumRegistersInferred> {
     if constexpr (IsSameAny<T, float>()) {
       return _mm256_setzero_ps();
     } else if constexpr (IsSameAny<T, double>()) {
-      return _mm256_setzero_ps();
+      return _mm256_setzero_pd();
     } else {
       return _mm256_setzero_si256();
     }
@@ -723,7 +723,7 @@ class Avx2<T, kNumRegistersInferred> {
     return ComparisonOperatorImpl(*this, other, &GreaterThan);
   }
 
-  SCANN_AVX2_INLINE int MaskFromHighBits() const {
+  SCANN_AVX2_INLINE uint32_t MaskFromHighBits() const {
     static_assert(kNumRegisters == 1);
     const auto& me = *this;
 

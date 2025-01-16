@@ -594,7 +594,7 @@ Status TreeXHybridMutator<Searcher>::SplitPartition(int32_t token) {
   const float kEpsilon = 1e-6;
   DatapointPtr<T> perturb =
       GetDatapointPtr(datapoints_by_token[token][0], &storage, true);
-  auto norm = SquaredL2Norm(perturb) + kEpsilon;
+  auto norm = std::sqrt(SquaredL2Norm(perturb)) + kEpsilon;
   for (int d : Seq(centroid.dimensionality()))
     centroid.mutable_values_span()[d] +=
         kEpsilon * perturb.values_span()[d] / norm;

@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -78,7 +79,10 @@ class ChunkedDatapoint {
   friend class ChunkingProjection;
 };
 
-class ChunkingProjectionUntyped : public VirtualDestructor {};
+class ChunkingProjectionUntyped : public VirtualDestructor {
+ public:
+  virtual std::optional<SerializedProjection> SerializeToProto() const = 0;
+};
 
 template <typename T>
 class ChunkingProjection : public ChunkingProjectionUntyped {
@@ -122,6 +126,8 @@ class ChunkingProjection : public ChunkingProjectionUntyped {
                       vector<Datapoint<double>>* chunked) const {
     return BackcompatImpl<double>(input, chunked);
   }
+
+  std::optional<SerializedProjection> SerializeToProto() const override;
 
  private:
   template <typename FloatT>

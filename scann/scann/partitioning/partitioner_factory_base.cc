@@ -91,27 +91,53 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
     }
   }
 
-  auto append_to_sampled = [&](const DatapointPtr<float>& dptr) -> Status {
-    if (ABSL_PREDICT_FALSE(!sampled_mutable)) {
-      if (dptr.IsSparse()) {
-        sampled_mutable = make_unique<SparseDataset<float>>();
-      } else {
-        sampled_mutable = make_unique<DenseDataset<float>>();
-      }
-      sampled_mutable->Reserve(sample.size());
-      SCANN_RETURN_IF_ERROR(
-          sampled_mutable->NormalizeByTag(dataset->normalization()));
-      sampled = sampled_mutable.get();
-    }
-    return sampled_mutable->Append(dptr, "");
-  };
-  SCANN_ASSIGN_OR_RETURN(unique_ptr<Projection<T>> projection,
-                         ProjectionFactory(config.projection(), dataset));
-  Datapoint<float> projected;
-  for (DatapointIndex i : sample) {
-    SCANN_RETURN_IF_ERROR(projection->ProjectInput(dataset->at(i), &projected));
-    SCANN_RETURN_IF_ERROR(append_to_sampled(projected.ToPtr()));
+  SCANN_RET_CHECK(!sample.empty())
+      << "Cannot create a partitioner from an empty sampled dataset.";
+  bool projected_is_sparse = false;
+  DimensionIndex projected_dimensionality = 0;
+  SCANN_ASSIGN_OR_RETURN(
+      unique_ptr<Projection<T>> projection,
+      ProjectionFactory<T>(config.projection(), dataset, 0, pool.get()));
+  {
+    Datapoint<float> projected;
+    SCANN_RETURN_IF_ERROR(
+        projection->ProjectInput(dataset->at(sample[0]), &projected));
+    projected_is_sparse = projected.IsSparse();
+
+    projected_dimensionality = projected.dimensionality();
   }
+
+  if (projected_is_sparse) {
+    sampled_mutable = make_unique<SparseDataset<float>>();
+    SCANN_RETURN_IF_ERROR(
+        sampled_mutable->NormalizeByTag(dataset->normalization()));
+    sampled_mutable->Reserve(sample.size());
+    sampled = sampled_mutable.get();
+    Datapoint<float> projected;
+    for (DatapointIndex i : sample) {
+      SCANN_RETURN_IF_ERROR(
+          projection->ProjectInput(dataset->at(i), &projected));
+      SCANN_RETURN_IF_ERROR(sampled_mutable->Append(projected.ToPtr(), ""));
+    }
+  } else {
+    vector<float> sampled_storage(sample.size() * projected_dimensionality);
+    SCANN_RETURN_IF_ERROR(ParallelForWithStatus<1>(
+        IndicesOf(sample), pool.get(), [&](size_t sample_idx) -> Status {
+          Datapoint<float> projected;
+          SCANN_RETURN_IF_ERROR(projection->ProjectInput(
+              dataset->at(sample[sample_idx]), &projected));
+          std::copy(
+              projected.values().begin(), projected.values().end(),
+              sampled_storage.begin() + sample_idx * projected_dimensionality);
+          return OkStatus();
+        }));
+    sampled_mutable = make_unique<DenseDataset<float>>(
+        std::move(sampled_storage), sample.size());
+    SCANN_RETURN_IF_ERROR(
+        sampled_mutable->NormalizeByTag(dataset->normalization()));
+    sampled = sampled_mutable.get();
+  }
+
   LOG(INFO) << "Size of sampled dataset for training partition: "
             << sampled->size();
   SCANN_ASSIGN_OR_RETURN(

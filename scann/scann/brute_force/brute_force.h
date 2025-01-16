@@ -42,7 +42,7 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
                      const int32_t default_pre_reordering_num_neighbors,
                      const float default_pre_reordering_epsilon);
 
-  ~BruteForceSearcher() override;
+  ~BruteForceSearcher() final;
 
   bool supports_crowding() const final { return true; }
 
@@ -53,6 +53,12 @@ class BruteForceSearcher final : public SingleMachineSearcherBase<T> {
   void set_thread_pool(std::shared_ptr<ThreadPool> p) { pool_ = std::move(p); }
 
   void set_min_distance(float min_distance) { min_distance_ = min_distance; }
+
+  StatusOr<const SingleMachineSearcherBase<T>*> CreateBruteForceSearcher(
+      const DistanceMeasureConfig&,
+      unique_ptr<SingleMachineSearcherBase<T>>* storage) const final {
+    return this;
+  }
 
   using PrecomputedMutationArtifacts =
       UntypedSingleMachineSearcherBase::PrecomputedMutationArtifacts;

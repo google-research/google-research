@@ -19,10 +19,10 @@ cc_library(
     srcs = ["anisotropic.cc"],
     hdrs = ["anisotropic.h"],
     deps = [
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:common",
         "//scann/utils/linear_algebra:eigen_utils",
         "//scann/utils/linear_algebra:types",
+        "@eigen",
     ],
 )
 
@@ -93,7 +93,6 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:hash_cc_proto",
         "//scann/proto:partitioning_cc_proto",
@@ -119,6 +118,7 @@ cc_library(
     hdrs = ["tree_brute_force_second_level_wrapper.h"],
     deps = [
         ":kmeans_tree_like_partitioner",
+        ":kmeans_tree_partitioner_cc_proto",
         "//scann/brute_force",
         "//scann/brute_force:bfloat16_brute_force",
         "//scann/brute_force:scalar_quantized_brute_force",
@@ -139,6 +139,7 @@ cc_library(
     deps = [
         ":kmeans_tree_partitioner",
         ":partitioner_base",
+        ":tree_brute_force_second_level_wrapper",
         "//scann/distance_measures",
     ],
 )
@@ -153,6 +154,7 @@ cc_library(
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
         "//scann/projection:projection_base",
+        "//scann/proto:projection_cc_proto",
         "//scann/utils:common",
         "//scann/utils:datapoint_utils",
         "@com_google_absl//absl/log:check",
@@ -194,6 +196,7 @@ cc_library(
         ":partitioner_cc_proto",
         ":partitioner_factory_base",
         ":projecting_decorator",
+        ":tree_brute_force_second_level_wrapper",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_random",
@@ -221,7 +224,7 @@ proto_library(
     deps = [
         ":kmeans_tree_partitioner_proto",
         ":linear_projection_tree_proto",
-        "//scann/data_format:features_proto",
+        "//scann/proto:projection_proto",
     ],
 )
 

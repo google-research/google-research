@@ -22,6 +22,7 @@
 #include "absl/log/check.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 

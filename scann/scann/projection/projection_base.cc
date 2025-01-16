@@ -24,6 +24,11 @@ UntypedProjection::GetDirections() const {
       "GetDirections does not exist for this projection type.");
 }
 
+std::optional<SerializedProjection> UntypedProjection::SerializeToProto()
+    const {
+  return std::nullopt;
+}
+
 SCANN_INSTANTIATE_TYPED_CLASS(, Projection);
 
 }  // namespace research_scann

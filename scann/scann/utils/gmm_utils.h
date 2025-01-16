@@ -30,6 +30,7 @@
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/utils/types.h"
+#include "scann/utils/util_functions.h"
 
 namespace research_scann {
 
@@ -108,20 +109,20 @@ class GmmUtils {
   };
 
   Status ComputeKmeansClustering(
-      const Dataset& dataset, const int32_t num_clusters,
+      const Dataset& dataset, int32_t num_clusters,
       DenseDataset<double>* final_centers,
       const ComputeKmeansClusteringOptions& kmeans_opts);
 
   Status ComputeKmeansClustering(
-      GmmUtilsImplInterface* impl, const int32_t num_clusters,
+      GmmUtilsImplInterface* impl, int32_t num_clusters,
       DenseDataset<double>* final_centers,
       const ComputeKmeansClusteringOptions& kmeans_opts);
 
   StatusOr<double> ComputeSpillingThreshold(
       const Dataset& dataset, ConstSpan<DatapointIndex> subset,
       const DenseDataset<double>& centers,
-      const DatabaseSpillingConfig::SpillingType spilling_type,
-      const float total_spill_factor, const DatapointIndex max_centers);
+      DatabaseSpillingConfig::SpillingType spilling_type,
+      float total_spill_factor, DatapointIndex max_centers);
 
   template <typename FloatT>
   Status RecomputeCentroidsSimple(
@@ -147,18 +148,7 @@ class GmmUtils {
                            ConstSpan<float> weights,
                            DenseDataset<double>* initial_centers);
 
-  using PartitionAssignmentFn =
-      std::function<vector<pair<DatapointIndex, double>>(
-          GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-          const DenseDataset<double>& center, ThreadPool* pool)>;
-
  private:
-  SCANN_OUTLINE Status KMeansImpl(
-      bool spherical, const Dataset& dataset, ConstSpan<DatapointIndex> subset,
-      int32_t num_clusters, PartitionAssignmentFn partition_assignment_fn,
-      DenseDataset<double>* final_centers,
-      vector<vector<DatapointIndex>>* final_partitions);
-
   template <typename FloatT>
   Status ReinitializeCenters(
       ConstSpan<pair<DatapointIndex, double>> top1_results,
@@ -227,6 +217,9 @@ class GmmUtilsImplInterface : public VirtualDestructor {
   virtual DatapointPtr<double> GetPoint(size_t idx,
                                         Datapoint<double>* storage) const = 0;
 
+  virtual DatapointPtr<float> GetPoint(size_t idx,
+                                       Datapoint<float>* storage) const = 0;
+
   virtual DatapointIndex GetOriginalIndex(size_t idx) const = 0;
 
   using IterateDatasetCallback = std::function<void(
@@ -245,6 +238,8 @@ class GmmUtilsImplInterface : public VirtualDestructor {
   Status CheckDataDegeneracy();
 
   Status CheckAllFinite() const;
+
+  ThreadPool* GetThreadPool() const { return parallelization_pool_; }
 
  private:
   template <typename T>

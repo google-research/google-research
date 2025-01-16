@@ -68,6 +68,18 @@ py_test(
     ],
 )
 
+py_test(
+    name = "scann_ops_pybind_updates_test",
+    size = "medium",
+    timeout = "long",
+    srcs = ["scann_ops_pybind_updates_test.py"],
+    python_version = "PY3",
+    shard_count = 8,
+    deps = [
+        ":scann_ops_pybind",
+    ],
+)
+
 py_library(
     name = "scann_ops_pybind_backcompat",
     srcs = ["scann_ops_pybind_backcompat.py"],

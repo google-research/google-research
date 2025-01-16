@@ -1,6 +1,5 @@
 load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
 
-# -*- mode: python; -*-
 #
 package(
     default_visibility = ["//visibility:public"],
@@ -57,7 +56,6 @@ cc_library(
         "//scann/oss_wrappers:scann_random",
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/partitioning:anisotropic",
         "//scann/proto:partitioning_cc_proto",
         "//scann/utils:common",

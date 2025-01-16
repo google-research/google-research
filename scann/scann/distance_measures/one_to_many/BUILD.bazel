@@ -16,7 +16,10 @@ cc_library(
 
 cc_library(
     name = "one_to_many",
-    srcs = ["one_to_many_asymmetric.cc"],
+    srcs = [
+        "one_to_many_asymmetric.cc",
+        "one_to_many_symmetric.cc",
+    ],
     hdrs = [
         "one_to_many.h",
         "one_to_many_asymmetric.h",
@@ -32,7 +35,6 @@ cc_library(
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/utils:bfloat16_helpers",
         "//scann/utils:common",
         "//scann/utils:scalar_quantization_helpers",
@@ -44,7 +46,6 @@ cc_library(
         "//scann/utils/intrinsics:highway",
         "//scann/utils/intrinsics:horizontal_sum",
         "//scann/utils/intrinsics:simd",
-        "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/log:check",

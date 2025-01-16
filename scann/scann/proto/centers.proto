@@ -20,12 +20,14 @@ package research_scann;
 
 import "scann/data_format/features.proto";
 import "scann/proto/hash.proto";
+import "scann/proto/projection.proto";
 
 message CentersForAllSubspaces {
   repeated CentersForSubspace subspace_centers = 1;
-
   optional AsymmetricHasherConfig.QuantizationScheme quantization_scheme = 2
       [default = PRODUCT];
+
+  optional SerializedProjection serialized_projection = 3;
 }
 
 message CentersForSubspace {

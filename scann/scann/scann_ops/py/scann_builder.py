@@ -16,6 +16,7 @@
 """Builder to create ScaNN searchers of various configurations."""
 
 import enum
+from typing import Optional
 
 
 def _factory_decorator(key):
@@ -78,6 +79,77 @@ class ScannBuilder(object):
     self.builder_lambda = builder_lambda
     return self
 
+  @_factory_decorator("pca")
+  def pca(
+      self,
+      reduction_dim = None,
+      pca_significance_threshold = 0.80,
+      pca_truncation_threshold = 0.6,
+  ):
+    """Configure PCA, when dimensionality reduction is possible."""
+    dim = self.db.shape[1]
+    pca_stanza = ""
+    if reduction_dim is not None and pca_significance_threshold is None:
+      pca_stanza = f"""num_dims_per_block: {reduction_dim}"""
+    elif pca_significance_threshold is not None and reduction_dim is None:
+      pca_stanza = f"""
+          pca_significance_threshold: {pca_significance_threshold}
+          pca_truncation_threshold: {pca_truncation_threshold}
+      """
+    else:
+      raise ValueError("pca must be called with either reduction_dim or "
+                       "pca_significance_threshold")
+    return f"""
+      projection: {{
+        projection_type: PCA
+        input_dim: {dim}
+        {pca_stanza}
+      }}"""
+
+  @_factory_decorator("truncate")
+  def truncate(self, reduction_dim):
+    """Configure truncation of the input dimension, useful in MRL embeddings."""
+    dim = self.db.shape[1]
+    if reduction_dim >= dim:
+      raise ValueError(f"reduction_dim must be less than {dim}")
+    return f"""
+      projection: {{
+          projection_type: TRUNCATE
+          num_dims_per_block: {reduction_dim}
+          input_dim: {dim}
+      }}"""
+
+  @_factory_decorator("upper_tree")
+  def upper_tree(
+      self,
+      num_leaves,
+      num_leaves_to_search,
+      avq = float("nan"),
+      soar_lambda = None,
+      overretrieve_factor=None,
+      scoring_mode = ReorderType.INT8,
+      anisotropic_quantization_threshold=float("nan"),
+  ):
+    """Configure an additional tree layer; REQUIRES tree() call in builder."""
+    scoring_mode = {
+        ReorderType.INT8: "FIXED8",
+        ReorderType.BFLOAT16: "BFLOAT16",
+        ReorderType.FLOAT32: "FLOAT32",
+    }[scoring_mode]
+    return f"""
+    enabled: true
+    num_centroids: {num_leaves}
+    num_centroids_to_search: {num_leaves_to_search}
+    avq: {avq}
+    soar: {{
+      enabled: {soar_lambda is not None}
+      lambda: {soar_lambda or 1.5}
+      overretrieve_factor: {overretrieve_factor or 2.0}
+    }}
+    quantization: {scoring_mode}
+    noise_shaping_threshold: {anisotropic_quantization_threshold}
+    """
+
   @_factory_decorator("tree")
   def tree(
       self,
@@ -95,6 +167,8 @@ class ScannBuilder(object):
       overretrieve_factor=None,
       # the following are set automatically
       distance_measure=None,
+      projection=None,
+      upper_tree=None,
   ):
     """Configure partitioning. If not called, no partitioning is performed."""
     incremental_stanza = ""
@@ -122,6 +196,8 @@ class ScannBuilder(object):
         orthogonality_amplification_lambda: {soar_lambda}
         {overretrieve_factor_stanza}
       }}"""
+    if upper_tree is not None:
+      upper_tree = f"bottom_up_top_level_partitioner {{ {upper_tree} }}"
 
     return f"""
       partitioning {{
@@ -145,6 +221,8 @@ class ScannBuilder(object):
         {incremental_stanza}
         {avq_stanza}
         {soar_stanza}
+        {projection or ""}
+        {upper_tree or ""}
       }}
     """
 
@@ -160,6 +238,7 @@ class ScannBuilder(object):
       # the following are set automatically
       residual_quantization=None,
       n_dims=None,
+      projection=None,
   ):
     """Configure asymmetric hashing. Must call this or score_brute_force."""
     del min_cluster_size  # Deprecated field.
@@ -173,14 +252,22 @@ class ScannBuilder(object):
     else:
       raise ValueError(f"hash_type must be one of {hash_types}")
     full_blocks, partial_block_dims = divmod(n_dims, dimensions_per_block)  # pytype: disable=wrong-arg-types
-    if partial_block_dims == 0:
+    if projection is not None:
+      # Projection will be set by C++ logic.
       proj_config = f"""
+        projection_type: CHUNK
+        num_dims_per_block: {dimensions_per_block}
+      """
+    elif partial_block_dims == 0:
+      proj_config = f"""
+        input_dim: {n_dims}
         projection_type: CHUNK
         num_blocks: {full_blocks}
         num_dims_per_block: {dimensions_per_block}
       """
     else:
       proj_config = f"""
+        input_dim: {n_dims}
         projection_type: VARIABLE_CHUNK
         variable_blocks {{
           num_blocks: {full_blocks}
@@ -208,7 +295,6 @@ class ScannBuilder(object):
           }}
           num_clusters_per_block: {clusters_per_block}
           projection {{
-            input_dim: {n_dims}
             {proj_config}
           }}
           fixed_point_lut_conversion_options {{
@@ -296,10 +382,24 @@ class ScannBuilder(object):
       # is all we need.
       return config
 
+    pca_params = self.params.get("pca")
+    truncate_params = self.params.get("truncate")
+    projection = None
+    if pca_params is not None and truncate_params is None:
+      projection = self.pca.proto_maker(self, **pca_params)
+    elif pca_params is None and truncate_params is not None:
+      projection = self.truncate.proto_maker(self, **truncate_params)
+    elif pca_params is not None and truncate_params is not None:
+      raise ValueError("Exactly 1 of pca or truncate must be set")
+
     tree_params = self.params.get("tree")
     if tree_params is not None:
       tree_params["distance_measure"] = distance_measure
-      config += self.tree.proto_maker(self, **tree_params)
+      upper_tree = self.params.get("upper_tree")
+      if upper_tree is not None:
+        upper_tree = self.upper_tree.proto_maker(self, **upper_tree)
+      config += self.tree.proto_maker(
+          self, **tree_params, projection=projection, upper_tree=upper_tree)
 
     ah = self.params.get("score_ah")
     bf = self.params.get("score_bf")
@@ -308,7 +408,7 @@ class ScannBuilder(object):
         ah["residual_quantization"] = (
             tree_params is not None and self.distance_measure == "dot_product")
       ah["n_dims"] = self.db.shape[1]
-      config += self.score_ah.proto_maker(self, **ah)
+      config += self.score_ah.proto_maker(self, **ah, projection=projection)
     elif bf is not None and ah is None:
       config += self.score_brute_force.proto_maker(self, **bf)
     else:

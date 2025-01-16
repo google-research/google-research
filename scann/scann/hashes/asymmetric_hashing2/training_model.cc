@@ -22,8 +22,11 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
+#include "scann/projection/chunking_projection.h"
+#include "scann/projection/projection_factory.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -60,7 +63,8 @@ StatusOrPtr<Model<T>> Model<T>::FromCenters(
 
 template <typename T>
 StatusOr<unique_ptr<Model<T>>> Model<T>::FromProto(
-    const CentersForAllSubspaces& proto) {
+    const CentersForAllSubspaces& proto,
+    std::optional<ProjectionConfig> projection_config) {
   const size_t num_blocks = proto.subspace_centers_size();
   if (num_blocks == 0) {
     return InvalidArgumentError(
@@ -81,7 +85,17 @@ StatusOr<unique_ptr<Model<T>>> Model<T>::FromProto(
     all_centers[i].ShrinkToFit();
   }
 
-  return FromCenters(std::move(all_centers), proto.quantization_scheme());
+  SCANN_ASSIGN_OR_RETURN(
+      unique_ptr<Model<T>> result,
+      FromCenters(std::move(all_centers), proto.quantization_scheme()));
+  if (projection_config.has_value()) {
+    SCANN_ASSIGN_OR_RETURN(
+        auto projection,
+        ChunkingProjectionFactory<T>(*projection_config,
+                                     &proto.serialized_projection()));
+    result->SetProjection(std::move(projection));
+  }
+  return result;
 }
 
 template <typename T>
@@ -97,8 +111,33 @@ CentersForAllSubspaces Model<T>::ToProto() const {
   }
 
   result.set_quantization_scheme(quantization_scheme_);
+  if (projection_) {
+    std::optional<SerializedProjection> serialized_projection =
+        projection_->SerializeToProto();
+    if (serialized_projection.has_value()) {
+      *result.mutable_serialized_projection() =
+          std::move(*serialized_projection);
+    }
+  }
 
   return result;
+}
+
+template <typename T>
+StatusOr<shared_ptr<const ChunkingProjection<T>>> Model<T>::GetProjection(
+    const ProjectionConfig& projection_config) const {
+  if (projection_ == nullptr) {
+    SCANN_ASSIGN_OR_RETURN(auto unique_projection,
+                           ChunkingProjectionFactory<T>(projection_config));
+    return {std::move(unique_projection)};
+  }
+  return projection_;
+}
+
+template <typename T>
+void Model<T>::SetProjection(
+    shared_ptr<const ChunkingProjection<T>> projection) {
+  projection_ = std::move(projection);
 }
 
 template <typename T>

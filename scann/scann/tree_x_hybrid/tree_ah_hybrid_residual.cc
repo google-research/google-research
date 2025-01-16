@@ -137,7 +137,8 @@ vector<uint32_t> OrderLeafTokensByCenterNorm(
 template <typename GetResidual>
 StatusOr<DenseDataset<float>> ComputeResidualsImpl(
     const DenseDataset<float>& dataset, GetResidual get_residual,
-    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token) {
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+    ThreadPool* parallelization_pool) {
   vector<uint32_t> tokens_by_datapoint(dataset.size());
   for (uint32_t token : Seq(datapoints_by_token.size())) {
     for (DatapointIndex dp_idx : datapoints_by_token[token]) {
@@ -145,18 +146,30 @@ StatusOr<DenseDataset<float>> ComputeResidualsImpl(
     }
   }
 
-  DenseDataset<float> residuals;
-  for (size_t dp_idx : Seq(dataset.size())) {
+  vector<float> residuals_storage;
+  auto loop_body = [&](size_t dp_idx, bool is_first_dp)
+                       SCANN_INLINE_LAMBDA -> Status {
     const uint32_t token = tokens_by_datapoint[dp_idx];
     SCANN_ASSIGN_OR_RETURN(auto residual, get_residual(dataset[dp_idx], token));
-    if (dp_idx == 0) {
-      residuals.set_dimensionality(residual.dimensionality());
-      residuals.Reserve(dataset.size());
-    }
-    residuals.AppendOrDie(residual, "");
-  }
 
-  return residuals;
+    if (is_first_dp) {
+      residuals_storage =
+          vector<float>(dataset.size() * residual.dimensionality());
+    } else {
+      DCHECK_EQ(residuals_storage.size(),
+                dataset.size() * residual.dimensionality());
+    }
+    std::copy(residual.values().begin(), residual.values().end(),
+              residuals_storage.begin() + dp_idx * residual.dimensionality());
+    return OkStatus();
+  };
+
+  if (dataset.empty()) return DenseDataset<float>();
+  SCANN_RETURN_IF_ERROR(loop_body(0, true));
+  SCANN_RETURN_IF_ERROR(ParallelForWithStatus<1>(
+      Seq(1, dataset.size()), parallelization_pool,
+      [&](size_t dp_idx) { return loop_body(dp_idx, false); }));
+  return DenseDataset<float>(std::move(residuals_storage), dataset.size());
 }
 
 }  // namespace
@@ -164,41 +177,42 @@ StatusOr<DenseDataset<float>> ComputeResidualsImpl(
 StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
     const DenseDataset<float>& dataset,
     const DenseDataset<float>& kmeans_centers,
-    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token) {
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+    ThreadPool* parallelization_pool) {
   DCHECK(!kmeans_centers.empty());
   DCHECK_EQ(kmeans_centers.size(), datapoints_by_token.size());
   DCHECK_EQ(kmeans_centers.dimensionality(), dataset.dimensionality());
   const size_t dimensionality = dataset.dimensionality();
-  vector<float> scratch(dimensionality);
-  auto get_residual =
-      [&](const DatapointPtr<float>& dptr,
-          const int32_t token) -> StatusOr<DatapointPtr<float>> {
+  auto get_residual = [&](const DatapointPtr<float>& dptr,
+                          const int32_t token) -> StatusOr<Datapoint<float>> {
     ConstSpan<float> datapoint = dptr.values_span();
     ConstSpan<float> center = kmeans_centers[token].values_span();
     DCHECK_EQ(center.size(), dimensionality);
     DCHECK_EQ(datapoint.size(), dimensionality);
+    Datapoint<float> result;
+    result.mutable_values()->resize(dimensionality);
+    MutableSpan<float> result_values(*result.mutable_values());
     for (size_t d : Seq(dimensionality)) {
-      scratch[d] = datapoint[d] - center[d];
+      result_values[d] = datapoint[d] - center[d];
     }
-    return MakeDatapointPtr(scratch);
+    return result;
   };
 
-  return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token);
+  return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token,
+                              parallelization_pool);
 }
 
 StatusOr<DenseDataset<float>> TreeAHHybridResidual::ComputeResiduals(
     const DenseDataset<float>& dataset,
     const KMeansTreeLikePartitioner<float>* partitioner,
-    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token) {
-  Datapoint<float> residual;
-  auto get_residual =
-      [&](const DatapointPtr<float>& dptr,
-          const int32_t token) -> StatusOr<DatapointPtr<float>> {
-    SCANN_ASSIGN_OR_RETURN(residual,
-                           partitioner->ResidualizeToFloat(dptr, token));
-    return residual.ToPtr();
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+    ThreadPool* parallelization_pool) {
+  auto get_residual = [&](const DatapointPtr<float>& dptr,
+                          const int32_t token) -> StatusOr<Datapoint<float>> {
+    return partitioner->ResidualizeToFloat(dptr, token);
   };
-  return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token);
+  return ComputeResidualsImpl(dataset, get_residual, datapoints_by_token,
+                              parallelization_pool);
 }
 
 Status TreeAHHybridResidual::PreprocessQueryIntoParamsUnlocked(
@@ -316,7 +330,7 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
         "pre-training.");
   }
   SCANN_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<float>> projector,
-                         ChunkingProjectionFactory<float>(config.projection()));
+                         ah_model->GetProjection(config.projection()));
   SCANN_ASSIGN_OR_RETURN(auto quantization_distance,
                          GetDistanceMeasure(config.quantization_distance()));
   lookup_type_tag_ = config.lookup_type();
@@ -347,6 +361,12 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
     return InvalidArgumentError(
         "If hashed_dataset is set and SOAR database spilling is enabled, "
         "soar_hashed_dataset must be set.");
+  }
+  shared_ptr<const Projection<float>> partitioning_projection;
+  if (auto projecting_decorator =
+          dynamic_cast<const KMeansTreeProjectingDecorator<float>*>(
+              partitioner.get())) {
+    partitioning_projection = projecting_decorator->projection();
   }
   if (hashed_dataset) {
     if (datapoints_by_token_disjoint_) {
@@ -380,13 +400,20 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
             Datapoint<uint8_t>* storage) -> StatusOr<DatapointPtr<uint8_t>> {
       DCHECK(dataset);
       DatapointPtr<float> original = (*dataset)[i];
+      DatapointPtr<float> maybe_projected_original = original;
+      Datapoint<float> projected_original_storage;
+      if (partitioning_projection) {
+        SCANN_RETURN_IF_ERROR(partitioning_projection->ProjectInput(
+            original, &projected_original_storage));
+        maybe_projected_original = projected_original_storage.ToPtr();
+      }
       SCANN_ASSIGN_OR_RETURN(Datapoint<float> residual,
                              partitioner->ResidualizeToFloat(original, token));
       if (std::isnan(config.noise_shaping_threshold())) {
         SCANN_RETURN_IF_ERROR(indexer->Hash(residual.ToPtr(), storage));
       } else {
         SCANN_RETURN_IF_ERROR(indexer->HashWithNoiseShaping(
-            residual.ToPtr(), original, storage,
+            residual.ToPtr(), maybe_projected_original, storage,
             {.threshold = config.noise_shaping_threshold()}));
       }
       return storage->ToPtr();
@@ -524,7 +551,7 @@ Status TreeAHHybridResidual::BuildStreamingLeafSearchers(
   }
 
   SCANN_ASSIGN_OR_RETURN(shared_ptr<const ChunkingProjection<float>> projector,
-                         ChunkingProjectionFactory<float>(config.projection()));
+                         ah_model->GetProjection(config.projection()));
   lookup_type_tag_ = config.lookup_type();
   SCANN_ASSIGN_OR_RETURN(shared_ptr<DistanceMeasure> quantization_distance,
                          GetDistanceMeasure(config.quantization_distance()));
@@ -557,7 +584,6 @@ Status TreeAHHybridResidual::BuildStreamingLeafSearchers(
   }
   is_streaming_result_ = streaming_result;
 
-  partitioner->set_tokenization_mode(UntypedPartitioner::QUERY);
   query_tokenizer_ = std::move(partitioner);
   MaybeInitializeProjection();
   if (this->crowding_enabled()) {

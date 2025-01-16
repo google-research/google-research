@@ -1688,6 +1688,111 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
       dist, query, database, result, &set_distance_functor, pool);
 }
 
+#define SCANN_INSTANTIATE_ONE_TO_MANY_NO_AVX(                                  \
+    EXTERN_KEYWORD, TYPE, DATASET_VIEW, LAMBDAS, RESULT_ELEM, SHOULD_PREFETCH, \
+    CALLBACK_FUNCTOR)                                                          \
+  EXTERN_KEYWORD template void                                                 \
+  one_to_many_low_level::DenseAccumulatingDistanceMeasureOneToManyInternal<    \
+      TYPE, DATASET_VIEW, LAMBDAS, RESULT_ELEM, SHOULD_PREFETCH,               \
+      CALLBACK_FUNCTOR>(                                                       \
+      const DatapointPtr<TYPE>& query,                                         \
+      const DATASET_VIEW* __restrict__ database, const LAMBDAS& lambdas,       \
+      MutableSpan<RESULT_ELEM> result,                                         \
+      CALLBACK_FUNCTOR* __restrict__ callback, ThreadPool* pool);
+
+#ifdef __x86_64__
+#define SCANN_INSTANTIATE_ONE_TO_MANY(EXTERN_KEYWORD, TYPE, DATASET_VIEW,     \
+                                      LAMBDAS, RESULT_ELEM, SHOULD_PREFETCH,  \
+                                      CALLBACK_FUNCTOR)                       \
+  SCANN_INSTANTIATE_ONE_TO_MANY_NO_AVX(EXTERN_KEYWORD, TYPE, DATASET_VIEW,    \
+                                       LAMBDAS, RESULT_ELEM, SHOULD_PREFETCH, \
+                                       CALLBACK_FUNCTOR)                      \
+  EXTERN_KEYWORD template void one_to_many_low_level::                        \
+      DenseAccumulatingDistanceMeasureOneToManyInternalAvx1<                  \
+          TYPE, DATASET_VIEW, LAMBDAS, RESULT_ELEM, SHOULD_PREFETCH,          \
+          CALLBACK_FUNCTOR>(                                                  \
+          const DatapointPtr<TYPE>& query,                                    \
+          const DATASET_VIEW* __restrict__ database, const LAMBDAS& lambdas,  \
+          MutableSpan<RESULT_ELEM> result,                                    \
+          CALLBACK_FUNCTOR* __restrict__ callback, ThreadPool* pool);         \
+  EXTERN_KEYWORD template void one_to_many_low_level::                        \
+      DenseAccumulatingDistanceMeasureOneToManyInternalAvx2<                  \
+          TYPE, DATASET_VIEW, LAMBDAS, RESULT_ELEM, SHOULD_PREFETCH,          \
+          CALLBACK_FUNCTOR>(                                                  \
+          const DatapointPtr<TYPE>& query,                                    \
+          const DATASET_VIEW* __restrict__ database, const LAMBDAS& lambdas,  \
+          MutableSpan<RESULT_ELEM> result,                                    \
+          CALLBACK_FUNCTOR* __restrict__ callback, ThreadPool* pool);
+
+#else
+#define SCANN_INSTANTIATE_ONE_TO_MANY SCANN_INSTANTIATE_ONE_TO_MANY_NO_AVX
+#endif
+
+#define SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE(EXTERN_KEYWORD, \
+                                                          TYPE, LAMBDAS)  \
+  SCANN_INSTANTIATE_ONE_TO_MANY(                                          \
+      EXTERN_KEYWORD, TYPE, DefaultDenseDatasetView<TYPE>, LAMBDAS, TYPE, \
+      false, one_to_many_low_level::SetDistanceFunctor<TYPE>)             \
+  SCANN_INSTANTIATE_ONE_TO_MANY(                                          \
+      EXTERN_KEYWORD, TYPE, DefaultDenseDatasetView<TYPE>, LAMBDAS, TYPE, \
+      true, one_to_many_low_level::SetDistanceFunctor<TYPE>)
+
+#define SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(         \
+    EXTERN_KEYWORD, TYPE, LAMBDAS)                                        \
+  SCANN_INSTANTIATE_ONE_TO_MANY_NO_AVX(                                   \
+      EXTERN_KEYWORD, TYPE, DefaultDenseDatasetView<TYPE>, LAMBDAS, TYPE, \
+      false, one_to_many_low_level::SetDistanceFunctor<TYPE>)             \
+  SCANN_INSTANTIATE_ONE_TO_MANY_NO_AVX(                                   \
+      EXTERN_KEYWORD, TYPE, DefaultDenseDatasetView<TYPE>, LAMBDAS, TYPE, \
+      true, one_to_many_low_level::SetDistanceFunctor<TYPE>)
+
+#define SCANN_INSTANTIATE_COMMON_FLOAT_ONE_TO_MANY(EXTERN_KEYWORD)            \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE(                          \
+      EXTERN_KEYWORD, float,                                                  \
+      one_to_many_low_level::DotProductDistanceLambdas<float>)                \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE(                          \
+      EXTERN_KEYWORD, float,                                                  \
+      one_to_many_low_level::SquaredL2DistanceLambdas<float>)                 \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE(                          \
+      EXTERN_KEYWORD, float,                                                  \
+      one_to_many_low_level::CosineDistanceLambdas<float>)                    \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE(                          \
+      EXTERN_KEYWORD, float,                                                  \
+      one_to_many_low_level::AbsDotProductDistanceLambdas<float>)             \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE(                          \
+      EXTERN_KEYWORD, float, one_to_many_low_level::L2DistanceLambdas<float>) \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(                   \
+      EXTERN_KEYWORD, float,                                                  \
+      limited_inner_internal::LimitedInnerProductDistanceLambdas<float>)      \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(                   \
+      EXTERN_KEYWORD, float, one_to_many_low_level::L1DistanceLambdas<float>)
+
+#define SCANN_INSTANTIATE_COMMON_DOUBLE_ONE_TO_MANY(EXTERN_KEYWORD)       \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      one_to_many_low_level::DotProductDistanceLambdas<double>)           \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      one_to_many_low_level::SquaredL2DistanceLambdas<double>)            \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      one_to_many_low_level::CosineDistanceLambdas<double>)               \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      one_to_many_low_level::AbsDotProductDistanceLambdas<double>)        \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      one_to_many_low_level::L2DistanceLambdas<double>)                   \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      limited_inner_internal::LimitedInnerProductDistanceLambdas<double>) \
+  SCANN_INSTANTIATE_COMMON_ONE_TO_MANY_FOR_DISTANCE_NO_AVX(               \
+      EXTERN_KEYWORD, double,                                             \
+      one_to_many_low_level::L1DistanceLambdas<double>)
+
+SCANN_INSTANTIATE_COMMON_FLOAT_ONE_TO_MANY(extern)
+SCANN_INSTANTIATE_COMMON_DOUBLE_ONE_TO_MANY(extern)
+
 }  // namespace research_scann
 
 #endif

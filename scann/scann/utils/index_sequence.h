@@ -15,6 +15,7 @@
 #ifndef SCANN_UTILS_INDEX_SEQUENCE_H_
 #define SCANN_UTILS_INDEX_SEQUENCE_H_
 
+#include <cstddef>
 #include <type_traits>
 #include <utility>
 

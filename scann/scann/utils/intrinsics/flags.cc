@@ -14,7 +14,9 @@
 
 #include "scann/utils/intrinsics/flags.h"
 
-#include "tensorflow/core/platform/cpu_info.h"
+#include "hwy/highway.h"
+#include "hwy/targets.h"
+#include "scann/oss_wrappers/scann_cpu_info.h"
 
 ABSL_FLAG(bool, ignore_avx512, false,
           "Ignore the presence of AVX512 instructions when assigning "
@@ -27,36 +29,27 @@ ABSL_FLAG(bool, ignore_avx2, false,
           "function pointers at ScaNN startup.  Useful for testing and "
           "debugging.");
 
-ABSL_FLAG(bool, ignore_avx, false,
-          "Ignore the presence of AVX and higher instructions when assigning "
-          "function pointers at ScaNN startup.  Useful for testing and "
-          "debugging.");
+ABSL_RETIRED_FLAG(bool, ignore_avx, false, "Ignore AVX1.");
 
 ABSL_RETIRED_FLAG(bool, ignore_sse4, false, "Ignore SSE4");
 
 namespace research_scann {
 namespace flags_internal {
 
-bool should_use_sse4 =
-    tensorflow::port::TestCPUFeature(tensorflow::port::SSE4_2);
-bool should_use_avx1 = tensorflow::port::TestCPUFeature(tensorflow::port::AVX);
-bool should_use_avx2 = tensorflow::port::TestCPUFeature(tensorflow::port::AVX2);
-bool should_use_avx512 =
-    tensorflow::port::TestCPUFeature(tensorflow::port::AVX512F) &&
-    tensorflow::port::TestCPUFeature(tensorflow::port::AVX512DQ) &&
-    tensorflow::port::TestCPUFeature(tensorflow::port::AVX512BW);
+bool should_use_avx2 = port::TestCPUFeature(port::AVX2);
+bool should_use_avx512 = port::TestCPUFeature(port::AVX512F) &&
+                         port::TestCPUFeature(port::AVX512DQ) &&
+                         port::TestCPUFeature(port::AVX512BW);
 
 }  // namespace flags_internal
 
 ScopedPlatformOverride::ScopedPlatformOverride(PlatformGeneration generation) {
-  original_avx1_ = flags_internal::should_use_avx1;
   original_avx2_ = flags_internal::should_use_avx2;
   original_avx512_ = flags_internal::should_use_avx512;
-  original_sse4_ = flags_internal::should_use_sse4;
-  flags_internal::should_use_sse4 = false;
-  flags_internal::should_use_avx1 = false;
   flags_internal::should_use_avx2 = false;
   flags_internal::should_use_avx512 = false;
+
+  hwy::DisableTargets(0);
   switch (generation) {
     case kSkylakeAvx512:
       flags_internal::should_use_avx512 = true;
@@ -64,17 +57,14 @@ ScopedPlatformOverride::ScopedPlatformOverride(PlatformGeneration generation) {
 
     case kHaswellAvx2:
       flags_internal::should_use_avx2 = true;
+
+      hwy::DisableTargets(HWY_AVX3 | (HWY_AVX3 - 1));
       ABSL_FALLTHROUGH_INTENDED;
 
     case kSandyBridgeAvx1:
-      flags_internal::should_use_avx1 = true;
-      ABSL_FALLTHROUGH_INTENDED;
-
     case kBaselineSse4:
-      flags_internal::should_use_sse4 = true;
-      break;
-
     case kFallbackForNonX86:
+      hwy::DisableTargets(HWY_AVX2 | (HWY_AVX2 - 1));
       break;
 
     default:
@@ -83,32 +73,20 @@ ScopedPlatformOverride::ScopedPlatformOverride(PlatformGeneration generation) {
 }
 
 ScopedPlatformOverride::~ScopedPlatformOverride() {
-  flags_internal::should_use_avx1 = original_avx1_;
   flags_internal::should_use_avx2 = original_avx2_;
   flags_internal::should_use_avx512 = original_avx512_;
-  flags_internal::should_use_sse4 = original_sse4_;
 }
 
 bool ScopedPlatformOverride::IsSupported() {
   if (flags_internal::should_use_avx512 &&
-      !(tensorflow::port::TestCPUFeature(tensorflow::port::AVX512F) &&
-        tensorflow::port::TestCPUFeature(tensorflow::port::AVX512DQ))) {
+      !(port::TestCPUFeature(port::AVX512F) &&
+        port::TestCPUFeature(port::AVX512DQ))) {
     LOG(WARNING) << "The CPU lacks AVX512 support! (skipping some tests)";
     return false;
   }
-  if (flags_internal::should_use_avx2 &&
-      !tensorflow::port::TestCPUFeature(tensorflow::port::AVX2)) {
+  if (flags_internal::should_use_avx2 && !port::TestCPUFeature(port::AVX2)) {
     LOG(WARNING) << "The CPU lacks AVX2 support! (skipping some tests)";
     return false;
-  }
-  if (flags_internal::should_use_avx1 &&
-      !tensorflow::port::TestCPUFeature(tensorflow::port::AVX)) {
-    LOG(WARNING) << "The CPU lacks AVX1 support! (skipping some tests)";
-    return false;
-  }
-  if (flags_internal::should_use_sse4 &&
-      !tensorflow::port::TestCPUFeature(tensorflow::port::SSE4_2)) {
-    LOG(WARNING) << "This CPU lacks SSE4.2 support! (skipping some tests)";
   }
   return true;
 }

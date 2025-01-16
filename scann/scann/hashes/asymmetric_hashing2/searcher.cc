@@ -41,7 +41,6 @@
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
-#include "tensorflow/core/platform/cpu_info.h"
 
 namespace research_scann {
 namespace asymmetric_hashing2 {
@@ -65,6 +64,7 @@ std::shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
           MakeDatapointPtr(dp.values(), dp.nonzero_entries() - sizeof(float));
       CHECK_OK(dataset_no_bias->Append(dptr, ""));
     }
+    dataset_no_bias->AttachDocidCollection(hashed_dataset->docids());
     return dataset_no_bias;
   } else if (quantization_scheme == AsymmetricHasherConfig::PRODUCT_AND_PACK) {
     auto dataset_unpacked = std::make_shared<DenseDataset<uint8_t>>();
@@ -75,6 +75,7 @@ std::shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
       UnpackNibblesDatapoint(dptr, &unpacked_dp);
       CHECK_OK(dataset_unpacked->Append(unpacked_dp.ToPtr(), ""));
     }
+    dataset_unpacked->AttachDocidCollection(hashed_dataset->docids());
     return dataset_unpacked;
   }
   return hashed_dataset;

@@ -708,7 +708,7 @@ class Avx1<T, kNumRegistersInferred> {
     return ComparisonOperatorImpl(*this, other, &GreaterThan);
   }
 
-  SCANN_AVX1_INLINE int MaskFromHighBits() const {
+  SCANN_AVX1_INLINE uint32_t MaskFromHighBits() const {
     static_assert(kNumRegisters == 1);
     const auto& me = *this;
 

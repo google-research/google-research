@@ -109,6 +109,8 @@ class Indexer {
                          const DatapointPtr<uint8_t>& hashed,
                          Datapoint<FloatT>* result) const;
 
+  shared_ptr<const Model<T>> model() { return model_; }
+
  private:
   shared_ptr<const ChunkingProjection<T>> projector_;
   shared_ptr<const DistanceMeasure> quantization_distance_;

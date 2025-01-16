@@ -19,10 +19,11 @@
 #include "Eigen/Core"
 #include "Eigen/Dense"
 #include "absl/status/status.h"
-#include "absl/strings/str_format.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
+#include "scann/utils/linear_algebra/types.h"
 
 namespace research_scann {
 

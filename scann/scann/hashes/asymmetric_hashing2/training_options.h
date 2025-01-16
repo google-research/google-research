@@ -42,7 +42,7 @@ class TrainingOptions : public TrainingOptionsTyped<T> {
 
   TrainingOptions(const AsymmetricHasherConfig& config,
                   shared_ptr<const DistanceMeasure> quantization_distance,
-                  const TypedDataset<T>& dataset);
+                  const TypedDataset<T>& dataset, ThreadPool* pool = nullptr);
 
   Status Validate() const;
 

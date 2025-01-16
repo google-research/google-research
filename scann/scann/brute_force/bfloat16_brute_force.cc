@@ -39,16 +39,19 @@ Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
                   "L2 distance.";
   }
   if (std::isfinite(noise_shaping_threshold)) {
-    bfloat16_dataset_ = Bfloat16QuantizeFloatDatasetWithNoiseShaping(
-        *dataset, noise_shaping_threshold);
+    bfloat16_dataset_ = make_shared<DenseDataset<int16_t>>(
+        Bfloat16QuantizeFloatDatasetWithNoiseShaping(*dataset,
+                                                     noise_shaping_threshold));
   } else {
-    bfloat16_dataset_ = Bfloat16QuantizeFloatDataset(*dataset);
+    bfloat16_dataset_ = make_shared<DenseDataset<int16_t>>(
+        Bfloat16QuantizeFloatDataset(*dataset));
   }
 }
 Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
     shared_ptr<const DistanceMeasure> distance,
-    DenseDataset<int16_t> bfloat16_dataset, const int32_t default_num_neighbors,
-    const float default_epsilon, float noise_shaping_threshold)
+    shared_ptr<const DenseDataset<int16_t>> bfloat16_dataset,
+    const int32_t default_num_neighbors, const float default_epsilon,
+    float noise_shaping_threshold)
     : SingleMachineSearcherBase<float>(nullptr, default_num_neighbors,
                                        default_epsilon),
       is_dot_product_(distance->specially_optimized_distance_tag() ==
@@ -60,13 +63,13 @@ Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
     LOG(FATAL) << "Bfloat16 brute force only supports dot product and squared "
                   "L2 distance.";
   }
-  QCHECK_OK(this->set_docids(bfloat16_dataset_.ReleaseDocids()));
+  QCHECK_OK(this->set_docids(bfloat16_dataset_->docids()));
 }
 
 Status Bfloat16BruteForceSearcher::EnableCrowdingImpl(
     ConstSpan<int64_t> datapoint_index_to_crowding_attribute) {
   size_t sz1 = datapoint_index_to_crowding_attribute.size();
-  size_t sz2 = bfloat16_dataset_.size();
+  size_t sz2 = bfloat16_dataset_->size();
   if (sz1 != sz2) {
     return InvalidArgumentError(
         "Crowding attributes don't match dataset in size: %d vs %d.", sz1, sz2);
@@ -81,10 +84,10 @@ Status Bfloat16BruteForceSearcher::FindNeighborsImpl(
   if (!query.IsDense()) {
     return InvalidArgumentError("Bfloat16 brute force requires dense data.");
   }
-  if (query.dimensionality() != bfloat16_dataset_.dimensionality()) {
+  if (query.dimensionality() != bfloat16_dataset_->dimensionality()) {
     return FailedPreconditionError(
         "Query/database dimensionality mismatch: %d vs %d.",
-        query.dimensionality(), bfloat16_dataset_.dimensionality());
+        query.dimensionality(), bfloat16_dataset_->dimensionality());
   }
   if (params.pre_reordering_crowding_enabled() && !this->crowding_enabled()) {
     return FailedPreconditionError(
@@ -96,13 +99,13 @@ Status Bfloat16BruteForceSearcher::FindNeighborsImpl(
     return UnimplementedError("Restricts not supported.");
   } else {
     auto dists_ptr =
-        static_cast<float*>(malloc(bfloat16_dataset_.size() * sizeof(float)));
-    MutableSpan<float> dists_span(dists_ptr, bfloat16_dataset_.size());
+        static_cast<float*>(malloc(bfloat16_dataset_->size() * sizeof(float)));
+    MutableSpan<float> dists_span(dists_ptr, bfloat16_dataset_->size());
     if (is_dot_product_) {
-      DenseDotProductDistanceOneToManyBf16Float(query, bfloat16_dataset_,
+      DenseDotProductDistanceOneToManyBf16Float(query, *bfloat16_dataset_,
                                                 dists_span);
     } else {
-      OneToManyBf16FloatSquaredL2(query, bfloat16_dataset_, dists_span);
+      OneToManyBf16FloatSquaredL2(query, *bfloat16_dataset_, dists_span);
     }
     if (params.pre_reordering_crowding_enabled()) {
       return FailedPreconditionError("Crowding is not supported.");
@@ -115,6 +118,18 @@ Status Bfloat16BruteForceSearcher::FindNeighborsImpl(
     free(dists_ptr);
   }
   return OkStatus();
+}
+
+StatusOr<const SingleMachineSearcherBase<float>*>
+Bfloat16BruteForceSearcher::CreateBruteForceSearcher(
+    const DistanceMeasureConfig& distance_config,
+    unique_ptr<SingleMachineSearcherBase<float>>* storage) const {
+  auto base_result = SingleMachineSearcherBase<float>::CreateBruteForceSearcher(
+      distance_config, storage);
+  if (base_result.ok()) {
+    return base_result;
+  }
+  return this;
 }
 
 StatusOr<SingleMachineSearcherBase<float>::Mutator*>
@@ -134,7 +149,7 @@ Bfloat16BruteForceSearcher::ExtractSingleMachineFactoryOptions() {
       auto opts,
       SingleMachineSearcherBase<float>::ExtractSingleMachineFactoryOptions());
   opts.bfloat16_dataset =
-      make_shared<DenseDataset<int16_t>>(bfloat16_dataset_.Copy());
+      make_shared<DenseDataset<int16_t>>(bfloat16_dataset_->Copy());
   return opts;
 }
 

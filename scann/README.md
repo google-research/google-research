@@ -4,7 +4,7 @@ ScaNN (Scalable Nearest Neighbors) is a method for efficient vector similarity
 search at scale. This code implements [1, 2], which includes search space
 pruning and quantization for Maximum Inner Product Search and also supports
 other distance functions such as Euclidean distance. The implementation is
-designed for x86 processors with AVX2 support. ScaNN achieves state-of-the-art
+optimized for x86 processors with AVX support. ScaNN achieves state-of-the-art
 performance on [ann-benchmarks.com](http://ann-benchmarks.com) as shown on the
 glove-100-angular dataset below:
 
@@ -39,7 +39,8 @@ References:
 
 ## Installation
 
-`manylinux_2_27`-compatible wheels are available on PyPI:
+`manylinux_2_27`-compatible wheels are available on
+[PyPI](https://pypi.org/project/scann/):
 
 ```
 pip install scann
@@ -48,7 +49,8 @@ pip install scann
 ScaNN supports Linux environments running Python versions 3.9-3.12. See
 [docs/releases.md](docs/releases.md) for release notes; the page also contains
 download links for ScaNN wheels prior to version 1.1.0, which were not released
-on PyPI.
+on PyPI. **The x86 wheels require AVX and FMA instruction set support, while
+the ARM wheels require NEON**.
 
 In accordance with the
 [`manylinux_2_27` specification](https://peps.python.org/pep-0600/), ScaNN
@@ -56,6 +58,16 @@ requires `libstdc++` version 3.4.23 or above from the operating system. See
 [here](https://stackoverflow.com/questions/10354636) for an example of how
 to find your system's `libstdc++` version; it can generally be upgraded by
 installing a newer version of `g++`.
+
+### TensorFlow dependency
+
+ScaNN can function without TensorFlow, but for backwards compatibility reasons,
+ScaNN by default imports the ScaNN TensorFlow ops, so it's still registered as
+having a hard dependency on TensorFlow. You can use
+`pip install --no-deps scann` to avoid installing the large TensorFlow
+dependency if you're not interested in using ScaNN's TensorFlow bindings
+(`scann.scann_ops`). (For users not already in the TensorFlow ecosystem, the
+native Python bindings in `scann.scann_ops_pybind` are a better fit.)
 
 ### Integration with TensorFlow Serving
 
@@ -69,13 +81,22 @@ information.
 To build ScaNN from source, first install the build tool
 [bazel](https://bazel.build) (use version 7.x), Clang 17, and libstdc++ headers
 for C++17 (which are provided with GCC 9). Additionally, ScaNN requires a modern
-version of Python (3.9.x or later) and Tensorflow 2.17 installed on that version
+version of Python (3.9.x or later) and Tensorflow 2.18 installed on that version
 of Python. Once these prerequisites are satisfied, run the following command in
 the root directory of the repository:
 
 ```
 python configure.py
 CC=clang-17 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+./bazel-bin/build_pip_pkg
+```
+
+To build an ARM binary from an ARM machine, the prerequisites are the same, but
+the compile flags are slightly modified:
+
+```
+python configure.py
+CC=clang-17 bazel build -c opt --features=thin_lto --copt=-march=armv8-a+simd --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 

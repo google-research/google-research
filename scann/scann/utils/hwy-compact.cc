@@ -12,16 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-
+#ifdef __x86_64__
 
 #define HWY_COMPILE_ONLY_STATIC
 
-#undef HWY_STATIC_TARGET
-#define HWY_STATIC_TARGET HWY_AVX2
-
-#ifndef HWY_DISABLED_TARGETS
-#define HWY_DISABLED_TARGETS (HWY_SSE4 | HWY_AVX3)
-#endif
+#define HWY_BASELINE_TARGETS HWY_AVX2
 
 #include "scann/utils/hwy-compact.h"
 
@@ -34,20 +29,18 @@
 
 namespace research_scann {
 
-#if HWY_TARGET <= HWY_AVX2
-
 constexpr size_t kNumLanes = 8;
 
 template <typename V>
-HWY_INLINE void DCompressStore(hwy::N_AVX2::Vec256<V> val_v, uint64_t mask_bits,
-                               hwy::N_AVX2::Simd<V, kNumLanes, 0> tag,
-                               V* HWY_RESTRICT dst_unaligned) {
+SCANN_INLINE HWY_ATTR void DCompressStore(
+    hwy::N_AVX2::Vec256<V> val_v, uint64_t mask_bits,
+    hwy::N_AVX2::Simd<V, kNumLanes, 0> tag, V* HWY_RESTRICT dst_unaligned) {
   StoreU(hwy::N_AVX2::detail::Compress(val_v, mask_bits), tag, dst_unaligned);
 }
 
-ABSL_ATTRIBUTE_ALWAYS_INLINE size_t HwyCompact(uint32_t* indices, float* values,
-                                               const uint32_t* masks,
-                                               size_t n_masks) {
+SCANN_OUTLINE HWY_ATTR size_t HwyCompact(uint32_t* indices, float* values,
+                                         const uint32_t* masks,
+                                         size_t n_masks) {
   HWY_FULL(uint32_t) indices_v;
   HWY_FULL(float) values_v;
   DCHECK_EQ(Lanes(indices_v), kNumLanes);
@@ -74,12 +67,6 @@ ABSL_ATTRIBUTE_ALWAYS_INLINE size_t HwyCompact(uint32_t* indices, float* values,
 
   return write_idx;
 }
-#else
-ABSL_ATTRIBUTE_ALWAYS_INLINE size_t HwyCompact(uint32_t* indices, float* values,
-                                               const uint32_t* masks,
-                                               size_t n_masks) {
-  CHECK(false);
-}
-#endif
 
 }  // namespace research_scann
+#endif

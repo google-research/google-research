@@ -20,8 +20,6 @@ package research_scann;
 
 import "google/protobuf/timestamp.proto";
 
-option cc_enable_arenas = true;
-
 message GenericFeatureVector {
   extensions 1000 to max;
 
@@ -39,7 +37,9 @@ message GenericFeatureVector {
   optional bytes data_id_str = 2;
 
   repeated float feature_value_float = 4 [packed = true];
+
   repeated double feature_value_double = 5 [packed = true];
+
   repeated int64 feature_value_int64 = 3 [packed = true];
 
   optional bytes feature_value_string = 13;
@@ -60,6 +60,7 @@ message GenericFeatureVector {
   message Crowding {
     optional int64 crowding_attribute = 1;
   }
+
   optional Crowding crowding = 18;
 
   reserved 15;
@@ -77,5 +78,6 @@ message GenericFeatureVector {
   optional uint64 feature_dim = 10 [default = 0xFFFFFFFFFFFFFFFF];
 
   optional float weight = 8 [deprecated = true];
+
   repeated int32 tokens = 14 [packed = true, deprecated = true];
 }

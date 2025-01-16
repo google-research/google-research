@@ -38,6 +38,7 @@
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
@@ -395,6 +396,11 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   }
 
   void DisableExactReordering() { DisableReordering(); }
+
+  virtual StatusOr<const SingleMachineSearcherBase<T>*>
+  CreateBruteForceSearcher(
+      const DistanceMeasureConfig& distance_config,
+      unique_ptr<SingleMachineSearcherBase<T>>* storage) const;
 
   bool exact_reordering_enabled() const final {
     return exact_reordering_enabled_;

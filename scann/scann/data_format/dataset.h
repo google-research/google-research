@@ -415,6 +415,10 @@ class DenseDatasetView : VirtualDestructor {
 
   virtual const T* GetPtr(size_t i) const = 0;
 
+  SCANN_INLINE ConstSpan<T> GetDatapointSpan(size_t i) const {
+    return MakeConstSpan(GetPtr(i), dimensionality());
+  }
+
   virtual size_t dimensionality() const = 0;
 
   virtual size_t size() const = 0;
@@ -542,6 +546,34 @@ class RandomDatapointsSubView : public DenseDatasetView<T> {
  private:
   const DenseDatasetView<T>* __restrict__ parent_view_ = nullptr;
   const std::vector<DatapointIndex> dp_idxs_;
+};
+
+template <typename T>
+class StridedDatasetView final : public DenseDatasetView<T> {
+ public:
+  StridedDatasetView(const T* ptr, size_t dimension, size_t stride, size_t size)
+      : ptr_(ptr), dims_(dimension), stride_(stride), size_(size) {}
+
+  SCANN_INLINE const T* GetPtr(size_t i) const final {
+    return ptr_ + i * stride_;
+  }
+
+  SCANN_INLINE size_t dimensionality() const final { return dims_; }
+
+  SCANN_INLINE size_t size() const final { return size_; }
+
+  std::unique_ptr<DenseDatasetView<T>> subview(size_t offset,
+                                               size_t size) const final {
+    CHECK_LE(offset + size, size_);
+    return absl::WrapUnique(new StridedDatasetView<T>(ptr_ + offset * stride_,
+                                                      dims_, stride_, size));
+  }
+
+ private:
+  const T* __restrict__ ptr_ = nullptr;
+  size_t dims_ = 0;
+  size_t stride_ = 0;
+  size_t size_ = 0;
 };
 
 template <typename T>

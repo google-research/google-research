@@ -20,6 +20,7 @@
 #include <optional>
 #include <vector>
 
+#include "absl/types/span.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
@@ -138,9 +139,9 @@ SCANN_INLINE float Int4Dequantize(uint8_t value) {
   return fp_value - kFP4Max;
 }
 
-std::vector<float> Int8ToInt4Multipliers(const std::vector<float>& multipliers);
+std::vector<float> Int8ToInt4Multipliers(absl::Span<const float> multipliers);
 std::vector<float> InverseInt8ToInt4Multipliers(
-    const std::vector<float>& multipliers);
+    absl::Span<const float> multipliers);
 
 constexpr size_t kNumBottomBits = 32;
 

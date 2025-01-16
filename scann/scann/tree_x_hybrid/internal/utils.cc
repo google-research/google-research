@@ -14,6 +14,8 @@
 
 #include "scann/tree_x_hybrid/internal/utils.h"
 
+#include "absl/types/span.h"
+
 #ifdef __x86_64__
 #include <x86intrin.h>
 #endif
@@ -55,7 +57,7 @@ SCANN_AVX2_OUTLINE size_t Avx2GatherCreateLeafLocalAllowlist(
 #endif
 
 StatusOr<bool> ValidateDatapointsByToken(
-    const vector<std::vector<DatapointIndex>>& datapoints_by_token,
+    absl::Span<const std::vector<DatapointIndex>> datapoints_by_token,
     DatapointIndex num_datapoints) {
   bool is_disjoint = true;
 

@@ -16,34 +16,15 @@
 
 #include "scann/distance_measures/many_to_many/fp8_transposed.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
-#include "scann/distance_measures/many_to_many/many_to_many_common.h"
 #include "scann/distance_measures/many_to_many/many_to_many_templates.h"
 
 namespace research_scann {
 namespace mm_internal {
 
-template void DenseDistanceManyToManyImpl(
-    const DistanceMeasure &dist, DefaultDenseDatasetView<float> queries,
-    const DenseDataset<float> &database, ThreadPool *pool,
-    EpsilonFilteringCallback<float> callback);
-
-template void DenseManyToManyOrthogonalityAmplifiedImpl(
-    const DenseDataset<float> &queries,
-    const DenseDataset<float> &normalized_residuals, float lambda,
-    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
-    EpsilonFilteringOffsetWrapper<float> callback);
-
-template void DenseManyToManyOrthogonalityAmplifiedImpl(
-    const DenseDataset<float> &queries,
-    const DenseDataset<float> &normalized_residuals, float lambda,
+template Status DenseDistanceManyToManyFP8PretransposedImpl(
+    const DistanceMeasure &dist, const DenseDataset<float> &queries,
     const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
     ManyToManyResultsCallback<float> callback);
-
-template void DenseManyToManyOrthogonalityAmplifiedImpl(
-    const DenseDataset<float> &queries,
-    const DenseDataset<float> &normalized_residuals, float lambda,
-    const DenseDataset<float> &database, ThreadPool *pool,
-    EpsilonFilteringCallback<float> callback);
 
 template Status DenseDistanceManyToManyFP8PretransposedImpl(
     const DistanceMeasure &dist, const DenseDataset<float> &queries,

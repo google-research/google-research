@@ -186,6 +186,12 @@ class GenericDatasetWithSubset : public GmmUtilsImplInterface {
     return storage->ToPtr();
   }
 
+  DatapointPtr<float> GetPoint(size_t idx,
+                               Datapoint<float>* storage) const final {
+    dataset_.GetDenseDatapoint(subset_[idx], storage);
+    return storage->ToPtr();
+  }
+
   DatapointIndex GetOriginalIndex(size_t idx) const final {
     return subset_[idx];
   }
@@ -244,6 +250,11 @@ class DenseDatasetWrapper : public GmmUtilsImplInterface {
 
   DatapointPtr<double> GetPoint(size_t idx,
                                 Datapoint<double>* storage) const final {
+    return MaybeConvertDatapoint(dataset_[idx], storage);
+  }
+
+  DatapointPtr<float> GetPoint(size_t idx,
+                               Datapoint<float>* storage) const final {
     return MaybeConvertDatapoint(dataset_[idx], storage);
   }
 
@@ -336,6 +347,13 @@ class ConstSpanDatasetWrapper : public GmmUtilsImplInterface {
     auto dptr = GetDatapointPtr(idx);
     return MaybeConvertDatapoint(dptr, storage);
   }
+
+  DatapointPtr<float> GetPoint(size_t idx,
+                               Datapoint<float>* storage) const final {
+    auto dptr = GetDatapointPtr(idx);
+    return MaybeConvertDatapoint(dptr, storage);
+  }
+
   DatapointIndex GetOriginalIndex(size_t idx) const final {
     if constexpr (UseSubset) {
       return subset_[idx];
@@ -516,34 +534,6 @@ vector<pair<DatapointIndex, double>> UnbalancedFloat32PartitionAssignment(
                       top1_results.begin() + offset);
           });
   return top1_results;
-}
-
-vector<pair<DatapointIndex, double>> MinCostMaxFlowPartitionAssignment(
-    GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-    const DenseDataset<double>& centers, ThreadPool* pool) {
-  LOG(ERROR) << "Min-cost max-flow based assignment not supported.";
-}
-
-vector<pair<DatapointIndex, double>> GreedyBalancedPartitionAssignment(
-    GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-    const DenseDataset<double>& centers, ThreadPool* pool) {
-  LOG(ERROR) << "Greedy partition balancing not supported.";
-}
-
-GmmUtils::PartitionAssignmentFn GetPartitionAssignmentFn(
-    GmmUtils::Options::PartitionAssignmentType type) {
-  switch (type) {
-    case GmmUtils::Options::UNBALANCED:
-      return &UnbalancedPartitionAssignment;
-    case GmmUtils::Options::GREEDY_BALANCED:
-      return &GreedyBalancedPartitionAssignment;
-    case GmmUtils::Options::MIN_COST_MAX_FLOW:
-      return &MinCostMaxFlowPartitionAssignment;
-    case GmmUtils::Options::UNBALANCED_FLOAT32:
-      return &UnbalancedFloat32PartitionAssignment;
-    default:
-      LOG(FATAL) << "Invalid partition assignment type.";
-  }
 }
 
 }  // namespace
@@ -805,8 +795,6 @@ GmmUtils::ComputeKmeansClustering(
 
   SCANN_RET_CHECK(final_centers);
   const bool spherical = kmeans_opts.spherical;
-  auto partition_assignment_fn =
-      GetPartitionAssignmentFn(opts_.partition_assignment_type);
   DenseDataset<double> centers;
   SCANN_RETURN_IF_ERROR(
       InitializeCenters(impl, num_clusters, kmeans_opts.weights, &centers));
@@ -858,7 +846,23 @@ GmmUtils::ComputeKmeansClustering(
   ThreadPool* pool = opts_.parallelization_pool.get();
   const absl::Time deadline = absl::Now() + opts_.max_iteration_duration;
   for (size_t iteration : Seq(opts_.max_iterations + 1)) {
-    top1_results = partition_assignment_fn(impl, *distance_, centers, pool);
+    auto centers_view = DefaultDenseDatasetView<double>(centers);
+    switch (opts_.partition_assignment_type) {
+      case GmmUtils::Options::UNBALANCED:
+        top1_results =
+            UnbalancedPartitionAssignment(impl, *distance_, centers, pool);
+        break;
+      case GmmUtils::Options::UNBALANCED_FLOAT32:
+        top1_results = UnbalancedFloat32PartitionAssignment(impl, *distance_,
+                                                            centers, pool);
+        break;
+      case GmmUtils::Options::GREEDY_BALANCED:
+      case GmmUtils::Options::MIN_COST_MAX_FLOW:
+        LOG(ERROR) << "Unsupported partition_assignment_type.";
+        break;
+      default:
+        LOG(FATAL) << "Invalid partition assignment type.";
+    }
     QCHECK_EQ(top1_results.size(), dataset_size);
 
     std::swap(old_means, new_means);
@@ -895,9 +899,6 @@ GmmUtils::ComputeKmeansClustering(
                            iteration);
       break;
     }
-
-    auto centers_view = DefaultDenseDatasetView<double>(
-        centers.data(), centers.dimensionality());
 
     if (kmeans_opts.weights.empty()) {
       SCANN_RETURN_IF_ERROR(
@@ -1039,6 +1040,7 @@ Status GmmUtils::RecomputeCentroidsSimple(
     GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
     bool spherical, DenseDatasetView<FloatT>* centroids,
     std::vector<double>* convergence_means) {
+  enum : size_t { kParallelAggregate = 4 };
   const size_t dataset_size = impl->size();
   const size_t dimensionality = impl->dimensionality();
   for (size_t i : IndicesOf(*centroids)) {
@@ -1046,16 +1048,58 @@ Status GmmUtils::RecomputeCentroidsSimple(
         const_cast<FloatT*>(centroids->GetPtr(i)), dimensionality);
     std::fill(mut_centroid.begin(), mut_centroid.end(), 0.0);
   }
-  Datapoint<double> storage;
-  for (size_t j : Seq(dataset_size)) {
-    const uint32_t cluster_idx = top1_results[j].first;
-    MutableSpan<FloatT> mut_centroid = MakeMutableSpan(
-        const_cast<FloatT*>(centroids->GetPtr(cluster_idx)), dimensionality);
-    ConstSpan<double> datapoint = impl->GetPoint(j, &storage).values_span();
-    SCANN_RET_CHECK_EQ(mut_centroid.size(), dimensionality);
-    SCANN_RET_CHECK_EQ(datapoint.size(), dimensionality);
-    for (size_t jj : Seq(dimensionality)) {
-      mut_centroid[jj] += datapoint[jj];
+  if (impl->GetThreadPool() &&
+      top1_results.size() >= centroids->size() * kParallelAggregate * 2) {
+    size_t num_centroids = centroids->size();
+    size_t num_tmp_centroids = num_centroids * kParallelAggregate;
+    DenseDataset<FloatT> tmp_centroids(
+        std::vector<FloatT>(kParallelAggregate * dimensionality * num_centroids,
+                            0.0f),
+        num_tmp_centroids);
+
+    size_t db_slice_size =
+        (top1_results.size() + kParallelAggregate - 1) / kParallelAggregate;
+    ParallelFor<1>(
+        Seq(kParallelAggregate), impl->GetThreadPool(), [&](size_t thread_id) {
+          size_t db_slice_satrt = thread_id * db_slice_size;
+          size_t db_slice_end =
+              std::min((thread_id + 1) * db_slice_size, top1_results.size());
+          Datapoint<FloatT> storage;
+          for (auto i = db_slice_satrt; i < db_slice_end; ++i) {
+            size_t cluster_idx = top1_results[i].first;
+            size_t tmp_centroid_idx = thread_id * num_centroids + cluster_idx;
+            QCHECK_LT(tmp_centroid_idx, tmp_centroids.size());
+            QCHECK_LT(i, impl->size());
+            auto centroid_span = tmp_centroids.mutable_data(tmp_centroid_idx);
+            auto datapoint = impl->GetPoint(i, &storage).values_span();
+            QCHECK_EQ(centroid_span.size(), datapoint.size());
+            for (size_t j : Seq(dimensionality)) {
+              centroid_span[j] += datapoint[j];
+            }
+          }
+        });
+    for (size_t i : IndicesOf(*centroids)) {
+      MutableSpan<FloatT> out_centroid = MakeMutableSpan(
+          const_cast<FloatT*>(centroids->GetPtr(i)), dimensionality);
+      for (size_t j = 0; j < num_tmp_centroids; j += num_centroids) {
+        auto tmp_centroid = tmp_centroids.data(i + j);
+        for (size_t jj : Seq(dimensionality)) {
+          out_centroid[jj] += tmp_centroid[jj];
+        }
+      }
+    }
+  } else {
+    Datapoint<FloatT> storage;
+    for (size_t j : Seq(dataset_size)) {
+      const uint32_t cluster_idx = top1_results[j].first;
+      MutableSpan<FloatT> mut_centroid = MakeMutableSpan(
+          const_cast<FloatT*>(centroids->GetPtr(cluster_idx)), dimensionality);
+      ConstSpan<FloatT> datapoint = impl->GetPoint(j, &storage).values_span();
+      SCANN_RET_CHECK_EQ(mut_centroid.size(), dimensionality);
+      SCANN_RET_CHECK_EQ(datapoint.size(), dimensionality);
+      for (size_t jj : Seq(dimensionality)) {
+        mut_centroid[jj] += datapoint[jj];
+      }
     }
   }
 
@@ -1099,15 +1143,15 @@ Status GmmUtils::RecomputeCentroidsWeighted(
         const_cast<FloatT*>(centroids->GetPtr(i)), dimensionality);
     std::fill(mut_centroid.begin(), mut_centroid.end(), 0.0);
   }
-  Datapoint<double> storage;
-  vector<double> denominators(centroids->size());
+  Datapoint<FloatT> storage;
+  vector<FloatT> denominators(centroids->size());
   for (size_t dp_idx : Seq(dataset_size)) {
     const size_t cluster_idx = top1_results[dp_idx].first;
-    const double weight = weights[dp_idx];
+    const FloatT weight = weights[dp_idx];
     denominators[cluster_idx] += weight;
     MutableSpan<FloatT> mut_centroid = MakeMutableSpan(
         const_cast<FloatT*>(centroids->GetPtr(cluster_idx)), dimensionality);
-    ConstSpan<double> datapoint =
+    ConstSpan<FloatT> datapoint =
         impl->GetPoint(dp_idx, &storage).values_span();
     SCANN_RET_CHECK_EQ(mut_centroid.size(), dimensionality);
     SCANN_RET_CHECK_EQ(datapoint.size(), dimensionality);
@@ -1120,7 +1164,7 @@ Status GmmUtils::RecomputeCentroidsWeighted(
     MutableSpan<FloatT> mut_centroid = MakeMutableSpan(
         const_cast<FloatT*>(centroids->GetPtr(c)), dimensionality);
     auto centroid_dptr = MakeDatapointPtr<FloatT>(mut_centroid);
-    const double divisor =
+    const FloatT divisor =
         spherical ? std::sqrt(SquaredL2Norm(centroid_dptr)) : denominators[c];
     NormalizeCentroid(mut_centroid, divisor);
   }
@@ -1191,7 +1235,7 @@ Status GmmUtils::RandomReinitializeCenters(
     GmmUtilsImplInterface* impl, ConstSpan<uint32_t> partition_sizes,
     bool spherical, DenseDatasetView<FloatT>* centroids,
     std::vector<double>* convergence_means) {
-  Datapoint<double> storage;
+  Datapoint<FloatT> storage;
   int num_reinit_this_iter = 0;
   const uint32_t dimensionality = centroids->dimensionality();
   const size_t dataset_size = impl->size();
@@ -1213,7 +1257,7 @@ Status GmmUtils::RandomReinitializeCenters(
       cluster_idx = top1_results[rand_idx].first;
     } while (partition_sizes[cluster_idx] < min_cluster_size);
 
-    ConstSpan<double> rand_point =
+    ConstSpan<FloatT> rand_point =
         impl->GetPoint(rand_idx, &storage).values_span();
     ConstSpan<FloatT> old_center =
         MakeConstSpan(centroids->GetPtr(cluster_idx), dimensionality);

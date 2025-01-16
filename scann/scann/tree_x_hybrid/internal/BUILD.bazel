@@ -16,7 +16,6 @@ cc_library(
         "//scann/hashes/asymmetric_hashing2:searcher",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
-        "//scann/oss_wrappers:tf_dependency",
         "//scann/restricts:restrict_allowlist",
         "//scann/utils:common",
         "//scann/utils:types",
@@ -26,6 +25,7 @@ cc_library(
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
+        "@com_google_absl//absl/types:span",
     ],
 )
 

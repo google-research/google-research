@@ -19,6 +19,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include <utility>
 
 #include "absl/base/nullability.h"

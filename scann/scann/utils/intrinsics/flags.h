@@ -24,24 +24,39 @@ ABSL_DECLARE_FLAG(bool, ignore_avx512);
 
 ABSL_DECLARE_FLAG(bool, ignore_avx2);
 
-ABSL_DECLARE_FLAG(bool, ignore_avx);
-
 namespace research_scann {
 namespace flags_internal {
 
-extern bool should_use_avx1;
 extern bool should_use_avx2;
 extern bool should_use_avx512;
-extern bool should_use_sse4;
 
 }  // namespace flags_internal
 
-inline bool RuntimeSupportsSse4() { return flags_internal::should_use_sse4; }
-inline bool RuntimeSupportsAvx1() { return flags_internal::should_use_avx1; }
+#ifdef __x86_64__
+
+#ifdef SCANN_FORCE_SSE4
+inline bool RuntimeSupportsAvx1() { return false; }
+inline bool RuntimeSupportsAvx2() { return false; }
+inline bool RuntimeSupportsAvx512() { return false; }
+#else
+
+inline bool RuntimeSupportsAvx1() { return true; }
 inline bool RuntimeSupportsAvx2() { return flags_internal::should_use_avx2; }
 inline bool RuntimeSupportsAvx512() {
   return flags_internal::should_use_avx512;
 }
+#endif
+
+inline bool RuntimeSupportsSse4() { return true; }
+
+#else
+
+inline bool RuntimeSupportsAvx2() { return false; }
+inline bool RuntimeSupportsAvx512() { return false; }
+inline bool RuntimeSupportsSse4() { return false; }
+inline bool RuntimeSupportsAvx1() { return false; }
+
+#endif
 
 enum PlatformGeneration {
 
@@ -86,10 +101,8 @@ class ScopedPlatformOverride {
   bool IsSupported();
 
  private:
-  bool original_avx1_;
   bool original_avx2_;
   bool original_avx512_;
-  bool original_sse4_;
 };
 
 ScopedPlatformOverride TestHookOverridePlatform(PlatformGeneration generation);

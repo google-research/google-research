@@ -100,7 +100,7 @@ class ScannCreateSearcherOp : public ResourceOpKernel<ScannResource> {
   }
 
  private:
-  Status CreateResource(ScannResource** ret)
+  absl::Status CreateResource(ScannResource** ret)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) override {
     *ret = new ScannResource();
     return OkStatus();
@@ -378,7 +378,7 @@ class TensorsToScannOp : public ResourceOpKernel<ScannResource> {
   }
 
  private:
-  Status CreateResource(ScannResource** ret)
+  absl::Status CreateResource(ScannResource** ret)
       ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) override {
     *ret = new ScannResource();
     return OkStatus();

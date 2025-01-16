@@ -17,6 +17,7 @@
 #ifndef SCANN_UTILS_PCA_UTILS_H_
 #define SCANN_UTILS_PCA_UTILS_H_
 
+#include <algorithm>
 #include <cstdint>
 
 #include "Eigen/Core"
@@ -29,8 +30,7 @@ namespace research_scann {
 template <typename T>
 void ComputePcaDense(DefaultDenseDatasetView<T> data, int32_t num_eigenvectors,
                      vector<Datapoint<float>>* eigenvectors,
-                     vector<float>* eigenvalues,
-                     std::shared_ptr<ThreadPool> pool = nullptr);
+                     vector<float>* eigenvalues, ThreadPool* pool = nullptr);
 
 void PostprocessPcaToSignificance(float significance_threshold,
                                   float truncation_threshold,
@@ -43,13 +43,13 @@ class PcaUtils {
                          int32_t num_eigenvectors, bool build_covariance,
                          vector<Datapoint<float>>* eigenvectors,
                          vector<float>* eigenvalues,
-                         std::shared_ptr<ThreadPool> pool = nullptr);
+                         ThreadPool* pool = nullptr);
 
   static void ComputePcaWithSignificanceThreshold(
       bool use_propack_if_available, const Dataset& data,
       float significance_threshold, float truncation_threshold,
       bool build_covariance, vector<Datapoint<float>>* eigenvectors,
-      vector<float>* eigenvalues, std::shared_ptr<ThreadPool> pool = nullptr);
+      vector<float>* eigenvalues, ThreadPool* pool = nullptr);
 
  private:
   static constexpr uint32_t kMaxDims = 20000;
@@ -59,8 +59,7 @@ template <typename T>
 void ComputePcaDense(const DefaultDenseDatasetView<T> data,
                      const int32_t num_eigenvectors,
                      vector<Datapoint<float>>* eigenvectors,
-                     vector<float>* eigenvalues,
-                     std::shared_ptr<ThreadPool> pool) {
+                     vector<float>* eigenvalues, ThreadPool* pool) {
   vector<double> mean(data.dimensionality());
   for (int i = 0; i < data.size(); i++) {
     for (auto [j, sum] : Enumerate(mean)) sum += data.GetPtr(i)[j];
@@ -78,8 +77,8 @@ void ComputePcaDense(const DefaultDenseDatasetView<T> data,
   absl::Mutex covariance_mutex;
 
   ParallelFor<1>(
-      Seq(DivRoundUp(num_inner_batches, num_inner_batches_per_thread)),
-      pool.get(), [&](size_t outer_batch_idx) {
+      Seq(DivRoundUp(num_inner_batches, num_inner_batches_per_thread)), pool,
+      [&](size_t outer_batch_idx) {
         size_t inner_batch_idx_start =
             num_inner_batches_per_thread * outer_batch_idx;
         size_t inner_batch_idx_end =

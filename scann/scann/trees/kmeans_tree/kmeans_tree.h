@@ -44,9 +44,9 @@
 namespace research_scann {
 
 struct KMeansTreeSearchResult {
-  const KMeansTreeNode* node;
+  const KMeansTreeNode* node = nullptr;
 
-  double distance_to_center;
+  double distance_to_center = NAN;
 
   bool operator<(const KMeansTreeSearchResult& rhs) const;
 };
@@ -338,6 +338,7 @@ Status KMeansTree::TokenizeImpl(const DatapointPtr<float>& query,
         KMeansTreeSearchResult kmeans_res;
         SCANN_RETURN_IF_ERROR(TokenizeWithoutSpillingImpl<CentersType>(
             query, dist, opts.num_tokenized_branch, &root_, &kmeans_res));
+        DCHECK(kmeans_res.node != nullptr);
         result->front() = {kmeans_res.node->LeafId(),
                            kmeans_res.distance_to_center};
         return OkStatus();
@@ -423,6 +424,15 @@ Status KMeansTree::TokenizeWithoutSpillingImpl(
       auto status = TokenizeWithoutSpillingImpl<CentersType>(
           query, dist, num_tokenized_branch, &child, &child_result);
       if (status.ok()) {
+        DCHECK_NE(child_result.node, nullptr);
+        if (child.IsLeaf()) {
+          DCHECK_EQ(child_result.node, &child);
+          if (result->node == nullptr) {
+            result->node = &child;
+
+            result->distance_to_center = child_result.distance_to_center;
+          }
+        }
         if (child_result.distance_to_center < nearest_center_distance) {
           nearest_center_distance = child_result.distance_to_center;
           result->node = child_result.node;

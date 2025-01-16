@@ -17,6 +17,7 @@
 #ifndef SCANN_UTILS_INTRINSICS_HIGHWAY_H_
 #define SCANN_UTILS_INTRINSICS_HIGHWAY_H_
 
+#include "hwy/detect_targets.h"
 #ifndef HWY_DISABLED_TARGETS
 #define HWY_DISABLED_TARGETS HWY_ALL_SVE
 #endif
@@ -438,7 +439,7 @@ class Highway<T, kNumRegistersInferred> {
     return ComparisonOperatorImpl(*this, other, &GreaterThan);
   }
 
-  SCANN_HIGHWAY_INLINE int MaskFromHighBits() const {
+  SCANN_HIGHWAY_INLINE auto MaskFromHighBits() const {
     static_assert(kNumRegisters == 1);
     return BitsFromMask(registers_[0]);
   }
@@ -523,19 +524,32 @@ class Highway<T, kNumRegistersInferred> {
   }
 
   SCANN_INLINE static auto BitsFromMask(HwyType vec) {
-    constexpr size_t kExpectedBytesWritten =
-        (hn::Lanes(hn::ScalableTag<T>()) + 7) / 8;
-    using ResultT =
-        std::conditional_t<kExpectedBytesWritten <= 4, uint32_t, uint64_t>;
-    uint8_t mask_bits[8];
-    const size_t bytes_written = hn::StoreMaskBits(
-        hn::ScalableTag<T>(), hn::MaskFromVec(vec), mask_bits);
-    DCHECK_EQ(bytes_written, kExpectedBytesWritten);
-    ResultT result = 0;
-    for (uint8_t i = 0; i < kExpectedBytesWritten; ++i) {
-      result |= static_cast<uint32_t>(mask_bits[i]) << (i * 8);
+    constexpr size_t kLanes = hn::Lanes(hn::ScalableTag<T>());
+    static_assert(kLanes <= 64,
+                  "BitsFromMask is not implemented for >64 lanes SIMD.");
+
+    constexpr bool kCanUseBitsFromMask = (HWY_TARGET == HWY_SSE4) ||
+                                         (HWY_TARGET == HWY_AVX2) ||
+                                         (HWY_TARGET & HWY_ALL_NEON);
+    if constexpr (kCanUseBitsFromMask) {
+      using ResultT = std::conditional_t<kLanes <= 32, uint32_t, uint64_t>;
+      return static_cast<ResultT>(
+          hn::detail::BitsFromMask(hn::MaskFromVec(vec)));
+    } else {
+      constexpr size_t kExpectedBytesWritten =
+          (hn::Lanes(hn::ScalableTag<T>()) + 7) / 8;
+      using ResultT =
+          std::conditional_t<kExpectedBytesWritten <= 4, uint32_t, uint64_t>;
+      uint8_t mask_bits[8];
+      const size_t bytes_written = hn::StoreMaskBits(
+          hn::ScalableTag<T>(), hn::MaskFromVec(vec), mask_bits);
+      DCHECK_EQ(bytes_written, kExpectedBytesWritten);
+      ResultT result = 0;
+      for (uint8_t i = 0; i < kExpectedBytesWritten; ++i) {
+        result |= static_cast<ResultT>(mask_bits[i]) << (i * 8);
+      }
+      return result;
     }
-    return result;
   }
 
   SCANN_INLINE T ExtractLane(size_t lane) {

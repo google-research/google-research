@@ -218,6 +218,7 @@ proto_library(
     name = "projection_proto",
     srcs = ["projection.proto"],
     deps = [
+        "//scann/data_format:features_proto",
     ],
 )
 
@@ -268,6 +269,7 @@ proto_library(
     srcs = ["centers.proto"],
     deps = [
         ":hash_proto",
+        ":projection_proto",
         "//scann/data_format:features_proto",
     ],
 )

@@ -28,7 +28,14 @@ cc_library(
 cc_library(
     name = "scann_castops",
     hdrs = ["scann_castops.h"],
+)
+
+cc_library(
+    name = "scann_cpu_info",
+    srcs = ["scann_cpu_info.cc"],
+    hdrs = ["scann_cpu_info.h"],
     deps = [
+        "@com_google_absl//absl/base",
     ],
 )
 
@@ -95,8 +102,11 @@ cc_library(
 
 cc_library(
     name = "scann_threadpool",
+    srcs = ["scann_threadpool.cc"],
     hdrs = ["scann_threadpool.h"],
     deps = [
-        "//scann/oss_wrappers:tf_dependency",
+        "@com_google_absl//absl/log:check",
+        "@com_google_absl//absl/strings",
+        "@eigen",
     ],
 )

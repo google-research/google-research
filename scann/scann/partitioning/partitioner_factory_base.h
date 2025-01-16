@@ -58,6 +58,58 @@ unique_ptr<Partitioner<T>> MakeProjectingDecorator(
   return absl::WrapUnique(result);
 }
 
+template <typename T, template <typename> typename Partitioner>
+Status MaybeAddTopLevelPartitioner(unique_ptr<Partitioner<T>>& partitioner,
+                                   const PartitioningConfig& config) {
+  if (!config.bottom_up_top_level_partitioner().enabled()) {
+    return OkStatus();
+  }
+  if (!dynamic_cast<KMeansTreeLikePartitioner<T>*>(partitioner.get())) {
+    return InvalidArgumentError(
+        "Top-level partitioner is only supported if the base partitioner "
+        "KMeansTreeLikePartitioner.");
+  }
+
+  auto is_second_level_wrapper =
+      [](const UntypedPartitioner& partitioner) -> bool {
+    return dynamic_cast<const TreeBruteForceSecondLevelWrapper<T>*>(
+        &partitioner);
+  };
+
+  const auto projected =
+      dynamic_cast<const KMeansTreeProjectingDecorator<T>*>(partitioner.get());
+  if (projected) {
+    if (is_second_level_wrapper(*projected->base_partitioner())) {
+      return OkStatus();
+    }
+    unique_ptr<KMeansTreeLikePartitioner<float>> cloned_base(
+        dynamic_cast<KMeansTreeLikePartitioner<float>*>(
+            projected->base_partitioner()->Clone().release()));
+    SCANN_RET_CHECK(cloned_base);
+    auto top_level_partitioner =
+        make_unique<TreeBruteForceSecondLevelWrapper<float>>(
+            std::move(cloned_base));
+    SCANN_RETURN_IF_ERROR(top_level_partitioner->CreatePartitioning(
+        config.bottom_up_top_level_partitioner()));
+    auto wrapped_top = make_unique<KMeansTreeProjectingDecorator<T>>(
+        projected->projection(), std::move(top_level_partitioner));
+    partitioner = std::move(wrapped_top);
+  } else {
+    if (is_second_level_wrapper(*partitioner)) {
+      return OkStatus();
+    }
+    unique_ptr<KMeansTreeLikePartitioner<T>> kmeans_tree_partitioner(
+        static_cast<KMeansTreeLikePartitioner<T>*>(partitioner.release()));
+    auto top_level_partitioner =
+        make_unique<TreeBruteForceSecondLevelWrapper<T>>(
+            std::move(kmeans_tree_partitioner));
+    SCANN_RETURN_IF_ERROR(top_level_partitioner->CreatePartitioning(
+        config.bottom_up_top_level_partitioner()));
+    partitioner = std::move(top_level_partitioner);
+  }
+  return OkStatus();
+}
+
 #define SCANN_INSTANTIATE_PARTITIONER_FACTORY(extern_or_nothing, type)     \
   extern_or_nothing template StatusOr<unique_ptr<Partitioner<type>>>       \
   PartitionerFactory<type>(                                                \

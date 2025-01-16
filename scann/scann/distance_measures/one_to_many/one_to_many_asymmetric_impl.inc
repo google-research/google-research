@@ -513,7 +513,7 @@ SCANN_SIMD_INLINE void InvokeCallbackSimd(const CallbackT& callback,
 
       uint32_t bottom_bits = 0;
       for (size_t i = 0; i < simd_data.kNumRegisters; ++i) {
-        bottom_bits |= static_cast<uint32_t>(simd_data[i].MaskFromHighBits())
+        bottom_bits |= (simd_data[i].MaskFromHighBits())
                        << (i * simd_data.kRegisterBytes);
       }
 

@@ -16,10 +16,13 @@
 #define SCANN_HASHES_ASYMMETRIC_HASHING2_TRAINING_MODEL_H_
 
 #include <cstdint>
+#include <optional>
 
 #include "scann/data_format/dataset.h"
+#include "scann/projection/chunking_projection.h"
 #include "scann/proto/centers.pb.h"
 #include "scann/proto/hash.pb.h"
+#include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -40,7 +43,8 @@ class Model {
           AsymmetricHasherConfig::PRODUCT);
 
   static StatusOr<unique_ptr<Model<T>>> FromProto(
-      const CentersForAllSubspaces& proto);
+      const CentersForAllSubspaces& proto,
+      std::optional<ProjectionConfig> projection_config = std::nullopt);
 
   CentersForAllSubspaces ToProto() const;
 
@@ -56,6 +60,11 @@ class Model {
 
   bool CentersEqual(const Model& rhs) const;
 
+  StatusOr<shared_ptr<const ChunkingProjection<T>>> GetProjection(
+      const ProjectionConfig& projection_config) const;
+
+  void SetProjection(shared_ptr<const ChunkingProjection<T>> projection);
+
  private:
   explicit Model(
       std::vector<DenseDataset<FloatT>> centers,
@@ -67,6 +76,10 @@ class Model {
 
   AsymmetricHasherConfig::QuantizationScheme quantization_scheme_ =
       AsymmetricHasherConfig::PRODUCT;
+
+  shared_ptr<const ChunkingProjection<T>> projection_ = nullptr;
+
+  ProjectionConfig projection_config_;
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, Model);
