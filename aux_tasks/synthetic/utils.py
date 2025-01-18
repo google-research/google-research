@@ -256,8 +256,8 @@ def create_puddle_world_experiment(
     # valid bin.
     cols_and_rows = jnp.clip(
         jnp.floor(states * metadata['num_bins']),
-        a_min=0,
-        a_max=metadata['num_bins'] - 1)
+        min=0,
+        max=metadata['num_bins'] - 1)
 
     # Bin indices are assigned starting in the bottom left moving right, and
     # then advancing upwards after finishing each row.

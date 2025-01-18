@@ -349,7 +349,7 @@ class CategoricalDiffusion:
     logits = jnp.log(self.q_probs(x_start, t) + self.eps)
 
     # To avoid numerical issues clip the noise to a minimum value
-    noise = jnp.clip(noise, a_min=jnp.finfo(noise.dtype).tiny, a_max=1.)
+    noise = jnp.clip(noise, min=jnp.finfo(noise.dtype).tiny, max=1.)
     gumbel_noise = - jnp.log(-jnp.log(noise))
     return jnp.argmax(logits + gumbel_noise, axis=-1)
 
@@ -480,7 +480,7 @@ class CategoricalDiffusion:
     nonzero_mask = (t != 0).astype(x.dtype).reshape(x.shape[0],
                                                     *([1] * (len(x.shape))))
     # For numerical precision clip the noise to a minimum value
-    noise = jnp.clip(noise, a_min=jnp.finfo(noise.dtype).tiny, a_max=1.)
+    noise = jnp.clip(noise, min=jnp.finfo(noise.dtype).tiny, max=1.)
     gumbel_noise = -jnp.log(-jnp.log(noise))
 
     sample = jnp.argmax(model_logits + nonzero_mask * gumbel_noise, axis=-1)

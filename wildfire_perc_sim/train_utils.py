@@ -95,8 +95,8 @@ def kl_divergence(mean, logvar):
 
 def binary_cross_entropy_loss(x, y):
   """"Binary Cross Entropy Loss."""
-  return -jnp.mean(y * jnp.log(jnp.clip(x, a_min=utils.EPS)) +
-                   (1 - y) * jnp.log(jnp.clip(1 - x, a_min=utils.EPS)))
+  return -jnp.mean(y * jnp.log(jnp.clip(x, min=utils.EPS)) +
+                   (1 - y) * jnp.log(jnp.clip(1 - x, min=utils.EPS)))
 
 
 def logit_binary_cross_entropy_loss(x,

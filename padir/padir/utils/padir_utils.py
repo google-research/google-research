@@ -357,7 +357,7 @@ def _restore_eos_beam_length(
   eos_offsets = jnp.tile(
       jnp.arange(-half_beam, half_beam + 1), reps=[unexpanded_batch_size]
   )
-  shifted_eos_pos = jnp.clip(eos_pos + eos_offsets, a_min=1, a_max=seq_len - 1)
+  shifted_eos_pos = jnp.clip(eos_pos + eos_offsets, min=1, max=seq_len - 1)
 
   return _restore_eos_from_pos(expanded_x, shifted_eos_pos, eos_id)
 

@@ -94,7 +94,7 @@ def combine_metrics(step_metrics):
 
   # Calculate (clipped) perplexity after averaging log-perplexities:
   if 'loss' in summary:
-    summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+    summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
   return summary
 
 

@@ -122,7 +122,7 @@ def norm_projection(delta, norm_type, eps=1.):
     norm2 = jnp.sum(delta**2, axis=0, keepdims=True)
     norm = jnp.sqrt(jnp.maximum(avoid_zero_div, norm2))
     # only decrease the norm, never increase
-    delta = delta * jnp.clip(eps / norm, a_min=None, a_max=1)
+    delta = delta * jnp.clip(eps / norm, min=None, max=1)
   elif norm_type == 'l1':
     delta = l1_unit_projection(delta / eps) * eps
   elif norm_type == 'dftinf':
@@ -162,7 +162,7 @@ def l1_unit_projection(x):
   usum = (jnp.cumsum(u, axis=0) - 1) / arange
   rho = jnp.max(((u - usum) > 0) * arange - 1, axis=0, keepdims=True)
   thx = jnp.take_along_axis(usum, rho, axis=0)
-  w = (v - thx).clip(a_min=0)
+  w = (v - thx).clip(min=0)
   w = jnp.where(jnp.linalg.norm(v, ord=1, axis=0, keepdims=True) > 1, w, v)
   x = w.reshape(eshape) * jnp.sign(x)
   return x.reshape(xshape)

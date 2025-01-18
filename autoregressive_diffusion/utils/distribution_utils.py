@@ -71,7 +71,7 @@ def logits_discretized_mix_logistic_rgb(x, params, num_classes):
   remaining_params = params[:, :, :, nr_mix:].reshape(*x.shape, nr_mix * 3)
   means = remaining_params[:, :, :, :, :nr_mix]
   pre_act_scales = remaining_params[:, :, :, :, nr_mix:2*nr_mix]
-  # log_scales = jnp.clip(log_scales, a_min=-7.)
+  # log_scales = jnp.clip(log_scales, min=-7.)
 
   # Coeffs are used to autoregressively model the _mean_ parameter of the
   # distribution using the Red (variable x0) and Green (variable x1) channels.
@@ -122,7 +122,7 @@ def logits_discretized_mix_logistic_rgb(x, params, num_classes):
   is_last_bin = (bin_mid > 0.9999).astype(jnp.float32)
   is_first_bin = (bin_mid < -0.9999).astype(jnp.float32)
 
-  log_cdf_delta = jnp.log(jnp.clip(cdf_delta, a_min=1e-12))
+  log_cdf_delta = jnp.log(jnp.clip(cdf_delta, min=1e-12))
 
   # Here the tails of the distribution are assigned, if applicable.
   log_probs = is_last_bin * log_one_minus_cdf_min + (
@@ -192,7 +192,7 @@ def discretized_mix_logistic_rgb(x, params, gridsize):
   is_last_bin = (x > 0.9999).astype(jnp.float32)
   is_first_bin = (x < -0.9999).astype(jnp.float32)
 
-  log_cdf_delta = jnp.log(jnp.clip(cdf_delta, a_min=1e-12))
+  log_cdf_delta = jnp.log(jnp.clip(cdf_delta, min=1e-12))
 
   # Here the tails of the distribution are assigned, if applicable.
   log_probs = is_last_bin * log_one_minus_cdf_min + (
@@ -249,14 +249,14 @@ def sample_from_discretized_mix_logistic_rgb(rng, params, nr_mix):
   scale = 1. / jax.nn.softplus(pre_act_scales)
   x = means + scale * standard_logistic
 
-  x0 = jnp.clip(x[:, :, :, 0], a_min=-1., a_max=1.)
+  x0 = jnp.clip(x[:, :, :, 0], min=-1., max=1.)
   # TODO(emielh) although this is typically how it is implemented, technically
   # one should first round x0 to the grid before using it. It does not matter
   # too much since it is only used linearly.
-  x1 = jnp.clip(x[:, :, :, 1] + coeffs[:, :, :, 0] * x0, a_min=-1., a_max=1.)
+  x1 = jnp.clip(x[:, :, :, 1] + coeffs[:, :, :, 0] * x0, min=-1., max=1.)
   x2 = jnp.clip(
       x[:, :, :, 2] + coeffs[:, :, :, 1] * x0 + coeffs[:, :, :, 2] * x1,
-      a_min=-1., a_max=1.)
+      min=-1., max=1.)
 
   sample_x = jnp.concatenate(
       [x0[:, :, :, None], x1[:, :, :, None], x2[:, :, :, None]], axis=3)
@@ -285,7 +285,7 @@ def discretized_mix_logistic(x, params, gridsize):
       jnp.linspace(-1. + 1 / nr_mix, 1 - 1 / nr_mix, nr_mix),
       (1,) * x.ndim + (nr_mix,))
   log_scales = log_scales - jnp.log(nr_mix)
-  log_scales = jnp.clip(log_scales, a_min=-7.)
+  log_scales = jnp.clip(log_scales, min=-7.)
 
   x = x.reshape(*x.shape, 1)
   x = x.repeat(nr_mix, axis=-1)
@@ -306,7 +306,7 @@ def discretized_mix_logistic(x, params, gridsize):
   is_last_bin = (x > 0.9999).astype(jnp.float32)
   is_first_bin = (x < -0.9999).astype(jnp.float32)
 
-  log_cdf_delta = jnp.log(jnp.clip(cdf_delta, a_min=1e-12))
+  log_cdf_delta = jnp.log(jnp.clip(cdf_delta, min=1e-12))
 
   log_probs = is_last_bin * log_one_minus_cdf_min + (
       1. - is_last_bin) * log_cdf_delta
@@ -357,14 +357,14 @@ def sample_from_discretized_mix_logistic(rng, params, nr_mix):
   # Select logistic parameters.
   means = jnp.sum(means * selection, axis=-1)
   log_scales = jnp.sum(log_scales * selection, axis=-1)
-  log_scales = jnp.clip(log_scales, a_min=-7.)
+  log_scales = jnp.clip(log_scales, min=-7.)
 
   u = jax.random.uniform(rng2, means.shape, minval=1e-5, maxval=1. - 1e-5)
 
   standard_logistic = jnp.log(u) - jnp.log(1. - u)
 
   sample_x = means + jnp.exp(log_scales) * standard_logistic
-  sample_x = jnp.clip(sample_x, a_min=-1., a_max=1.)
+  sample_x = jnp.clip(sample_x, min=-1., max=1.)
 
   return sample_x
 

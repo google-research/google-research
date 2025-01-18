@@ -216,7 +216,7 @@ class SpatiallyIndependentMixtureOfDiscreteLogistics(distrax.Distribution):
     self._log_scales = sufficient_stats[Ellipsis, num_mixtures:2 * num_mixtures]
     # We only clip to a minimum, since we never exponentiate the scale directly
     # without a safeguard.
-    self._log_scales = jnp.clip(self._log_scales, a_min=-7.)
+    self._log_scales = jnp.clip(self._log_scales, min=-7.)
     if self._nb_channels == 3:
       # [bs, height, width, nb_channels, num_mix]
       self._rgb_mix_coeffs = sufficient_stats[Ellipsis, 2 * num_mixtures:]
@@ -291,7 +291,7 @@ class SpatiallyIndependentMixtureOfDiscreteLogistics(distrax.Distribution):
     mid_in = inv_std * centered
     log_pdf_mid = mid_in - self._log_scales - 2 * jax.nn.softplus(mid_in)
     log_prob_mid_safe = jnp.where(cdf_delta > 1e-5,
-                                  jnp.log(jnp.clip(cdf_delta, a_min=1e-10)),
+                                  jnp.log(jnp.clip(cdf_delta, min=1e-10)),
                                   log_pdf_mid - jnp.log(self._max_val / 2))
 
     # Discrete values go from -1 to 1 with a 2 / max_val step.

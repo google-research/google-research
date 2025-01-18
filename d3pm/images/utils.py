@@ -63,7 +63,7 @@ def sample_categorical(logits, uniform_noise):
   """
   # For numerical precision clip the noise to a minimum value
   uniform_noise = jnp.clip(
-      uniform_noise, a_min=jnp.finfo(uniform_noise.dtype).tiny, a_max=1.)
+      uniform_noise, min=jnp.finfo(uniform_noise.dtype).tiny, max=1.)
   gumbel_noise = -jnp.log(-jnp.log(uniform_noise))
   sample = jnp.argmax(logits + gumbel_noise, axis=-1)
   return jax.nn.one_hot(sample, num_classes=logits.shape[-1])

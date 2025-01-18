@@ -315,7 +315,7 @@ def posenc_c2f(x, min_deg, max_deg, progress, start=0.1, end=0.5):
   input_enc = jnp.reshape(four_feat, list(x.shape[:-1])+[-1])
   alpha = (progress - start) / (end - start) * (max_deg - min_deg) + min_deg
   k = jnp.arange(min_deg, max_deg)
-  weight = (1 - jnp.cos(jnp.clip(alpha - k, a_min=0, a_max=1)*jnp.pi))/2
+  weight = (1 - jnp.cos(jnp.clip(alpha - k, min=0, max=1)*jnp.pi))/2
   shape = input_enc.shape
   weighted_feat = (input_enc.reshape(-1, max_deg-min_deg)*weight).reshape(*shape)
   masked_input_enc = jnp.concatenate([x, weighted_feat], axis=-1)

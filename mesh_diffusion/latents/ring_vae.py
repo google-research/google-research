@@ -171,7 +171,7 @@ class ring_encoder(nn.module.Module):  # pylint: disable=invalid-name
     # VAE log variance
     ln_var = jnp.tanh(directional_features()(x))
     ln_var = nn.Dense(features=2 * self.latent_dim)(ln_var)
-    ln_var = jnp.clip(jnp.reshape(ln_var, (ln_var.shape[0], -1, 2)), a_max=3.0)
+    ln_var = jnp.clip(jnp.reshape(ln_var, (ln_var.shape[0], -1, 2)), max=3.0)
     return mean, jax.lax.complex(ln_var[Ellipsis, 0], ln_var[Ellipsis, 1])
 
 

@@ -1142,7 +1142,7 @@ def main(_):
         metrics_sums)
     summary['learning_rate'] = lr
     # Calculate (clipped) perplexity after averaging log-perplexities:
-    summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+    summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
 
     if jax.host_id() == 0:
       logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])

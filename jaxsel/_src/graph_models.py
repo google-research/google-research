@@ -240,7 +240,7 @@ class SubgraphEmbedding(nn.Module):
     # propagates gradients correctly. jax.experimental.sparse uses an out of
     # bounds index to encode elements with 0 value.
     # See https://github.com/google/jax/issues/5760
-    node_ids = jnp.clip(node_ids, a_max=cfg.image_size - 1)
+    node_ids = jnp.clip(node_ids, max=cfg.image_size - 1)
     position_embs = self.position_embedding(node_ids + 1)
     position_hiddens = self.position_hidden_layer(position_embs)
     # The graph node has no position.

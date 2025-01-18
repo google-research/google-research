@@ -1205,7 +1205,7 @@ class MSGLearner(acme.Learner):
         alpha_params = optax.apply_updates(state.alpha_params, alpha_update)
 
         # # not used in generating paper results, just for playing around
-        # alpha_params = jnp.clip(alpha_params, a_max=0.) # alpha params is log of alpha
+        # alpha_params = jnp.clip(alpha_params, max=0.) # alpha params is log of alpha
 
         # metrics.update({
         #     'alpha_loss': alpha_loss,

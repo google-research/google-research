@@ -127,7 +127,7 @@ def run_train(run_configuration):
       summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
       summary['learning_rate'] = lr
       # Calculate (clipped) perplexity after averaging log-perplexities:
-      summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+      summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
       logging.info('train step: %d, loss: %.4f', step, summary['loss'])
       if jax.host_id() == 0:
         tock = time.time()
@@ -298,7 +298,7 @@ def eval_once(run_configuration, checkpoint_path, optimizer=None):
   metrics_sums = jax.tree.map(jnp.sum, metrics_all)
   denominator = metrics_sums.pop('denominator')
   summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
-  summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), a_max=1.0e4)
+  summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
   logging.info('eval @ train step: %d, loss: %.4f', step, summary['loss'])
   if jax.host_id() == 0:
     tock = time.time()
