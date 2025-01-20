@@ -1,4 +1,4 @@
-# Google Research
+## Google Research
 
 This repository contains code released by
 [Google Research](https://research.google).
