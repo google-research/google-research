@@ -1,0 +1,3 @@
+absl-py>=1.0.0
+dp_accounting>=0.4
+pandas>=0.10.0
