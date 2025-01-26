@@ -158,7 +158,6 @@ def evaluate(net_apply, params, net_state, train_set, test_set, predict_fn,
     net_apply, params, net_state, test_set)
   net_state, train_predictions = predict_fn(
     net_apply, params, net_state, train_set)
-  plot_1d_predictions(test_set[0], test_predictions[..., 0], test_predictions[..., 1])
   test_stats = train_utils.evaluate_metrics(test_predictions, test_set[1],
                                             metrics_fns)
   train_stats = train_utils.evaluate_metrics(train_predictions, train_set[1],
@@ -193,7 +192,12 @@ def write_to_tensorboard(tf_writer, logging_dict, iteration):
   with tf_writer.as_default():
     for stat_name, stat_val in logging_dict.items():
       if not stat_name.endswith("str"):
-        tf.summary.scalar(stat_name, stat_val, step=iteration)
+        if "_dict" in stat_name:
+          for key, stat_subval in stat_val.items():
+            tf.summary.write(stat_name.replace("dict", key),
+                             stat_subval, step=iteration)
+        else:
+          tf.summary.scalar(stat_name, stat_val, step=iteration)
 
 
 def get_tabulate_dict(tabulate_metrics, logging_dict):

@@ -264,9 +264,116 @@
                 "--num_burnin_epochs=1000",
                 "--eval_freq=10",
                 "--batch_size=80",
-                "--save_freq=10",
+                "--save_freq=100",
                 "--momentum=0.",
                 "--subset_train_to=4080",
+                "--save_actual_dataset"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "SAMPLE_SGLD_POSTERIOR",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/sample_synthetic_labels.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--dir=/tmp/sample_sgld_posterior/",
+                "--model_name=resnet20_frn_swish",
+                "--dataset_name=cifar10",
+                "--subset_train_to=8160",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                // "--params_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_6/model_step_499.pt",
+                "--params_checkpoint=${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/sgld_mom_0.0_preconditioner_None__lr_sch_constant_i_1e-06_f_1e-06_c_50_bi_1000___epochs_10000_wd_5.0_batchsize_80_temp_1.0__seed_1/model_step_9000.pt",
+                // "--vi_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/vi/cifar10/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_6/model_step_299.pt",
+                "--append_synthetic_dataset_to=${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/sgld_mom_0.0_preconditioner_None__lr_sch_constant_i_1e-06_f_1e-06_c_50_bi_1000___epochs_10000_wd_5.0_batchsize_80_temp_1.0__seed_1/data_subset_4080.npz"
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "ENSEMBLE_MARTINGALE_POSTERIORS",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/ensemble_checkpoints.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--dir=/tmp/ensemble_test/",
+                "--model_name=resnet20_frn_swish",
+                "--dataset_name=cifar10",
+                "--subset_train_to=8160",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--save_ensembled_preds",
+                // "--sgd_checkpoints",
+                "--vi_checkpoints",
+                "--",
+                // "${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/sgld_mom_0.0_preconditioner_None__lr_sch_constant_i_1e-06_f_1e-06_c_50_bi_1000___epochs_10000_wd_5.0_batchsize_80_temp_1.0__seed_1/model_step_7000.pt",
+                // "${workspaceFolder}/bnn_hmc/.runs/sgmcmc_small/cifar10/sgld_mom_0.0_preconditioner_None__lr_sch_constant_i_1e-06_f_1e-06_c_50_bi_1000___epochs_10000_wd_5.0_batchsize_80_temp_1.0__seed_1/model_step_8000.pt",
+                "${workspaceFolder}/bnn_hmc/.runs/vi/cifar10/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_11/model_step_0.pt",
+                "${workspaceFolder}/bnn_hmc/.runs/vi/cifar10/mfvi_initsigma_0.01_meaninit__opt_adam__lr_sch_i_0.0001___epochs_300_wd_5.0_batchsize_80_temp_1.0__seed_11/model_step_299.pt",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "ENSEMBLE_MARTINGALE_PREDS",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/ensemble_predictions.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--dir=/tmp/ensemble_preds_test/",
+                "--model_name=resnet20_frn_swish",
+                "--dataset_name=cifar10",
+                "--subset_train_to=8160",
+                "--sequential_training",
+                "--num_sequential_training_folds=2",
+                "--index_sequential_training_fold=1",
+                "--save_ensembled_preds",
+                "--",
+                "/tmp/ensemble_test/vi_ensembled_18ba78fecaa7/ensembled_preds.npy",
+                "/tmp/ensemble_test/vi_ensembled_18ba78fecaa7/ensembled_preds.npy",
+            ],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}:$PYTHONPATH"
+            }
+        },
+        {
+            "name": "MFVI_RETRAIN_CIFAR10",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/bnn_hmc/run_vi.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--seed=1",
+                "--weight_decay=5.",
+                "--dir=${workspaceFolder}/bnn_hmc/.runs/martingale_retrain/vi/cifar10/",
+                // "--dataset_name=cifar10",
+                "--dataset_name=/tmp/sample_sgld_posterior/sample_from_checkpoint_e8a532a_subset_8160_split_2_of_2__seed_1/synth_appended_fba11d1.npz",
+                "--model_name=resnet20_frn_swish",
+                "--init_step_size=1e-4",
+                "--num_epochs=300",
+                "--eval_freq=10",
+                "--batch_size=80",
+                "--save_freq=300",
+                "--optimizer=Adam",
+                "--vi_sigma_init=0.01",
+                "--temperature=1.",
+                "--vi_ensemble_size=20",
+                // "--mean_init_checkpoint=${workspaceFolder}/bnn_hmc/.runs/multiseed/sgd/cifar10/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_10.0_batchsize_80_temp_1.0__seed_6/model_step_499.pt"
             ],
             "cwd": "${workspaceFolder}",
             "env": {

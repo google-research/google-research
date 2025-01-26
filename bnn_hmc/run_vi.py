@@ -75,6 +75,11 @@ parser.add_argument(
     default=None,
     help="SGD checkpoint to use for initialization of the "
     "mean of the MFVI approximation")
+parser.add_argument(
+      "--save_actual_dataset",
+      action="store_true",
+      default=False,
+      help="Save down dataset to npz archive")
 
 args = parser.parse_args()
 train_utils.set_up_jax(args.tpu_ip, args.use_float64)
@@ -100,7 +105,7 @@ def get_dirname_tfwriter(args):
   lr_schedule_name = "lr_sch_i_{}".format(args.init_step_size)
   prior_name = "wd_{}".format(args.weight_decay) \
                if not args.pretrained_prior_checkpoint else \
-               "pretr_{:.0f}".format(hash(args.pretrained_prior_checkpoint) % 1e7)
+               "pretr_{}".format(checkpoint_utils.hexdigest(args.pretrained_prior_checkpoint))
   hypers_name = "_epochs_{}_{}_batchsize_{}_temp_{}".format(
       args.num_epochs, prior_name, args.batch_size, args.temperature)
   subdirname = "{}__{}__{}__{}__seed_{}".format(method_name, optimizer_name,
@@ -137,6 +142,29 @@ def train_model():
   (train_set, test_set, net_apply, params, net_state, key, log_likelihood_fn, _,
    _, predict_fn, ensemble_upd_fn, metrics_fns,
    tabulate_metrics) = script_utils.get_data_model_fns(args)
+
+  if args.save_actual_dataset:
+    datafilename="data"
+    if args.subset_train_to:
+      datafilename += "_subset_{}".format(args.subset_train_to)
+    if args.sequential_training:
+      datafilename += "_split_{}_of_{}".format(
+        1+args.index_sequential_training_fold, args.num_sequential_training_folds)
+    if args.stratified_folds:
+      datafilename += "_{}".format(args.stratified)
+    onp.savez_compressed(
+      os.path.join(dirname, f"{datafilename}.npz"),
+      x_train=onp.concatenate(train_set[0], axis=0),
+      y_train=onp.concatenate(train_set[1], axis=0),
+      x_test=onp.concatenate(test_set[0], axis=0),
+      y_test=onp.concatenate(test_set[1], axis=0),
+      data_info={
+        "num_classes": 10,  # XXX hard coded to CIFAR-10
+        "train_shape": tuple(t.shape[1:] for t in train_set),
+        "test_shape": tuple(t.shape[1:] for t in test_set),
+      },
+    )
+    logger.info("Actual dataset successfully saved.")
 
   # Convert the model to MFVI parameterization
   net_apply, mean_apply, _, params, net_state = vi.get_mfvi_model_fn(
@@ -242,6 +270,8 @@ def train_model():
     print(table)
 
   logger.info("Final evaluation")
+  tf_writer = tf.summary.create_file_writer(dirname,
+                                            filename_suffix="_final_eval.v2")
 
   # Evaluate the model
   train_stats = {"ELBO": None, "KL": prior_kl(params)}
@@ -261,6 +291,15 @@ def train_model():
 
   logging_dict = logging_utils.make_logging_dict(train_stats, test_stats,
                                                  ensemble_stats)
+  script_utils.write_to_tensorboard(
+    tf_writer, {k: v for k, v in logging_dict.items() if v is not None},
+    args.num_epochs)
+  # Add a histogram of MFVI stds
+  with tf_writer.as_default():
+    stds = jax.tree.map(jax.nn.softplus, params["inv_softplus_std"])
+    stds = jnp.concatenate([std.reshape(-1) for std in jax.tree.leaves(stds)])
+    tf.summary.histogram("MFVI/param_stds", stds, step=args.num_epochs)
+
   logging_dict["telemetry/iteration"] = None
   logging_dict["telemetry/iteration_time"] = None
   tabulate_dict = script_utils.get_tabulate_dict(tabulate_metrics,
