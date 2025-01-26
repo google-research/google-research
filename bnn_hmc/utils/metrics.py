@@ -97,12 +97,12 @@ def calibration_curve(outputs, labels, num_bins=20, equispaced=False):
   bins[0] = 0.
   bins[-1] = 1.
   return {
-      "num_inputs": num_inputs,
-      "bins": bins,
+      # "num_inputs": num_inputs,
+      # "bins": bins,
       "confidence": bin_confidences,
       "accuracy": bin_accuracies,
       "proportions": bin_proportions,
-      "samples": bin_samples,  # Num samples in bins
+      # "samples": bin_samples,  # Num samples in bins
       "ece": ece,
   }
 
