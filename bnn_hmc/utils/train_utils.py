@@ -58,7 +58,8 @@ def get_task_specific_fns(task, data_info):
     likelihood_fn = losses.make_xent_log_likelihood
     ensemble_fn = (
         ensemble_utils.compute_updated_ensemble_predictions_classification)
-    predict_batch_size = 1_000  # want 1024 samples to be predicted together
+    # predict_batch_size = 1_000  # want 1024 samples to be predicted together
+    predict_batch_size = 1_024  # want 1024 samples to be predicted together
     assert data_info["train_shape"][0][1] % predict_batch_size == 0, (
         "train shape should be devisible by predict batch size, but got values "
         f"train shape={data_info['train_shape'][0][1]}, predict batch size={predict_batch_size}")

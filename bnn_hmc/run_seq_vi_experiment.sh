@@ -1,6 +1,6 @@
 #!/bin/bash
 
-arg="imdb"
+arg="cifar100"
 
 if [[ "$arg" == "cifar10" ]]; then
     DATASET="cifar10"
@@ -8,16 +8,30 @@ if [[ "$arg" == "cifar10" ]]; then
     SGD_WEIGHT_DECAY="10"
     MFVI_WEIGHT_DECAY="5"
     COMMON_HYPERPARAMS="--dataset_name=$DATASET --model_name=$MODEL --subset_train_to=40960 --sequential_training --num_sequential_training_folds=2"
+    SGD_WEIGHT_DECAY_DISPLAY="10.0"
     SGD_HYPERPARAMS="$COMMON_HYPERPARAMS --init_step_size=3e-7 --num_epochs=500 --eval_freq=10 --batch_size=80 --save_freq=100"
     VI_HYPERPARAMS="$COMMON_HYPERPARAMS --init_step_size=1e-4 --num_epochs=300 --eval_freq=10 --batch_size=80 --save_freq=150 --optimizer=Adam --vi_sigma_init=0.01 --temperature=1. --vi_ensemble_size=50"
+    SGD_STEP_DISPLAY="3e-07"
+elif [[ "$arg" == "cifar100" ]]; then
+    DATASET="cifar100"
+    MODEL="resnet20_frn_swish"
+    SGD_WEIGHT_DECAY="10"
+    MFVI_WEIGHT_DECAY="5"
+    COMMON_HYPERPARAMS="--dataset_name=$DATASET --model_name=$MODEL --subset_train_to=40960 --sequential_training --num_sequential_training_folds=2"
+    SGD_WEIGHT_DECAY_DISPLAY="10.0"
+    SGD_HYPERPARAMS="$COMMON_HYPERPARAMS --init_step_size=1e-6 --num_epochs=500 --eval_freq=10 --batch_size=80 --save_freq=100"
+    VI_HYPERPARAMS="$COMMON_HYPERPARAMS --init_step_size=1e-4 --num_epochs=300 --eval_freq=10 --batch_size=80 --save_freq=150 --optimizer=Adam --vi_sigma_init=0.01 --temperature=1. --vi_ensemble_size=50"
+    SGD_STEP_DISPLAY="1e-06"
 elif [[ "$arg" == "imdb" ]]; then
     DATASET="imdb"
     MODEL="cnn_lstm"
     SGD_WEIGHT_DECAY="3."
     MFVI_WEIGHT_DECAY="5"
     COMMON_HYPERPARAMS="--dataset_name=$DATASET --model_name=$MODEL --sequential_training --num_sequential_training_folds=2"
+    SGD_WEIGHT_DECAY_DISPLAY="3.0"
     SGD_HYPERPARAMS="$COMMON_HYPERPARAMS --init_step_size=3e-7 --num_epochs=500 --eval_freq=20 --batch_size=80 --save_freq=500"
     VI_HYPERPARAMS="$COMMON_HYPERPARAMS --init_step_size=1e-4 --num_epochs=300 --eval_freq=10 --batch_size=80 --save_freq=150 --optimizer=Adam --vi_sigma_init=0.01 --temperature=1. --vi_ensemble_size=50"
+    SGD_STEP_DISPLAY="3e-07"
 else
     echo "Please specify cifar10 or imdb"
     exit 1
@@ -57,7 +71,7 @@ python bnn_hmc/run_sgd.py --seed=$SEED --weight_decay=$SGD_WEIGHT_DECAY $SGD_HYP
 # Run VI for the first half
 echo "MFVI 1/2..."
 python bnn_hmc/run_vi.py --seed=$SEED --weight_decay=$MFVI_WEIGHT_DECAY $VI_HYPERPARAMS --dir=$EXPERIMENT_DIR/mfvi_1_of_2$DIRSUFFIX/ \
-    --mean_init_checkpoint=$EXPERIMENT_DIR/sgd_1_of_2$DIRSUFFIX/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_3.0_batchsize_80_temp_1.0__seed_$SEED/model_step_499.pt \
+    --mean_init_checkpoint=$EXPERIMENT_DIR/sgd_1_of_2$DIRSUFFIX/sgd_mom_0.9__lr_sch_i_${SGD_STEP_DISPLAY}___epochs_500_wd_${SGD_WEIGHT_DECAY_DISPLAY}_batchsize_80_temp_1.0__seed_$SEED/model_step_499.pt \
     --index_sequential_training_fold=0 $STRATIFIED_ARGS
 
 # Run SGD for the second half
@@ -66,7 +80,7 @@ python bnn_hmc/run_sgd.py --seed=$SEED --pretrained_prior_checkpoint=$EXPERIMENT
     $SGD_HYPERPARAMS --dir=$EXPERIMENT_DIR/sgd_2_of_2$DIRSUFFIX/ --index_sequential_training_fold=1 $STRATIFIED_ARGS
 
 # Find the output file produced by SGD for the second half
-SGD_DIR_2_OF_2=$(ls $EXPERIMENT_DIR/sgd_2_of_2$DIRSUFFIX 2>/dev/null | grep -E "^sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_pretr_[a-z0-9]+_batchsize_80_temp_1.0__seed_$SEED$")
+SGD_DIR_2_OF_2=$(ls $EXPERIMENT_DIR/sgd_2_of_2$DIRSUFFIX 2>/dev/null | grep -E "^sgd_mom_0.9__lr_sch_i_${SGD_STEP_DISPLAY}___epochs_500_pretr_[a-z0-9]+_batchsize_80_temp_1.0__seed_$SEED$")
 
 if [ -z "$SGD_DIR_2_OF_2" ]; then
     echo "Error: No SGD 2/2 runs were found with seed $SEED: $(ls $EXPERIMENT_DIR/sgd_2_of_2$DIRSUFFIX)"
@@ -87,6 +101,6 @@ python bnn_hmc/run_vi.py --seed=$SEED --pretrained_prior_checkpoint=$EXPERIMENT_
 # Run "sequential" SGD
 echo "Sequential SGD 2/2 from 1/2 init..."
 python bnn_hmc/run_sgd.py --seed=$SEED --weight_decay=$SGD_WEIGHT_DECAY $SGD_HYPERPARAMS --dir=$EXPERIMENT_DIR/sgd_2_of_2${DIRSUFFIX}_from_split1_init/ \
-    --init_checkpoint=$EXPERIMENT_DIR/sgd_1_of_2$DIRSUFFIX/sgd_mom_0.9__lr_sch_i_3e-07___epochs_500_wd_3.0_batchsize_80_temp_1.0__seed_$SEED/model_step_499.pt \
+    --init_checkpoint=$EXPERIMENT_DIR/sgd_1_of_2$DIRSUFFIX/sgd_mom_0.9__lr_sch_i_${SGD_STEP_DISPLAY}___epochs_500_wd_${SGD_WEIGHT_DECAY_DISPLAY}_batchsize_80_temp_1.0__seed_$SEED/model_step_499.pt \
     --index_sequential_training_fold=1 $STRATIFIED_ARGS
 
