@@ -36,23 +36,27 @@ class StateBaseTest(tf.test.TestCase):
     self.state = states.StateBase()
 
   def test_is_terminal(self):
-    with self.assertRaisesRegexp(NotImplementedError,
-                                 'Must be implemented by subclass'):
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Must be implemented by subclass'
+    ):
       self.state.is_terminal()
 
   def test_copy(self):
-    with self.assertRaisesRegexp(NotImplementedError,
-                                 'Must be implemented by subclass'):
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Must be implemented by subclass'
+    ):
       self.state.copy()
 
   def test_equal(self):
-    with self.assertRaisesRegexp(NotImplementedError,
-                                 'Must be implemented by subclass'):
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Must be implemented by subclass'
+    ):
       self.state._equal(None)
 
   def test_info(self):
-    with self.assertRaisesRegexp(NotImplementedError,
-                                 'Must be implemented by subclass'):
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Must be implemented by subclass'
+    ):
       self.state._info()
 
 
@@ -60,8 +64,9 @@ class ExpressionStateBaseTest(tf.test.TestCase):
 
   def test_get_expression(self):
     state = states.ExpressionStateBase()
-    with self.assertRaisesRegexp(NotImplementedError,
-                                 'Must be implemented by subclass'):
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Must be implemented by subclass'
+    ):
       state.get_expression()
 
 
@@ -270,10 +275,12 @@ class ProductionRulesStateTest(tf.test.TestCase):
     self.assertEqual(state._stack.to_list(), ['T', 'R'])
 
   def test_init_stack_invalid(self):
-    with self.assertRaisesRegexp(
-        ValueError, 'stack is expected to be list, '
+    with self.assertRaisesRegex(
+        ValueError,
+        'stack is expected to be list, '
         'GrammarLhsStack or None, but got '
-        '<class \'str\'>'):
+        "<class 'str'>",
+    ):
       states.ProductionRulesState(production_rules_sequence=[], stack='foo')
 
   def test_generate_history(self):
@@ -325,10 +332,11 @@ class ProductionRulesStateTest(tf.test.TestCase):
     # The current stack is [T, T], the next production rule should start with T.
     # A ValueError will be raised if the production rule to append does not have
     # left hand side symbol T.
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError,
         r'The left hand side symbol of production rule S -> T does not match '
-        r'the top symbol in the grammar left hand side stack \(T\)'):
+        r'the top symbol in the grammar left hand side stack \(T\)',
+    ):
       state.append_production_rule(self.production_rules_dict['S -> T'])
 
   def test_append_production_rule(self):

@@ -178,9 +178,10 @@ class NumpyArrayEvalTest(parameterized.TestCase):
 class EvaluateExpressionStrings1dGridTest(tf.test.TestCase):
 
   def test_incorrect_numpy_array_shape(self):
-    with self.assertRaisesRegexp(ValueError,
-                                 r'The shape of n is expected to be \(1, 3\) '
-                                 r'but got \(1, 5\)'):
+    with self.assertRaisesRegex(
+        ValueError,
+        r'The shape of n is expected to be \(1, 3\) ' r'but got \(1, 5\)',
+    ):
       evaluators.evaluate_expression_strings_1d_grid(
           ['n + 1'],
           num_samples=1,
@@ -189,9 +190,11 @@ class EvaluateExpressionStrings1dGridTest(tf.test.TestCase):
       )
 
   def test_incorrect_argument_type(self):
-    with self.assertRaisesRegexp(ValueError,
-                                 r'Argument should be np.ndarray, int, or '
-                                 r'float. but got n, <(class|type) \'list\'>'):
+    with self.assertRaisesRegex(
+        ValueError,
+        r'Argument should be np.ndarray, int, or '
+        r'float. but got n, <(class|type) \'list\'>',
+    ):
       evaluators.evaluate_expression_strings_1d_grid(
           ['n + 1'],
           num_samples=1,

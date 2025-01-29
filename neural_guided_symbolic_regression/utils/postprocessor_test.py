@@ -130,8 +130,9 @@ class ExpressionContextFreeGrammarPostprocessorTest(tf.test.TestCase):
         postprocessor.production_rules_sequence_to_expression_string(
             prod_rules_sequence, self.delimiter), 'T + T')
 
-    with self.assertRaisesRegexp(ValueError,
-                                 'Not all the symbols are terminal.'):
+    with self.assertRaisesRegex(
+        ValueError, 'Not all the symbols are terminal.'
+    ):
       postprocessor.production_rules_sequence_to_expression_string(
           prod_rules_sequence, self.delimiter, check_all_terminal=True)
 
@@ -205,10 +206,11 @@ class ExpressionContextFreeGrammarPostprocessorTest(tf.test.TestCase):
         self.prod_rules_dict[prod_rule_string]
         for prod_rule_string in prod_rule_strings
     ]
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError,
-        'Left hand side symbol of production rule T -> \'x\' does not match '
-        r'the symbol in the stack \(S\)'):
+        "Left hand side symbol of production rule T -> 'x' does not match "
+        r'the symbol in the stack \(S\)',
+    ):
       postprocessor.production_rules_sequence_to_stack(prod_rules_sequence)
 
 

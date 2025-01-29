@@ -67,26 +67,30 @@ class PoschlTellerTest(parameterized.TestCase):
     self.assertAlmostEqual(grids[np.argmin(vp)], center)
 
   def test_poschl_teller_invalid_lam(self):
-    with self.assertRaisesRegexp(
-        ValueError, 'lam is expected to be positive but got -1.50'):
+    with self.assertRaisesRegex(
+        ValueError, 'lam is expected to be positive but got -1.50'
+    ):
       single_electron.poschl_teller(np.linspace(-10, 10, 1001), lam=-1.5)
 
   def test_valid_poschl_teller_level_lambda(self):
-    with self.assertRaisesRegexp(
-        ValueError, 'level is expected to be greater or equal to 1, but got 0'):
+    with self.assertRaisesRegex(
+        ValueError, 'level is expected to be greater or equal to 1, but got 0'
+    ):
       single_electron._valid_poschl_teller_level_lambda(level=0, lam=2.)
 
     # level=1 is valid.
     single_electron._valid_poschl_teller_level_lambda(level=1, lam=2.)
 
-    with self.assertRaisesRegexp(
-        ValueError, 'lam 1.50 can hold 2 levels, but got level 3'):
+    with self.assertRaisesRegex(
+        ValueError, 'lam 1.50 can hold 2 levels, but got level 3'
+    ):
       single_electron._valid_poschl_teller_level_lambda(level=3, lam=1.5)
 
     single_electron._valid_poschl_teller_level_lambda(level=2, lam=1.5)
 
-    with self.assertRaisesRegexp(
-        ValueError, 'lam is expected to be positive but got -1.00'):
+    with self.assertRaisesRegex(
+        ValueError, 'lam is expected to be positive but got -1.00'
+    ):
       single_electron._valid_poschl_teller_level_lambda(level=1, lam=-1.)
 
   @parameterized.parameters([(1, 1., -0.5),
@@ -135,12 +139,12 @@ class SolverBaseTest(absltest.TestCase):
     grids = np.linspace(-5, 5, 501)
     potential_fn = functools.partial(single_electron.harmonic_oscillator, k=1)
 
-    with self.assertRaisesRegexp(ValueError, 'num_electrons is not an integer'):
+    with self.assertRaisesRegex(ValueError, 'num_electrons is not an integer'):
       single_electron.SolverBase(grids, potential_fn, num_electrons=1.5)
 
-    with self.assertRaisesRegexp(ValueError,
-                                 'num_electrons must be greater or equal '
-                                 'to 1, but got 0'):
+    with self.assertRaisesRegex(
+        ValueError, 'num_electrons must be greater or equal to 1, but got 0'
+    ):
       single_electron.SolverBase(grids, potential_fn, num_electrons=0)
 
 
@@ -220,9 +224,10 @@ class EigenSolverTest(parameterized.TestCase):
 class SparseEigenSolverTest(parameterized.TestCase):
 
   def test_additional_levels_negative(self):
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError,
-        'additional_levels is expected to be non-negative, but got -1'):
+        'additional_levels is expected to be non-negative, but got -1',
+    ):
       single_electron.SparseEigenSolver(
           grids=np.linspace(-5, 5, 501),
           potential_fn=functools.partial(
@@ -231,10 +236,11 @@ class SparseEigenSolverTest(parameterized.TestCase):
           additional_levels=-1)
 
   def test_additional_levels_too_large(self):
-    with self.assertRaisesRegexp(
+    with self.assertRaisesRegex(
         ValueError,
         r'additional_levels is expected to be smaller than '
-        r'num_grids - num_electrons \(498\), but got 499'):
+        r'num_grids - num_electrons \(498\), but got 499',
+    ):
       single_electron.SparseEigenSolver(
           grids=np.linspace(-5, 5, 501),
           potential_fn=functools.partial(
@@ -333,7 +339,7 @@ class Solved1dSolverToExampleTest(absltest.TestCase):
   def test_solver_should_be_solved(self):
     solver = single_electron.EigenSolver(self.grids, self.potential_fn)
     # The solver is not solved.
-    with self.assertRaisesRegexp(ValueError, r'Input solver is not solved.'):
+    with self.assertRaisesRegex(ValueError, r'Input solver is not solved.'):
       single_electron.solved_1dsolver_to_example(solver, self.potential_params)
 
   def test_example_output(self):

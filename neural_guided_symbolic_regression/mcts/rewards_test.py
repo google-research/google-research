@@ -29,8 +29,7 @@ from neural_guided_symbolic_regression.mcts import states
 class RewardBaseTest(tf.test.TestCase):
 
   def test_set_post_transformer_not_callable(self):
-    with self.assertRaisesRegexp(TypeError,
-                                 'post_transformer is not callable'):
+    with self.assertRaisesRegex(TypeError, 'post_transformer is not callable'):
       reward = rewards.RewardBase()
       reward.set_post_transformer(post_transformer=42)
 
@@ -48,8 +47,9 @@ class RewardBaseTest(tf.test.TestCase):
   def test_evaluate_not_implemented(self):
     state = states.ProductionRulesState(production_rules_sequence=[])
     reward = rewards.RewardBase()
-    with self.assertRaisesRegexp(NotImplementedError,
-                                 'Must be implemented by subclass'):
+    with self.assertRaisesRegex(
+        NotImplementedError, 'Must be implemented by subclass'
+    ):
       reward.evaluate(state)
 
   def test_evaluate_not_terminal_without_default_value(self):
@@ -57,10 +57,12 @@ class RewardBaseTest(tf.test.TestCase):
         production_rules_sequence=[])
     not_terminal_state.is_terminal = mock.MagicMock(return_value=False)
     reward = rewards.RewardBase(allow_nonterminal=False, default_value=None)
-    with self.assertRaisesRegexp(ValueError,
-                                 'allow_nonterminal is False and '
-                                 'default_value is None, but state is not '
-                                 'terminal'):
+    with self.assertRaisesRegex(
+        ValueError,
+        'allow_nonterminal is False and '
+        'default_value is None, but state is not '
+        'terminal',
+    ):
       reward.evaluate(not_terminal_state)
 
     # ValueError will not be raised if default value is set.

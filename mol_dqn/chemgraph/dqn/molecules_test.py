@@ -153,12 +153,12 @@ class MoleculesTest(tf.test.TestCase):
   def test_invalid_actions(self):
     mol = molecules.Molecule({'C', 'O'}, 'c1ccccc1')
     mol.initialize()
-    with self.assertRaisesRegexp(ValueError, 'Invalid action.'):
+    with self.assertRaisesRegex(ValueError, 'Invalid action.'):
       mol.step('C')
 
   def test_episode_not_started(self):
     mol = molecules.Molecule({'C', 'O'}, 'c1ccccc1')
-    with self.assertRaisesRegexp(ValueError, 'This episode is terminated.'):
+    with self.assertRaisesRegex(ValueError, 'This episode is terminated.'):
       mol.step('Cc1ccccc1')
 
   def test_end_episode(self):
@@ -168,7 +168,7 @@ class MoleculesTest(tf.test.TestCase):
       action = mol.get_valid_actions().pop()
       result = mol.step(action)
     self.assertEqual(result.terminated, True)
-    with self.assertRaisesRegexp(ValueError, 'This episode is terminated.'):
+    with self.assertRaisesRegex(ValueError, 'This episode is terminated.'):
       mol.step(mol.get_valid_actions().pop())
 
   def test_goal_settings(self):
@@ -179,7 +179,7 @@ class MoleculesTest(tf.test.TestCase):
     self.assertEqual(result.state, 'Cc1ccccc1')
     self.assertEqual(result.reward, 0)
     self.assertEqual(result.terminated, True)
-    with self.assertRaisesRegexp(ValueError, 'This episode is terminated.'):
+    with self.assertRaisesRegex(ValueError, 'This episode is terminated.'):
       mol.step(mol.get_valid_actions().pop())
 
   def test_reward_settings(self):

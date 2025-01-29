@@ -276,8 +276,9 @@ class BackPropagationTest(parameterized.TestCase, tf.test.TestCase):
 class ProbsRemoveNaNTest(tf.test.TestCase):
 
   def test_probs_remove_nan_all_nan(self):
-    with self.assertRaisesRegexp(ValueError,
-                                 'All the elements in probs are nan.'):
+    with self.assertRaisesRegex(
+        ValueError, 'All the elements in probs are nan.'
+    ):
       tree.probs_remove_nan(np.array([np.nan, np.nan]))
 
   def test_probs_remove_nan_no_nan(self):
