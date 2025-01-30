@@ -83,7 +83,7 @@ class TestTokenCounts(tf.test.TestCase):
         u"my": 2,
         u"pajamas": 2,
     }
-    self.assertDictContainsSubset(expected, token_counts)
+    self.assertEqual(token_counts, {**token_counts, **expected})
     self.assertNotIn(u".\n\n", token_counts)
     self.assertNotIn(u"\n", token_counts)
 
@@ -91,7 +91,8 @@ class TestTokenCounts(tf.test.TestCase):
     token_counts = tokenizer.corpus_token_counts(
         self.corpus_path, corpus_max_lines=0, split_on_newlines=False)
 
-    self.assertDictContainsSubset({u".\n\n": 2, u"\n": 3}, token_counts)
+    expected = {u".\n\n": 2, u"\n": 3}
+    self.assertEqual(token_counts, {**token_counts, **expected})
 
   def test_corpus_token_counts_split_with_max_lines(self):
     token_counts = tokenizer.corpus_token_counts(
@@ -106,11 +107,12 @@ class TestTokenCounts(tf.test.TestCase):
 
     self.assertIn(u"slept", token_counts)
     self.assertNotIn(u"Mitch", token_counts)
-    self.assertDictContainsSubset({
+    expected = {
         u".\n\n": 1,
         u"\n": 2,
         u".\n": 1
-    }, token_counts)
+    }
+    self.assertEqual(token_counts, {**token_counts, **expected})
 
   def test_vocab_token_counts(self):
     token_counts = tokenizer.vocab_token_counts(self.vocab_path, 0)
