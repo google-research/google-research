@@ -22,32 +22,34 @@ int main(int argc, char** argv) {
   double T0;
   double T1;
   std::string message =
-      "Wrong arguments. Run ./optimize -h for help and instructions.";
+      "Wrong arguments. Run `./optimize -h` for help and instructions.";
 
   // Help instructions begin.
   std::string instructions =
       ""
       "########################################################################"
       "########\n"
-      "Tensor network contraction optimizer."
+      "Tensor network contraction optimizer. "
       "This program can be run in three modes:\n"
       "  1) Mode 1: optimize contraction ordering without memory constraints.\n"
       "  2) Mode 2: optimize contraction ordering with width constraint, "
       "grouped slices, and sparse outputs.\n"
-      "  3) Mode 3: optimize contraction ordering with full memory constraint, "
-      "grouped slices, and sparse outputs.\n\n"
+      "  3) Mode 3: optimize contraction ordering with full memory footprint "
+      "constraint, grouped slices, and sparse outputs.\n\n"
       "Usage:\n"
       "  1) ./optimize 1 <graph filename> <output filename> <random seed> <num "
       "SA steps> <initial SA temperature T0>  <final SA temperature T1>\n"
-      "  2) ./optimize 2 <graph filename> <groups filename> <width> <num "
-      "sparse configurations> <output filename> <random seed> <num SA steps> "
+      "  2) ./optimize 2 <graph filename> <groups filename> <output filename> "
+      "<random seed> <width> <num sparse configurations> <num SA steps> "
       "<initial SA temperature T0>  <final SA temperature T1>\n"
-      "  3) ./optimize 3 <graph filename> <groups filename> <log2(memory "
-      "footprint (num scalars))> <num sparse configurations> <output filename> "
-      "<random seed> <num SA steps> <initial SA temperature T0>  <final SA "
-      "temperature T1>\n\n"
-      "For more details and examples on the format for the graaph file and "
-      "groups file see <URL> and <paper>.\n"
+      "  3) ./optimize 3 <graph filename> <groups filename> <output filename> "
+      "<random seed> <log2(memory footprint (num scalars))> <num sparse "
+      "configurations> <num SA steps> <initial SA temperature T0> "
+      "<final SA temperature T1>\n\n"
+      "For more details and examples on the format for the `.graph` and "
+      "`.groups` files see "
+      "https://github.com/google-research/google-research/tree/master/rcs_tnsa "
+      "and https://www.nature.com/articles/s41586-024-07998-6.\n"
       "########################################################################"
       "########\n";
   // Help instructions end.
@@ -58,7 +60,7 @@ int main(int argc, char** argv) {
       std::cout << instructions << std::endl;
       return 2;
     }
-  } else if (8 < argc && argc < 11) {
+  } else if (8 <= argc && argc <= 11) {
     mode = std::stoi(argv[1]);
     if (mode == 1)  // Non-memory constrained.
     {
@@ -172,8 +174,8 @@ int main(int argc, char** argv) {
     std::ofstream output_file;
     output_file.open(output_filename);
     output_file << "Info:\n";
-    output_file << "  Mode 3: optimize contraction ordering with full memory "
-                   "constraint, grouped slices, and sparse outputs."
+    output_file << "  Mode 3: optimize contraction ordering with memory "
+                   "footprint constraint, grouped slices, and sparse outputs."
                 << "\n";
     output_file << "  Graph file: " << graph_filename << "\n";
     output_file << "  Groups file: " << groups_filename << "\n";

@@ -92,7 +92,7 @@ def circuit_to_tensor_network_edges(
   # Write the edges to output .graph file
   with open(graph_filename, 'w') as f:
     for edge in edges:
-      f.write(f'{edge[0]} {edge[1]}\n')
+      f.write(f'2 {edge[0]} {edge[1]}\n')
 
   # Write groups of edges to output .groups file.
   with open(groups_filename, 'w') as f:
