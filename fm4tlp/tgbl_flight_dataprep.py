@@ -54,7 +54,7 @@ def main(_):
   with tf.io.gfile.GFile(
       os.path.join(dataset_root, 'airport_node_feat_v2.csv'), 'r'
   ) as f:
-    airport_feat = pd.read_csv(f)
+    airport_feat = pd.read_csv(f, keep_default_na=False)
 
   print('Different continents: ', len(set(airport_feat.continent)))
 

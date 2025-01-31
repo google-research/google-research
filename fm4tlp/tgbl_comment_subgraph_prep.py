@@ -163,14 +163,14 @@ def main(_):
     node_index_dict = pickle.load(f)
 
   with tf.io.gfile.GFile(
-      os.path.join(_ROOT_DIR.value, 'tgbl_comment_user_community_map.pkl'), 'rb'
+      os.path.join(dataset_root, 'tgbl_comment_user_community_map.pkl'), 'rb'
   ) as f:
     community_node_map = pickle.load(f)
 
   communities.reindex_communities(community_node_map, node_index_dict)
 
   with tf.io.gfile.GFile(
-      _ROOT_DIR.value + '/tgbl_comment_timesplit.csv', 'r'
+      dataset_root + '/tgbl_comment_timesplit.csv', 'r'
   ) as f:
     timesplit = pd.read_csv(f)
 

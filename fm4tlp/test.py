@@ -352,7 +352,8 @@ def main(_):
     warmstart_loss['auc'] = warmstart_performance_lists.auc
     with tf.io.gfile.GFile(
         os.path.join(
-            results_path, f'{experiment_name}_test_warmstart_loss.csv'
+            results_path,
+            f'{experiment_name}_test_{_TEST_GROUP.value}_warmstart_loss.csv',
         ),
         'w',
     ) as f:
@@ -392,7 +393,10 @@ def main(_):
   test_loss['perf'] = test_performance_lists.perf
   test_loss['auc'] = test_performance_lists.auc
   with tf.io.gfile.GFile(
-      os.path.join(results_path, f'{experiment_name}_test_loss.csv'), 'w'
+      os.path.join(
+          results_path, f'{experiment_name}_test_{_TEST_GROUP.value}_loss.csv'
+      ),
+      'w',
   ) as f:
     test_loss.to_csv(f, index=False)
 
