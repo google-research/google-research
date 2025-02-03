@@ -16,6 +16,7 @@
 """Write dataset statistics to json files."""
 
 from collections.abc import Sequence
+import traceback
 
 from absl import app
 
@@ -80,6 +81,7 @@ def write_dataset_statistics_to_json_files(_):
           "FAILED saving dataset statistics to json files ", datasetname, "\n"
       )
       print(">>>> " + str(e))
+      print(traceback.format_exc())
     else:
       print(
           "SUCCESSFUL schema for ",

@@ -265,6 +265,7 @@ def print_graph(
   printif(debug, "op_to_op " + str(graph_edges["op_to_op"]))
   printif(debug, "pred_to_op " + str(graph_edges["pred_to_op"]))
   printif(debug, "attrs_to_corr " + str(graph_edges["attr_to_correlation"]))
+  printif(debug, "corr_to_op " + str(graph_edges["corr_to_op"]))
   printif(
       debug,
       "corr_to_predicates " + str(graph_edges["correlation_to_pred"]),
@@ -310,6 +311,8 @@ def add_graph_edges(
       edge_type = "correlation_to_pred"
     elif ft == "column" and et == "correlation":
       edge_type = "attr_to_correlation"
+    elif ft == "correlation" and et in ["scan", "join", "groupby"]:
+      edge_type = "corr_to_op"
     else:
       raise ValueError("edge_type not handled", ft, et)
 
@@ -373,15 +376,16 @@ def convert_query_plan_to_graph(
       "pred_to_op": [[], [], "predicates", "ops"],
       "attr_to_correlation": [[], [], "attrs", "correlations"],
       "correlation_to_pred": [[], [], "correlations", "predicates"],
+      "corr_to_op": [[], [], "correlations", "ops"],
   }
 
   ### helpers for the conversion
   id_to_type = {}
   annotated_query_planid_to_node_per_type_pods = {}
 
+  groupbyops = []
   joinops = []
   scanops = []
-  aggops = []
 
   ## parse the annotated_query_plan and covert to a graph_nodes object
   for node in annotated_query_plan["nodes"]:
@@ -405,7 +409,7 @@ def convert_query_plan_to_graph(
       elif "scan" == node["nodetype"]:
         scanops.append([node["id"], node["nodetype"]])
       elif "groupby" == node["nodetype"]:
-        aggops.append([node["id"], node["nodetype"]])
+        groupbyops.append([node["id"], node["nodetype"]])
       else:
         raise ValueError("nodetype not handled", node["nodetype"])
     elif node["nodetype"] == "correlation":
@@ -413,18 +417,20 @@ def convert_query_plan_to_graph(
           node, graph_nodes, annotated_query_planid_to_node_per_type_pods
       )
 
-  # add join and scan nodes -- the reason is that we want to add them ordered
+  # add groupby, join and scan nodes -- the reason is that we want to
+  # add them ordered
   # first the join node and then the scan nodes
+  for n in groupbyops:
+    add_operator_node(
+        n, graph_nodes, annotated_query_planid_to_node_per_type_pods
+    )
+  # ordered in reverse to help the TFGNN API
+  joinops.reverse()
   for n in joinops:
     add_operator_node(
         n, graph_nodes, annotated_query_planid_to_node_per_type_pods
     )
   for n in scanops:
-    add_operator_node(
-        n, graph_nodes, annotated_query_planid_to_node_per_type_pods
-    )
-
-  for n in aggops:
     add_operator_node(
         n, graph_nodes, annotated_query_planid_to_node_per_type_pods
     )

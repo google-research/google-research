@@ -543,11 +543,14 @@ def generate_queries(
     relationships_table[table_r].append([column_r, table_l, column_l])
 
   queries = []
+  failed_queries = 0
+  total_tries = 0
   for _ in range(num_queries_to_generate):
     # sample query as long as it does not meet requirements
     tries = 0
     desired_query = False
     while not desired_query:
+      total_tries += 1
       q = sample_acyclic_aggregation_query(
           column_stats,
           string_stats,
@@ -602,12 +605,14 @@ def generate_queries(
 
       if not desired_query:
         tries += 1
+        failed_queries += 1
         if tries > 10000:
           raise ValueError(
               'Did not find a valid query after 10000 trials. '
               'Please check if your conditions can be fulfilled'
           )
-
+  print('total_tries', total_tries)
+  print('failed_queries', failed_queries)
   with open_file(query_file_output_path, 'w') as text_file:
     text_file.write('\n'.join(queries))
 

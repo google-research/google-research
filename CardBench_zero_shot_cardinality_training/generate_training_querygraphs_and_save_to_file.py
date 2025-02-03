@@ -80,9 +80,10 @@ def print_progress(
     skipped_queries_with_no_operators,
 ):
   print(
-      f"Progress: {processed_queries}/{len(queries_information)} queries,"
-      f" Successful: {len(query_ids_to_save)}, Zero-Cardinality queries:"
-      f" {zero_cardinality_queries}   Queries with no operators (skipped):"
+      f"Progress: {processed_queries}/{len(queries_information)} queries"
+      f" Failed: {processed_queries - len(query_ids_to_save)} Successful:"
+      f" {len(query_ids_to_save)}  Zero-Cardinality:"
+      f" {zero_cardinality_queries} Queries with no operators (skipped):"
       f" {skipped_queries_with_no_operators}."
   )
 
@@ -196,9 +197,11 @@ def generate_training_querygraphs_and_save_to_file(argv):
   printif(debug, f"Processing {len(queries_information)} queries...")
   for database_query_id in queries_information:
     processed_queries += 1
+    query_sql_string = "no query string"
     try:
       query_information = queries_information[database_query_id]
       query_sql_string = query_information["query_string"]
+      printif(debug, query_sql_string)
       cardinality = query_information["cardinality"]
       if cardinality == 0:
         zero_cardinality_queries += 1
@@ -211,7 +214,11 @@ def generate_training_querygraphs_and_save_to_file(argv):
           "query_run_id": query_run_id,
       }
       # filter queries that do not join or have a where clause
-      if ("JOIN" not in query_sql_string) and ("WHERE" not in query_sql_string):
+      if (
+          ("JOIN" not in query_sql_string)
+          and ("WHERE" not in query_sql_string)
+          and ("GROUP BY" not in query_sql_string)
+      ):
         print("Query has no join or where clause: ", query_sql_string)
         continue
 
@@ -222,6 +229,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
       parsed_query = convert_sql_to_relational_operators(
           query_information, debug
       )
+      printif(debug, "convert_sql_to_relational_operators successful")
       printif(debug, "PARSED QUERY <><><><><<><><><><><><><><><> ")
       for op in parsed_query["ops"]:
         printif(debug, op)
@@ -237,7 +245,9 @@ def generate_training_querygraphs_and_save_to_file(argv):
       )
       if not annotated_query_plan:
         skipped_queries_with_no_operators += 1
+        printif(debug, "convert_relational_operators_to_query_plan failed")
         continue
+      printif(debug, "convert_relational_operators_to_query_plan successful")
       annotated_query_plans[database_query_id] = annotated_query_plan
       printif(debug, "ANNOTATED QUERY PLAN <><><><><<><><><><><><><><><> ")
       for node in annotated_query_plan["nodes"]:
@@ -255,6 +265,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
       validate_query_plan_and_graph(
           annotated_query_plan, query_graph, query_sql_string
       )
+      printif(debug, "validate_query_plan_and_graph successful")
       # BEGIN_GOOGLE_INTERNAL
       tf_objects[database_query_id] = create_tf_graph_object(
           query_graph, top_level_query_information
@@ -271,7 +282,8 @@ def generate_training_querygraphs_and_save_to_file(argv):
       print("\n\n <><><><><><><><><><><><> ")
       print("Error in generating training query graph:", str(e))
       print(traceback.format_exc())
-      print("<><><><><><><><><><><><> ")
+      print(query_sql_string)
+      print("<><><><><><><><><><><><>\n\n")
     else:
       query_ids_to_save.append(database_query_id)
       print_progress(
@@ -281,6 +293,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
           zero_cardinality_queries,
           skipped_queries_with_no_operators,
       )
+      printif(debug, "\n\n")
 
   database_query_ids_unique_queries, _ = (
       find_unique_and_non_zero_cardinality_queries(

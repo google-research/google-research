@@ -71,9 +71,10 @@ def calculate_and_store_percentiles_bq(
         "(SELECT ARRAY(select cast(_ as BIGNUMERIC) FROM UNNEST((select"
         f" {quantiles})) _))"
     )
+  quantiles_str = ", ".join(quantiles)
   query = (
-      f"UPDATE `{extra_stats_table}` SET percentiles = {quantiles} WHERE"
-      f" project_name='{projectname}' AND dataset_name='{datasetname}' AND"
+      f"UPDATE `{extra_stats_table}` SET percentiles = [{quantiles_str}] "
+      f"WHERE project_name='{projectname}' AND dataset_name='{datasetname}' AND"
       f" table_name='{tablename}' AND column_name='{columnname}'"
   )
 

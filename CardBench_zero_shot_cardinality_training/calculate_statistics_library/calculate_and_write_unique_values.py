@@ -15,6 +15,7 @@
 
 """Collect column unique values."""
 
+import traceback
 from typing import Any
 
 from CardBench_zero_shot_cardinality_training import configuration
@@ -75,6 +76,7 @@ def calculate_and_write_unique_values_internal(
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
       print(">>>> " + query)
+      print(traceback.format_exc())
     unique_vals = []
     for row in queryjob:
       unique_vals.append(row["val"])
@@ -82,11 +84,11 @@ def calculate_and_write_unique_values_internal(
     extra_stats_table_sql_string = get_sql_table_string(
         dbs["metadata_dbtype"], extra_stats_table
     )
+    if "date" in extra_stats_table:
+      unique_vals = [str(x) for x in unique_vals]
+      unique_vals = [f"{x[0:4]}-{x[4:6]}-{x[6:8]}" for x in unique_vals]
     query = (
-        f"UPDATE {extra_stats_table_sql_string} SET uniq_vals = (( SELECT"
-        f" ARRAY_AGG(distinct  `{columnname}`) as val  FROM"
-        f" {table_sql_string} WHERE"
-        f" {partitioning_predicate} and `{columnname}` is not null))"
+        f"UPDATE {extra_stats_table_sql_string} SET uniq_vals = {unique_vals}"
     )
 
     query = (
@@ -101,6 +103,7 @@ def calculate_and_write_unique_values_internal(
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY >>>>>>>>>>>>>>>>>>>")
       print(">>>> " + str(e))
       print(">>>> " + query)
+      print(traceback.format_exc())
       count_total -= 1
   return count_total
 
@@ -137,6 +140,8 @@ def calculate_and_write_unique_values(
         " est.dataset_name = ci.dataset_name AND est.project_name ="
         " ci.project_name and array_length(uniq_vals) = 0)"
     )
+
+    print(query)
 
     queryjob, _ = run_query(
         dbs["metadata_dbtype"], query, dbs["metadata_dbclient"]

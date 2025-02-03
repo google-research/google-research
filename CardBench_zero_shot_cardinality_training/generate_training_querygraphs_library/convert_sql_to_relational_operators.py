@@ -30,9 +30,9 @@ def find_referenced_columns_join_preds(
   stringtomatch = alias + "."
   cols = []
   for pred in preds:
-    if stringtomatch in pred["operand1"]:
+    if pred["operand1"].startswith(stringtomatch):
       cols.append(pred["operand1"])
-    if stringtomatch in pred["operand2"]:
+    if pred["operand2"].startswith(stringtomatch):
       cols.append(pred["operand2"])
   for col in cols:
     referenced_cols.append(col.split(".")[1])
@@ -392,11 +392,21 @@ def convert_sql_to_relational_operators(
 
   # Split query string into select, from and where clauses
   select_clause = query_sql_string.split("FROM")[0]
-  from_clause = query_sql_string.split("FROM")[1].split("WHERE")[0]
   if "WHERE" in query_sql_string:
-    where_clause = (
-        query_sql_string.split("FROM")[1].split("WHERE")[1].split("GROUP BY")[0]
-    )
+    from_clause = query_sql_string.split("FROM")[1].split("WHERE")[0]
+  elif "GROUP BY" in query_sql_string:
+    from_clause = query_sql_string.split("FROM")[1].split("GROUP BY")[0]
+  else:
+    from_clause = query_sql_string.split("FROM")[1]
+  if "WHERE" in query_sql_string:
+    if "GROUP BY" in query_sql_string:
+      where_clause = (
+          query_sql_string.split("FROM")[1]
+          .split("WHERE")[1]
+          .split("GROUP BY")[0]
+      )
+    else:
+      where_clause = query_sql_string.split("FROM")[1].split("WHERE")[1]
   else:
     where_clause = ""
   if "GROUP BY" in query_sql_string:

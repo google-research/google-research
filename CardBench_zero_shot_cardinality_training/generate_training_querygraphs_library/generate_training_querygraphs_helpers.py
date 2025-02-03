@@ -63,6 +63,7 @@ def find_unique_and_non_zero_cardinality_queries(
 
     tables = annotated_query_plan["dup_tables"]
     join_preds = annotated_query_plan["dup_join_preds"]
+    group_by_cols = annotated_query_plan["dup_groupby_cols"]
 
     for p in annotated_query_plan["dup_scan_preds"]:
       s1 = p[0] + "_-_" + str(p[1])
@@ -74,6 +75,7 @@ def find_unique_and_non_zero_cardinality_queries(
     join_preds.sort()
     table_preds.sort()
     table_preds_no_constant.sort()
+    group_by_cols.sort()
 
     p_string = ""
     p_no_constants = ""
@@ -85,6 +87,9 @@ def find_unique_and_non_zero_cardinality_queries(
     for p in table_preds_no_constant:
       p_no_constants += p
     for p in join_preds:
+      p_string += p
+      p_no_constants += p
+    for p in group_by_cols:
       p_string += p
       p_no_constants += p
 
@@ -231,7 +236,6 @@ def get_correlation(
     result_corr = correlation_cache[key]
   else:
     print("info for missing correlation:", key)
-
   return result_corr
 
 
@@ -767,6 +771,21 @@ def create_tf_graph_object(
                       tf.constant(
                           query_graph_edges["correlation_to_pred"][1], tf.int32
                       ),
+                  ),
+              ),
+          ),
+          "corr_to_op": tfgnn.EdgeSet.from_fields(
+              sizes=tf.constant(
+                  [len(query_graph_edges["corr_to_op"][0])], tf.int32
+              ),
+              adjacency=tfgnn.Adjacency.from_indices(
+                  source=(
+                      "correlations",
+                      tf.constant(query_graph_edges["corr_to_op"][0], tf.int32),
+                  ),
+                  target=(
+                      "ops",
+                      tf.constant(query_graph_edges["corr_to_op"][1], tf.int32),
                   ),
               ),
           ),

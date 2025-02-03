@@ -16,6 +16,7 @@
 """Converts relational operators to query plan annotated with statistics."""
 
 import datetime
+import itertools
 from typing import Any
 
 from CardBench_zero_shot_cardinality_training import database_connector
@@ -208,7 +209,6 @@ def remove_partitioning_predicate(
 
   # The partitioning predicate is an artifact of the partitioning of the table
   # and does not affect the semantics of the query or the cardinality.
-
   if not preds:
     return preds
   elif preds["operator"] == "AND":
@@ -715,6 +715,7 @@ def convert_relational_operators_to_query_plan(
       "dup_tables": [],
       "dup_join_preds": [],
       "dup_scan_preds": [],
+      "dup_groupby_cols": [],
       "query_statistics_caches": query_statistics_caches,
   }
 
@@ -798,8 +799,12 @@ def convert_relational_operators_to_query_plan(
       queryplan["nodedict"][scanopid] = scanop
 
       cols_referenced = n["temp_ref_cols"]
-
-      if n["name"] in table_alias_to_part_col_name_and_type:
+      # TODO(chronis): update remove remove_partitioning_predicate to remove
+      # potential dangling column nodes from the query plan. I think the
+      # solution is to count the # a columns is referenced and if when
+      # removing the partitioning predicate we end up with 0 references then
+      # we remove the column node.
+      if n["alias"] in table_alias_to_part_col_name_and_type:
         n["temp_scan_preds"] = remove_partitioning_predicate(
             n["temp_scan_preds"],
             queryplan,
@@ -861,6 +866,7 @@ def convert_relational_operators_to_query_plan(
           "nodetype": "groupby",
           "group_by_cols": str(op["grouping_columns"]),
       }
+      queryplan["dup_groupby_cols"].extend(op["grouping_columns"])
       queryplan["nodes"].append(aggop)
       queryplan["nodedict"][aggopid] = aggop
       sql_plan_to_myplan_id[op["relop_id"]] = aggopid
@@ -868,11 +874,27 @@ def convert_relational_operators_to_query_plan(
 
       queryplan["edges"].append({"from": from1, "to": aggopid})
 
+      colids = []
       for col in op["grouping_columns"]:
-        print(queryplan["name_to_opid"])
         colid = queryplan["name_to_opid"][col]
+        colids.append(colid)
         queryplan["edges"].append({"from": colid, "to": aggopid})
-      # do we need correlatiion nodes for group by?
+
+      for comb in itertools.combinations(colids, 2):
+        corr_opid = queryplan["nextmyplanopid"]
+        queryplan["nextmyplanopid"] = queryplan["nextmyplanopid"] + 1
+        corr_op = {
+            "id": corr_opid,
+            "nodetype": "correlation",
+            "correlation": -100,
+            "temp_colid1": comb[0],
+            "temp_colid2": comb[1],
+        }
+        queryplan["nodes"].append(corr_op)
+        queryplan["nodedict"][corr_opid] = corr_op
+        queryplan["edges"].append({"from": comb[0], "to": corr_opid})
+        queryplan["edges"].append({"from": comb[1], "to": corr_opid})
+        queryplan["edges"].append({"from": corr_opid, "to": aggopid})
 
   estimate_selectivity(queryplan)
 
@@ -898,9 +920,8 @@ def convert_relational_operators_to_query_plan(
       count_join += 1
     elif n["nodetype"] == "table" and "no_scan_preds" not in n:
       count_filters += 1
-    elif n["nodetype"] == "group_by":
+    elif n["nodetype"] == "groupby":
       count_group_bys += 1
-  print(count_join, count_filters, count_group_bys)
   if count_join + count_filters + count_group_bys == 0:
     return {}
   return queryplan

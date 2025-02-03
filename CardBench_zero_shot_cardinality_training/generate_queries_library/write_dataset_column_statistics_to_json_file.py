@@ -81,6 +81,7 @@ def write_dataset_column_statistics_to_json_file(
 
   for row in queryjob:
     columntype = row["column_type"]
+    columntype = columntype.upper()
     skip_column, datatype = is_type_we_dont_collect_stats(columntype)
     if skip_column:
       continue

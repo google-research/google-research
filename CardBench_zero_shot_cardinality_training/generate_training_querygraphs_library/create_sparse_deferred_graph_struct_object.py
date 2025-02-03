@@ -151,6 +151,7 @@ def create_sparse_deferred_graph_struct_object(
           "pred_to_op": ("predicates", "ops"),
           "attr_to_corr": ("attributes", "correlations"),
           "corr_to_pred": ("correlations", "predicates"),
+          "corr_to_op": ("correlations", "ops"),
       },
       edges={
           # edge indices, edge features
@@ -214,6 +215,17 @@ def create_sparse_deferred_graph_struct_object(
                   ),
                   tf.constant(
                       query_graph_edges["correlation_to_pred"][1], tf.int32
+                  ),
+              ),
+              {},
+          ),
+          "corr_to_op": (
+              (
+                  tf.constant(
+                      query_graph_edges["corr_to_op"][0], tf.int32
+                  ),
+                  tf.constant(
+                      query_graph_edges["corr_to_op"][1], tf.int32
                   ),
               ),
               {},

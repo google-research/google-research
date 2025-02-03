@@ -97,6 +97,7 @@ def run_queries(argv):
       dbs["metadata_dbclient"],
       dbs["metadata_dbtype"],
   )
+
   print("Create temp table: ", temp_query_run_information_table)
 
   insert_result_query_preamble = get_preamble_insert_query_result(
@@ -160,7 +161,11 @@ def run_queries_worker(
         cardinality = get_query_cardinality(dbs["data_dbtype"], queryjob)
       database_query_ids.append(job_id)
       cardinalities.append(cardinality)
-      query_strings.append(query)
+      query_to_save = query
+      if query.startswith("select count(*) as rwcnt from ("):
+        query_to_save = query.split("select count(*) as rwcnt from (")[1]
+        query_to_save = query_to_save.split(");")[0]
+      query_strings.append(query_to_save)
     except Exception as e:  # pylint: disable=broad-exception-caught
       print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> Error in query :", query, str(e))
       print(

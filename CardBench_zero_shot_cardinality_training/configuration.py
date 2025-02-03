@@ -109,7 +109,11 @@ TYPES_TO_COLLECT_STATS = {
 
 def is_type_we_dont_collect_stats(columntype):
   """We dont collect stats for these column types."""
-  if "UNKNOWN_TYPE" in columntype:
+  if "[]" in columntype:
+    return True, Datatype.ARRAY
+  elif "Enum" in columntype:
+    return True, Datatype.ENUM
+  elif "UNKNOWN_TYPE" in columntype:
     return True, Datatype.UNKNOWN_TYPE
   elif "ARRAY" in columntype:
     return True, Datatype.ARRAY

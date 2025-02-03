@@ -16,6 +16,7 @@
 """BigQuery database connector."""
 
 from typing import Any
+import uuid
 
 from google.cloud import bigquery
 
@@ -38,7 +39,7 @@ def run_query_bigquery(
     job.result(timeout=timeout)
   else:
     job.result()
-  return job, job.query_id
+  return job, str(uuid.uuid4())
 
 
 def get_query_cardinality_bigquery(queryjob):

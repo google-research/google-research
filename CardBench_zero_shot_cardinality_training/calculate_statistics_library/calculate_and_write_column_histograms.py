@@ -127,7 +127,7 @@ def calculate_and_write_column_histograms_internal(
   """Calculate column histogram."""
 
   if dbs["data_dbtype"] == DBType.BIGQUERY:
-    histograms = calculate_and_write_column_histograms_internal_bq(
+    histograms_all = calculate_and_write_column_histograms_internal_bq(
         projectname,
         datasetname,
         tablename,
@@ -138,30 +138,33 @@ def calculate_and_write_column_histograms_internal(
   else:
     raise ValueError(f"Unsupported database type: {dbs['data_dbtype']}")
 
-  insert_row_list = [
-      f"('{projectname}', '{datasetname}', '{tablename}',"
-      f" '{histogram['column_name']}', '{histogram['column_type']}',"
-      f" {histogram['quantiles']})"
-      for histogram in histograms
-  ]
-
-  columns_histogram_table_sql_string = get_sql_table_string(
-      dbs["metadata_dbtype"], columns_histogram_table
-  )
-  insert_query = (
-      f"INSERT INTO {columns_histogram_table_sql_string} (`project_name`,"
-      " `dataset_name`, `table_name`, `column_name`,`column_type`,"
-      f" `approx_quantiles_100`) VALUES {', '.join(insert_row_list)}"
-  )
-
-  try:
-    _, _ = run_query(
-        dbs["metadata_dbtype"], insert_query, dbs["metadata_dbclient"]
-    )
-  except Exception as e:  # pylint: disable=broad-exception-caught
-    print(e)
-    print(">>>>>>>>>>>>> ERROR IN QUERY :" + insert_query)
+  if not histograms_all:
     return
+
+  for histogram in histograms_all:
+    insert_row_list = [
+        f"('{projectname}', '{datasetname}', '{tablename}',"
+        f" '{histogram['column_name']}', '{histogram['column_type']}',"
+        f" {histogram['quantiles']})"
+    ]
+
+    columns_histogram_table_sql_string = get_sql_table_string(
+        dbs["metadata_dbtype"], columns_histogram_table
+    )
+    insert_query = (
+        f"INSERT INTO {columns_histogram_table_sql_string} (`project_name`,"
+        " `dataset_name`, `table_name`, `column_name`,`column_type`,"
+        f" `approx_quantiles_100`) VALUES {', '.join(insert_row_list)}"
+    )
+
+    try:
+      _, _ = run_query(
+          dbs["metadata_dbtype"], insert_query, dbs["metadata_dbclient"]
+      )
+    except Exception as e:  # pylint: disable=broad-exception-caught
+      print(e)
+      print(">>>>>>>>>>>>> ERROR IN QUERY :" + histogram["column_name"])
+      return
 
 
 def calculate_and_write_column_histograms(
@@ -209,7 +212,7 @@ def calculate_and_write_column_histograms(
           partition_column,
           partition_column_type
         )) AS columns_arr
-      FROM column_candidates_w_part_info
+      FROM (select distinct project_name, dataset_name, table_name,column_name, column_type,num_unique, is_partitioned , partition_column, partition_column_type from column_candidates_w_part_info)
       GROUP BY project_name, dataset_name, table_name, column_type
     )
     SELECT *
