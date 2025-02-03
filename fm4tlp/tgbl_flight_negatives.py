@@ -33,6 +33,7 @@ import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf
 import tqdm
+
 from fm4tlp.utils import negative_sampler
 
 

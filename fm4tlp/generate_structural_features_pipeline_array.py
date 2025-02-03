@@ -154,7 +154,10 @@ class SaveBatchStats(beam.DoFn):
     dataset_counter_prefix = f'{dataset}-{community}-{split}'
 
     # Compute features.
-    if gfile_exists(features_filename) and not self._overwrite:
+    if (
+        gfile_exists(os.path.join(batches_root, features_filename))
+        and not self._overwrite
+    ):
       beam.metrics.Metrics.counter(
           'ComputeFeatures', dataset_counter_prefix + '-features-already-exist'
       ).inc()
