@@ -29,7 +29,7 @@ The sampling is performed from an on-disk community-map file, which maps
 community IDs to the nodes in that community. The binary assumes the presence
 of the following files in _ROOT_DIR.value + 'datasets/tgbl_comment':
 
-1. tgbl-comment-edgelist.csv: the edgelist of the entire graph.
+1. tgbl-comment_edgelist.csv: the edgelist of the entire graph.
 2. tgbl_comment_node_index_map.pkl: a mapping from node ID to its index in the
    edgelist.
 3. tgbl_comment_node_community_map.pkl: a mapping from node ID to its community
@@ -150,7 +150,7 @@ def main(_):
   dataset_root = os.path.join(_ROOT_DIR.value, 'datasets/tgbl_comment')
 
   with tf.io.gfile.GFile(
-      os.path.join(dataset_root, 'tgbl-comment-edgelist.csv'), 'r'
+      os.path.join(dataset_root, 'tgbl-comment_edgelist.csv'), 'r'
   ) as f:
     tgbl_comment_edgelist = pd.read_csv(f)
   tgbl_comment_edgelist.rename(
