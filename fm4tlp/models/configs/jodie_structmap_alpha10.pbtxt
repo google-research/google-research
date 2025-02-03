@@ -1,0 +1,10 @@
+# proto-file: google_research/fm4tlp/models/model_config.proto
+# proto-message: TlpModelConfig
+model_name: "jodie_structmap_alpha10"
+model_class: "JODIE"
+memory_dimension: 100
+time_dimension: 100
+embedding_dimension: 100
+learning_rate: 0.0001
+structural_mapping_hidden_dim: 10
+alpha: 10
