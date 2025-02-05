@@ -606,7 +606,6 @@ def training_loop(
         ckptr.save(
             this_checkpoint_dir,
             payload,
-            save_args=flax.training.orbax_utils.save_args_from_target(payload),
             force=True,
         )
 
