@@ -28,7 +28,6 @@ from flax.metrics.tensorboard import SummaryWriter
 from flax.training import checkpoints
 import jax
 from jax import jit
-from jax.lib import xla_bridge
 import jax.numpy as jnp
 
 
@@ -37,8 +36,7 @@ def default_summarize(writer, step, params, key):
 
 
 def can_train_parallel():
-  return (xla_bridge.get_backend().platform == "tpu" and
-          len(xla_bridge.devices()) > 1)
+  return (jax.default_backend() == "tpu" and jax.device_count() > 1)
 
 
 def train_loop(
@@ -61,7 +59,7 @@ def train_loop(
   else:
     print(
         "Platform is %s and num devices is %d, defaulting to local training." %
-        (xla_bridge.get_backend().platform, len(xla_bridge.devices())))
+        (jax.default_backend(), jax.device_count()))
     train_fn = local_train_loop
 
   train_fn(
