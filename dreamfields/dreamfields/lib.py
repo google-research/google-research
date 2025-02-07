@@ -21,12 +21,6 @@ import os
 import time
 from typing import Optional
 
-from . import augment
-from . import helpers
-from . import log
-from . import scene
-from . import schedule
-
 from absl import logging
 from clu import metric_writers
 import flax
@@ -41,6 +35,12 @@ import numpy as onp
 from scipy import stats
 import tensorflow.io.gfile as gfile
 import tqdm
+
+from . import augment
+from . import helpers
+from . import log
+from . import scene
+from . import schedule
 
 
 class DreamField:
@@ -263,9 +263,7 @@ class DreamField:
 
     ## Replicate state.
     step_init = state.state.step
-    helpers.defragment()
     state = flax.jax_utils.replicate(state, jax.devices())
-    helpers.defragment()
 
     ## pmap'd rendering for test time evaluation.
     kwargs_test = dict(rng=None, sigma_noise_std=0.)
@@ -552,10 +550,6 @@ class DreamField:
 
       if i % config.flush_every == 0:
         writer.flush()
-
-      defrag_every = config.get('defragment_every', default=0)
-      if defrag_every and i % defrag_every == 0:
-        helpers.defragment()
 
       if config.get('checkpoint_every') and i % config.checkpoint_every == 0:
         saved_path = checkpoints.save_checkpoint(  # pytype: disable=wrong-arg-types  # dataclasses-replace

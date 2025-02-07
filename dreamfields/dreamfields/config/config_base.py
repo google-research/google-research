@@ -44,7 +44,6 @@ def get_config(iters=10000):  # pylint: disable=invalid-name
 
   # Hyperparams
   config = D(
-      defragment_every=200,  # Manually defragment memory at this interval.
 
       ## Prompt engineering.
       query_template='{query}',

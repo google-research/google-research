@@ -19,15 +19,14 @@ import functools
 import operator
 from typing import Any
 
-from . import mipnerf
-from . import scene
-
-from absl import logging
 import jax
 import jax.numpy as np
 import ml_collections
 from scenic.projects.baselines.clip import model as clip
 from scenic.projects.baselines.clip import tokenizer as clip_tokenizer
+
+from . import mipnerf
+from . import scene
 
 
 PRNGKey = Any
@@ -60,16 +59,6 @@ class RngGen:
   def split(self, num):
     self._counter += 1
     return _foldin_and_split(self._base_rng, self._counter, num)
-
-
-def defragment():
-  client = jax.lib.xla_bridge.get_backend()
-  logging.info('starting defragment...')
-  try:
-    client.defragment()
-    logging.info('finished defragment')
-  except:  # pylint: disable=bare-except
-    logging.info('defragmentation not implemented')
 
 
 def matmul(a, b):
