@@ -355,7 +355,7 @@ def _dense_fixed_point(
 
 
 # TODO(gnegiar): use binary search. Look at jnp.searchsorted.
-# https://github.com/google/jax/pull/9108/files
+# https://github.com/jax-ml/jax/pull/9108/files
 # This would greatly lower memory requirements, at the possible cost of speed.
 def _subscript(bcoo_mat, idx):
   """Returns a single element from a sparse matrix at a given index.

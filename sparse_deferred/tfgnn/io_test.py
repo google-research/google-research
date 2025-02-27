@@ -225,7 +225,7 @@ class NumpyIOTest(_BaseIOTest):
 class JaxIOTest(tf.test.TestCase):
   """Jax does not support string features, therefore a (simple) modified graph.
 
-  https://github.com/google/jax/issues/2084
+  https://github.com/jax-ml/jax/issues/2084
   """
 
   def test_graph_struct_from_graph_tensor(self):

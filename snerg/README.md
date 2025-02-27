@@ -4,7 +4,7 @@ This repository contains the public source code release for the paper
 [Baking Neural Radiance Fields for Real-Time View-Synthesis (or SNeRG)](http://nerf.live).
 This project is based on
 [JAXNeRF](https://github.com/google-research/google-research/tree/master/jaxnerf),
-which is a [JAX](https://github.com/google/jax) implementation of
+which is a [JAX](https://github.com/jax-ml/jax) implementation of
 [NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis](http://www.matthewtancik.com/nerf).
 
 This code is created and maintained by [Peter Hedman](https://phogzone.com).

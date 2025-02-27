@@ -2,7 +2,7 @@
 
 ## [Project Page](https://m-niemeyer.github.io/regnerf/) | [Paper](https://drive.google.com/file/d/1S_NnmhypZjyMfwqcHg-YbWSSYNWdqqlo/view?usp=sharing) | [Video](https://youtu.be/QyyyvA4-Kwc) | [Supplementary](https://drive.google.com/file/d/15ip8Fvfxp6rNRfBnbJEnFCjIJeFMH4CE/view?usp=sharing) | [Arxiv](https://arxiv.org/abs/2112.00724)
 
-This repository contains the code release for the CVPR 2022 project [RegNeRF: Regularizing Neural Radiance Fields for View Synthesis from Sparse Inputs](https://m-niemeyer.github.io/regnerf/). The code is written in [JAX](https://github.com/google/jax), and it is based on Google's [mip-NeRF implementation](https://github.com/google/mipnerf). Contact [Michael Niemeyer](https://m-niemeyer.github.io/) in case you have any questions. 
+This repository contains the code release for the CVPR 2022 project [RegNeRF: Regularizing Neural Radiance Fields for View Synthesis from Sparse Inputs](https://m-niemeyer.github.io/regnerf/). The code is written in [JAX](https://github.com/jax-ml/jax), and it is based on Google's [mip-NeRF implementation](https://github.com/google/mipnerf). Contact [Michael Niemeyer](https://m-niemeyer.github.io/) in case you have any questions. 
 
 ![Teaser Image](teaser.jpg)
 
@@ -54,7 +54,7 @@ Finally, install jaxlib with the appropriate CUDA version (tested with jaxlib 0.
 
 ```pip install --upgrade jaxlib==0.1.68+cuda110 -f https://storage.googleapis.com/jax-releases/jax_releases.html```
 
-Note: If you run into problems installing jax, please see [the official documentation](https://github.com/google/jax#pip-installation-gpu-cuda) for additional help.
+Note: If you run into problems installing jax, please see [the official documentation](https://github.com/jax-ml/jax#pip-installation-gpu-cuda) for additional help.
 
 ## Data
 

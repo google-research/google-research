@@ -207,7 +207,7 @@ def polynomial_learning_rate_fn(base_lr, warmup_steps, train_steps):
 [7] "JAX: composable transformations of Python+NumPy programs." James Bradbury
   and Roy Frostig and Peter Hawkins and Matthew James Johnson and Chris Leary
   and Dougal Maclaurin and George Necula and Adam Paszke and Jake VanderPlas
-  and Skye Wanderman-Milne and Qiao Zhang http://github.com/google/jax
+  and Skye Wanderman-Milne and Qiao Zhang http://github.com/jax-ml/jax
 
 [8] "Jax implementation of ResNet-50 Model for MlPerf v0.7"
   [Link to code](https://github.com/mlperf/training_results_v0.7/blob/master/Google/benchmarks/resnet/implementations/resnet-research-JAX-tpu-v3-8192/train.py)
