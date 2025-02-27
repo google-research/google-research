@@ -92,7 +92,7 @@ class _JaxEngine(sd.ComputeEngine):
     return jnp.sum(jnp.array(arrays), axis=0)
 
   def shape(self, array):
-    return jnp.shape(array)
+    return np.shape(array)
 
   def eye(self, num_rows, dtype='float32'):
     return jnp.eye(num_rows, dtype=dtype)
