@@ -612,7 +612,7 @@ class FakePairsLoader:
     }
 
   def load(self, _):
-    ds = tf.data.experimental.RandomDataset().batch(2)
+    ds = tf.data.Dataset.random().batch(2)
     ds = ds.map(self.generate_pair, num_parallel_calls=tf.data.AUTOTUNE)
     return ds
 
