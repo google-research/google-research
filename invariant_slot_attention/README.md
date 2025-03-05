@@ -15,7 +15,7 @@ Paper:
 https://arxiv.org/abs/2302.04973
 
 ## Instructions
-> ℹ️ The following instructions assume that you are using JAX on GPUs and have CUDA and CuDNN installed. For more details on how to use JAX with accelerators, including requirements and TPUs, please read the [JAX installation instructions](https://github.com/google/jax#installation).
+> ℹ️ The following instructions assume that you are using JAX on GPUs and have CUDA and CuDNN installed. For more details on how to use JAX with accelerators, including requirements and TPUs, please read the [JAX installation instructions](https://github.com/jax-ml/jax#installation).
 
 Get dependencies and run model training via
 ```sh

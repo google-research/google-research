@@ -113,7 +113,7 @@ def safe_logit(prob,
   log_false_where_big = jnp.log(forward_clip(1 - prob, minval=epsilon_near_one))
   # When prob is near 0, use log1p for extra precision (and skip this
   # branch of the computation if prob is near 1 to avoid
-  # https://github.com/google/jax/issues/1052)
+  # https://github.com/jax-ml/jax/issues/1052)
   log_false_where_small = jnp.log1p(-jnp.where(prob_is_big, 0, prob))
   log_false = jnp.where(prob_is_big, log_false_where_big, log_false_where_small)
 

@@ -5,7 +5,7 @@
 This is the official code release for the SIGGRAPH 2023 project [**MERF:
 Memory-Efficient Radiance Fields for Real-time View Synthesis in
 Unbounded Scenes**](https://creiser.github.io/merf). The code is written in
-[JAX](https://github.com/google/jax). Contact
+[JAX](https://github.com/jax-ml/jax). Contact
 [Christian Reiser](https://creiser.github.io) in case you have any questions.
 
 ![Teaser Image](teaser.jpg)

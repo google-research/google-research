@@ -3,7 +3,7 @@
 ## Overview
 
 JAX-DFT implements one-dimensional density functional theory (DFT) in
-[JAX](https://github.com/google/jax). It uses powerful JAX primitives to enable
+[JAX](https://github.com/jax-ml/jax). It uses powerful JAX primitives to enable
 JIT compilation, automatical differentiation, and high-performance computation
 on GPUs.
 
@@ -38,7 +38,7 @@ git clone https://github.com/google-research/google-research.git
 pip install -e google-research/jax_dft
 ```
 
-Please follow the installation for installation on GPU: https://github.com/google/jax#pip-installation
+Please follow the installation for installation on GPU: https://github.com/jax-ml/jax#pip-installation
 
 ## Citation
 

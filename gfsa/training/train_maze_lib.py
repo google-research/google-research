@@ -77,7 +77,7 @@ def iterative_fixed_point(
     # primals to have float0 derivatives. We would prefer them to just be
     # closed over by `fun` or fed into `nondiff_argnums`. Unfortunately that is
     # currently broken because custom_jvp can't handle batch (vmap) tracers in
-    # that case. Once https://github.com/google/jax/pull/4112 merges we should
+    # that case. Once https://github.com/jax-ml/jax/pull/4112 merges we should
     # be able to remove this.
     def int_tangents_to_float(v):
       if np.issubdtype(v.dtype, np.integer):

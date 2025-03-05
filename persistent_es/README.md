@@ -492,7 +492,7 @@ python plot_uci.py
 
 ## Tips
 
-If you encounter any out-of-memory issues, you can try setting the following environment variable (based on https://github.com/google/jax/issues/788):
+If you encounter any out-of-memory issues, you can try setting the following environment variable (based on https://github.com/jax-ml/jax/issues/788):
 ```
 export XLA_PYTHON_CLIENT_ALLOCATOR=platform
 ```

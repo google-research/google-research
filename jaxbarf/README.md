@@ -1,6 +1,6 @@
 # JaxBARF
 
-This is a [JAX](https://github.com/google/jax) implementation of [BARF: Bundle-Adjusting Neural Radiance Fields](https://arxiv.org/abs/2104.06405). A PyTorch implementation of BARF has been open-sourced by the authors [here](https://github.com/chenhsuanlin/bundle-adjusting-NeRF).
+This is a [JAX](https://github.com/jax-ml/jax) implementation of [BARF: Bundle-Adjusting Neural Radiance Fields](https://arxiv.org/abs/2104.06405). A PyTorch implementation of BARF has been open-sourced by the authors [here](https://github.com/chenhsuanlin/bundle-adjusting-NeRF).
 
 This code is built on [JaxNeRF](https://github.com/google-research/google-research/tree/master/jaxnerf) modified to match the BARF model (trainable camera poses, modified MLP, etc).
 

@@ -21,7 +21,7 @@ Install the requirements from the root fvlm directory.
 pip install -r requirements.txt
 ```
 
-For GPU training, please refer to [this github page](https://github.com/google/jax/issues/13637) for installation instructions.
+For GPU training, please refer to [this github page](https://github.com/jax-ml/jax/issues/13637) for installation instructions.
 
 ## Download the checkpoints.
 Run the following commands from the root fvlm directory. 

@@ -31,7 +31,7 @@ SMALL_LOGIT = -1e10
 
 
 def fill_diagonal(a, val):
-  "From https://github.com/google/jax/issues/2680#issuecomment-804269672"
+  "From https://github.com/jax-ml/jax/issues/2680#issuecomment-804269672"
   assert a.ndim >= 2
   i, j = jnp.diag_indices(min(a.shape[-2:]))
   return a.at[Ellipsis, i, j].set(val)

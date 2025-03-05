@@ -34,7 +34,7 @@ When using this code, please cite the paper:
 
 ## Requirements
 
-This code was developed using [JAX](https://github.com/google/jax) and
+This code was developed using [JAX](https://github.com/jax-ml/jax) and
 [FLAX](https://github.com/google/flax). It also requires the following
 packages:
 

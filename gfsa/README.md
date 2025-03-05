@@ -39,7 +39,7 @@ MDPs.
 The code in this repository is written for Python 3.6. We recommend creating
 a virtual environment and then installing the requirements in
 `requirements.txt`. You may also want to configure your JAX installation for
-GPU support; see the [JAX documentation](https://github.com/google/jax#installation)
+GPU support; see the [JAX documentation](https://github.com/jax-ml/jax#installation)
 for details.
 
 ## Structure of this repository

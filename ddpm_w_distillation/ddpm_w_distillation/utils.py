@@ -357,7 +357,7 @@ def log1mexp(x):
 # log1p(-exp(-eps)) branch has a zero divisor (1 + -jnp.exp(-eps)), and NANs in
 # the derivative of one branch of a where cause NANs in the where's vjp, even
 # when the NAN branch is not taken. See
-# https://github.com/google/jax/issues/1052. We work around this by defining a
+# https://github.com/jax-ml/jax/issues/1052. We work around this by defining a
 # custom jvp.
 log1mexp.defjvps(lambda t, _, x: t / jnp.expm1(x))
 

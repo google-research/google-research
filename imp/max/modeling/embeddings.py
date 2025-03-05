@@ -1393,7 +1393,7 @@ class RPEMask(Mask):
     """Constructs the Toeplitz matrix explicitly and uses einsum."""
 
     # blakehechtman@'s recursive roll method from
-    # https://github.com/google/jax/issues/1646#issuecomment-1139044324
+    # https://github.com/jax-ml/jax/issues/1646#issuecomment-1139044324
     # modified to work with multiple heads (matrices) at once.
     #
     # This is the fastest on TPU of all the alternatives by far. It's slightly

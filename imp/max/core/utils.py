@@ -719,7 +719,7 @@ def scatter_nd(indices,
   """JAX implementation of tf.scatter_nd.
 
   See https://www.tensorflow.org/api_docs/python/tf/scatter_nd, and
-  https://github.com/google/jax/discussions/3658.
+  https://github.com/jax-ml/jax/discussions/3658.
 
   Notes:
   - If multiple indices point to the same position, the output value at this

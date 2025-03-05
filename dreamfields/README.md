@@ -40,7 +40,7 @@ python -m venv env
 source env/bin/activate
 ```
 
-Install JAX with GPU or TPU support following [the JAX docs](https://github.com/google/jax#installation), depending on the accelerator you have available.
+Install JAX with GPU or TPU support following [the JAX docs](https://github.com/jax-ml/jax#installation), depending on the accelerator you have available.
 For example, for CUDA 11.1:
 ```
 pip install --upgrade pip

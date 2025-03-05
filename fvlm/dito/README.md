@@ -20,7 +20,7 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-For GPU training, please refer to [this github page](https://github.com/google/jax/issues/13637) for installation instructions.
+For GPU training, please refer to [this github page](https://github.com/jax-ml/jax/issues/13637) for installation instructions.
 
 
 ## Download the DITO checkpoint and precomputed text embeddings.

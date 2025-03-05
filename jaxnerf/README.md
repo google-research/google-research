@@ -1,6 +1,6 @@
 # JaxNeRF
 
-This is a [JAX](https://github.com/google/jax) implementation of
+This is a [JAX](https://github.com/jax-ml/jax) implementation of
 [NeRF: Representing Scenes as Neural Radiance Fields for View Synthesis](http://www.matthewtancik.com/nerf).
 This code is created and maintained by
 [Boyang Deng](https://boyangdeng.com/),
@@ -201,5 +201,5 @@ We'd like to thank
 [Dan Gnanapragasam](https://research.google/people/DanGnanapragasam/),
 and [James Bradbury](https://twitter.com/jekbradbury)
 for their help on reviewing and optimizing this code.
-We'd like to also thank the amazing [JAX](https://github.com/google/jax) team for
+We'd like to also thank the amazing [JAX](https://github.com/jax-ml/jax) team for
 very insightful and helpful discussions on how to use JAX for NeRF.

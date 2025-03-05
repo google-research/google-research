@@ -2,7 +2,7 @@
 
 *This is not an officially supported Google product.*
 
-This repository contains [JAX](https://github.com/google/jax) code for two papers: [Zip-NeRF](https://jonbarron.info/zipnerf/) and [CamP](https://camp-nerf.github.io/).  This is research code, and should be treated accordingly.
+This repository contains [JAX](https://github.com/jax-ml/jax) code for two papers: [Zip-NeRF](https://jonbarron.info/zipnerf/) and [CamP](https://camp-nerf.github.io/).  This is research code, and should be treated accordingly.
 
 ## Setup
 

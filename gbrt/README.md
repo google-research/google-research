@@ -21,7 +21,7 @@ done in a single run of `simple_decode`.
 
 # Setup
 Use python3.10.
-Modify requirements.txt to install the correct version of JAX and TF depending on your hardware. See https://github.com/google/jax#installation for details.
+Modify requirements.txt to install the correct version of JAX and TF depending on your hardware. See https://github.com/jax-ml/jax#installation for details.
 Install from requirements.txt as described in https://pip.pypa.io/en/stable/cli/pip_freeze/#examples
 
 At this point you should be able to run the code by following the steps in the Running section, but the output will be meaningless since the model is randomly initialized.

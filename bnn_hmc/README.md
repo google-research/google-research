@@ -62,7 +62,7 @@ pip install tensorflow_datasets
 pip install tabulate
 pip install optax
 ```
-Please see the [_JAX repo_](https://github.com/google/jax) for the latest
+Please see the [_JAX repo_](https://github.com/jax-ml/jax) for the latest
 instructions on how to install JAX on your hardware.
 
 ## File Structure
