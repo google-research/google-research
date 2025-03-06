@@ -40,7 +40,7 @@ setup(
     author="Yu-Han Liu",
     author_email="yuhanliu@google.com",
     install_requires=[
-        "scikit-learn==0.19.2",
+        "scikit-learn==1.5.0",
         "tensorflow-datasets==2.1.0",
         "tensorflow-gpu==2.1.0",
         "matplotlib==2.2.4",
