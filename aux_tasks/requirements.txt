@@ -26,7 +26,7 @@ google-auth==2.6.6
 google-auth-oauthlib==0.4.6
 google-pasta==0.2.0
 googleapis-common-protos==1.56.2
-grpcio==1.46.3
+grpcio==1.53.0
 gym==0.24.0
 gym-minigrid==1.0.3
 gym-notices==0.0.6
