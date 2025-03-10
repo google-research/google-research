@@ -1,6 +1,10 @@
-# [WIP] SYMBIOSIS: Systems Thinking and Machine Intelligence for Better Outcomes in Society
+# SYMBIOSIS: Systems Thinking and Machine Intelligence for Better Outcomes in Society
 
-This repository contains the code for an upcoming paper. TODO: Add link to pre-print paper once released on Arxiv.
+This repository contains the code for an upcoming paper. You can read more about
+the paper at:
+https://research.google/pubs/symbiosis-systems-thinking-and-machine-intelligence-for-better-outcomes-in-society/
+
+Preprint PDF of the paper is available at: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5171971
 
 ## Installation
 
