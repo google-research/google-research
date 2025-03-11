@@ -4,7 +4,7 @@ This repository contains the code for an upcoming paper. You can read more about
 the paper at:
 https://research.google/pubs/symbiosis-systems-thinking-and-machine-intelligence-for-better-outcomes-in-society/
 
-Preprint PDF of the paper is available at: https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5171971
+Preprint PDF of the paper is available at: https://arxiv.org/abs/2503.05857.
 
 ## Installation
 
