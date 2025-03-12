@@ -1061,11 +1061,11 @@ Status GmmUtils::RecomputeCentroidsSimple(
         (top1_results.size() + kParallelAggregate - 1) / kParallelAggregate;
     ParallelFor<1>(
         Seq(kParallelAggregate), impl->GetThreadPool(), [&](size_t thread_id) {
-          size_t db_slice_satrt = thread_id * db_slice_size;
+          size_t db_slice_start = thread_id * db_slice_size;
           size_t db_slice_end =
               std::min((thread_id + 1) * db_slice_size, top1_results.size());
           Datapoint<FloatT> storage;
-          for (auto i = db_slice_satrt; i < db_slice_end; ++i) {
+          for (auto i = db_slice_start; i < db_slice_end; ++i) {
             size_t cluster_idx = top1_results[i].first;
             size_t tmp_centroid_idx = thread_id * num_centroids + cluster_idx;
             QCHECK_LT(tmp_centroid_idx, tmp_centroids.size());
