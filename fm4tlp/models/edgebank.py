@@ -16,6 +16,7 @@
 """TGN (Temporal Graph Network) model."""
 
 import json
+from typing import Sequence
 
 import tensorflow.compat.v1 as tf
 import torch
@@ -38,23 +39,24 @@ class EdgeBank(model_template.TlpModel):
 
   def __init__(
       self,
+      *,
       model_config,
       total_num_nodes,
       raw_message_size,
       device,
       structural_feature_dim = 0,
-      structural_feature_mean = list(),
-      structural_feature_std = list(),
+      structural_feature_mean = (),
+      structural_feature_std = (),
   ):  # pylint: disable=useless-super-delegation
     """Initializes the model."""
     super().__init__(
-        model_config,
-        total_num_nodes,
-        raw_message_size,
-        device,
-        structural_feature_dim,
-        structural_feature_mean,
-        structural_feature_std,
+        model_config=model_config,
+        total_num_nodes=total_num_nodes,
+        raw_message_size=raw_message_size,
+        device=device,
+        structural_feature_dim=structural_feature_dim,
+        structural_feature_mean=structural_feature_mean,
+        structural_feature_std=structural_feature_std,
     )
 
   def save_model(self, model_path):

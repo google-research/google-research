@@ -328,10 +328,10 @@ def main(_):
   model: model_template.TlpModel = getattr(
       all_models, model_config.model_class
   )(
-      model_config,
-      total_nodes,
-      train_data.msg.size(-1),
-      device,
+      model_config=model_config,
+      total_num_nodes=total_nodes,
+      raw_message_size=train_data.msg.size(-1),
+      device=device,
       structural_feature_dim=train_feature_dim,
       structural_feature_mean=train_feature_mean,
       structural_feature_std=train_feature_std,
@@ -379,7 +379,7 @@ def main(_):
       tolerance=_TOLERANCE.value,
       patience=_PATIENCE.value,
   )
-  print(f'INFO: done setting up early stopping.')
+  print('INFO: done setting up early stopping.')
 
   # ==================================================== Train & Validation
   # loading the validation negative samples
@@ -407,7 +407,7 @@ def main(_):
         f' {timeit.default_timer() - start_epoch_train: .4f}'
     )
 
-    print(f'INFO: Starting validation.')
+    print('INFO: Starting validation.')
     # validation
     start_val = timeit.default_timer()
 
@@ -434,7 +434,7 @@ def main(_):
           structural_feats_list=structural_feats_list,
           structural_features=val_structural_features,
       )
-      print(f'INFO: Warmstart done.')
+      print('INFO: Warmstart done.')
       warmstart_loss = pd.DataFrame()
       warmstart_loss['loss'] = warmstart_performance_lists.loss
       warmstart_loss['model_loss'] = warmstart_performance_lists.model_loss

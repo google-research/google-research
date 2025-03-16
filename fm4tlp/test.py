@@ -276,10 +276,10 @@ def main(_):
   model: model_template.TlpModel = getattr(
       all_models, model_config.model_class
   )(
-      model_config,
-      total_nodes,
-      test_data.msg.size(-1),
-      device,
+      model_config=model_config,
+      total_num_nodes=total_nodes,
+      raw_message_size=test_data.msg.size(-1),
+      device=device,
       structural_feature_dim=test_feature_dim,
   )
 

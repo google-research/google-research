@@ -169,10 +169,10 @@ def main(_):
   model: model_template.TlpModel = getattr(
       all_models, model_config.model_class
   )(
-      model_config,
-      total_nodes,
-      train_data.msg.size(-1),
-      device,
+      model_config=model_config,
+      total_num_nodes=total_nodes,
+      raw_message_size=train_data.msg.size(-1),
+      device=device,
   )
 
   model_name = '_'.join(

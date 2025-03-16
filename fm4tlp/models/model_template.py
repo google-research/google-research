@@ -17,6 +17,7 @@
 
 import abc
 import dataclasses
+from typing import Sequence
 
 import torch
 from torch_geometric import data as torch_geo_data
@@ -36,13 +37,14 @@ class TlpModel(abc.ABC):
 
   def __init__(
       self,
+      *,
       model_config,
       total_num_nodes,
       raw_message_size,
       device,
       structural_feature_dim = 0,
-      structural_feature_mean = list(),
-      structural_feature_std = list(),
+      structural_feature_mean = (),
+      structural_feature_std = (),
   ):
     """Initializes the model."""
     self._config = model_config
