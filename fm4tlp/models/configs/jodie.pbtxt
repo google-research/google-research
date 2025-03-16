@@ -5,4 +5,3 @@ model_class: "JODIE"
 memory_dimension: 100
 time_dimension: 100
 embedding_dimension: 100
-learning_rate: 0.0001

@@ -173,6 +173,7 @@ def main(_):
       total_num_nodes=total_nodes,
       raw_message_size=train_data.msg.size(-1),
       device=device,
+      learning_rate=0,
   )
 
   model_name = '_'.join(

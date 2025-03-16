@@ -175,6 +175,8 @@ _NUM_WORKERS = flags.DEFINE_integer(
     'num_workers', 64, 'Number of workers to use for parallel processing.'
 )
 
+_LEARNING_RATE = flags.DEFINE_float('learning_rate', 1e-4, 'Learning rate.')
+
 _STRUCTURAL_FEATURE_FILE_TAG = flags.DEFINE_string(
     'structural_feature_file_tag',
     '',
@@ -332,6 +334,7 @@ def main(_):
       total_num_nodes=total_nodes,
       raw_message_size=train_data.msg.size(-1),
       device=device,
+      learning_rate=_LEARNING_RATE.value,
       structural_feature_dim=train_feature_dim,
       structural_feature_mean=train_feature_mean,
       structural_feature_std=train_feature_std,

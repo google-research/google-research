@@ -42,6 +42,7 @@ class TlpModel(abc.ABC):
       total_num_nodes,
       raw_message_size,
       device,
+      learning_rate,
       structural_feature_dim = 0,
       structural_feature_mean = (),
       structural_feature_std = (),
@@ -51,6 +52,7 @@ class TlpModel(abc.ABC):
     self._raw_message_size = raw_message_size
     self._total_num_nodes = total_num_nodes
     self._device = device
+    self._learning_rate = learning_rate
     self._structural_feature_dim = structural_feature_dim
     self._initialize_model()
     self._structural_feature_mean = structural_feature_mean

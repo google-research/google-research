@@ -23,10 +23,11 @@ message TlpModelConfig {
   optional string model_class = 2;
 
   // Neural model parameters.
+  // TODO: Turn these parameters into hyperparameters.
   optional int32 memory_dimension = 3;
   optional int32 time_dimension = 4;
   optional int32 embedding_dimension = 5;
-  optional float learning_rate = 6;
+  optional float learning_rate = 6 [deprecated = true];
   optional int32 structural_mapping_hidden_dim = 7;
   optional float alpha = 8;
 }

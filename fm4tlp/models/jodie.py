@@ -42,6 +42,7 @@ class JODIE(model_template.TlpModel):
       total_num_nodes,
       raw_message_size,
       device,
+      learning_rate,
       structural_feature_dim = 0,
       structural_feature_mean = (),
       structural_feature_std = (),
@@ -52,6 +53,7 @@ class JODIE(model_template.TlpModel):
         total_num_nodes=total_num_nodes,
         raw_message_size=raw_message_size,
         device=device,
+        learning_rate=learning_rate,
         structural_feature_dim=structural_feature_dim,
         structural_feature_mean=structural_feature_mean,
         structural_feature_std=structural_feature_std,
@@ -125,7 +127,7 @@ class JODIE(model_template.TlpModel):
         set(self._memory.parameters())
         | set(self._gnn.parameters())
         | set(self._link_pred.parameters()),
-        lr=self._config.learning_rate,
+        lr=self._learning_rate,
     )
 
     self._criterion = torch.nn.BCEWithLogitsLoss()
