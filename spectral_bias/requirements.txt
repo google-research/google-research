@@ -17,7 +17,7 @@ importlib-resources==5.4.0
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.2
 Markdown==3.3.6
-numpy==1.21.4
+numpy==1.22.0
 opt-einsum==3.3.0
 Pillow==8.4.0
 promise==2.3
