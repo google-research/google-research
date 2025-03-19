@@ -7,7 +7,7 @@ Example usage
 ---
 First, make sure you have the requirements `numpy`, `scipy`, `tensorflow 2`. You can always install them with `pip`: `pip3 install -r graph_embedding/dmon/requirements.txt`.
 
-Then, to reproduce the paper results on the [Cora graph](https://relational.fit.cvut.cz/dataset/CORA), run
+Then, to reproduce the paper results on the [Cora graph](https://relational.fel.cvut.cz/dataset/CORA), run
 
 ```python
 # From google-research/
