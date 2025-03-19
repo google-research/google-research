@@ -159,7 +159,7 @@ class FittedAgent(MovieLensAgent):
     if self._binary_outcome:
       model = pipeline.make_pipeline(
           preprocessing.StandardScaler(),
-          linear_model.LogisticRegression(penalty='none', max_iter=1000))
+          linear_model.LogisticRegression(penalty=None, max_iter=1000))
     else:
       model = pipeline.make_pipeline(preprocessing.StandardScaler(),
                                      linear_model.LinearRegression())

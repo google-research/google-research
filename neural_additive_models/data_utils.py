@@ -373,7 +373,10 @@ def transform_data(df):
       ]
     else:
       new_column_names.append(col_name)
-  cat_ohe_step = ('ohe', OneHotEncoder(sparse=False, handle_unknown='ignore'))
+  cat_ohe_step = (
+      'ohe',
+      OneHotEncoder(sparse_output=False, handle_unknown='ignore'),
+  )
 
   cat_pipe = Pipeline([cat_ohe_step])
   num_pipe = Pipeline([('identity', FunctionTransformer(validate=True))])

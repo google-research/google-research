@@ -44,7 +44,7 @@ class TrainProxyTest(absltest.TestCase):
     }
 
   def test_match_sklearn(self):
-    clf_sklearn = linear_model.LogisticRegression(penalty='none')
+    clf_sklearn = linear_model.LogisticRegression(penalty=None)
     clf_sklearn.fit(self.data_x, self.data_y)
 
     self.assertAlmostEqual(clf_sklearn.intercept_[0], -0.0271, places=3)
