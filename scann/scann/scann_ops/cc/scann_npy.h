@@ -70,6 +70,9 @@ class ScannNumpy {
 
   string Config();
 
+  pybind11::dict GetHealthStats() const;
+  void InitializeHealthStats();
+
  private:
   ScannInterface scann_;
 };

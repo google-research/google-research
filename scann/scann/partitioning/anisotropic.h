@@ -18,28 +18,37 @@
 #include <utility>
 
 #include "Eigen/Dense"
+#include "gtest/gtest_prod.h"
 #include "scann/utils/common.h"
 #include "scann/utils/linear_algebra/types.h"
 
 namespace research_scann {
 
-struct AccumulatedAVQData {
-  EMatrixXf xtx;
+class AvqAccumulator {
+ public:
+  AvqAccumulator(size_t dimensionality, float eta);
 
-  EVectorXf norm_weighted_dp_sum;
+  AvqAccumulator& AddVectors(ConstSpan<float> vecs);
 
-  float dp_norm_sum;
+  EVectorXf GetCenter();
 
-  float eta;
+ private:
+  const size_t dimensionality_;
+  const float eta_;
+
+  EMatrixXf xtx_matrix_;
+
+  EVectorXf weighted_vector_sum_;
+
+  float total_weight_;
+
+  FRIEND_TEST(AVQTest, TestReduction);
 };
 
-AccumulatedAVQData ReducePartition(ConstSpan<float> partition,
-                                   size_t dimensionality, float eta);
-
-EVectorXf ComputeAVQPartition(const AccumulatedAVQData& avq_data);
-
-EVectorXf ComputeAVQPartition(ConstSpan<float> partition, size_t dimensionality,
-                              float eta);
+inline EVectorXf ComputeAVQPartition(ConstSpan<float> partition,
+                                     size_t dimensionality, float eta) {
+  return AvqAccumulator(dimensionality, eta).AddVectors(partition).GetCenter();
+}
 
 std::pair<double, double> ComputeRescaleFraction(
     ConstSpan<float> partition_center, ConstSpan<float> partition_data);

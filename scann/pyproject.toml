@@ -1,0 +1,49 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scann"
+version = "1.4.0"
+authors = [
+  { name = "Google Inc.", email = "opensource@google.com" },
+]
+description = "Scalable Nearest Neighbor search library"
+readme = "README.md"
+requires-python = ">=3.9,<3.13"
+license = { text = "Apache 2.0" }
+keywords = ["machine learning"]
+classifiers = [
+    "Intended Audience :: Developers",
+    "Intended Audience :: Education",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Mathematics",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Software Development :: Libraries",
+]
+dependencies = [
+  "numpy~=2.0",
+  "protobuf",
+]
+
+[project.urls]
+Homepage = "https://github.com/google-research/google-research/tree/master/scann"
+
+[project.optional-dependencies]
+tf = ["tensorflow~=2.19.0"]
+
+[tool.setuptools]
+packages = { find = {} }
+include-package-data = true
+
+[tool.setuptools.package-data]
+"*" = ["*.so"]

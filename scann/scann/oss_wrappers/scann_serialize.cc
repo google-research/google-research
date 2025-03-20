@@ -15,6 +15,7 @@
 #include "scann/oss_wrappers/scann_serialize.h"
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 
 #include "absl/base/casts.h"

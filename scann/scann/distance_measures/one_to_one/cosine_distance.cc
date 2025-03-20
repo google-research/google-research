@@ -14,6 +14,8 @@
 
 #include "scann/distance_measures/one_to_one/cosine_distance.h"
 
+#include <cmath>
+#include <cstddef>
 #include <cstdint>
 
 #include "absl/log/check.h"

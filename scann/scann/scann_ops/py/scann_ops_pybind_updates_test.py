@@ -280,6 +280,40 @@ class ScannTest(parameterized.TestCase):
       s1.rebalance()
       self.verify_accuracy(s, s1, bf, test, lambda x: x)
 
+  def test_online_incremental_stats(self):
+    dim = 128
+    intrinsic_dim = 24
+    n = 100_000
+    k = 10
+    np.random.seed(42)
+    proj = self.rand(intrinsic_dim, dim)
+    train = self.normalize(
+        (self.rand(n, intrinsic_dim) @ proj).astype(np.float32))
+    docids = [str(i) for i in range(n)]
+
+    s0 = (
+        scann_ops_pybind.builder(train[::2], k, "dot_product").autopilot(
+            mode=scann_builder.IncrementalMode.ONLINE_INCREMENTAL).build(
+                docids=docids[::2]))
+    s0.initialize_health_stats()
+
+    # Add only
+    s0.upsert(docids, train)
+    stats = s0.get_health_stats()
+    # Recompute from scratch.
+    s0.initialize_health_stats()
+    check_stats = s0.get_health_stats()
+    self.assertEqual(n, stats["sum_partition_sizes"])
+    self.assertEqual(n, check_stats["sum_partition_sizes"])
+    self.assertAlmostEqual(
+        check_stats["partition_avg_relative_imbalance"],
+        stats["partition_avg_relative_imbalance"],
+    )
+    self.assertAlmostEqual(
+        check_stats["partition_avg_relative_imbalance"],
+        stats["partition_avg_relative_imbalance"],
+    )
+
   def test_online_incremental_batched(self):
     dim = 128
     intrinsic_dim = 24

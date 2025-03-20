@@ -42,6 +42,7 @@
 #include "scann/partitioning/kmeans_tree_partitioner.h"
 #include "scann/partitioning/partitioner_base.h"
 #include "scann/partitioning/partitioner_factory.h"
+#include "scann/partitioning/partitioner_factory_base.h"
 #include "scann/partitioning/projecting_decorator.h"
 #include "scann/partitioning/tree_brute_force_second_level_wrapper.h"
 #include "scann/proto/brute_force.pb.h"
@@ -556,6 +557,8 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
                                partitioner->TokenizeDatabase(
                                    *dataset, opts->parallelization_pool.get()));
       }
+      SCANN_RETURN_IF_ERROR(
+          MaybeAddTopLevelPartitioner(partitioner, config.partitioning()));
       SCANN_ASSIGN_OR_RETURN(
           auto result,
           PretrainedTreeSQFactoryFromAssets(config, params, datapoints_by_token,

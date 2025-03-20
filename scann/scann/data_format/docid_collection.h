@@ -18,19 +18,19 @@
 #define SCANN_DATA_FORMAT_DOCID_COLLECTION_H_
 
 #include <cstdint>
+#include <optional>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "absl/container/flat_hash_map.h"
-#include "absl/strings/string_view.h"
+#include "absl/log/check.h"
 #include "scann/data_format/docid_collection_interface.h"
-#include "scann/data_format/internal/short_string_optimized_string.h"
 #include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
-#include "scann/utils/util_functions.h"
 
 namespace research_scann {
 
@@ -70,6 +70,20 @@ class VariableLengthDocidCollection final : public DocidCollectionInterface {
   string_view Get(size_t i) const final {
     DCHECK_LT(i, size_);
     return (all_empty()) ? "" : impl_->Get(i);
+  }
+
+  void MultiGet(size_t num_docids, DpIdxGetter docid_idx_getter,
+                StringSetter docid_setter) const final {
+    if (!all_empty()) {
+      impl_->MultiGet(num_docids, std::move(docid_idx_getter),
+                      std::move(docid_setter));
+    } else {
+      for (size_t i = 0; i < num_docids; ++i) {
+        DatapointIndex idx = docid_idx_getter(i);
+        DCHECK_LT(idx, size_);
+        docid_setter(idx, "");
+      }
+    }
   }
 
   size_t capacity() const final { return impl_ ? impl_->capacity() : 0; }
@@ -145,6 +159,8 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
 
   size_t size() const final { return size_; }
   bool empty() const final { return size_ == 0; }
+  std::optional<size_t> fixed_len_size() const final { return docid_length_; }
+
   void ShrinkToFit() final { arr_.shrink_to_fit(); }
 
   unique_ptr<DocidCollectionInterface> Copy() const final {
@@ -162,6 +178,9 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
     DCHECK_LT(i, size_);
     return string_view(&arr_[i * docid_length_], docid_length_);
   }
+
+  void MultiGet(size_t num_docids, DpIdxGetter docid_idx_getter,
+                StringSetter docid_setter) const final;
 
   size_t capacity() const final { return arr_.capacity() / docid_length_; }
 

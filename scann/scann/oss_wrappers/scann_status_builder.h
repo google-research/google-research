@@ -17,6 +17,7 @@
 
 #include <memory>
 #include <sstream>
+#include <utility>
 
 #include "absl/base/attributes.h"
 #include "absl/memory/memory.h"

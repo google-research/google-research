@@ -274,7 +274,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx1(
     return x[0] + x[1];
   };
 
-  ParallelFor<8>(Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX1 {
+  ParallelFor<32>(Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX1 {
     const float* f0 = get_db_ptr(i);
     const float* f1 = get_db_ptr(i + num_outer_iters);
     const float* f2 = get_db_ptr(i + 2 * num_outer_iters);
@@ -406,7 +406,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternalAvx2(
     return x[0] + x[1];
   };
 
-  ParallelFor<8>(Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX2 {
+  ParallelFor<32>(Seq(num_outer_iters), pool, [&](size_t i) SCANN_AVX2 {
     const float* f0 = get_db_ptr(i);
     const float* f1 = get_db_ptr(i + num_outer_iters);
     const float* f2 = get_db_ptr(i + 2 * num_outer_iters);
@@ -536,7 +536,7 @@ void DenseGeneralHammingDistanceMeasureOneToManyInternal(
     return _mm_cvtsi128_si32(x);
   };
 
-  ParallelFor<8>(
+  ParallelFor<32>(
       Seq(num_outer_iters), pool, [&](size_t i) ABSL_ATTRIBUTE_ALWAYS_INLINE {
         const T* i0 = get_db_ptr(i);
         const T* i1 = get_db_ptr(i + num_outer_iters);
@@ -725,7 +725,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
   using D2 = hn::ScalableTag<float, -1>;
   const D2 d2;
 
-  ParallelFor<8>(
+  ParallelFor<32>(
       Seq(num_outer_iters), pool, [&](size_t i) ABSL_ATTRIBUTE_ALWAYS_INLINE {
         const float* f0 = get_db_ptr(i);
         const float* f1 = get_db_ptr(i + num_outer_iters);
@@ -832,7 +832,7 @@ DenseAccumulatingDistanceMeasureOneToManyInternal(
   using D = hn::ScalableTag<double>;
   const D d;
 
-  ParallelFor<8>(
+  ParallelFor<32>(
       Seq(num_outer_iters), pool, [&](size_t i) ABSL_ATTRIBUTE_ALWAYS_INLINE {
         const double* f0 = get_db_ptr(i);
         const double* f1 = get_db_ptr(i + num_outer_iters);

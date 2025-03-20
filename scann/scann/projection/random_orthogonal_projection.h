@@ -14,39 +14,31 @@
 
 
 
-#ifndef SCANN_PROJECTION_PCA_PROJECTION_H_
-#define SCANN_PROJECTION_PCA_PROJECTION_H_
+#ifndef SCANN_PROJECTION_RANDOM_ORTHOGONAL_PROJECTION_H_
+#define SCANN_PROJECTION_RANDOM_ORTHOGONAL_PROJECTION_H_
 
 #include <cstdint>
+#include <memory>
 
 #include "scann/data_format/datapoint.h"
-#include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_random.h"
 #include "scann/projection/projection_base.h"
-#include "scann/proto/projection.pb.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
 
 template <typename T>
-class PcaProjection : public Projection<T> {
+class RandomOrthogonalProjection : public Projection<T> {
  public:
-  PcaProjection(const int32_t input_dims, const int32_t projected_dims);
+  RandomOrthogonalProjection(const int32_t input_dims,
+                             const int32_t projected_dims, const int32_t seed);
 
-  void Create(const Dataset& data, bool build_covariance,
-              ThreadPool* parallelization_pool = nullptr);
+  void Create();
 
-  void Create(const Dataset& data, float pca_significance_threshold,
-              float pca_truncation_threshold, bool build_covariance = true,
-              ThreadPool* parallelization_pool = nullptr);
-
-  void Create(DenseDataset<float> eigenvectors);
-
-  Status Create(const SerializedProjection& serialized_projection);
-
-  void RandomRotateProjectionMatrix();
-
-  StatusOr<shared_ptr<const TypedDataset<float>>> GetDirections()
-      const override;
+  StatusOr<shared_ptr<const TypedDataset<float>>> GetDirections() const final {
+    return std::dynamic_pointer_cast<const TypedDataset<float>>(
+        random_rotation_matrix_);
+  }
 
   Status ProjectInput(const DatapointPtr<T>& input,
                       Datapoint<float>* projected) const override;
@@ -55,8 +47,6 @@ class PcaProjection : public Projection<T> {
 
   int32_t projected_dimensionality() const override { return projected_dims_; }
 
-  std::optional<SerializedProjection> SerializeToProto() const final;
-
  private:
   template <typename FloatT>
   Status ProjectInputImpl(const DatapointPtr<T>& input,
@@ -64,10 +54,12 @@ class PcaProjection : public Projection<T> {
 
   int32_t input_dims_;
   int32_t projected_dims_;
-  shared_ptr<const DenseDataset<float>> pca_vecs_;
+  unique_ptr<MTRandom> random_;
+  int32_t seed_;
+  shared_ptr<const DenseDataset<float>> random_rotation_matrix_;
 };
 
-SCANN_INSTANTIATE_TYPED_CLASS(extern, PcaProjection);
+SCANN_INSTANTIATE_TYPED_CLASS(extern, RandomOrthogonalProjection);
 
 }  // namespace research_scann
 

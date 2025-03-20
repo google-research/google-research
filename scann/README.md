@@ -59,35 +59,43 @@ requires `libstdc++` version 3.4.23 or above from the operating system. See
 to find your system's `libstdc++` version; it can generally be upgraded by
 installing a newer version of `g++`.
 
-### TensorFlow dependency
+### Using ScaNN with TensorFlow
 
-ScaNN can function without TensorFlow, but for backwards compatibility reasons,
-ScaNN by default imports the ScaNN TensorFlow ops, so it's still registered as
-having a hard dependency on TensorFlow. You can use
-`pip install --no-deps scann` to avoid installing the large TensorFlow
-dependency if you're not interested in using ScaNN's TensorFlow bindings
-(`scann.scann_ops`). (For users not already in the TensorFlow ecosystem, the
-native Python bindings in `scann.scann_ops_pybind` are a better fit.)
+ScaNN has optional TensorFlow op bindings that allow ScaNN's nearest neighbor
+search functionality to be embedded into a TensorFlow SavedModel. **As of
+ScaNN 1.4.0, this functionality is no longer enabled by default, and `pip
+install scann[tf]` is now needed to enable the TensorFlow integration.**
 
-### Integration with TensorFlow Serving
+If `scann[tf]` is installed, the TensorFlow ops can be accessed via
+`scann.scann_ops`, and the API is almost identical to `scann.scann_ops_pybind`.
+For users not already in the TensorFlow ecosystem, the native Python bindings
+in `scann.scann_ops_pybind` are a better fit, which is why the TensorFlow ops
+are an optional extra.
+
+#### Integration with TensorFlow Serving
 
 We provide custom Docker images of
 [TF Serving](https://github.com/tensorflow/serving) that are linked to the ScaNN
 TF ops. See the [`tf_serving` directory](tf_serving/README.md) for further
 information.
 
+## Usage
+
+See the example in [docs/example.ipynb](docs/example.ipynb). For a more in-depth
+explanation of ScaNN techniques, see [docs/algorithms.md](docs/algorithms.md).
+
 ## Building from source
 
 To build ScaNN from source, first install the build tool
-[bazel](https://bazel.build) (use version 7.x), Clang 17, and libstdc++ headers
+[bazel](https://bazel.build) (use version 7.x), Clang 18, and libstdc++ headers
 for C++17 (which are provided with GCC 9). Additionally, ScaNN requires a modern
-version of Python (3.9.x or later) and Tensorflow 2.18 installed on that version
+version of Python (3.9.x or later) and Tensorflow 2.19 installed on that version
 of Python. Once these prerequisites are satisfied, run the following command in
 the root directory of the repository:
 
 ```
 python configure.py
-CC=clang-17 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+CC=clang-18 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 
@@ -96,14 +104,9 @@ the compile flags are slightly modified:
 
 ```
 python configure.py
-CC=clang-17 bazel build -c opt --features=thin_lto --copt=-march=armv8-a+simd --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+CC=clang-18 bazel build -c opt --features=thin_lto --copt=-march=armv8-a+simd --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 
 A .whl file should appear in the root of the repository upon successful
 completion of these commands. This .whl can be installed via pip.
-
-## Usage
-
-See the example in [docs/example.ipynb](docs/example.ipynb). For a more in-depth
-explanation of ScaNN techniques, see [docs/algorithms.md](docs/algorithms.md).

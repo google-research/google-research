@@ -398,7 +398,8 @@ Status Indexer<T>::Reconstruct(absl::string_view input,
 
 template <typename T>
 DimensionIndex Indexer<T>::hash_space_dimension() const {
-  DCHECK_EQ(model_->centers().size(), projector_->num_blocks());
+  DCHECK_EQ(model_->centers().size(), projector_->num_blocks())
+      << model_->ToProto();
   switch (model_->quantization_scheme()) {
     case AsymmetricHasherConfig::PRODUCT:
       return model_->centers().size();

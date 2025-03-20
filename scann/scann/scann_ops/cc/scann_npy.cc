@@ -23,6 +23,7 @@
 #include <vector>
 
 #include "pybind11/gil.h"
+#include "pybind11/pytypes.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
@@ -254,6 +255,23 @@ void ScannNumpy::Serialize(std::string path, bool relative_path) {
   RuntimeErrorIfNotOk("Failed to write ScannAssets proto: ",
                       OpenSourceableFileWriter(path + "/scann_assets.pbtxt")
                           .Write(assets_or_text));
+}
+
+pybind11::dict ScannNumpy::GetHealthStats() const {
+  auto r = scann_.GetHealthStats();
+  RuntimeErrorIfNotOk("Error getting health stats: ", r.status());
+
+  using namespace pybind11::literals;
+
+  return pybind11::dict("avg_quantization_error"_a = r->avg_quantization_error,
+                        "partition_avg_relative_imbalance"_a =
+                            r->partition_avg_relative_imbalance,
+                        "sum_partition_sizes"_a = r->sum_partition_sizes);
+}
+
+void ScannNumpy::InitializeHealthStats() {
+  Status status = scann_.InitializeHealthStats();
+  RuntimeErrorIfNotOk("Error initializing health stats: ", status);
 }
 
 }  // namespace research_scann

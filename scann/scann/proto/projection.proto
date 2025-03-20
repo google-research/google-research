@@ -67,6 +67,8 @@ message ProjectionConfig {
 
   optional float pca_truncation_threshold = 14 [default = inf];
 
+  optional bool pca_random_rotate_projection_matrix = 15 [default = false];
+
   optional RandomBilinearConfig random_bilinear_config = 10;
 
   optional CkmeansConfig ckmeans_config = 11;

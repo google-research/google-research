@@ -26,6 +26,8 @@
 #include <typeinfo>
 #include <utility>
 
+#include "absl/base/nullability.h"
+#include "absl/base/prefetch.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/strings/match.h"
@@ -35,7 +37,6 @@
 #include "scann/brute_force/brute_force.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/docid_collection_interface.h"
-#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_status.h"
@@ -43,6 +44,7 @@
 #include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/fast_top_neighbors.h"
+#include "scann/utils/multi_stage_batch_pipeline.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 #include "scann/utils/zip_sort.h"
@@ -496,6 +498,7 @@ Status SingleMachineSearcherBase<T>::GetNeighborProto(
     pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
     NearestNeighbors::Neighbor* result) const {
   SCANN_RETURN_IF_ERROR(GetNeighborProtoNoMetadata(neighbor, query, result));
+
   if (!metadata_enabled()) return OkStatus();
 
   Status status = metadata_getter()->GetMetadata(

@@ -112,6 +112,7 @@ class ScannInterface {
 
   using ScannHealthStats = SingleMachineSearcherBase<float>::HealthStats;
   StatusOr<ScannHealthStats> GetHealthStats() const;
+  Status InitializeHealthStats();
 
  private:
   SearchParameters GetSearchParameters(int final_nn, int pre_reorder_nn,

@@ -825,14 +825,32 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
 
   ai::PopulateDistancesIterator<6, Functor> it(
       results, querying_options.postprocessing_functor);
-  auto fp = &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-      DatasetView, LookupElement, 0, decltype(it)>;
+
+  constexpr size_t kAssumedL2CacheSize = 256 * 1024;
+  const size_t lut_bytes = lookup_raw.size() * sizeof(LookupElement);
+  const size_t bytes_per_unroll = num_hashes * it.kUnrollFactor;
+  const size_t total_l2_bytes_required = bytes_per_unroll * 2 + lut_bytes;
+  const bool should_prefetch =
+      total_l2_bytes_required <= kAssumedL2CacheSize / 2;
+
+  auto fp =
+      should_prefetch
+          ? &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+                DatasetView, LookupElement, 0, decltype(it), true>
+          : &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+                DatasetView, LookupElement, 0, decltype(it), false>;
   if (num_clusters_per_block == 256) {
-    fp = &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-        DatasetView, LookupElement, 256, decltype(it)>;
+    fp = should_prefetch
+             ? &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+                   DatasetView, LookupElement, 256, decltype(it), true>
+             : &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+                   DatasetView, LookupElement, 256, decltype(it), false>;
   } else if (num_clusters_per_block == 128) {
-    fp = &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-        DatasetView, LookupElement, 128, decltype(it)>;
+    fp = should_prefetch
+             ? &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+                   DatasetView, LookupElement, 128, decltype(it), true>
+             : &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+                   DatasetView, LookupElement, 128, decltype(it), false>;
   }
 
   (*fp)(lookup_raw, num_clusters_per_block, hashed_dataset, it);

@@ -27,6 +27,8 @@ cc_library(
         "//scann/proto:input_output_cc_proto",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/functional:any_invocable",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -205,7 +207,6 @@ cc_library(
         "//scann/proto:distance_measure_cc_proto",
         "//scann/proto:exact_reordering_cc_proto",
         "//scann/proto:hash_cc_proto",
-        "//scann/proto:incremental_updates_cc_proto",
         "//scann/proto:input_output_cc_proto",
         "//scann/proto:metadata_cc_proto",
         "//scann/proto:partitioning_cc_proto",
@@ -383,7 +384,9 @@ cc_library(
     deps = [
         "//scann/data_format:dataset",
         "//scann/proto:hash_cc_proto",
+        "//scann/proto:partitioning_cc_proto",
         "//scann/proto:projection_cc_proto",
+        "//scann/proto:scann_cc_proto",
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
     ],
 )
@@ -493,9 +496,12 @@ cc_library(
     deps = [
         ":common",
         ":noise_shaping_utils",
+        ":parallel_for",
         ":types",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/oss_wrappers:scann_threadpool",
+        "@com_google_absl//absl/base",
     ],
 )
 
@@ -599,4 +605,10 @@ cc_library(
         "//scann/proto:scann_cc_proto",
         "@com_google_absl//absl/log",
     ],
+)
+
+cc_library(
+    name = "multi_stage_batch_pipeline",
+    hdrs = ["multi_stage_batch_pipeline.h"],
+    deps = [":common"],
 )

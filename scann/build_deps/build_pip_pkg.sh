@@ -33,10 +33,8 @@ TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
 
 echo "$TMPDIR"
 
-cp ${BAZEL_PREFIX}MANIFEST.in "${TMPDIR}"
 cp ${BAZEL_PREFIX}README.md "${TMPDIR}"
-cp ${BAZEL_PREFIX}requirements.txt "${TMPDIR}"
-cp ${BAZEL_PREFIX}setup.py "${TMPDIR}"
+cp ${BAZEL_PREFIX}pyproject.toml "${TMPDIR}"
 rsync -avm -L --exclude='*_test.py' ${BAZEL_PREFIX}scann "${TMPDIR}"
 
 echo "from scann.scann_ops.py.scann_builder import ReorderType" >> "${TMPDIR}"/scann/__init__.py
@@ -60,7 +58,7 @@ touch "${TMPDIR}"/scann/trees/kmeans_tree/__init__.py
 
 cwd="$(pwd)"
 cd "$TMPDIR"
-"$PYTHON" setup.py bdist_wheel "$@"
+"$PYTHON" -m build --wheel "$@"
 cd "$cwd"
 
 cp "${TMPDIR}"/dist/*.whl ./

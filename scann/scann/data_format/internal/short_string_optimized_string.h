@@ -19,11 +19,13 @@
 
 #include <cstdint>
 #include <cstdlib>
+#include <cstring>
 #include <optional>
 
+#include "absl/base/prefetch.h"
 #include "absl/types/optional.h"
 #include "scann/oss_wrappers/scann_malloc_extension.h"
-#include "scann/utils/types.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 
@@ -64,6 +66,12 @@ class ShortStringOptimizedString {
 
   const char* data() const {
     return (size() <= kMaxInline) ? storage_ : heap_string();
+  }
+
+  void prefetch() const {
+    if (size() > kMaxInline) {
+      absl::PrefetchToLocalCache(heap_string());
+    }
   }
 
   uint32_t size() const {

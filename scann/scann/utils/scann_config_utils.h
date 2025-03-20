@@ -26,6 +26,7 @@
 #include "scann/proto/hash.pb.h"
 #include "scann/proto/input_output.pb.h"
 #include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

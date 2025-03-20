@@ -19,7 +19,10 @@
 #include <cstdint>
 #include <memory>
 
+#include "absl/log/check.h"
 #include "scann/distance_measures/one_to_many/one_to_many_symmetric.h"
+#include "scann/distance_measures/one_to_one/dot_product.h"
+#include "scann/projection/random_orthogonal_projection.h"
 #include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
@@ -99,6 +102,38 @@ Status PcaProjection<T>::Create(
   }
   pca_vecs_ = std::move(pca_vecs);
   return OkStatus();
+}
+
+template <typename T>
+void PcaProjection<T>::RandomRotateProjectionMatrix() {
+  if (pca_vecs_ == nullptr) {
+    LOG(WARNING) << "No PCA vectors to rotate.";
+    return;
+  }
+  DCHECK_EQ(pca_vecs_->size(), projected_dims_);
+  DCHECK_EQ(pca_vecs_->dimensionality(), input_dims_);
+  RandomOrthogonalProjection<float> ortho(projected_dims_, projected_dims_, 42);
+  ortho.Create();
+  const shared_ptr<const TypedDataset<float>> ortho_vecs =
+      ortho.GetDirections().value();
+  DCHECK(ortho_vecs != nullptr);
+  DCHECK_EQ(ortho_vecs->size(), projected_dims_);
+  DCHECK_EQ(ortho_vecs->dimensionality(), projected_dims_);
+  vector<float> rotated_matrix(static_cast<size_t>(input_dims_) *
+                               static_cast<size_t>(projected_dims_));
+  vector<float> col_vec(projected_dims_);
+
+  for (size_t col_idx : Seq(input_dims_)) {
+    for (size_t row_idx : Seq(projected_dims_)) {
+      col_vec[row_idx] = (*pca_vecs_)[row_idx].values()[col_idx];
+    }
+    for (size_t row_idx : Seq(projected_dims_)) {
+      rotated_matrix[row_idx * input_dims_ + col_idx] =
+          DotProduct(MakeDatapointPtr(col_vec), (*ortho_vecs)[row_idx]);
+    }
+  }
+  pca_vecs_ = std::make_shared<DenseDataset<float>>(std::move(rotated_matrix),
+                                                    projected_dims_);
 }
 
 template <typename T>

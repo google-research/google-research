@@ -7,10 +7,8 @@ sh_binary(
     name = "build_pip_pkg",
     srcs = ["build_deps/build_pip_pkg.sh"],
     data = [
-        "MANIFEST.in",
         "README.md",
-        "requirements.txt",
-        "setup.py",
+        "pyproject.toml",
         "//scann/data_format:features_py_pb2",
         "//scann/partitioning:partitioner_py_pb2",
         "//scann/proto:centers_py_pb2",

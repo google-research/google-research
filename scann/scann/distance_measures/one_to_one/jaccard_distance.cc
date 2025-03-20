@@ -14,6 +14,7 @@
 
 #include "scann/distance_measures/one_to_one/jaccard_distance.h"
 
+#include <cstddef>
 #include <cstdint>
 
 #include "absl/base/optimization.h"

@@ -38,5 +38,8 @@ PYBIND11_MODULE(scann_pybind, py_module) {
       .def("reserve", &research_scann::ScannNumpy::Reserve)
       .def("set_num_threads", &research_scann::ScannNumpy::SetNumThreads)
       .def("config", &research_scann::ScannNumpy::Config)
-      .def("serialize", &research_scann::ScannNumpy::Serialize);
+      .def("serialize", &research_scann::ScannNumpy::Serialize)
+      .def("get_health_stats", &research_scann::ScannNumpy::GetHealthStats)
+      .def("initialize_health_stats",
+           &research_scann::ScannNumpy::InitializeHealthStats);
 }

@@ -22,6 +22,7 @@ cc_library(
         "//scann/utils:common",
         "//scann/utils/linear_algebra:eigen_utils",
         "//scann/utils/linear_algebra:types",
+        "@com_google_googletest//:gtest",
         "@eigen",
     ],
 )
@@ -153,6 +154,7 @@ cc_library(
         ":partitioner_base",
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
+        "//scann/projection:pca_projection",
         "//scann/projection:projection_base",
         "//scann/proto:projection_cc_proto",
         "//scann/utils:common",
@@ -201,6 +203,7 @@ cc_library(
         "//scann/distance_measures",
         "//scann/oss_wrappers:scann_random",
         "//scann/oss_wrappers:scann_status",
+        "//scann/projection:pca_projection",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
         "//scann/proto:distance_measure_cc_proto",

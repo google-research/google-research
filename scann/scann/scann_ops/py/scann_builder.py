@@ -322,7 +322,12 @@ class ScannBuilder(object):
     """
 
   @_factory_decorator("reorder")
-  def reorder(self, reordering_num_neighbors, quantize=ReorderType.FLOAT32):
+  def reorder(
+      self,
+      reordering_num_neighbors,
+      quantize = ReorderType.FLOAT32,
+      anisotropic_quantization_threshold = float("nan"),
+  ):
     """Configure reordering (more accurate scoring after AH scoring)."""
     # Backwards-compatibility shims for when quantize was a bool parameter.
     if quantize is True:  # pylint: disable=g-bool-id-comparison
@@ -334,6 +339,7 @@ class ScannBuilder(object):
         approx_num_neighbors: {reordering_num_neighbors}
         {"bfloat16" if quantize == ReorderType.BFLOAT16 else "fixed_point"} {{
           enabled: {quantize != ReorderType.FLOAT32}
+          noise_shaping_threshold: {anisotropic_quantization_threshold}
         }}
       }}
     """

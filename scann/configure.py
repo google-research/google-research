@@ -27,18 +27,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
-# Usage: configure.py [--quiet] [--no-deps]
-#
-# Options:
-#  --quiet  Give less output.
-#  --no-deps  Don't install Python dependencies
 """Configures ScaNN to be built from source."""
 
-import argparse
 import logging
 import os
-import subprocess
-import sys
 
 _BAZELRC = ".bazelrc"
 _BAZEL_QUERY = ".bazel-query.sh"
@@ -56,13 +48,6 @@ def write_action_env(var_name, var):
     f.write('{}="{}" '.format(var_name, var))
 
 
-def get_input(question):
-  try:
-    return input(question)
-  except EOFError:
-    return ""
-
-
 def generate_shared_lib_name(namespec):
   """Converts the linkflag namespec to the full shared library name."""
   # Assume Linux for now
@@ -74,32 +59,6 @@ def create_build_configuration():
   print()
   print("Configuring ScaNN to be built from source...")
 
-  pip_install_options = ["--upgrade"]
-  parser = argparse.ArgumentParser()
-  parser.add_argument("--quiet", action="store_true", help="Give less output.")
-  parser.add_argument(
-      "--no-deps",
-      action="store_true",
-      help="Do not check and install Python dependencies.",
-  )
-  args = parser.parse_args()
-  if args.quiet:
-    pip_install_options.append("--quiet")
-
-  python_path = sys.executable
-  with open("requirements.txt") as f:
-    required_packages = f.read().splitlines()
-
-  print()
-  if args.no_deps:
-    print("> Using pre-installed Tensorflow.")
-  else:
-    print("> Installing", required_packages)
-    install_cmd = [python_path, "-m", "pip", "install"]
-    install_cmd.extend(pip_install_options)
-    install_cmd.extend(required_packages)
-    subprocess.check_call(install_cmd)
-
   if os.path.isfile(_BAZELRC):
     os.remove(_BAZELRC)
   if os.path.isfile(_BAZEL_QUERY):
@@ -107,7 +66,14 @@ def create_build_configuration():
 
   logging.disable(logging.WARNING)
 
-  import tensorflow.compat.v2 as tf  # pylint: disable=g-import-not-at-top
+  try:
+    import tensorflow.compat.v2 as tf  # pylint: disable=g-import-not-at-top
+  except ModuleNotFoundError:
+    print(
+        "Failed to import TensorFlow. Please install ScaNN dependencies before"
+        " compiling ScaNN, for example with the command `pip-compile"
+        " pyproject.toml --all-extras -o - | pip install -r /dev/stdin`.")
+    return
 
   # pylint: disable=invalid-name
   _TF_CFLAGS = tf.sysconfig.get_compile_flags()

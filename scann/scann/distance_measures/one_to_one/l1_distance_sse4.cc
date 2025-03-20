@@ -15,6 +15,7 @@
 #include "scann/distance_measures/one_to_one/l1_distance_sse4.h"
 
 #include <cstdint>
+#include <cstdlib>
 
 #include "absl/log/check.h"
 #include "scann/data_format/datapoint.h"

@@ -18,61 +18,69 @@
 
 namespace research_scann {
 
-AccumulatedAVQData ReducePartition(ConstSpan<float> partition,
-                                   size_t dimensionality, float eta) {
-  DCHECK_EQ(partition.size() % dimensionality, 0)
-      << "Number of floats in partition isn't divisible by dimensionality: "
-      << partition.size() << " vs " << dimensionality;
+AvqAccumulator::AvqAccumulator(size_t dimensionality, float eta)
+    : dimensionality_(dimensionality),
+      eta_(eta),
+      xtx_matrix_(std::isnan(eta)
+                      ? EMatrixXf::Zero(0, 0)
+                      : EMatrixXf::Zero(dimensionality, dimensionality)),
+      weighted_vector_sum_(EVectorXf::Zero(dimensionality)),
+      total_weight_(0) {}
 
-  AccumulatedAVQData result;
-  result.eta = eta;
-  const size_t num_dps = partition.size() / dimensionality;
+AvqAccumulator& AvqAccumulator::AddVectors(ConstSpan<float> vecs) {
+  if (IsEmpty(vecs)) return *this;
 
-  if (num_dps == 0) {
-    result.xtx = EMatrixXf::Zero(dimensionality, dimensionality);
-    result.norm_weighted_dp_sum = EVectorXf::Zero(dimensionality);
-    result.dp_norm_sum = 0;
-  } else {
-    const float fillzero = (eta == 1) ? 1 : 0;
+  const size_t num_vectors = vecs.size() / dimensionality_;
+  QCHECK_EQ(vecs.size(), num_vectors * dimensionality_);
 
-    auto partition_matrix =
-        EMatrixXfMap(partition.data(), num_dps, dimensionality);
-    EVectorXf norms = partition_matrix.rowwise().stableNorm();
+  auto partition_matrix =
+      EMatrixXfMap(vecs.data(), num_vectors, dimensionality_);
 
-    EVectorXf norms_pow = norms.array().pow(0.5 * (eta - 3));
-    norms_pow = (norms.array() < 1e-20).select(fillzero, norms_pow);
-
-    auto X = (partition_matrix.array().colwise() * norms_pow.array()).matrix();
-    result.xtx.setZero(dimensionality, dimensionality);
-    result.xtx.selfadjointView<Eigen::Lower>().rankUpdate(X.transpose());
-
-    EVectorXf norms_eta1 = norms.array().pow(eta - 1);
-    norms_eta1 = (norms.array() == 0).select(fillzero, norms_eta1);
-    result.norm_weighted_dp_sum =
-        (partition_matrix.array().colwise() * norms_eta1.array())
-            .colwise()
-            .sum();
-    result.dp_norm_sum = norms_eta1.sum();
+  if (std::isnan(eta_)) {
+    weighted_vector_sum_ += partition_matrix.colwise().sum().matrix();
+    total_weight_ += num_vectors;
+    return *this;
   }
 
-  return result;
+  EVectorXf norms = partition_matrix.rowwise().stableNorm();
+
+  const float fillzero = (eta_ == 1) ? 1 : 0;
+
+  EVectorXf weighting = norms.array().pow(eta_ - 1);
+  weighting = (norms.array() == 0).select(fillzero, weighting);
+
+  EVectorXf sqrt_xxt_weighting = norms.array().pow(0.5 * (eta_ - 3));
+  sqrt_xxt_weighting =
+      (norms.array() < 1e-20).select(fillzero, sqrt_xxt_weighting);
+
+  auto X = (partition_matrix.array().colwise() * sqrt_xxt_weighting.array())
+               .matrix();
+  xtx_matrix_.selfadjointView<Eigen::Lower>().rankUpdate(X.transpose());
+
+  weighted_vector_sum_ +=
+      (partition_matrix.array().colwise() * weighting.array())
+          .colwise()
+          .sum()
+          .matrix();
+
+  total_weight_ += weighting.sum();
+
+  return *this;
 }
 
-EVectorXf ComputeAVQPartition(const AccumulatedAVQData& avq_data) {
-  const int d = avq_data.norm_weighted_dp_sum.size();
+EVectorXf AvqAccumulator::GetCenter() {
+  if (total_weight_ == 0) return EVectorXf::Zero(dimensionality_);
 
-  if (avq_data.dp_norm_sum == 0) return EVectorXf::Zero(d);
+  if (std::isnan(eta_)) {
+    return weighted_vector_sum_ * 1.0 / total_weight_;
+  }
 
-  EMatrixXf to_invert = avq_data.dp_norm_sum * EMatrixXf::Identity(d, d) +
-                        (avq_data.eta - 1) * avq_data.xtx;
+  EMatrixXf to_invert =
+      total_weight_ * EMatrixXf::Identity(dimensionality_, dimensionality_) +
+      (eta_ - 1) * xtx_matrix_;
   Eigen::LDLT<Eigen::Ref<EMatrixXf>, Eigen::Lower> inverter(to_invert);
 
-  return avq_data.eta * inverter.solve(avq_data.norm_weighted_dp_sum);
-}
-
-EVectorXf ComputeAVQPartition(ConstSpan<float> partition, size_t dimensionality,
-                              float eta) {
-  return ComputeAVQPartition(ReducePartition(partition, dimensionality, eta));
+  return eta_ * inverter.solve(weighted_vector_sum_);
 }
 
 std::pair<double, double> ComputeRescaleFraction(

@@ -17,12 +17,15 @@
 #include "scann/utils/bfloat16_helpers.h"
 
 #include <cstdint>
+#include <utility>
 #include <vector>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/common.h"
 #include "scann/utils/noise_shaping_utils.h"
+#include "scann/utils/parallel_for.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

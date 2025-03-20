@@ -14,6 +14,9 @@
 
 #include "scann/oss_wrappers/scann_threadpool.h"
 
+#include <functional>
+#include <memory>
+
 #include "absl/log/check.h"
 #include "absl/strings/string_view.h"
 

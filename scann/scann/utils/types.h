@@ -26,6 +26,8 @@
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
+#include "absl/functional/any_invocable.h"
+#include "absl/strings/str_cat.h"
 #include "scann/proto/input_output.pb.h"
 #include "scann/utils/common.h"
 
@@ -64,6 +66,12 @@ inline std::string DimensionIndexToKey(DimensionIndex di) {
 }
 
 using NNResultsVector = std::vector<std::pair<DatapointIndex, float>>;
+
+using DpIdxGetter = absl::AnyInvocable<DatapointIndex(size_t) const>;
+
+using StringSetter = absl::AnyInvocable<void(size_t, string_view) const>;
+
+using OutputStringGetter = absl::AnyInvocable<std::string*(size_t) const>;
 
 class NoValue {
  public:

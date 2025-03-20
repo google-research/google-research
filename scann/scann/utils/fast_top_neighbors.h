@@ -204,7 +204,12 @@ class FastTopNeighbors {
 
   void GarbageCollect(size_t keep_min, size_t keep_max);
 
+  void MoveTopNToFront(size_t num_elements);
+
  protected:
+  static size_t ApproxNthElement(size_t keep_min, size_t keep_max, size_t sz,
+                                 DatapointIndexT* ii, DistT* dd, uint32_t* mm);
+
   unique_ptr<DatapointIndexT[]> indices_;
 
   unique_ptr<DistT[]> distances_;
@@ -230,9 +235,6 @@ class FastTopNeighbors {
     mutator_held_ = false;
     sz_ = pushes_remaining_negated + capacity_;
   }
-
-  static size_t ApproxNthElement(size_t keep_min, size_t keep_max, size_t sz,
-                                 DatapointIndexT* ii, DistT* dd, uint32_t* mm);
 
   unique_ptr<uint32_t[]> masks_;
 

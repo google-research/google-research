@@ -167,11 +167,15 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
         result = make_unique<PcaProjection<T>>(
             input_dim, serialized_projection.rotation_vec_size());
         SCANN_RETURN_IF_ERROR(result->Create(serialized_projection));
+
       } else if (config.has_num_dims_per_block()) {
         result = make_unique<PcaProjection<T>>(input_dim,
                                                config.num_dims_per_block());
         result->Create(*std::get<1>(dataset_or_serialized_projection),
                        config.build_covariance(), parallelization_pool);
+        if (config.pca_random_rotate_projection_matrix()) {
+          result->RandomRotateProjectionMatrix();
+        }
       } else {
         if (config.has_pca_significance_threshold()) {
           result = make_unique<PcaProjection<T>>(input_dim, input_dim);
@@ -179,6 +183,9 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
                          config.pca_significance_threshold(),
                          config.pca_truncation_threshold(), true,
                          parallelization_pool);
+          if (config.pca_random_rotate_projection_matrix()) {
+            result->RandomRotateProjectionMatrix();
+          }
         } else {
           return InvalidArgumentError(
               "Must specify num_dims_per_block or pca_significance_threshold "

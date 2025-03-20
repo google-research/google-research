@@ -72,7 +72,7 @@ proto_library(
     name = "input_output_proto",
     srcs = ["input_output.proto"],
     deps = [
-        ":incremental_updates_proto",
+        "//scann/data_format:features_proto",
     ],
 )
 
@@ -86,7 +86,6 @@ scann_py_proto_library(
     srcs = ["input_output.proto"],
     proto_deps = [":input_output_proto"],
     py_proto_deps = [
-        ":incremental_updates_py_pb2",
     ],
 )
 
@@ -313,26 +312,6 @@ scann_py_proto_library(
     name = "disjoint_restrict_token_py_pb2",
     srcs = ["disjoint_restrict_token.proto"],
     proto_deps = [":disjoint_restrict_token_proto"],
-)
-
-proto_library(
-    name = "incremental_updates_proto",
-    srcs = ["incremental_updates.proto"],
-    deps = [
-        "@com_google_protobuf//:duration_proto",
-        "@com_google_protobuf//:timestamp_proto",
-    ],
-)
-
-cc_proto_library(
-    name = "incremental_updates_cc_proto",
-    deps = [":incremental_updates_proto"],
-)
-
-scann_py_proto_library(
-    name = "incremental_updates_py_pb2",
-    srcs = ["incremental_updates.proto"],
-    proto_deps = [":incremental_updates_proto"],
 )
 
 proto_library(

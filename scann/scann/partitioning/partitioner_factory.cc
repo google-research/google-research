@@ -35,6 +35,7 @@
 #include "scann/partitioning/partitioner_factory_base.h"
 #include "scann/partitioning/projecting_decorator.h"
 #include "scann/partitioning/tree_brute_force_second_level_wrapper.h"
+#include "scann/projection/pca_projection.h"
 #include "scann/projection/projection_base.h"
 #include "scann/projection/projection_factory.h"
 #include "scann/proto/distance_measure.pb.h"
@@ -171,9 +172,35 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFromSerialized(
   }
 
   unique_ptr<Projection<T>> projection;
-  SCANN_ASSIGN_OR_RETURN(
-      projection,
-      ProjectionFactory<T>(config.projection(), projection_seed_offset));
+  if (config.projection().projection_type() == ProjectionConfig::PCA) {
+    if (proto.serialized_projection().rotation_vec().empty()) {
+      return InvalidArgumentError(
+          "Cannot build a PCA projected partitioner from a "
+          "SerializedPartitioner that lacks PCA rotation_vecs.");
+    }
+    DenseDataset<float> rotation_vecs;
+    for (const GenericFeatureVector& gfv :
+         proto.serialized_projection().rotation_vec()) {
+      SCANN_RETURN_IF_ERROR(rotation_vecs.Append(gfv, ""));
+    }
+    if (config.projection().has_num_dims_per_block()) {
+      if (config.projection().num_dims_per_block() != rotation_vecs.size()) {
+        return InvalidArgumentError(
+            "For PCA projection, num_dims_per_block (%d) must match the "
+            "dimension of the rotation_vecs (%d) in the SerializedPartitioner "
+            "if num_dims_per_block is specified.",
+            config.projection().num_dims_per_block(), rotation_vecs.size());
+      }
+    }
+    auto pca_projection = make_unique<PcaProjection<T>>(
+        config.projection().input_dim(), rotation_vecs.size());
+    pca_projection->Create(std::move(rotation_vecs));
+    projection = std::move(pca_projection);
+  } else {
+    SCANN_ASSIGN_OR_RETURN(
+        projection,
+        ProjectionFactory<T>(config.projection(), projection_seed_offset));
+  }
 
   SCANN_ASSIGN_OR_RETURN(auto partitioner,
                          PartitionerFromSerializedImpl<float>(proto, config));

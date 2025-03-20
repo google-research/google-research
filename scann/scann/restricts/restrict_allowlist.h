@@ -21,9 +21,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <functional>
-#include <limits>
 #include <memory>
-#include <optional>
 #include <stack>
 #include <utility>
 #include <vector>
@@ -34,7 +32,6 @@
 #include "absl/log/check.h"
 #include "gtest/gtest_prod.h"
 #include "scann/oss_wrappers/scann_bits.h"
-#include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/bit_iterator.h"
 #include "scann/utils/bits.h"
 #include "scann/utils/common.h"
@@ -285,6 +282,25 @@ class RestrictAllowlistMutableView {
     allowlist_array_[dp_index / RestrictAllowlist::kBitsPerWord] &=
         ~(RestrictAllowlist::kOne
           << (dp_index % RestrictAllowlist::kBitsPerWord));
+  }
+
+  template <bool kIsAddToAllowlist, bool kCheckForInvalidDpIdx,
+            bool kWithOffset>
+  void MultiUpdateAllowlist(ConstSpan<DatapointIndex> dp_indices,
+                            DatapointIndex offset = 0) {
+    for (DatapointIndex dp_index : dp_indices) {
+      if constexpr (kWithOffset) {
+        dp_index -= offset;
+      }
+      if constexpr (kCheckForInvalidDpIdx) {
+        if (ABSL_PREDICT_FALSE(dp_index == kInvalidDatapointIndex)) continue;
+      }
+      if constexpr (kIsAddToAllowlist) {
+        AddToAllowlist(dp_index);
+      } else {
+        RemoveFromAllowlist(dp_index);
+      }
+    }
   }
 
   size_t GetWordContainingDatapoint(DatapointIndex dp_index) const {

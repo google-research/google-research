@@ -15,6 +15,8 @@
 #include "scann/data_format/datapoint.h"
 
 #include <algorithm>
+#include <functional>
+#include <utility>
 
 #include "absl/log/check.h"
 #include "absl/log/log.h"

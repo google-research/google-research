@@ -66,6 +66,15 @@ inline double SquaredL2Norm(const DatapointPtr<T>& a) {
   return DenseSingleAccumulate(a.values_span(), l2_distance_internal::Square());
 }
 
+template <typename T>
+inline double SquaredL2Norm(ConstSpan<T> vec) {
+  return DenseSingleAccumulate(vec, l2_distance_internal::Square());
+}
+
+inline double SquaredL2Norm(ConstSpan<float> vec) {
+  return SquaredL2Norm<float>(vec);
+}
+
 class SquaredL2Distance final : public DistanceMeasure {
  public:
   SCANN_DECLARE_DISTANCE_MEASURE_VIRTUAL_METHODS(SQUARED_L2);

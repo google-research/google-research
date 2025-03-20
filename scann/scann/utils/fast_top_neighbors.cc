@@ -250,6 +250,16 @@ void FastTopNeighbors<DistT, DatapointIndexT>::GarbageCollect(size_t keep_min,
 }
 
 template <typename DistT, typename DatapointIndexT>
+void FastTopNeighbors<DistT, DatapointIndexT>::MoveTopNToFront(
+    size_t num_elements) {
+  if (num_elements >= sz_) return;
+
+  ZipNthElementBranchOptimized(std::less<DistT>(), num_elements,
+                               distances_.get(), distances_.get() + sz_,
+                               indices_.get(), indices_.get() + sz_);
+}
+
+template <typename DistT, typename DatapointIndexT>
 pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
 FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted(size_t max_results) {
   MutableSpan<DatapointIndexT> ii;

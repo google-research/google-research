@@ -19,8 +19,10 @@
 #include <cstdint>
 #include <vector>
 
+#include "absl/base/casts.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/utils/common.h"
 
 namespace research_scann {

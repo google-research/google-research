@@ -22,6 +22,7 @@
 #include "absl/log/check.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/projection/pca_projection.h"
 #include "scann/proto/projection.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
@@ -49,6 +50,17 @@ void ProjectingDecoratorBase<Base, T>::CopyToProto(
     SerializedPartitioner* result) const {
   partitioner_->CopyToProto(result);
   result->set_uses_projection(true);
+
+  auto pca = dynamic_cast<const PcaProjection<T>*>(projection_.get());
+  if (!pca) return;
+
+  result->clear_serialized_projection();
+  shared_ptr<const TypedDataset<float>> eigenvectors =
+      projection_->GetDirections().value();
+  for (DatapointPtr<float> eigenvector : *eigenvectors) {
+    *result->mutable_serialized_projection()->add_rotation_vec() =
+        eigenvector.ToGfv();
+  }
 }
 
 template <typename Base, typename T>

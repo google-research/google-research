@@ -22,9 +22,9 @@
 #include <cstdlib>
 #include <functional>
 #include <optional>
-#include <ostream>
 #include <vector>
 
+#include "absl/base/nullability.h"
 #include "absl/log/check.h"
 #include "absl/status/status.h"
 #include "absl/synchronization/mutex.h"
@@ -33,12 +33,12 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/data_format/docid_collection_interface.h"
-#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/distance_measure.pb.h"
+#include "scann/proto/results.pb.h"
 #include "scann/proto/scann.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
@@ -578,7 +578,7 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   virtual Status FindNeighborsBatchedImpl(
       const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
       MutableSpan<FastTopNeighbors<float>*> results,
-      ConstSpan<DatapointIndex> datapoint_index_lookup) const;
+      ConstSpan<DatapointIndex> datapoint_index_mapping) const;
 
  private:
   Status PopulateDefaultParameters(const ScannConfig& config);

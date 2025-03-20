@@ -16,6 +16,7 @@
 
 #include <cstdint>
 #include <numeric>
+#include <utility>
 
 #include "absl/log/check.h"
 #include "scann/data_format/dataset.h"

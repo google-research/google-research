@@ -494,6 +494,9 @@ void ZipNthElementImplBranchOptimized(Comparator comp, size_t n, T begin, T end,
 
 template <typename Predicate, typename T, typename... U>
 size_t ZipPartition(Predicate pred, T begin, T end, U... rest) {
+  if (end - begin == 0) {
+    return 0;
+  }
   using zip_sort_internal::ZipSwap;
   T less_iter = begin - 1;
   T greater_iter = end;

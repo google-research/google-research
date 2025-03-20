@@ -44,7 +44,7 @@ struct SingleMachineFactoryOptions {
   SingleMachineFactoryOptions() = default;
 
   StatusOr<DimensionIndex> ComputeConsistentDimensionality(
-      const HashConfig& config, const Dataset* dataset = nullptr) const;
+      const ScannConfig& config, const Dataset* dataset = nullptr) const;
 
   TypeTag type_tag = kInvalidTypeTag;
 

@@ -580,19 +580,21 @@ template <typename T>
 class SpanDenseDatasetView final : public DenseDatasetView<T> {
  public:
   SpanDenseDatasetView(ConstSpan<T> span, size_t dimension)
-      : data_(span), dimension_(dimension), size_(span.size() / dimension) {
+      : ptr_(span.data()),
+        dimension_(dimension),
+        size_(span.size() / dimension) {
     CHECK_EQ(span.size() % dimension, 0);
   }
 
   SCANN_INLINE const T* GetPtr(size_t i) const override {
-    return &data_[i * dimension_];
+    return ptr_ + i * dimension_;
   }
   SCANN_INLINE size_t dimensionality() const override { return dimension_; }
   SCANN_INLINE size_t size() const override { return size_; }
   SCANN_INLINE bool IsConsecutiveStorage() const override { return true; }
 
  private:
-  ConstSpan<T> data_;
+  const T* __restrict__ ptr_ = nullptr;
   uint32_t dimension_;
   uint32_t size_;
 };

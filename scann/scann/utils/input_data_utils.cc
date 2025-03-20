@@ -16,6 +16,7 @@
 
 #include <cstdint>
 
+#include "scann/proto/partitioning.pb.h"
 #include "scann/proto/projection.pb.h"
 
 namespace research_scann {
@@ -80,7 +81,7 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
 }
 
 StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
-    const HashConfig& config, const Dataset* dataset,
+    const ScannConfig& config, const Dataset* dataset,
     const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
     const DenseDataset<int16_t>* bfloat16_dataset) {
@@ -130,14 +131,18 @@ StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     }
     return OkStatus();
   };
-  if (config.has_projection() && config.asymmetric_hash().has_projection())
+  if (config.partitioning().has_projection())
+    SCANN_RETURN_IF_ERROR(projection_check(config.partitioning().projection()));
+  const HashConfig& hash_config = config.hash();
+  if (hash_config.has_projection() &&
+      hash_config.asymmetric_hash().has_projection())
     return InvalidArgumentError(
         "Both hash and its asymmetric_hash subfield have projection configs.");
-  if (config.has_projection())
-    SCANN_RETURN_IF_ERROR(projection_check(config.projection()));
-  if (config.asymmetric_hash().has_projection())
+  if (hash_config.has_projection())
+    SCANN_RETURN_IF_ERROR(projection_check(hash_config.projection()));
+  if (hash_config.asymmetric_hash().has_projection())
     SCANN_RETURN_IF_ERROR(
-        projection_check(config.asymmetric_hash().projection()));
+        projection_check(hash_config.asymmetric_hash().projection()));
 
   if (dims == kInvalidDimension)
     return InvalidArgumentError(

@@ -403,7 +403,7 @@ template <typename Searcher>
 Status TreeXHybridMutator<Searcher>::IngestUpdate(DatapointIndex token,
                                                   DatapointPtr<T> x,
                                                   int delta) {
-  DatapointIndex n = searcher_->datapoints_by_token_[token].size();
+  DatapointIndex n = searcher_->datapoints_by_token_[token].size() + delta;
 
   float lr = std::min(0.001, 1.0 / n) * delta;
 

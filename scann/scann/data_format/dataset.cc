@@ -16,6 +16,7 @@
 
 #include "scann/data_format/dataset.h"
 
+#include <algorithm>
 #include <cmath>
 #include <cstdint>
 #include <memory>

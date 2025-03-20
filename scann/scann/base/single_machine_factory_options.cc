@@ -20,7 +20,7 @@ namespace research_scann {
 
 StatusOr<DimensionIndex>
 SingleMachineFactoryOptions::ComputeConsistentDimensionality(
-    const HashConfig& config, const Dataset* dataset) const {
+    const ScannConfig& config, const Dataset* dataset) const {
   return ComputeConsistentDimensionalityFromIndex(
       config, dataset, hashed_dataset.get(), pre_quantized_fixed_point.get(),
       bfloat16_dataset.get());

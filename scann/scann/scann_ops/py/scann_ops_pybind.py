@@ -111,6 +111,12 @@ class ScannSearcher(object):
     if self.docids is not None:
       pkl.dump(self.docids, _open(docids_fn, "wb"))
 
+  def get_health_stats(self):
+    return self.searcher.get_health_stats()
+
+  def initialize_health_stats(self):
+    return self.searcher.initialize_health_stats()
+
   def upsert(self, docids, database, batch_size=1):
     """Insert or update datapoints into the searcher."""
     if not isinstance(docids, list):

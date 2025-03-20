@@ -15,6 +15,9 @@
 #ifndef SCANN_DATA_FORMAT_DOCID_COLLECTION_INTERFACE_H_
 #define SCANN_DATA_FORMAT_DOCID_COLLECTION_INTERFACE_H_
 
+#include <cstddef>
+#include <optional>
+
 #include "scann/data_format/docid_lookup.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -31,7 +34,12 @@ class DocidCollectionInterface {
 
   virtual bool empty() const = 0;
 
+  virtual std::optional<size_t> fixed_len_size() const { return std::nullopt; }
+
   virtual string_view Get(size_t i) const = 0;
+
+  virtual void MultiGet(size_t num_docids, DpIdxGetter docid_idx_getter,
+                        StringSetter docid_setter) const = 0;
 
   virtual size_t capacity() const = 0;
 

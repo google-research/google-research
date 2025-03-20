@@ -330,7 +330,7 @@ Status ScannInterface::Initialize(ScannInterface::ScannArtifacts artifacts) {
   auto [config, dataset, opts] = std::move(artifacts);
   config_ = config;
   SCANN_ASSIGN_OR_RETURN(dimensionality_, opts.ComputeConsistentDimensionality(
-                                              config_.hash(), dataset.get()));
+                                              config_, dataset.get()));
   SCANN_ASSIGN_OR_RETURN(scann_,
                          CreateSearcher(std::tie(config_, dataset, opts)));
   if (scann_->config().has_value()) config_ = scann_->config().value();
@@ -569,6 +569,10 @@ StatusOr<ScannAssets> ScannInterface::Serialize(std::string path,
 StatusOr<ScannInterface::ScannHealthStats> ScannInterface::GetHealthStats()
     const {
   return scann_->GetHealthStats();
+}
+
+Status ScannInterface::InitializeHealthStats() {
+  return scann_->InitializeHealthStats();
 }
 
 StatusOr<SingleMachineFactoryOptions> ScannInterface::ExtractOptions() {

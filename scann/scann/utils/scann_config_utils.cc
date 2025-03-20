@@ -31,7 +31,6 @@
 #include "scann/proto/distance_measure.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/proto/hash.pb.h"
-#include "scann/proto/incremental_updates.pb.h"
 #include "scann/proto/input_output.pb.h"
 #include "scann/proto/metadata.pb.h"
 #include "scann/proto/partitioning.pb.h"
@@ -113,7 +112,7 @@ Status CanonicalizeScannConfigImpl(ScannConfig* config,
     }
   }
 
-  if (!io->has_database_wildcard()) {
+  if (!io->has_database_wildcard() && !io->has_database_tableio()) {
     return CanonicalizeRecallCurves(config);
   }
 

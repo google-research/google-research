@@ -15,6 +15,9 @@
 #ifndef SCANN_OSS_WRAPPERS_SCANN_THREADPOOL_H_
 #define SCANN_OSS_WRAPPERS_SCANN_THREADPOOL_H_
 
+#include <functional>
+#include <memory>
+
 #include "absl/strings/string_view.h"
 #include "unsupported/Eigen/CXX11/ThreadPool"
 
