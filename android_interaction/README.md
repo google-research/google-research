@@ -2,11 +2,15 @@
 
 AndroidInteraction is a dataset designed to evaluate agent-initiated user interactions in the context of smartphone automation. It comprises 772 episodes, consisting of 3,605 steps, across more than 250 diverse Android applications. AndroidInteraction adopts the data structure of [AndroidControl](https://github.com/google-research/google-research/tree/master/android_control), with each step annotated for required user interaction, and including a natural language message to the user when interaction is necessary. Consistent with AndroidControl, each step includes screenshots and accessibility trees from the device, natural language instructions (both high-level goals and low-level step instructions), and actions represented as JSON dictionaries.
 
+## Dataset location
+
+The AndroidInteraction dataset and split file can be found [here](https://console.cloud.google.com/storage/browser/gresearch/android_interaction).
+
 ## Dataset format
 
-Each datapoint in AndroidInteraction is stored as a
+The AndroidInteraction dataset is stored as a
 [TFRecord file](https://www.tensorflow.org/tutorials/load_data/tfrecord#reading_a_tfrecord_file_2)
-with compression type `'GZIP'`, based on the structure of [AndroidControl](https://github.com/google-research/google-research/tree/master/android_control). It first includes the following original fields:
+with compression type `'GZIP'`, based on the structure of [AndroidControl](https://github.com/google-research/google-research/tree/master/android_control). This file format first includes the following original fields:
 
 *   `episode_id`: a unique integer identifier for each episode.
 *   `goal`: the goal instruction for the entire episode.
