@@ -867,6 +867,8 @@ class MSGLearner(acme.Learner):
       # mode = 'nngp'
       mode = 'ntk'
       kernel_fn = networks.kernel_fn
+      assert kernel_fn is not None
+      assert callable(kernel_fn)
       K_X_X = kernel_fn(X, X, mode)
       K_X_X = K_X_X + (1e-4) * jnp.eye(K_X_X.shape[0])
       K_inv = jnp.linalg.inv(K_X_X)
@@ -999,6 +1001,8 @@ class MSGLearner(acme.Learner):
 
 
     if use_img_encoder:
+      if networks.img_encoder is None:
+        raise ValueError('networks.img_encoder not initialized.')
       pmapped_img_encoder = jax.pmap(
           networks.img_encoder.apply,
           in_axes=0,
@@ -1225,7 +1229,7 @@ class MSGLearner(acme.Learner):
 
       return new_state, metrics  # pytype: disable=bad-return-type  # jax-ndarray
 
-
+    assert networks.simclr_encoder is not None
     simclr_loss_fn = sass_utils.build_simclr_loss(networks.simclr_encoder.apply)
 
     def per_q_repr_pretrain_loss(
