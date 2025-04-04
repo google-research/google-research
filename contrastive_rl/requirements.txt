@@ -68,7 +68,7 @@ packaging==21.3
 Pillow==7.2.0
 portpicker==1.5.2
 promise==2.3
-protobuf==3.19.1
+protobuf==3.19.5
 psutil==5.9.1
 pyasn1-modules==0.2.8
 pybullet==3.2.5
