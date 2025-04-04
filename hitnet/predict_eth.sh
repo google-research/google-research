@@ -35,7 +35,7 @@ pip3 install -r requirements.txt
 mkdir -p $MODEL_PATH
 wget -P $MODEL_PATH -N https://storage.googleapis.com/tensorflow-graphics/models/hitnet/default_models/$MODEL_NAME
 
-python -m predict.py \
+python -m predict \
   --data_pattern=$DATA_PATTERN \
   --model_path=$MODEL_PATH/$MODEL_NAME \
   --png_disparity_factor=1024 \
