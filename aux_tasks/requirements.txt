@@ -36,7 +36,7 @@ importlib-metadata==4.11.4
 importlib-resources==5.7.1
 jax==0.3.13
 jaxlib==0.3.10
-keras==2.8.0
+keras==2.13.1
 Keras-Preprocessing==1.1.2
 kiwisolver==1.4.2
 libclang==14.0.1
