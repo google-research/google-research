@@ -192,6 +192,7 @@ class SynthesisNode:
     prefix = f"gen{self.generation}/"
 
     assert len(self.parents) <= 2  # Only support up to binary ops.
+    assert self.op is not None
     assert self.is_output or self.op.num_outputs == 1
 
     parent_output_idx, parent_node = self.parents[parent_idx]

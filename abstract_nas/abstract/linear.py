@@ -683,6 +683,7 @@ class LinopProperty(shape.ShapeProperty):
 
   @property
   def pairings(self):
+    assert self._pairings is not None
     return self._pairings.pairings
 
   def infer(self,
