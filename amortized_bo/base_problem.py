@@ -94,6 +94,8 @@ class BaseProblem(object):
     Returns:
       A tf.data.Dataset with data_utils.DatasetSamples.
     """
+    if self.domain is None:
+      raise ValueError('self.domain not set.')
     structures = self.domain.sample_uniformly(num_samples, seed=seed)
     rewards = self(structures)
     return utils.dataset_from_tensors(

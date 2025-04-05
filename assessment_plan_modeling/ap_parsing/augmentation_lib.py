@@ -355,6 +355,7 @@ class AugmentationConfig:
   def get_n_augmentations(self, rng):
     if self.augmentation_number_poisson_lambda and rng:
       return rng.poisson(lam=self.augmentation_number_poisson_lambda)
+    assert self.augmentation_number_deterministic is not None
     return self.augmentation_number_deterministic
 
 

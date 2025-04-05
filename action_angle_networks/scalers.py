@@ -85,9 +85,11 @@ class StandardScaler(Scaler):
     return data * self.std() + self.mean()
 
   def mean(self):
+    assert self._mean is not None
     return self._mean
 
   def std(self):
+    assert self._std is not None
     return self._std
 
   def tree_flatten(self):
