@@ -1,7 +1,7 @@
 absl-py==0.6.1
 astor==0.7.1
 gast==0.2.0
-grpcio==1.16.0
+grpcio==1.53.0
 h5py==2.8.0
 Keras-Applications==1.0.6
 Keras-Preprocessing==1.0.5
