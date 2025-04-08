@@ -74,6 +74,8 @@ class OneHopGraphConvolution(nn.Module):
   def __call__(self, graph):
     # Message-passing occurs against the direction of the input edges.
     senders, receivers = graph.receivers, graph.senders
+    if senders is None:
+      raise ValueError('Graph must have senders and receivers.')
 
     num_nodes = jax.tree.leaves(graph.nodes)[0].shape[0]
     num_edges = senders.shape[0]

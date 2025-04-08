@@ -76,6 +76,7 @@ class DistractingColorEnv(control.Environment):
       self._reset_color()
       return time_step
 
+    assert self._current_rgb is not None
     color_change = self._random_state.randn(*self._current_rgb.shape)
     color_change = color_change * self._step_std
 

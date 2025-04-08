@@ -220,6 +220,7 @@ class DistractingBackgroundEnv(control.Environment):
         self._current_img_index = 0
         self._step_direction = abs(self._step_direction)
       # Start moving backwards if we are past the end of the images.
+      assert self._background is not None
       if self._current_img_index >= len(self._background.textures):
         self._current_img_index = len(self._background.textures) - 1
         self._step_direction = -abs(self._step_direction)

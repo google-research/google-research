@@ -197,6 +197,8 @@ class Model:
     loss_fn = functools.partial(self.loss_fn, next(rng), train, batch)
 
     if train:
+      if state.optimizer is None:
+        raise ValueError('Optimizer is None')
       # Training mode
       (_, metrics), grad = jax.value_and_grad(loss_fn, has_aux=True)(
           state.optimizer.target)

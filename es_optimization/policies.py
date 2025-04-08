@@ -625,6 +625,7 @@ class Conv1DPolicy(Policy):
     for i in range(len(self.filter_sizes)):
       channels = convolve(channels, self.weights[i], self.strides[i],
                           self.biases[i], self.nonlinearity)
+    assert self.column is not None and self.row is not None
     action = self.second_nonlinearity(
         np.matmul(
             scipy.linalg.toeplitz(self.column, self.row),
