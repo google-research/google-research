@@ -159,10 +159,12 @@ class Alignment:
 
   @property
   def identity(self):
+    assert self.matches is not None
     return self.matches.count('|')
 
   @property
   def similarity(self):
+    assert self.matches is not None
     return self.identity + self.matches.count(':')
 
   @property

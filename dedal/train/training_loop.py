@@ -151,6 +151,8 @@ class TrainingLoop:
 
   @property
   def _learning_rate(self):
+    if self._optimizer is None:
+      raise ValueError('No optimizer set.')
     lr = self._optimizer.lr
     return lr if not callable(lr) else lr(self._step)
 
@@ -163,6 +165,8 @@ class TrainingLoop:
 
     def step_fn(features, y_true, weights, metadata):
       """step_fn is replicated when running with TPUStrategy."""
+      if self._optimizer is None:
+        raise ValueError('No optimizer set.')
       with tf.GradientTape() as tape:
         y_pred = self.model(features, training=training)
         local_loss, individual_losses = self._loss_fn(y_true, y_pred, weights)
@@ -331,6 +335,8 @@ class TrainingLoop:
     logging.info('Starting downstream.')
     if self._reference_ckpt is None:
       logging.info('No reference pass for the upstream task')
+    if self._reference_step is None:
+      raise ValueError('No reference step for the upstream task')
 
     # Dataset and logger for train and test.
     eval_splits = self.parse_eval_splits()

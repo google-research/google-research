@@ -116,6 +116,8 @@ class Tokenizer:
 
   def _get_expansions_containing_abbreviation(self):
     """Gets expansions that contain their abbreviations within them."""
+    if self._abbreviation_expansions_dict is None:
+      raise ValueError("No abbreviation expansions dictionary provided.")
     expansions_containing_abbrev = []
     for abbrev, expansions in self._abbreviation_expansions_dict.items():
       abbrev_re = create_word_finder_regex([abbrev])

@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 """Serializer/deserializers for biological sequence data.
 
 Inspired by learning/brain/research/wavesplit/wavesplit_v2/serialization.py
@@ -86,6 +87,8 @@ class Coder:
 
   @property
   def specs(self):
+    if self._specs is None:
+      raise ValueError('self._specs not set.')
     result = {}
     for k, v in self._specs.items():
       if isinstance(v, tf.dtypes.DType):
