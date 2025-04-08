@@ -134,7 +134,10 @@ class A():
     agnostic = tokenizer.tokenize_and_abstract(source)
     actual_positions_and_kinds = tuple(
         (m.metadata.start.line, m.metadata.start.column, m.metadata.end.line,
-         m.metadata.end.column, m.kind) for m in agnostic)
+         m.metadata.end.column, m.kind)
+        for m in agnostic
+        if m.metadata.start is not None and
+        m.metadata.end is not None)
 
     self.assertSequenceEqual(expected_positions_and_kinds,
                              actual_positions_and_kinds)

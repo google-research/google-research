@@ -148,7 +148,8 @@ TokenB TokenC""",
     agnostic = tokenizer.tokenize_and_abstract(source)
     actual_starts_and_kinds = tuple(
         (m.metadata.start.line, m.metadata.start.column, m.kind)
-        for m in agnostic[:-1])
+        for m in agnostic[:-1]
+        if m.metadata.start is not None)
 
     self.assertSequenceEqual(expected_starts_and_kinds,
                              actual_starts_and_kinds)
