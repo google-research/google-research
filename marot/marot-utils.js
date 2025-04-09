@@ -25,6 +25,9 @@ class MarotUtils {
    * maxSubparaTokens (the tokens constraint may not be met for subparas that
    * only have one sentence).
    *
+   * If maxSubparaSentences or maxSubparaTokens is negative, then no segment
+   * splitting is performed.
+   *
    * @param {!Array<!Object>} sentenceSplits Each object has num_tokens and
    *   possibly ends_with_para_break/ends_with_line_break. Such an object
    *   can be created using MarotUtils.tokenizeText().
@@ -35,8 +38,7 @@ class MarotUtils {
    */
   static makeSubparas(
       sentenceSplits, maxSubparaSentences=4, maxSubparaTokens=400) {
-    console.assert(maxSubparaSentences > 0, maxSubparaSentences);
-    console.assert(maxSubparaTokens > 0, maxSubparaTokens);
+    const forceUnbroken = maxSubparaSentences < 0 || maxSubparaTokens < 0;
     /**
      * We start with breaking subparas after every sentence that already has
      * ends_with_para_break set. We also create subparas out of evey
@@ -55,6 +57,10 @@ class MarotUtils {
       const hasBreak = hasParaBreak || hasLineBreak ||
                        (s == sentenceSplits.length - 1);
       let currSentAlreadyPlaced = false;
+      if (forceUnbroken) {
+        currPara.push(s);
+        continue;
+      }
       if (((inSeqOfSentsWithLineBreaks && !hasBreak) ||
            (!inSeqOfSentsWithLineBreaks && hasLineBreak)) &&
           (currPara.length > 0)) {
@@ -98,8 +104,8 @@ class MarotUtils {
        * Note that the maxSubparaTokens constraint is only checked if there is
        * more than one sentence.
        */
-      return ((p.length > maxSubparaSentences) ||
-              ((p.length > 1) && (tokenCount(p) > maxSubparaTokens)));
+      return (!forceUnbroken && ((p.length > maxSubparaSentences) ||
+              ((p.length > 1) && (tokenCount(p) > maxSubparaTokens))));
     };
 
     /**

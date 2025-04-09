@@ -442,3 +442,33 @@
 .anthea-word-active-begin:hover {
   outline: 1px solid lightgray;
 }
+.anthea-slider {
+  --slider-unset-thumb-color: rgb(255, 0, 0);
+  --slider-set-thumb-color: rgb(0, 0, 255);
+  --slider-thumb-color: var(--slider-unset-thumb-color);
+  -webkit-appearance: none;
+  width: 98%;
+  height: 15px;
+  background: #d3d3d3;
+  outline: none;
+  opacity: 0.7;
+  -webkit-transition: .2s;
+  transition: opacity .2s;
+}
+.anthea-slider:hover {
+  opacity: 1;
+}
+.anthea-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 15px;
+  height: 15px;
+  background: var(--slider-thumb-color);
+  cursor: pointer;
+}
+.anthea-slider::-moz-range-thumb {
+  width: 15px;
+  height: 15px;
+  background: var(--slider-thumb-color);
+  cursor: pointer;
+}

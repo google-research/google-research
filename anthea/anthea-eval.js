@@ -363,7 +363,7 @@ class AntheaCursor {
   }
 
   /**
-   * Returns true if the passed segment has been full seen.
+   * Returns true if the passed segment has been fully seen.
    * @param {number} seg
    * @return {boolean}
    */
@@ -562,8 +562,17 @@ class AntheaCursor {
             );
       }
     }
-    /* Check completion of a segment seg on a side s. */
-    let sideDone = (s) => this.numSubparasShown[s][seg] === this.numSubparas[s][seg];
+    this.maybeMarkSegmentDone(seg);
+  }
+
+  /**
+   * If all subparas on all sides have been shown for the specified segment,
+   * then mark the segment as done.
+   * @param {number} seg
+   */
+  maybeMarkSegmentDone(seg) {
+    const sideDone = (s) =>
+        this.numSubparasShown[s][seg] === this.numSubparas[s][seg];
     if (this.sideOrder.every((s) => sideDone(s))) {
       this.segmentDone_(seg);
     }
@@ -1052,6 +1061,10 @@ class AntheaEval {
           // Change the doc value based on the side which matters for Marot's
           // error result parsing.
           evalResultCopy.doc = evalResults[s].doc * 2 + j;
+          // Save the single quality score corresponding to this result.
+          if (this.config.COLLECT_QUALITY_SCORE) {
+            evalResultCopy.quality_scores = [evalResults[s].quality_scores[j]];
+          }
           splitEvalResults.push(evalResultCopy);
         }
       }
@@ -1230,6 +1243,12 @@ class AntheaEval {
         this.addLocationToHotw(splitTwo, "translation2");
         splitOne.hotw_list.push(...splitTwo.hotw_list);
 
+        if (this.config.COLLECT_QUALITY_SCORE) {
+          splitOne.quality_scores = [
+            splitOne.quality_scores[0],
+            splitTwo.quality_scores[0]
+          ];
+        }
         mergedEvalResults.push(splitOne);
       }
     }
@@ -1645,6 +1664,42 @@ class AntheaEval {
   }
 
   /**
+   * Resets the quality score and display for the current segment.
+   */
+  resetQualityScore() {
+    if (this.config.COLLECT_QUALITY_SCORE) {
+      this.currSegmentEval().quality_scores[this.cursor.side - 1] = -1;
+      this.undoProgressForCurrentSegment();
+      this.updateQualityScoreDisplay();
+    }
+  }
+
+  /**
+   * Updates the quality score slider display based on the current segment.
+   */
+  updateQualityScoreDisplay() {
+    if (this.config.COLLECT_QUALITY_SCORE) {
+      if (this.cursor.side === 0) {
+        this.qualityScorePanel_.style.display = 'none';
+      } else {
+        this.qualityScorePanel_.style.display = '';
+        const qualityScore = this.currSegmentEval().quality_scores[this.cursor.side - 1];
+        if (qualityScore >= 0) {
+          this.qualityScoreSlider_.value = qualityScore;
+          this.qualityScoreSlider_.style.setProperty('--slider-thumb-color',
+              'var(--slider-set-thumb-color)');
+          this.qualityScoreText_.innerHTML = qualityScore;
+        } else {
+          this.qualityScoreSlider_.value = 50;
+          this.qualityScoreSlider_.style.setProperty('--slider-thumb-color',
+              'var(--slider-unset-thumb-color)');
+          this.qualityScoreText_.innerHTML = 'Unset';
+        }
+      }
+    }
+  }
+
+  /**
    * Shows the subpara at index (seg, side, para). How the subpara gets shown
    *     depends on whether it is before, at, or after this.cursor.
    * @param {number} seg
@@ -1704,6 +1759,7 @@ class AntheaEval {
     }
 
     if (isCurr) {
+      this.updateQualityScoreDisplay();
       subpara.subparaSpan.classList.remove('anthea-fading-text');
       this.evalPanel_.style.top = subpara.top;
       this.evalPanelErrors_.innerHTML = '';
@@ -2078,9 +2134,30 @@ class AntheaEval {
     if (this.evalResults_[seg].visited) {
       return;
     }
+    if (this.config.COLLECT_QUALITY_SCORE &&
+        this.evalResults_[seg].quality_scores.some(value => value === -1)) {
+      return;
+    }
     this.evalResults_[seg].visited = true;
     this.saveResults();
     this.numWordsEvaluated_ += this.segments_[seg].numTgtWords;
+    if (this.displayedProgress_) {
+      this.displayedProgress_.innerHTML = this.getPercentEvaluated();
+    }
+  }
+
+  /**
+   * Undoes the progress update for the current segment. This can happen if the
+   * quality score gets reset because of a HOTW error.
+   */
+  undoProgressForCurrentSegment() {
+    const seg = this.cursor.seg;
+    if (!this.evalResults_[seg].visited) {
+      return;
+    }
+    this.evalResults_[seg].visited = false;
+    this.saveResults();
+    this.numWordsEvaluated_ -= this.segments_[seg].numTgtWords;
     if (this.displayedProgress_) {
       this.displayedProgress_.innerHTML = this.getPercentEvaluated();
     }
@@ -2096,6 +2173,7 @@ class AntheaEval {
   finishCurrSubpara() {
     const subpara = this.getCurrSubpara();
     if (!this.READ_ONLY && subpara.hotw && !subpara.hotw.done) {
+      this.resetQualityScore();
       const evalResult = this.currSegmentEval();
       this.noteTiming('missed-hands-on-the-wheel-error');
       subpara.hotw.done = true;
@@ -2291,6 +2369,39 @@ class AntheaEval {
     this.guidance_ = googdom.createDom('div', 'anthea-eval-guidance');
     this.guidancePanel_.appendChild(this.guidance_);
 
+    if (this.config.COLLECT_QUALITY_SCORE) {
+      this.qualityScoreSlider_ = googdom.createDom('input', {
+        'class': 'anthea-slider',
+        'type': 'range',
+        'min': 0,
+        'max': 100,
+        'value': 50,
+        'onkeydown': 'return false;' // Prevent arrow keys from affecting score.
+      });
+      this.qualityScoreText_ =
+          googdom.createDom('div', 'anthea-quality-score-text', 'Unset');
+      this.qualityScorePanel_ = googdom.createDom(
+          'div', 'anthea-quality-score-panel',
+          'Quality Score: ', this.qualityScoreText_, this.qualityScoreSlider_);
+      const qualityScoreLandmarks = [
+        '0: No meaning preserved', '33: Some meaning preserved',
+        '66: Most meaning preserved, few grammar mistakes',
+        '100: Perfect meaning/grammar'
+      ];
+      qualityScoreLandmarks.forEach(
+          landmark => this.qualityScorePanel_.appendChild(googdom.createDom(
+              'div', 'anthea-quality-score-landmark', landmark)));
+
+      this.guidancePanel_.appendChild(this.qualityScorePanel_);
+      const qualityScoreListener = (e) => {
+        this.currSegmentEval().quality_scores[this.cursor.side - 1] =
+            Number(this.qualityScoreSlider_.value);
+        this.updateQualityScoreDisplay();
+        this.cursor.maybeMarkSegmentDone(this.cursor.seg);
+      };
+      this.qualityScoreSlider_.addEventListener('input', qualityScoreListener);
+  }
+
     this.cancel_ = googdom.createDom(
         'button', 'anthea-stretchy-button anthea-eval-cancel', 'Cancel (Esc)');
     this.cancel_.style.display = 'none';
@@ -2428,6 +2539,7 @@ class AntheaEval {
   setMQMSpan(start, end, prefix, selected) {
     const subpara = this.getCurrSubpara();
     if (subpara.hotw && !subpara.hotw.done) {
+      this.resetQualityScore();
       const evalResult = this.currSegmentEval();
       this.noteTiming('found-hands-on-the-wheel-error');
       subpara.hotw.done = true;
@@ -4080,12 +4192,18 @@ class AntheaEval {
     /**
      * By default, raters navigate in units of sentences. If subpara_*
      * parameters have been passed in, they control the unit size.
-     * Also support the old names of these parameters (paralet_*)
+     * Also support the old names of these parameters (paralet_*).
+     *
+     * When collecting quality scores, we want to make it clear that the score
+     * applies to the entire segment, so we set the unit sizes to -1 to indicate
+     * that no splitting should happen.
      */
-    const subparaSentences = parameters.subpara_sentences ?? (
-        parameters.paralet_sentences ?? 1);
-    const subparaTokens = parameters.subpara_tokens ?? (
-        parameters.paralet_tokens ?? 1);
+    if (config.COLLECT_QUALITY_SCORE) {
+      parameters.subpara_sentences = -1;
+      parameters.subpara_tokens = -1;
+    }
+    const subparaSentences = parameters.subpara_sentences ?? (parameters.paralet_sentences ?? 1);
+    const subparaTokens = parameters.subpara_tokens ?? (parameters.paralet_tokens ?? 1);
 
     if (parameters.hasOwnProperty('hotw_percent')) {
       /* Override the passed value */
@@ -4257,6 +4375,10 @@ class AntheaEval {
           'timing': {},
           'hotw_list': [],
         };
+        if (config.COLLECT_QUALITY_SCORE) {
+          evalResult.quality_scores =
+              Array.from({'length': config.SIDE_BY_SIDE ? 2 : 1}).fill(-1);
+        }
         this.evalResults_.push(evalResult);
         if (j < annotations.length) {
           let parsed_anno = {};

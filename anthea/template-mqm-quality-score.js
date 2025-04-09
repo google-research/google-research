@@ -17,7 +17,7 @@
  * from this by overriding severitities/errors and changing configuration
  * constants.
  */
-antheaTemplates['MQM'] = {
+antheaTemplates['MQM-Quality-Score'] = {
   severities: {
     major: {
       display: 'Major severity',
@@ -52,7 +52,7 @@ antheaTemplates['MQM'] = {
    * @const {boolean} Collect per-segment quality scores when set to true. Also
    *    disables splitting segments into sub-paragraphs.
    */
-  COLLECT_QUALITY_SCORE: false,
+  COLLECT_QUALITY_SCORE: true,
 
   /**
    * @const {boolean} Only rate the target side, i.e., the translated text.
@@ -255,4 +255,195 @@ antheaTemplates['MQM'] = {
    * Instructions are built using default section order and contents in
    * template-base.js.
    */
+  instructions_section_contents: {
+    'Overview': `
+      <h2>Overview</h2>
+      <p>
+        In this project, you will be shown translations of different documents
+        that you will review and annotate for errors and issues. You will
+        annotate by selecting spans of words affected by errors, then labeling
+        them with severities and issue types. You will also provide overall
+        quality scores for each segment. The goal of this project is to
+        evaluate the quality of various human and machine translation outputs.
+      </p>
+      <p>
+        The content for annotation consists of documents that are broken down
+        into parallel segments. A segment may be one sentence, multiple
+        sentences, an entire paragraph, or an entire document. Navigation 
+        through the document is explained in detail in the "Navigation"
+        subsection.
+      </p>
+      `,
+  'Navigation': `
+      <h2>Navigation</h2>
+      <p>
+        Each task consists of text from a single document alongside its
+        translation. Sometimes it can be a very short document (even a single
+        sentence), but typically a document will have 10-20 sentences.
+      </p>
+      <ul>
+        <li>
+        You will go through a document segment by segment. The right arrow
+        key/button will take you from a source segment to the translation of
+        that segment, and from the translation to the source side of the next
+        segment if the document was translated as multiple segments.
+        </li>
+        <li>
+        If a source segment appears to be too long, you can (at any time) choose
+        to jump to the translation side after reading some part of the source,
+        using the Tab key. The Tab key will similarly allow you to jump back to
+        the source side from the translation side. We leave the judgment to you,
+        as to how to divide your annotation process for long segments into
+        smaller units.
+        </li>
+        <li>
+        You can also use the left arrow key/button to go <i>back</i> through the
+        segments. You can also directly click on any previously read part of the
+        text to jump back to it.
+        </li>
+      </ul>
+      `,
+    'Annotation Process': `
+    <h2>Annotation Process</h2>
+    <ol>
+      <li>Review the translation of each segment against the source, following
+          the general guidelines above.</li>
+      <li>
+        Select the <b>span</b> of words affected by the issue by clicking on
+        the word/particle where the identified issue “begins”, then clicking
+        on the word/particle where the issue “ends”. If it is only one word,
+        then you have to click on it twice.
+        <ul>
+          <li>The marked span should be the minimal contiguous sequence such
+              that modifying the word(s) within the span, deleting the span,
+              or moving the word(s) somewhere else in the sentence will remove
+              the identified issue. The span should not include adjoining
+              words that are not directly affected by the identified issue and
+              do not need to be modified in order for the issue to be
+              fixed.</li>
+          <li>You can only mark spans within sentences. In the rare case that
+              an error straddles multiple sentences (e.g., when there is an
+              incorrect sentence break), just mark the first part of the span
+              that lies within a sentence.</li>
+          <li>The shorter the span, the more useful it is.</li>
+          <li>When it comes to "Style/Unnatural or awkward" errors, please
+              pinpoint the error rather than extend the span to an entire
+              clause.</li>
+          <li>If a single issue affects words that do not directly follow each
+              other, as is the case with split verbs in German
+              (“teilte die Feuerwehr auf”) or phrasal verbs in English
+              (“called Mary and her brother up”), log the issue only for the
+              first part (“teilte”, “called”) and do not log anything for the
+              latter part (“auf”, “up”). The text between “teilte” and “auf”,
+              or between “called” and “up”, should not be included in the span
+              if the issue is with the verb only (“aufteilen”, “call up”).
+          </li>
+          <li>Note: issues can appear either on the translation side, or
+              rarely, for the "Source issue" type, on the source side. When
+              the error is an omission, the error span must be selected on the
+              source side.</li>
+        </ul>
+      </li>
+      <li>
+        Select the <b>severity</b> of the issue using the buttons in the
+        rightmost column ("Evaluations") or their keyboard shortcuts:
+        <ul>
+          <li>Major severity (M)</li>
+          <li>Minor severity (m)</li>
+        </ul>
+      </li>
+      <li>Select the <b>category</b> (also called <b>type</b>) and
+          <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
+          found. For example: Accuracy &gt; Mistranslation.</li>
+      <li>After annotating all identified issues in a segment, use the
+        Quality Score slider to rate the overall quality of the translation of
+        that segment.</li>
+      <li>After selecting the quality score, use the
+          <b>right arrow key</b> (or the <b>button</b>) to go to the next
+          segment.</li>
+    </ol>`,
+  'Annotation Tips': `
+      <details>
+        <summary>
+          <span class="summary-heading">Annotation Tips</span>
+        </summary>
+        <ol>
+          <li>
+            You can modify or delete any rating in the current segment
+            by using the menu shown to the right of the rating. The menu is
+            revealed when you hover your mouse over the hamburger icon
+            (&#9776;). If deleted, the rating is shown with a strikethrough
+            line. You can undelete a deleted rating using the menu, if desired.
+          </li>
+          <li>
+            While editing a rating, its text will be shown with a
+            <span style="text-decoration: red wavy underline">red wavy
+            underline</span>. You can use the "Cancel" button or the Escape key
+            to abort an ongoing modification to a rating.
+          </li>
+          <li>
+            To modify or delete a rating for a previous sentence in the
+            current document, you can first click on it to navigate to it (or
+            use the arrow key/button) and then use the hamburger menu.
+          </li>
+          <li>
+            Sometimes, you might be re-evaluating a document that was already
+            evaluated previously. In such cases, you will see the previous
+            annotations and can simply keep them, edit them, delete them, or
+            supplement them with additional annotations.
+          </li>
+          <li>
+            Occasionally, the translated sentence will be altered to
+            include an artificially injected error. Evaluating translation
+            quality is a difficult and demanding task, and such "test sentences"
+            are used to help you maintain the high level of attention the task
+            needs. Once you have marked any error in a test sentence, its
+            unaltered version will be shown. If you miss marking any error in a
+            test sentence, you will be shown a cautionary reminder about that.
+            In either case, once the unaltered version is revealed, you have to
+            proceed to rate its quality just like all the other sentences.
+          </li>
+        </ol>
+      </details>`,
+  'Quality Score Guidelines': `
+      <h2> Quality Score Guidelines</h2>
+      <p>
+        The quality score is a measure of the overall quality of the translation
+        of the segment. It is a number between 0 and 100, where 0 is the worst
+        quality and 100 is the best quality. It is a holistic measure of
+        quality, including both accuracy (meaning preservation) and fluency
+        (naturalness in the target locale).
+      </p>
+      <p>
+        The specific quality score you choose is up to your best judgment.
+        However, below are some "landmark" scores to help guide your selection:
+      </p>
+      <ul>
+        <li>
+          <b>0 (No meaning preserved)</b>: Nearly all information is lost in the
+            translation.
+        </li>
+        <li>
+          <b>33 (Some meaning preserved)</b>: Some of the meaning is preserved
+            but significant parts are missing. The narrative is hard to follow
+            due to errors. Grammar may be poor.
+        </li>
+        <li>
+          <b>66 (Most meaning preserved and few grammar mistakes)</b>: The
+            translation retains most of the meaning. It may have some grammar
+            mistakes or minor inconsistencies.
+        </li>
+        <li>
+          <b>100 (Perfect meaning and grammar)</b>: The meaning and grammar of
+            the translation is completely consistent with the source.
+        </li>
+      </ul>`,
+  },
+  instructions_section_order: [
+    '_style', 'Overview', 'General Guidelines', 'Navigation',
+    'Annotation Process', 'Annotation Tips', 'Quality Score Guidelines',
+    'Severities defined', 'Error Types and Subtypes defined',
+    'Annotations exemplified in detail', 'Style &amp; Convention Guidelines',
+    'Feedback'
+  ],
 };
