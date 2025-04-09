@@ -84,8 +84,8 @@ std::shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
 
 template <typename T>
 SearcherBase<T>::SearcherBase(
-    absl::Nullable<std::shared_ptr<TypedDataset<T>>> dataset,
-    absl::Nonnull<std::shared_ptr<DenseDataset<uint8_t>>> hashed_dataset,
+    absl_nullable std::shared_ptr<TypedDataset<T>> dataset,
+    absl_nonnull std::shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
     SearcherOptions<T> opts, int32_t default_pre_reordering_num_neighbors,
     float default_pre_reordering_epsilon)
     : SingleMachineSearcherBase<T>(
