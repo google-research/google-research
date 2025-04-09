@@ -868,24 +868,16 @@ class Marot {
         let aggrDocSegMetrics = {};
         for (const system of this.dataIter.docSys[doc]) {
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
-          let aggrDocSegSysMetrics = {};
-          for (let rowId = range[0]; rowId < range[1]; rowId++) {
-            const parts = this.data[rowId];
-            const segment = parts[this.DATA_COL_METADATA].segment;
-            segment.aggrDocSeg.metrics = aggrDocSegMetrics;
-            if (segment.hasOwnProperty('metrics')) {
-              aggrDocSegSysMetrics = {
-                ...segment.metrics,
-                ...aggrDocSegSysMetrics,
-              };
-            }
-          }
-          for (let metric in aggrDocSegSysMetrics) {
+          // All rows in the range have the same segment object;
+          // see this.addSegmentAggregations().
+          const segment = this.data[range[0]][this.DATA_COL_METADATA].segment;
+          for (let metric in segment.metrics) {
             if (!aggrDocSegMetrics.hasOwnProperty(metric)) {
               aggrDocSegMetrics[metric] = {};
             }
-            aggrDocSegMetrics[metric][system] = aggrDocSegSysMetrics[metric];
+            aggrDocSegMetrics[metric][system] = segment.metrics[metric];
           }
+          segment.aggrDocSeg.metrics = aggrDocSegMetrics;
         }
       }
     }
@@ -930,10 +922,17 @@ class Marot {
             docSegId: docSegId,
             system: system,
             aggrDocSeg: aggrDocSeg,
+            metrics: {},
           };
           for (let rowId = range[0]; rowId < range[1]; rowId++) {
             const parts = this.data[rowId];
             const segment = parts[this.DATA_COL_METADATA].segment || {};
+            if (segment.hasOwnProperty('metrics')) {
+              aggrDocSegSys.metrics = {
+                ...segment.metrics,
+                ...aggrDocSegSys.metrics,
+              };
+            }
             aggrDocSegSys = {...segment, ...aggrDocSegSys};
             if (!aggrDocSegSys.hasOwnProperty('num_source_chars')) {
               aggrDocSegSys.num_source_chars = parts.num_source_chars;
