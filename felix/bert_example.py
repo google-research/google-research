@@ -219,7 +219,8 @@ class BertExampleBuilder:
       2. FeedDict for the insertion model or None if the BertExample or the
       insertion conversion failed.
     """
-
+    if self._converter is None:
+      raise ValueError('Converter is not set.')
     merged_sources = self._special_glue_string_for_sources.join(sources)
     original_source = merged_sources
     merged_sources = merged_sources.strip()
