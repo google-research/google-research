@@ -41,6 +41,8 @@ from jax_dft import utils
 # Set the default dtype as float64
 config.update('jax_enable_x64', True)
 
+config.update('jax_threefry_partitionable', False)
+
 
 class ScfTest(parameterized.TestCase):
 

@@ -28,6 +28,8 @@ from imp.max.core import utils
 from imp.max.modeling import garden
 from imp.max.modeling.garden import config as garden_config
 
+jax.config.update('jax_threefry_partitionable', False)
+
 AggType = constants.AggregationType
 Modality = constants.Modality
 DataFeatureType = constants.DataFeatureType

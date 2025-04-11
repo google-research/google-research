@@ -21,6 +21,8 @@ import jax.numpy as jnp
 
 from hyperattention import hyper_attention
 
+jax.config.update("jax_threefry_partitionable", False)
+
 
 class HyperAttentionTest(absltest.TestCase):
 

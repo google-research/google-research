@@ -23,6 +23,8 @@ import jax.numpy as jnp
 
 from imp.max.utils import linalg
 
+jax.config.update('jax_threefry_partitionable', False)
+
 
 class ProjectionTest(parameterized.TestCase):
 

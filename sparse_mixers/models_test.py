@@ -29,6 +29,8 @@ import numpy as np
 from sparse_mixers import models
 from sparse_mixers.configs import base as base_config
 
+jax.config.update("jax_threefry_partitionable", False)
+
 # Type Stubs
 ClassificationStats = models.ClassificationStats
 DispatchAlgorithm = base_config.DispatchAlgorithm

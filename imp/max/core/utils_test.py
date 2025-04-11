@@ -31,6 +31,8 @@ import tensorflow as tf
 from imp.max.core import constants
 from imp.max.core import utils
 
+jax.config.update('jax_threefry_partitionable', False)
+
 PROCESS_COUNT = 4
 LOCAL_DEVICE_COUNT = 2
 

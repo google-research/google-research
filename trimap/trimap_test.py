@@ -25,6 +25,8 @@ from pynndescent import NNDescent
 
 from trimap import trimap
 
+jax.config.update('jax_threefry_partitionable', False)
+
 python_version = 'PY3'
 
 

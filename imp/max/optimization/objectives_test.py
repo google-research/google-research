@@ -28,6 +28,8 @@ from imp.max.core import utils
 from imp.max.optimization import config as opt_config
 from imp.max.optimization import objectives
 
+jax.config.update('jax_threefry_partitionable', False)
+
 
 Modality = constants.Modality
 DataFeatureType = constants.DataFeatureType
