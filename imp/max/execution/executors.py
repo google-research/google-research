@@ -776,7 +776,7 @@ class BaseExecutor:
 
     # fetch and jit the train step
     train_step = jax.jit(
-        fun=self.create_train_step(),
+        self.create_train_step(),
         donate_argnums=(0, 1, 2, 3, 4),
         static_argnums=(5,),
     )
@@ -936,7 +936,7 @@ class BaseExecutor:
 
     # fetch and jit the inference step
     inference_step = jax.jit(
-        fun=self.create_inference_step(data_filter_fn),
+        self.create_inference_step(data_filter_fn),
     )
 
     # start inference
@@ -1084,7 +1084,7 @@ class BaseExecutor:
 
     # fetch and jit the evaluation step
     evaluation_step = jax.jit(
-        fun=self.create_evaluation_step(data_filter_fn),
+        self.create_evaluation_step(data_filter_fn),
     )
 
     # start inference

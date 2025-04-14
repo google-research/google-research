@@ -393,7 +393,7 @@ class BaseLinearClassifier:
     replicate_shds = sharding.replication_named_shardings(
         self.partitioner.mesh)
     train_step = jax.jit(
-        fun=self.create_train_step(),
+        self.create_train_step(),
         in_shardings=(replicate_shds, data_shds, data_shds, replicate_shds),
         out_shardings=(replicate_shds, replicate_shds),
         donate_argnums=(0, 1, 2, 3),
@@ -456,7 +456,7 @@ class BaseLinearClassifier:
     replicate_shds = sharding.replication_named_shardings(
         self.partitioner.mesh)
     eval_step = jax.jit(
-        fun=self.create_evaluation_step(metrics_stack),
+        self.create_evaluation_step(metrics_stack),
         in_shardings=(replicate_shds, data_shds, data_shds, data_shds),
         out_shardings=replicate_shds,
         donate_argnums=(0, 1, 2, 3),
