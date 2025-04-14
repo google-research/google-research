@@ -1,0 +1,54 @@
+# Ported from https://github.com/huggingface/alignment-handbook/blob/main/recipes/zephyr-7b-beta/dpo/config_full.yaml
+# with slight modifications to add `wandb` logging, missing `warmup_ratio: 0.1`, Notus-related stuff, and also to make
+# if work in 8 x A100 40GB by adding `torch_dtype: bfloat16` and `use_flash_attention_2: true`
+
+
+# Model arguments
+model_name_or_path: google/gemma-7b-it # mistralai/Mixtral-8x7B-Instruct-v0.1
+torch_dtype: bfloat16
+attn_implementation: flash_attention_2
+
+# Data training arguments
+dataset_mixer:
+  ../efficient_kd/data/Math_CoT: 1.0
+dataset_splits:
+- train_sft
+- test_sft
+preprocessing_num_workers: 12
+
+# SFT trainer config
+bf16: true
+dataset_kwargs:
+  add_special_tokens: false  # We already wrap <bos> and <eos> in the chat template
+  append_concat_token: false # No need to add <eos> across samples
+do_eval: true
+eval_strategy: "steps"
+eval_steps: 32
+gradient_accumulation_steps: 1
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+# hub_model_id: zephyr-7b-gemma-sft
+# hub_strategy: every_save
+# push_to_hub: true
+learning_rate: 1.0e-05
+log_level: info
+logging_steps: 5
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_seq_length: 2048
+max_steps: -1
+num_train_epochs: 3
+output_dir: gemma-7b-sft-math
+overwrite_output_dir: true
+per_device_eval_batch_size: 2
+per_device_train_batch_size: 4
+remove_unused_columns: true
+report_to:
+- tensorboard
+- wandb
+save_strategy: "steps"
+save_steps: 32
+seed: 42
+warmup_ratio: 0.1
+run_name: sft-math

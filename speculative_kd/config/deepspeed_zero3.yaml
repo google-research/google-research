@@ -1,0 +1,24 @@
+compute_environment: LOCAL_MACHINE
+debug: false
+deepspeed_config:
+  bf16_enabled: true
+  deepspeed_multinode_launcher: standard
+  offload_optimizer_device: cpu 
+  offload_param_device: cpu
+  offload_param_pin_memory: true
+  zero3_init_flag: true
+  zero3_save_16bit_model: true
+  zero_stage: 3
+distributed_type: DEEPSPEED
+downcast_bf16: "no"
+machine_rank: 0
+main_training_function: main
+mixed_precision: bf16
+num_machines: 1
+num_processes: 8
+rdzv_backend: static
+same_network: true
+tpu_env: []
+tpu_use_cluster: false
+tpu_use_sudo: false
+use_cpu: false

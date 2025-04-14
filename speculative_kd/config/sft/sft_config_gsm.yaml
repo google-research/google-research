@@ -1,0 +1,58 @@
+# Ported from https://github.com/huggingface/alignment-handbook/blob/main/recipes/zephyr-7b-beta/dpo/config_full.yaml
+# with slight modifications to add `wandb` logging, missing `warmup_ratio: 0.1`, Notus-related stuff, and also to make
+# if work in 8 x A100 40GB by adding `torch_dtype: bfloat16` and `use_flash_attention_2: true`
+
+
+# Model arguments
+model_name_or_path: google/gemma-2b-it #  google/gemma-7b-it # Qwen/Qwen2-0.5B-Instruct #microsoft/Phi-3-mini-4k-instruct
+torch_dtype: bfloat16
+attn_implementation: flash_attention_2
+trust_remote_code: true
+
+# Data training arguments
+dataset_mixer:
+  ../efficient_kd/data/gsm_1k: 1.0
+dataset_splits:
+- train_sft
+- test_sft
+preprocessing_num_workers: 12
+auto_insert_empty_system_msg: true
+
+# SFT trainer config
+bf16: true
+dataset_kwargs:
+  add_special_tokens: false  # We already wrap <bos> and <eos> in the chat template
+  append_concat_token: false # No need to add <eos> across samples
+do_eval: true
+eval_strategy: "steps"
+eval_steps: 16
+gradient_accumulation_steps: 1
+gradient_checkpointing: true
+gradient_checkpointing_kwargs:
+  use_reentrant: false
+# hub_model_id: zephyr-7b-gemma-sft
+# hub_strategy: every_save
+# push_to_hub: true
+learning_rate: 1.0e-05
+log_level: info
+logging_steps: 1
+logging_strategy: steps
+lr_scheduler_type: cosine
+max_seq_length: 384 # 512 # 1024+128 # 512 + 128
+max_steps: -1
+num_train_epochs: 3
+output_dir: gemma-2b-it-gsm_1k
+overwrite_output_dir: true
+per_device_eval_batch_size: 16
+per_device_train_batch_size: 16
+remove_unused_columns: true
+report_to:
+- tensorboard
+- wandb
+save_only_model: true
+save_total_limit: 10
+save_strategy: "steps"
+save_steps: 16
+seed: 42
+warmup_ratio: 0.1
+run_name: gemma-2b-it-gsm_1k
