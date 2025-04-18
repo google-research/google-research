@@ -386,6 +386,12 @@ class BnBAccountant:
   ):
     """Returns privacy loss for samples.
 
+    For REMOVE adjacency, the privacy loss for each x along the last axis of
+    `samples` is given as:
+    log(sum_{t=1}^T exp(x_t / sigma^2)) - log(T) - 1 / (2 * sigma^2)
+
+    For ADD adjacency, the privacy loss is the negative of the above.
+
     Args:
       sigma: The scale of Gaussian noise.
       samples: The samples of shape (sample_size, num_steps_per_epoch) or
@@ -446,9 +452,9 @@ class BnBAccountant:
     For ADD adjacency, the set E_C is given as:
     E_C := {x : max_t x_t <= C}
     Thus, we can choose C to be the smallest value such that:
-    log(T) + 1/(2 * sigma^2) - log(T * exp(C / sigma^2)) <= epsilon.
+    log(T) + 1/(2 * sigma^2) - log(exp(C / sigma^2)) <= epsilon.
     This is equivalent to:
-    C >= 0.5 - epsilon * sigma^2
+    C >= 0.5 + (log(T) - epsilon) * sigma^2
 
     For REMOVE adjacency, the set E_C is given as:
     E_C := {x : max{x_1 - 1, max_{t > 1} x_t} >= C}
@@ -471,7 +477,7 @@ class BnBAccountant:
       The value of C such that L(x) <= epsilon for all x not in E_C.
     """
     if adjacency_type == AdjacencyType.ADD:
-      return 0.5 - sigma**2 * epsilon
+      return 0.5 + sigma**2 * (math.log(num_steps) - epsilon)
     else:  # Case: adjacency_type == AdjacencyType.REMOVE
       return (0.5 + sigma**2 * (
           epsilon - math.log1p(math.expm1(1 / sigma**2) / num_steps)))
