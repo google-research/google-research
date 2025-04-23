@@ -686,7 +686,7 @@ def dictionary_learning(embedding_table,
 
       code = code.tocsr()
       if return_dense:
-        code = code.A
+        code = code.toarray()
 
       return [code, dictionary]
 
@@ -765,6 +765,6 @@ def dictionary_learning(embedding_table,
       dictionary = np.matmul(dictionary, np.transpose(projection_matrix))
 
   if return_dense:
-    code = code.A
+    code = code.toarray()
 
   return [code, dictionary]
