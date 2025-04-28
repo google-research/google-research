@@ -614,7 +614,7 @@ class Operation:
 
     # bring the gates into a common format
     return [
-        gate.apply_on(tuple(map(reassign_qubits, qubits)), num_old_qubits)
+        gate.apply_on(tuple(map(reassign_qubits, qubits)), num_old_qubits)  # pytype: disable=wrong-arg-types
         for qubits, gate in operations
     ]
 

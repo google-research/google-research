@@ -352,7 +352,7 @@ def predictions_for_df(df, inferrer):
   """
   working_df = df.copy()
   working_df['predictions'] = inferrer.get_activations(
-      working_df.sequence.values).tolist()
+      working_df.sequence.values).tolist()  # pytype: disable=attribute-error
   return working_df
 
 

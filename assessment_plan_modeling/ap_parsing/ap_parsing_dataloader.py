@@ -58,7 +58,7 @@ def get_name_to_feature_mapping(
       for k in constants.MODEL_FEATURES
   })
 
-  return name_to_features
+  return name_to_features  # pytype: disable=bad-return-type
 
 
 def test_dataset(seq_length):

@@ -726,7 +726,7 @@ class SmuParser:
     # 012345678901234567890123456789012345678901234567890123456789
     for line, (prefix, fields) in zip(section[1:], GAUSSIAN_SANITY_CHECK_LINES):
       assert str(line).startswith(prefix)
-      parts = line.split()
+      parts = line.split()  # pytype: disable=attribute-error
       if len(fields) == 1:
         setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
                 float(parts[-1]))

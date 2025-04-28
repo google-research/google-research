@@ -116,7 +116,7 @@ class SynthesisNode:
     else:
       assert parents
       if not is_output:
-        assert len(parents) == len(op.input_names)
+        assert len(parents) == len(op.input_names)  # pytype: disable=attribute-error
 
   def is_ready(self):
     """Returns whether the node is ready for synthesis.

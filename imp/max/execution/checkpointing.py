@@ -143,11 +143,11 @@ def state_tree_map(tree_map_fn,
   """tree_map support for Flax TrainState class."""
 
   step_args = dict([
-      (key, value.step) for key, value in kwargs.items()])
+      (key, value.step) for key, value in kwargs.items()])  # pytype: disable=attribute-error
   params_args = dict([
-      (key, value.params) for key, value in kwargs.items()])
+      (key, value.params) for key, value in kwargs.items()])  # pytype: disable=attribute-error
   opt_state_args = dict([
-      (key, value.opt_state) for key, value in kwargs.items()])
+      (key, value.opt_state) for key, value in kwargs.items()])  # pytype: disable=attribute-error
 
   return state.replace(apply_fn=None,
                        step=tree_map_fn(state.step, **step_args),
