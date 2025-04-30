@@ -33,7 +33,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       antheaManager = new AntheaManager();
       const testScript = (new URLSearchParams(window.location.search)).get('test');
-      if (testScript) {
+      if (testScript && testScript.startsWith('test-')) {
         const script = document.createElement('script');
         script.src = testScript;
         document.head.append(script);
