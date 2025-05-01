@@ -20,8 +20,7 @@
 
 namespace sgk {
 
-tensorflow::Status SpmmShapeFn(
-    tensorflow::shape_inference::InferenceContext* c) {
+absl::Status SpmmShapeFn(tensorflow::shape_inference::InferenceContext* c) {
   using tensorflow::shape_inference::ShapeHandle;
   ShapeHandle lhs_rows;
   TF_RETURN_IF_ERROR(c->WithRank(c->input(3), 1, &lhs_rows));
@@ -37,7 +36,7 @@ tensorflow::Status SpmmShapeFn(
   }
 
   c->set_output(0, output_shape);
-  return tensorflow::Status();
+  return absl::Status();
 }
 
 REGISTER_OP("Spmm")
@@ -106,7 +105,7 @@ REGISTER_OP("Sddmm")
             c->MakeShape({c->Dim(lhs_shape, 0), c->Dim(nonzeros, 0)});
       }
       c->set_output(0, output_shape);
-      return tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Computes the product of two dense matrices where a subset of the outputs
@@ -165,7 +164,7 @@ REGISTER_OP("Csr2idx")
       ShapeHandle nonzeros;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(3), 1, &nonzeros));
       c->set_output(0, nonzeros);
-      return tensorflow::Status();
+      return absl::Status();
     })
     .Doc(R"doc(
 Converts a compressed sparse row matrix to linear format.
@@ -182,7 +181,7 @@ column_indices: [nonzeros], column indices for each nonzero in the
 linear_indices: [nonzeros], the linear indices for the sparse matrix.
 )doc");
 
-tensorflow::Status DepthwiseShapeFn(
+absl::Status DepthwiseShapeFn(
     tensorflow::shape_inference::InferenceContext* c) {
   using tensorflow::shape_inference::DimensionHandle;
   using tensorflow::shape_inference::ShapeHandle;
@@ -249,7 +248,7 @@ tensorflow::Status DepthwiseShapeFn(
   ShapeHandle output_shape =
       c->MakeShape({batch_size_dim, output_depth, output_rows, output_cols});
   c->set_output(0, output_shape);
-  return tensorflow::Status();
+  return absl::Status();
 }
 
 REGISTER_OP("DepthwiseConv")
@@ -280,7 +279,7 @@ REGISTER_OP("BiasRelu")
       ShapeHandle input_shape;
       TF_RETURN_IF_ERROR(c->WithRankAtLeast(c->input(0), 2, &input_shape));
       c->set_output(0, input_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_OP("CsrSoftmax")
@@ -294,7 +293,7 @@ REGISTER_OP("CsrSoftmax")
       ShapeHandle values_shape;
       TF_RETURN_IF_ERROR(c->WithRankAtLeast(c->input(0), 1, &values_shape));
       c->set_output(0, values_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 REGISTER_OP("FusedSoftmax")
@@ -305,7 +304,7 @@ REGISTER_OP("FusedSoftmax")
       ShapeHandle input_shape;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 2, &input_shape));
       c->set_output(0, input_shape);
-      return tensorflow::Status();
+      return absl::Status();
     });
 
 }  // namespace sgk
