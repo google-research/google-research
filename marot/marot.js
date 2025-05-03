@@ -868,6 +868,10 @@ class Marot {
         let aggrDocSegMetrics = {};
         for (const system of this.dataIter.docSys[doc]) {
           const range = this.dataIter.docSegSys[doc][docSegId][system].rows;
+          // If this segment is not present for this system, skip it.
+          if (range[0] < 0) {
+            continue;
+          }
           // All rows in the range have the same segment object;
           // see this.addSegmentAggregations().
           const segment = this.data[range[0]][this.DATA_COL_METADATA].segment;
