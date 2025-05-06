@@ -25,7 +25,6 @@ import tensorflow.compat.v1 as tf
 from blur import blur_env
 
 
-
 Tensor = Union[tf.Tensor, np.ndarray]
 
 
@@ -226,8 +225,6 @@ def create_random_genome(num_states,
     fwd_pre, fwd_post = init_matrix(), init_matrix()
     g.forward_synapse = _synaptic_genome(fwd_pre, fwd_post)
   return g
-
-
 
 
 # Neuron transformation matrix \mu before being fed to synapse
