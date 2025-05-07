@@ -287,6 +287,7 @@ def process_from_clause(
 ):
   """Parse the from clause of a query into tables, aliases and join predicates."""
   from_clause = from_clause.strip().replace(";", "")
+  from_clause = from_clause.replace("AS", "as")
   tables = []
   aliases = []
   join_preds_ret = []
@@ -297,8 +298,8 @@ def process_from_clause(
   splitfrom = from_clause.split(" JOIN ")
   alias_a = splitfrom[0].split(" as ")[1]
   table_a = splitfrom[0].split(" as ")[0]
-  table_a = table_a.strip()
   table_a = table_a.replace("`", "")
+  table_a = table_a.strip()
   printif(debug, f"alias_a: {alias_a}")
   printif(debug, f"table_a: {table_a}")
 

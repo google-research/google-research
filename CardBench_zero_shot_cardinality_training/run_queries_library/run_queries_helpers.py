@@ -15,12 +15,15 @@
 
 """Helper functions for run_queries.py."""
 
+import os
 from typing import Any
 
 from CardBench_zero_shot_cardinality_training import configuration
 from CardBench_zero_shot_cardinality_training import database_connector
 
+
 WORKLOAD_DEFINITION_TABLE = configuration.WORKLOAD_DEFINITION_TABLE
+DIRECTORY_PATH_QUERY_FILES = configuration.DIRECTORY_PATH_QUERY_FILES
 QUERY_RUN_INFORMATION_TABLE = configuration.QUERY_RUN_INFORMATION_TABLE
 TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX = (
     configuration.TEMP_QUERY_RUN_INFORMATION_TABLE_PREFIX
@@ -56,6 +59,10 @@ def get_workload_info(
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>> ERROR IN QUERY :" + str(e))
     return
 
+  queries_file_name = queries_file_path.split("/")[-1]
+  queries_file_path = os.path.join(
+      DIRECTORY_PATH_QUERY_FILES, queries_file_name
+  )
   return queries_file_path, num_queries
 
 

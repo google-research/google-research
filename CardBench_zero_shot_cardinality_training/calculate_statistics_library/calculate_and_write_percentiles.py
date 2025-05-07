@@ -64,9 +64,8 @@ def calculate_and_store_percentiles_bq(
     print(">>>> " + str(e))
     print(">>>> " + query)
 
-
+  quantiles = [str(x) for x in quantiles]
   if columntype in ["UINT32", "UINT64"]:
-    quantiles = [str(x) for x in quantiles]
     quantiles = (
         "(SELECT ARRAY(select cast(_ as BIGNUMERIC) FROM UNNEST((select"
         f" {quantiles})) _))"

@@ -48,6 +48,9 @@ cardbench_single_table_query_generation_parameters = (
 cardbench_multi_join_query_generation_parameters = (
     generate_queries_and_save_to_file_helpers.cardbench_multi_join_query_generation_parameters
 )
+cardbench_binary_join_query_generation_parameters = (
+    generate_queries_and_save_to_file_helpers.cardbench_binary_join_query_generation_parameters
+)
 get_next_workload_id = (
     generate_queries_and_save_to_file_helpers.get_next_workload_id
 )
@@ -84,7 +87,7 @@ def generate_queries_and_save_to_file(_):
     partitioning_pred_per_table = get_table_partitioning_predicates(
         projectname, datasetname, dbs
     )
-    parameters = template_query_generation_parameters(
+    parameters = cardbench_single_table_query_generation_parameters(
         projectname,
         datasetname,
         35000,

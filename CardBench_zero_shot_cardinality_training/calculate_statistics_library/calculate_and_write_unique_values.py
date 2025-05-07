@@ -79,7 +79,8 @@ def calculate_and_write_unique_values_internal(
       print(traceback.format_exc())
     unique_vals = []
     for row in queryjob:
-      unique_vals.append(row["val"])
+      if row["val"] is not None:
+        unique_vals.append(row["val"])
 
     extra_stats_table_sql_string = get_sql_table_string(
         dbs["metadata_dbtype"], extra_stats_table
