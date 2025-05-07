@@ -20,6 +20,7 @@ import os
 from typing import Tuple
 
 from absl.testing import absltest
+import jax
 import jax.numpy as jnp
 import numpy as np
 
@@ -154,4 +155,5 @@ class InferenceTest(absltest.TestCase):
 
 
 if __name__ == '__main__':
+  jax.config.update('jax_threefry_partitionable', False)
   absltest.main()

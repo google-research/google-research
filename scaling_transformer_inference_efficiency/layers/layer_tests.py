@@ -344,4 +344,5 @@ class LayersTest(absltest.TestCase):
 
 
 if __name__ == '__main__':
+  jax.config.update('jax_threefry_partitionable', False)
   absltest.main()
