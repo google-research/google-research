@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Google Research Authors.
+ * Copyright 2025 The Google Research Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -79,6 +79,21 @@
 }
 .anthea-context-image-cell {
   position: relative;
+}
+.anthea-source-media-cell {
+  position: relative;
+  padding-bottom: 56.25%;
+  padding-top: 35px;
+  height: 0;
+  overflow: hidden;
+}
+.anthea-source-media-cell img, .anthea-source-media-cell iframe {
+  position: absolute;
+  top:0;
+  left: 0;
+  object-fit: contain;
+  width: 100%;
+  height: 100%;
 }
 .anthea-context-image {
   cursor: zoom-in;

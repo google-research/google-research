@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -132,7 +132,7 @@ class AntheaDocSys {
    * array.
    *
    * Both source-segment and target-segment can together
-   * be empty (but not just one of the two), indicating a paragraph break.
+   * be empty to indicate a paragraph break.
    * For convenience, a completely blank line (without the tabs
    * and without document-name and system-name) can also be used to indicate
    * a paragraph break.
@@ -184,7 +184,8 @@ class AntheaDocSys {
     let docsys = new AntheaDocSys();
     const unescaper = (s) => s.replace(/\\n/g, '\n').replace(/\\t/g, '\t');
     for (let line of lines.slice(1)) {
-      line = line.trim();
+      // Remove leading and trailing non-tab whitespace.
+      line = line.replace(/^[^\S\t]+|[^\S\t]+$/g, '');
       const parts = line.split('\t', 5);
       if (!line || parts.length == 2) {
         /** The line may be blank or may have just doc+sys */
@@ -222,7 +223,7 @@ class AntheaDocSys {
       docsys.srcSegments.push(srcSegment);
       docsys.tgtSegments.push(tgtSegment);
       docsys.annotations.push(annotation);
-      if (srcSegment) {
+      if (srcSegment || tgtSegment) {
         docsys.numNonBlankSegments++;
       }
     }
@@ -1180,7 +1181,7 @@ class AntheaEval {
     const docEvalCell = this.docs_[this.cursor.doc].eval;
     docEvalCell.appendChild(this.evalPanel_);
     this.displayedProgress_.innerHTML = this.getPercentEvaluated();
-    this.showPageContextIfPresent();
+    this.showContextAndMediaIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
     this.refreshCurrSubpara();
@@ -3004,7 +3005,7 @@ class AntheaEval {
     this.docs_[this.cursor.doc].row.style.display = '';
     const docEvalCell = this.docs_[this.cursor.doc].eval;
     docEvalCell.appendChild(this.evalPanel_);
-    this.showPageContextIfPresent();
+    this.showContextAndMediaIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
     this.refreshCurrSubpara();
@@ -3031,7 +3032,7 @@ class AntheaEval {
     this.docs_[this.cursor.doc].row.style.display = '';
     const docEvalCell = this.docs_[this.cursor.doc].eval;
     docEvalCell.appendChild(this.evalPanel_);
-    this.showPageContextIfPresent();
+    this.showContextAndMediaIfPresent();
     this.redrawAllSegments();
     this.recomputeTops();
     this.refreshCurrSubpara();
@@ -3799,6 +3800,43 @@ class AntheaEval {
   }
 
   /**
+   * Extract source media, if provided via an annotation on the first segment.
+   */
+  extractSourceMedia() {
+    this.manager_.log(this.manager_.INFO,
+                      'Extracting source media from annotations');
+    for (let i = 0; i < this.docs_.length; i++) {
+      const thisDoc = this.docs_[i];
+      // Add an empty image as a default, so that page layout is not broken for
+      // documents that don't have any source media.
+      thisDoc.srcMedia = {url: 'data:,', type: 'image'};
+      if (!thisDoc.docsys.annotations ||
+          thisDoc.docsys.annotations.length === 0 ||
+          !thisDoc.docsys.annotations[0]) {
+        this.manager_.log(this.manager_.WARNING,
+                          `No annotation (hence no source media) for doc ${i}`);
+        continue;
+      }
+      try {
+        const annotation = JSON.parse(thisDoc.docsys.annotations[0]);
+        if (!annotation.source_media) {
+          this.manager_.log(
+              this.manager_.ERROR,
+              `Incomplete/missing source media in the annotation for doc ${i}`);
+          continue;
+        }
+        // Overwrite the default source media.
+        thisDoc.srcMedia = annotation.source_media;
+      } catch (err) {
+        this.manager_.log(
+            this.manager_.ERROR,
+            `Unparseable source media in the annotation for doc ${i}`);
+        continue;
+      }
+    }
+  }
+
+  /**
    * Extract page contexts, if provided via an annotation on the first segment.
    */
   extractPageContexts() {
@@ -3830,6 +3868,70 @@ class AntheaEval {
         continue;
       }
     }
+  }
+
+  /**
+   * If the current document uses media as the source instead of text (e.g. a
+   * video), then show it in the source panel.
+   */
+  showSourceMediaIfPresent() {
+    const doc = this.docs_[this.cursor.doc];
+    if (!doc.srcMedia) {
+      return;
+    }
+    if (!["video", "image"].includes(doc.srcMedia.type)) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          `Source media is not a video or image (or type not specified): "${
+              doc.srcMedia.type}"`);
+      return;
+    }
+    const driveRegex = /https:\/\/drive.google.com\/file\/d\/[^\/]+\/preview/;
+    const ytRegex = /https:\/\/www.youtube.com\/embed\/.*/;
+    if (doc.srcMedia.type === 'video' &&
+        ![driveRegex, ytRegex].some((re) => re.test(doc.srcMedia.url))) {
+      this.manager_.log(
+          this.manager_.ERROR,
+          `Source media is a video but not from YouTube or Drive (or is misformatted): ${
+              doc.srcMedia.url}`);
+      return;
+    }
+    const mediaCell = googdom.createDom(
+        'div', 'anthea-source-media-cell');
+    switch (doc.srcMedia.type) {
+      case 'image':
+        mediaCell.appendChild(googdom.createDom(
+          'img', {src: doc.srcMedia.url, title: 'Source media image'}));
+        break;
+      case 'video':
+        mediaCell.appendChild(googdom.createDom('iframe', {
+          src: doc.srcMedia.url,
+          title: 'Source media video',
+          allow: 'autoplay; encrypted-media;',
+          allowfullscreen: true
+        }));
+        break;
+      default:
+        this.manager_.log(
+            this.manager_.ERROR,
+            `Source media is not a video or image (or type not specified): "${
+                doc.srcMedia.type}"`);
+        return;
+    }
+    // The source text cell is the first child of the row. Replace it with the
+    // media cell.
+    doc.row.replaceChild(
+        googdom.createDom('td', null, mediaCell), doc.row.firstChild);
+  }
+
+  /**
+   * If the current document has available page context or source media, then
+   * display them. See showPageContextIfPresent() and showSourceMediaIfPresent()
+   * for more details.
+   */
+  showContextAndMediaIfPresent() {
+    this.showPageContextIfPresent();
+    this.showSourceMediaIfPresent();
   }
 
   /**
@@ -4148,6 +4250,17 @@ class AntheaEval {
   }
 
   /**
+   * Determines whether the source column should be displayed. True if it will
+   * be populated with source text or source media.
+   *
+   * @param {!Object} config The template configuration object.
+   * @return {boolean} True if the source column should be displayed.
+   */
+  shouldDisplaySourceColumn(config) {
+    return !config.TARGET_SIDE_ONLY || config.USE_SOURCE_MEDIA;
+  }
+
+  /**
    * Sets up the eval. This is the starting point called once the template has
    *     been loaded.
    *
@@ -4216,7 +4329,8 @@ class AntheaEval {
         this.srcLang ? ('Source (' + this.srcLang + ')') : 'Source';
     const srcHeadingDiv = googdom.createDom('div', null, srcHeading);
 
-    const targetLabel = config.TARGET_SIDE_ONLY ? 'Text' : 'Translation';
+    const targetLabel =
+        this.shouldDisplaySourceColumn(config) ? 'Translation' : 'Text';
     const tgtHeading = this.tgtLang ?
         (targetLabel + ' (' + this.tgtLang + ')') : targetLabel;
     const tgtHeadingDiv = googdom.createDom('div', null, tgtHeading);
@@ -4272,7 +4386,7 @@ class AntheaEval {
         'table', 'anthea-document-text-table',
         headerRow,
         this.contextRow_);
-    if (config.TARGET_SIDE_ONLY) {
+    if (!this.shouldDisplaySourceColumn(config)) {
       srcHeadingTD.style.display = 'none';
     }
     evalDiv.appendChild(docTextTable);
@@ -4322,7 +4436,6 @@ class AntheaEval {
                                               'anthea-document-text-cell');
       const docTextTgtRow2 = config.SIDE_BY_SIDE ? googdom.createDom('td',
                                               'anthea-document-text-cell') : null;
-      doc.row = googdom.createDom('tr', null, docTextSrcRow);
       const tgtsOrder = [1];
       const tgtRows = [docTextTgtRow];
       if (config.SIDE_BY_SIDE) {
@@ -4359,7 +4472,7 @@ class AntheaEval {
       const addEndSpacesSrc = this.isSpaceSepLang(this.srcLang);
       const addEndSpacesTgt = this.isSpaceSepLang(this.tgtLang);
       for (let j = 0; j < srcSegments.length; j++) {
-        if (srcSegments[j].length == 0) {
+        if (srcSegments[j].length === 0 && tgtSegments[j].length === 0) {
           /* New paragraph. */
           srcSpannified += srcParaBreak;
           tgtSpannified += tgtParaBreak;
@@ -4602,7 +4715,10 @@ class AntheaEval {
     if (config.USE_PAGE_CONTEXT) {
       this.extractPageContexts();
     }
-    this.showPageContextIfPresent();
+    if (config.USE_SOURCE_MEDIA) {
+      this.extractSourceMedia();
+    }
+    this.showContextAndMediaIfPresent();
 
     this.redrawAllSegments();
     this.recomputeTops();
