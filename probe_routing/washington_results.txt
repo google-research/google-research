@@ -1,0 +1,160 @@
+I0000 00:00:1709931047.088011 27761744 random_weights_main.cc:548] Results for threshold 1e-05: 
+I0000 00:00:1709931047.088023 27761744 random_weights_main.cc:550] real_clusters_fraction_193700: 0
+I0000 00:00:1709931047.088025 27761744 random_weights_main.cc:550] real_clusters_fraction_774799: 0
+I0000 00:00:1709931047.088026 27761744 random_weights_main.cc:550] real_clusters_fraction_387399: 0
+I0000 00:00:1709931047.088027 27761744 random_weights_main.cc:550] real_clusters_fraction_96849.8: 0
+I0000 00:00:1709931047.088029 27761744 random_weights_main.cc:550] real_clusters_fraction_48424.9: 0
+I0000 00:00:1709931047.088030 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.22541
+I0000 00:00:1709931047.088032 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.10289
+I0000 00:00:1709931047.088033 27761744 random_weights_main.cc:548] Results for threshold 1.2e-05: 
+I0000 00:00:1709931047.088034 27761744 random_weights_main.cc:550] real_clusters_fraction_40354.1: 0
+I0000 00:00:1709931047.088092 27761744 random_weights_main.cc:550] real_clusters_fraction_161416: 0
+I0000 00:00:1709931047.088095 27761744 random_weights_main.cc:550] real_clusters_fraction_80708.2: 0
+I0000 00:00:1709931047.088096 27761744 random_weights_main.cc:550] real_clusters_fraction_322833: 0
+I0000 00:00:1709931047.088098 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.22541
+I0000 00:00:1709931047.088099 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.10289
+I0000 00:00:1709931047.088100 27761744 random_weights_main.cc:550] real_clusters_fraction_645666: 0
+I0000 00:00:1709931047.088102 27761744 random_weights_main.cc:548] Results for threshold 1.4e-05: 
+I0000 00:00:1709931047.088103 27761744 random_weights_main.cc:550] real_clusters_fraction_138357: 0
+I0000 00:00:1709931047.088105 27761744 random_weights_main.cc:550] real_clusters_fraction_553428: 0
+I0000 00:00:1709931047.088106 27761744 random_weights_main.cc:550] real_clusters_fraction_276714: 0
+I0000 00:00:1709931047.088161 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.227102
+I0000 00:00:1709931047.088195 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.10129
+I0000 00:00:1709931047.088205 27761744 random_weights_main.cc:550] real_clusters_fraction_69178.5: 0
+I0000 00:00:1709931047.088213 27761744 random_weights_main.cc:550] real_clusters_fraction_34589.2: 6.5153e-08
+I0000 00:00:1709931047.088220 27761744 random_weights_main.cc:548] Results for threshold 1.6e-05: 
+I0000 00:00:1709931047.088222 27761744 random_weights_main.cc:550] real_clusters_fraction_484249: 0
+I0000 00:00:1709931047.088223 27761744 random_weights_main.cc:550] real_clusters_fraction_242125: 0
+I0000 00:00:1709931047.088224 27761744 random_weights_main.cc:550] real_clusters_fraction_121062: 0
+I0000 00:00:1709931047.088226 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.227102
+I0000 00:00:1709931047.088227 27761744 random_weights_main.cc:550] real_clusters_fraction_30265.6: 6.5153e-08
+I0000 00:00:1709931047.088304 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.10129
+I0000 00:00:1709931047.088309 27761744 random_weights_main.cc:550] real_clusters_fraction_60531.2: 0
+I0000 00:00:1709931047.088311 27761744 random_weights_main.cc:548] Results for threshold 1.8e-05: 
+I0000 00:00:1709931047.088312 27761744 random_weights_main.cc:550] real_clusters_fraction_26902.7: 6.5153e-08
+I0000 00:00:1709931047.088314 27761744 random_weights_main.cc:550] real_clusters_fraction_53805.5: 0
+I0000 00:00:1709931047.088316 27761744 random_weights_main.cc:550] real_clusters_fraction_430444: 0
+I0000 00:00:1709931047.088317 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.227102
+I0000 00:00:1709931047.088319 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.10129
+I0000 00:00:1709931047.088320 27761744 random_weights_main.cc:550] real_clusters_fraction_107611: 0
+I0000 00:00:1709931047.088322 27761744 random_weights_main.cc:550] real_clusters_fraction_215222: 0
+I0000 00:00:1709931047.088340 27761744 random_weights_main.cc:548] Results for threshold 2e-05: 
+I0000 00:00:1709931047.088343 27761744 random_weights_main.cc:550] real_clusters_fraction_193700: 0
+I0000 00:00:1709931047.088345 27761744 random_weights_main.cc:550] real_clusters_fraction_387399: 0
+I0000 00:00:1709931047.088346 27761744 random_weights_main.cc:550] real_clusters_fraction_24212.5: 1.95459e-07
+I0000 00:00:1709931047.088348 27761744 random_weights_main.cc:550] real_clusters_fraction_48424.9: 0
+I0000 00:00:1709931047.088349 27761744 random_weights_main.cc:550] real_clusters_fraction_96849.8: 0
+I0000 00:00:1709931047.088351 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.217517
+I0000 00:00:1709931047.088352 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.10129
+I0000 00:00:1709931047.088354 27761744 random_weights_main.cc:548] Results for threshold 4e-05: 
+I0000 00:00:1709931047.088355 27761744 random_weights_main.cc:550] real_clusters_fraction_193700: 0
+I0000 00:00:1709931047.088357 27761744 random_weights_main.cc:550] real_clusters_fraction_12106.2: 3.25765e-07
+I0000 00:00:1709931047.088358 27761744 random_weights_main.cc:550] real_clusters_fraction_24212.5: 1.95459e-07
+I0000 00:00:1709931047.088360 27761744 random_weights_main.cc:550] real_clusters_fraction_96849.8: 0
+I0000 00:00:1709931047.088361 27761744 random_weights_main.cc:550] real_clusters_fraction_48424.9: 0
+I0000 00:00:1709931047.088362 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.116012
+I0000 00:00:1709931047.088363 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.04164
+I0000 00:00:1709931047.088364 27761744 random_weights_main.cc:548] Results for threshold 5e-05: 
+I0000 00:00:1709931047.088366 27761744 random_weights_main.cc:550] real_clusters_fraction_9684.98: 3.90918e-07
+I0000 00:00:1709931047.088367 27761744 random_weights_main.cc:550] real_clusters_fraction_154960: 0
+I0000 00:00:1709931047.088368 27761744 random_weights_main.cc:550] real_clusters_fraction_38739.9: 0
+I0000 00:00:1709931047.088370 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.116012
+I0000 00:00:1709931047.088371 27761744 random_weights_main.cc:550] real_clusters_fraction_77479.9: 0
+I0000 00:00:1709931047.088373 27761744 random_weights_main.cc:550] real_clusters_fraction_19370: 1.95459e-07
+I0000 00:00:1709931047.088374 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.03828
+I0000 00:00:1709931047.088375 27761744 random_weights_main.cc:548] Results for threshold 6e-05: 
+I0000 00:00:1709931047.088376 27761744 random_weights_main.cc:550] real_clusters_fraction_16141.6: 2.60612e-07
+I0000 00:00:1709931047.088378 27761744 random_weights_main.cc:550] real_clusters_fraction_64566.6: 0
+I0000 00:00:1709931047.088379 27761744 random_weights_main.cc:550] real_clusters_fraction_129133: 0
+I0000 00:00:1709931047.088381 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0860667
+I0000 00:00:1709931047.088382 27761744 random_weights_main.cc:550] real_clusters_fraction_8070.82: 5.21224e-07
+I0000 00:00:1709931047.088383 27761744 random_weights_main.cc:550] real_clusters_fraction_32283.3: 6.5153e-08
+I0000 00:00:1709931047.088385 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.0334
+I0000 00:00:1709931047.088386 27761744 random_weights_main.cc:548] Results for threshold 7e-05: 
+I0000 00:00:1709931047.088387 27761744 random_weights_main.cc:550] real_clusters_fraction_110686: 0
+I0000 00:00:1709931047.088389 27761744 random_weights_main.cc:550] real_clusters_fraction_13835.7: 3.25765e-07
+I0000 00:00:1709931047.088390 27761744 random_weights_main.cc:550] real_clusters_fraction_6917.85: 5.21224e-07
+I0000 00:00:1709931047.088392 27761744 random_weights_main.cc:550] real_clusters_fraction_55342.8: 0
+I0000 00:00:1709931047.088393 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0740516
+I0000 00:00:1709931047.088394 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.03337
+I0000 00:00:1709931047.088395 27761744 random_weights_main.cc:550] real_clusters_fraction_27671.4: 6.5153e-08
+I0000 00:00:1709931047.088397 27761744 random_weights_main.cc:548] Results for threshold 8e-05: 
+I0000 00:00:1709931047.088398 27761744 random_weights_main.cc:550] real_clusters_fraction_12106.2: 3.25765e-07
+I0000 00:00:1709931047.088399 27761744 random_weights_main.cc:550] real_clusters_fraction_24212.5: 1.95459e-07
+I0000 00:00:1709931047.088401 27761744 random_weights_main.cc:550] real_clusters_fraction_96849.8: 0
+I0000 00:00:1709931047.088572 27761744 random_weights_main.cc:550] real_clusters_fraction_48424.9: 0
+I0000 00:00:1709931047.088575 27761744 random_weights_main.cc:550] real_clusters_fraction_6053.12: 9.77295e-07
+I0000 00:00:1709931047.088577 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0601354
+I0000 00:00:1709931047.088579 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.03062
+I0000 00:00:1709931047.088580 27761744 random_weights_main.cc:548] Results for threshold 9e-05: 
+I0000 00:00:1709931047.088581 27761744 random_weights_main.cc:550] real_clusters_fraction_86088.8: 0
+I0000 00:00:1709931047.088583 27761744 random_weights_main.cc:550] real_clusters_fraction_21522.2: 1.95459e-07
+I0000 00:00:1709931047.088584 27761744 random_weights_main.cc:550] real_clusters_fraction_10761.1: 3.25765e-07
+I0000 00:00:1709931047.088586 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0601354
+I0000 00:00:1709931047.088587 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.03062
+I0000 00:00:1709931047.088588 27761744 random_weights_main.cc:550] real_clusters_fraction_43044.4: 0
+I0000 00:00:1709931047.088589 27761744 random_weights_main.cc:550] real_clusters_fraction_5380.55: 1.17275e-06
+I0000 00:00:1709931047.088591 27761744 random_weights_main.cc:548] Results for threshold 0.0001: 
+I0000 00:00:1709931047.088592 27761744 random_weights_main.cc:550] real_clusters_fraction_4842.49: 1.30306e-06
+I0000 00:00:1709931047.088653 27761744 random_weights_main.cc:550] real_clusters_fraction_9684.98: 3.90918e-07
+I0000 00:00:1709931047.088656 27761744 random_weights_main.cc:550] real_clusters_fraction_38739.9: 0
+I0000 00:00:1709931047.088658 27761744 random_weights_main.cc:550] real_clusters_fraction_19370: 1.95459e-07
+I0000 00:00:1709931047.088659 27761744 random_weights_main.cc:550] real_clusters_fraction_77479.9: 0
+I0000 00:00:1709931047.088661 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0740516
+I0000 00:00:1709931047.088662 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.02403
+I0000 00:00:1709931047.088663 27761744 random_weights_main.cc:548] Results for threshold 0.001: 
+I0000 00:00:1709931047.088664 27761744 random_weights_main.cc:550] real_clusters_fraction_1937: 2.41066e-06
+I0000 00:00:1709931047.088666 27761744 random_weights_main.cc:550] real_clusters_fraction_968.498: 2.93189e-06
+I0000 00:00:1709931047.088667 27761744 random_weights_main.cc:550] real_clusters_fraction_7747.99: 5.21224e-07
+I0000 00:00:1709931047.088669 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0296461
+I0000 00:00:1709931047.088723 27761744 random_weights_main.cc:550] real_clusters_fraction_3873.99: 1.69398e-06
+I0000 00:00:1709931047.088726 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.01784
+I0000 00:00:1709931047.088727 27761744 random_weights_main.cc:550] real_clusters_fraction_484.249: 3.06219e-06
+I0000 00:00:1709931047.088729 27761744 random_weights_main.cc:548] Results for threshold 0.003: 
+I0000 00:00:1709931047.088730 27761744 random_weights_main.cc:550] real_clusters_fraction_161.416: 4.95815e-05
+I0000 00:00:1709931047.088732 27761744 random_weights_main.cc:550] real_clusters_fraction_1291.33: 2.80158e-06
+I0000 00:00:1709931047.088734 27761744 random_weights_main.cc:550] real_clusters_fraction_2582.66: 2.15005e-06
+I0000 00:00:1709931047.088735 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0296461
+I0000 00:00:1709931047.088736 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.01784
+I0000 00:00:1709931047.088738 27761744 random_weights_main.cc:550] real_clusters_fraction_322.833: 3.84403e-06
+I0000 00:00:1709931047.088739 27761744 random_weights_main.cc:550] real_clusters_fraction_645.666: 2.99704e-06
+I0000 00:00:1709931047.088740 27761744 random_weights_main.cc:548] Results for threshold 0.01: 
+I0000 00:00:1709931047.088742 27761744 random_weights_main.cc:550] real_clusters_fraction_774.799: 2.99704e-06
+I0000 00:00:1709931047.088743 27761744 random_weights_main.cc:550] real_clusters_fraction_387.399: 3.12735e-06
+I0000 00:00:1709931047.088745 27761744 random_weights_main.cc:550] real_clusters_fraction_48.4249: 0.00343141
+I0000 00:00:1709931047.088788 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0296461
+I0000 00:00:1709931047.088790 27761744 random_weights_main.cc:550] real_clusters_fraction_96.8498: 0.000679481
+I0000 00:00:1709931047.088792 27761744 random_weights_main.cc:550] real_clusters_fraction_193.7: 1.85686e-05
+I0000 00:00:1709931047.088795 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.01784
+I0000 00:00:1709931047.088796 27761744 random_weights_main.cc:548] Results for threshold 0.03: 
+I0000 00:00:1709931047.088798 27761744 random_weights_main.cc:550] real_clusters_fraction_32.2833: 0.0067752
+I0000 00:00:1709931047.088799 27761744 random_weights_main.cc:550] real_clusters_fraction_64.5666: 0.0015984
+I0000 00:00:1709931047.088801 27761744 random_weights_main.cc:550] real_clusters_fraction_16.1416: 0.0264652
+I0000 00:00:1709931047.088803 27761744 random_weights_main.cc:550] real_clusters_fraction_258.266: 4.95163e-06
+I0000 00:00:1709931047.088805 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0226432
+I0000 00:00:1709931047.088806 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.01784
+I0000 00:00:1709931047.088807 27761744 random_weights_main.cc:550] real_clusters_fraction_129.133: 0.000109653
+I0000 00:00:1709931047.088809 27761744 random_weights_main.cc:548] Results for threshold 0.1: 
+I0000 00:00:1709931047.088811 27761744 random_weights_main.cc:550] real_clusters_fraction_38.7399: 0.00499574
+I0000 00:00:1709931047.088813 27761744 random_weights_main.cc:550] real_clusters_fraction_9.68498: 0.0688355
+I0000 00:00:1709931047.088814 27761744 random_weights_main.cc:550] real_clusters_fraction_19.37: 0.0189484
+I0000 00:00:1709931047.088816 27761744 random_weights_main.cc:550] real_clusters_fraction_4.84249: 0.19076
+I0000 00:00:1709931047.088818 27761744 random_weights_main.cc:550] real_clusters_fraction_77.4799: 0.00112962
+I0000 00:00:1709931047.088820 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0148863
+I0000 00:00:1709931047.088821 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.00965
+I0000 00:00:1709931047.088822 27761744 random_weights_main.cc:548] Results for threshold 0.3: 
+I0000 00:00:1709931047.088824 27761744 random_weights_main.cc:550] real_clusters_fraction_25.8266: 0.0111014
+I0000 00:00:1709931047.088826 27761744 random_weights_main.cc:550] real_clusters_fraction_6.45666: 0.13017
+I0000 00:00:1709931047.088828 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.00323
+I0000 00:00:1709931047.088829 27761744 random_weights_main.cc:550] real_clusters_fraction_1.61416: 0.524098
+I0000 00:00:1709931047.088831 27761744 random_weights_main.cc:550] real_clusters_fraction_12.9133: 0.0414683
+I0000 00:00:1709931047.088832 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.00768173
+I0000 00:00:1709931047.088833 27761744 random_weights_main.cc:550] real_clusters_fraction_3.22833: 0.296706
+I0000 00:00:1709931047.088835 27761744 random_weights_main.cc:548] Results for threshold 1: 
+I0000 00:00:1709931047.088836 27761744 random_weights_main.cc:550] real_clusters_fraction_0.968498: 0.715586
+I0000 00:00:1709931047.088837 27761744 random_weights_main.cc:550] real_clusters_fraction_1.937: 0.459273
+I0000 00:00:1709931047.088839 27761744 random_weights_main.cc:550] real_clusters_fraction_3.87399: 0.244361
+I0000 00:00:1709931047.088923 27761744 random_weights_main.cc:550] real_clusters_fraction_7.74799: 0.0974745
+I0000 00:00:1709931047.088925 27761744 random_weights_main.cc:550] real_graph_ratio_90: 1.00046
+I0000 00:00:1709931047.088927 27761744 random_weights_main.cc:550] merged_graph_ratio_90: 0.0029873
+I0000 00:00:1709931047.088928 27761744 random_weights_main.cc:550] real_clusters_fraction_0.484249: 0.910253
