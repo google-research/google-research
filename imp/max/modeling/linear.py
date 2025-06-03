@@ -573,7 +573,7 @@ class _Conv(nn.Module):
         bias_shape = (self.features,)
       else:
         # One bias weight per output entry, unshared between pixels.
-        bias_shape = conv_output_shape[1:]  # pylint: disable=undefined-variable
+        bias_shape = conv_output_shape[1:]  # pylint: disable=undefined-variable  # pytype: disable=name-error  # jax-api-types
 
       if self.bias_shardings:
         if len(self.bias_shardings) != len(bias_shape):
