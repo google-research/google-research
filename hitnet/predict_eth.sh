@@ -1,3 +1,15 @@
+# Location of stereo datasets.
+DATASETS_LOCATION="/tmp/datasets/"
+MODEL_PATH="/tmp/hitnet/models"
+
+MODEL_NAME="eth3d.pb"
+DATA_PATTERN="$DATASETS_LOCATION/eth3d/train/"
+# DATA_PATTERN="$DATASETS_LOCATION/eth3d/test/"
+LEFT_PATTERN="**/im0.png"
+RIGHT_PATTERN="**/im1.png"
+GT_LEFT_PATTERN="**/disp0GT.pfm"
+
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,18 +24,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Location of stereo datasets.
-DATASETS_LOCATION="/tmp/datasets/"
-MODEL_PATH="/tmp/hitnet/models"
 
-MODEL_NAME="eth3d.pb"
-DATA_PATTERN="$DATASETS_LOCATION/eth3d/train/"
-# DATA_PATTERN="$DATASETS_LOCATION/eth3d/test/"
-LEFT_PATTERN="**/im0.png"
-RIGHT_PATTERN="**/im1.png"
-GT_LEFT_PATTERN="**/disp0GT.pfm"
-
-#!/bin/bash
 set -e
 set -x
 

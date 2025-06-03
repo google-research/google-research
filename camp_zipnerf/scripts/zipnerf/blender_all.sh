@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 ./scripts/zipnerf/blender_train.sh
 ./scripts/zipnerf/blender_eval.sh
 # There's no blender_render.sh script because the Blender test set is already

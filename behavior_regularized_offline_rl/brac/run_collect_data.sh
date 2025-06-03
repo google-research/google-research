@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 # use DATA_NAME from one of {pure, eps1, eps3, gaussian1, gaussian3}
 # to use already saved policies on CNS.
 # use DATA_NAME=example to use locally saved policies

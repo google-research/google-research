@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 #
 # Run the wikinews parser on the Jan 1, 2019 Wikinews archive from archive.org
 # to generate the 2018 Wikinews dataset.

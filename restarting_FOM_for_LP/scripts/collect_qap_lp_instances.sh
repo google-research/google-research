@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 # This script illustrates how to collect the instances used in the paper.
 # Note it assumes that wget (https://www.gnu.org/software/wget/) and
 # cc are avaliable (https://www.computerhope.com/unix/ucc.htm).

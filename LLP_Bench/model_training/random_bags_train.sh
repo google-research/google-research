@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 declare -a method_list=(
   'dllp_bce' 'dllp_mse' 'genbags' 'easy_llp' 'ot_llp' 'soft_erot_llp' 'hard_erot_llp' 'sim_llp' 'mean_map'
 )

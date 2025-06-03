@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 
 # Runs the experiment that reproduces figure 1 and figure 2 in the paper Wenzel
 # et al. 2020, "How Good is the Bayes Posterior in Deep Neural Networks Really?".

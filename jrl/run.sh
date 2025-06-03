@@ -1,3 +1,4 @@
+#!/bin/bash
 # Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 echo "!!!!! THIS IS JUST A COMMAND FOR QUICKLY TESTING TO MAKE SURE THE CODEBASE ISN'T BROKEN. FOR INSTRUCTIONS PLEASE REFER TO README.md !!!!!"
 python3 -m jrl.localized.runner \
 --pdb_post_mortem \
