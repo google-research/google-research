@@ -36,7 +36,7 @@
 #include "riegeli/bytes/fd_reader.h"
 #include "riegeli/bytes/fd_writer.h"
 #include "riegeli/bytes/read_all.h"
-#include "riegeli/messages/text_parse.h"
+#include "riegeli/messages/text_parse_message.h"
 #include "riegeli/records/record_reader.h"
 #include "riegeli/records/record_writer.h"
 
@@ -143,7 +143,7 @@ int main(int argc, char* argv[]) {
 
   // Get the processing options.
   ambient_sensing::ProcessingOptions processing_options;
-  if (absl::Status status = riegeli::TextParseFromReader(
+  if (absl::Status status = riegeli::TextParseMessage(
           riegeli::FdReader(absl::GetFlag(FLAGS_processing_options_filename)),
           processing_options);
       !status.ok()) {
