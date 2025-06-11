@@ -473,7 +473,7 @@ def main(_):
   tsne_model = TSNE(
       perplexity=30,
       n_components=2,
-      n_iter=1000,
+      max_iter=1000,
       random_state=23,
       learning_rate=500,
       init="pca")

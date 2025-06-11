@@ -86,7 +86,7 @@ def visulize_tsne(X, perplexity=[5, 30, 50, 100]):
         random_state=0,
         perplexity=perplexity,
         learning_rate='auto',
-        n_iter=5000)
+        max_iter=5000)
     Y = tsne.fit_transform(X)
     ax.scatter(Y[:, 0], Y[:, 1])
 
