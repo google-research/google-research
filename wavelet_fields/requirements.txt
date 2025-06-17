@@ -129,7 +129,7 @@ ppft==1.7.6.6
 proglog==0.1.10
 progressbar==2.5
 prompt-toolkit==3.0.38
-protobuf==3.16.0
+protobuf==4.25.8
 psutil==5.9.5
 ptwt==0.1.6
 ptyprocess==0.7.0
