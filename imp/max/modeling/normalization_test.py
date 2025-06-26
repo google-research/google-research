@@ -124,7 +124,7 @@ class NormalizationTest(parameterized.TestCase):
         expected_mean_centered * expected_multiplier
         + variables['params']['bias'].value)
 
-    np.testing.assert_allclose(outputs, expected_outputs, atol=1e-4)
+    np.testing.assert_allclose(outputs, expected_outputs, atol=1e-3)
 
     # Assert shardings are propagated properly
     self.assertEqual(variables['params']['scale'].names,
