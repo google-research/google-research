@@ -58,8 +58,8 @@ the `simple_cisc_notebook.ipynb` Jupyter notebook.
 ## Installation
 
     ```bash
-    git clone https://github.com/google-research/cisc.git
-    cd cisc
+    git clone https://github.com/google-research/google-research.git
+    cd google-research/cisc
     pip install .
     ```
 
