@@ -77,17 +77,37 @@ class CalibrationUtilTest(parameterized.TestCase):
     brier, _ = calibration_util.compute_brier(is_correct, confidence)
     self.assertAlmostEqual(brier, expected_brier, places=2)
 
-  def test_temperature_scaling(self):
-    # Always conffident that the answer is correct, but only correct half the
-    # time. Calibration should calibrate all confidences to 0.5.
-    confidences = np.array([0.9, 0.9, 0.9, 0.9])
-    labels = np.array([0, 0, 1, 1])
-
-    scalar = calibration_util.TemperatureScaling()
-    scalar.fit(confidences, labels)
-    self.assertAlmostEqual(scalar.temperature, 0.5 / 0.9, places=2)
+  @parameterized.named_parameters(
+      dict(
+          # No change, since the confidence is already perfectly calibrated.
+          testcase_name="no_change",
+          confidences=[1, 1, 1, 0],
+          labels=[True, True, True, False],
+          expected_output=[1, 1, 1, 0],
+      ),
+      dict(
+          # Always confident that the answer is correct, but only correct half
+          # of the times. Calibration should calibrate all confidences to 0.5.
+          testcase_name="same_confidece_half_correct",
+          confidences=[0.9, 0.9, 0.9, 0.9],
+          labels=[True, True, False, False],
+          expected_output=[0.5] * 4,
+      ),
+      dict(
+          # The last confidence will not be scaled beyond 1.
+          testcase_name="overflows_are_clipped",
+          confidences=[0.5] * 9 + [1],
+          labels=[True] * 10,
+          expected_output=[1] * 10,
+      ),
+  )
+  def test_temperature_scaling(self, confidences, labels, expected_output):
     self.assertSequenceAlmostEqual(
-        scalar.predict(confidences), [0.5, 0.5, 0.5, 0.5], places=2
+        calibration_util.temperature_scaling(
+            np.array(labels), np.array(confidences)
+        ),
+        expected_output,
+        places=2,
     )
 
 

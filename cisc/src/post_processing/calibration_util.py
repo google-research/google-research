@@ -93,7 +93,13 @@ class TemperatureScaling:
       one_hot_labels,
   ):
     predicted = self.predict(confidences, temperature)
-    return sklearn.metrics.log_loss(y_true=one_hot_labels, y_pred=predicted)
+    return sklearn.metrics.log_loss(
+        y_true=one_hot_labels,
+        y_pred=predicted,
+        # Pass the labels explicitly to avoid an error in the rare cases where
+        # all the labels are the same.
+        labels=[True, False],
+    )
 
   def fit(self, confidences, one_hot_labels):
     opt = scipy.optimize.minimize(
@@ -112,7 +118,8 @@ class TemperatureScaling:
   ):
     if temperature is None:
       temperature = self.temperature
-    return (np.array(confidences) * abs(temperature)).reshape(-1)
+    scaled_confidences = (np.array(confidences) * abs(temperature)).reshape(-1)
+    return np.clip(scaled_confidences, 0, 1)
 
 
 def temperature_scaling(is_correct, confidence):
