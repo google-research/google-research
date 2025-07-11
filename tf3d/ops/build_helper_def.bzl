@@ -1,4 +1,6 @@
 load("@local_config_cuda//cuda:build_defs.bzl", "if_cuda", "if_cuda_is_configured")  # @unused
+load("//third_party/bazel_rules/rules_cc/cc:cc_binary.bzl", "cc_binary")
+load("//third_party/bazel_rules/rules_cc/cc:cc_library.bzl", "cc_library")
 
 def cuda_library(copts = [], deps = [], **kwargs):
     """Wrapper over cc_library which adds default CUDA options."""
@@ -8,14 +10,13 @@ def cuda_library(copts = [], deps = [], **kwargs):
     }) + if_cuda_is_configured(["-DTENSORFLOW_USE_NVCC=1", "-DGOOGLE_CUDA=1", "-x cuda", "-nvcc_options=relaxed-constexpr", "-nvcc_options=ftz=true"])
 
     default_deps = if_cuda_is_configured([":cuda", "@local_config_cuda//cuda:cuda_headers"])
-
-    native.cc_library(copts = cuda_default_copts + copts, deps = default_deps + deps, **kwargs)
+    cc_library(copts = cuda_default_copts + copts, deps = default_deps + deps, **kwargs)
 
 def tf_copts():
     return ["-D_GLIBCXX_USE_CXX11_ABI=0", "-Wno-sign-compare", "-mavx"] + if_cuda_is_configured(["-DTENSORFLOW_USE_NVCC=1", "-DGOOGLE_CUDA=1", "-x cuda", "-nvcc_options=relaxed-constexpr", "-nvcc_options=ftz=true"])
 
 def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
-    native.cc_library(
+    cc_library(
         name = name,
         srcs = srcs,
         hdrs = hdrs,
@@ -25,7 +26,7 @@ def custom_kernel_library(name, op_def_lib, srcs, hdrs = [], deps = []):
     )
 
 def gen_op_cclib(name, srcs, deps = []):
-    native.cc_library(
+    cc_library(
         name = name,
         srcs = srcs,
         deps = [
@@ -37,7 +38,7 @@ def gen_op_cclib(name, srcs, deps = []):
     )
 
 def gen_op_pylib(name, cc_lib_name, srcs, kernel_deps, py_deps = [], **kwargs):
-    native.cc_binary(
+    cc_binary(
         name = cc_lib_name + ".so",
         deps = [cc_lib_name] + kernel_deps,
         linkshared = 1,
