@@ -262,8 +262,8 @@ antheaTemplates['MQM-Quality-Score'] = {
         In this project, you will be shown translations of different documents
         that you will review and annotate for errors and issues. You will
         annotate by selecting spans of words affected by errors, then labeling
-        them with severities and issue types. You will also provide overall
-        quality scores for each segment. The goal of this project is to
+        them with severities and issue types. You will also provide an overall
+        quality score for each segment. The goal of this project is to
         evaluate the quality of various human and machine translation outputs.
       </p>
       <p>

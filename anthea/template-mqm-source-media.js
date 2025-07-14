@@ -53,7 +53,7 @@ antheaTemplates['MQM-Source-Media'] = {
    * @const {boolean} Collect per-segment quality scores when set to true. Also
    *    disables splitting segments into sub-paragraphs.
    */
-  COLLECT_QUALITY_SCORE: false,
+  COLLECT_QUALITY_SCORE: true,
 
   /**
    * @const {boolean} Only rate the target side, i.e., the translated text.
@@ -295,16 +295,17 @@ antheaTemplates['MQM-Source-Media'] = {
         In this project, you will be shown translations of different media
         that you will review and annotate for errors and issues. You will
         annotate by selecting spans of words affected by errors, then labeling
-        them with severities and issue types. The goal of this project is to
+        them with severities and issue types. You will also provide an overall
+        quality score for each segment. The goal of this project is to
         evaluate the quality of various human and machine translation outputs.
       </p>
       <p>
         The content for annotation consists of source media (either a video or
         an image) and a translation of that media, broken down into segments. A
         segment may be one sentence, multiple sentences, an entire paragraph, or
-        an entire document. After reading/watching the source media (with audio for videos), you will be able
-        to read and annotate each target segment in steps of groups of
-        sentences. Navigation through the document is explained in detail in the
+        an entire document. After reading/watching the source media (with audio
+        for videos), you will be able to read and annotate each target segment.
+        Navigation through the document is explained in detail in the
         "Navigation" subsection.
       </p>
       `,
@@ -404,17 +405,9 @@ antheaTemplates['MQM-Source-Media'] = {
         playback and seek forward or backward.
         </li>
         <li>
-        You will go through the target text in convenient steps of small
-        "sub-paragraphs" (groups of consecutive sentences from the same
-        paragraph). You can move from one sub-paragraph to the next (and back)
-        using the arrow keys or using the buttons labeled with left and right
-        arrows. Note that these sub-paragraphs are automatically created
-        purely for convenient navigation through potentially long
-        documents.
-        </li>
-        <li>
-        You can also use the left arrow key/button to go <i>back</i> through the
-        sub-paragraphs and segments. You can also directly click on any
+        You will go through a document segment by segment. You can move from one
+        segment to the next (and back) using the arrow keys or using the buttons
+        labeled with left and right arrows. You can also directly click on any
         previously read part of the text to jump back to it.
         </li>
       </ul>
@@ -471,10 +464,89 @@ antheaTemplates['MQM-Source-Media'] = {
         <li>Select the <b>category</b> (also called <b>type</b>) and
             <b>subcategory</b> (also called <b>subtype</b>) of the error/issue
             found. For example: Accuracy &gt; Mistranslation.</li>
-        <li>After annotating all identified issues in a sub-paragraph, use the
-            <b>right arrow key</b> (or the <b>button</b>) to go to the next
-            sub-paragraph.</li>
+      <li>After annotating all identified issues in a segment, use the
+        Quality Score slider to rate the overall quality of the translation of
+        that segment.</li>
+      <li>After selecting the quality score, use the
+          <b>right arrow key</b> (or the <b>button</b>) to go to the next
+          segment.</li>
       </ol>`,
+    'Annotation Tips': `
+      <details>
+        <summary>
+          <span class="summary-heading">Annotation Tips</span>
+        </summary>
+        <ol>
+          <li>
+            You can modify or delete any rating in the current segment
+            by using the menu shown to the right of the rating. The menu is
+            revealed when you hover your mouse over the hamburger icon
+            (&#9776;). If deleted, the rating is shown with a strikethrough
+            line. You can undelete a deleted rating using the menu, if desired.
+          </li>
+          <li>
+            While editing a rating, its text will be shown with a
+            <span style="text-decoration: red wavy underline">red wavy
+            underline</span>. You can use the "Cancel" button or the Escape key
+            to abort an ongoing modification to a rating.
+          </li>
+          <li>
+            To modify or delete a rating for a previous sentence in the
+            current document, you can first click on it to navigate to it (or
+            use the arrow key/button) and then use the hamburger menu.
+          </li>
+          <li>
+            Sometimes, you might be re-evaluating a document that was already
+            evaluated previously. In such cases, you will see the previous
+            annotations and can simply keep them, edit them, delete them, or
+            supplement them with additional annotations.
+          </li>
+          <li>
+            Occasionally, the translated sentence will be altered to
+            include an artificially injected error. Evaluating translation
+            quality is a difficult and demanding task, and such "test sentences"
+            are used to help you maintain the high level of attention the task
+            needs. Once you have marked any error in a test sentence, its
+            unaltered version will be shown. If you miss marking any error in a
+            test sentence, you will be shown a cautionary reminder about that.
+            In either case, once the unaltered version is revealed, you have to
+            proceed to rate its quality just like all the other sentences.
+          </li>
+        </ol>
+      </details>`,
+    'Quality Score Guidelines': `
+      <h2> Quality Score Guidelines</h2>
+      <p>
+        The quality score is a measure of the overall quality of the translation
+        of the segment. It is a number between 0 and 100, where 0 is the worst
+        quality and 100 is the best quality. It is a holistic measure of
+        quality, including both accuracy (meaning preservation) and fluency
+        (naturalness in the target locale).
+      </p>
+      <p>
+        The specific quality score you choose is up to your best judgment.
+        However, below are some "landmark" scores to help guide your selection:
+      </p>
+      <ul>
+        <li>
+          <b>0 (No meaning preserved)</b>: Nearly all information is lost in the
+            translation.
+        </li>
+        <li>
+          <b>33 (Some meaning preserved)</b>: Some of the meaning is preserved
+            but significant parts are missing. The narrative is hard to follow
+            due to errors. Grammar may be poor.
+        </li>
+        <li>
+          <b>66 (Most meaning preserved and few grammar mistakes)</b>: The
+            translation retains most of the meaning. It may have some grammar
+            mistakes or minor inconsistencies.
+        </li>
+        <li>
+          <b>100 (Perfect meaning and grammar)</b>: The meaning and grammar of
+            the translation is completely consistent with the source.
+        </li>
+      </ul>`,
     'Severities defined': `
       <h2>Severities defined</h2>
       <p>We define error/issue severity levels in this section.</p>
@@ -1317,7 +1389,8 @@ antheaTemplates['MQM-Source-Media'] = {
   },
   instructions_section_order: [
     '_style', 'Overview', 'Source Media Guidelines', 'General Guidelines',
-    'Navigation', 'Annotation Process', 'Annotation Tips', 'Severities defined',
+    'Navigation', 'Annotation Process', 'Annotation Tips',
+    'Quality Score Guidelines','Severities defined',
     'Error Types and Subtypes defined', 'Annotations exemplified in detail',
     'Style &amp; Convention Guidelines', 'Feedback'
   ],
