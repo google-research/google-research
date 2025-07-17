@@ -21,7 +21,6 @@ import os
 from absl import app
 from absl import flags
 import numpy as np
-import scipy.misc
 import scipy.ndimage
 import tensorflow as tf
 
