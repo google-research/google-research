@@ -6,7 +6,7 @@ Work in progress:
 "Multi-Game Decision Transformers"
 Kuang-Huei Lee*, Ofir Nachum*, Mengjiao Yang, Lisa Lee, Daniel Freeman, Winnie Xu, Sergio Guadarrama, Ian Fischer, Eric Jang, Henryk Michalewski, Igor Mordatch*
 
-[Paper](https://arxiv.org/abs/2205.15241)
+[Paper](https://arxiv.org/abs/2205.15241) | [Blog](https://ai.googleblog.com/2022/07/training-generalist-agents-with-multi.html)
 
 ## Abstract
 
