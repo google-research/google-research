@@ -6,5 +6,5 @@ tensorboard==2.8.0
 tensorflow==2.8.0
 tensorflow-datasets==4.5.2
 tensorflow-probability==0.16.0
-tqdm==4.63.0
+tqdm==4.66.3
 tensorflow-addons==0.18.0
