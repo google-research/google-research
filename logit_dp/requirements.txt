@@ -44,7 +44,7 @@ pandas==2.2.3
 parameterized==0.9.0
 pillow==11.0.0
 promise==2.3
-protobuf==5.28.3
+protobuf==5.29.5
 psutil==6.1.0
 pyarrow==18.0.0
 Pygments==2.18.0
