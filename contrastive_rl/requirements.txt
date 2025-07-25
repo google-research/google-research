@@ -43,7 +43,7 @@ importlib-metadata==4.11.4
 jax==0.3.13
 jaxlib==0.3.10
 jmp==0.0.2
-joblib==1.1.0
+joblib==1.2.0
 keras==2.8.0
 Keras-Preprocessing==1.1.2
 kiwisolver==1.4.2
