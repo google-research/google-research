@@ -27,5 +27,4 @@ setup(
     install_requires=[
         'tensorflow-gpu',
         'numpy',
-        'dice_rl',
     ])
