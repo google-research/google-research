@@ -21,7 +21,6 @@ from typing import Any, Optional, Tuple, Protocol
 
 import gin
 import jax
-import jax.experimental.host_callback
 import jax.numpy as jnp
 import numpy as np
 import scipy

@@ -28,7 +28,6 @@ from acme.jax import utils
 from acme.utils import counting
 from acme.utils import loggers
 import jax
-from jax.experimental import host_callback
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp as jax_logsumexp
 import numpy as np
