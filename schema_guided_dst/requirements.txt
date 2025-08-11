@@ -3,3 +3,4 @@ fuzzywuzzy>=0.17.0
 numpy>=1.16.1
 six>=1.12.0
 tensorflow==1.14.0
+setuptools>=75.8.0
