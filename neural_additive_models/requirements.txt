@@ -1,5 +1,0 @@
-tensorflow>=1.15
-numpy>=1.15.2
-sklearn
-pandas>=0.24
-absl-py

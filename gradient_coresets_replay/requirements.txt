@@ -1,9 +1,0 @@
-Pillow >= 7.1.2
-googledrivedownloader >= 0.4
-numpy >= 1.19.2
-scipy >= 1.5.2
-six >= 1.15.0
-torch >= 1.6.0+cu101
-torchcontrib >= 0.0.2
-torchvision >= 0.7.0+cu101
-tqdm >= 4.61.1

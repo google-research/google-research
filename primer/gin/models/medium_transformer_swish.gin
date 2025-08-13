@@ -1,8 +1,0 @@
-# 110M parameter Transformer+Swish.
-#
-# This is used for C4 and PG19.
-
-# Based off of the T5 "base" model.
-include 'models/t5.1.0.base.gin'
-
-DenseReluDense.activation = ["swish"]

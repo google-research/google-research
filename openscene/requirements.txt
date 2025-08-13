@@ -1,9 +1,0 @@
-scipy
-open3d
-ftfy
-tensorboardx
-tqdm
-imageio
-opencv-python
-sharedarray
-git+https://github.com/openai/CLIP.git

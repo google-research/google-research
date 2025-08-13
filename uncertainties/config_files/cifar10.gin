@@ -1,9 +1,0 @@
-train_cifar10.dim_input = 192
-train_cifar10.num_classes = 10
-train_cifar10.features_cifar10_test = 'models/cifar10/model/features_ll_test.npy'
-train_cifar10.features_cifar10_train = 'models/cifar10/model/features_ll_train.npy'
-train_cifar10.features_cifar10_train_distorted = 'models/cifar10/model/features_ll_train_distorted.npy'
-train_cifar10.data_path_cifar10 = 'data/cifar10_data/cifar10_batches_py'
-train_cifar10.distorted = True
-train_cifar10.model_dir = 'models/cifar10/model/last_layer'
-

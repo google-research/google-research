@@ -1,7 +1,0 @@
-{
-    "reso": "[[128, 128, 128]]",
-    "upsamp_every": 3840000000000,
-    "lr_sh": 1e-2,
-    "lambda_tv": 1e-5,
-    "lambda_tv_sh": 1e-3
-}

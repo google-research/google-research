@@ -1,2 +1,0 @@
-# -*-Python-*-
-utils.run.sequence_length = {'inputs': 512, 'targets': 256}

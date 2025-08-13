@@ -1,5 +1,0 @@
-jax
-tensorflow
-flax
-tqdm
-numpy

@@ -1,5 +1,0 @@
-jax>=0.3.14
-numpy>=1.21.5
-scipy>=1.8.1
-immutabledict>=2.2.1
-chex>=0.1.5

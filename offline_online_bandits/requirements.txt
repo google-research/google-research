@@ -1,7 +1,0 @@
-# This file may be used to create an environment using:
-# $ conda create --name <env> --file <this file>
-# platform: linux-64
-numpy=1.21.1=py39hdbf815f_0
-python=3.9.6=h49503c6_1_cpython
-scipy=1.7.0=py39hee8e79c_1
-matplotlib=3.2.2

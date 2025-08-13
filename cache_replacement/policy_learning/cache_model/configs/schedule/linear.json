@@ -1,7 +1,0 @@
-{
-  "type": "linear",
-  "initial": 0.0,
-  "final": 1.0,
-  "num_steps": 200000,
-  "update_freq": 10000
-}

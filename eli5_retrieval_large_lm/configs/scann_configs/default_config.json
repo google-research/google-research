@@ -1,7 +1,0 @@
-{
-    "num_neighbors": 10,
-    "training_sample_size":  100000,
-    "num_leaves": 1000,
-    "num_leaves_to_search": 100,
-    "reordering_num_neighbors": 100
-}

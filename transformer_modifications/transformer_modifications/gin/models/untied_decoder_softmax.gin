@@ -1,4 +1,0 @@
-# -*-Python-*-
-
-transformer.Unitransformer.shared_embedding_and_softmax_weights = False
-

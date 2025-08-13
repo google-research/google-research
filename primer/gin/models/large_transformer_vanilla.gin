@@ -1,3 +1,0 @@
-# 537M parameter Transformer for full scale training on C4.
-include 'models/medium_transformer_vanilla.gin'
-include 'models/large_defaults.gin'

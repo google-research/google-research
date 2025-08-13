@@ -1,8 +1,0 @@
-absl-py
-deap>=1.2.2
-mock>=1.0.1
-nltk>=3.2.2
-numpy>=1.13.3
-pandas>=0.22.0
-sympy>=1.2
-tensorflow>=1.12.0

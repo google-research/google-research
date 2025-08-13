@@ -1,5 +1,0 @@
-git+https://github.com/google-research/t5x.git@main
-git+https://github.com/google/flaxformer.git@main
-git+https://github.com/google/text-to-text-transfer-transformer.git@main
-git+https://github.com/google/seqio.git@main
-

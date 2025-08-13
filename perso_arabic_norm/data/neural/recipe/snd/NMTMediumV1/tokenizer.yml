@@ -1,7 +1,0 @@
-type: OpenNMTTokenizer
-params:
-  mode: aggressive
-  joiner_annotate: true
-  segment_numbers: true
-  segment_alphabet_change: true
-  preserve_segmented_tokens: true

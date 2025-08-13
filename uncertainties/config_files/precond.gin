@@ -1,6 +1,0 @@
-LastLayerBayesianPrecond.batch_size = 128
-LastLayerBayesianPrecond.num_samples = 10000
-LastLayerBayesianPrecond.thinning_interval = 100
-LastLayerBayesianPrecond.step_size = 0.1
-LastLayerBayesianPrecond.sampler = 'sgd' # 'sgd', 'sgld'
-

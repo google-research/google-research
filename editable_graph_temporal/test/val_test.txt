@@ -1,9 +1,0 @@
-hidden dim 512, num layers 1, dropout 0.1, lr 0.0001, bs 32, lagging 20, horizon 20, temp 0.5, reg_co 0.1
-Epoch 1, average validation loss: 0.5554062858704598, time series loss: 0.6224243064080516, regularization loss: -0.6701801476940032
-testing mae: 0.5570914149284363, adj accuracy: 0.3333333432674408, sparsity: 0.3333333432674408
-Epoch 2, average validation loss: 0.4388330155803311, time series loss: 0.5053383592636355, regularization loss: -0.6650535521968719
-testing mae: 0.4522499740123749, adj accuracy: 0.3333333432674408, sparsity: 0.3333333432674408
-Epoch 3, average validation loss: 0.34019312743217717, time series loss: 0.4058361553376721, regularization loss: -0.6564303367368637
-testing mae: 0.3632088899612427, adj accuracy: 0.30000001192092896, sparsity: 0.30000001192092896
-Epoch 4, average validation loss: 0.30799819192578715, time series loss: 0.3727002259223692, regularization loss: -0.6470203399658203
-testing mae: 0.33354565501213074, adj accuracy: 0.2666666805744171, sparsity: 0.2666666805744171

@@ -1,4 +1,0 @@
-jax
-flax
-numpy
-tensorflow

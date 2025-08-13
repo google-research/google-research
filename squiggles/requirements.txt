@@ -1,7 +1,0 @@
-absl-py>=1.0.0
-jax>=0.3.4
-jaxlib>=0.3.2
-numpy>=1.22.3
-Shapely>=1.8.1.post1
-tensorflow>=2.8.0
-tensorflow-datasets>=4.5.2

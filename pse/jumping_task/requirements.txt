@@ -1,7 +1,0 @@
-absl-py
-gin-config
-gym
-matplotlib
-numpy
-seaborn
-tensorflow>=2.0.0

@@ -1,7 +1,0 @@
-## Self-adaptive forecasting for improved deep learning on non-stationary time-series
-
-Real-world time-series datasets often violate the assumptions of standard supervised learning for forecasting -- their distributions evolve over time, rendering the conventional training and model selection procedures suboptimal. In this paper, we propose a novel method, Self-Adaptive Forecasting (SAF), to modify the training of time-series forecasting models to improve their performance on forecasting tasks with such non-stationary time-series data. SAF integrates a self-adaptation stage prior to forecasting based on backcasting, i.e. predicting masked inputs backward in time. This is a form of test-time training that creates a self-supervised learning problem on test samples before performing the prediction task. In this way, our method enables efficient adaptation of encoded representations to evolving distributions, leading to superior generalization. SAF can be integrated with any canonical encoder-decoder based time-series architecture such as recurrent neural networks or attention-based architectures. On synthetic and real-world datasets in domains where time-series data are known to be notoriously non-stationary, such as healthcare and finance, we demonstrate a significant benefit of SAF in improving forecasting accuracy.
-
-Paper link: https://arxiv.org/pdf/2202.02403.pdf
-
-This repository exemplifies the implementation on the synthetic datasets. You can run the .sh files for hyperparameter tuning and evaluation with different approaches.

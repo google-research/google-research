@@ -1,5 +1,0 @@
-numpy==1.23.5
-scipy==1.8.1
-scikit-learn==1.0.2
-gin-config
-absl-py

@@ -1,3 +1,0 @@
-# Stereo
-default_file: configs/default_base
-dset_dir: tfrecords/bottle_0_756x424_fl400_t5/tfrecords

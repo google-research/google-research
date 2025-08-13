@@ -1,3 +1,0 @@
-apache-beam==2.48.0
-pycld3==0.22
-argparse==1.4.0

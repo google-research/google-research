@@ -1,2 +1,0 @@
-mtdata get -l ckb-eng -tr OPUS-xlent-v1.1-ckb-eng OPUS-tico_19-v20201028-ckb-eng OPUS-wikimedia-v20210402-ckb-eng -ts OPUS-tatoeba-v20210722-ckb-eng --merge -dd -dt -o <out-dir>
-mtdata version 0.3.5

@@ -1,3 +1,0 @@
-prediction_path	reference_path	bucket	bleu	chrf
-pt_random_dev_en_pt-BR.tsv	pt_random_dev_en_pt-BR.tsv	random	1.0000000000000004	1.0
-fake_pt-BR_outputs.tsv	pt_random_dev_en_pt-BR.tsv	random	0.1824761998133259	0.551596472010983

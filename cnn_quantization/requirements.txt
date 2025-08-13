@@ -1,4 +1,0 @@
-absl-py>=0.6.1
-numpy>=1.15.4
-protobuf>=3.6.1
-# tf-nightly>=1.13.0 or tf-nightly_gpu>=1.13.0

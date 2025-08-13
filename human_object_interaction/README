@@ -1,5 +1,0 @@
-# Human object interaction code
-
-This is work in progress and development.
-The code is capable of currently generating human trajectories for sitting and navigating around a chair.
-The generative model is based on HuMoR, and seed with the BEHAVE dataset.

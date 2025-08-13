@@ -1,8 +1,0 @@
-absl-py
-numpy
-opencv-python
-scikit-image
-scipy
-tensorflow>=2.6
-tensorflow-addons
-tqdm

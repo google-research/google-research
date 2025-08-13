@@ -1,4 +1,0 @@
-
-def mink_unet(in_channels=3, out_channels=20, D=3, arch='MinkUNet18A'):
-    #
-    return MinkUNet18A(in_channels, out_channels, D)

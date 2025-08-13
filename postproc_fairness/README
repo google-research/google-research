@@ -1,5 +1,0 @@
-Code for the paper "Best of both worlds: A post-processing group fairness technique that matches in-processing performance".
-
-To run the code, execute the main.py file.
-
-The code can be used to reproduce the experiments in the paper, in particular the in-processing and post-processing runs of MinDiff.

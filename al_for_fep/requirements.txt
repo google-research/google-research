@@ -1,8 +1,0 @@
-numpy
-scipy
-scikit-learn
-pandas
-modAL
-absl-py
-ml_collections
-rdkit

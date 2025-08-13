@@ -1,9 +1,0 @@
-absl-py
-attrs
-BPTK-Py==1.8.0
-gym
-netCDF4
-numpy==1.24.2
-pandas
-pysd==3.9.0
-scipy

@@ -1,6 +1,0 @@
-movieId,title,genres,violence_tag_relevance
-0,MOVIE A,Adventure|Animation|Comedy|Fantasy,0.1
-1,MOVIE B,Adventure|Fantasy|Film-Noir,0.3
-2,MOVIE C,Comedy|Romance|Crime,0.8
-3,MOVIE D,Comedy|Drama|Romance|Crime,0.1
-4,MOVIE E,Comedy,0.2

@@ -1,5 +1,0 @@
-absl-py>=1.2.0
-numpy>=1.21.5
-pandas>=1.5.0
-scipy>=1.9.1
-apache-beam>=2.46.0

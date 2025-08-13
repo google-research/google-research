@@ -1,7 +1,0 @@
-gin-config
-matplotlib
-numpy
-pandas
-seaborn
-sklearn
-tensorflow

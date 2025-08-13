@@ -1,7 +1,0 @@
-datasets
-jax
-matplotlib
-numpy
-sklearn
-torch
-transformers

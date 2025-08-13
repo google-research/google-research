@@ -1,2 +1,0 @@
-mtdata get -l snd-eng -tr OPUS-ccmatrix-v1-eng-snd OPUS-xlent-v1.1-eng-snd OPUS-tanzil-v1-eng-snd OPUS-qed-v2.0a-eng-snd OPUS-wikimedia-v20210402-eng-snd -ts OPUS-tatoeba-v20210722-eng-snd -dv OPUS-ubuntu-v14.10-eng-snd --merge -o <out-dir>
-mtdata version 0.3.5

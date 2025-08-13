@@ -1,4 +1,0 @@
-tensorflow
-# A version that is compatible with the tensorflow currently available on colab.
-tensorflow_addons==0.17.1
-flow_vis

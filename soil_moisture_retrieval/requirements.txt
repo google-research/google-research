@@ -1,7 +1,0 @@
-tensorflow-cpu
-ismn
-google-cloud-storage
-tqdm
-absl-py
-numpy
-pytype

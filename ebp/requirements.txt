@@ -1,6 +1,0 @@
-tensorflow-gpu
-numpy
-tqdm
-scipy
-matplotlib
-sonnet

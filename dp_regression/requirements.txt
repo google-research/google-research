@@ -1,7 +1,0 @@
-matplotlib >= 3.3.4
-pandas >= 1.1.5
-numpy >= 1.21.5
-scipy >= 1.7.1
-scikit-learn >= 1.0.2
-tensorflow >= 2.0.0
-tensorflow_privacy >= 0.8.2

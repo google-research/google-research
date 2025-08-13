@@ -1,2 +1,0 @@
-tensorflow==2.9.1
-tf-models-official==2.9.2

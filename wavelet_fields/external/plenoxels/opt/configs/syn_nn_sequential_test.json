@@ -1,9 +1,0 @@
-{
-    "reso": "[[64, 64, 64], [128, 128, 128], [256, 256, 256], [512,512,512], [1024, 1024, 1024]]",
-    "lambda_tv": 0,
-    "tv_sparsity": 0,
-    "lambda_tv_sh": 0,
-    "tv_sh_sparsity": 0,
-    "lambda_tv_lumisphere": 0,
-    "tv_lumisphere_sparsity": 0
-}

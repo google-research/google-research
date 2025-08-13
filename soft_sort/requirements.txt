@@ -1,5 +1,0 @@
-gin-config>=0.1.4
-numpy>=1.16.2
-tensorflow>=2.0.0-beta1
-jax>=0.1.55
-jaxlib>=0.1.37

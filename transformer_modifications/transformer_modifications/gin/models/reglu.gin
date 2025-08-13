@@ -1,4 +1,0 @@
-# -*-Python-*-
-
-d_ff = 2048
-DenseReluDense.activation = ["relu", "linear"]

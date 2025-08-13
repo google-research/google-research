@@ -1,5 +1,0 @@
-torch>=1.5.1
-matplotlib>=3.2.1
-numpy>=1.18.1
-nltk>=3.4.4
-wget

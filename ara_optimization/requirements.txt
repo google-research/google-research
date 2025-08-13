@@ -1,4 +1,0 @@
-absl-py>=1.0.0
-numpy~=1.21
-pandas>=1.5.3
-scipy~=1.7

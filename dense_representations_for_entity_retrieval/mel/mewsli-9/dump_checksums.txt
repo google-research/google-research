@@ -1,9 +1,0 @@
-15b5ebef0ecbeeb2e86c61822ff0660c  arwikinews-20190101-pages-articles.xml.bz2
-f743c1d01fc855b358973986b8291030  dewikinews-20190101-pages-articles.xml.bz2
-60f05eeb668a6c5f663c4c193df78811  enwikinews-20190101-pages-articles.xml.bz2
-f671e2523dc2b45129ae0b4634bda934  eswikinews-20190101-pages-articles.xml.bz2
-27a190746b4fcf842d98558c30ab7a75  fawikinews-20190101-pages-articles.xml.bz2
-344fcdb24548149234f3221e7d8c1e80  jawikinews-20190101-pages-articles.xml.bz2
-d1152e39011dc532f60e194b2b576b5f  srwikinews-20190101-pages-articles.xml.bz2
-6a309d1d8ea4b3c0a3baef3132e2cda7  tawikinews-20190101-pages-articles.xml.bz2
-f86323fa8e601a737876fbae5d7e6f5c  trwikinews-20190101-pages-articles.xml.bz2

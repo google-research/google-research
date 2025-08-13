@@ -1,9 +1,0 @@
-torch==1.12.1
-transformers==4.27.4
-datasets
-numpy
-pandas
-seaborn
-matplotlib
-nltk
-wget

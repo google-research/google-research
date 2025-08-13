@@ -1,1 +1,0 @@
-`search/` is where the logs and results of each Model Swarms search go.

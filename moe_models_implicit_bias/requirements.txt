@@ -1,9 +1,0 @@
-absl-py>=0.7.0
-numpy>=1.13.3
-clu
-jax
-flax
-optax
-ml_collections
-tensorflow>=1.13.0
-tensorflow_datasets

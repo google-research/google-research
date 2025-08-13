@@ -1,9 +1,0 @@
-# Vanilla Transformer from "Attention is all you need". The only difference
-# is that we pre-LN transformer as opposed to the post-LN transformer that
-# was proposed in the original paper.
-
-include 'models/t5.1.0.base.gin'
-include 'models/vanilla_transformer.gin'
-
-transformer_layers.SelfAttention.relative_attention_type = "bias_shared"
-transformer.Unitransformer.positional_embedding = False

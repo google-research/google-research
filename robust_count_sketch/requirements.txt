@@ -1,3 +1,0 @@
-cityhash
-matplotlib
-numpy

@@ -1,1 +1,0 @@
-ignored-modules=numpy,numpy.linalg,numpy.random,scipy,cv2,tensorflow,mpi4py.MPI,torch,pandas

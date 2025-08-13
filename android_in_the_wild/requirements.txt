@@ -1,5 +1,0 @@
-tensorflow >= 2.14.0
-numpy >= 1.24.1
-pandas >= 1.1.5
-matplotlib >= 3.6.1
-json >= 2.0.9

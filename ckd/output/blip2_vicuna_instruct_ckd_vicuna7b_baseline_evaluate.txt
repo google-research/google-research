@@ -1,9 +1,0 @@
-{"aokvqa_pope_adversarial": {"precision": 0.6062, "recall": 0.8733, "f1": 0.7157, "accuracy": 0.653, "yes_proportion": 0.7203, "unknown_prop": 0.0}}
-{"aokvqa_pope_popular": {"precision": 0.6635, "recall": 0.882, "f1": 0.7573, "accuracy": 0.7173, "yes_proportion": 0.6647, "unknown_prop": 0.0}}
-{"aokvqa_pope_random": {"precision": 0.7112, "recall": 0.8733, "f1": 0.784, "accuracy": 0.7593, "yes_proportion": 0.614, "unknown_prop": 0.0}}
-{"coco_pope_adversarial": {"precision": 0.6769, "recall": 0.8393, "f1": 0.7494, "accuracy": 0.7193, "yes_proportion": 0.62, "unknown_prop": 0.0}}
-{"coco_pope_popular": {"precision": 0.7094, "recall": 0.848, "f1": 0.7725, "accuracy": 0.7503, "yes_proportion": 0.5977, "unknown_prop": 0.0}}
-{"coco_pope_random": {"precision": 0.7583, "recall": 0.8387, "f1": 0.7965, "accuracy": 0.7857, "yes_proportion": 0.553, "unknown_prop": 0.0}}
-{"gqa_pope_adversarial": {"precision": 0.6113, "recall": 0.8827, "f1": 0.7223, "accuracy": 0.6607, "yes_proportion": 0.722, "unknown_prop": 0.0}}
-{"gqa_pope_random": {"precision": 0.7076, "recall": 0.8873, "f1": 0.7873, "accuracy": 0.7603, "yes_proportion": 0.627, "unknown_prop": 0.0}}
-{"gqa_pope_popular": {"precision": 0.6335, "recall": 0.8827, "f1": 0.7376, "accuracy": 0.686, "yes_proportion": 0.6967, "unknown_prop": 0.0}}

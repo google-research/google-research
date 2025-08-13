@@ -1,6 +1,0 @@
-tensorflow==1.15rc2
-# tfp-nightly
-absl-py>=0.5.0
-matplotlib>=2.1.0
-numpy>=1.15.2
-scipy>=1.1.0

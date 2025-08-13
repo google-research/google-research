@@ -1,9 +1,0 @@
-jax[tpu]>=0.2.16
-git+https://storage.googleapis.com/jax-releases/libtpu_releases.html
-tensorflow
-tensorflow_datasets
-optax
-einops
-flax
-clu
-absl-py

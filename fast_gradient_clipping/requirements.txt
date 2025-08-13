@@ -1,6 +1,0 @@
-numpy~=1.24
-matplotlib~=3.8
-tensorflow~=2.4
-tensorflow-privacy~=0.8.11
-tf-models-official~=2.13
-tfp-nightly

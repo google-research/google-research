@@ -1,8 +1,0 @@
-dm-haiku>=0.0.9
-jax>=0.3.25
-jupyter>=1.0.0
-matplotlib>=3.6.2
-numpy>=1.23.5
-scipy>=1.9.3
-seaborn>=0.12.1
-tqdm>=4.64.1

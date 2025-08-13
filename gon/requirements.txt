@@ -1,5 +1,0 @@
-absl-py>=1.0.0
-numpy>=1.21.5
-tensorflow>=2.9.0
-tensorflow_datasets>=4.0.0
-tensorflow_lattice>=2.0.0

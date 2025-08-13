@@ -1,1 +1,0 @@
-Please follow the instructions in the subdirectories to create datasets in the tfrecords / TFDS formats.

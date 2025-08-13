@@ -1,7 +1,0 @@
-# data_file: "./data/standard_retail_500_D.npy"
-# save_dir: "/home/jupyter/graph-temporal-AI/lightning_logs/UCI_retail/"
-input_dim: 2
-output_dim: 1
-num_nodes: 500
-input_len: 14
-output_len: 14

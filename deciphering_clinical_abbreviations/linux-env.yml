@@ -1,4 +1,0 @@
-name: deciphering_clinical_abbreviations
-dependencies:
-  - absl-py
-  - pandas

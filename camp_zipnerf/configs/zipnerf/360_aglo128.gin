@@ -1,5 +1,0 @@
-include 'configs/zipnerf/360.gin'
-
-Model.num_glo_features = 128
-MLP.glo_mode = 'affine'
-MLP.glo_mlp_arch = [128, 128]

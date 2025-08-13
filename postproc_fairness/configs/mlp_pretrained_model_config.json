@@ -1,5 +1,0 @@
-{
-  "": "models/logreg_weights.h5",
-  "64": "models/1MLP_weights.h5",
-  "128,128,128": "models/3MLP_weights.h5"
-}

@@ -1,5 +1,0 @@
-numpy>=1.19.5
-pytorch-lightning>=1.6.4
-tqdm>=4.62.3
-torch>=1.12
-torch-geometric

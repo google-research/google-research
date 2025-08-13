@@ -1,3 +1,0 @@
-absl-py>=1.2.0
-pandas>=1.5.0
-editdistance>=0.3.0

@@ -1,5 +1,0 @@
-gin-config >= 0.1.6
-flax >= 0.1.0
-jax >= 0.1.71
-jaxlib >= 0.1.48
-dm-tree >= 0.1.5

@@ -1,6 +1,0 @@
-Use
-
-> python -m dp_regression.run_experiment
-
-to run synthetic experiments for the books dataset and generate R^2 and time 
-plots, saved respectively as synthetic_r2.pdf and synthetic_time.pdf.

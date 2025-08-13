@@ -1,7 +1,0 @@
-numpy>=1.26.2
-scipy>=1.9.3
-pandas>=1.5.3
-tensorflow>=2.14.0
-tensorflow-lattice>=2.0.13
-tensorflow_constrained_optimization
-absl-py>=0.19

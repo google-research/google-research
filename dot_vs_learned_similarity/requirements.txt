@@ -1,3 +1,0 @@
-argparse>=1.1
-keras>=2.3.1
-numpy>=1.16.4

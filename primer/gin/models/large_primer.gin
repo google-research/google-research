@@ -1,3 +1,0 @@
-# 537M parameter Primer for full scale training on C4.
-include 'models/medium_primer.gin'
-include 'models/large_defaults.gin'

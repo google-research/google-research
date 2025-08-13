@@ -1,5 +1,0 @@
-bs4
-nltk
-pandas
-requests
-spacy

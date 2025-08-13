@@ -1,2 +1,0 @@
-mtdata get -l urd-eng -tr OPUS-opus100_train-1-eng-urd JoshuaDec-indian_training-1-urd-eng Anuvaad-thewire-20210320-eng-urd -ts OPUS-opus100_test-1-eng-urd JoshuaDec-indian_test-1-urd-eng -dv OPUS-opus100_dev-1-eng-urd JoshuaDec-indian_dev-1-urd-eng --merge -o <out-dir>
-mtdata version 0.3.5

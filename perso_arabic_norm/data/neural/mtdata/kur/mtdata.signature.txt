@@ -1,2 +1,0 @@
-mtdata get -l kur-eng -tr OPUS-opus100_train-1-eng-kur OPUS-tatoeba-v20210722-eng-kur OPUS-tanzil-v1-eng-kur -ts OPUS-opus100_test-1-eng-kur -dv OPUS-opus100_dev-1-eng-kur --merge -o <out-dir>
-mtdata version 0.3.5

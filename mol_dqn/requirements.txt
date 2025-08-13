@@ -1,6 +1,0 @@
-absl-py
-baselines
-networkx
-numpy
-rdkit
-tensorflow

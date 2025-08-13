@@ -1,3 +1,0 @@
-absl-py>=0.7.0
-numpy>=1.13.3
-tf_nightly==2.3.0.dev20200515 # was validated on tf_nightly-2.3.0.dev20200515-cp36-cp36m-manylinux2010_x86_64.whl

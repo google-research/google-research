@@ -1,9 +1,0 @@
-include 'configs/camp/camera_optim_slow.gin'
-
-# Perturbation options.
-Config.use_perturbed_cameras = True
-Config.camera_perturb_sigma_look_at = 0.005
-Config.camera_perturb_sigma_position = 0.005
-Config.camera_perturb_sigma_dolly_z = 0.05
-Config.camera_perturb_sigma_focal_length = 0.02
-Config.camera_perturb_zero_distortion = True

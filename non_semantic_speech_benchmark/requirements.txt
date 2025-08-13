@@ -1,7 +1,0 @@
-absl-py
-apache_beam
-librosa
-tensorflow
-tfds-nightly
-tensorflow_hub
-tensorflow-addons

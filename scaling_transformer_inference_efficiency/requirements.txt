@@ -1,5 +1,0 @@
-flax
-pandas
-numpy
-jax[tpu]
-tensorstore

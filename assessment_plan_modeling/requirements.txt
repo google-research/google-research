@@ -1,9 +1,0 @@
-absl-py
-apache-beam>=2.30.0
-frozendict>=1.2
-gin-config>=0.1
-numpy>=1.19.2
-seqeval
-sklearn
-tensorflow>=2.7
-tf-models-official>=2.7

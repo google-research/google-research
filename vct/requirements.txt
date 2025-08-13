@@ -1,6 +1,0 @@
-absl-py
-tensorflow
-tensorflow-addons
-tensorflow-compression
-mediapy
-tensorflow-datasets

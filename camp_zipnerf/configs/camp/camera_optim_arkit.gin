@@ -1,6 +1,0 @@
-include 'configs/camp/camera_optim_slow.gin'
-
-Config.factor = 1
-Config.transform_poses_fn = @camera_utils.transform_poses_focus
-Config.camera_delta_cls = @camera_delta.FocalPoseCameraDelta
-Config.load_ngp_format_poses = True

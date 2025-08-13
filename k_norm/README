@@ -1,6 +1,0 @@
-Use k_norm_plot to run K-norm simulations and save their results in a plot.
-
-Use ellipse_plot to run ellipse simulations and save their results in a plot.
-
-Throughout, a d-simplex is the convex hull of d+1 affinely independent points,
-which live in R^n for some n >= d.

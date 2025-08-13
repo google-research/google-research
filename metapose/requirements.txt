@@ -1,4 +1,0 @@
-tensorflow>=2.8.0
-tensorflow-datasets>=4.5.2
-tensorflow-probability>=0.16.0
-aniposelib>=0.4.3

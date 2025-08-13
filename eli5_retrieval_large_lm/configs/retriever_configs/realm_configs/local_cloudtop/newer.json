@@ -1,6 +1,0 @@
-{
-    "query_embedder_path": "/usr/local/google/home/julesgm/realm_cache/cc_news_pretrained/embedder",
-    "text_records": "/usr/local/google/home/julesgm/realm_cache/blocks.tfr",
-    "num_block_records": 13353718,
-    "description": "Local copy of the newer checkpoints."
-} 

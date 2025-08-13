@@ -1,3 +1,0 @@
-This directory will contain the teacher model described in our CVPR 2023 paper: "Teacher-generated spatial-attention labels boost robustness and accuracy ofcontrastive models".  Unlike most saliency models, which use initial weights pretrained on classification data set such as ImageNet then finetune the model on saliency data set, this model is trained from scratch on Salicon saliency data set (http://salicon.net/) only.
-
-The model releasing is in progress and will be ready soon.

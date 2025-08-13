@@ -1,8 +1,0 @@
-from __gin__ import dynamic_registration
-
-from arithmetic_sampling.t5x import decoding
-from t5x import models
-
-decoding.arithmetic_sample.topk = 40
-decoding.arithmetic_sample.temperature = 0.6
-models.EncoderDecoderModel.decode_fn = @decoding.arithmetic_sample

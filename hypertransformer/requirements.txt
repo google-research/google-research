@@ -1,7 +1,0 @@
-absl-py
-dm-tree
-numpy
-tensorflow
-tensorflow_addons
-tensorflow_datasets
-tf-slim

@@ -1,2 +1,0 @@
-absl-py
-numpy

@@ -1,3 +1,0 @@
-env {
-  teleport_only = True
-}

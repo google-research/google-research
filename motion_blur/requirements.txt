@@ -1,5 +1,0 @@
-# tensorflow>=1.13.0
-absl-py>=0.1.9
-opencv-python
-numpy
-scikit-image

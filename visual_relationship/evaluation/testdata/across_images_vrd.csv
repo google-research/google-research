@@ -1,4 +1,0 @@
-image_id_1,object_id_1,image_id_2,object_id_2,occlusion,distance,raw_occlusion,raw_distance
-image01,0,image02,0,0,0,"0,0,0,1,1","0,0,0,0,0"
-image01,0,image02,1,1,2,"1,1,1,1,2","1,1,1,0,0"
-image03,3,image04,0,2,3,"2,2,2,2,1","1,1,2,2,0"

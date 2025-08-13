@@ -1,4 +1,0 @@
-mtdata get -l uig-eng -tr OPUS-opus100_train-1-eng-uig -ts OPUS-opus100_test-1-eng-uig -dv OPUS-opus100_dev-1-eng-uig --merge -o <out-dir>
-mtdata version 0.3.5
-mtdata get -l uig-eng -tr OPUS-opus100_train-1-eng-uig OPUS-tatoeba-v20210722-eng-uig OPUS-tanzil-v1-eng-uig OPUS-ted2020-v1-eng-uig OPUS-xlent-v1.1-eng-uig -ts OPUS-opus100_test-1-eng-uig -dv OPUS-opus100_dev-1-eng-uig --merge -o <out-dir>
-mtdata version 0.3.5
