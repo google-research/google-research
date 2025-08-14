@@ -21,6 +21,7 @@
 #include <utility>
 
 #include "scann/base/search_parameters.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

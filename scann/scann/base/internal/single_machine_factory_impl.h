@@ -144,7 +144,8 @@ StatusOrSearcherUntyped SingleMachineFactoryUntypedImpl(
 
   if (config.crowding().enabled() && opts.crowding_attributes) {
     SCANN_RETURN_IF_ERROR(
-        searcher->EnableCrowding(std::move(opts.crowding_attributes)));
+        searcher->EnableCrowding(std::move(opts.crowding_attributes),
+                                 std::move(opts.crowding_dimension_names)));
   }
 
   searcher->set_config(std::move(config));

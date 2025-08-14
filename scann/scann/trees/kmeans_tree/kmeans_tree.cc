@@ -19,12 +19,14 @@
 #include <utility>
 
 #include "absl/log/check.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree_node.h"
 #include "scann/trees/kmeans_tree/training_options.h"
 #include "scann/utils/common.h"
+#include "scann/utils/datapoint_utils.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
@@ -80,6 +82,17 @@ Status KMeansTree::Train(const Dataset& training_data,
   Status status = root_.Train(training_data, subset, training_distance,
                               k_per_level, 0, training_options);
   if (!status.ok()) return status;
+  if (root_.IsLeaf()) {
+    Datapoint<double> root_center;
+    SCANN_RETURN_IF_ERROR(training_data.MeanByDimension(&root_center));
+    Datapoint<float> root_center_float;
+    MaybeConvertDatapoint(root_center.ToPtr(), &root_center_float);
+    root_.float_centers_.AppendOrDie(root_center_float.ToPtr());
+
+    root_.children_ = vector<KMeansTreeNode>(1);
+    root_.children_[0].Reset();
+    root_.children_[0].indices_ = root_.indices_;
+  }
   n_tokens_ = root_.NumberLeaves(0);
   root_.PopulateCurNodeCenters();
   learned_spilling_type_ = training_options->learned_spilling_type;

@@ -168,7 +168,7 @@ void ScannNumpy::SetNumThreads(int num_threads) {
   scann_.SetNumThreads(num_threads);
 }
 
-string ScannNumpy::SuggestAutopilot(const std::string& config_str,
+string ScannNumpy::SuggestAutopilot(absl::string_view config_str,
                                     DatapointIndex n, DimensionIndex dim) {
   ScannConfig config;
   RuntimeErrorIfNotOk("Failed to parse config: ",
@@ -264,8 +264,10 @@ pybind11::dict ScannNumpy::GetHealthStats() const {
   using namespace pybind11::literals;
 
   return pybind11::dict("avg_quantization_error"_a = r->avg_quantization_error,
-                        "partition_avg_relative_imbalance"_a =
-                            r->partition_avg_relative_imbalance,
+                        "partition_weighted_avg_relative_imbalance"_a =
+                            r->partition_weighted_avg_relative_imbalance,
+                        "partition_avg_relative_positive_imbalance"_a =
+                            r->partition_avg_relative_positive_imbalance,
                         "sum_partition_sizes"_a = r->sum_partition_sizes);
 }
 

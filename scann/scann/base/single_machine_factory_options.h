@@ -67,6 +67,7 @@ struct SingleMachineFactoryOptions {
   std::shared_ptr<std::vector<std::string>> hash_parameters;
 
   shared_ptr<vector<int64_t>> crowding_attributes;
+  shared_ptr<vector<std::string>> crowding_dimension_names;
 
   shared_ptr<ThreadPool> parallelization_pool;
 };

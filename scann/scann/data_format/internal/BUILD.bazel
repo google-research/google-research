@@ -2,6 +2,9 @@
 #   Internal data structures for data_format, that are not intended to be part
 #   of ScaNN's public C++ API.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -15,13 +18,5 @@ cc_library(
         "//scann/utils:common",
         "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/types:optional",
-    ],
-)
-
-cc_library(
-    name = "string_view32",
-    hdrs = ["string_view32.h"],
-    deps = [
-        "//scann/utils:types",
     ],
 )

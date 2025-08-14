@@ -75,7 +75,6 @@ PartitionerFromKMeansTreeNoProjection(shared_ptr<const KMeansTree> kmeans_tree,
   auto km = make_unique<KMeansTreePartitioner<T>>(database_tokenization_dist,
                                                   query_tokenization_dist,
                                                   std::move(kmeans_tree));
-  km->set_query_spilling_type(config.query_spilling().spilling_type());
   km->set_query_spilling_threshold(
       config.query_spilling().spilling_threshold());
   km->set_query_spilling_type(config.query_spilling().spilling_type());

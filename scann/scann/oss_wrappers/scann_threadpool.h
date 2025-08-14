@@ -18,8 +18,8 @@
 #include <functional>
 #include <memory>
 
+#include "Eigen/ThreadPool"
 #include "absl/strings/string_view.h"
-#include "unsupported/Eigen/CXX11/ThreadPool"
 
 namespace research_scann {
 

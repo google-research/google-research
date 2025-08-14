@@ -1,5 +1,10 @@
 # ScaNN Release Notes
 
+### 1.4.1
+
+Match with the TF version from 2.19.0 to 2.20.0. This is **not** a
+backwards-compatible with earlier versions of TensorFlow
+
 ### 1.4.0
 
 The ScaNN TensorFlow ops are now an optional extra, installable via `scann[tf]`.

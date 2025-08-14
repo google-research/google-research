@@ -1,7 +1,10 @@
 # Description:
 #   This package contains ScaNN partitioners.
 
-load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -83,8 +86,12 @@ cc_library(
         "//scann/base:search_parameters",
         "//scann/base:single_machine_base",
         "//scann/brute_force",
+        "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
+        "//scann/distance_measures:distance_measure_base",
         "//scann/distance_measures/many_to_many",
+        "//scann/distance_measures/one_to_one:dot_product",
+        "//scann/distance_measures/one_to_one:l2_distance",
         "//scann/hashes/asymmetric_hashing2:indexing",
         "//scann/hashes/asymmetric_hashing2:querying",
         "//scann/hashes/asymmetric_hashing2:searcher",
@@ -106,6 +113,7 @@ cc_library(
         "//scann/utils:types",
         "//scann/utils:zip_sort",
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/memory",
@@ -120,10 +128,16 @@ cc_library(
     deps = [
         ":kmeans_tree_like_partitioner",
         ":kmeans_tree_partitioner_cc_proto",
+        ":partitioner_base",
+        ":partitioner_cc_proto",
         "//scann/brute_force",
         "//scann/brute_force:bfloat16_brute_force",
         "//scann/brute_force:scalar_quantized_brute_force",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures:distance_measure_base",
         "//scann/oss_wrappers:scann_status",
+        "//scann/oss_wrappers:scann_threadpool",
         "//scann/proto:partitioning_cc_proto",
         "//scann/tree_x_hybrid:tree_x_hybrid_smmd",
         "//scann/trees/kmeans_tree",
@@ -173,7 +187,6 @@ cc_library(
         ":partitioner_base",
         ":projecting_decorator",
         "//scann/data_format:dataset",
-        "//scann/distance_measures",
         "//scann/oss_wrappers:scann_status",
         "//scann/projection:projection_base",
         "//scann/projection:projection_factory",
@@ -181,9 +194,8 @@ cc_library(
         "//scann/proto:partitioning_cc_proto",
         "//scann/utils:types",
         "//scann/utils:util_functions",
-        "@com_google_absl//absl/memory",
-        "@com_google_absl//absl/random",
-        "@com_google_absl//absl/time",
+        "//scann/utils/random:reservoir_sampling",
+        "@com_google_absl//absl/log",
     ],
 )
 
@@ -236,14 +248,9 @@ cc_proto_library(
     deps = [":partitioner_proto"],
 )
 
-scann_py_proto_library(
+py_proto_library(
     name = "partitioner_py_pb2",
-    srcs = ["partitioner.proto"],
-    proto_deps = [":partitioner_proto"],
-    py_proto_deps = [
-        ":kmeans_tree_partitioner_py_pb2",
-        ":linear_projection_tree_py_pb2",
-    ],
+    deps = [":partitioner_proto"],
 )
 
 proto_library(
@@ -260,27 +267,11 @@ cc_proto_library(
     deps = [":kmeans_tree_partitioner_proto"],
 )
 
-scann_py_proto_library(
-    name = "kmeans_tree_partitioner_py_pb2",
-    srcs = ["kmeans_tree_partitioner.proto"],
-    proto_deps = [":kmeans_tree_partitioner_proto"],
-    py_proto_deps = [
-        "//scann/proto:partitioning_py_pb2",
-        "//scann/trees/kmeans_tree:kmeans_tree_py_pb2",
-    ],
-)
-
 proto_library(
     name = "linear_projection_tree_proto",
     srcs = ["linear_projection_tree.proto"],
     deps = [
     ],
-)
-
-scann_py_proto_library(
-    name = "linear_projection_tree_py_pb2",
-    srcs = ["linear_projection_tree.proto"],
-    proto_deps = [":linear_projection_tree_proto"],
 )
 
 # Tests

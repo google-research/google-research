@@ -19,9 +19,15 @@
 #include <memory>
 
 #include "scann/base/single_machine_base.h"
+#include "scann/data_format/dataset.h"
 #include "scann/hashes/asymmetric_hashing2/indexing.h"
 #include "scann/hashes/asymmetric_hashing2/querying.h"
+#include "scann/hashes/asymmetric_hashing2/training_model.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/proto/centers.pb.h"
+#include "scann/proto/hash.pb.h"
+#include "scann/proto/scann.pb.h"
+#include "scann/utils/common.h"
 #include "scann/utils/factory_helpers.h"
 #include "scann/utils/types.h"
 

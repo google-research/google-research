@@ -15,10 +15,12 @@
 #ifndef SCANN_UTILS_INTRINSICS_SIMD_H_
 #define SCANN_UTILS_INTRINSICS_SIMD_H_
 
+#include "scann/utils/intrinsics/amx.h"
 #include "scann/utils/intrinsics/attributes.h"
 #include "scann/utils/intrinsics/avx1.h"
 #include "scann/utils/intrinsics/avx2.h"
 #include "scann/utils/intrinsics/avx512.h"
+#include "scann/utils/intrinsics/avx512_vnni.h"
 #include "scann/utils/intrinsics/fallback.h"
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/intrinsics/highway.h"

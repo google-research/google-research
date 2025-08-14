@@ -1,3 +1,4 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
 load("@pybind11_bazel//:build_defs.bzl", "pybind_library")
 
 package(
@@ -22,6 +23,7 @@ cc_library(
     srcs = ["ops/scann_ops.cc"],
     deps = [
         "//scann/oss_wrappers:tf_dependency",
+        "@com_google_absl//absl/status",
     ],
     alwayslink = 1,
 )
@@ -105,6 +107,7 @@ pybind_library(
         "//scann/utils:io_oss_wrapper",
         "//scann/utils:single_machine_autopilot",
         "//scann/utils:types",
+        "@com_google_absl//absl/strings",
         "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/types:span",
     ],

@@ -13,6 +13,7 @@
 
 #include "hwy/highway.h"
 
+#if HWY_HAVE_CONSTEXPR_LANES
 HWY_BEFORE_NAMESPACE();
 
 namespace research_scann {
@@ -830,4 +831,5 @@ SCANN_HIGHWAY_OUTLINE void OneToManyBf16FloatImpl(
 
 }  // namespace highway
 }  // namespace research_scann
+#endif
 #endif

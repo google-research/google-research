@@ -100,7 +100,7 @@ vector<pair<DatapointIndex, FloatT>> DenseDistanceManyToManyTop1(
   vector<pair<DatapointIndex, FloatT>> result(
       queries.size(),
       std::make_pair(kInvalidDatapointIndex, numeric_limits<FloatT>::max()));
-  ManyToManyTop1Callback<FloatT> top1_callback(MakeMutableSpan(result));
+  ManyToManyTop1Callback<FloatT> top1_callback(MakeMutableSpan(result), pool);
   EpsilonFilteringCallback<FloatT> eps_callback(top1_callback.epsilons(),
                                                 top1_callback);
   mm_internal::DenseDistanceManyToManyImpl(dist, queries, database, pool,

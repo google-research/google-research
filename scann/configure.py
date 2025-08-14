@@ -89,9 +89,6 @@ def create_build_configuration():
   write_action_env("TF_SHARED_LIBRARY_DIR", _TF_SHARED_LIBRARY_DIR)
   write_action_env("TF_SHARED_LIBRARY_NAME", _TF_SHARED_LIBRARY_NAME)
   write_action_env("TF_CXX11_ABI_FLAG", _TF_CXX11_ABI_FLAG)
-
-  write_to_bazelrc("build --spawn_strategy=standalone")
-  write_to_bazelrc("build --strategy=Genrule=standalone")
   write_to_bazelrc("build -c opt")
 
   print()

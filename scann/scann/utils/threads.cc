@@ -24,7 +24,7 @@
 
 namespace research_scann {
 
-unique_ptr<ThreadPool> StartThreadPool(const std::string& pool_name,
+unique_ptr<ThreadPool> StartThreadPool(absl::string_view pool_name,
                                        ssize_t num_threads) {
   if (num_threads <= 0) {
     return nullptr;

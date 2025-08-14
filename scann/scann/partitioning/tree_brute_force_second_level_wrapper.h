@@ -22,12 +22,20 @@
 #include <vector>
 
 #include "scann/brute_force/brute_force.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
+#include "scann/oss_wrappers/scann_status.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/kmeans_tree_partitioner.pb.h"
+#include "scann/partitioning/partitioner.pb.h"
+#include "scann/partitioning/partitioner_base.h"
 #include "scann/proto/partitioning.pb.h"
 #include "scann/tree_x_hybrid/tree_x_hybrid_smmd.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/trees/kmeans_tree/training_options.h"
+#include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {

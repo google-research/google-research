@@ -23,6 +23,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
+#include "scann/proto/distance_measure.pb.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -102,7 +103,8 @@ class Bfloat16BruteForceSearcher final
                            NNResultsVector* result) const final;
 
   Status EnableCrowdingImpl(
-      ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+      ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+      ConstSpan<std::string> crowding_dimension_names) final;
 
  private:
   bool impl_needs_dataset() const override { return false; }

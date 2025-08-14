@@ -19,6 +19,8 @@
 
 #include "scann/base/restrict_allowlist.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
+#include "scann/restricts/restrict_allowlist.h"
+#include "scann/utils/common.h"
 #include "scann/utils/top_n_amortized_constant.h"
 #include "scann/utils/types.h"
 

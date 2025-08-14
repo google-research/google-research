@@ -17,6 +17,9 @@
 #include <algorithm>
 #include <cstdint>
 
+#include "scann/data_format/dataset.h"
+#include "scann/utils/common.h"
+#include "scann/utils/intrinsics/fallback.h"
 #include "scann/utils/intrinsics/flags.h"
 #include "scann/utils/intrinsics/highway.h"
 #include "scann/utils/types.h"
@@ -33,8 +36,12 @@ uint8_t SimdBlockSize() {
     return 8;
   }
 #endif
+#if HWY_HAVE_CONSTEXPR_LANES
 
   return Highway<float>::kElementsPerRegister;
+#else
+  return fallback::Simd<float>::kElementsPerRegister;
+#endif
 }
 }  // namespace
 

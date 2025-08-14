@@ -2,6 +2,9 @@
 #   This package defines classes for returning various metadata that might be
 #   returned from a nearest-neighbor query along with docid and distance.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],

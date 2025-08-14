@@ -74,11 +74,10 @@ void DatapointPtr<T>::ToGfvIndicesAndMetadata(GenericFeatureVector* gfv) const {
 }
 
 template <typename T>
-GenericFeatureVector Datapoint<T>::ToGfv() const {
-  GenericFeatureVector result = ToPtr().ToGfv();
+void Datapoint<T>::ToGfv(GenericFeatureVector& result) const {
+  ToPtr().ToGfv(result);
   result.set_norm_type(
       static_cast<GenericFeatureVector::FeatureNorm>(normalization()));
-  return result;
 }
 
 template <typename T>

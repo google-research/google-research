@@ -129,6 +129,8 @@ class ChunkingProjection : public ChunkingProjectionUntyped {
 
   std::optional<SerializedProjection> SerializeToProto() const override;
 
+  Projection<T>* initial_projector() const { return initial_projection_.get(); }
+
  private:
   template <typename FloatT>
   StatusOr<ChunkedDatapoint<FloatT>> ProjectInputImpl(

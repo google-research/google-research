@@ -173,7 +173,8 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       MutableSpan<NNResultsVector> results) const final;
 
   Status EnableCrowdingImpl(
-      ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+      ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+      ConstSpan<std::string> crowding_dimension_names) final;
   void DisableCrowdingImpl() final;
 
  private:

@@ -363,7 +363,7 @@ SCANN_SIMD_INLINE Avx2<int16_t> MultiplyAndAddPacked(Avx2<uint8_t> a,
                                                      Avx2<int8_t> b) {
   return _mm256_maddubs_epi16(*a, *b);
 }
-SCANN_SIMD_INLINE Avx2<int32_t> MultiplyAndAddPacked(Avx2<uint16_t> a,
+SCANN_SIMD_INLINE Avx2<int32_t> MultiplyAndAddPacked(Avx2<int16_t> a,
                                                      Avx2<int16_t> b) {
   return _mm256_madd_epi16(*a, *b);
 }
@@ -372,21 +372,17 @@ SCANN_SIMD_INLINE Sse4<int16_t> MultiplyAndAddPacked(Sse4<uint8_t> a,
                                                      Sse4<int8_t> b) {
   return _mm_maddubs_epi16(*a, *b);
 }
-SCANN_SIMD_INLINE Sse4<int32_t> MultiplyAndAddPacked(Sse4<uint16_t> a,
+SCANN_SIMD_INLINE Sse4<int32_t> MultiplyAndAddPacked(Sse4<int16_t> a,
                                                      Sse4<int16_t> b) {
   return _mm_madd_epi16(*a, *b);
 }
 
-template <typename T,
-          std::enable_if_t<!IsSameAny<T, Avx2<uint8_t>, Sse4<uint8_t>>(),
-                           bool> = true>
-SCANN_SIMD_INLINE Simd<int16_t> MultiplyAndAddPacked(T a, Simd<int8_t> b) {
+SCANN_SIMD_INLINE Simd<int16_t> MultiplyAndAddPacked(Avx1<uint8_t> a,
+                                                     Avx1<int8_t> b) {
   LOG(FATAL) << "Unhandled " << SimdName();
 }
-template <typename T,
-          std::enable_if_t<!IsSameAny<T, Avx2<uint16_t>, Sse4<uint16_t>>(),
-                           bool> = true>
-SCANN_SIMD_INLINE Simd<int32_t> MultiplyAndAddPacked(T a, Simd<int16_t> b) {
+SCANN_SIMD_INLINE Simd<int32_t> MultiplyAndAddPacked(Avx1<int16_t> a,
+                                                     Avx1<int16_t> b) {
   LOG(FATAL) << "Unhandled " << SimdName();
 }
 
@@ -405,7 +401,7 @@ SCANN_SIMD_INLINE void ComputeOneToManyScores(
   Simd<int16_t> result_16 = Zeros();
   Simd<int32_t> result_32 = Zeros();
   const Simd<uint8_t> kDMask(0x0f);
-  const Simd<uint16_t> kOnes16(1);
+  const Simd<int16_t> kOnes16(1);
   constexpr size_t kNumElements = Simd<int8_t>::kNumElements;
   for (int i : Seq(DivRoundUp(dimensionality, kNumElements * 2))) {
     if constexpr (kShouldPrefetch) {

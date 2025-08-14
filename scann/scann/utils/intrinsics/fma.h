@@ -56,6 +56,7 @@ namespace fallback {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace fallback
 
+#if HWY_HAVE_CONSTEXPR_LANES
 HWY_BEFORE_NAMESPACE();
 namespace highway {
 #define SCANN_SIMD_ATTRIBUTE
@@ -63,6 +64,7 @@ namespace highway {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace highway
 HWY_AFTER_NAMESPACE();
+#endif
 
 }  // namespace research_scann
 

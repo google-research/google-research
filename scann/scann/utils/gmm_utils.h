@@ -20,6 +20,7 @@
 #include <cstdint>
 #include <functional>
 #include <limits>
+#include <optional>
 #include <utility>
 #include <vector>
 
@@ -106,6 +107,8 @@ class GmmUtils {
     bool spherical = false;
 
     ConstSpan<float> weights;
+
+    std::optional<DatapointIndex> first_n_centroids;
   };
 
   Status ComputeKmeansClustering(

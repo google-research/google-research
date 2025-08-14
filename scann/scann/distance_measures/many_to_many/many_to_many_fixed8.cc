@@ -31,5 +31,10 @@ template Status DenseDistanceManyToManyFP8PretransposedImpl(
     const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
     EpsilonFilteringOffsetWrapper<float> callback);
 
+template Status DenseDistanceManyToManyFP8PretransposedImpl(
+    const DistanceMeasure &dist, const DenseDataset<float> &queries,
+    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
+    EpsilonFilteringCallback<float> callback);
+
 }  // namespace mm_internal
 }  // namespace research_scann

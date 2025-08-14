@@ -1,4 +1,5 @@
-load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -15,8 +16,7 @@ cc_proto_library(
     deps = [":scann_assets_proto"],
 )
 
-scann_py_proto_library(
+py_proto_library(
     name = "scann_assets_py_pb2",
-    srcs = ["scann_assets.proto"],
-    proto_deps = [":scann_assets_proto"],
+    deps = [":scann_assets_proto"],
 )

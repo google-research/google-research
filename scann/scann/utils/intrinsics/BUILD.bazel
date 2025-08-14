@@ -1,3 +1,6 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -11,10 +14,12 @@ cc_library(
     name = "simd",
     hdrs = ["simd.h"],
     deps = [
+        ":amx",
         ":attributes",
         ":avx1",
         ":avx2",
         ":avx512",
+        ":avx512_vnni",
         ":fallback",
         ":flags",
         ":highway",
@@ -152,6 +157,32 @@ cc_library(
 )
 
 ################################################################################
+#  avx512_vnni
+################################################################################
+
+cc_library(
+    name = "avx512_vnni",
+    hdrs = ["avx512_vnni.h"],
+    deps = [
+        ":avx512",
+        ":flags",
+    ],
+)
+
+################################################################################
+#  amx
+################################################################################
+
+cc_library(
+    name = "amx",
+    hdrs = ["amx.h"],
+    deps = [
+        ":avx512",
+        ":flags",
+    ],
+)
+
+################################################################################
 #  highway
 ################################################################################
 
@@ -162,6 +193,7 @@ cc_library(
         ":attributes",
         ":fallback",
         ":flags",
+        "//scann/utils:common",
         "//scann/utils:index_sequence",
         "//scann/utils:types",
         "@com_google_highway//:hwy",

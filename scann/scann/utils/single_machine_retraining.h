@@ -15,8 +15,11 @@
 #ifndef SCANN_UTILS_SINGLE_MACHINE_RETRAINING_H_
 #define SCANN_UTILS_SINGLE_MACHINE_RETRAINING_H_
 
+#include "absl/synchronization/mutex.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 

@@ -22,6 +22,7 @@
 #include <string>
 #include <utility>
 
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "pybind11/numpy.h"
@@ -65,7 +66,7 @@ class ScannNumpy {
 
   void Reserve(size_t num_datapoints);
 
-  static string SuggestAutopilot(const std::string& config, DatapointIndex n,
+  static string SuggestAutopilot(absl::string_view config, DatapointIndex n,
                                  DimensionIndex dim);
 
   string Config();
