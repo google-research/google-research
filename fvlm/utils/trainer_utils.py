@@ -596,7 +596,7 @@ def train(output_dir,
   if jax_cache_dir:
     if not tf.io.gfile.Exists(jax_cache_dir):
       tf.io.gfile.MkDir(f'{jax_cache_dir}%ttl=30')
-    cc.initialize_cache(jax_cache_dir)
+    cc.set_cache_dir(jax_cache_dir)
   if not output_dir:
     raise ValueError('output_dir should be a non-empty path.')
   logging.info('Starting train function.')
