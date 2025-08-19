@@ -25,7 +25,7 @@ Keras-Preprocessing==1.1.0
 lockfile==0.12.2
 Markdown==3.2.1
 mpi4py==3.0.3
-numpy==1.18.1
+numpy==1.22.0
 oauthlib==3.1.0
 opencv-python==4.2.0.32
 opt-einsum==3.1.0
