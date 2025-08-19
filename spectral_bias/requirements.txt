@@ -23,7 +23,7 @@ Pillow==8.4.0
 promise==2.3
 protobuf==3.19.1
 requests==2.26.0
-scipy==1.7.3
+scipy==1.10.0
 six==1.16.0
 tensorboard==1.15.0
 tensorflow==1.15.0
