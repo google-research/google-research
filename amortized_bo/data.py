@@ -35,6 +35,9 @@ DatasetSample = collections.namedtuple('DatasetSample', ['structure', 'reward'])
 
 def dataset_to_population(population_or_tf_dataset):
   """Converts a TF dataset to a Population if it is not already a Population."""
+  if not isinstance(population_or_tf_dataset, tf.data.Dataset) and not isinstance(population_or_tf_dataset, Population):
+      raise ValueError("Valid parameter includes either Population or tf.data.Dataset")
+      
   if isinstance(population_or_tf_dataset, Population):
     return population_or_tf_dataset
   else:
