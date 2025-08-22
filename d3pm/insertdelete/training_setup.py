@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,7 +21,6 @@ from typing import Any, Optional, Tuple, Protocol
 
 import gin
 import jax
-import jax.experimental.host_callback
 import jax.numpy as jnp
 import numpy as np
 import scipy

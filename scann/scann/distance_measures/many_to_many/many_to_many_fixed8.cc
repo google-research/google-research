@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,6 +30,11 @@ template Status DenseDistanceManyToManyFP8PretransposedImpl(
     const DistanceMeasure &dist, const DenseDataset<float> &queries,
     const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
     EpsilonFilteringOffsetWrapper<float> callback);
+
+template Status DenseDistanceManyToManyFP8PretransposedImpl(
+    const DistanceMeasure &dist, const DenseDataset<float> &queries,
+    const FP8SimdBlockTransposedDatabase &database, ThreadPool *pool,
+    EpsilonFilteringCallback<float> callback);
 
 }  // namespace mm_internal
 }  // namespace research_scann

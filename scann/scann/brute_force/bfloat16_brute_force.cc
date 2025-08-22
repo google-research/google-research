@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,12 +14,23 @@
 
 #include "scann/brute_force/bfloat16_brute_force.h"
 
+#include <cmath>
+#include <cstdlib>
+#include <utility>
+
+#include "absl/log/log.h"
+#include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/base/single_machine_factory_options.h"
+#include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/one_to_many/one_to_many_asymmetric.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/bfloat16_helpers.h"
 #include "scann/utils/common.h"
 #include "scann/utils/fast_top_neighbors.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
@@ -67,7 +78,8 @@ Bfloat16BruteForceSearcher::Bfloat16BruteForceSearcher(
 }
 
 Status Bfloat16BruteForceSearcher::EnableCrowdingImpl(
-    ConstSpan<int64_t> datapoint_index_to_crowding_attribute) {
+    ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+    ConstSpan<std::string> crowding_dimension_names) {
   size_t sz1 = datapoint_index_to_crowding_attribute.size();
   size_t sz2 = bfloat16_dataset_->size();
   if (sz1 != sz2) {
@@ -89,10 +101,18 @@ Status Bfloat16BruteForceSearcher::FindNeighborsImpl(
         "Query/database dimensionality mismatch: %d vs %d.",
         query.dimensionality(), bfloat16_dataset_->dimensionality());
   }
-  if (params.pre_reordering_crowding_enabled() && !this->crowding_enabled()) {
-    return FailedPreconditionError(
-        "Received query with pre-reordering crowding enabled, but crowding "
-        "isn't enabled in this bfloat16 brute-force searcher instance.");
+  if (params.pre_reordering_crowding_enabled()) {
+    if (!this->crowding_enabled()) {
+      return FailedPreconditionError(
+          "Received query with pre-reordering crowding enabled, but crowding "
+          "isn't enabled in this bfloat16 brute-force searcher instance.");
+    }
+    if (!this->crowding_dimension_names().empty()) {
+      return FailedPreconditionError(
+          "Received request with pre-reordering crowding enabled, but "
+          "multi-dimensional crowding is not supported in this instance of "
+          "bfloat16 brute-force searcher instance.");
+    }
   }
 
   if (params.restricts_enabled()) {

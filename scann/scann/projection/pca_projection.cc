@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,10 +20,12 @@
 #include <memory>
 
 #include "absl/log/check.h"
+#include "scann/distance_measures/one_to_many/one_to_many_asymmetric.h"
 #include "scann/distance_measures/one_to_many/one_to_many_symmetric.h"
 #include "scann/distance_measures/one_to_one/dot_product.h"
 #include "scann/projection/random_orthogonal_projection.h"
 #include "scann/proto/projection.pb.h"
+#include "scann/utils/bfloat16_helpers.h"
 #include "scann/utils/common.h"
 #include "scann/utils/datapoint_utils.h"
 #include "scann/utils/pca_utils.h"
@@ -83,6 +85,12 @@ void PcaProjection<T>::Create(const Dataset& data,
 template <typename T>
 void PcaProjection<T>::Create(DenseDataset<float> eigenvectors) {
   pca_vecs_ = std::make_shared<DenseDataset<float>>(std::move(eigenvectors));
+}
+
+template <typename T>
+void PcaProjection<T>::Create(
+    std::shared_ptr<DenseDataset<float>> eigenvectors) {
+  pca_vecs_ = eigenvectors;
 }
 
 template <typename T>
@@ -150,8 +158,30 @@ Status PcaProjection<T>::ProjectInputImpl(const DatapointPtr<T>& input,
 
   const auto& pca_vecs = *pca_vecs_;
   if constexpr (std::is_same_v<T, float>) {
-    DenseDotProductDistanceOneToMany<T, FloatT>(
-        input, pca_vecs, MakeMutableSpan(*projected->mutable_values()));
+    auto float32_path = [&] {
+      DenseDotProductDistanceOneToMany<T, FloatT>(
+          input, pca_vecs, MakeMutableSpan(*projected->mutable_values()));
+    };
+
+    if constexpr (std::is_same_v<FloatT, float>) {
+      if (fixed8_pca_vecs_ != nullptr) {
+        vector<float> inv_mult_input(input.dimensionality());
+        for (size_t i : Seq(input_dims_)) {
+          inv_mult_input[i] = input.values()[i] * inv_fixed8_multipliers_[i];
+        }
+        DenseDotProductDistanceOneToManyInt8Float(
+            MakeDatapointPtr(inv_mult_input), *fixed8_pca_vecs_,
+            MakeMutableSpan(*projected->mutable_values()));
+      } else if (bfloat16_pca_vecs_ != nullptr) {
+        DenseDotProductDistanceOneToManyBf16Float(
+            input, *bfloat16_pca_vecs_,
+            MakeMutableSpan(*projected->mutable_values()));
+      } else {
+        float32_path();
+      }
+    } else {
+      float32_path();
+    }
 
     for (FloatT& val : *projected->mutable_values()) {
       val = -val;
@@ -169,6 +199,40 @@ template <typename T>
 StatusOr<shared_ptr<const TypedDataset<float>>>
 PcaProjection<T>::GetDirections() const {
   return std::dynamic_pointer_cast<const TypedDataset<float>>(pca_vecs_);
+}
+
+template <typename T>
+Status PcaProjection<T>::CompressToBFloat16() {
+  if (pca_vecs_ == nullptr) {
+    return FailedPreconditionError(
+        "Can't compress PCA vectors to bfloat16 because PCA vectors are not "
+        "initialized.");
+  }
+  if (bfloat16_pca_vecs_ != nullptr) {
+    return OkStatus();
+  }
+
+  bfloat16_pca_vecs_ = std::make_unique<DenseDataset<int16_t>>(
+      Bfloat16QuantizeFloatDataset(*pca_vecs_));
+  return OkStatus();
+}
+
+template <typename T>
+Status PcaProjection<T>::CompressToFixed8() {
+  if (pca_vecs_ == nullptr) {
+    return FailedPreconditionError(
+        "Can't compress PCA vectors to bfloat16 because PCA vectors are not "
+        "initialized.");
+  }
+  if (fixed8_pca_vecs_ != nullptr) {
+    return OkStatus();
+  }
+
+  auto sq = ScalarQuantizeFloatDataset(*pca_vecs_);
+  fixed8_pca_vecs_ =
+      std::make_unique<DenseDataset<int8_t>>(std::move(sq.quantized_dataset));
+  inv_fixed8_multipliers_ = std::move(sq.inverse_multiplier_by_dimension);
+  return OkStatus();
 }
 
 template <typename T>

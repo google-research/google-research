@@ -1,6 +1,9 @@
 # Description:
 #   Build file for tree-X hybrids.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -80,6 +83,7 @@ cc_library(
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_status",
         "//scann/oss_wrappers:scann_threadpool",
+        "//scann/partitioning:kmeans_tree_like_partitioner",
         "//scann/partitioning:kmeans_tree_partitioner",
         "//scann/partitioning:partitioner_base",
         "//scann/partitioning:partitioner_cc_proto",
@@ -88,17 +92,18 @@ cc_library(
         "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:hash_leaf_helpers",
+        "//scann/utils:parallel_for",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
         "//scann/utils/fixed_point:pre_quantized_fixed_point",
         "@com_google_absl//absl/algorithm:container",
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/container:flat_hash_set",
-        "@com_google_absl//absl/container:node_hash_map",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",
+        "@com_google_absl//absl/synchronization",
         "@com_google_absl//absl/time",
         "@com_google_absl//absl/types:span",
         "@com_google_googletest//:gtest",

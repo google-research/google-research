@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,7 +25,8 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
     const DenseDataset<int16_t>* bfloat16_dataset,
-    const vector<int64_t>* crowding_attributes) {
+    const vector<int64_t>* crowding_attributes,
+    const vector<std::string>* crowding_dimension_names) {
   if (!dataset && !hashed_dataset && !pre_quantized_fixed_point &&
       !bfloat16_dataset) {
     return InvalidArgumentError(
@@ -72,7 +73,12 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
 
   if (crowding_attributes && !crowding_attributes->empty() &&
       sz != kInvalidDatapointIndex) {
-    SCANN_RET_CHECK_EQ(crowding_attributes->size(), sz);
+    if (crowding_dimension_names && !crowding_dimension_names->empty()) {
+      SCANN_RET_CHECK_EQ(crowding_attributes->size(),
+                         crowding_dimension_names->size() * sz);
+    } else {
+      SCANN_RET_CHECK_EQ(crowding_attributes->size(), sz);
+    }
   }
 
   if (sz == kInvalidDatapointIndex)

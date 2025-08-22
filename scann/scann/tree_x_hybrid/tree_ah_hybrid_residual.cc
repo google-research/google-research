@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -61,18 +61,26 @@ namespace research_scann {
 using asymmetric_hashing2::AsymmetricHashingOptionalParameters;
 
 Status TreeAHHybridResidual::EnableCrowdingImpl(
-    ConstSpan<int64_t> datapoint_index_to_crowding_attribute) {
+    ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+    ConstSpan<std::string> crowding_dimension_names) {
   if (leaf_searchers_.empty()) return OkStatus();
+  const size_t num_dimensions = std::max(1UL, crowding_dimension_names.size());
   for (size_t token = 0; token < leaf_searchers_.size(); ++token) {
     ConstSpan<DatapointIndex> cur_leaf_datapoints = datapoints_by_token_[token];
     vector<int64_t> leaf_datapoint_index_to_crowding_attribute(
-        cur_leaf_datapoints.size());
+        cur_leaf_datapoints.size() * num_dimensions);
     for (size_t i = 0; i < cur_leaf_datapoints.size(); ++i) {
-      leaf_datapoint_index_to_crowding_attribute[i] =
-          datapoint_index_to_crowding_attribute[cur_leaf_datapoints[i]];
+      for (size_t j = 0; j < num_dimensions; ++j) {
+        leaf_datapoint_index_to_crowding_attribute[i * num_dimensions + j] =
+            datapoint_index_to_crowding_attribute[cur_leaf_datapoints[i] *
+                                                      num_dimensions +
+                                                  j];
+      }
     }
     Status status = leaf_searchers_[token]->EnableCrowding(
-        std::move(leaf_datapoint_index_to_crowding_attribute));
+        std::move(leaf_datapoint_index_to_crowding_attribute),
+        std::vector<std::string>(crowding_dimension_names.begin(),
+                                 crowding_dimension_names.end()));
     if (!status.ok()) {
       for (size_t i = 0; i <= token; ++i) {
         leaf_searchers_[i]->DisableCrowding();
@@ -475,7 +483,8 @@ Status TreeAHHybridResidual::BuildLeafSearchers(
   query_tokenizer_ = std::move(partitioner);
   MaybeInitializeProjection();
   if (this->crowding_enabled()) {
-    return EnableCrowdingImpl(this->datapoint_index_to_crowding_attribute());
+    return EnableCrowdingImpl(this->datapoint_index_to_crowding_attribute(),
+                              this->crowding_dimension_names());
   }
   if (config.use_global_topn() &&
       config.lookup_type() == AsymmetricHasherConfig::INT8_LUT16 &&
@@ -587,7 +596,8 @@ Status TreeAHHybridResidual::BuildStreamingLeafSearchers(
   query_tokenizer_ = std::move(partitioner);
   MaybeInitializeProjection();
   if (this->crowding_enabled()) {
-    return EnableCrowdingImpl(this->datapoint_index_to_crowding_attribute());
+    return EnableCrowdingImpl(this->datapoint_index_to_crowding_attribute(),
+                              this->crowding_dimension_names());
   }
 
   return OkStatus();
@@ -711,7 +721,11 @@ Status TreeAHHybridResidual::FindNeighborsBatchedImpl(
              num_blocks == packed.num_blocks);
       num_blocks = std::max<size_t>(num_blocks, packed.num_blocks);
     }
-    data.push_back(data.back());
+    {
+      SCANN_RET_CHECK(!data.empty());
+      BatchedGlobalTopNData last = data.back();
+      data.push_back(last);
+    }
 
     constexpr const int kMaxBatch = 3;
     std::array<FastTopNeighbors<float>*, kMaxBatch> top_arr;

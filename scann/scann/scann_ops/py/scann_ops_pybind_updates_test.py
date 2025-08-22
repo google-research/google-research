@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -306,12 +306,12 @@ class ScannTest(parameterized.TestCase):
     self.assertEqual(n, stats["sum_partition_sizes"])
     self.assertEqual(n, check_stats["sum_partition_sizes"])
     self.assertAlmostEqual(
-        check_stats["partition_avg_relative_imbalance"],
-        stats["partition_avg_relative_imbalance"],
+        check_stats["partition_weighted_avg_relative_imbalance"],
+        stats["partition_weighted_avg_relative_imbalance"],
     )
     self.assertAlmostEqual(
-        check_stats["partition_avg_relative_imbalance"],
-        stats["partition_avg_relative_imbalance"],
+        check_stats["partition_avg_relative_positive_imbalance"],
+        stats["partition_avg_relative_positive_imbalance"],
     )
 
   def test_online_incremental_batched(self):

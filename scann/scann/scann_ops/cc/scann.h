@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 
 #include "absl/memory/memory.h"
 #include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
 #include "absl/synchronization/mutex.h"
 #include "absl/types/span.h"
 #include "google/protobuf/text_format.h"
@@ -159,7 +160,7 @@ void ScannInterface::ReshapeBatchedNNResult(ConstSpan<NNResultsVector> res,
 }
 
 template <typename T>
-Status ParseTextProto(T* proto, const string& proto_str) {
+Status ParseTextProto(T* proto, absl::string_view proto_str) {
   ::google::protobuf::TextFormat::ParseFromString(proto_str, proto);
   return OkStatus();
 }

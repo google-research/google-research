@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -65,8 +65,8 @@ ScalarQuantizedBruteForceSearcher::ScalarQuantizedBruteForceSearcher(
     : SingleMachineSearcherBase<float>(dataset,
                                        default_pre_reordering_num_neighbors,
                                        default_pre_reordering_epsilon),
-      distance_(distance),
-      opts_(opts) {
+      opts_(opts),
+      distance_(distance) {
   ScalarQuantizationResults quantization_results = ScalarQuantizeFloatDataset(
       *dataset, opts.multiplier_quantile, opts.noise_shaping_threshold);
   quantized_dataset_ = make_shared<DenseDataset<int8_t>>(
@@ -96,11 +96,11 @@ ScalarQuantizedBruteForceSearcher::ScalarQuantizedBruteForceSearcher(
     int32_t default_num_neighbors, float default_epsilon)
     : SingleMachineSearcherBase<float>(nullptr, default_num_neighbors,
                                        default_epsilon),
-      distance_(distance),
       squared_l2_norms_(std::move(squared_l2_norms)),
-      quantized_dataset_(std::move(quantized_dataset)),
       inverse_multiplier_by_dimension_(
-          std::move(inverse_multiplier_by_dimension)) {
+          std::move(inverse_multiplier_by_dimension)),
+      quantized_dataset_(std::move(quantized_dataset)),
+      distance_(distance) {
   QCHECK_OK(this->set_docids(quantized_dataset_->docids()));
 }
 
@@ -207,7 +207,8 @@ ScalarQuantizedBruteForceSearcher::CreateBruteForceSearcher(
 ScalarQuantizedBruteForceSearcher::~ScalarQuantizedBruteForceSearcher() {}
 
 Status ScalarQuantizedBruteForceSearcher::EnableCrowdingImpl(
-    ConstSpan<int64_t> datapoint_index_to_crowding_attribute) {
+    ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+    ConstSpan<std::string> crowding_dimension_names) {
   if (datapoint_index_to_crowding_attribute.size() !=
       quantized_dataset_->size()) {
     return InvalidArgumentError(absl::StrCat(
@@ -274,6 +275,59 @@ Status ScalarQuantizedBruteForceSearcher::FindNeighborsImpl(
     free(dot_products_ptr);
     return status;
   }
+}
+
+Status ScalarQuantizedBruteForceSearcher::PropagateDistances(
+    const DatapointPtr<float>& query, const SearchParameters& params,
+    NNResultsVector* result) const {
+  DatapointPtr<float> preprocessed;
+  unique_ptr<float[]> preproc_buf;
+  const auto* tree_sq_preproc_query =
+      params.searcher_specific_optional_parameters();
+  if (tree_sq_preproc_query) {
+    const auto* casted =
+        down_cast<const TreeScalarQuantizationPreprocessedQuery*>(
+            tree_sq_preproc_query);
+    DCHECK(casted)
+        << "Downcast to TreeScalarQuantizationPreprocessedQuery failed.";
+    preprocessed =
+        MakeDatapointPtr(casted->PreprocessedQuery(), query.nonzero_entries());
+  } else {
+    if (inverse_multiplier_by_dimension_->empty())
+      return InvalidArgumentError(
+          "TreeScalarQuantizationPreprocessedQuery is not specified and "
+          "inverse "
+          "multipliers are empty.");
+    preproc_buf = PrepareForAsymmetricScalarQuantizedDotProduct(
+        query, *inverse_multiplier_by_dimension_);
+    preprocessed = MakeDatapointPtr(preproc_buf.get(), query.nonzero_entries());
+  }
+
+  MutableSpan<pair<DatapointIndex, float>> dot_products(result->data(),
+                                                        result->size());
+  DenseDotProductDistanceOneToManyInt8Float(preprocessed, *quantized_dataset_,
+                                            dot_products);
+  switch (distance_->specially_optimized_distance_tag()) {
+    case DistanceMeasure::DOT_PRODUCT:
+      break;
+    case DistanceMeasure::COSINE:
+
+      for (auto& elem : *result) elem.second += 1.0f;
+      break;
+    case DistanceMeasure::SQUARED_L2: {
+      ConstSpan<float> squared_norms = *squared_l2_norms_;
+      const float query_squared_l2_norm = SquaredL2Norm(query);
+      for (auto& elem : *result)
+        elem.second = query_squared_l2_norm + squared_norms[elem.first] +
+                      2.0f * elem.second;
+      break;
+    }
+    default:
+      return FailedPreconditionError(
+          "ScalarQuantizedBruteForceSearcher only works with "
+          "SquaredL2Distance, CosineDistance and DotProductDistance.");
+  }
+  return OkStatus();
 }
 
 template <bool kUseMinDistance, typename ResultElem>

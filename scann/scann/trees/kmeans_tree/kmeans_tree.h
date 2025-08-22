@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -210,7 +210,7 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
       const DatapointPtr<float>& query, const DistanceMeasure& dist,
       QuerySpillingConfig::SpillingType spilling_type,
       double spilling_threshold, int32_t max_centers,
-      const KMeansTreeNode* current_node,
+      int32_t num_tokenized_branch, const KMeansTreeNode* current_node,
       std::vector<KMeansTreeSearchResult>* results) const;
 
   template <typename CentersType>
@@ -218,7 +218,7 @@ class KMeansTree final : public KMeansTreeTrainerInterface,
       const DatapointPtr<float>& query, const DistanceMeasure& dist,
       QuerySpillingConfig::SpillingType spilling_type,
       double spilling_threshold, int32_t max_centers,
-      const KMeansTreeNode* current_node,
+      int32_t num_tokenized_branch, const KMeansTreeNode* current_node,
       std::vector<pair<DatapointIndex, float>>* results) const;
 
   template <typename CallbackType, typename RetValueType>
@@ -348,11 +348,12 @@ Status KMeansTree::TokenizeImpl(const DatapointPtr<float>& query,
           query, dist,
           static_cast<QuerySpillingConfig::SpillingType>(
               learned_spilling_type_),
-          NAN, max_spill_centers_, &root_, result);
+          NAN, max_spill_centers_, opts.num_tokenized_branch, &root_, result);
     case TokenizationOptions::USER_SPECIFIED:
       return TokenizeWithSpillingImpl<CentersType>(
           query, dist, opts.user_specified_spilling_type,
-          opts.spilling_threshold, opts.max_spilling_centers, &root_, result);
+          opts.spilling_threshold, opts.max_spilling_centers,
+          opts.num_tokenized_branch, &root_, result);
     default:
       return InternalError(
           absl::StrCat("Invalid spilling type:  ", opts.spilling_type));
@@ -452,7 +453,8 @@ template <typename CentersType>
 Status KMeansTree::TokenizeWithSpillingImpl(
     const DatapointPtr<float>& query, const DistanceMeasure& dist,
     QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
-    int32_t max_centers, const KMeansTreeNode* current_node,
+    int32_t max_centers, int32_t num_tokenized_branch,
+    const KMeansTreeNode* current_node,
     std::vector<KMeansTreeSearchResult>* results) const {
   DCHECK(results);
   DCHECK(current_node);
@@ -474,7 +476,7 @@ Status KMeansTree::TokenizeWithSpillingImpl(
   SCANN_RETURN_IF_ERROR(
       (current_node->FindChildrenWithSpilling<float, CentersType>(
           query, spilling_type, possibly_learned_spilling_threshold,
-          max_centers, dist, &children_to_search)));
+          max_centers, num_tokenized_branch, dist, &children_to_search)));
   for (const auto& elem : children_to_search) {
     const int32_t child_index = elem.first;
     const float distance_to_child_center = elem.second;
@@ -486,11 +488,17 @@ Status KMeansTree::TokenizeWithSpillingImpl(
     } else {
       SCANN_RETURN_IF_ERROR((TokenizeWithSpillingImpl<CentersType>(
           query, dist, spilling_type, spilling_threshold, max_centers,
-          &current_node->Children()[child_index], results)));
+          num_tokenized_branch, &current_node->Children()[child_index],
+          results)));
     }
   }
 
   ZipSortBranchOptimized(results->begin(), results->end());
+
+  if (spilling_type == QuerySpillingConfig::NO_SPILLING &&
+      num_tokenized_branch > 1 && results->size() > 1) {
+    results->resize(1);
+  }
   return OkStatus();
 }
 
@@ -498,7 +506,8 @@ template <typename CentersType>
 Status KMeansTree::TokenizeWithSpillingImpl(
     const DatapointPtr<float>& query, const DistanceMeasure& dist,
     QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
-    int32_t max_centers, const KMeansTreeNode* current_node,
+    int32_t max_centers, int32_t num_tokenized_branch,
+    const KMeansTreeNode* current_node,
     std::vector<pair<DatapointIndex, float>>* results) const {
   if (ABSL_PREDICT_TRUE(is_flat_)) {
     const double possibly_learned_spilling_threshold =
@@ -508,7 +517,7 @@ Status KMeansTree::TokenizeWithSpillingImpl(
     SCANN_RETURN_IF_ERROR(
         (current_node->FindChildrenWithSpilling<float, CentersType>(
             query, spilling_type, possibly_learned_spilling_threshold,
-            max_centers, dist, results)));
+            max_centers, num_tokenized_branch, dist, results)));
     ZipSortBranchOptimized(DistanceComparatorBranchOptimized(),
                            results->begin(), results->end());
     return OkStatus();
@@ -516,7 +525,7 @@ Status KMeansTree::TokenizeWithSpillingImpl(
     vector<KMeansTreeSearchResult> full_results;
     SCANN_RETURN_IF_ERROR(TokenizeWithSpillingImpl<CentersType>(
         query, dist, spilling_type, spilling_threshold, max_centers,
-        current_node, &full_results));
+        num_tokenized_branch, current_node, &full_results));
     results->resize(full_results.size());
     for (const auto& [i, full_res] : Enumerate(full_results)) {
       (*results)[i] = {full_res.node->LeafId(), full_res.distance_to_center};

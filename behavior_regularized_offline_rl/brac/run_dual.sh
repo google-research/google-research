@@ -1,4 +1,5 @@
-# Copyright 2024 The Google Research Authors.
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 ALPHA=10.0
 PLR=3e-6
 VALUE_PENALTY=False

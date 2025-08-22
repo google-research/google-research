@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -33,6 +33,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/data_format/docid_collection_interface.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/oss_wrappers/scann_status.h"
@@ -123,7 +124,13 @@ class UntypedSingleMachineSearcherBase {
   Status EnableCrowding(
       std::vector<int64_t> datapoint_index_to_crowding_attribute);
   Status EnableCrowding(
+      std::vector<int64_t> datapoint_index_to_crowding_attribute,
+      std::vector<std::string> crowding_dimension_names);
+  Status EnableCrowding(
       shared_ptr<std::vector<int64_t>> datapoint_index_to_crowding_attribute);
+  Status EnableCrowding(
+      shared_ptr<std::vector<int64_t>> datapoint_index_to_crowding_attribute,
+      shared_ptr<std::vector<std::string>> crowding_dimension_names);
 
   bool crowding_enabled() const {
     return datapoint_index_to_crowding_attribute_ != nullptr;
@@ -139,9 +146,18 @@ class UntypedSingleMachineSearcherBase {
     return result;
   }
 
+  ConstSpan<std::string> crowding_dimension_names() const {
+    ConstSpan<std::string> result;
+    if (crowding_dimension_names_) {
+      result = *crowding_dimension_names_;
+    }
+    return result;
+  }
+
   void DisableCrowding() {
     DisableCrowdingImpl();
     datapoint_index_to_crowding_attribute_ = nullptr;
+    crowding_dimension_names_ = nullptr;
   }
 
   StatusOr<DatapointIndex> DatasetSize() const;
@@ -215,6 +231,9 @@ class UntypedSingleMachineSearcherBase {
   virtual StatusOr<SingleMachineFactoryOptions>
   ExtractSingleMachineFactoryOptions() = 0;
 
+  Status GetNeighborProtoNoMetadata(pair<DatapointIndex, float> neighbor,
+                                    NearestNeighbors::Neighbor* result) const;
+
   std::optional<ScannConfig> config() const { return config_; }
   void set_config(ScannConfig config) { config_ = config; }
 
@@ -224,7 +243,8 @@ class UntypedSingleMachineSearcherBase {
   virtual bool impl_needs_hashed_dataset() const;
 
   virtual Status EnableCrowdingImpl(
-      ConstSpan<int64_t> datapoint_index_to_crowding_attribute) {
+      ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+      ConstSpan<std::string> crowding_dimension_names) {
     return OkStatus();
   }
 
@@ -238,23 +258,33 @@ class UntypedSingleMachineSearcherBase {
 
   UntypedSingleMachineSearcherBase() = default;
 
-  shared_ptr<const DenseDataset<uint8_t>> hashed_dataset_ = nullptr;
+  template <typename ResultElem>
+  Status ValidateFindNeighborsBatched(const Dataset& queries,
+                                      ConstSpan<SearchParameters> params,
+                                      MutableSpan<ResultElem> results) const;
+
+  Status SortAndDropResults(NNResultsVector* result,
+                            const SearchParameters& params) const;
 
   shared_ptr<const DocidCollectionInterface> docids_;
 
-  shared_ptr<UntypedMetadataGetter> metadata_getter_;
+  shared_ptr<std::vector<std::string>> crowding_dimension_names_ = {};
 
   SearchParameters default_search_parameters_;
 
-  shared_ptr<std::vector<int64_t>> datapoint_index_to_crowding_attribute_ = {};
-
-  int64_t creation_timestamp_ = numeric_limits<int64_t>::min();
+  std::optional<ScannConfig> config_ = std::nullopt;
 
   bool mutator_outstanding_ = false;
 
+  bool retraining_requires_dataset_ = false;
+
   bool exact_reordering_enabled_ = false;
 
-  bool retraining_requires_dataset_ = false;
+  int64_t creation_timestamp_ = numeric_limits<int64_t>::min();
+
+  shared_ptr<std::vector<int64_t>> datapoint_index_to_crowding_attribute_ = {};
+
+  shared_ptr<UntypedMetadataGetter> metadata_getter_;
 
   template <typename T>
   friend class SingleMachineSearcherBase;
@@ -270,7 +300,7 @@ class UntypedSingleMachineSearcherBase {
       absl::Mutex* searcher_pointer_mutex, ScannConfig config,
       shared_ptr<ThreadPool> parallelization_pool);
 
-  std::optional<ScannConfig> config_ = std::nullopt;
+  shared_ptr<const DenseDataset<uint8_t>> hashed_dataset_ = nullptr;
 };
 
 template <typename T>
@@ -355,9 +385,12 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
                           const DatapointPtr<T>& query,
                           NearestNeighbors::Neighbor* result) const;
 
+  using UntypedSingleMachineSearcherBase::GetNeighborProtoNoMetadata;
   Status GetNeighborProtoNoMetadata(pair<DatapointIndex, float> neighbor,
                                     const DatapointPtr<T>& query,
-                                    NearestNeighbors::Neighbor* result) const;
+                                    NearestNeighbors::Neighbor* result) const {
+    return GetNeighborProtoNoMetadata(neighbor, result);
+  }
 
   research_scann::TypeTag TypeTag() const final { return TagForType<T>(); }
 
@@ -531,15 +564,19 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
   }
 
   struct HealthStats {
-    double partition_avg_relative_imbalance = 0;
+    double partition_weighted_avg_relative_imbalance = 0;
+
+    double partition_avg_relative_positive_imbalance = 0;
 
     double avg_quantization_error = 0;
 
     uint64_t sum_partition_sizes = 0;
 
     bool operator==(const HealthStats& rhs) const {
-      return partition_avg_relative_imbalance ==
-                 rhs.partition_avg_relative_imbalance &&
+      return partition_weighted_avg_relative_imbalance ==
+                 rhs.partition_weighted_avg_relative_imbalance &&
+             partition_avg_relative_positive_imbalance ==
+                 rhs.partition_avg_relative_positive_imbalance &&
              sum_partition_sizes == rhs.sum_partition_sizes &&
 
              abs(avg_quantization_error - rhs.avg_quantization_error) < 1e-5;
@@ -548,10 +585,12 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
     template <typename Sink>
     friend void AbslStringify(Sink& sink, const HealthStats& s) {
       absl::Format(&sink,
-                   "{partition_avg_relative_imbalance = %f; "
+                   "{partition_weighted_avg_relative_imbalance = %f; "
+                   "partition_avg_relative_positive_imbalance = %f; "
                    "avg_quantization_error = %f; sum_partition_sizes = %u}",
-                   s.partition_avg_relative_imbalance, s.avg_quantization_error,
-                   s.sum_partition_sizes);
+                   s.partition_weighted_avg_relative_imbalance,
+                   s.partition_avg_relative_positive_imbalance,
+                   s.avg_quantization_error, s.sum_partition_sizes);
     }
   };
 
@@ -580,21 +619,25 @@ class SingleMachineSearcherBase : public UntypedSingleMachineSearcherBase {
       MutableSpan<FastTopNeighbors<float>*> results,
       ConstSpan<DatapointIndex> datapoint_index_mapping) const;
 
+  Status SampleRandomNeighbors(const DatapointPtr<T>& query,
+                               const SearchParameters& params,
+                               NNResultsVector* result) const;
+
+  virtual Status PropagateDistances(const DatapointPtr<T>& query,
+                                    const SearchParameters& params,
+                                    NNResultsVector* result) const;
+
  private:
   Status PopulateDefaultParameters(const ScannConfig& config);
   Status BaseInitImpl();
-
-  template <typename ResultElem>
-  Status ValidateFindNeighborsBatched(const TypedDataset<T>& queries,
-                                      ConstSpan<SearchParameters> params,
-                                      MutableSpan<ResultElem> results) const;
 
   Status ReorderResults(const DatapointPtr<T>& query,
                         const SearchParameters& params,
                         NNResultsVector* result) const;
 
-  Status SortAndDropResults(NNResultsVector* result,
-                            const SearchParameters& params) const;
+  template <typename TopN>
+  Status SampleRandomNeighborsImpl(const SearchParameters& params,
+                                   TopN* top_n_ptr) const;
 
   shared_ptr<const TypedDataset<T>> dataset_ = nullptr;
 

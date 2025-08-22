@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@
 #include <optional>
 #include <utility>
 
+#include "absl/base/optimization.h"
 #include "scann/base/restrict_allowlist.h"
 #include "scann/data_format/features.pb.h"
 #include "scann/oss_wrappers/scann_aligned_malloc.h"
@@ -88,13 +89,37 @@ class SearchParameters {
     per_crowding_attribute_post_reordering_num_neighbors_ = val;
   }
 
+  struct CrowdingDimensionAttributeNumNeighbor {
+    std::string dimension;
+    std::optional<int64_t> attribute;
+    int32_t num_neighbors;
+  };
+  ConstSpan<CrowdingDimensionAttributeNumNeighbor>
+  per_crowding_dimension_attribute_post_reordering_num_neighbors() const {
+    return per_crowding_dimension_attribute_post_reordering_num_neighbors_;
+  }
+  void set_per_crowding_dimension_attribute_post_reordering_num_neighbors(
+      ConstSpan<CrowdingDimensionAttributeNumNeighbor> val) {
+    per_crowding_dimension_attribute_post_reordering_num_neighbors_ = {
+        val.begin(), val.end()};
+  }
+
   bool pre_reordering_crowding_enabled() const {
     return pre_reordering_num_neighbors_ >
            per_crowding_attribute_pre_reordering_num_neighbors_;
   }
   bool post_reordering_crowding_enabled() const {
-    return post_reordering_num_neighbors_ >
-           per_crowding_attribute_post_reordering_num_neighbors_;
+    return (post_reordering_num_neighbors_ >
+            per_crowding_attribute_post_reordering_num_neighbors_) ||
+           post_reordering_multi_dimensional_crowding_enabled();
+  }
+
+  bool post_reordering_multi_dimensional_crowding_enabled() const {
+    for (const auto& entry :
+         per_crowding_dimension_attribute_post_reordering_num_neighbors_) {
+      if (post_reordering_num_neighbors_ > entry.num_neighbors) return true;
+    }
+    return false;
   }
 
   bool crowding_enabled() const {
@@ -143,6 +168,11 @@ class SearchParameters {
     return dynamic_cast<Subclass*>(unlocked_query_preprocessing_results_.get());
   }
 
+  void set_num_random_neighbors(int32_t num_random_neighbors) {
+    num_random_neighbors_ = num_random_neighbors;
+  }
+  int32_t num_random_neighbors() const { return num_random_neighbors_; }
+
  private:
   bool sort_results_ = true;
   int32_t pre_reordering_num_neighbors_ = -1;
@@ -153,6 +183,9 @@ class SearchParameters {
       numeric_limits<int32_t>::max();
   int per_crowding_attribute_post_reordering_num_neighbors_ =
       numeric_limits<int32_t>::max();
+  std::vector<CrowdingDimensionAttributeNumNeighbor>
+      per_crowding_dimension_attribute_post_reordering_num_neighbors_;
+  int32_t num_random_neighbors_ = 0;
 
   shared_ptr<const SearcherSpecificOptionalParameters>
       searcher_specific_optional_parameters_;

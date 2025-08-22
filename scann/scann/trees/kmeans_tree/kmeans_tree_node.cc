@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -128,6 +128,7 @@ namespace kmeans_tree_internal {
 Status PostprocessDistancesForSpilling(
     ConstSpan<float> distances, QuerySpillingConfig::SpillingType spilling_type,
     double spilling_threshold, int32_t max_centers,
+    int32_t num_tokenized_branch,
     std::vector<pair<DatapointIndex, float>>* child_centers) {
   float epsilon = std::numeric_limits<float>::infinity();
   if (spilling_type != QuerySpillingConfig::NO_SPILLING &&
@@ -148,7 +149,9 @@ Status PostprocessDistancesForSpilling(
                              std::numeric_limits<float>::infinity());
   }
   const int32_t max_results =
-      (spilling_type == QuerySpillingConfig::NO_SPILLING) ? 1 : max_centers;
+      (spilling_type == QuerySpillingConfig::NO_SPILLING)
+          ? std::max(1, num_tokenized_branch)
+          : max_centers;
   FastTopNeighbors<float> top_n(max_results, epsilon);
   top_n.PushBlock(distances, 0);
   top_n.FinishUnsorted(child_centers);
@@ -189,7 +192,8 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
       training_data, k_per_level, &centers,
       {.subset = indices_,
        .final_partitions = &subpartitions,
-       .spherical = opts->partitioning_type == PartitioningConfig::SPHERICAL}));
+       .spherical = opts->partitioning_type == PartitioningConfig::SPHERICAL,
+       .first_n_centroids = opts->first_n_centroids}));
 
   DatabaseSpillingConfig::SpillingType spilling_type =
       opts->learned_spilling_type;
@@ -220,7 +224,7 @@ Status KMeansTreeNode::Train(const Dataset& training_data,
             kmeans_tree_internal::PostprocessDistancesForSpilling(
                 tmp_dists,
                 static_cast<QuerySpillingConfig::SpillingType>(spilling_type),
-                learned_spilling_threshold_, opts->max_spill_centers,
+                learned_spilling_threshold_, opts->max_spill_centers, -1,
                 &spill_centers));
       }
 

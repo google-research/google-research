@@ -1,6 +1,9 @@
 # Description:
 #   Version 2 of the asymmetric hashing public API.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -63,6 +66,7 @@ cc_library(
         "//scann/utils:common",
         "//scann/utils:types",
         "@com_google_absl//absl/strings",
+        "@com_google_highway//:hwy",
     ],
 )
 

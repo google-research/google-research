@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,7 +26,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_status.h"
-#include "scann/partitioning/kmeans_tree_partitioner.h"
+#include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
 
@@ -36,7 +36,7 @@ template <typename Searcher, typename InDataType,
 
           typename InAccamulationType = InDataType,
           typename Partitioner =
-              KMeansTreePartitioner<typename Searcher::DataType>>
+              KMeansTreeLikePartitioner<typename Searcher::DataType>>
 class HealthStatsCollector {
  public:
   using DataType = InDataType;
@@ -113,7 +113,8 @@ class HealthStatsCollector {
 
   const Searcher* searcher_ = nullptr;
   InAccamulationType sum_squared_quantization_error_ = 0;
-  double partition_avg_relative_imbalance_ = 0;
+  double partition_weighted_avg_relative_imbalance_ = 0;
+  double partition_avg_relative_positive_imbalance_ = 0;
   uint64_t sum_partition_sizes_ = 0;
 
   std::vector<Datapoint<InAccamulationType>> sum_qe_by_token_;
@@ -150,26 +151,31 @@ Status HealthStatsCollector<Searcher, InDataType, InAccamulationType,
   const auto* dataset = searcher.dataset();
   if constexpr (kCentroidAndDPAreSameType) {
     if (dataset && !dataset->empty()) {
-      const auto& ds = *dataset;
-      InAccamulationType total_squared_qe = 0.0;
       const auto& centroids = centroids_->LeafCenters();
-      for (const auto& [token, dps] : Enumerate(datapoints_by_token)) {
-        Datapoint<InAccamulationType> sum_dims;
-        sum_dims.ZeroFill(ds.dimensionality());
-        SCANN_RET_CHECK_EQ(sum_dims.dimensionality(), ds.dimensionality());
-        SCANN_RET_CHECK_EQ(sum_dims.values_span().size(), ds.dimensionality());
-        DatapointPtr<DataType> centroid = centroids[token];
-        InAccamulationType v = 0;
-        for (auto dp_idx : dps) {
-          v += SquaredL2DistanceBetween(ds[dp_idx], centroid);
-          AddDelta(sum_dims, ds[dp_idx], centroids[token]);
-        }
-        squared_quantization_error_by_token_[token] = v;
-        sum_qe_by_token_[token] = std::move(sum_dims);
-        total_squared_qe += v;
-      }
 
-      sum_squared_quantization_error_ = total_squared_qe;
+      if (dataset[0].dimensionality() == centroids[0].dimensionality()) {
+        const auto& ds = *dataset;
+        InAccamulationType total_squared_qe = 0.0;
+
+        for (const auto& [token, dps] : Enumerate(datapoints_by_token)) {
+          Datapoint<InAccamulationType> sum_dims;
+          sum_dims.ZeroFill(ds.dimensionality());
+          SCANN_RET_CHECK_EQ(sum_dims.dimensionality(), ds.dimensionality());
+          SCANN_RET_CHECK_EQ(sum_dims.values_span().size(),
+                             ds.dimensionality());
+          DatapointPtr<DataType> centroid = centroids[token];
+          InAccamulationType v = 0;
+          for (auto dp_idx : dps) {
+            v += SquaredL2DistanceBetween(ds[dp_idx], centroid);
+            AddDelta(sum_dims, ds[dp_idx], centroids[token]);
+          }
+          squared_quantization_error_by_token_[token] = v;
+          sum_qe_by_token_[token] = std::move(sum_dims);
+          total_squared_qe += v;
+        }
+
+        sum_squared_quantization_error_ = total_squared_qe;
+      }
     }
   }
 
@@ -192,7 +198,10 @@ HealthStatsCollector<Searcher, InDataType, InAccamulationType,
   r.sum_partition_sizes = sum_partition_sizes_;
 
   ComputeAvgRelativeImbalance();
-  r.partition_avg_relative_imbalance = partition_avg_relative_imbalance_;
+  r.partition_weighted_avg_relative_imbalance =
+      partition_weighted_avg_relative_imbalance_;
+  r.partition_avg_relative_positive_imbalance =
+      partition_avg_relative_positive_imbalance_;
   return r;
 }
 
@@ -345,21 +354,8 @@ void HealthStatsCollector<
     Searcher, InDataType, InAccamulationType,
     Partitioner>::StatsUpdate(const Tokens& tokens, Op op,
                               absl::Span<const DatapointIndex> datapoints) {
-  if constexpr (kCentroidAndDPAreSameType) {
-    const auto& centroids = centroids_->LeafCenters();
-    Datapoint<DataType> dp;
-    for (int32_t token : tokens) {
-      DatapointPtr<DataType> centroid = centroids[token];
-      for (DatapointIndex dp_idx : datapoints) {
-        auto d_ptr = GetDatapointPtr(dp_idx, &dp);
-        if (op == Op::Add) {
-          Add(token, d_ptr, centroid);
-        } else {
-          Subtract(token, d_ptr, centroid);
-        }
-      }
-    }
-  } else {
+  const auto* dataset = searcher_->dataset();
+  auto UpdateWithoutCentroids = [&]() {
     for (int32_t token : tokens) {
       if (op == Op::Add) {
         Add(token);
@@ -367,6 +363,27 @@ void HealthStatsCollector<
         Subtract(token);
       }
     }
+  };
+  if constexpr (kCentroidAndDPAreSameType) {
+    if (dataset && !dataset->empty()) {
+      const auto& centroids = centroids_->LeafCenters();
+      Datapoint<DataType> dp;
+      for (int32_t token : tokens) {
+        DatapointPtr<DataType> centroid = centroids[token];
+        for (DatapointIndex dp_idx : datapoints) {
+          auto d_ptr = GetDatapointPtr(dp_idx, &dp);
+          if (op == Op::Add) {
+            Add(token, d_ptr, centroid);
+          } else {
+            Subtract(token, d_ptr, centroid);
+          }
+        }
+      }
+    } else {
+      UpdateWithoutCentroids();
+    }
+  } else {
+    UpdateWithoutCentroids();
   }
 }
 
@@ -434,16 +451,29 @@ template <typename Searcher, typename InDataType, typename InAccamulationType,
           typename Partitioner>
 void HealthStatsCollector<Searcher, InDataType, InAccamulationType,
                           Partitioner>::ComputeAvgRelativeImbalance() {
-  partition_avg_relative_imbalance_ = 0;
+  partition_weighted_avg_relative_imbalance_ = 0;
+  partition_avg_relative_positive_imbalance_ = 0;
   if (sum_partition_sizes_ == 0) return;
 
   for (const auto& partition_size : sizes_by_token_) {
-    partition_avg_relative_imbalance_ +=
+    partition_weighted_avg_relative_imbalance_ +=
         1.0 * partition_size / sum_partition_sizes_ * partition_size;
   }
-  partition_avg_relative_imbalance_ /=
+  partition_weighted_avg_relative_imbalance_ /=
       1.0 * sum_partition_sizes_ / sizes_by_token_.size();
-  partition_avg_relative_imbalance_ -= 1.0;
+  partition_weighted_avg_relative_imbalance_ -= 1.0;
+
+  double best = 1.0 * sum_partition_sizes_ / sizes_by_token_.size();
+  uint32_t n_positive = 0;
+  for (uint32_t partition_size : sizes_by_token_) {
+    if (partition_size <= best) continue;
+    ++n_positive;
+    partition_avg_relative_positive_imbalance_ += partition_size - best;
+  }
+  if (n_positive > 0 && best > 0) {
+    partition_avg_relative_positive_imbalance_ /= n_positive;
+    partition_avg_relative_positive_imbalance_ /= best;
+  }
 }
 
 }  // namespace research_scann

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -163,7 +163,7 @@ def allgather_matmul_one_way(
 
   def indexed_computation(i, lhs):
     chunk_index = (axis_index - i) % axis_size
-    c = dynamic_index_and_slice(layer_axis, layer, rhs_split_axis,
+    c = dynamic_index_and_slice(layer_axis, layer, rhs_split_axis,  # pytype: disable=wrong-arg-types  # lax-types
                                 chunk_index * chunk_size, chunk_size, rhs)
     p = jnp.einsum(einsum_spec, lhs, c)
     return p
@@ -499,7 +499,7 @@ def matmul_reducescatter_oneway(
     # Can't scatter so all reduce.
     out = jnp.einsum(einsum_spec, lhs, rhs)
     return lax.psum(out, axis_name)
-  first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
+  first_chunk = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,  # pytype: disable=wrong-arg-types  # lax-types
                                         chunk_index * chunk_size, chunk_size,
                                         rhs)
 
@@ -516,7 +516,7 @@ def matmul_reducescatter_oneway(
     # matmul
     accum, p = carrys
     accum = accum + p
-    c = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,
+    c = dynamic_index_and_slice(layer_axis, layer, rhs_scatter_axis,  # pytype: disable=wrong-arg-types  # lax-types
                                 chunk_index * chunk_size, chunk_size, rhs)
     p = jnp.einsum(einsum_spec, lhs, c)
     accum = lax.ppermute(

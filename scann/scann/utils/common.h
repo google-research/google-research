@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@
 #include <memory>
 #include <string>
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 #include "absl/base/attributes.h"
@@ -35,6 +36,7 @@
 #include "absl/log/check.h"
 #include "absl/log/log.h"
 #include "absl/memory/memory.h"
+#include "absl/numeric/int128.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/match.h"
@@ -119,9 +121,18 @@ enum : uint64_t {
   kInvalidIdx64 = std::numeric_limits<uint64_t>::max(),
 };
 
+#ifdef NDEBUG
+
 #define SCANN_INLINE inline ABSL_ATTRIBUTE_ALWAYS_INLINE
 
 #define SCANN_INLINE_LAMBDA ABSL_ATTRIBUTE_ALWAYS_INLINE
+
+#else
+
+#define SCANN_INLINE inline
+#define SCANN_INLINE_LAMBDA
+
+#endif
 
 #define SCANN_OUTLINE ABSL_ATTRIBUTE_NOINLINE
 
@@ -360,6 +371,73 @@ constexpr auto Enumerate(T&& iterable) {
     auto end() { return IteratorWithIndex{0, std::end(iterable)}; }
   };
   return iterator_wrapper{std::forward<T>(iterable)};
+}
+
+template <typename T>
+class SplitIntoBlocksInternal {
+ public:
+  SplitIntoBlocksInternal(T interval_length, T num_blocks)
+      : interval_length_(interval_length), num_blocks_(num_blocks) {}
+
+  static_assert(std::is_same_v<T, uint32_t> || std::is_same_v<T, uint64_t>);
+  class Iterator {
+   public:
+    Iterator(T cur_block_idx, T interval_length, T num_blocks)
+        : cur_block_idx_(cur_block_idx),
+          interval_length_(interval_length),
+          num_blocks_(num_blocks) {
+      cur_start_ = GetBlockStart(cur_block_idx_);
+      cur_end_ = GetBlockStart(cur_block_idx_ + 1);
+    }
+
+    void operator++() {
+      ++cur_block_idx_;
+      cur_start_ = cur_end_;
+      cur_end_ = GetBlockStart(cur_block_idx_ + 1);
+    }
+
+    auto operator*() const { return std::pair{cur_start_, cur_end_}; }
+
+    bool operator==(const Iterator& other) const {
+      return cur_block_idx_ == other.cur_block_idx_ &&
+             interval_length_ == other.interval_length_ &&
+             num_blocks_ == other.num_blocks_;
+    }
+
+    bool operator!=(const Iterator& other) const { return !(*this == other); }
+
+   private:
+    T GetBlockStart(T block_idx) const {
+      if constexpr (std::is_same_v<T, uint32_t>) {
+        return static_cast<uint64_t>(block_idx) * interval_length_ /
+               num_blocks_;
+      } else {
+        return absl::Uint128Low64(static_cast<absl::uint128>(block_idx) *
+                                  interval_length_ / num_blocks_);
+      }
+    }
+
+    T cur_start_;
+    T cur_end_;
+    T cur_block_idx_;
+    const T interval_length_;
+    const T num_blocks_;
+  };
+
+  Iterator begin() const { return Iterator(0, interval_length_, num_blocks_); }
+  Iterator end() const {
+    return Iterator(num_blocks_, interval_length_, num_blocks_);
+  }
+
+ private:
+  T interval_length_;
+  T num_blocks_;
+};
+
+template <typename T>
+auto SplitIntoBlocks(T interval_length, T num_blocks) {
+  return SplitIntoBlocksInternal<std::make_unsigned_t<T>>(interval_length,
+                                                          num_blocks);
 }
 
 template <typename FloatT>

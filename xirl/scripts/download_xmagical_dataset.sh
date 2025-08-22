@@ -1,4 +1,6 @@
-# Copyright 2024 The Google Research Authors.
+# coding=utf-8
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,8 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# coding=utf-8
-#!/bin/bash
+
 #
 # This script downloads the X-MAGICAL demonstration dataset and stores it in
 # /tmp/xirl/datasets/xmagical.

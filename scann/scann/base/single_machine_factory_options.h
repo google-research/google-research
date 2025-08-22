@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -67,6 +67,7 @@ struct SingleMachineFactoryOptions {
   std::shared_ptr<std::vector<std::string>> hash_parameters;
 
   shared_ptr<vector<int64_t>> crowding_attributes;
+  shared_ptr<vector<std::string>> crowding_dimension_names;
 
   shared_ptr<ThreadPool> parallelization_pool;
 };

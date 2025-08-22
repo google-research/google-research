@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import time
 from typing import Any, Dict, Iterator, List, NamedTuple, Optional, Tuple
 from acme.jax import networks as networks_lib
 import jax
-from jax.experimental import host_callback
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp as jax_logsumexp
 import numpy as np
@@ -48,17 +47,7 @@ def host_eig(A):
 
 
 def jax_eig(A):
-  complex_dtype = jax.lax.complex(A, A).dtype
-  result_shape = (
-      jax.ShapeDtypeStruct((A.shape[0],), complex_dtype),
-      jax.ShapeDtypeStruct(A.shape, complex_dtype)
-  )
-  w, v = host_callback.call(
-      host_eig,
-      jax.lax.stop_gradient(A),
-      result_shape=result_shape
-  )
-  return w, v
+  raise NotImplementedError('jax.experimental.host_callback has been removed.')
 
 
 def compute_spec_norm_vectors(

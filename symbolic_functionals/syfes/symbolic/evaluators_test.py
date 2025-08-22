@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -40,7 +40,7 @@ class ParserTest(parameterized.TestCase):
 
   def test_parse_rho_and_derivs_unpolarized(self):
     num_grids = 10
-    rho_and_derivs = np.zeros([6, num_grids])
+    rho_and_derivs = np.zeros([5, num_grids])
 
     features, lda_energies = evaluators.parse_rho_and_derivs(
         rho_and_derivs, omega=0., polarized=False)
@@ -55,7 +55,7 @@ class ParserTest(parameterized.TestCase):
 
   def test_parse_rho_and_derivs_polarized(self):
     num_grids = 10
-    rho_and_derivs = np.zeros([2, 6, num_grids])
+    rho_and_derivs = np.zeros([2, 5, num_grids])
 
     features, lda_energies = evaluators.parse_rho_and_derivs(
         rho_and_derivs, omega=0., polarized=True)
@@ -72,22 +72,26 @@ class ParserTest(parameterized.TestCase):
   @parameterized.parameters(((3, 4),), ((2, 6, 6),), ((10,),))
   def test_parse_rho_and_derivs_unpolarized_with_wrong_shape(self, shape):
     with self.assertRaisesRegex(
-        ValueError, r'Wrong shape for rho_and_derivs. '
-                    rf'Expected \(6, \*\), got \({shape}\)'):
+        ValueError,
+        r'Wrong shape for rho_and_derivs. '
+        rf'Expected \(5, \*\), got \({shape}\)',
+    ):
       evaluators.parse_rho_and_derivs(
           np.zeros(shape), omega=0., polarized=False)
 
   @parameterized.parameters(((1, 6, 10),), ((2, 7, 10),), ((6, 10),), ((10,),))
   def test_parse_rho_and_derivs_polarized_with_wrong_shape(self, shape):
     with self.assertRaisesRegex(
-        ValueError, r'Wrong shape for rho_and_derivs. '
-                    rf'Expected \(2, 6, \*\), got \({shape}\)'):
+        ValueError,
+        r'Wrong shape for rho_and_derivs. '
+        rf'Expected \(2, 5, \*\), got \({shape}\)',
+    ):
       evaluators.parse_rho_and_derivs(
           np.zeros(shape), omega=0., polarized=True)
 
   def test_parse_rho_and_derivs_spin_consistency(self):
     num_grids = 10
-    rho_and_derivs_unpolarized = np.random.rand(6, num_grids)
+    rho_and_derivs_unpolarized = np.random.rand(5, num_grids)
     rho_and_derivs_polarized = np.repeat(
         rho_and_derivs_unpolarized[np.newaxis, :, :], repeats=2, axis=0)
 
@@ -127,13 +131,19 @@ class ParserTest(parameterized.TestCase):
     num_grids_unpolarized = np.random.randint(5, size=num_mols_unpolarized)
     num_grids_polarized = np.random.randint(5, size=num_mols_polarized)
     ks_info_unpolarized = [
-        {'weights': np.random.rand(num_grids),
-         'rho': np.random.rand(6, num_grids)}
-        for num_grids in num_grids_unpolarized]
+        {
+            'weights': np.random.rand(num_grids),
+            'rho': np.random.rand(5, num_grids),
+        }
+        for num_grids in num_grids_unpolarized
+    ]
     ks_info_polarized = [
-        {'weights': np.random.rand(num_grids),
-         'rho': np.random.rand(2, 6, num_grids)}
-        for num_grids in num_grids_polarized]
+        {
+            'weights': np.random.rand(num_grids),
+            'rho': np.random.rand(2, 5, num_grids),
+        }
+        for num_grids in num_grids_polarized
+    ]
     # test the XC energy of a functional with enhancement factors
     # F_x = F_css = F_cos = Identity(rho_sigma)
     # XC energy = sum weights * e_lda * rho_sigma

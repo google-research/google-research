@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #define SCANN_TREES_KMEANS_TREE_TRAINING_OPTIONS_H_
 
 #include <cstdint>
+#include <optional>
 
 #include "absl/time/time.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
@@ -67,6 +68,8 @@ struct KMeansTreeTrainingOptions {
   int32_t min_cluster_size = 1;
 
   int32_t seed = 0;
+
+  std::optional<int> first_n_centroids;
 };
 
 }  // namespace research_scann

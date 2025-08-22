@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -49,6 +49,9 @@ StatusOr<ScannConfig> AutopilotTreeAh(const ScannConfig& config,
   if (dataset != nullptr) {
     dim = dataset->dimensionality();
     n = dataset->size();
+  }
+  if (dim == 0) {
+    return FailedPreconditionError("Not supported: dim == 0.");
   }
 
   const int ah_size = 2;
@@ -134,8 +137,33 @@ StatusOr<ScannConfig> AutopilotTreeAh(const ScannConfig& config,
   tree_size = std::min(tree_size, train_size_bound);
 
   auto part = result.mutable_partitioning();
-  part->set_num_children(tree_size);
-  part->set_expected_sample_size(tree_size * kmeans_stable_size * safety);
+
+  if (config.autopilot().tree_ah().has_num_leaf_partitions()) {
+    part->set_num_children(config.autopilot().tree_ah().num_leaf_partitions());
+  } else {
+    part->set_num_children(tree_size);
+  }
+
+  if (config.autopilot().tree_ah().has_fraction_leaf_partitions()) {
+    auto n = part->num_children();
+    part->set_num_children(
+        config.autopilot().tree_ah().fraction_leaf_partitions() * n);
+  }
+
+  if (config.autopilot().tree_ah().has_partitioning_expected_sample_size()) {
+    part->set_expected_sample_size(
+        config.autopilot().tree_ah().partitioning_expected_sample_size());
+  } else {
+    part->set_expected_sample_size(tree_size * kmeans_stable_size * safety);
+  }
+
+  if (config.autopilot()
+          .tree_ah()
+          .has_first_n_leaf_partitions_for_assignment()) {
+    part->set_first_n_centroids(
+        config.autopilot().tree_ah().first_n_leaf_partitions_for_assignment());
+  }
+
   part->set_min_cluster_size(10);
   part->set_max_clustering_iterations(10);
   part->set_single_machine_center_initialization(part->RANDOM_INITIALIZATION);

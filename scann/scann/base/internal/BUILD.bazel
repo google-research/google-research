@@ -1,5 +1,7 @@
 # Implementation details of SingleMachineFactory.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -41,6 +43,7 @@ cc_library(
         ":single_machine_factory_impl",
         "//scann/base:single_machine_base",
         "//scann/base:single_machine_factory_options",
+        "//scann/brute_force:bfloat16_brute_force",
         "//scann/brute_force:scalar_quantized_brute_force",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",

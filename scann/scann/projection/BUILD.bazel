@@ -1,6 +1,9 @@
 # Description:
 #   This package contains projection methods for vectors.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -68,6 +71,7 @@ cc_library(
         "//scann/distance_measures/one_to_many",
         "//scann/distance_measures/one_to_one:dot_product",
         "//scann/proto:projection_cc_proto",
+        "//scann/utils:bfloat16_helpers",
         "//scann/utils:common",
         "//scann/utils:datapoint_utils",
         "//scann/utils:pca_utils",

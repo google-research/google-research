@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,11 @@
 #ifndef SCANN_UTILS_SINGLE_MACHINE_RETRAINING_H_
 #define SCANN_UTILS_SINGLE_MACHINE_RETRAINING_H_
 
+#include "absl/synchronization/mutex.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
+#include "scann/oss_wrappers/scann_threadpool.h"
+#include "scann/utils/common.h"
 
 namespace research_scann {
 

@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -15,10 +15,10 @@
 
 """Utilities for calculating dataset statistics."""
 
+import contextlib
 import copy
 import logging
 
-import contextlib2
 import tensorflow.compat.v1 as tf
 from xxx import metrics as contrib_metrics
 from tensorflow.contrib import labeled_tensor as lt
@@ -187,6 +187,6 @@ def streaming_std(tensor):
 
 def run_until_exhausted(supervisor, session, fetches):
   """Run the given fetches until OutOfRangeError is triggered."""
-  with contextlib2.suppress(tf.errors.OutOfRangeError):
+  with contextlib.suppress(tf.errors.OutOfRangeError):
     while not supervisor.should_stop():
       yield session.run(fetches)

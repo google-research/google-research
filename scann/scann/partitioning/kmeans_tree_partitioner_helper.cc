@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -71,7 +71,7 @@ CreateRecommendedAsymmetricSearcher(
     hasher_config.set_lookup_type(AsymmetricHasherConfig::FLOAT);
   }
   hasher_config.mutable_quantization_distance()->set_distance_measure(
-      std::string(quantization_distance->name()));
+      quantization_distance->name());
   asymmetric_hashing2::TrainingOptions<float> training_opts(
       hasher_config, quantization_distance, *dataset);
   SCANN_ASSIGN_OR_RETURN(shared_ptr<asymmetric_hashing2::Model<float>> model,

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include <utility>
 
 #include "absl/strings/str_cat.h"
+#include "hwy/highway.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/oss_wrappers/scann_status.h"
@@ -145,7 +146,50 @@ Model<T>::Model(vector<DenseDataset<FloatT>> centers,
                 QuantizationScheme quantization_scheme)
     : centers_(std::move(centers)),
       num_clusters_per_block_(centers_[0].size()),
-      quantization_scheme_(quantization_scheme) {}
+      quantization_scheme_(quantization_scheme) {
+  if constexpr (!std::is_same_v<FloatT, float>) return;
+  if (centers_.empty() || centers_[0].size() <= 16) {
+    return;
+  }
+  const DatapointIndex centers_per_ah_block = centers_[0].size();
+  const DatapointIndex total_centers = centers_.size() * centers_per_ah_block;
+  const DatapointIndex simd_block_size =
+      hwy::HWY_NAMESPACE::Lanes(hwy::HWY_NAMESPACE::ScalableTag<float>());
+  if (centers_per_ah_block % simd_block_size != 0) return;
+  VLOG(1) << "AH Model:  Transposing " << total_centers << " centers in "
+          << simd_block_size << "-element blocks.";
+  const DatapointIndex num_simd_blocks_per_ah_block =
+      centers_per_ah_block / simd_block_size;
+  size_t total_elements = 0;
+  for (auto& ah_block_centers : centers_) {
+    DCHECK_EQ(ah_block_centers.size(), centers_per_ah_block);
+    total_elements += ah_block_centers.dimensionality() * centers_per_ah_block;
+  }
+
+  vector<FloatT> block_transposed_centers(total_elements);
+  size_t dst_offset = 0;
+  for (const DenseDataset<FloatT>& ah_block_centers : centers_) {
+    const DimensionIndex dimensionality = ah_block_centers.dimensionality();
+
+    auto get_val = [&](DatapointIndex dp_idx, DimensionIndex dim_idx) {
+      DCHECK_LT(dp_idx, ah_block_centers.size());
+      return ah_block_centers[dp_idx].values()[dim_idx];
+    };
+
+    for (DatapointIndex simd_block_idx : Seq(num_simd_blocks_per_ah_block)) {
+      const DatapointIndex block_start = simd_block_idx * simd_block_size;
+      const DatapointIndex block_end = block_start + simd_block_size;
+      for (size_t dim_idx : Seq(dimensionality)) {
+        for (DatapointIndex dp_idx : Seq(block_start, block_end)) {
+          DCHECK_LT(dst_offset, block_transposed_centers.size());
+          block_transposed_centers[dst_offset++] = get_val(dp_idx, dim_idx);
+        }
+      }
+    }
+  }
+  DCHECK_EQ(dst_offset, block_transposed_centers.size());
+  block_transposed_centers_ = std::move(block_transposed_centers);
+}
 
 template <typename T>
 bool Model<T>::CentersEqual(const Model& rhs) const {

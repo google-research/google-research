@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #define SCANN_PARTITIONING_KMEANS_TREE_LIKE_PARTITIONER_H_
 
 #include <cstdint>
+#include <limits>
 #include <vector>
 
 #include "absl/status/status.h"
@@ -77,6 +78,14 @@ class KMeansTreeLikePartitioner : public Partitioner<T> {
   virtual const DenseDataset<float>& LeafCenters() const = 0;
 
   virtual uint32_t query_spilling_max_centers() const = 0;
+
+  virtual double query_spilling_threshold() const {
+    return std::numeric_limits<double>::infinity();
+  }
+
+  virtual QuerySpillingConfig::SpillingType query_spilling_type() const {
+    return QuerySpillingConfig::NO_SPILLING;
+  }
 };
 
 }  // namespace research_scann

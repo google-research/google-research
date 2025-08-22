@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,7 +28,8 @@ StatusOr<DatapointIndex> ComputeConsistentNumPointsFromIndex(
     const Dataset* dataset, const DenseDataset<uint8_t>* hashed_dataset,
     const PreQuantizedFixedPoint* pre_quantized_fixed_point,
     const DenseDataset<int16_t>* bfloat16_dataset,
-    const vector<int64_t>* crowding_attributes);
+    const vector<int64_t>* crowding_attributes,
+    const vector<std::string>* crowding_dimension_names);
 
 StatusOr<DimensionIndex> ComputeConsistentDimensionalityFromIndex(
     const ScannConfig& config, const Dataset* dataset,

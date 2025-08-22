@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 """Tests for xc.xc."""
 
 import tempfile
+
 from absl import flags
 from absl import logging
 from absl.testing import absltest
@@ -23,7 +24,7 @@ from absl.testing import parameterized
 import jax
 from pyscf import dft
 from pyscf import gto
-from pyscf.lib import parameters
+import pyscf.lib
 
 from symbolic_functionals.syfes.symbolic import xc_functionals
 from symbolic_functionals.syfes.xc import utils
@@ -39,7 +40,8 @@ class CustomXCUnpolarizedTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.num_threads(1)
     self.mol = gto.M(
         atom='H  0. 0. 0.;H  0. 0. 0.74',
         basis='def2svpd',
@@ -58,6 +60,8 @@ class CustomXCUnpolarizedTest(parameterized.TestCase):
     hybrid_coeff, rsh_params = utils.get_hybrid_rsh_params(xc_name)
     ks_ref = dft.RKS(self.mol)
     ks_ref.xc = xc_code
+    # Disable NLC to match PySCF 1.7 behaviour.
+    ks_ref.nlc = 0
     etot_ref = ks_ref.kernel()
 
     ks = dft.RKS(self.mol)
@@ -90,6 +94,8 @@ class CustomXCUnpolarizedTest(parameterized.TestCase):
     hybrid_coeff, rsh_params = utils.get_hybrid_rsh_params(xc_code)
     ks_ref = dft.RKS(self.mol)
     ks_ref.xc = xc_code
+    # Disable NLC to match PySCF 1.7 behaviour.
+    ks_ref.nlc = 0
     etot_ref = ks_ref.kernel()
 
     ks = dft.RKS(self.mol)
@@ -109,7 +115,8 @@ class CustomXCPolarizedTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.num_threads(1)
     self.mol = gto.M(
         atom='H  0. 0. 0.;H  0. 0. 0.74',
         basis='def2svpd',
@@ -129,6 +136,8 @@ class CustomXCPolarizedTest(parameterized.TestCase):
     hybrid_coeff, rsh_params = utils.get_hybrid_rsh_params(xc_name)
     ks_ref = dft.UKS(self.mol)
     ks_ref.xc = xc_code
+    # Disable NLC to match PySCF 1.7 behaviour.
+    ks_ref.nlc = 0
     etot_ref = ks_ref.kernel()
 
     ks = dft.UKS(self.mol)
@@ -161,6 +170,8 @@ class CustomXCPolarizedTest(parameterized.TestCase):
     hybrid_coeff, rsh_params = utils.get_hybrid_rsh_params(xc_code)
     ks_ref = dft.UKS(self.mol)
     ks_ref.xc = xc_code
+    # Disable NLC to match PySCF 1.7 behaviour.
+    ks_ref.nlc = 0
     etot_ref = ks_ref.kernel()
 
     ks = dft.UKS(self.mol)

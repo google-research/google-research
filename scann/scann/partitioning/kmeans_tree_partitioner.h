@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,16 +23,22 @@
 #include <limits>
 #include <vector>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/synchronization/mutex.h"
 #include "scann/base/single_machine_base.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/many_to_many/many_to_many.h"
+#include "scann/distance_measures/one_to_one/dot_product.h"
+#include "scann/distance_measures/one_to_one/l2_distance.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/oss_wrappers/scann_threadpool.h"
 #include "scann/partitioning/kmeans_tree_like_partitioner.h"
 #include "scann/partitioning/orthogonality_amplification_utils.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/partitioning/partitioner_base.h"
+#include "scann/proto/partitioning.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
 #include "scann/trees/kmeans_tree/kmeans_tree_node.h"
 #include "scann/trees/kmeans_tree/training_options.h"
@@ -95,11 +101,13 @@ class KMeansTreePartitioner final : public KMeansTreeLikePartitioner<T> {
     return orthogonality_amplification_lambda_ != 0.0f;
   }
 
-  QuerySpillingConfig::SpillingType query_spilling_type() const {
+  QuerySpillingConfig::SpillingType query_spilling_type() const override {
     return query_spilling_type_;
   }
 
-  double query_spilling_threshold() const { return query_spilling_threshold_; }
+  double query_spilling_threshold() const override {
+    return query_spilling_threshold_;
+  }
 
   uint32_t query_spilling_max_centers() const override {
     return query_spilling_max_centers_;

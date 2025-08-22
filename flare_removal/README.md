@@ -34,9 +34,7 @@ This repository contains code that accompanies the following paper:
 
 ### Flare-only images
 
-A total of 5,001 RGB flare images are
-[released](https://research.google/tools/datasets/lens-flare/) via Google
-Research's public dataset repository under the
+A total of 5,001 RGB flare images are released under the
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/) license. Among them:
 
 -   2,001 are from lab captures (1,001 captures + interpolation between frames).
@@ -51,10 +49,11 @@ To obtain this data:
     This should automatically install the `gsutil` tool which is required to
     access the Google Cloud Storage bucket.
 
-2.  Run the following command:
+2.  Run the following command (`-m` enables multi-threaded download, which is
+    significantly faster):
 
     ```shell
-    $ gsutil cp -r gs://gresearch/lens-flare /your/local/path
+    $ gsutil -m cp -r gs://gresearch/lens-flare /your/local/path
     ```
 
 ### Flare-free (scene) images

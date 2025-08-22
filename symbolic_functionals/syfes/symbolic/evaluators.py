@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -61,13 +61,13 @@ def parse_rho_and_derivs(rho_and_derivs, omega, polarized):
   a significant amount of memory for large sample sizes.
 
   Args:
-    rho_and_derivs: Float numpy array with shape (6, num_grids) for spin
-      unpolarized case; 2-tuple of float numpy array with shape (6, num_grids)
-      for spin polarized case. Electron density and its derivatives. For
-      spin unpolarized case, the 6 subarrays represent (density, gradient_x,
-      gradient_y, gradient_z, laplacian, tau); for spin polarized case, the
-      spin up and spin down densities and derivatives are each represented
-      with a (6, num_grids) array.
+    rho_and_derivs: Float numpy array with shape (5, num_grids) for spin
+      unpolarized case; 2-tuple of float numpy array with shape (5, num_grids)
+      for spin polarized case. Electron density and its derivatives. For spin
+      unpolarized case, the 5 subarrays represent (density, gradient_x,
+      gradient_y, gradient_z, tau); for spin polarized case, the spin up and
+      spin down densities and derivatives are each represented with a (5,
+      num_grids) array.
     omega: Float, range separated parameter that affects the resulting LDA
       exchange energy.
     polarized: Boolean, whether the input density and derivatives are spin
@@ -108,8 +108,8 @@ def parse_rho_and_derivs(rho_and_derivs, omega, polarized):
       lda_energy_value is float numpy array with shape (num_grids,).
 
   Raises:
-    ValueError, if the shape of rho_and_derivs is not (6, *) in spin unpolarized
-      case or (2, 6, *) in spin polarized case.
+    ValueError, if the shape of rho_and_derivs is not (5, *) in spin unpolarized
+      case or (2, 5, *) in spin polarized case.
   """
   if polarized:
     features, lda_energies = _parse_rho_and_derivs_polarized(
@@ -126,12 +126,13 @@ def parse_rho_and_derivs(rho_and_derivs, omega, polarized):
 
 def _parse_rho_and_derivs_unpolarized(rho_and_derivs, omega):
   """Computes common features and lda energies for spin unpolarized case."""
-  if rho_and_derivs.ndim != 2 or rho_and_derivs.shape[0] != 6:
+  if rho_and_derivs.ndim != 2 or rho_and_derivs.shape[0] != 5:
     raise ValueError(
-        f'Wrong shape for rho_and_derivs. Expected (6, *), '
-        f'got {rho_and_derivs.shape}')
+        'Wrong shape for rho_and_derivs. Expected (5, *), '
+        f'got {rho_and_derivs.shape}'
+    )
 
-  rho_s, grad_x_s, grad_y_s, grad_z_s, _, tau_s = rho_and_derivs
+  rho_s, grad_x_s, grad_y_s, grad_z_s, tau_s = rho_and_derivs
 
   # first derivatives
   sigma_ss = grad_x_s ** 2 + grad_y_s ** 2 + grad_z_s ** 2
@@ -169,13 +170,14 @@ def _parse_rho_and_derivs_polarized(rho_and_derivs, omega):
   """Computes common features and lda energies for spin polarized case."""
   num_grids = rho_and_derivs.shape[-1]
 
-  if rho_and_derivs.ndim != 3 or rho_and_derivs.shape[0:2] != (2, 6):
+  if rho_and_derivs.ndim != 3 or rho_and_derivs.shape[0:2] != (2, 5):
     raise ValueError(
-        f'Wrong shape for rho_and_derivs. Expected (2, 6, *), '
-        f'got {rho_and_derivs.shape}')
+        'Wrong shape for rho_and_derivs. Expected (2, 5, *), '
+        f'got {rho_and_derivs.shape}'
+    )
 
-  rho_a, grad_x_a, grad_y_a, grad_z_a, _, tau_a = rho_and_derivs[0]
-  rho_b, grad_x_b, grad_y_b, grad_z_b, _, tau_b = rho_and_derivs[1]
+  rho_a, grad_x_a, grad_y_a, grad_z_a, tau_a = rho_and_derivs[0]
+  rho_b, grad_x_b, grad_y_b, grad_z_b, tau_b = rho_and_derivs[1]
 
   # first derivatives
   sigma_aa = grad_x_a ** 2 + grad_y_a ** 2 + grad_z_a ** 2
@@ -230,9 +232,9 @@ def parse_ks_info(ks_info_unpolarized,
   """Parses ks_info of dataset to obtain quantities for building Evaluator.
 
   Args:
-    ks_info_unpolarized: List of float numpy arrays with shape (6, num_grids),
+    ks_info_unpolarized: List of float numpy arrays with shape (5, num_grids),
       the ks_info for spin unpolarized molecules.
-    ks_info_polarized: List of float numpy arrays with shape (2, 6, num_grids),
+    ks_info_polarized: List of float numpy arrays with shape (2, 5, num_grids),
       the ks_info for spin polarized molecules.
     feature_names_x: Sequence of strings, the feature names for evaluating
       exchange enhancement factor. See docstring of parse_rho_and_derivs for
@@ -278,7 +280,10 @@ def parse_ks_info(ks_info_unpolarized,
   # spin unpolarized molecules
   rho_and_derivs_unpolarized = 0.5 * np.concatenate(  # 0.5: spin factor
       [ks_info_mol['rho'] for ks_info_mol in ks_info_unpolarized]
-      if num_mols_unpolarized else [np.zeros([6, 0])], axis=1)
+      if num_mols_unpolarized
+      else [np.zeros([5, 0])],
+      axis=1,
+  )
   features_unpolarized, lda_energies_unpolarized = parse_rho_and_derivs(
       rho_and_derivs_unpolarized, omega=omega, polarized=False)
   _remove_unused_features(features_unpolarized)
@@ -293,7 +298,10 @@ def parse_ks_info(ks_info_unpolarized,
   # spin polarized molecules
   rho_and_derivs_polarized = np.concatenate(
       [ks_info_mol['rho'] for ks_info_mol in ks_info_polarized]
-      if num_mols_polarized else [np.zeros([2, 6, 0])], axis=2)
+      if num_mols_polarized
+      else [np.zeros([2, 5, 0])],
+      axis=2,
+  )
   features_polarized, lda_energies_polarized = parse_rho_and_derivs(
       rho_and_derivs_polarized, omega=omega, polarized=True)
   _remove_unused_features(features_polarized)

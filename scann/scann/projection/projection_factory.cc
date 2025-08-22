@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -169,8 +169,8 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
         SCANN_RETURN_IF_ERROR(result->Create(serialized_projection));
 
       } else if (config.has_num_dims_per_block()) {
-        result = make_unique<PcaProjection<T>>(input_dim,
-                                               config.num_dims_per_block());
+        result = make_unique<PcaProjection<T>>(
+            input_dim, config.num_dims_per_block() * config.num_blocks());
         result->Create(*std::get<1>(dataset_or_serialized_projection),
                        config.build_covariance(), parallelization_pool);
         if (config.pca_random_rotate_projection_matrix()) {
@@ -195,8 +195,8 @@ StatusOr<unique_ptr<Projection<T>>> ProjectionFactoryImpl<T>::Create(
       return {std::move(result)};
     }
     case ProjectionConfig::TRUNCATE:
-      return {make_unique<TruncateProjection<T>>(input_dim,
-                                                 config.num_dims_per_block())};
+      return {make_unique<TruncateProjection<T>>(
+          input_dim, config.num_dims_per_block() * config.num_blocks())};
     default:
       return UnimplementedError(
           "The specified projection type is not implemented.");

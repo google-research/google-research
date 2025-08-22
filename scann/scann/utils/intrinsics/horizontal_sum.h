@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,6 +45,7 @@ SCANN_INLINE void HorizontalSum4X(Simd<FloatT> a, Simd<FloatT> b,
 
 }  // namespace fallback
 
+#if HWY_HAVE_CONSTEXPR_LANES
 HWY_BEFORE_NAMESPACE();
 namespace highway {
 
@@ -75,6 +76,7 @@ SCANN_INLINE void HorizontalSum4X(Highway<FloatT> a, Highway<FloatT> b,
 
 }  // namespace highway
 HWY_AFTER_NAMESPACE();
+#endif
 
 #ifdef __x86_64__
 

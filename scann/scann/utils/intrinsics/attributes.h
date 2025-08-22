@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -24,6 +24,15 @@
 #define SCANN_AVX2 __attribute((target("avx,avx2,fma")))
 #define SCANN_AVX512 \
   __attribute((target("avx,avx2,fma,avx512f,avx512dq,avx512bw")))
+#define SCANN_AVX512_VNNI \
+  __attribute((target("avx,avx2,fma,avx512f,avx512dq,avx512bw,avx512vnni")))
+
+#define SCANN_AMX                                                  \
+  ABSL_ATTRIBUTE_NO_SANITIZE_UNDEFINED                             \
+  __attribute(                                                     \
+      (target("avx,avx2,fma,avx512f,avx512dq,avx512bw,avx512vnni," \
+              "avx512bf16,avx512ifma,avx512vbmi,"                  \
+              "amx-tile,amx-bf16,amx-int8")))
 
 #else
 
@@ -31,6 +40,8 @@
 #define SCANN_AVX1
 #define SCANN_AVX2
 #define SCANN_AVX512
+#define SCANN_AVX512_VNNI
+#define SCANN_AMX
 
 #endif
 
@@ -53,6 +64,14 @@
 #define SCANN_AVX512_INLINE SCANN_AVX512 SCANN_INLINE
 #define SCANN_AVX512_INLINE_LAMBDA SCANN_AVX512 SCANN_INLINE_LAMBDA
 #define SCANN_AVX512_OUTLINE SCANN_AVX512 SCANN_OUTLINE
+
+#define SCANN_AVX512_VNNI_INLINE SCANN_AVX512_VNNI SCANN_INLINE
+#define SCANN_AVX512_VNNI_INLINE_LAMBDA SCANN_AVX512_VNNI SCANN_INLINE_LAMBDA
+#define SCANN_AVX512_VNNI_OUTLINE SCANN_AVX512_VNNI SCANN_OUTLINE
+
+#define SCANN_AMX_INLINE SCANN_AMX SCANN_INLINE
+#define SCANN_AMX_INLINE_LAMBDA SCANN_AMX SCANN_INLINE_LAMBDA
+#define SCANN_AMX_OUTLINE SCANN_AMX SCANN_OUTLINE
 
 #define SCANN_HIGHWAY_OUTLINE SCANN_OUTLINE
 #define SCANN_HIGHWAY_INLINE SCANN_INLINE

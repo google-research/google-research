@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -59,6 +59,10 @@ message GenericFeatureVector {
 
   message Crowding {
     optional int64 crowding_attribute = 1;
+
+    repeated int64 multidimensional_crowding_attributes = 2 [packed = true];
+
+    repeated string multidimensional_crowding_dimensions = 3;
   }
 
   optional Crowding crowding = 18;
@@ -77,6 +81,8 @@ message GenericFeatureVector {
     optional google.protobuf.Timestamp insertion_timestamp = 1;
 
     optional google.protobuf.Timestamp metadata_insertion_timestamp = 2;
+
+    optional google.protobuf.Timestamp userinfo_insertion_timestamp = 3;
   }
 
   optional google.protobuf.Timestamp expiration_timestamp = 20;

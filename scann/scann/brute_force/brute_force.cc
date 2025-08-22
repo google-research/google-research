@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
+#include <new>
 #include <type_traits>
 #include <utility>
 
@@ -58,7 +59,8 @@ BruteForceSearcher<T>::~BruteForceSearcher() {}
 
 template <typename T>
 Status BruteForceSearcher<T>::EnableCrowdingImpl(
-    ConstSpan<int64_t> datapoint_index_to_crowding_attribute) {
+    ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+    ConstSpan<std::string> crowding_dimension_names) {
   if (datapoint_index_to_crowding_attribute.size() != this->dataset()->size()) {
     return InvalidArgumentError(absl::StrCat(
         "datapoint_index_to_crowding_attribute must have size equal to "

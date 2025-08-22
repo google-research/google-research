@@ -1,4 +1,7 @@
-# Copyright 2024 The Google Research Authors.
+# Internal Use Download Data from GCS
+
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,9 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Internal Use Download Data from GCS
 
-#!/bin/bash
 FNAME=air_selfchat_ope_data.tar.gz
 rm -rf selfplay_opedata
 mkdir -p selfplay_opedata

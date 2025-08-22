@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -93,6 +93,8 @@ class EpsilonFilteringCallback {
 
 #endif
 
+#if HWY_HAVE_CONSTEXPR_LANES
+
   SCANN_INLINE void InvokeOptimized(Highway<float, 2> simd_dists,
                                     size_t first_dp_idx, size_t query_idx) {
     float best_dist = epsilons_[query_idx].load(std::memory_order_relaxed);
@@ -103,6 +105,8 @@ class EpsilonFilteringCallback {
     auto dists = simd_dists.Store();
     slow_path_fn_(MakeMutableSpan(dists), first_dp_idx, query_idx);
   }
+
+#endif
 
   SCANN_INLINE void operator()(MutableSpan<FloatT> block, size_t first_dp_idx,
                                size_t query_idx) {
@@ -137,12 +141,15 @@ class ManyToManyTop1Callback {
                 "kNumSpinLocks has to be power of 2");
 
   explicit ManyToManyTop1Callback(
-      MutableSpan<pair<DatapointIndex, FloatT>> top1_result_by_query)
+      MutableSpan<pair<DatapointIndex, FloatT>> top1_result_by_query,
+      bool needs_thread_safety)
       : top1_result_by_query_(top1_result_by_query.data()),
         epsilons_(
             make_unique<std::atomic<FloatT>[]>(top1_result_by_query.size())),
-        mutexes_(make_shared<
-                 std::array<absl::base_internal::SpinLock, kNumSpinLocks>>()) {
+        mutexes_(needs_thread_safety
+                     ? make_shared<std::array<absl::base_internal::SpinLock,
+                                              kNumSpinLocks>>()
+                     : nullptr) {
     for (size_t i : IndicesOf(top1_result_by_query)) {
       epsilons_[i].store(top1_result_by_query[i].second,
                          std::memory_order_relaxed);
@@ -151,11 +158,29 @@ class ManyToManyTop1Callback {
 
   void operator()(MutableSpan<FloatT> block, size_t first_dp_idx,
                   size_t query_idx) {
+    if (ABSL_PREDICT_FALSE(mutexes_)) {
+      Impl<true>(block, first_dp_idx, query_idx);
+    } else {
+      Impl<false>(block, first_dp_idx, query_idx);
+    }
+  }
+
+  std::atomic<FloatT>* epsilons() const { return epsilons_.get(); }
+
+ private:
+  template <bool kNeedsThreadSafety>
+  SCANN_INLINE void Impl(MutableSpan<FloatT> block, size_t first_dp_idx,
+                         size_t query_idx) {
     auto& top1 = top1_result_by_query_[query_idx];
-    const size_t mutex_idx = query_idx & (kNumSpinLocks - 1);
-    auto mutex_ptr = &(*mutexes_)[mutex_idx];
+    absl::base_internal::SpinLock* mutex_ptr;
+    if constexpr (kNeedsThreadSafety) {
+      const size_t mutex_idx = query_idx & (kNumSpinLocks - 1);
+      mutex_ptr = &(*mutexes_)[mutex_idx];
+    }
     absl::PrefetchToLocalCache(&top1);
-    absl::PrefetchToLocalCache(mutex_ptr);
+    if constexpr (kNeedsThreadSafety) {
+      absl::PrefetchToLocalCache(mutex_ptr);
+    }
 
     FloatT best_dist = block[0];
     DCHECK(!std::isnan(best_dist)) << "NAN at DP idx 0";
@@ -169,17 +194,19 @@ class ManyToManyTop1Callback {
       best_dist = std::min(best_dist, dist);
     }
 
-    absl::base_internal::SpinLockHolder lock(mutex_ptr);
+    if constexpr (kNeedsThreadSafety) {
+      mutex_ptr->Lock();
+    }
     if (ABSL_PREDICT_TRUE(best_dist < top1.second)) {
       top1.first = first_dp_idx + best_j;
       top1.second = best_dist;
       epsilons_[query_idx].store(best_dist, std::memory_order_relaxed);
     }
+    if constexpr (kNeedsThreadSafety) {
+      mutex_ptr->Unlock();
+    }
   }
 
-  std::atomic<FloatT>* epsilons() const { return epsilons_.get(); }
-
- private:
   pair<DatapointIndex, FloatT>* top1_result_by_query_;
 
   shared_ptr<std::atomic<FloatT>[]> epsilons_;
@@ -212,8 +239,7 @@ class ManyToManyTopKCallback {
 
     auto impl = [&]() SCANN_INLINE_LAMBDA {
       topn.PushBlock(block, first_dp_idx);
-      epsilons_[query_idx].store(topns_[query_idx].epsilon(),
-                                 std::memory_order_relaxed);
+      epsilons_[query_idx].store(topn.epsilon(), std::memory_order_relaxed);
     };
     if (ABSL_PREDICT_FALSE(mutexes_)) {
       const size_t mutex_idx = query_idx & (kNumMutexes - 1);
@@ -341,13 +367,15 @@ class EpsilonFilteringOffsetWrapper {
 
 #endif
 
-  SCANN_INLINE void InvokeOptimized(fallback::Simd<float, 2> dists,
+#if HWY_HAVE_CONSTEXPR_LANES
+  SCANN_INLINE void InvokeOptimized(Highway<float, 2> dists,
                                     size_t first_dp_idx, size_t query_idx) {
     base_.InvokeOptimized(dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
   }
+#endif
 
-  SCANN_INLINE void InvokeOptimized(Highway<float, 2> dists,
+  SCANN_INLINE void InvokeOptimized(fallback::Simd<float, 2> dists,
                                     size_t first_dp_idx, size_t query_idx) {
     base_.InvokeOptimized(dists, first_dp_idx + dp_idx_offset_,
                           query_idx_table_[query_idx]);
@@ -429,6 +457,8 @@ struct IsOptimizedCallback<ManyToManyTopKCallback> {
 #define SCANN_INSTANTIATE_MANY_TO_MANY_FP8(EXTERN_OR_NOTHING, METHOD_NAME) \
   SCANN_INSTANTIATE_MANY_TO_MANY_FP8_1(EXTERN_OR_NOTHING, METHOD_NAME,     \
                                        ManyToManyResultsCallback<float>);  \
+  SCANN_INSTANTIATE_MANY_TO_MANY_FP8_1(EXTERN_OR_NOTHING, METHOD_NAME,     \
+                                       EpsilonFilteringCallback<float>);   \
   SCANN_INSTANTIATE_MANY_TO_MANY_FP8_1(EXTERN_OR_NOTHING, METHOD_NAME,     \
                                        EpsilonFilteringOffsetWrapper<float>);
 

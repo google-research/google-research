@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -224,13 +224,17 @@ PackedDatasetView CreatePackedDatasetView(const PackedDataset& packed_dataset) {
   return result;
 }
 
+AsymmetricQueryerBase::AsymmetricQueryerBase(
+    shared_ptr<const DistanceMeasure> lookup_distance)
+    : lookup_distance_(std::move(lookup_distance)) {}
+
 template <typename T>
 AsymmetricQueryer<T>::AsymmetricQueryer(
     shared_ptr<const ChunkingProjection<T>> projector,
     shared_ptr<const DistanceMeasure> lookup_distance,
     shared_ptr<const Model<T>> model)
-    : projector_(std::move(projector)),
-      lookup_distance_(std::move(lookup_distance)),
+    : AsymmetricQueryerBase(std::move(lookup_distance)),
+      projector_(std::move(projector)),
       model_(std::move(model)) {}
 
 template <typename T>

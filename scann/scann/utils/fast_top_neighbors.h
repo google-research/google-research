@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -26,19 +27,22 @@
 #include "absl/base/optimization.h"
 #include "absl/numeric/bits.h"
 #include "absl/numeric/int128.h"
+#include "hwy/contrib/sort/vqsort-inl.h"
 #include "scann/oss_wrappers/scann_bits.h"
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/simd.h"
 #include "scann/utils/intrinsics/sse4.h"
+#include "scann/utils/kv_sort.h"
 #include "scann/utils/types.h"
 #include "scann/utils/util_functions.h"
 
 namespace research_scann {
 
-template <typename DistT, typename DatapointIndexT = DatapointIndex>
+template <typename DistT, typename DatapointIndexT = DatapointIndex,
+          size_t FixedCapacity = 0>
 class FastTopNeighbors {
  public:
-  FastTopNeighbors() {}
+  FastTopNeighbors() = default;
 
   explicit FastTopNeighbors(size_t max_results,
                             DistT epsilon = MaxOrInfinity<DistT>()) {
@@ -47,10 +51,33 @@ class FastTopNeighbors {
 
   FastTopNeighbors(FastTopNeighbors&& rhs) noexcept { *this = std::move(rhs); }
 
+  StatusOr<FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>> Clone()
+      const;
+
   FastTopNeighbors& operator=(FastTopNeighbors&& rhs) noexcept {
-    indices_ = std::move(rhs.indices_);
-    distances_ = std::move(rhs.distances_);
-    masks_ = std::move(rhs.masks_);
+    if (rhs.dynamic_indices_ == nullptr) {
+      std::copy(rhs.fixed_indices_, rhs.fixed_indices_ + rhs.sz_,
+                fixed_indices_);
+      indices_ = fixed_indices_;
+    } else {
+      dynamic_indices_ = std::move(rhs.dynamic_indices_);
+      indices_ = dynamic_indices_.get();
+    }
+    if (rhs.dynamic_distances_ == nullptr) {
+      std::copy(rhs.fixed_distances_, rhs.fixed_distances_ + rhs.sz_,
+                fixed_distances_);
+      distances_ = fixed_distances_;
+    } else {
+      dynamic_distances_ = std::move(rhs.dynamic_distances_);
+      distances_ = dynamic_distances_.get();
+    }
+    if (rhs.dynamic_masks_ == nullptr) {
+      masks_ = fixed_masks_;
+    } else {
+      dynamic_masks_ = std::move(rhs.dynamic_masks_);
+      masks_ = dynamic_masks_.get();
+    }
+
     sz_ = rhs.sz_;
     max_results_ = rhs.max_results_;
     capacity_ = rhs.capacity_;
@@ -149,8 +176,8 @@ class FastTopNeighbors {
   FinishUnsorted(size_t max_results) {
     CHECK(!mutator_held_);
     GarbageCollect(max_results, max_results);
-    auto indices = MutableSpan<DatapointIndexT>(indices_.get(), sz_);
-    auto dists = MutableSpan<DistT>(distances_.get(), sz_);
+    auto indices = MutableSpan<DatapointIndexT>(indices_, sz_);
+    auto dists = MutableSpan<DistT>(distances_, sz_);
     return std::make_pair(indices, dists);
   }
 
@@ -168,13 +195,17 @@ class FastTopNeighbors {
   GetRawStorage(size_t set_size_to) {
     CHECK(set_size_to <= capacity_);
     sz_ = set_size_to;
-    auto indices = MutableSpan<DatapointIndexT>(indices_.get(), sz_);
-    auto dists = MutableSpan<DistT>(distances_.get(), sz_);
+    auto indices = MutableSpan<DatapointIndexT>(indices_, sz_);
+    auto dists = MutableSpan<DistT>(distances_, sz_);
     return std::make_pair(indices, dists);
   }
 
   ConstSpan<DatapointIndexT> GetAllRawIndices() const {
-    return MutableSpan<DatapointIndexT>(indices_.get(), sz_);
+    return MutableSpan<DatapointIndexT>(indices_, sz_);
+  }
+
+  ConstSpan<DistT> GetAllRawDistances() const {
+    return MutableSpan<DistT>(distances_, sz_);
   }
 
   pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>> FinishSorted() {
@@ -207,12 +238,9 @@ class FastTopNeighbors {
   void MoveTopNToFront(size_t num_elements);
 
  protected:
-  static size_t ApproxNthElement(size_t keep_min, size_t keep_max, size_t sz,
-                                 DatapointIndexT* ii, DistT* dd, uint32_t* mm);
+  DatapointIndexT* indices_ = nullptr;
 
-  unique_ptr<DatapointIndexT[]> indices_;
-
-  unique_ptr<DistT[]> distances_;
+  DistT* distances_ = nullptr;
 
   size_t sz_ = 0;
 
@@ -231,12 +259,15 @@ class FastTopNeighbors {
   void FillDistancesForMSan();
   void ReallocateForPureEnn();
 
+  static void SortKVInPlace(MutableSpan<DistT> keys,
+                            MutableSpan<DatapointIndexT> vals);
+
   SCANN_INLINE void ReleaseMutator(ssize_t pushes_remaining_negated) {
     mutator_held_ = false;
     sz_ = pushes_remaining_negated + capacity_;
   }
 
-  unique_ptr<uint32_t[]> masks_;
+  uint32_t* masks_ = nullptr;
 
   size_t max_results_ = 0;
 
@@ -246,12 +277,29 @@ class FastTopNeighbors {
 
   std::atomic<DistT> epsilon_ = MaxOrInfinity<DistT>();
 
+  constexpr static size_t kPadding = 96;
+  constexpr static size_t AlignedFixedCapacity() {
+    return NextMultipleOf(2 * FixedCapacity, 32);
+  }
+
+  unique_ptr<DatapointIndexT[]> dynamic_indices_;
+  unique_ptr<DistT[]> dynamic_distances_;
+  unique_ptr<uint32_t[]> dynamic_masks_;
+  DatapointIndexT fixed_indices_[FixedCapacity == 0
+                                     ? 0
+                                     : 2 * AlignedFixedCapacity() + kPadding];
+  DistT fixed_distances_[FixedCapacity == 0
+                             ? 0
+                             : AlignedFixedCapacity() + kPadding];
+  uint32_t
+      fixed_masks_[FixedCapacity == 0 ? 0 : AlignedFixedCapacity() / 32 + 2];
+
   friend class Mutator;
   friend class FastTopNeighborsTest;
 };
 
-template <typename DistT, typename DatapointIndexT>
-class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+class FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::Mutator {
  public:
   SCANN_DECLARE_MOVE_ONLY_CLASS(Mutator);
 
@@ -285,7 +333,7 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
       DVLOG(1) << StrFormat("Pushing {%d, %f}", dp_idx,
                             static_cast<double>(distance));
     }
-    DCHECK_LT(pushes_remaining_negated_, 0);
+    DCHECK_LE(pushes_remaining_negated_, 0);
     indices_end_[pushes_remaining_negated_] = dp_idx;
     distances_end_[pushes_remaining_negated_] = distance;
     ++pushes_remaining_negated_;
@@ -315,8 +363,8 @@ class FastTopNeighbors<DistT, DatapointIndexT>::Mutator {
 
   SCANN_INLINE void InitImpl() {
     DCHECK(parent_);
-    indices_end_ = parent_->indices_.get() + parent_->capacity_;
-    distances_end_ = parent_->distances_.get() + parent_->capacity_;
+    indices_end_ = parent_->indices_ + parent_->capacity_;
+    distances_end_ = parent_->distances_ + parent_->capacity_;
     pushes_remaining_negated_ = parent_->sz_ - parent_->capacity_;
   }
 
@@ -335,8 +383,8 @@ template <typename DistT, typename DatapointIndexT = DatapointIndex>
 using FastTopNeighborsMutator =
     typename FastTopNeighbors<DistT, DatapointIndexT>::Mutator;
 
-template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::AcquireMutator(
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::AcquireMutator(
     Mutator* mutator) {
   DCHECK(!mutator_held_);
   mutator_held_ = true;
@@ -350,7 +398,7 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances, DocidFn docid_fn,
   top_n->AcquireMutator(&mutator);
   DatapointIndex dist_idx = 0;
 
-#if HWY_HAVE_SCALABLE == 0
+#if HWY_HAVE_CONSTEXPR_LANES
 
   if constexpr (std::is_same_v<DistT, float> &&
                 highway::Simd<float>::kElementsPerRegister >= 2) {
@@ -391,15 +439,165 @@ void PushBlockToFastTopNeighbors(ConstSpan<DistT> distances, DocidFn docid_fn,
   }
 }
 
-extern template class FastTopNeighbors<int16_t, uint32_t>;
-extern template class FastTopNeighbors<float, uint32_t>;
-extern template class FastTopNeighbors<int16_t, uint64_t>;
-extern template class FastTopNeighbors<float, uint64_t>;
-extern template class FastTopNeighbors<int16_t, absl::uint128>;
-extern template class FastTopNeighbors<float, absl::uint128>;
+template <typename DistT, typename DatapointIndexT>
+size_t ApproxNthElement(size_t keep_min, size_t keep_max, size_t sz,
+                        DatapointIndexT* ii, DistT* dd, uint32_t* mm);
 
-extern template class FastTopNeighbors<float, pair<uint64_t, uint64_t>>;
-extern template class FastTopNeighbors<float, std::shared_ptr<std::string>>;
+template <typename DistT, typename DatapointIndexT>
+std::string FTN_DebugLogArrayContents(DatapointIndexT* indices, DistT* values,
+                                      uint32_t* masks, size_t sz);
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+StatusOr<FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>>
+FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::Clone() const {
+  SCANN_RET_CHECK(!mutator_held_)
+      << "FastTopNeighbors::Clone called on a TopN with a mutator held.";
+  FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity> result;
+  result.AllocateArrays(capacity_);
+  result.FillDistancesForMSan();
+  result.sz_ = sz_;
+  result.max_capacity_ = max_capacity_;
+  result.max_results_ = max_results_;
+  std::copy(indices_, indices_ + sz_, result.indices_);
+  std::copy(distances_, distances_ + sz_, result.distances_);
+  result.epsilon_.store(epsilon_.load());
+  return result;
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::AllocateArrays(
+    size_t capacity) {
+  capacity_ = capacity;
+  size_t indices_capacity = 2 * capacity_ + kPadding;
+  size_t distances_capacity = capacity_ + kPadding;
+  size_t mask_capacity = 2 * capacity_ / 32 + 2;
+  indices_ = fixed_indices_;
+  distances_ = fixed_distances_;
+  masks_ = fixed_masks_;
+  if (sizeof(DatapointIndexT) * indices_capacity > sizeof(fixed_indices_)) {
+    dynamic_indices_.reset(new DatapointIndexT[indices_capacity]);
+    indices_ = dynamic_indices_.get();
+  }
+  if (sizeof(DistT) * distances_capacity > sizeof(fixed_distances_)) {
+    dynamic_distances_.reset(new DistT[distances_capacity]);
+    distances_ = dynamic_distances_.get();
+  }
+  if (sizeof(uint32_t) * mask_capacity > sizeof(fixed_masks_)) {
+    dynamic_masks_.reset(new uint32_t[mask_capacity]);
+    masks_ = dynamic_masks_.get();
+  }
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT,
+                      FixedCapacity>::FillDistancesForMSan() {
+#ifdef MEMORY_SANITIZER
+
+  DistT* start = distances_ + sz_;
+  DistT* end = distances_ + capacity_ + kPadding;
+  const size_t len = (end - start) * sizeof(DistT);
+  __msan_unpoison(start, len);
+#endif
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT,
+                      FixedCapacity>::ReallocateForPureEnn() {
+  if (sz_ < capacity_) return;
+
+  unique_ptr<DatapointIndexT[]> old_indices = std::move(dynamic_indices_);
+  unique_ptr<DistT[]> old_distances = std::move(dynamic_distances_);
+
+  AllocateArrays(std::min(capacity_ * 2, max_capacity_));
+
+  if (old_indices == nullptr) {
+    if (indices_ != fixed_indices_) {
+      std::copy(fixed_indices_, fixed_indices_ + sz_, indices_);
+    }
+  } else {
+    std::copy(old_indices.get(), old_indices.get() + sz_, indices_);
+  }
+  if (old_distances == nullptr) {
+    if (distances_ != fixed_distances_) {
+      std::copy(fixed_distances_, fixed_distances_ + sz_, distances_);
+    }
+  } else {
+    std::copy(old_distances.get(), old_distances.get() + sz_, distances_);
+  }
+  FillDistancesForMSan();
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::GarbageCollect(
+    size_t keep_min, size_t keep_max) {
+  constexpr bool kShouldLog = false;
+  DCHECK_LE(keep_min, keep_max);
+  if (keep_min == 0) {
+    sz_ = 0;
+    return;
+  }
+  if (sz_ <= keep_max) return;
+  sz_ = ApproxNthElement(keep_min, keep_max, sz_, indices_, distances_, masks_);
+  const DistT old_epsilon = epsilon_;
+  epsilon_ = distances_[sz_];
+  DLOG_IF(INFO, kShouldLog)
+      << FTN_DebugLogArrayContents(indices_, distances_, nullptr, sz_);
+  DLOG_IF(INFO, kShouldLog) << StrFormat("Threshold change: %f => %f (sz = %d)",
+                                         static_cast<double>(old_epsilon),
+                                         static_cast<double>(epsilon_), sz_);
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::MoveTopNToFront(
+    size_t num_elements) {
+  if (num_elements >= sz_) return;
+
+  ZipNthElementBranchOptimized(std::less<DistT>(), num_elements, distances_,
+                               distances_ + sz_, indices_, indices_ + sz_);
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+void FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::SortKVInPlace(
+    MutableSpan<DistT> keys, MutableSpan<DatapointIndexT> vals) {
+  if constexpr (std::is_same_v<DistT, float> &&
+                std::is_same_v<DatapointIndexT, uint32_t>) {
+    KVSort(keys, vals, KVSortOrder::kAscending);
+    return;
+  };
+  ZipSortBranchOptimized(keys.begin(), keys.end(), vals.begin(), vals.end());
+}
+
+template <typename DistT, typename DatapointIndexT, size_t FixedCapacity>
+pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
+FastTopNeighbors<DistT, DatapointIndexT, FixedCapacity>::FinishSorted(
+    size_t max_results) {
+  MutableSpan<DatapointIndexT> ii;
+  MutableSpan<DistT> vv;
+  std::tie(ii, vv) = FinishUnsorted(max_results);
+  SortKVInPlace(vv, ii);
+  return {ii, vv};
+}
+
+#define SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(EXTERN_OR, DistT,           \
+                                             DatapointIndexT)            \
+  EXTERN_OR template class FastTopNeighbors<DistT, DatapointIndexT>;     \
+  EXTERN_OR template size_t ApproxNthElement<DistT, DatapointIndexT>(    \
+      size_t keep_min, size_t keep_max, size_t sz, DatapointIndexT * ii, \
+      DistT * dd, uint32_t * mm);                                        \
+  EXTERN_OR std::string FTN_DebugLogArrayContents(                       \
+      DatapointIndexT* indices, DistT* values, uint32_t* masks, size_t sz);
+
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, int16_t, uint32_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, float, uint32_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, int16_t, uint64_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, float, uint64_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, int16_t, absl::uint128);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, float, absl::uint128);
+
+using VectorDBDatapointIndexT = pair<uint64_t, uint64_t>;
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, float, VectorDBDatapointIndexT);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(extern, float,
+                                     std::shared_ptr<std::string>);
 
 static_assert(std::is_same_v<uint32_t, DatapointIndex> ||
               std::is_same_v<uint64_t, DatapointIndex>);

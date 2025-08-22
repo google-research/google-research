@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -30,14 +30,19 @@
 #include "absl/base/prefetch.h"
 #include "absl/log/check.h"
 #include "absl/log/log.h"
+#include "absl/random/distributions.h"
+#include "absl/random/random.h"
 #include "absl/strings/match.h"
 #include "absl/strings/substitute.h"
+#include "absl/types/span.h"
 #include "scann/base/search_parameters.h"
 #include "scann/base/single_machine_factory_options.h"
 #include "scann/brute_force/brute_force.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/docid_collection_interface.h"
+#include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
+#include "scann/distance_measures/one_to_many/one_to_many_symmetric.h"
 #include "scann/metadata/metadata_getter.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/results.pb.h"
@@ -111,7 +116,23 @@ Status UntypedSingleMachineSearcherBase::EnableCrowding(
 }
 
 Status UntypedSingleMachineSearcherBase::EnableCrowding(
+    vector<int64_t> datapoint_index_to_crowding_attribute,
+    vector<std::string> crowding_dimension_names) {
+  return EnableCrowding(std::make_shared<vector<int64_t>>(
+                            std::move(datapoint_index_to_crowding_attribute)),
+                        std::make_shared<vector<std::string>>(
+                            std::move(crowding_dimension_names)));
+}
+
+Status UntypedSingleMachineSearcherBase::EnableCrowding(
     shared_ptr<vector<int64_t>> datapoint_index_to_crowding_attribute) {
+  return EnableCrowding(datapoint_index_to_crowding_attribute,
+                        std::make_shared<vector<std::string>>());
+}
+
+Status UntypedSingleMachineSearcherBase::EnableCrowding(
+    shared_ptr<vector<int64_t>> datapoint_index_to_crowding_attribute,
+    shared_ptr<vector<std::string>> crowding_dimension_names) {
   SCANN_RET_CHECK(datapoint_index_to_crowding_attribute);
   if (!supports_crowding()) {
     return UnimplementedError("Crowding not supported for this searcher.");
@@ -120,9 +141,13 @@ Status UntypedSingleMachineSearcherBase::EnableCrowding(
     return FailedPreconditionError("Crowding already enabled.");
   }
   SCANN_RETURN_IF_ERROR(
-      EnableCrowdingImpl(*datapoint_index_to_crowding_attribute));
+      EnableCrowdingImpl(*datapoint_index_to_crowding_attribute,
+                         crowding_dimension_names != nullptr
+                             ? absl::MakeConstSpan(*crowding_dimension_names)
+                             : absl::Span<std::string>()));
   datapoint_index_to_crowding_attribute_ =
       std::move(datapoint_index_to_crowding_attribute);
+  crowding_dimension_names_ = std::move(crowding_dimension_names);
   return OkStatus();
 }
 
@@ -134,8 +159,9 @@ StatusOr<DatapointIndex> UntypedSingleMachineSearcherBase::DatasetSize() const {
   } else if (docids_) {
     return docids_->size();
   } else {
-    return FailedPreconditionError(
-        "Dataset size is not known for this searcher.");
+    Status status =
+        FailedPreconditionError("Dataset size is not known for this searcher.");
+    return status;
   }
 }
 
@@ -159,11 +185,10 @@ UntypedSingleMachineSearcherBase::UntypedSingleMachineSearcherBase(
     shared_ptr<const DenseDataset<uint8_t>> hashed_dataset,
     int32_t default_pre_reordering_num_neighbors,
     float default_pre_reordering_epsilon)
-    : hashed_dataset_(hashed_dataset),
-      default_search_parameters_(default_pre_reordering_num_neighbors,
-                                 default_pre_reordering_epsilon,
-                                 default_pre_reordering_num_neighbors,
-                                 default_pre_reordering_epsilon) {
+    : default_search_parameters_(
+          default_pre_reordering_num_neighbors, default_pre_reordering_epsilon,
+          default_pre_reordering_num_neighbors, default_pre_reordering_epsilon),
+      hashed_dataset_(hashed_dataset) {
   if (default_pre_reordering_num_neighbors <= 0) {
     LOG(FATAL) << "default_pre_reordering_num_neighbors must be > 0, not "
                << default_pre_reordering_num_neighbors << ".";
@@ -339,7 +364,13 @@ Status SingleMachineSearcherBase<T>::FindNeighbors(
     SCANN_RETURN_IF_ERROR(ReorderResults(query, params, result));
   }
 
-  return SortAndDropResults(result, params);
+  SCANN_RETURN_IF_ERROR(SortAndDropResults(result, params));
+
+  if (params.num_random_neighbors()) {
+    SCANN_RETURN_IF_ERROR(SampleRandomNeighbors(query, params, result));
+  }
+
+  return OkStatus();
 }
 
 template <typename T>
@@ -353,6 +384,15 @@ Status SingleMachineSearcherBase<T>::FindNeighborsNoSortNoExactReorder(
     return InvalidArgumentError(
         std::string(
             "Crowding is enabled but not supported for searchers of type ") +
+        typeid(*this).name() + ".");
+  }
+  if (!this->crowding_dimension_names().empty() &&
+      params.pre_reordering_crowding_enabled()) {
+    return InvalidArgumentError(
+        std::string(
+            "Received request with pre-reordering crowding enabled, but "
+            "multi-dimensional crowding is not supported for searchers of "
+            "type ") +
         typeid(*this).name() + ".");
   }
   if (!this->crowding_enabled() && params.crowding_enabled()) {
@@ -388,6 +428,74 @@ Status SingleMachineSearcherBase<T>::FindNeighborsNoSortNoExactReorder(
 }
 
 template <typename T>
+Status SingleMachineSearcherBase<T>::SampleRandomNeighbors(
+    const DatapointPtr<T>& query, const SearchParameters& params,
+    NNResultsVector* result) const {
+  vector<pair<DatapointIndex, float>> sampled;
+  if (params.pre_reordering_crowding_enabled()) {
+    return FailedPreconditionError("Crowding is not supported.");
+  } else {
+    FastTopNeighbors<float> top_n(params.num_random_neighbors());
+    SCANN_RETURN_IF_ERROR(SampleRandomNeighborsImpl(params, &top_n));
+    top_n.FinishUnsorted(&sampled);
+  }
+  SCANN_RETURN_IF_ERROR(PropagateDistances(query, params, &sampled));
+  result->insert(result->end(), sampled.begin(), sampled.end());
+  return OkStatus();
+}
+
+template <typename T>
+template <typename TopN>
+Status SingleMachineSearcherBase<T>::SampleRandomNeighborsImpl(
+    const SearchParameters& params, TopN* top_n_ptr) const {
+  typename TopN::Mutator mutator;
+  top_n_ptr->AcquireMutator(&mutator);
+  float min_keep_distance = mutator.epsilon();
+
+  absl::BitGen rng;
+  auto push = [&](DatapointIndex dp_idx) {
+    float distance = absl::Uniform<float>(rng, 0.0, 1.0);
+    if (distance <= min_keep_distance && mutator.Push(dp_idx, distance)) {
+      mutator.GarbageCollect();
+      min_keep_distance = mutator.epsilon();
+    }
+  };
+
+  if (params.restricts_enabled()) {
+    return UnimplementedError("Restricts not supported.");
+  } else {
+    SCANN_ASSIGN_OR_RETURN(DatapointIndex dataset_size, DatasetSize());
+    for (DatapointIndex idx = 0; idx < dataset_size; ++idx) {
+      push(idx);
+    }
+  }
+  return OkStatus();
+}
+
+template <typename T>
+Status SingleMachineSearcherBase<T>::PropagateDistances(
+    const DatapointPtr<T>& query, const SearchParameters& params,
+    NNResultsVector* result) const {
+  if (!config_.has_value()) {
+    return FailedPreconditionError(
+        "Config is not set, can not determine distance measure");
+  }
+  if (dataset_ != nullptr) {
+    SCANN_ASSIGN_OR_RETURN(auto dist,
+                           GetDistanceMeasure(config_->distance_measure()));
+    for (auto& elem : *result) {
+      elem.second = dist->GetDistance(query, GetDatapointPtr(elem.first));
+    }
+    return OkStatus();
+  }
+  if (reordering_helper_ != nullptr) {
+    return reordering_helper_->ComputeDistancesForReordering(query, result);
+  }
+  return FailedPreconditionError(
+      "Cannot propagate distances without a dataset and without reordering.");
+}
+
+template <typename T>
 Status SingleMachineSearcherBase<T>::FindNeighborsBatched(
     const TypedDataset<T>& queries, MutableSpan<NNResultsVector> result) const {
   vector<SearchParameters> params(queries.size());
@@ -417,10 +525,9 @@ Status SingleMachineSearcherBase<T>::FindNeighborsBatched(
   return OkStatus();
 }
 
-template <typename T>
 template <typename ResultElem>
-Status SingleMachineSearcherBase<T>::ValidateFindNeighborsBatched(
-    const TypedDataset<T>& queries, ConstSpan<SearchParameters> params,
+Status UntypedSingleMachineSearcherBase::ValidateFindNeighborsBatched(
+    const Dataset& queries, ConstSpan<SearchParameters> params,
     MutableSpan<ResultElem> results) const {
   if (!params.empty() ||
       !std::is_same_v<ResultElem, FastTopNeighbors<float>*>) {
@@ -442,6 +549,14 @@ Status SingleMachineSearcherBase<T>::ValidateFindNeighborsBatched(
           absl::Substitute("Crowding is enabled for query (index $0) but not "
                            "supported for searchers of type $1.",
                            query_idx, typeid(*this).name()));
+    }
+    if (!this->crowding_dimension_names().empty() &&
+        param.pre_reordering_crowding_enabled()) {
+      return InvalidArgumentError(absl::Substitute(
+          "Received request with pre-reordering crowding enabled, but "
+          "multi-dimensional crowding is not supported for searchers of "
+          "type $0.",
+          typeid(*this).name()));
     }
     if (!this->crowding_enabled() && param.crowding_enabled()) {
       return InvalidArgumentError(
@@ -497,7 +612,7 @@ template <typename T>
 Status SingleMachineSearcherBase<T>::GetNeighborProto(
     pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
     NearestNeighbors::Neighbor* result) const {
-  SCANN_RETURN_IF_ERROR(GetNeighborProtoNoMetadata(neighbor, query, result));
+  SCANN_RETURN_IF_ERROR(GetNeighborProtoNoMetadata(neighbor, result));
 
   if (!metadata_enabled()) return OkStatus();
 
@@ -507,9 +622,8 @@ Status SingleMachineSearcherBase<T>::GetNeighborProto(
   return status;
 }
 
-template <typename T>
-Status SingleMachineSearcherBase<T>::GetNeighborProtoNoMetadata(
-    pair<DatapointIndex, float> neighbor, const DatapointPtr<T>& query,
+Status UntypedSingleMachineSearcherBase::GetNeighborProtoNoMetadata(
+    pair<DatapointIndex, float> neighbor,
     NearestNeighbors::Neighbor* result) const {
   DCHECK(result);
   result->Clear();
@@ -681,8 +795,7 @@ Status SingleMachineSearcherBase<T>::ReorderResults(
   return OkStatus();
 }
 
-template <typename T>
-Status SingleMachineSearcherBase<T>::SortAndDropResults(
+Status UntypedSingleMachineSearcherBase::SortAndDropResults(
     NNResultsVector* result, const SearchParameters& params) const {
   if (reordering_enabled()) {
     if (params.post_reordering_num_neighbors() == 1) {

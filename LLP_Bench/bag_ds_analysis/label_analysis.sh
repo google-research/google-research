@@ -1,4 +1,5 @@
-# Copyright 2024 The Google Research Authors.
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 for c in $(seq 1 26)
 do
   python3 bag_ds_analysis/label_analysis.py --c1=$c --c2=0 --grp_key_size_one=True --which_dataset=criteo_ctr

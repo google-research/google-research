@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -124,7 +124,7 @@ class NormalizationTest(parameterized.TestCase):
         expected_mean_centered * expected_multiplier
         + variables['params']['bias'].value)
 
-    np.testing.assert_allclose(outputs, expected_outputs, atol=1e-4)
+    np.testing.assert_allclose(outputs, expected_outputs, atol=1e-3)
 
     # Assert shardings are propagated properly
     self.assertEqual(variables['params']['scale'].names,

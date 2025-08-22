@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -45,9 +45,13 @@ message InputOutputConfig {
 
     optional string embedding_column_name = 2;
 
+    optional string docid_column_name = 3;
+
     optional GenericFeatureVector.FeatureType embedding_type = 4;
 
-    optional string docid_column_name = 3;
+    reserved 5;
+
+    optional int32 prefix_dimensionality = 6;
   }
 
   oneof DatabaseInputConfig {
@@ -125,6 +129,15 @@ message InputOutputConfig {
   optional string fixed_point_database_wildcard = 17;
   optional string tokenized_database_wildcard = 14;
   optional string memory_consumption_estimate_filename = 24;
+
+  message GraphSearchIoConfig {
+    optional string graph_wildcard = 1;
+
+    optional string fixed_point_database_wildcard = 2;
+
+    optional string projection_matrix_filename = 3;
+  }
+  optional GraphSearchIoConfig graph_search_io_config = 30;
 
   reserved 1;
   reserved "input_handler";

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -56,6 +56,7 @@ namespace fallback {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace fallback
 
+#if HWY_HAVE_CONSTEXPR_LANES
 HWY_BEFORE_NAMESPACE();
 namespace highway {
 #define SCANN_SIMD_ATTRIBUTE
@@ -63,6 +64,7 @@ namespace highway {
 #undef SCANN_SIMD_ATTRIBUTE
 }  // namespace highway
 HWY_AFTER_NAMESPACE();
+#endif
 
 }  // namespace research_scann
 

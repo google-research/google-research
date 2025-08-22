@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <functional>
 #include <memory>
 #include <type_traits>
@@ -27,8 +28,10 @@
 #include "scann/base/internal/single_machine_factory_impl.h"
 #include "scann/base/single_machine_base.h"
 #include "scann/base/single_machine_factory_options.h"
+#include "scann/brute_force/bfloat16_brute_force.h"
 #include "scann/brute_force/scalar_quantized_brute_force.h"
 #include "scann/data_format/datapoint.h"
+#include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
 #include "scann/distance_measures/distance_measure_factory.h"
 #include "scann/hashes/asymmetric_hashing2/searcher.h"
@@ -660,8 +663,30 @@ StatusOrSearcherUntyped NonResidualTreeXHybridFactory(
         int32_t token)>
         leaf_searcher_builder = leaf_searcher_builder_lambda;
     if (using_pretokenized_database) {
-      SCANN_RETURN_IF_ERROR(result->BuildLeafSearchers(
-          std::move(datapoints_by_token), leaf_searcher_builder));
+      if (config.brute_force().bfloat16().enabled() && opts->bfloat16_dataset) {
+        std::function<unique_ptr<SingleMachineSearcherBase<float>>(
+            shared_ptr<const DenseDataset<int16_t>> dataset_partition,
+            int32_t token)>
+            bfloat16_leaf_searcher_builder =
+                [leaf_searcher_builder, params](
+                    shared_ptr<const DenseDataset<int16_t>> dataset_partition,
+                    int32_t token) {
+                  return make_unique<Bfloat16BruteForceSearcher>(
+                      params.pre_reordering_dist, dataset_partition,
+                      params.pre_reordering_num_neighbors,
+                      params.pre_reordering_epsilon);
+                };
+        SCANN_RETURN_IF_ERROR(result->BuildBFloat16BruteForceLeafSearchers(
+            *opts->bfloat16_dataset, std::move(datapoints_by_token),
+            bfloat16_leaf_searcher_builder));
+        if (!dataset) {
+          SCANN_RETURN_IF_ERROR(
+              result->set_docids(opts->bfloat16_dataset->docids()));
+        }
+      } else {
+        SCANN_RETURN_IF_ERROR(result->BuildLeafSearchers(
+            std::move(datapoints_by_token), leaf_searcher_builder));
+      }
     } else {
       SCANN_RETURN_IF_ERROR(result->BuildLeafSearchers(
           *partitioner, leaf_searcher_builder, opts->parallelization_pool));

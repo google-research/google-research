@@ -1,4 +1,5 @@
-# Copyright 2024 The Google Research Authors.
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 
 # See supplement of https://doi.org/10.1101/626507 for more information.
 # It's not recommended to run this script as it will take a long time (it

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -113,6 +113,14 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
                            vector<float> squared_l2_norms)>
           leaf_searcher_builder);
 
+  Status BuildBFloat16BruteForceLeafSearchers(
+      const DenseDataset<int16_t>& bfloat16_database,
+      vector<std::vector<DatapointIndex>> datapoints_by_token,
+      std::function<unique_ptr<SingleMachineSearcherBase<float>>(
+          shared_ptr<const DenseDataset<int16_t>> dataset_partition,
+          int32_t token)>
+          leaf_searcher_builder);
+
   Status BuildStreamingScalarQuantizationLeafSearchers(
       size_t n_tokens, absl::Span<const int32_t> query_tokens,
       std::shared_ptr<const DistanceMeasure> distance,
@@ -196,7 +204,8 @@ class TreeXHybridSMMD : public SingleMachineSearcherBase<T> {
   }
 
   Status EnableCrowdingImpl(
-      ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+      ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+      ConstSpan<std::string> crowding_dimension_names) final;
   void DisableCrowdingImpl() final;
 
   Status FindNeighborsImpl(const DatapointPtr<T>& query,

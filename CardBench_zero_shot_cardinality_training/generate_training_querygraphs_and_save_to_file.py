@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -399,6 +399,7 @@ def generate_training_querygraphs_and_save_to_file(argv):
       '589_0': 'sample_human_variant_annotation_multi_join.npz',
       '590_0': 'sample_idc_v10_multi_join.npz',
       '591_0': 'sample_open_targets_genetics_multi_join.npz',
+      '567_0': 'sample_samples_multi_join.npz',
       '592_0': 'sample_stackoverflow_multi_join.npz',
       '593_0': 'sample_usfs_fia_multi_join.npz',
       '594_0': 'sample_uspto_oce_claims_multi_join.npz',

@@ -47,7 +47,7 @@ py_library(
     name = "scann_ops_pybind",
     srcs = ["scann_ops_pybind.py"],
     data = [
-        "//scann/scann_ops/cc/python:scann_pybind.so",
+        "//scann/scann_ops/cc/python:scann_pybind",
     ],
     deps = [
         ":scann_builder",

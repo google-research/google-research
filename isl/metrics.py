@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -86,7 +86,7 @@ def visulize_tsne(X, perplexity=[5, 30, 50, 100]):
         random_state=0,
         perplexity=perplexity,
         learning_rate='auto',
-        n_iter=5000)
+        max_iter=5000)
     Y = tsne.fit_transform(X)
     ax.scatter(Y[:, 0], Y[:, 1])
 

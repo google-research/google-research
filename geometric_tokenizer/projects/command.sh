@@ -1,17 +1,3 @@
-# Copyright 2024 The Google Research Authors.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
 # CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=7 python tools/train.py ./projects/configs/myconfig_nusc/repro_minkunet/10sweeps/minkunetvfe_minkunethead_nusc_nosyncbn_sgd_highres.py --seed 0 --debug #--resume-from "/home/kevintw/code/trans3D/OccFormer/work_dirs/transfer/minkunetvfe_minkunethead_nusc_nosyncbn_sgd_idxmap/train_on_trainset/best_nuScenes_lidarseg_mean_epoch_24.pth"
 # CUDA_LAUNCH_BLOCKING=1 CUDA_VISIBLE_DEVICES=7 python tools/train.py ./projects/configs/myconfig_nusc/repro_minkunet/minkunetvfe_minkunethead_nusc_nosyncbn_sgd_highres2048_64.py --seed 0 --debug #--resume-from "/home/kevintw/code/trans3D/OccFormer/work_dirs/transfer/minkunetvfe_minkunethead_nusc_nosyncbn_sgd_idxmap/train_on_trainset/best_nuScenes_lidarseg_mean_epoch_24.pth"
 # CUDA_LAUNCH_BLOCKING=1 python tools/train.py ./projects/configs/myconfig_nusc/repro_minkunet/minkunetvfe_minkunethead_nusc_nosyncbn_sgd_highres2048_160.py --seed 0 --debug

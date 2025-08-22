@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -41,6 +41,8 @@ class PcaProjection : public Projection<T> {
 
   void Create(DenseDataset<float> eigenvectors);
 
+  void Create(std::shared_ptr<DenseDataset<float>> eigenvectors);
+
   Status Create(const SerializedProjection& serialized_projection);
 
   void RandomRotateProjectionMatrix();
@@ -57,6 +59,9 @@ class PcaProjection : public Projection<T> {
 
   std::optional<SerializedProjection> SerializeToProto() const final;
 
+  Status CompressToBFloat16();
+  Status CompressToFixed8();
+
  private:
   template <typename FloatT>
   Status ProjectInputImpl(const DatapointPtr<T>& input,
@@ -65,6 +70,9 @@ class PcaProjection : public Projection<T> {
   int32_t input_dims_;
   int32_t projected_dims_;
   shared_ptr<const DenseDataset<float>> pca_vecs_;
+  unique_ptr<DenseDataset<int16_t>> bfloat16_pca_vecs_;
+  vector<float> inv_fixed8_multipliers_;
+  unique_ptr<DenseDataset<int8_t>> fixed8_pca_vecs_;
 };
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, PcaProjection);

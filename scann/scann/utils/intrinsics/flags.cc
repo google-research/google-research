@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -14,6 +14,8 @@
 
 #include "scann/utils/intrinsics/flags.h"
 
+#include <sys/syscall.h>
+
 #include "hwy/highway.h"
 #include "hwy/targets.h"
 #include "scann/oss_wrappers/scann_cpu_info.h"
@@ -21,13 +23,20 @@
 ABSL_FLAG(bool, ignore_avx512, false,
           "Ignore the presence of AVX512 instructions when assigning "
           "function pointers at ScaNN startup.  Useful for testing and "
-          "debugging.  NOTE:  AVX512 support is currently experimental and "
-          "therefore disabled by default.");
+          "debugging.");
 
 ABSL_FLAG(bool, ignore_avx2, false,
           "Ignore the presence of AVX2/FMA instructions when assigning "
           "function pointers at ScaNN startup.  Useful for testing and "
           "debugging.");
+
+ABSL_FLAG(bool, ignore_avx512_vnni, false,
+          "Ignore AVX512_VNNI.  NOTE:  AVX512_VNNI support is currently "
+          "experimental and therefore disabled by default.");
+
+ABSL_FLAG(bool, ignore_amx, false,
+          "Ignore AMX.  NOTE:  AMX support is currently experimental and "
+          "therefore disabled by default.");
 
 ABSL_RETIRED_FLAG(bool, ignore_avx, false, "Ignore AVX1.");
 
@@ -40,17 +49,54 @@ bool should_use_avx2 = port::TestCPUFeature(port::AVX2);
 bool should_use_avx512 = port::TestCPUFeature(port::AVX512F) &&
                          port::TestCPUFeature(port::AVX512DQ) &&
                          port::TestCPUFeature(port::AVX512BW);
+bool should_use_avx512_vnni =
+    should_use_avx512 && port::TestCPUFeature(port::AVX512_VNNI);
+bool should_use_amx = should_use_avx512_vnni &&
+                      port::TestCPUFeature(port::AVX512_BF16) &&
+                      port::TestCPUFeature(port::AVX512IFMA) &&
+                      port::TestCPUFeature(port::AVX512VBMI) &&
+                      port::TestCPUFeature(port::AMX_INT8) &&
+                      port::TestCPUFeature(port::AMX_BF16) &&
+                      port::TestCPUFeature(port::AMX_TILE);
+
+bool TryEnableAmx() {
+#ifdef __x86_64__
+
+  constexpr int ARCH_REQ_XCOMP_PERM = 0x1023;
+  constexpr int XFEATURE_XTILEDATA = 18;
+  int rc = syscall(SYS_arch_prctl, ARCH_REQ_XCOMP_PERM, XFEATURE_XTILEDATA);
+  bool success = (rc == 0);
+  if (!success) {
+    LOG(ERROR) << "Failed to enable AMX: " << rc;
+  }
+  return success;
+#else
+  return false;
+#endif
+}
 
 }  // namespace flags_internal
 
 ScopedPlatformOverride::ScopedPlatformOverride(PlatformGeneration generation) {
   original_avx2_ = flags_internal::should_use_avx2;
   original_avx512_ = flags_internal::should_use_avx512;
+  original_avx512_vnni_ = flags_internal::should_use_avx512_vnni;
+  original_amx_ = flags_internal::should_use_amx;
   flags_internal::should_use_avx2 = false;
   flags_internal::should_use_avx512 = false;
+  flags_internal::should_use_avx512_vnni = false;
+  flags_internal::should_use_amx = false;
 
   hwy::DisableTargets(0);
   switch (generation) {
+    case kSapphireRapidsAmx:
+      flags_internal::should_use_amx = true;
+      ABSL_FALLTHROUGH_INTENDED;
+
+    case kCascadelakeAvx512Vnni:
+      flags_internal::should_use_avx512_vnni = true;
+      ABSL_FALLTHROUGH_INTENDED;
+
     case kSkylakeAvx512:
       flags_internal::should_use_avx512 = true;
       ABSL_FALLTHROUGH_INTENDED;
@@ -75,6 +121,8 @@ ScopedPlatformOverride::ScopedPlatformOverride(PlatformGeneration generation) {
 ScopedPlatformOverride::~ScopedPlatformOverride() {
   flags_internal::should_use_avx2 = original_avx2_;
   flags_internal::should_use_avx512 = original_avx512_;
+  flags_internal::should_use_avx512_vnni = original_avx512_vnni_;
+  flags_internal::should_use_amx = original_amx_;
 }
 
 bool ScopedPlatformOverride::IsSupported() {
@@ -86,6 +134,18 @@ bool ScopedPlatformOverride::IsSupported() {
   }
   if (flags_internal::should_use_avx2 && !port::TestCPUFeature(port::AVX2)) {
     LOG(WARNING) << "The CPU lacks AVX2 support! (skipping some tests)";
+    return false;
+  }
+  if (flags_internal::should_use_avx512_vnni &&
+      !port::TestCPUFeature(port::AVX512_VNNI)) {
+    LOG(WARNING) << "The CPU lacks AVX512_VNNI support! (skipping some tests)";
+    return false;
+  }
+  if (flags_internal::should_use_amx &&
+      !(port::TestCPUFeature(port::AMX_INT8) &&
+        port::TestCPUFeature(port::AMX_BF16) &&
+        port::TestCPUFeature(port::AMX_TILE))) {
+    LOG(WARNING) << "The CPU lacks AMX support! (skipping some tests)";
     return false;
   }
   return true;

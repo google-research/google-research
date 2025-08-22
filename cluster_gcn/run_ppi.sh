@@ -1,4 +1,5 @@
-# Copyright 2024 The Google Research Authors.
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,6 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 
 python train.py --dataset ppi --data_prefix ./data/ --multilabel --num_layers 5 --num_clusters 50 --bsize 1 --layernorm --precalc --hidden1 2048 --dropout 0.2 --weight_decay 0  --early_stopping 1000 --num_clusters_val 2 --num_clusters_test 1 --epochs 400 --save_name ./ppimodel --diag_lambda 1

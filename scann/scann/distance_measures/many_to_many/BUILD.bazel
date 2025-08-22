@@ -1,3 +1,7 @@
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -6,15 +10,20 @@ package(
 cc_library(
     name = "many_to_many_templates",
     hdrs = ["many_to_many_templates.h"],
-    textual_hdrs = ["many_to_many_impl.inc"],
+    textual_hdrs = [
+        "many_to_many_impl.inc",
+        "many_to_many_sfp8_impl.inc",
+    ],
     deps = [
         ":fp8_transposed",
         ":many_to_many_common",
         ":many_to_many_flags",
+        ":sfp8_transposed",
         "//scann/data_format:dataset",
         "//scann/distance_measures:distance_measure_base",
         "//scann/distance_measures/one_to_many",
         "//scann/distance_measures/one_to_one:dot_product",
+        "//scann/utils:common",
         "//scann/utils:types",
         "//scann/utils/intrinsics:fma",
         "//scann/utils/intrinsics:highway",
@@ -46,20 +55,14 @@ cc_library(
     textual_hdrs = ["many_to_many_impl.inc"],
     deps = [
         ":many_to_many_common",
-        ":many_to_many_flags",
         ":many_to_many_templates",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
-        "//scann/distance_measures/one_to_many",
         "//scann/distance_measures/one_to_one:dot_product",
         "//scann/utils:common",
         "//scann/utils:fast_top_neighbors",
         "//scann/utils:types",
-        "//scann/utils/intrinsics:fma",
-        "//scann/utils/intrinsics:highway",
-        "//scann/utils/intrinsics:horizontal_sum",
-        "//scann/utils/intrinsics:simd",
     ],
 )
 
@@ -71,22 +74,22 @@ cc_library(
     srcs = [
         "many_to_many_fixed8.cc",
         "many_to_many_orthogonality_amplification.cc",
+        "many_to_many_sfp8.cc",
     ],
     hdrs = [
         "many_to_many.h",
-        "many_to_many_templates.h",
     ],
     copts = [
         "-O3",
         "-Wno-pass-failed",
     ],
-    textual_hdrs = ["many_to_many_impl.inc"],
     deps = [
         ":fp8_transposed",
         ":many_to_many_common",
         ":many_to_many_flags",
         ":many_to_many_floating_point",  # buildcleaner: export
         ":many_to_many_templates",
+        ":sfp8_transposed",
         "//scann/data_format:datapoint",
         "//scann/data_format:dataset",
         "//scann/distance_measures",
@@ -131,12 +134,45 @@ cc_library(
 )
 
 cc_library(
+    name = "int8_tile",
+    hdrs = ["int8_tile.h"],
+    textual_hdrs = [
+        "int8_tile.inc",
+        "int8_tile_codec.inc",
+    ],
+    deps = [
+        "//scann/data_format:datapoint",
+        "//scann/utils:common",
+        "//scann/utils/intrinsics:simd",
+    ],
+)
+
+cc_library(
+    name = "sfp8_transposed",
+    srcs = ["sfp8_transposed.cc"],
+    hdrs = ["sfp8_transposed.h"],
+    deps = [
+        ":int8_tile",
+        "//scann/data_format:datapoint",
+        "//scann/data_format:dataset",
+        "//scann/distance_measures/one_to_many:scale_encoding_cc_proto",
+        "//scann/utils:common",
+        "//scann/utils:scale_encoding_helpers",
+        "//scann/utils:types",
+        "//scann/utils/intrinsics:flags",
+        "@com_google_absl//absl/algorithm:container",
+    ],
+)
+
+cc_library(
     name = "fp8_transposed",
     srcs = ["fp8_transposed.cc"],
     hdrs = ["fp8_transposed.h"],
     deps = [
         "//scann/data_format:dataset",
+        "//scann/utils:common",
         "//scann/utils:types",
+        "//scann/utils/intrinsics:fallback",
         "//scann/utils/intrinsics:flags",
         "//scann/utils/intrinsics:highway",
     ],

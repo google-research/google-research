@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -173,27 +173,31 @@ def make_eval_xc_mgga(xc_fun_unpolarized, xc_fun_polarized, params=None):
     xc_fun_unpolarized = functools.partial(xc_fun_unpolarized, **params)
     xc_fun_polarized = functools.partial(xc_fun_polarized, **params)
 
-  def eval_xc(xc_code,
-              rho_and_derivs,
-              spin=0,
-              relativity=0,
-              deriv=1,
-              verbose=None):
+  def eval_xc(
+      xc_code,
+      rho_and_derivs,
+      spin=0,
+      relativity=0,
+      deriv=1,
+      omega=None,
+      verbose=None,
+  ):
     """Evaluates exchange-correlation energy densities and derivatives.
 
     Args:
       xc_code: A dummy argument, not used.
-      rho_and_derivs: Float numpy array with shape (6, num_grids) for spin
-        unpolarized case; 2-tuple of float numpy array with shape (6, num_grids)
-        for spin polarized case. Electron density and its derivatives. For
-        spin unpolarized case, the 6 subarrays represent (density, gradient_x,
-        gradient_y, gradient_z, laplacian, tau); for spin polarized case, the
-        spin up and spin down densities and derivatives are each represented
-        with a (6, num_grids) array.
+      rho_and_derivs: Float numpy array with shape (5, num_grids) for spin
+        unpolarized case; 2-tuple of float numpy array with shape (5, num_grids)
+        for spin polarized case. Electron density and its derivatives. For spin
+        unpolarized case, the 5 subarrays represent (density, gradient_x,
+        gradient_y, gradient_z, tau); for spin polarized case, the spin up and
+        spin down densities and derivatives are each represented with a (5,
+        num_grids) array.
       spin: Integer, 0 for spin unpolarized and 1 for spin polarized
         calculations.
       relativity: A dummy argument, not used.
       deriv: Integer, the order of derivatives evaluated for XC energy density.
+      omega: A dummy argument, not used.
       verbose: A dummy argument, not used.
 
     Returns:
@@ -209,13 +213,13 @@ def make_eval_xc_mgga(xc_fun_unpolarized, xc_fun_polarized, params=None):
       NotImplementedError: If derivative order higher than one is requested
         (deriv > 1).
     """
-    del xc_code, relativity, verbose
+    del xc_code, relativity, omega, verbose
 
     if deriv != 1:
       raise NotImplementedError('Only deriv = 1 is implemented.')
 
     if spin == 0:
-      rho, grad_x, grad_y, grad_z, _, tau = rho_and_derivs
+      rho, grad_x, grad_y, grad_z, tau = rho_and_derivs
       sigma = grad_x**2 + grad_y**2 + grad_z**2
 
       e_xc, grads = jax.jit(jax.vmap(jax.value_and_grad(
@@ -223,8 +227,8 @@ def make_eval_xc_mgga(xc_fun_unpolarized, xc_fun_polarized, params=None):
       vrho, vsigma, vtau = grads
 
     else:
-      rhoa, grad_x_a, grad_y_a, grad_z_a, _, tau_a = rho_and_derivs[0]
-      rhob, grad_x_b, grad_y_b, grad_z_b, _, tau_b = rho_and_derivs[1]
+      rhoa, grad_x_a, grad_y_a, grad_z_a, tau_a = rho_and_derivs[0]
+      rhob, grad_x_b, grad_y_b, grad_z_b, tau_b = rho_and_derivs[1]
       rho = rhoa + rhob
       sigma_aa = grad_x_a**2 + grad_y_a**2 + grad_z_a**2
       sigma_ab = grad_x_a * grad_x_b + grad_y_a * grad_y_b + grad_z_a * grad_z_b
@@ -240,10 +244,11 @@ def make_eval_xc_mgga(xc_fun_unpolarized, xc_fun_polarized, params=None):
       vtau = np.stack((vtau_a, vtau_b), axis=1)
 
     eps_xc = e_xc / (rho + utils.EPSILON)
-    return (_to_numpy(eps_xc),
-            (_to_numpy(vrho), _to_numpy(vsigma),
-             np.zeros_like(vtau), _to_numpy(vtau)),
-            None,
-            None)
+    return (
+        _to_numpy(eps_xc),
+        (_to_numpy(vrho), _to_numpy(vsigma), _to_numpy(vtau)),
+        None,
+        None,
+    )
 
   return eval_xc

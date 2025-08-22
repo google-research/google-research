@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,21 +17,22 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 
 #include "scann/data_format/datapoint.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
 
-template <typename T>
-void ComputeNormalizedResidual(DatapointPtr<T> dptr,
-                               DatapointPtr<float> centroid,
+template <typename T, typename C>
+void ComputeNormalizedResidual(DatapointPtr<T> dptr, DatapointPtr<C> centroid,
                                MutableSpan<float> result) {
   DCHECK_EQ(dptr.dimensionality(), centroid.dimensionality());
   DCHECK_EQ(centroid.dimensionality(), result.size());
   double sqnorm = 0.0;
   for (size_t i : Seq(dptr.dimensionality())) {
-    result[i] = static_cast<float>(dptr.values()[i]) - centroid.values()[i];
+    result[i] = static_cast<float>(static_cast<double>(dptr.values()[i])) -
+                static_cast<double>(centroid.values()[i]);
     sqnorm += double{result[i]} * double{result[i]};
   }
   if (sqnorm < 1e-7) {
@@ -42,6 +43,28 @@ void ComputeNormalizedResidual(DatapointPtr<T> dptr,
   for (float& f : result) {
     f *= inv_norm;
   }
+}
+
+template <typename T, typename C>
+double DenseOrthogonalityAmplificationDistance(
+    DatapointPtr<T> dptr, DatapointPtr<C> centroid,
+    DatapointPtr<float> normalized_residual, float lambda) {
+  DCHECK_EQ(dptr.dimensionality(), centroid.dimensionality());
+  DCHECK_EQ(centroid.dimensionality(), normalized_residual.dimensionality());
+  DCHECK_GE(lambda, 0.0);
+  DCHECK(dptr.IsDense());
+  DCHECK(centroid.IsDense());
+  DCHECK(normalized_residual.IsDense());
+
+  double term1 = 0.0;
+  double term2 = 0.0;
+  for (size_t i : Seq(dptr.nonzero_entries())) {
+    const double diff = static_cast<double>(dptr.values()[i]) -
+                        static_cast<double>(centroid.values()[i]);
+    term1 += diff * diff;
+    term2 += diff * static_cast<double>(normalized_residual.values()[i]);
+  }
+  return term1 + lambda * term2 * term2;
 }
 
 }  // namespace research_scann

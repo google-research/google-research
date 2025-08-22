@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ from acme.jax import utils
 from acme.utils import counting
 from acme.utils import loggers
 import jax
-from jax.experimental import host_callback
 import jax.numpy as jnp
 from jax.scipy.special import logsumexp as jax_logsumexp
 import numpy as np

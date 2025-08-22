@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -118,46 +118,10 @@ struct QueryerOptions {
 
 namespace ai = ::research_scann::asymmetric_hashing_internal;
 
-template <typename T>
-class AsymmetricQueryer {
+class AsymmetricQueryerBase {
  public:
   using IdentityPostprocessFunctor =
       asymmetric_hashing_internal::IdentityPostprocessFunctor;
-
-  AsymmetricQueryer(shared_ptr<const ChunkingProjection<T>> projector,
-                    shared_ptr<const DistanceMeasure> lookup_distance,
-                    shared_ptr<const Model<T>> model);
-
-  using FixedPointLUTConversionOptions =
-      AsymmetricHasherConfig::FixedPointLUTConversionOptions;
-
-  template <typename LookupElement>
-  StatusOr<LookupTable> CreateLookupTable(
-      const DatapointPtr<T>& query, const DistanceMeasure& lookup_distance,
-      FixedPointLUTConversionOptions float_int_conversion_options =
-          FixedPointLUTConversionOptions()) const;
-
-  template <typename LookupElement>
-  StatusOr<LookupTable> CreateLookupTable(
-      const DatapointPtr<T>& query,
-      FixedPointLUTConversionOptions float_int_conversion_options =
-          FixedPointLUTConversionOptions()) const {
-    DCHECK(lookup_distance_);
-    return CreateLookupTable<LookupElement>(query, *lookup_distance_,
-                                            float_int_conversion_options);
-  }
-
-  StatusOr<LookupTable> CreateLookupTable(
-      const DatapointPtr<T>& query,
-      AsymmetricHasherConfig::LookupType lookup_type,
-      FixedPointLUTConversionOptions float_int_conversion_options =
-          FixedPointLUTConversionOptions()) const;
-
-  template <typename TopN, typename Functor = IdentityPostprocessFunctor,
-            typename DatasetView = DefaultDenseDatasetView<uint8_t>>
-  static Status FindApproximateNeighbors(
-      const LookupTable& lookup_table, const SearchParameters& params,
-      QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n);
 
   template <size_t kNumQueries, typename TopN, typename Functor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
@@ -167,30 +131,27 @@ class AsymmetricQueryer {
       QueryerOptions<Functor, DatasetView> querying_options,
       array<TopN*, kNumQueries> top_ns);
 
+  template <typename TopN, typename Functor = IdentityPostprocessFunctor,
+            typename DatasetView = DefaultDenseDatasetView<uint8_t>>
+  static Status FindApproximateNeighbors(
+      const LookupTable& lookup_table, const SearchParameters& params,
+      QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n);
+
   template <typename Functor = IdentityPostprocessFunctor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
   static Status PopulateDistances(
       const LookupTable& lookup_table,
-      QueryerOptions<Functor, DatasetView> querying_options,
+      const QueryerOptions<Functor, DatasetView>& querying_options,
       MutableSpan<pair<DatapointIndex, float>> results);
 
   shared_ptr<const DistanceMeasure> lookup_distance() const {
     return lookup_distance_;
   }
 
-  AsymmetricHasherConfig::QuantizationScheme quantization_scheme() const {
-    return model_->quantization_scheme();
-  }
-
-  size_t num_clusters_per_block() const {
-    return model_->num_clusters_per_block();
-  }
-
-  size_t num_blocks() const { return model_->centers().size(); }
-
-  shared_ptr<const Model<T>> model() const { return model_; }
-
  private:
+  explicit AsymmetricQueryerBase(
+      shared_ptr<const DistanceMeasure> lookup_distance);
+
   template <typename LookupElement, typename TopN,
             typename Functor = IdentityPostprocessFunctor,
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
@@ -218,11 +179,70 @@ class AsymmetricQueryer {
             typename DatasetView = DefaultDenseDatasetView<uint8_t>>
   static Status PopulateDistancesImpl(
       const LookupTable& lookup_table,
-      QueryerOptions<Functor, DatasetView> querying_options,
+      const QueryerOptions<Functor, DatasetView>& querying_options,
       MutableSpan<pair<DatapointIndex, float>> results);
 
-  shared_ptr<const ChunkingProjection<T>> projector_;
   shared_ptr<const DistanceMeasure> lookup_distance_;
+
+  template <typename T>
+  friend class AsymmetricQueryer;
+};
+
+template <typename T>
+class AsymmetricQueryer : public AsymmetricQueryerBase {
+ public:
+  AsymmetricQueryer(shared_ptr<const ChunkingProjection<T>> projector,
+                    shared_ptr<const DistanceMeasure> lookup_distance,
+                    shared_ptr<const Model<T>> model);
+
+  using FixedPointLUTConversionOptions =
+      AsymmetricHasherConfig::FixedPointLUTConversionOptions;
+
+  using AsymmetricQueryerBase::FindApproximateNeighbors;
+  using AsymmetricQueryerBase::FindApproximateNeighborsBatched;
+  using AsymmetricQueryerBase::lookup_distance;
+  using AsymmetricQueryerBase::PopulateDistances;
+
+  template <typename LookupElement>
+  StatusOr<LookupTable> CreateLookupTable(
+      const DatapointPtr<T>& query, const DistanceMeasure& lookup_distance,
+      FixedPointLUTConversionOptions float_int_conversion_options =
+          FixedPointLUTConversionOptions()) const;
+
+  template <typename LookupElement>
+  StatusOr<LookupTable> CreateLookupTable(
+      const DatapointPtr<T>& query,
+      FixedPointLUTConversionOptions float_int_conversion_options =
+          FixedPointLUTConversionOptions()) const {
+    DCHECK(lookup_distance_);
+    return CreateLookupTable<LookupElement>(query, *lookup_distance_,
+                                            float_int_conversion_options);
+  }
+
+  StatusOr<LookupTable> CreateLookupTable(
+      const DatapointPtr<T>& query,
+      AsymmetricHasherConfig::LookupType lookup_type,
+      FixedPointLUTConversionOptions float_int_conversion_options =
+          FixedPointLUTConversionOptions()) const;
+
+  AsymmetricHasherConfig::QuantizationScheme quantization_scheme() const {
+    return model_->quantization_scheme();
+  }
+
+  size_t num_clusters_per_block() const {
+    return model_->num_clusters_per_block();
+  }
+
+  size_t num_blocks() const { return model_->centers().size(); }
+
+  shared_ptr<const Model<T>> model() const { return model_; }
+
+  Projection<T>* initial_projector() const {
+    return projector_->initial_projector();
+  }
+
+ private:
+  shared_ptr<const ChunkingProjection<T>> projector_;
   shared_ptr<const Model<T>> model_;
 };
 
@@ -268,6 +288,7 @@ StatusOr<LookupTable> AsymmetricQueryer<T>::CreateLookupTable(
       auto raw_float_lookup,
       asymmetric_hashing_internal::CreateRawFloatLookupTable(
           query_no_bias, *projector_, lookup_distance, model_->centers(),
+          model_->block_transposed_centers(),
           model_->num_clusters_per_block()));
 
   LookupTable result;
@@ -295,9 +316,8 @@ StatusOr<LookupTable> AsymmetricQueryer<T>::CreateLookupTable(
   return std::move(result);
 }
 
-template <typename T>
 template <typename TopN, typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateNeighbors(
+Status AsymmetricQueryerBase::FindApproximateNeighbors(
     const LookupTable& lookup_table, const SearchParameters& params,
     QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
   DCHECK(top_n);
@@ -428,10 +448,9 @@ Status FindApproxNeighborsFastTopNeighbors(
 
 }  // namespace asymmetric_hashing2_internal
 
-template <typename T>
 template <size_t kNumQueries, typename TopN, typename Functor,
           typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateNeighborsBatched(
+Status AsymmetricQueryerBase::FindApproximateNeighborsBatched(
     array<const LookupTable*, kNumQueries> lookup_tables,
     array<const SearchParameters*, kNumQueries> params,
     QueryerOptions<Functor, DatasetView> querying_options,
@@ -572,10 +591,9 @@ void MoveOrOverwriteFromClone(TopN0* dst, TopN1* src,
 
 }  // namespace asymmetric_hashing2_internal
 
-template <typename T>
 template <typename LookupElement, typename TopN, typename Functor,
           typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
+Status AsymmetricQueryerBase::FindApproximateNeighborsNoLUT16(
     const LookupTable& lookup_table, const SearchParameters& params,
     QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
   const DatasetView* __restrict__ hashed_dataset =
@@ -629,7 +647,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
     PossiblyFixedTopN raw_top_items =
         top_n->template CloneWithAlternateDistanceType<PossiblyFixedDist>();
     SCANN_RETURN_IF_ERROR(
-        AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16Impl(
+        AsymmetricQueryerBase::FindApproximateNeighborsNoLUT16Impl(
             hashed_dataset, num_clusters_per_block, lookup_raw,
             possibly_fixed_point_max_distance, whitelist_or_null,
             querying_options.postprocessing_functor, &raw_top_items));
@@ -641,7 +659,7 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
             querying_options.postprocessing_functor,
             1.0f / lookup_table.fixed_point_multiplier);
     SCANN_RETURN_IF_ERROR(
-        AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16Impl(
+        AsymmetricQueryerBase::FindApproximateNeighborsNoLUT16Impl(
             hashed_dataset, num_clusters_per_block, lookup_raw,
             params.pre_reordering_epsilon(), whitelist_or_null,
             postprocess_with_float_conversion, top_n));
@@ -649,10 +667,9 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16(
   return OkStatus();
 }
 
-template <typename T>
 template <typename LookupElement, typename MaxDist, typename TopN,
           typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16Impl(
+Status AsymmetricQueryerBase::FindApproximateNeighborsNoLUT16Impl(
     const DatasetView* __restrict__ hashed_dataset,
     DimensionIndex num_clusters_per_block, ConstSpan<LookupElement> lookup_raw,
     MaxDist max_dist, const RestrictAllowlist* whitelist_or_null,
@@ -662,33 +679,17 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsNoLUT16Impl(
   if (!whitelist_or_null) {
     ai::UnrestrictedIndexIterator<6, TopNFunctor> it(hashed_dataset->size(),
                                                      top_n_functor);
-    auto unrestricted_ptr =
-        &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-            DatasetView, LookupElement, 0, decltype(it)>;
-    if (num_clusters_per_block == 256) {
-      unrestricted_ptr =
-          &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-              DatasetView, LookupElement, 256, decltype(it)>;
-    } else if (num_clusters_per_block == 128) {
-      unrestricted_ptr =
-          &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-              DatasetView, LookupElement, 128, decltype(it)>;
-    } else if (num_clusters_per_block == 16) {
-      unrestricted_ptr =
-          &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-              DatasetView, LookupElement, 16, decltype(it)>;
-    }
-
-    (*unrestricted_ptr)(lookup_raw, num_clusters_per_block, hashed_dataset, it);
+    ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+        DatasetView, LookupElement, decltype(it)>(
+        lookup_raw, num_clusters_per_block, hashed_dataset, it);
   } else {
     return UnimplementedError("Restricts aren't supported.");
   }
   return OkStatus();
 }
 
-template <typename T>
 template <typename TopN, typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::FindApproximateNeighborsForceLUT16(
+Status AsymmetricQueryerBase::FindApproximateNeighborsForceLUT16(
     const LookupTable& lookup_table, const SearchParameters& params,
     QueryerOptions<Functor, DatasetView> querying_options, TopN* top_n) {
   DCHECK(!lookup_table.int8_lookup_table.empty());
@@ -755,11 +756,10 @@ Status AsymmetricQueryer<T>::FindApproximateNeighborsForceLUT16(
   return OkStatus();
 }
 
-template <typename T>
 template <typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::PopulateDistances(
+Status AsymmetricQueryerBase::PopulateDistances(
     const LookupTable& lookup_table,
-    QueryerOptions<Functor, DatasetView> querying_options,
+    const QueryerOptions<Functor, DatasetView>& querying_options,
     MutableSpan<pair<DatapointIndex, float>> results) {
   if (static_cast<int>(lookup_table.float_lookup_table.empty()) +
           static_cast<int>(lookup_table.int16_lookup_table.empty()) +
@@ -778,11 +778,10 @@ Status AsymmetricQueryer<T>::PopulateDistances(
   return (*impl_ptr)(lookup_table, querying_options, results);
 }
 
-template <typename T>
 template <typename LookupElement, typename Functor, typename DatasetView>
-Status AsymmetricQueryer<T>::PopulateDistancesImpl(
+Status AsymmetricQueryerBase::PopulateDistancesImpl(
     const LookupTable& lookup_table,
-    QueryerOptions<Functor, DatasetView> querying_options,
+    const QueryerOptions<Functor, DatasetView>& querying_options,
     MutableSpan<pair<DatapointIndex, float>> results) {
   const ConstSpan<LookupElement> lookup_raw =
       GetRawLookupTable<LookupElement>(lookup_table);
@@ -794,6 +793,7 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
   constexpr DimensionIndex kMaxInt16Blocks =
       numeric_limits<int32_t>::min() / numeric_limits<int16_t>::min();
 
+  DCHECK(hashed_dataset);
   const size_t num_database_points = hashed_dataset->size();
   if (num_database_points == 0) {
     DCHECK(results.empty());
@@ -832,28 +832,15 @@ Status AsymmetricQueryer<T>::PopulateDistancesImpl(
   const size_t total_l2_bytes_required = bytes_per_unroll * 2 + lut_bytes;
   const bool should_prefetch =
       total_l2_bytes_required <= kAssumedL2CacheSize / 2;
-
-  auto fp =
-      should_prefetch
-          ? &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-                DatasetView, LookupElement, 0, decltype(it), true>
-          : &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-                DatasetView, LookupElement, 0, decltype(it), false>;
-  if (num_clusters_per_block == 256) {
-    fp = should_prefetch
-             ? &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-                   DatasetView, LookupElement, 256, decltype(it), true>
-             : &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-                   DatasetView, LookupElement, 256, decltype(it), false>;
-  } else if (num_clusters_per_block == 128) {
-    fp = should_prefetch
-             ? &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-                   DatasetView, LookupElement, 128, decltype(it), true>
-             : &ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
-                   DatasetView, LookupElement, 128, decltype(it), false>;
+  if (should_prefetch) {
+    ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+        DatasetView, LookupElement, decltype(it), true>(
+        lookup_raw, num_clusters_per_block, hashed_dataset, it);
+  } else {
+    ai::GetNeighborsViaAsymmetricDistanceWithCompileTimeNumCenters<
+        DatasetView, LookupElement, decltype(it), false>(
+        lookup_raw, num_clusters_per_block, hashed_dataset, it);
   }
-
-  (*fp)(lookup_raw, num_clusters_per_block, hashed_dataset, it);
   if (!IsFloatingType<LookupElement>() && !results.empty()) {
     const float inv_mul = 1.0 / lookup_table.fixed_point_multiplier;
     for (auto& elem : results) {

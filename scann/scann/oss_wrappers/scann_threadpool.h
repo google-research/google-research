@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,8 +18,8 @@
 #include <functional>
 #include <memory>
 
+#include "Eigen/ThreadPool"
 #include "absl/strings/string_view.h"
-#include "unsupported/Eigen/CXX11/ThreadPool"
 
 namespace research_scann {
 

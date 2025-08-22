@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -56,7 +56,7 @@ class Util:
         continue
       if omit and f.full_name in omit:
         continue
-      if f.label == descriptor.FieldDescriptor.LABEL_REPEATED:
+      if f.is_repeated:
         p.Define(f.name, [], desc)
       elif f.type == descriptor.FieldDescriptor.TYPE_MESSAGE:
         p.Define(f.name, Util.CreateParamsForMessage(f.message_type, omit=omit),
@@ -84,14 +84,14 @@ class Util:
         continue
       field_descriptor = msg_descriptor.fields_by_name[key]
       if field_descriptor.type == descriptor.FieldDescriptor.TYPE_MESSAGE:
-        if (field_descriptor.label == descriptor.FieldDescriptor.LABEL_REPEATED
+        if (field_descriptor.is_repeated
            ):
           for nested_hparams in val:
             Util.CreateMessageForParams(nested_hparams, getattr(msg, key).add())
         else:
           Util.CreateMessageForParams(val, getattr(msg, key))
       else:
-        if (field_descriptor.label == descriptor.FieldDescriptor.LABEL_REPEATED
+        if (field_descriptor.is_repeated
            ):
           if val is not None:
             getattr(msg, key).extend(val)

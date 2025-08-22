@@ -1,6 +1,10 @@
 # This directory contains code for restricts, which filter results returned by ScaNN based on
 # Boolean logic.
 
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],

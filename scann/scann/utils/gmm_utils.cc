@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -507,21 +507,19 @@ vector<pair<DatapointIndex, double>> UnbalancedPartitionAssignment(
 
 vector<pair<DatapointIndex, double>> UnbalancedFloat32PartitionAssignment(
     GmmUtilsImplInterface* impl, const DistanceMeasure& distance,
-    const DenseDataset<double>& centers, ThreadPool* pool) {
+    const DenseDataset<double>& centers, ThreadPool* pool,
+    DatapointIndex first_n_centroids) {
   vector<pair<DatapointIndex, double>> top1_results(impl->size());
   DenseDataset<float> centers_fp32;
-  centers.ConvertType(&centers_fp32);
+  centers.ConvertType(&centers_fp32, first_n_centroids);
 
   impl->IterateDataset(
       pool,
       [&](size_t offset, DefaultDenseDatasetView<float> dataset_batch)
           SCANN_INLINE_LAMBDA {
-            DCHECK(&dataset_batch);
-            DCHECK(&centers);
             DCHECK_GT(dataset_batch.size(), 0);
             DCHECK_GT(centers.size(), 0);
             DCHECK_EQ(centers.dimensionality(), dataset_batch.dimensionality());
-            DCHECK(&distance);
             DCHECK(!distance.name().empty());
             DCHECK_OK(VerifyAllFinite(dataset_batch.data()));
             DCHECK_OK(VerifyAllFinite(centers.data()));
@@ -852,10 +850,16 @@ GmmUtils::ComputeKmeansClustering(
         top1_results =
             UnbalancedPartitionAssignment(impl, *distance_, centers, pool);
         break;
-      case GmmUtils::Options::UNBALANCED_FLOAT32:
-        top1_results = UnbalancedFloat32PartitionAssignment(impl, *distance_,
-                                                            centers, pool);
+      case GmmUtils::Options::UNBALANCED_FLOAT32: {
+        int first_n_centroids = centers.size();
+        bool last_iter = iteration == opts_.max_iterations;
+        if (kmeans_opts.first_n_centroids.has_value() && last_iter) {
+          first_n_centroids = *kmeans_opts.first_n_centroids;
+        }
+        top1_results = UnbalancedFloat32PartitionAssignment(
+            impl, *distance_, centers, pool, first_n_centroids);
         break;
+      }
       case GmmUtils::Options::GREEDY_BALANCED:
       case GmmUtils::Options::MIN_COST_MAX_FLOW:
         LOG(ERROR) << "Unsupported partition_assignment_type.";
@@ -911,9 +915,19 @@ GmmUtils::ComputeKmeansClustering(
     }
   }
 
+  int first_n_centroids = num_clusters;
+  if (kmeans_opts.first_n_centroids.has_value()) {
+    first_n_centroids = *kmeans_opts.first_n_centroids;
+    SCANN_ASSIGN_OR_RETURN(auto mutator, centers.GetMutator());
+    int64_t orig_num_centers = centers.size();
+    for (int64_t i = orig_num_centers - 1; i >= first_n_centroids; --i) {
+      SCANN_RETURN_IF_ERROR(mutator->RemoveDatapoint(i));
+    }
+    SCANN_RET_CHECK_EQ(centers.size(), first_n_centroids);
+  }
   if (kmeans_opts.final_partitions) {
-    vector<vector<DatapointIndex>> partitions(num_clusters);
-    for (size_t c : Seq(num_clusters)) {
+    vector<vector<DatapointIndex>> partitions(centers.size());
+    for (size_t c : Seq(centers.size())) {
       partitions[c].reserve(partition_sizes[c]);
     }
 

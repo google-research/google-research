@@ -1,5 +1,3 @@
-load("@mediapipe//mediapipe/framework/port:build_config.bzl", "mediapipe_proto_library")
-
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
@@ -342,7 +340,7 @@ cc_binary(
         "@riegeli//riegeli/bytes:fd_reader",
         "@riegeli//riegeli/bytes:fd_writer",
         "@riegeli//riegeli/bytes:read_all",
-        "@riegeli//riegeli/messages:text_parse",
+        "@riegeli//riegeli/messages:text_parse_message",
         "@riegeli//riegeli/records:record_reader",
         "@riegeli//riegeli/records:record_writer",
     ],

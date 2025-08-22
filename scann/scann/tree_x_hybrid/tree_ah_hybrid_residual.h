@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -173,7 +173,8 @@ class TreeAHHybridResidual final : public SingleMachineSearcherBase<float> {
       MutableSpan<NNResultsVector> results) const final;
 
   Status EnableCrowdingImpl(
-      ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+      ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+      ConstSpan<std::string> crowding_dimension_names) final;
   void DisableCrowdingImpl() final;
 
  private:

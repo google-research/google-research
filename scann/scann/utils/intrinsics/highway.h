@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -22,17 +22,9 @@
 #define HWY_DISABLED_TARGETS HWY_ALL_SVE
 #endif
 
-#include <algorithm>
-#include <cstdint>
-#include <utility>
-
 #include "hwy/highway.h"
-#include "scann/utils/index_sequence.h"
-#include "scann/utils/intrinsics/attributes.h"
-#include "scann/utils/intrinsics/flags.h"
-#include "scann/utils/types.h"
 
-#if HWY_HAVE_SCALABLE == 1
+#if !HWY_HAVE_CONSTEXPR_LANES
 
 #include "scann/utils/intrinsics/fallback.h"
 
@@ -43,6 +35,17 @@ namespace highway = fallback;
 }
 
 #else
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <type_traits>
+#include <utility>
+
+#include "scann/utils/common.h"
+#include "scann/utils/index_sequence.h"
+#include "scann/utils/intrinsics/attributes.h"
+#include "scann/utils/intrinsics/flags.h"
 
 HWY_BEFORE_NAMESPACE();
 namespace research_scann {
@@ -530,7 +533,7 @@ class Highway<T, kNumRegistersInferred> {
 
     constexpr bool kCanUseBitsFromMask = (HWY_TARGET == HWY_SSE4) ||
                                          (HWY_TARGET == HWY_AVX2) ||
-                                         (HWY_TARGET & HWY_ALL_NEON);
+                                         (HWY_TARGET_IS_NEON);
     if constexpr (kCanUseBitsFromMask) {
       using ResultT = std::conditional_t<kLanes <= 32, uint32_t, uint64_t>;
       return static_cast<ResultT>(

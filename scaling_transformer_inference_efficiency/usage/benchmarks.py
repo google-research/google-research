@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -1310,7 +1310,11 @@ def benchmark_one(
     # Aiming to implement in external xprof next week
     if jax.config.read('jax_xla_backend') == 'pathways':
       with pathways.xprof_trace(
-          block_until_start=True, devices=jax.devices()[:1]
+          trace_options=xprof_service_pb2.XprofRequest.TraceOptions(
+              enable_python_tracer=True,
+          ),
+          block_until_start=True,
+          devices=jax.devices()[:1],
       ) as url:
         run()
       session_id = url[0].split('/trace_viewer/')[-1]

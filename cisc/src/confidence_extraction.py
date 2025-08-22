@@ -1,0 +1,208 @@
+# coding=utf-8
+# Copyright 2025 The Google Research Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Holds various types of configuration for extracting the confidence."""
+
+import dataclasses
+import enum
+from typing import Sequence
+from cisc.src.runners import runner as runner_lib
+
+
+@dataclasses.dataclass()
+class ConfidenceExtractionConfig:
+  """Holds the configuration for extracting the confidence."""
+
+  # The prompt used to extract the confidence. E.g., "Now I will rate my binary
+  # confidence in the proposed answer as either 0 or 1. Proposed confidence:
+  # (X)."
+  prompt: str
+  # Confidence options to use for the likelihoods.
+  confidence_options: list[int] | list[str] | None = None
+  # The temperature to use for the model. There is no real reason to put here
+  # a non-zero temperature, as we just want to look at the confidence value.
+  temperature: float = 0.0
+  # The number of tokens to generate from the model. The default is 10, is
+  # enough for most cases (usally we just need to get a single digit)
+  num_tokens: int = 10
+  # Verbal end of sequence pattern to use for splitting the model output.
+  verbal_eos_pattern: str = ")"
+
+
+def ints_to_strs(int_list):
+  return [str(x) for x in int_list]
+
+
+@enum.unique
+class ConfidenceExtractionType(enum.Enum):
+  """The type of confidence extraction to use."""
+
+  NONE = ConfidenceExtractionConfig(
+      prompt="",
+      confidence_options=None,
+  )
+
+  BINARY = ConfidenceExtractionConfig(
+      prompt="""
+Now I will rate my confidence in the proposed answer as either 0 or 1.
+Proposed confidence: (""",
+      confidence_options=ints_to_strs([0, 1]),
+  )
+
+  BINARY_FT = ConfidenceExtractionConfig(
+      prompt="""
+Do you believe the proposed answer is accurate? Select either
+  (F) if you think the proposed answer may be incorrect
+  (T) if you are certain the proposed answer is correct
+Selection: (""",
+      confidence_options=["F", "T"],
+  )
+
+  BINARY_FT01 = ConfidenceExtractionConfig(
+      prompt="""
+Do you believe the proposed answer is accurate? Select either
+  (0) if you think the proposed answer may be incorrect
+  (1) if you are certain the proposed answer is correct
+Selection: (""",
+      confidence_options=["0", "1"],
+  )
+
+  BINARY_MP = ConfidenceExtractionConfig(
+      prompt="""
+Do you believe the proposed answer is accurate? Select either
+  (-) if you think the proposed answer may be incorrect
+  (+) if you are certain the proposed answer is correct
+Selection: (""",
+      confidence_options=["-", "+"],
+  )
+
+  HUNDRED = ConfidenceExtractionConfig(
+      prompt="""
+Now I will rate my confidence in the proposed answer on a scale of 0-100.
+Proposed confidence: (""",
+      confidence_options=ints_to_strs(range(0, 101)),
+  )
+
+
+@dataclasses.dataclass()
+class AggregatedConfidenceExtractionConfig:
+  """Holds configurations that should be evaluated together."""
+
+  verbal_confidence: ConfidenceExtractionConfig
+  confidence_likelihoods: ConfidenceExtractionConfig
+  run_sequence_probability: bool
+
+
+@dataclasses.dataclass()
+class Confidence:
+  """Holds the confidence extraction results."""
+
+  # The prompt used to extract the confidence.
+  prompt: str
+
+  ###############
+  # Below are results from different types of confidence extraction techniques.
+  # Each results corresponds to one field in the
+  # `AggregatedConfidenceExtractionConfig`, and might not be populated at all
+  # if the corresponding config is `NONE`/False.
+  ################
+
+  # The verbal confidence, e.g., "The answer is A. Confidence: (5)."
+  verbal_conf: str | float | None = None
+  # The likelihood of each confidence option. For example, if the the model
+  # output is "The answer is A. Confidence: (X).", and the model is asked to
+  # predict confidence on a scale of 1-5, then this would be the likelihood
+  # of each of 1,2,3,4,5 instead of X.
+  # Might be None if couldn't extract the confidence.
+  confidence_likelihoods: list[float] | None = None
+  # The probability of the entire response tokens, normalized by sequence
+  # length.
+  response_probability: float | None = None
+
+
+def generate_confidence(
+    original_prompt,
+    original_response,
+    answer_span,
+    runner,
+    config,
+    confidence_result,
+):
+  """Enriches the `confidence_result` with more confidence extraction results.
+
+  Args:
+    original_prompt: the prompt used to generate the original response.
+    original_response: the original response generated by the model.
+    answer_span: the span of the answer in the response.
+    runner: the runner to use for the confidence extraction.
+    config: the configuration of the confidence extraction to run.
+    confidence_result: the confidence result to enrich. If None, a new one will
+      be created.
+
+  Returns:
+    The enriched confidence result.
+  """
+  if answer_span is None:
+    return None
+  if confidence_result is None:
+    confidence_result = Confidence(prompt="")
+
+  # Only take the part until the answer.
+  original_response = original_response[: answer_span[1] + 1]
+  full_prompt = original_prompt + original_response
+
+  if config.verbal_confidence != ConfidenceExtractionType.NONE:
+    full_prompt = (
+        original_prompt + original_response + config.verbal_confidence.prompt
+    )
+    generation_output = runner.generate(
+        [full_prompt],
+        max_new_tokens=10,
+        temperature=0,
+        enable_formatting=False,
+    )
+    verbal = generation_output[0].response
+    verbal = (
+        verbal.split(config.verbal_confidence.verbal_eos_pattern)[0]
+        if verbal
+        else None
+    )
+    confidence_result.verbal_conf = verbal
+  if config.confidence_likelihoods != ConfidenceExtractionType.NONE:
+    full_prompt = (
+        original_prompt
+        + original_response
+        + config.confidence_likelihoods.prompt
+    )
+    confidence_result.confidence_likelihoods = runner.get_completion_likelihoods(
+        [full_prompt],
+        completions=config.confidence_likelihoods.confidence_options,
+        # Do not enable server side formatting, as it is expected that the
+        # prompt is already formatted.
+        enable_formatting=False,
+    )[
+        0
+    ]
+  if config.run_sequence_probability:
+    confidence_result.response_probability = (
+        runner.get_normalized_probability_for_sequence(
+            original_prompt, original_response
+        )
+    )
+
+  # Just for debugging take the last one that was used.
+  confidence_result.prompt = full_prompt
+
+  return confidence_result

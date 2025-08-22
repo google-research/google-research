@@ -1,0 +1,13 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+
+package(
+    default_visibility = ["//visibility:public"],
+    licenses = ["notice"],
+)
+
+cc_library(
+    name = "reservoir_sampling",
+    hdrs = ["reservoir_sampling.h"],
+    deps = ["@com_google_absl//absl/random:distributions"],
+)

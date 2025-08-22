@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/distance_measure_base.h"
+#include "scann/proto/distance_measure.pb.h"
 #include "scann/tree_x_hybrid/leaf_searcher_optional_parameter_creator.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -157,7 +158,12 @@ class ScalarQuantizedBruteForceSearcher final
                            NNResultsVector* result) const final;
 
   Status EnableCrowdingImpl(
-      ConstSpan<int64_t> datapoint_index_to_crowding_attribute) final;
+      ConstSpan<int64_t> datapoint_index_to_crowding_attribute,
+      ConstSpan<std::string> crowding_dimension_names) final;
+
+  Status PropagateDistances(const DatapointPtr<float>& query,
+                            const SearchParameters& params,
+                            NNResultsVector* result) const override;
 
  private:
   template <bool kUseMinDistance, typename ResultElem>
@@ -188,19 +194,19 @@ class ScalarQuantizedBruteForceSearcher final
 
   bool impl_needs_dataset() const override { return false; }
 
-  shared_ptr<const DistanceMeasure> distance_;
-
   shared_ptr<vector<float>> squared_l2_norms_ = make_shared<vector<float>>();
-
-  shared_ptr<const DenseDataset<int8_t>> quantized_dataset_;
-
-  Options opts_;
-
-  shared_ptr<const vector<float>> inverse_multiplier_by_dimension_;
 
   float min_distance_ = -numeric_limits<float>::infinity();
 
+  Options opts_;
+
   mutable unique_ptr<Mutator> mutator_ = nullptr;
+
+  shared_ptr<const vector<float>> inverse_multiplier_by_dimension_;
+
+  shared_ptr<const DenseDataset<int8_t>> quantized_dataset_;
+
+  shared_ptr<const DistanceMeasure> distance_;
 };
 
 class TreeScalarQuantizationPreprocessedQuery final

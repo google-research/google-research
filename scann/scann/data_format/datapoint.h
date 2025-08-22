@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -77,7 +77,7 @@ class DatapointPtr<NoValue> final {
 template <typename T>
 class DatapointPtr final {
  public:
-  DatapointPtr() {}
+  DatapointPtr() = default;
 
   DatapointPtr(const DimensionIndex* indices, const T* values,
                DimensionIndex nonzero_entries, DimensionIndex dimensionality)
@@ -130,7 +130,13 @@ class DatapointPtr final {
 
   T GetElementPacked(DimensionIndex dimension_index) const;
 
-  GenericFeatureVector ToGfv() const;
+  GenericFeatureVector ToGfv() const {
+    GenericFeatureVector result;
+    ToGfv(result);
+    return result;
+  }
+
+  void ToGfv(GenericFeatureVector& result) const;
 
   DatapointPtr<NoValue> ToSparseBinary() const {
     return DatapointPtr<NoValue>(indices_, nullptr, nonzero_entries_,
@@ -300,7 +306,13 @@ class Datapoint final {
                             dimensionality());
   }
 
-  GenericFeatureVector ToGfv() const;
+  GenericFeatureVector ToGfv() const {
+    GenericFeatureVector result;
+    ToGfv(result);
+    return result;
+  }
+
+  void ToGfv(GenericFeatureVector& result) const;
 
   void clear() {
     indices_.clear();
@@ -384,8 +396,8 @@ inline double DatapointPtr<double>::GetElementPacked(
 }
 
 template <typename T>
-GenericFeatureVector DatapointPtr<T>::ToGfv() const {
-  GenericFeatureVector result;
+void DatapointPtr<T>::ToGfv(GenericFeatureVector& result) const {
+  result.Clear();
   ToGfvIndicesAndMetadata(&result);
 
   if (dimensionality() == nonzero_entries() || IsSparse()) {
@@ -404,31 +416,26 @@ GenericFeatureVector DatapointPtr<T>::ToGfv() const {
     UnpackBinaryToInt64<T>(ConstSpan<T>(values(), nonzero_entries()),
                            dimensionality(), &result);
   }
-
-  return result;
 }
 
 template <>
-inline GenericFeatureVector DatapointPtr<float>::ToGfv() const {
-  GenericFeatureVector result;
+inline void DatapointPtr<float>::ToGfv(GenericFeatureVector& result) const {
+  result.Clear();
   result.set_feature_type(GenericFeatureVector::FLOAT);
   ToGfvIndicesAndMetadata(&result);
   for (size_t i = 0; i < nonzero_entries(); ++i) {
     result.add_feature_value_float(values()[i]);
   }
-
-  return result;
 }
+
 template <>
-inline GenericFeatureVector DatapointPtr<double>::ToGfv() const {
-  GenericFeatureVector result;
+inline void DatapointPtr<double>::ToGfv(GenericFeatureVector& result) const {
+  result.Clear();
   result.set_feature_type(GenericFeatureVector::DOUBLE);
   ToGfvIndicesAndMetadata(&result);
   for (size_t i = 0; i < nonzero_entries(); ++i) {
     result.add_feature_value_double(values()[i]);
   }
-
-  return result;
 }
 
 SCANN_INSTANTIATE_TYPED_CLASS(extern, DatapointPtr);

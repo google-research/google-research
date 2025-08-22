@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -36,7 +36,7 @@ jax.config.update('jax_enable_x64', True)
 
 def _get_expected_e_xc_unpolarized(rho_and_derivs, xc_name):
   """Gets expected XC energy density from unpolarized rho and derivatives."""
-  rho, grad_x, grad_y, grad_z, _, tau = rho_and_derivs
+  rho, grad_x, grad_y, grad_z, tau = rho_and_derivs
   sigma = grad_x ** 2 + grad_y ** 2 + grad_z ** 2
   if xc_name == 'B97':
     return (gga.e_x_b97_unpolarized(rho, sigma)
@@ -49,8 +49,8 @@ def _get_expected_e_xc_unpolarized(rho_and_derivs, xc_name):
 
 def _get_expected_e_xc_polarized(rho_and_derivs, xc_name):
   """Gets expected XC energy density from spin polarized rho and derivatives."""
-  rho_a, grad_x_a, grad_y_a, grad_z_a, _, tau_a = rho_and_derivs[0]
-  rho_b, grad_x_b, grad_y_b, grad_z_b, _, tau_b = rho_and_derivs[1]
+  rho_a, grad_x_a, grad_y_a, grad_z_a, tau_a = rho_and_derivs[0]
+  rho_b, grad_x_b, grad_y_b, grad_z_b, tau_b = rho_and_derivs[1]
   sigma_aa = grad_x_a ** 2 + grad_y_a ** 2 + grad_z_a ** 2
   sigma_ab = grad_x_a * grad_x_b + grad_y_a * grad_y_b + grad_z_a * grad_z_b
   sigma_bb = grad_x_b ** 2 + grad_y_b ** 2 + grad_z_b ** 2
@@ -68,7 +68,7 @@ class XCFunctionalTest(parameterized.TestCase):
 
   @parameterized.parameters(False, True)
   def test_eval_exc_with_b97_u(self, use_jax):
-    rho_and_derivs = np.random.rand(6, 5)
+    rho_and_derivs = np.random.rand(5, 5)
 
     quantities, lda_energies = evaluators.parse_rho_and_derivs(
         0.5 * rho_and_derivs, omega=0., polarized=False)  # 0.5: spin factor
@@ -111,7 +111,7 @@ class XCFunctionalTest(parameterized.TestCase):
        True),
       )
   def test_eval_exc_with_b97_x2_unpolarized(self, b97_x2, parameters, use_jax):
-    rho_and_derivs = np.random.rand(6, 5)
+    rho_and_derivs = np.random.rand(5, 5)
     quantities, lda_energies = evaluators.parse_rho_and_derivs(
         0.5 * rho_and_derivs, omega=0., polarized=False)  # 0.5: spin factor
 
@@ -138,7 +138,7 @@ class XCFunctionalTest(parameterized.TestCase):
        True),
       )
   def test_eval_exc_with_b97_x2_polarized(self, b97_x2, parameters, use_jax):
-    rho_and_derivs = np.random.rand(2, 6, 5)
+    rho_and_derivs = np.random.rand(2, 5, 5)
     quantities, lda_energies = evaluators.parse_rho_and_derivs(
         rho_and_derivs, omega=0., polarized=True)
 
@@ -159,7 +159,7 @@ class XCFunctionalTest(parameterized.TestCase):
       (xc_functionals.wb97mv_short, xc_functionals.WB97MV_PARAMETERS_UTRANSFORM)
       )
   def test_eval_exc_with_wb97mv_unpolarized(self, wb97mv_form, parameters):
-    rho_and_derivs = np.random.rand(6, 5)
+    rho_and_derivs = np.random.rand(5, 5)
     quantities, lda_energies = evaluators.parse_rho_and_derivs(
         0.5 * rho_and_derivs, omega=0.3, polarized=False)  # 0.5: spin factor
 
@@ -179,7 +179,7 @@ class XCFunctionalTest(parameterized.TestCase):
       (xc_functionals.wb97mv_short, xc_functionals.WB97MV_PARAMETERS_UTRANSFORM)
       )
   def test_eval_exc_with_wb97mv_polarized(self, wb97mv_form, parameters):
-    rho_and_derivs = np.random.rand(2, 6, 5)
+    rho_and_derivs = np.random.rand(2, 5, 5)
     quantities, lda_energies = evaluators.parse_rho_and_derivs(
         rho_and_derivs, omega=0.3, polarized=True)
 
@@ -302,14 +302,16 @@ class XCFunctionalTest(parameterized.TestCase):
        xc_functionals.WB97MV_PARAMETERS_UTRANSFORM),
       )
   def test_make_eval_exc_unpolarized(self, xc_name, omega, xc_fun, parameters):
-    rho_and_derivs = np.random.rand(6, 5)
+    rho_and_derivs = np.random.rand(5, 5)
     eval_xc_ref = xc.make_eval_xc(xc_name)
     eval_xc = xc_fun.make_eval_xc(omega=omega, **parameters)
 
-    eps_xc, (vrho, vsigma, _, vtau), _, _ = eval_xc(
-        '', rho_and_derivs, spin=0, relativity=0, deriv=1, verbose=None)
-    eps_xc_ref, (vrho_ref, vsigma_ref, _, vtau_ref), _, _ = eval_xc_ref(
-        '', rho_and_derivs, spin=0, relativity=0, deriv=1, verbose=None)
+    eps_xc, (vrho, vsigma, vtau), _, _ = eval_xc(
+        '', rho_and_derivs, spin=0, relativity=0, deriv=1, verbose=None
+    )
+    eps_xc_ref, (vrho_ref, vsigma_ref, vtau_ref), _, _ = eval_xc_ref(
+        '', rho_and_derivs, spin=0, relativity=0, deriv=1, verbose=None
+    )
 
     np.testing.assert_allclose(eps_xc, eps_xc_ref)
     np.testing.assert_allclose(vrho, vrho_ref)
@@ -331,14 +333,16 @@ class XCFunctionalTest(parameterized.TestCase):
        xc_functionals.WB97MV_PARAMETERS_UTRANSFORM),
       )
   def test_make_eval_exc_polarized(self, xc_name, omega, xc_fun, parameters):
-    rho_and_derivs = np.random.rand(2, 6, 5)
+    rho_and_derivs = np.random.rand(2, 5, 5)
     eval_xc_ref = xc.make_eval_xc(xc_name)
     eval_xc = xc_fun.make_eval_xc(omega=omega, **parameters)
 
-    eps_xc, (vrho, vsigma, _, vtau), _, _ = eval_xc(
-        '', rho_and_derivs, spin=1, relativity=0, deriv=1, verbose=None)
-    eps_xc_ref, (vrho_ref, vsigma_ref, _, vtau_ref), _, _ = eval_xc_ref(
-        '', rho_and_derivs, spin=1, relativity=0, deriv=1, verbose=None)
+    eps_xc, (vrho, vsigma, vtau), _, _ = eval_xc(
+        '', rho_and_derivs, spin=1, relativity=0, deriv=1, verbose=None
+    )
+    eps_xc_ref, (vrho_ref, vsigma_ref, vtau_ref), _, _ = eval_xc_ref(
+        '', rho_and_derivs, spin=1, relativity=0, deriv=1, verbose=None
+    )
 
     np.testing.assert_allclose(eps_xc, eps_xc_ref)
     np.testing.assert_allclose(vrho, vrho_ref)

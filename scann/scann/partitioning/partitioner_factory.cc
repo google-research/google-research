@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -75,7 +75,6 @@ PartitionerFromKMeansTreeNoProjection(shared_ptr<const KMeansTree> kmeans_tree,
   auto km = make_unique<KMeansTreePartitioner<T>>(database_tokenization_dist,
                                                   query_tokenization_dist,
                                                   std::move(kmeans_tree));
-  km->set_query_spilling_type(config.query_spilling().spilling_type());
   km->set_query_spilling_threshold(
       config.query_spilling().spilling_threshold());
   km->set_query_spilling_type(config.query_spilling().spilling_type());

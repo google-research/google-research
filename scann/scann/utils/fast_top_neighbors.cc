@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -38,9 +38,8 @@ namespace {
 constexpr bool kShouldLog = false;
 
 template <typename DistT, typename DatapointIndexT>
-SCANN_INLINE std::string DebugLogArrayContents(DatapointIndexT* indices,
-                                               DistT* values, uint32_t* masks,
-                                               size_t sz) {
+std::string FTN_DebugLogArrayContents(DatapointIndexT* indices, DistT* values,
+                                      uint32_t* masks, size_t sz) {
   std::string txt;
   for (size_t j : Seq(DivRoundUp(sz, 32))) {
     absl::StrAppend(&txt, j ? " || " : "");
@@ -162,7 +161,7 @@ namespace avx2 {
 
 #endif
 
-#if HWY_HAVE_SCALABLE == 0
+#if HWY_HAVE_CONSTEXPR_LANES
 HWY_BEFORE_NAMESPACE();
 namespace highway {
 #define SCANN_SIMD_ATTRIBUTE
@@ -180,9 +179,8 @@ namespace fallback {
 #endif
 
 template <typename DistT, typename DatapointIndexT>
-size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
-    size_t keep_min, size_t keep_max, size_t sz, DatapointIndexT* ii, DistT* dd,
-    uint32_t* mm) {
+size_t ApproxNthElement(size_t keep_min, size_t keep_max, size_t sz,
+                        DatapointIndexT* ii, DistT* dd, uint32_t* mm) {
   DCHECK_GT(keep_min, 0);
 #ifdef __x86_64__
   if (RuntimeSupportsAvx2()) {
@@ -193,91 +191,13 @@ size_t FastTopNeighbors<DistT, DatapointIndexT>::ApproxNthElement(
   return highway::ApproxNthElementImpl(keep_min, keep_max, sz, ii, dd, mm);
 }
 
-template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::AllocateArrays(size_t capacity) {
-  constexpr size_t kPadding = 96;
-
-  capacity_ = capacity;
-  indices_.reset(new DatapointIndexT[2 * capacity_ + kPadding]);
-  distances_.reset(new DistT[capacity_ + kPadding]);
-  masks_.reset(new uint32_t[2 * capacity_ / 32 + 2]);
-}
-
-template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::FillDistancesForMSan() {
-#ifdef MEMORY_SANITIZER
-
-  constexpr size_t kPadding = 96;
-  DistT* start = distances_.get() + sz_;
-  DistT* end = distances_.get() + capacity_ + kPadding;
-  const size_t len = (end - start) * sizeof(DistT);
-  __msan_unpoison(start, len);
-#endif
-}
-
-template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::ReallocateForPureEnn() {
-  if (sz_ < capacity_) return;
-
-  unique_ptr<DatapointIndexT[]> old_indices = std::move(indices_);
-  unique_ptr<DistT[]> old_distances = std::move(distances_);
-
-  AllocateArrays(std::min(capacity_ * 2, max_capacity_));
-
-  std::copy(old_indices.get(), old_indices.get() + sz_, indices_.get());
-  std::copy(old_distances.get(), old_distances.get() + sz_, distances_.get());
-  FillDistancesForMSan();
-}
-
-template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::GarbageCollect(size_t keep_min,
-                                                              size_t keep_max) {
-  DCHECK_LE(keep_min, keep_max);
-  if (keep_min == 0) {
-    sz_ = 0;
-    return;
-  }
-  if (sz_ <= keep_max) return;
-  sz_ = ApproxNthElement(keep_min, keep_max, sz_, indices_.get(),
-                         distances_.get(), masks_.get());
-  const DistT old_epsilon = epsilon_;
-  epsilon_ = distances_[sz_];
-  DLOG_IF(INFO, kShouldLog)
-      << DebugLogArrayContents(indices_.get(), distances_.get(), nullptr, sz_);
-  DLOG_IF(INFO, kShouldLog) << StrFormat("Threshold change: %f => %f (sz = %d)",
-                                         static_cast<double>(old_epsilon),
-                                         static_cast<double>(epsilon_), sz_);
-}
-
-template <typename DistT, typename DatapointIndexT>
-void FastTopNeighbors<DistT, DatapointIndexT>::MoveTopNToFront(
-    size_t num_elements) {
-  if (num_elements >= sz_) return;
-
-  ZipNthElementBranchOptimized(std::less<DistT>(), num_elements,
-                               distances_.get(), distances_.get() + sz_,
-                               indices_.get(), indices_.get() + sz_);
-}
-
-template <typename DistT, typename DatapointIndexT>
-pair<MutableSpan<DatapointIndexT>, MutableSpan<DistT>>
-FastTopNeighbors<DistT, DatapointIndexT>::FinishSorted(size_t max_results) {
-  MutableSpan<DatapointIndexT> ii;
-  MutableSpan<DistT> vv;
-  std::tie(ii, vv) = FinishUnsorted(max_results);
-
-  ZipSortBranchOptimized(vv.begin(), vv.end(), ii.begin(), ii.end());
-
-  return {ii, vv};
-}
-
-template class FastTopNeighbors<int16_t, uint32_t>;
-template class FastTopNeighbors<float, uint32_t>;
-template class FastTopNeighbors<int16_t, uint64_t>;
-template class FastTopNeighbors<float, uint64_t>;
-template class FastTopNeighbors<int16_t, absl::uint128>;
-template class FastTopNeighbors<float, absl::uint128>;
-template class FastTopNeighbors<float, std::pair<uint64_t, size_t>>;
-template class FastTopNeighbors<float, std::shared_ptr<std::string>>;
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, int16_t, uint32_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, float, uint32_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, int16_t, uint64_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, float, uint64_t);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, int16_t, absl::uint128);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, float, absl::uint128);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, float, VectorDBDatapointIndexT);
+SCANN_INSTANTIATE_FAST_TOP_NEIGHBORS(, float, std::shared_ptr<std::string>);
 
 }  // namespace research_scann

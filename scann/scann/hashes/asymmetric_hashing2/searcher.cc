@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -84,8 +84,8 @@ std::shared_ptr<DenseDataset<uint8_t>> PreprocessHashedDataset(
 
 template <typename T>
 SearcherBase<T>::SearcherBase(
-    absl_nullable std::shared_ptr<TypedDataset<T>> dataset,
-    absl_nonnull std::shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
+    std::shared_ptr<TypedDataset<T>> dataset,
+    std::shared_ptr<DenseDataset<uint8_t>> hashed_dataset,
     SearcherOptions<T> opts, int32_t default_pre_reordering_num_neighbors,
     float default_pre_reordering_epsilon)
     : SingleMachineSearcherBase<T>(

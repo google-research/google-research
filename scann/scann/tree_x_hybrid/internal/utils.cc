@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -160,5 +160,94 @@ void DeduplicateDatabaseSpilledResults(NNResultsVector* results,
   DeduplicateDatabaseSpilledResults<flat_hash_map<DatapointIndex, float>>(
       results, final_size);
 }
+
+namespace tree_ah_utils_internal {
+
+StatusOr<SingleMachineFactoryOptions> FinishMergeAHLeafOptions(
+    MutableSpan<SingleMachineFactoryOptions> leaf_opts,
+    ConstSpan<std::vector<DatapointIndex>> datapoints_by_token,
+    const int expected_size, const float spilling_mult) {
+  SingleMachineFactoryOptions opts;
+
+  const auto get_ah = [&](int leaf_idx) {
+    return leaf_opts[leaf_idx].hashed_dataset.get();
+  };
+  if (spilling_mult > 1) {
+    using PairOfVectors = pair<vector<uint8_t>, vector<uint8_t>>;
+    SCANN_ASSIGN_OR_RETURN(
+        PairOfVectors ah_datasets,
+        (CombineLeafDatasets<uint8_t, true>(expected_size, "AH",
+                                            datapoints_by_token, get_ah)));
+    if (!ah_datasets.first.empty()) {
+      opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
+          std::move(ah_datasets.first), expected_size);
+      opts.soar_hashed_dataset = make_shared<DenseDataset<uint8_t>>(
+          std::move(ah_datasets.second), expected_size);
+    }
+  } else {
+    SCANN_ASSIGN_OR_RETURN(
+        vector<uint8_t> ah_dataset,
+        (CombineLeafDatasets<uint8_t>(expected_size, "AH", datapoints_by_token,
+                                      get_ah)));
+    if (!ah_dataset.empty()) {
+      opts.hashed_dataset = make_shared<DenseDataset<uint8_t>>(
+          std::move(ah_dataset), expected_size);
+    }
+  }
+  const int n_leaves = leaf_opts.size();
+  if (n_leaves >= 1) {
+    opts.ah_codebook = leaf_opts[0].ah_codebook;
+  }
+  if (opts.hashed_dataset != nullptr && !opts.hashed_dataset->empty()) {
+    std::string codebook_proto_str;
+    leaf_opts[0].ah_codebook->SerializeToString(&codebook_proto_str);
+
+    for (int i = 1; i < n_leaves; i++) {
+      std::string codebook_to_compare;
+      leaf_opts[i].ah_codebook->SerializeToString(&codebook_to_compare);
+      if (codebook_proto_str != codebook_to_compare)
+        return FailedPreconditionError("Inconsistent codebooks among leaves");
+    }
+  }
+
+  const auto get_int8 = [&](int leaf_idx) -> DenseDataset<int8_t>* {
+    auto fp = leaf_opts[leaf_idx].pre_quantized_fixed_point;
+    if (fp == nullptr) return nullptr;
+    return fp->fixed_point_dataset.get();
+  };
+  SCANN_ASSIGN_OR_RETURN(
+      vector<int8_t> int8_dataset,
+      (CombineLeafDatasets<int8_t>(expected_size, "INT8", datapoints_by_token,
+                                   get_int8)));
+  if (!int8_dataset.empty()) {
+    opts.pre_quantized_fixed_point = make_shared<PreQuantizedFixedPoint>();
+    opts.pre_quantized_fixed_point->fixed_point_dataset =
+        make_shared<DenseDataset<int8_t>>(std::move(int8_dataset),
+                                          expected_size);
+
+    bool int8_has_norms = false;
+    for (int i = 0; i < n_leaves; i++) {
+      auto int8 = leaf_opts[i].pre_quantized_fixed_point;
+      if (int8 && int8->squared_l2_norm_by_datapoint &&
+          !int8->squared_l2_norm_by_datapoint->empty())
+        int8_has_norms = true;
+    }
+    if (int8_has_norms) {
+      opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint =
+          make_shared<vector<float>>(expected_size);
+      for (int i = 0; i < n_leaves; i++) {
+        auto int8 = leaf_opts[i].pre_quantized_fixed_point;
+        for (const auto [inner_idx, global_idx] :
+             Enumerate(datapoints_by_token[i])) {
+          opts.pre_quantized_fixed_point->squared_l2_norm_by_datapoint->at(
+              global_idx) = int8->squared_l2_norm_by_datapoint->at(inner_idx);
+        }
+      }
+    }
+  }
+  return opts;
+}
+
+}  // namespace tree_ah_utils_internal
 
 }  // namespace research_scann

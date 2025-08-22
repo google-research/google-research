@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -767,7 +767,8 @@ Status KMeansTreePartitioner<T>::TokensForDatapointWithSpillingBatched(
             nearest_center_distance + query_spilling_threshold_;
         break;
       case QuerySpillingConfig::ABSOLUTE_DISTANCE:
-        max_dist_to_consider = query_spilling_threshold_;
+        max_dist_to_consider =
+            std::max(query_spilling_threshold_, nearest_center_distance);
         break;
       default:
         return InvalidArgumentError("Unknown spilling type.");
@@ -983,7 +984,7 @@ Status KMeansTreePartitioner<T>::OrthogonalityAmplifiedTokenForDatapointBatched(
         std::fill(top1_span.begin(), top1_span.end(),
                   std::make_pair(kInvalidDatapointIndex,
                                  numeric_limits<float>::infinity()));
-        ManyToManyTop1Callback<float> top1_callback(top1_span);
+        ManyToManyTop1Callback<float> top1_callback(top1_span, false);
         EpsilonFilteringCallback<float> eps_callback(top1_callback.epsilons(),
                                                      top1_callback);
         DenseManyToManyOrthogonalityAmplified(

@@ -1,5 +1,10 @@
 # Builds libraries for ahead-of-time fixed-point preprocessing.
 
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],

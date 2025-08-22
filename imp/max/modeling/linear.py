@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -573,7 +573,7 @@ class _Conv(nn.Module):
         bias_shape = (self.features,)
       else:
         # One bias weight per output entry, unshared between pixels.
-        bias_shape = conv_output_shape[1:]  # pylint: disable=undefined-variable
+        bias_shape = conv_output_shape[1:]  # pylint: disable=undefined-variable  # pytype: disable=name-error  # jax-api-types
 
       if self.bias_shardings:
         if len(self.bias_shardings) != len(bias_shape):

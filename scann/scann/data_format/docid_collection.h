@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -23,10 +23,9 @@
 #include <utility>
 #include <vector>
 
-#include "absl/container/flat_hash_map.h"
 #include "absl/log/check.h"
 #include "scann/data_format/docid_collection_interface.h"
-#include "scann/data_format/internal/string_view32.h"
+#include "scann/data_format/docid_lookup.h"
 #include "scann/oss_wrappers/scann_serialize.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/utils/common.h"
@@ -105,16 +104,20 @@ class VariableLengthDocidCollection final : public DocidCollectionInterface {
     Status AddDatapoint(string_view docid) final;
     bool LookupDatapointIndex(string_view docid,
                               DatapointIndex* index) const final;
+    void LookupDatapointIndices(size_t num_docids, DocidGetter docid_getter,
+                                LookupCallback callback) const final;
     Status RemoveDatapoint(string_view docid) final;
     Status RemoveDatapoint(DatapointIndex index) final;
     void Reserve(size_t size) final;
+    string_view ImplName() const final { return docid_lookup_->ImplName(); }
 
    private:
-    explicit Mutator(VariableLengthDocidCollection* docids) : docids_(docids) {}
+    explicit Mutator(VariableLengthDocidCollection* docids,
+                     unique_ptr<DocidLookupMap> docid_lookup)
+        : docids_(docids), docid_lookup_(std::move(docid_lookup)) {}
+
     VariableLengthDocidCollection* docids_ = nullptr;
-    using string_view32 = data_format_internal::string_view32;
-    absl::flat_hash_map<string_view32, DatapointIndex, string_view32::Hash>
-        docid_lookup_;
+    unique_ptr<DocidLookupMap> docid_lookup_;
   };
 
   StatusOr<DocidCollectionInterface::Mutator*> GetMutator() const final;
@@ -199,18 +202,21 @@ class FixedLengthDocidCollection final : public DocidCollectionInterface {
     Status AddDatapoint(string_view docid) final;
     bool LookupDatapointIndex(string_view docid,
                               DatapointIndex* index) const final;
+    void LookupDatapointIndices(size_t num_docids, DocidGetter docid_getter,
+                                LookupCallback callback) const final;
     Status RemoveDatapoint(string_view docid) final;
     Status RemoveDatapoint(DatapointIndex index) final;
     void Reserve(size_t size) final;
+    string_view ImplName() const final { return docid_lookup_->ImplName(); }
 
    private:
     static constexpr int kGrowthFactor = 2;
-    explicit Mutator(FixedLengthDocidCollection* docids) : docids_(docids) {}
+    explicit Mutator(FixedLengthDocidCollection* docids,
+                     unique_ptr<DocidLookupMap> docid_lookup)
+        : docids_(docids), docid_lookup_(std::move(docid_lookup)) {}
 
     FixedLengthDocidCollection* docids_ = nullptr;
-    using string_view32 = data_format_internal::string_view32;
-    absl::flat_hash_map<string_view32, DatapointIndex, string_view32::Hash>
-        docid_lookup_;
+    unique_ptr<DocidLookupMap> docid_lookup_;
   };
 
   StatusOr<DocidCollectionInterface::Mutator*> GetMutator() const final;

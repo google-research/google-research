@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -17,12 +17,13 @@
 
 import os
 import tempfile
+
 from absl import flags
 from absl.testing import absltest
 from absl.testing import parameterized
 import jax
 import numpy as np
-from pyscf.lib import parameters
+import pyscf.lib
 import tensorflow.compat.v1 as tf
 
 from symbolic_functionals.syfes.scf import scf
@@ -38,7 +39,8 @@ class SCFTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.num_threads(1)
 
   def test_parse_xyz(self):
     xyz_path = os.path.join(flags.FLAGS.test_tmpdir, 'test.xyz')
@@ -53,33 +55,33 @@ class SCFTest(parameterized.TestCase):
 
   # expected values for Etot, Exc and Exx are computed by external PySCF
   @parameterized.parameters(
-      ('pbe,pbe', 0, 0, (17812,), (6, 17812), {
+      ('pbe,pbe', 0, 0, (18192,), (6, 18192), {
           'Etot': -1.1601348451265638,
-          'Exc': -0.6899737187913197,
-          'Exx': -0.6583555393862027,
+          'Exc': -0.6899739513774101,
+          'Exx': -0.6583557747309813,
           'Exxlr': 0.0,
           'Enlc': 0.0
       }),
-      ('pbe,pbe', -1, 1, (20048,), (2, 6, 20048), {
+      ('pbe,pbe', -1, 1, (19616,), (2, 6, 19616), {
           'Etot': -1.0336723063997342,
           'Exc': -0.8723776781828819,
           'Exx': -0.8141180655850809,
           'Exxlr': 0.0,
           'Enlc': 0.0
       }),
-      ('wb97m_v', 0, 0, (17812,), (6, 17812), {
+      ('wb97m_v', 0, 0, (18192,), (6, 18192), {
           'Etot': -1.1537971220466094,
           'Exc': -0.6829720417857192,
           'Exx': -0.6577521311181448,
           'Exxlr': -0.29729171800068577,
-          'Enlc': 0.00891190761270658
+          'Enlc': 0.008911896129352703
       }),
-      ('wb97m_v', -1, 1, (20048,), (2, 6, 20048), {
+      ('wb97m_v', -1, 1, (19616,), (2, 6, 19616), {
           'Etot': -1.007161017404796,
           'Exc': -0.8544883116165207,
           'Exx': -0.8220018420576689,
           'Exxlr': -0.40928226576050875,
-          'Enlc': 0.012704771979755908
+          'Enlc': 0.01270478451050578
       }),
   )
   def test_scf_calculation_with_pyscf(self, xc_name, charge, spin,

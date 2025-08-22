@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -122,7 +122,7 @@ def run_scf_for_mol(atom,
     logging.info('Use Custom XC: %s', xc_fun)
     logging.info('hybrid_coeff = %s, rsh_params = %s', hybrid_coeff, rsh_params)
     ks.define_xc_(xc_fun, xctype='MGGA', hyb=hybrid_coeff, rsh=rsh_params)
-  if xc.upper() in dft.libxc.VV10_XC:
+  if dft.libxc.is_nlc(xc):
     logging.info('Use VV10 NLC.')
     ks.nlc = 'VV10'
     if use_sg1_prune_for_nlc:
@@ -199,15 +199,16 @@ def run_scf_for_mol(atom,
 
   if ks.nlc:
     logging.info('Compute VV10 nonlocal correlation energy.')
-    _, e_nlc, _ = ks._numint.nr_rks(  # pylint: disable=protected-access
+    _, e_nlc, _ = ks._numint.nr_nlc_vxc(  # pylint: disable=protected-access
         # NOTE(htm): in PySCF v1.5a, dft.numint.nr_rks takes an _NumInt instance
         # as the first argument. Therefore it is difficult to circumvent the
         # access to protected attributes. In PySCF >= 1.7.0, NumInt is no longer
         # protected.
         mol=mol,
         grids=ks.nlcgrids,
-        xc_code=ks.xc + '__' + ks.nlc,
-        dms=(dm if spin == 0 else dm[0] + dm[1]))
+        xc_code=ks.xc,
+        dm=(dm if spin == 0 else dm[0] + dm[1]),
+    )
   else:
     e_nlc = 0.
 

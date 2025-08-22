@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,30 +12,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-syntax = "proto2";
+edition = "2023";
 
 package research_scann;
 
 import "scann/data_format/features.proto";
 
+option features.repeated_field_encoding = EXPANDED;
+
 message HashedItem {
-  optional bytes data_id_str = 1;
+  bytes data_id_str = 1;
 
-  required bytes indicator_vars = 2;
+  bytes indicator_vars = 2 [features.field_presence = LEGACY_REQUIRED];
 
-  optional bytes soar_indicator_vars = 6;
+  bytes soar_indicator_vars = 6;
 
-  optional int32 soar_partition_idx = 7 [default = -1];
+  int32 soar_partition_idx = 7 [default = -1];
 
   reserved 4;
 
   repeated int64 deprecated_token_membership = 3;
 
   enum PackingStrategy {
+    option features.enum_type = CLOSED;
+
     NONE = 0;
     NIBBLE = 1;
     BINARY = 2;
   }
 
-  optional PackingStrategy packing_strategy = 5 [default = BINARY];
+  PackingStrategy packing_strategy = 5 [default = BINARY];
 }

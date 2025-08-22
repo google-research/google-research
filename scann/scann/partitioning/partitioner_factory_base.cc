@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,28 +15,31 @@
 #include "scann/partitioning/partitioner_factory_base.h"
 
 #include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <memory>
 #include <utility>
+#include <vector>
 
-#include "absl/memory/memory.h"
-#include "absl/random/random.h"
-#include "absl/time/clock.h"
-#include "absl/time/time.h"
-#include "scann/distance_measures/distance_measure_factory.h"
+#include "absl/log/log.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/proto/distance_measure.pb.h"
+#include "scann/utils/random/reservoir_sampling.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 
 namespace {
 
-float ComputeSamplingFraction(const PartitioningConfig& config,
-                              const Dataset* dataset) {
-  return (config.has_expected_sample_size())
-             ? std::min(1.0,
-                        static_cast<double>(config.expected_sample_size()) /
-                            dataset->size())
-             : config.partitioning_sampling_fraction();
+size_t ComputeSampleSize(const PartitioningConfig& config,
+                         const Dataset* dataset) {
+  return config.has_expected_sample_size()
+             ? std::min<size_t>(config.expected_sample_size(), dataset->size())
+             : static_cast<size_t>(std::ceil(
+
+                   static_cast<double>(
+                       config.partitioning_sampling_fraction()) *
+                   dataset->size()));
 }
 
 template <typename T>
@@ -46,8 +49,8 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryNoProjection(
   const TypedDataset<T>* sampled;
   unique_ptr<TypedDataset<T>> sampled_mutable;
 
-  const float sampling_fraction = ComputeSamplingFraction(config, dataset);
-  if (sampling_fraction < 1.0) {
+  const size_t sample_size = ComputeSampleSize(config, dataset);
+  if (sample_size < dataset->size()) {
     sampled_mutable.reset(
         (dataset->IsSparse())
             ? absl::implicit_cast<TypedDataset<T>*>(new SparseDataset<T>)
@@ -56,12 +59,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryNoProjection(
         sampled_mutable->NormalizeByTag(dataset->normalization()));
     sampled = sampled_mutable.get();
     MTRandom rng(kDeterministicSeed + 1);
-    vector<DatapointIndex> sample;
-    for (DatapointIndex i = 0; i < dataset->size(); ++i) {
-      if (absl::Uniform<float>(rng, 0, 1) < sampling_fraction) {
-        sample.push_back(i);
-      }
-    }
+    auto sample = ReservoirSampleIdxs(rng, dataset->size(), sample_size);
 
     sampled_mutable->Reserve(sample.size());
     for (DatapointIndex i : sample) {
@@ -70,6 +68,7 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryNoProjection(
   } else {
     sampled = dataset;
   }
+  SCANN_RET_CHECK_EQ(sampled->size(), sample_size);
   LOG(INFO) << "Size of sampled dataset for training partition: "
             << sampled->size();
 
@@ -83,13 +82,8 @@ StatusOr<unique_ptr<Partitioner<T>>> PartitionerFactoryWithProjection(
   const TypedDataset<float>* sampled;
   unique_ptr<TypedDataset<float>> sampled_mutable;
   MTRandom rng(kDeterministicSeed + 1);
-  vector<DatapointIndex> sample;
-  const float sampling_fraction = ComputeSamplingFraction(config, dataset);
-  for (DatapointIndex i = 0; i < dataset->size(); ++i) {
-    if (absl::Uniform<float>(rng, 0, 1) < sampling_fraction) {
-      sample.push_back(i);
-    }
-  }
+  const size_t sample_size = ComputeSampleSize(config, dataset);
+  auto sample = ReservoirSampleIdxs(rng, dataset->size(), sample_size);
 
   SCANN_RET_CHECK(!sample.empty())
       << "Cannot create a partitioner from an empty sampled dataset.";

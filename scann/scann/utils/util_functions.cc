@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -26,55 +26,45 @@
 #include "absl/container/flat_hash_set.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/strings/string_view.h"
+#include "hwy/highway.h"
 #include "scann/partitioning/partitioner.pb.h"
 #include "scann/proto/exact_reordering.pb.h"
 #include "scann/utils/types.h"
 
 namespace research_scann {
 
-#ifdef __SSE3__
-
 float MaxAbsValue(ConstSpan<float> arr) {
-  size_t num_simd_iter = arr.size() / 4;
+  namespace hn = hwy::HWY_NAMESPACE;
+  using D = hn::ScalableTag<float>;
+  const D d;
+  const size_t lanes = hn::Lanes(d);
+  size_t num_2simd_iters = arr.size() / (2 * lanes);
   const float* ptr = arr.data();
-  __m128 accumulators = _mm_setzero_ps();
-  constexpr int32_t abs_mask_scalar = 0x7FFFFFFF;
-  static const __m128 abs_mask_vector =
-      _mm_castsi128_ps(_mm_set1_epi32(abs_mask_scalar));
-
-  float result = 0.0f;
-  if (num_simd_iter != 0) {
-    for (; num_simd_iter != 0; --num_simd_iter, ptr += 4) {
-      __m128 vals = _mm_loadu_ps(ptr);
-      __m128 abs_vals = _mm_and_ps(vals, abs_mask_vector);
-      accumulators = _mm_max_ps(accumulators, abs_vals);
-    }
-
-    accumulators = _mm_max_ps(
-        accumulators, _mm_shuffle_ps(accumulators, accumulators, 0b1110));
-    result = std::max(accumulators[0], accumulators[1]);
+  auto acc0 = hn::Zero(d);
+  auto acc1 = hn::Zero(d);
+  for (; num_2simd_iters != 0; --num_2simd_iters, ptr += 2 * lanes) {
+    auto vals0 = hn::LoadU(d, ptr);
+    auto abs_vals0 = hn::Abs(vals0);
+    auto vals1 = hn::LoadU(d, ptr + lanes);
+    auto abs_vals1 = hn::Abs(vals1);
+    acc0 = hn::Max(acc0, abs_vals0);
+    acc1 = hn::Max(acc1, abs_vals1);
   }
+  acc0 = hn::Max(acc0, acc1);
 
   const float* end = arr.data() + arr.size();
+  if (end - ptr >= lanes) {
+    auto vals0 = hn::LoadU(d, ptr);
+    auto abs_vals0 = hn::Abs(vals0);
+    acc0 = hn::Max(acc0, abs_vals0);
+    ptr += lanes;
+  }
+  float result = hn::ReduceMax(d, acc0);
   for (; ptr < end; ++ptr) {
     result = std::max(result, std::abs(*ptr));
   }
-
   return result;
 }
-
-#else
-
-float MaxAbsValue(ConstSpan<float> arr) {
-  float max_abs_value = 0.0f;
-  for (float elem : arr) {
-    max_abs_value = std::max(max_abs_value, std::abs(elem));
-  }
-
-  return max_abs_value;
-}
-
-#endif
 
 void RemoveNeighborsPastLimit(DatapointIndex num_neighbors,
                               NNResultsVector* result) {

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -74,11 +74,10 @@ void DatapointPtr<T>::ToGfvIndicesAndMetadata(GenericFeatureVector* gfv) const {
 }
 
 template <typename T>
-GenericFeatureVector Datapoint<T>::ToGfv() const {
-  GenericFeatureVector result = ToPtr().ToGfv();
+void Datapoint<T>::ToGfv(GenericFeatureVector& result) const {
+  ToPtr().ToGfv(result);
   result.set_norm_type(
       static_cast<GenericFeatureVector::FeatureNorm>(normalization()));
-  return result;
 }
 
 template <typename T>

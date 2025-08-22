@@ -1,7 +1,12 @@
 # This package defines the in-memory representation of ScaNN datasets and
 # datapoints.
 
-load("//scann/oss_wrappers:build_defs.bzl", "scann_py_proto_library")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
+load("@com_google_protobuf//bazel:py_proto_library.bzl", "py_proto_library")
+load("@com_google_protobuf//bazel:java_lite_proto_library.bzl", "java_lite_proto_library")
+load("@com_google_protobuf//bazel:java_proto_library.bzl", "java_proto_library")
+load("@com_google_protobuf//bazel:proto_library.bzl", "proto_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -25,11 +30,9 @@ cc_proto_library(
     deps = [":features_proto"],
 )
 
-scann_py_proto_library(
+py_proto_library(
     name = "features_py_pb2",
-    srcs = ["features.proto"],
-    proto_deps = [":features_proto"],
-    py_proto_deps = [],
+    deps = [":features_proto"],
 )
 
 # Libraries
@@ -101,11 +104,16 @@ cc_library(
 
 cc_library(
     name = "docid_collection_interface",
+    srcs = ["docid_collection_interface.cc"],
     hdrs = ["docid_collection_interface.h"],
     deps = [
         ":docid_lookup",
         "//scann/utils:common",
+        "//scann/utils:multi_stage_batch_pipeline",
         "//scann/utils:types",
+        "@com_google_absl//absl/base:nullability",
+        "@com_google_absl//absl/hash",
+        "@com_google_absl//absl/strings",
     ],
 )
 
@@ -115,8 +123,8 @@ cc_library(
     hdrs = ["docid_collection.h"],
     deps = [
         ":docid_collection_interface",
+        ":docid_lookup",
         "//scann/data_format/internal:short_string_optimized_string",
-        "//scann/data_format/internal:string_view32",
         "//scann/oss_wrappers:scann_aligned_malloc",
         "//scann/oss_wrappers:scann_down_cast",
         "//scann/oss_wrappers:scann_serialize",
@@ -128,10 +136,8 @@ cc_library(
         "@com_google_absl//absl/base",
         "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:prefetch",
-        "@com_google_absl//absl/container:flat_hash_map",
         "@com_google_absl//absl/container:inlined_vector",
         "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/functional:any_invocable",
         "@com_google_absl//absl/log",
         "@com_google_absl//absl/log:check",
         "@com_google_absl//absl/strings",

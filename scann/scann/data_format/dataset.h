@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -311,7 +311,11 @@ class DenseDataset final : public TypedDataset<T> {
   void Resize(size_t n);
 
   template <typename Real>
-  void ConvertType(DenseDataset<Real>* target) const;
+  void ConvertType(DenseDataset<Real>* target) const {
+    ConvertType(target, this->size());
+  }
+  template <typename Real>
+  void ConvertType(DenseDataset<Real>* target, DatapointIndex first_n) const;
 
   ConstSpan<T> data() const { return data_; }
   ConstSpan<T> data(size_t index) const {
@@ -695,7 +699,8 @@ void DenseDataset<T>::Prefetch(size_t i) const {
 
 template <typename T>
 template <typename Real>
-void DenseDataset<T>::ConvertType(DenseDataset<Real>* target) const {
+void DenseDataset<T>::ConvertType(DenseDataset<Real>* target,
+                                  DatapointIndex first_n) const {
   static_assert(std::is_floating_point<Real>(),
                 "Real template parameter must be either float or double for "
                 "DenseDataset::ConvertType.");
@@ -704,8 +709,15 @@ void DenseDataset<T>::ConvertType(DenseDataset<Real>* target) const {
   target->clear();
   target->set_dimensionality_no_checks(this->dimensionality());
   target->stride_ = stride_;
-  target->set_docids_no_checks(this->docids()->Copy());
-  target->data_.insert(target->data_.begin(), data_.begin(), data_.end());
+  first_n = std::min(first_n, this->size());
+  if (first_n == this->size()) {
+    target->set_docids_no_checks(this->docids()->Copy());
+  } else {
+    target->set_docids_no_checks(make_unique<VariableLengthDocidCollection>(
+        VariableLengthDocidCollection::CreateWithEmptyDocids(first_n)));
+  }
+  target->data_.insert(target->data_.begin(), data_.begin(),
+                       data_.begin() + first_n * stride_);
 }
 
 template <typename T>

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -29,6 +29,9 @@ namespace flags_internal {
 
 extern bool should_use_avx2;
 extern bool should_use_avx512;
+extern bool should_use_avx512_vnni;
+extern bool should_use_amx;
+bool TryEnableAmx();
 
 }  // namespace flags_internal
 
@@ -38,6 +41,8 @@ extern bool should_use_avx512;
 inline bool RuntimeSupportsAvx1() { return false; }
 inline bool RuntimeSupportsAvx2() { return false; }
 inline bool RuntimeSupportsAvx512() { return false; }
+inline bool RuntimeSupportsAvx512Vnni() { return false; }
+inline bool RuntimeSupportsAmx() { return false; }
 #else
 
 inline bool RuntimeSupportsAvx1() { return true; }
@@ -45,6 +50,26 @@ inline bool RuntimeSupportsAvx2() { return flags_internal::should_use_avx2; }
 inline bool RuntimeSupportsAvx512() {
   return flags_internal::should_use_avx512;
 }
+inline bool RuntimeSupportsAvx512Vnni() {
+  return flags_internal::should_use_avx512_vnni;
+}
+
+#if (defined(__clang__) && __clang_major__ < 20) || defined(MEMORY_SANITIZER)
+
+inline bool RuntimeSupportsAmx() { return false; }
+
+#else
+
+#define SCANN_HAVE_AMX
+inline bool RuntimeSupportsAmx() {
+  if (!flags_internal::should_use_amx) return false;
+
+  static bool amx_enabled = flags_internal::TryEnableAmx();
+  return amx_enabled;
+}
+
+#endif
+
 #endif
 
 inline bool RuntimeSupportsSse4() { return true; }
@@ -53,6 +78,8 @@ inline bool RuntimeSupportsSse4() { return true; }
 
 inline bool RuntimeSupportsAvx2() { return false; }
 inline bool RuntimeSupportsAvx512() { return false; }
+inline bool RuntimeSupportsAvx512Vnni() { return false; }
+inline bool RuntimeSupportsAmx() { return false; }
 inline bool RuntimeSupportsSse4() { return false; }
 inline bool RuntimeSupportsAvx1() { return false; }
 
@@ -71,6 +98,10 @@ enum PlatformGeneration {
   kHaswellAvx2 = 2,
 
   kSkylakeAvx512 = 3,
+
+  kCascadelakeAvx512Vnni = 4,
+
+  kSapphireRapidsAmx = 5,
 };
 
 inline string_view PlatformName(PlatformGeneration x86_arch) {
@@ -85,6 +116,10 @@ inline string_view PlatformName(PlatformGeneration x86_arch) {
       return "AVX2";
     case kSkylakeAvx512:
       return "AVX512";
+    case kCascadelakeAvx512Vnni:
+      return "AVX512_VNNI";
+    case kSapphireRapidsAmx:
+      return "AMX";
     default:
       return "INVALID_X86_ARCH";
   }
@@ -103,6 +138,8 @@ class ScopedPlatformOverride {
  private:
   bool original_avx2_;
   bool original_avx512_;
+  bool original_avx512_vnni_;
+  bool original_amx_;
 };
 
 ScopedPlatformOverride TestHookOverridePlatform(PlatformGeneration generation);

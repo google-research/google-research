@@ -296,7 +296,7 @@ SCANN_SIMD_OUTLINE size_t ApproxNthElementImpl(size_t keep_min, size_t keep_max,
         "final_mask=%08x",
         absl::StrCat(threshold_value), n_kept, sz, keep_min, final_mask);
     DLOG_IF(INFO, kShouldLog)
-        << DebugLogArrayContents(indices, values, masks, sz);
+        << FTN_DebugLogArrayContents(indices, values, masks, sz);
 
     auto handle_overly_picky_pivot = [&]() SCANN_SIMD_INLINE_LAMBDA {
       if (n_kept < sz * 3 / 4) {

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -50,6 +50,10 @@ class Model {
 
   ConstSpan<DenseDataset<FloatT>> centers() const { return centers_; }
 
+  ConstSpan<FloatT> block_transposed_centers() const {
+    return block_transposed_centers_;
+  }
+
   uint32_t num_clusters_per_block() const { return num_clusters_per_block_; }
 
   size_t num_blocks() const { return centers_.size(); }
@@ -71,6 +75,8 @@ class Model {
       AsymmetricHasherConfig::QuantizationScheme quantization_scheme);
 
   std::vector<DenseDataset<FloatT>> centers_ = {};
+
+  std::vector<FloatT> block_transposed_centers_;
 
   uint32_t num_clusters_per_block_ = numeric_limits<uint32_t>::max();
 

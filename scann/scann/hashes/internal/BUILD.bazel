@@ -3,6 +3,9 @@
 #   both the old, soon-to-be-deprecated API and the new, much more modular
 #   API.
 
+load("@rules_cc//cc:defs.bzl", "cc_binary")
+load("@rules_cc//cc:defs.bzl", "cc_library")
+load("@rules_cc//cc:defs.bzl", "cc_test")
 load(":template_sharding.bzl", "batch_size_sharder")
 
 package(
@@ -28,6 +31,7 @@ cc_library(
         "//scann/utils:datapoint_utils",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:prefetch",
     ],
 )
@@ -53,6 +57,7 @@ cc_library(
         "//scann/utils:gmm_utils",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
+        "@com_google_absl//absl/base:core_headers",
         "@com_google_absl//absl/base:prefetch",
         "@com_google_absl//absl/random",
         "@com_google_absl//absl/random:distributions",
@@ -216,9 +221,12 @@ cc_library(
     deps = [
         ":asymmetric_hashing_postprocess",
         "//scann/base:restrict_allowlist",
+        "//scann/restricts:restrict_allowlist",
+        "//scann/utils:common",
         "//scann/utils:top_n_amortized_constant",
         "//scann/utils:types",
         "//scann/utils/intrinsics:sse4",
+        "@com_google_absl//absl/log:check",
     ],
 )
 

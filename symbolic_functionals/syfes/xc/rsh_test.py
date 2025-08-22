@@ -1,5 +1,5 @@
 # coding=utf-8
-# Copyright 2024 The Google Research Authors.
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@ from absl.testing import parameterized
 import jax
 import numpy as np
 from pyscf import dft
-from pyscf.lib import parameters
+import pyscf.lib
 
 from symbolic_functionals.syfes.scf import scf
 from symbolic_functionals.syfes.xc import lda
@@ -33,6 +33,11 @@ jax.config.update('jax_enable_x64', True)
 
 
 class XCRSHTest(parameterized.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    pyscf.lib.parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.num_threads(1)
 
   # reference values are pre-computed using PySCF v1.7.1
   # with xc_code = 'lda_x_erf'
@@ -69,7 +74,8 @@ class XCWB97MVTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.parameters.TMPDIR = tempfile.mkdtemp(dir=flags.FLAGS.test_tmpdir)
+    pyscf.lib.num_threads(1)
 
   @parameterized.parameters((0, 0), (-1, 1))
   def test_wb97mv_xc_energy_decomposition(self, charge, spin):

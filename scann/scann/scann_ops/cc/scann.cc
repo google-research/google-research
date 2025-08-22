@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -254,6 +254,7 @@ ScannInterface::CreateSearcher(ScannArtifacts artifacts) {
 
   SCANN_ASSIGN_OR_RETURN(auto searcher, SingleMachineFactoryScann<float>(
                                             config, dataset, std::move(opts)));
+  SCANN_RETURN_IF_ERROR(searcher->InitializeHealthStats());
   searcher->MaybeReleaseDataset();
   return searcher;
 }
@@ -335,7 +336,7 @@ Status ScannInterface::Initialize(ScannInterface::ScannArtifacts artifacts) {
                          CreateSearcher(std::tie(config_, dataset, opts)));
   if (scann_->config().has_value()) config_ = scann_->config().value();
 
-  const std::string& distance = config_.distance_measure().distance_measure();
+  absl::string_view distance = config_.distance_measure().distance_measure();
   const absl::flat_hash_set<std::string> negated_distances{
       "DotProductDistance", "BinaryDotProductDistance", "AbsDotProductDistance",
       "LimitedInnerProductDistance"};
@@ -414,6 +415,7 @@ StatusOr<ScannConfig> ScannInterface::RetrainAndReindex(const string& config) {
       std::move(status_or.value().release())));
   if (scann_->config().has_value()) config_ = scann_->config().value();
   scann_->MaybeReleaseDataset();
+  SCANN_RETURN_IF_ERROR(scann_->InitializeHealthStats());
   return config_;
 }
 

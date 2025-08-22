@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@
 #include "absl/log/check.h"
 #include "scann/brute_force/bfloat16_brute_force.h"
 #include "scann/brute_force/scalar_quantized_brute_force.h"
+#include "scann/data_format/datapoint.h"
 #include "scann/oss_wrappers/scann_status.h"
 #include "scann/partitioning/kmeans_tree_partitioner.pb.h"
 #include "scann/trees/kmeans_tree/kmeans_tree.h"
@@ -55,13 +56,35 @@ Status TreeBruteForceSecondLevelWrapper<T>::TokensForDatapointWithSpilling(
                                  : base_->query_spilling_max_centers();
     SearchParameters params;
     params.set_pre_reordering_num_neighbors(max_centers);
-    params.set_pre_reordering_epsilon(numeric_limits<float>::infinity());
-    if constexpr (std::is_same_v<T, float>) {
-      return top_level_->FindNeighbors(dptr, params, result);
+    if (base_->query_spilling_type() ==
+        QuerySpillingConfig::ABSOLUTE_DISTANCE) {
+      params.set_pre_reordering_epsilon(base_->query_spilling_threshold());
     } else {
-      Datapoint<float> float_dptr;
-      return top_level_->FindNeighbors(MaybeConvertDatapoint(dptr, &float_dptr),
-                                       params, result);
+      params.set_pre_reordering_epsilon(numeric_limits<float>::infinity());
+    }
+
+    auto try_ensure_one_center = [&](DatapointPtr<float> dptr,
+                                     absl::Status orig_status) {
+      bool at_least_one_center = base_->query_spilling_type() ==
+                                 QuerySpillingConfig::ABSOLUTE_DISTANCE;
+
+      if (!orig_status.ok() || !result->empty() || !at_least_one_center) {
+        return orig_status;
+      }
+
+      params.set_pre_reordering_epsilon(numeric_limits<float>::infinity());
+      params.set_pre_reordering_num_neighbors(1);
+      return top_level_->FindNeighbors(dptr, params, result);
+    };
+
+    if constexpr (std::is_same_v<T, float>) {
+      auto st = top_level_->FindNeighbors(dptr, params, result);
+      return try_ensure_one_center(dptr, st);
+    } else {
+      Datapoint<float> float_dp;
+      auto float_dp_ptr = MaybeConvertDatapoint(dptr, &float_dp);
+      auto st = top_level_->FindNeighbors(float_dp_ptr, params, result);
+      return try_ensure_one_center(float_dp_ptr, st);
     }
   }
 }
@@ -86,24 +109,24 @@ StatusOrPtr<TreeXHybridSMMD<float>> CreateTopLevelSearcher(
             std::dynamic_pointer_cast<const DenseDataset<float>>(
                 dataset_partition);
         SCANN_RET_CHECK(dataset_dense != nullptr);
+
+        const int num_neighbors =
+            std::max<int>(1, base.query_spilling_max_centers());
         if (config.quantization() == BottomUpTopLevelPartitioner::FIXED8) {
           return make_unique<ScalarQuantizedBruteForceSearcher>(
-              base.query_tokenization_distance(), dataset_dense,
-              base.query_spilling_max_centers(),
+              base.query_tokenization_distance(), dataset_dense, num_neighbors,
               numeric_limits<float>::infinity(),
               ScalarQuantizedBruteForceSearcher::Options{
                   .noise_shaping_threshold = config.noise_shaping_threshold()});
         } else if (config.quantization() ==
                    BottomUpTopLevelPartitioner::BFLOAT16) {
           return make_unique<Bfloat16BruteForceSearcher>(
-              base.query_tokenization_distance(), dataset_dense,
-              base.query_spilling_max_centers(),
+              base.query_tokenization_distance(), dataset_dense, num_neighbors,
               numeric_limits<float>::infinity(),
               config.noise_shaping_threshold());
         } else {
           return make_unique<BruteForceSearcher<float>>(
-              base.query_tokenization_distance(), dataset_dense,
-              base.query_spilling_max_centers(),
+              base.query_tokenization_distance(), dataset_dense, num_neighbors,
               numeric_limits<float>::infinity());
         }
       }));
@@ -163,16 +186,44 @@ TreeBruteForceSecondLevelWrapper<T>::TokensForDatapointWithSpillingBatched(
                                  ? base_->query_spilling_max_centers()
                                  : max_centers_override[i];
     params[i].set_pre_reordering_num_neighbors(max_centers);
-    params[i].set_pre_reordering_epsilon(numeric_limits<float>::infinity());
+    if (base_->query_spilling_type() ==
+        QuerySpillingConfig::ABSOLUTE_DISTANCE) {
+      params[i].set_pre_reordering_epsilon(base_->query_spilling_threshold());
+    } else {
+      params[i].set_pre_reordering_epsilon(numeric_limits<float>::infinity());
+    }
   }
+
+  auto try_ensure_one_center = [&](const TypedDataset<float>& queries,
+                                   absl::Status orig_status) -> absl::Status {
+    bool at_least_one_center =
+        base_->query_spilling_type() == QuerySpillingConfig::ABSOLUTE_DISTANCE;
+    if (!orig_status.ok() || !at_least_one_center) return orig_status;
+
+    for (size_t i : IndicesOf(queries)) {
+      auto& result = results[i];
+      DatapointPtr<float> query = queries[i];
+      auto& param = params[i];
+
+      if (!result.empty()) continue;
+
+      param.set_pre_reordering_epsilon(numeric_limits<float>::infinity());
+      param.set_pre_reordering_num_neighbors(1);
+      SCANN_RETURN_IF_ERROR(top_level_->FindNeighbors(query, param, &result));
+    }
+    return OkStatus();
+  };
+
   if constexpr (std::is_same_v<T, float>) {
-    return top_level_->FindNeighborsBatchedNoSortNoExactReorder(queries, params,
-                                                                results);
+    auto st = top_level_->FindNeighborsBatchedNoSortNoExactReorder(
+        queries, params, results);
+    return try_ensure_one_center(queries, st);
   } else {
     DenseDataset<float> float_queries;
     down_cast<const DenseDataset<T>*>(&queries)->ConvertType(&float_queries);
-    return top_level_->FindNeighborsBatchedNoSortNoExactReorder(
+    auto st = top_level_->FindNeighborsBatchedNoSortNoExactReorder(
         float_queries, params, results);
+    return try_ensure_one_center(float_queries, st);
   }
 }
 
@@ -218,7 +269,23 @@ TreeBruteForceSecondLevelWrapper<T>::CreateTopLevel(
     const KMeansTreeLikePartitioner<T>& base,
     const BottomUpTopLevelPartitioner& config,
     std::optional<SerializedKMeansTreePartitioner> serialized) {
-  SCANN_RET_CHECK_LT(config.num_centroids_to_search(), config.num_centroids());
+  if (config.num_centroids_to_search() < 0) {
+    return InvalidArgumentError(
+        "Must specify a value >=0 for "
+        "BottomUpTopLevelPartitioner.num_centroids_to_search.");
+  }
+  if (config.num_centroids_to_search() > config.num_centroids()) {
+    return InvalidArgumentError(
+        "BottomUpTopLevelPartitioner.num_centroids_to_search must be <= "
+        "BottomUpTopLevelPartitioner.num_centroids.  (Got %d vs %d)",
+        config.num_centroids_to_search(), config.num_centroids());
+  }
+  if (static_cast<int32_t>(base.query_spilling_max_centers()) < 0) {
+    return InvalidArgumentError(
+        "Must specify a positive value of query_spilling.max_spill_centers "
+        "that fits in an int32_t.  (Got %d vs %d)",
+        base.query_spilling_max_centers(), base.n_tokens());
+  }
 
   unique_ptr<KMeansTreePartitioner<float>> top_partitioner;
   vector<std::vector<DatapointIndex>> token_to_datapoints;

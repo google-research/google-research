@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -25,6 +25,7 @@
 #include "scann/data_format/datapoint.h"
 #include "scann/data_format/dataset.h"
 #include "scann/distance_measures/one_to_many/one_to_many.h"
+#include "scann/distance_measures/one_to_many/one_to_many_symmetric.h"
 #include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
 #include "scann/oss_wrappers/scann_random.h"
 #include "scann/oss_wrappers/scann_status.h"
@@ -505,34 +506,62 @@ template <typename T>
 StatusOr<vector<float>> AhImpl<T>::CreateRawFloatLookupTable(
     const DatapointPtr<T>& query, const ChunkingProjection<T>& projection,
     const DistanceMeasure& lookup_distance,
-    ConstSpan<DenseDataset<FloatT>> centers, int32_t num_clusters_per_block) {
+    ConstSpan<DenseDataset<FloatT>> centers,
+    ConstSpan<FloatT> block_transposed_centers,
+    int32_t num_clusters_per_block) {
   ChunkedDatapoint<FloatT> projected;
   SCANN_RETURN_IF_ERROR(projection.ProjectInput(query, &projected));
   SCANN_RET_CHECK_EQ(centers.size(), projected.size());
 
+  const auto lookup_distance_tag =
+      lookup_distance.specially_optimized_distance_tag();
+  const bool distance_supported_for_transpose = [&]() {
+    switch (lookup_distance_tag) {
+      case DistanceMeasure::L1:
+      case DistanceMeasure::SQUARED_L2:
+      case DistanceMeasure::DOT_PRODUCT:
+      case DistanceMeasure::COSINE:
+        return true;
+      default:
+        return false;
+    }
+  }();
+
   vector<float> result(num_clusters_per_block * projected.size());
   float* result_row_start = result.data();
+  size_t centers_start_offset = 0;
+  if constexpr (std::is_same_v<FloatT, float>) {
+    if (!block_transposed_centers.empty() && distance_supported_for_transpose) {
+      for (size_t i = 0; i < centers.size();
+           ++i, result_row_start += num_clusters_per_block) {
+        const DatapointPtr<FloatT> projected_ptr = projected[i];
+        ConstSpan<float> cur_centers =
+            MakeConstSpan(block_transposed_centers)
+                .subspan(
+                    centers_start_offset,
+                    num_clusters_per_block * projected_ptr.dimensionality());
+        centers_start_offset +=
+            num_clusters_per_block * projected_ptr.dimensionality();
+        DenseDistanceOneToManyBlockTransposed(
+            lookup_distance_tag, projected_ptr, cur_centers,
+            MutableSpan<float>(result_row_start, num_clusters_per_block));
+      }
+      return std::move(result);
+    }
+  }
 
   for (size_t i = 0; i < centers.size();
        ++i, result_row_start += num_clusters_per_block) {
     const DatapointPtr<FloatT> projected_ptr = projected[i];
     const DenseDataset<FloatT>& cur_centers = centers[i];
-    if (projected_ptr.IsSparse()) {
-      for (size_t j = 0; j < num_clusters_per_block; ++j) {
-        result_row_start[j] = static_cast<float>(
-            lookup_distance.GetDistanceHybrid(projected_ptr, cur_centers[j]));
-      }
+    if (lookup_distance_tag == DistanceMeasure::LIMITED_INNER_PRODUCT) {
+      DenseDistanceOneToMany(
+          DotProductDistance(), projected_ptr, cur_centers,
+          MutableSpan<float>(result_row_start, num_clusters_per_block));
     } else {
-      if (lookup_distance.specially_optimized_distance_tag() ==
-          DistanceMeasure::LIMITED_INNER_PRODUCT) {
-        DenseDistanceOneToMany(
-            DotProductDistance(), projected_ptr, cur_centers,
-            MutableSpan<float>(result_row_start, num_clusters_per_block));
-      } else {
-        DenseDistanceOneToMany(
-            lookup_distance, projected_ptr, cur_centers,
-            MutableSpan<float>(result_row_start, num_clusters_per_block));
-      }
+      DenseDistanceOneToMany(
+          lookup_distance, projected_ptr, cur_centers,
+          MutableSpan<float>(result_row_start, num_clusters_per_block));
     }
   }
 

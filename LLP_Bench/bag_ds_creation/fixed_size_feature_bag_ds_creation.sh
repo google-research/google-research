@@ -1,4 +1,5 @@
-# Copyright 2024 The Google Research Authors.
+#!/bin/bash
+# Copyright 2025 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -12,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#!/bin/bash
+
 declare -a c1_c2_list=(
   '1 7' '1 10' '2 7' '2 10' '2 11' '2 13' '3 7' '3 10'
   '3 11' '3 13' '4 7' '4 10' '4 11' '4 13' '4 15' '6 7'

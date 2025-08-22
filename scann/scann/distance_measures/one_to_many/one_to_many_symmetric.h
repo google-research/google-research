@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -929,6 +929,57 @@ DenseAccumulatingDistanceMeasureOneToManyNoFma(
       query, database, lambdas, result, callback, pool);
 }
 
+template <typename T, typename Lambdas>
+void DenseAccumulatingDistanceMeasureOneToManyBlockTransposed(
+    const DatapointPtr<T>& query, ConstSpan<T> database, const Lambdas& lambdas,
+    MutableSpan<T> result) {
+  const size_t lanes =
+      hwy::HWY_NAMESPACE::Lanes(hwy::HWY_NAMESPACE::ScalableTag<T>());
+  const size_t dims = query.dimensionality();
+  DCHECK_EQ(database.size() % (lanes * dims), 0);
+  DCHECK_EQ(result.size() % lanes, 0);
+  namespace hn = hwy::HWY_NAMESPACE;
+  using D = hn::ScalableTag<T>;
+  const D d;
+  const size_t num_simd_blocks = database.size() / (lanes * dims);
+
+  size_t dst_idx = 0;
+  const ConstSpan<T> qspan = query.values_span();
+  for (size_t simd_block_idx = 0; simd_block_idx + 1 < num_simd_blocks;
+       simd_block_idx += 2) {
+    hn::Vec<D> a0 = hn::Zero(d);
+    hn::Vec<D> a1 = hn::Zero(d);
+    const T* d0_ptr = database.data() + simd_block_idx * dims * lanes;
+    const T* d1_ptr = d0_ptr + dims * lanes;
+    for (DimensionIndex dim_idx : Seq(dims)) {
+      auto q = hn::Set(d, qspan[dim_idx]);
+      auto d0 = hn::LoadU(d, d0_ptr);
+      auto d1 = hn::LoadU(d, d1_ptr);
+      a0 = lambdas.template AccTerm<D>(a0, q, d0);
+      a1 = lambdas.template AccTerm<D>(a1, q, d1);
+      d0_ptr += lanes;
+      d1_ptr += lanes;
+    }
+    hn::StoreU(a0, d, result.data() + dst_idx);
+    dst_idx += lanes;
+    hn::StoreU(a1, d, result.data() + dst_idx);
+    dst_idx += lanes;
+  }
+
+  if (num_simd_blocks & 1) {
+    hn::Vec<D> a0 = hn::Zero(d);
+    const size_t simd_block_idx = num_simd_blocks - 1;
+    const T* d0_ptr = database.data() + simd_block_idx * dims * lanes;
+    for (DimensionIndex dim_idx : Seq(dims)) {
+      auto q = hn::Set(d, qspan[dim_idx]);
+      auto d0 = hn::LoadU(d, d0_ptr);
+      a0 = lambdas.template AccTerm<D>(a0, q, d0);
+      d0_ptr += lanes;
+    }
+    hn::StoreU(a0, d, result.data() + dst_idx);
+  }
+}
+
 template <typename T>
 class DotProductDistanceLambdas {
  public:
@@ -1686,6 +1737,39 @@ void DenseDistanceOneToMany(const DistanceMeasure& dist,
       T, ResultElem, DatasetView,
       one_to_many_low_level::SetDistanceFunctor<ResultElem>>(
       dist, query, database, result, &set_distance_functor, pool);
+}
+
+template <typename T>
+void DenseDistanceOneToManyBlockTransposed(
+    DistanceMeasure::SpeciallyOptimizedDistanceTag dist_tag,
+    const DatapointPtr<T>& query, ConstSpan<T> block_transposed_db,
+    MutableSpan<float> result) {
+  switch (dist_tag) {
+    case DistanceMeasure::L1:
+      return one_to_many_low_level::
+          DenseAccumulatingDistanceMeasureOneToManyBlockTransposed<T>(
+              query, block_transposed_db,
+              one_to_many_low_level::L1DistanceLambdas<T>(), result);
+    case DistanceMeasure::SQUARED_L2:
+      return one_to_many_low_level::
+          DenseAccumulatingDistanceMeasureOneToManyBlockTransposed<T>(
+              query, block_transposed_db,
+              one_to_many_low_level::SquaredL2DistanceLambdas<T>(), result);
+    case DistanceMeasure::DOT_PRODUCT:
+      return one_to_many_low_level::
+          DenseAccumulatingDistanceMeasureOneToManyBlockTransposed<T>(
+              query, block_transposed_db,
+              one_to_many_low_level::DotProductDistanceLambdas<T>(), result);
+    case DistanceMeasure::COSINE:
+      return one_to_many_low_level::
+          DenseAccumulatingDistanceMeasureOneToManyBlockTransposed<T>(
+              query, block_transposed_db,
+              one_to_many_low_level::CosineDistanceLambdas<T>(), result);
+    default:
+      LOG(FATAL) << "Unsupported distance measure for block-transposed "
+                    "database.  Only DotProductDistance, SquaredL2Distance, "
+                    "CosineDistance and L1Distance are supported.";
+  }
 }
 
 #define SCANN_INSTANTIATE_ONE_TO_MANY_NO_AVX(                                  \

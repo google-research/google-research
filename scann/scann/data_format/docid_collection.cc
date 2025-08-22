@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,12 +28,11 @@
 #include "absl/base/prefetch.h"
 #include "absl/container/inlined_vector.h"
 #include "absl/flags/flag.h"
-#include "absl/functional/any_invocable.h"
 #include "absl/log/check.h"
 #include "absl/strings/str_cat.h"
 #include "scann/data_format/docid_collection_interface.h"
+#include "scann/data_format/docid_lookup.h"
 #include "scann/data_format/internal/short_string_optimized_string.h"
-#include "scann/data_format/internal/string_view32.h"
 #include "scann/oss_wrappers/scann_down_cast.h"
 #include "scann/utils/common.h"
 #include "scann/utils/memory_logging.h"
@@ -45,9 +44,6 @@ ABSL_FLAG(bool, use_memory_optimized_immutable_docid_collection, false,
           "VariableLengthDocidCollection");
 
 namespace research_scann {
-
-using data_format_internal::string_view32;
-
 namespace {
 
 void AmortizedAppend(std::vector<char>& v, size_t to_add) {
@@ -486,39 +482,28 @@ VariableLengthDocidCollection::Mutator::Create(
   if (!docids) {
     return InvalidArgumentError("Docids is nullptr");
   }
-  auto result = absl::WrapUnique<VariableLengthDocidCollection::Mutator>(
-      new VariableLengthDocidCollection::Mutator(docids));
-  if (!docids->impl_) {
-    return std::move(result);
-  }
-  result->docid_lookup_.reserve(docids->size());
-  for (DatapointIndex i = 0; i < docids->size(); ++i) {
-    string_view docid = docids->Get(i);
-    if (!docid.empty()) {
-      auto emplace_result =
-          result->docid_lookup_.emplace(string_view32(docid), i);
-      if (!emplace_result.second) {
-        result->docid_lookup_.clear();
-        return AlreadyExistsError(absl::StrCat(
-            "Docids contain duplicates. First duplicated docid: ", docid, "."));
-      }
-    }
-  }
-  return std::move(result);
+
+  SCANN_ASSIGN_OR_RETURN(auto docid_lookup, CreateDocidLookupMap(docids));
+  return absl::WrapUnique<VariableLengthDocidCollection::Mutator>(
+      new VariableLengthDocidCollection::Mutator(docids,
+                                                 std::move(docid_lookup)));
 }
 
 bool VariableLengthDocidCollection::Mutator::LookupDatapointIndex(
     string_view docid, DatapointIndex* index) const {
-  auto it = docid_lookup_.find(string_view32(docid));
-  if (it == docid_lookup_.end()) {
-    return false;
-  }
-  *index = it->second;
-  return true;
+  return docid_lookup_->LookupDatapointIndex(docid, index);
+}
+
+void VariableLengthDocidCollection::Mutator::LookupDatapointIndices(
+    size_t num_docids, DocidGetter docid_getter,
+    LookupCallback callback) const {
+  docid_lookup_->LookupDatapointIndices(num_docids, std::move(docid_getter),
+                                        std::move(callback));
 }
 
 void VariableLengthDocidCollection::Mutator::Reserve(size_t size) {
   docids_->Reserve(size);
+  docid_lookup_->Reserve(size);
 }
 
 Status VariableLengthDocidCollection::Mutator::AddDatapoint(string_view docid) {
@@ -532,8 +517,8 @@ Status VariableLengthDocidCollection::Mutator::AddDatapoint(string_view docid) {
 
   SCANN_RETURN_IF_ERROR(docids_->AppendImpl(docid));
   if (!docid.empty()) {
-    docid_lookup_[string_view32(docids_->Get(docids_->size() - 1))] =
-        docids_->size() - 1;
+    return docid_lookup_->AddDatapoint(docids_->Get(docids_->size() - 1),
+                                       docids_->size() - 1);
   }
   return OkStatus();
 }
@@ -562,22 +547,22 @@ Status VariableLengthDocidCollection::Mutator::RemoveDatapoint(
 
   auto impl = down_cast<MutableCollection*>(docids_->impl_.get());
   DCHECK(impl);
-  string_view32 old_docid(impl->Get(impl->size() - 1));
+  auto old_docid = impl->Get(impl->size() - 1);
   if (!old_docid.empty()) {
-    docid_lookup_.erase(old_docid);
+    SCANN_RETURN_IF_ERROR(docid_lookup_->RemoveDatapoint(old_docid));
   }
 
   if (index != impl->size() - 1) {
-    string_view32 new_docid(impl->Get(index));
+    auto new_docid = impl->Get(index);
     if (!new_docid.empty()) {
-      docid_lookup_.erase(new_docid);
+      SCANN_RETURN_IF_ERROR(docid_lookup_->RemoveDatapoint(new_docid));
     }
 
     impl->Fetch(index) = std::move(impl->Fetch(impl->size() - 1));
 
-    new_docid = string_view32(impl->Get(index));
+    new_docid = impl->Get(index);
     if (!new_docid.empty()) {
-      docid_lookup_[new_docid] = index;
+      SCANN_RETURN_IF_ERROR(docid_lookup_->AddDatapoint(new_docid, index));
     }
   } else {
     impl->Fetch(index) = ShortStringOptimizedString();
@@ -817,38 +802,28 @@ FixedLengthDocidCollection::Mutator::Create(
   if (!docids) {
     return InvalidArgumentError("Docids is nullptr");
   }
+
+  SCANN_ASSIGN_OR_RETURN(auto docid_lookup, CreateDocidLookupMap(docids));
   auto result = absl::WrapUnique<FixedLengthDocidCollection::Mutator>(
-      new FixedLengthDocidCollection::Mutator(docids));
-  result->docid_lookup_.reserve(docids->size());
-  for (DatapointIndex i = 0; i < docids->size(); ++i) {
-    string_view docid = docids->Get(i);
-    if (!docid.empty()) {
-      result->docid_lookup_[string_view32(docid)] = i;
-    }
-  }
+      new FixedLengthDocidCollection::Mutator(docids, std::move(docid_lookup)));
   return std::move(result);
 }
 
 bool FixedLengthDocidCollection::Mutator::LookupDatapointIndex(
     string_view docid, DatapointIndex* index) const {
-  auto it = docid_lookup_.find(string_view32(docid));
-  if (it == docid_lookup_.end()) {
-    return false;
-  }
-  *index = it->second;
-  return true;
+  return docid_lookup_->LookupDatapointIndex(docid, index);
+}
+
+void FixedLengthDocidCollection::Mutator::LookupDatapointIndices(
+    size_t num_docids, DocidGetter docid_getter,
+    LookupCallback callback) const {
+  docid_lookup_->LookupDatapointIndices(num_docids, std::move(docid_getter),
+                                        std::move(callback));
 }
 
 void FixedLengthDocidCollection::Mutator::Reserve(size_t size) {
   docids_->ReserveImpl(size);
-  docid_lookup_.clear();
-  docid_lookup_.reserve(size);
-  for (DatapointIndex i = 0; i < docids_->size(); ++i) {
-    string_view32 docid(docids_->Get(i));
-    if (!docid.empty()) {
-      docid_lookup_[docid] = i;
-    }
-  }
+  docid_lookup_->Reserve(docids_->size());
 }
 
 Status FixedLengthDocidCollection::Mutator::AddDatapoint(string_view docid) {
@@ -863,10 +838,8 @@ Status FixedLengthDocidCollection::Mutator::AddDatapoint(string_view docid) {
     Reserve(new_size);
   }
   SCANN_RETURN_IF_ERROR(docids_->AppendImpl(docid));
-
-  docid_lookup_[string_view32(docids_->Get(docids_->size() - 1))] =
-      docids_->size() - 1;
-  return OkStatus();
+  return docid_lookup_->AddDatapoint(docids_->Get(docids_->size() - 1),
+                                     docids_->size() - 1);
 }
 
 Status FixedLengthDocidCollection::Mutator::RemoveDatapoint(string_view docid) {
@@ -886,15 +859,17 @@ Status FixedLengthDocidCollection::Mutator::RemoveDatapoint(
                      ", but size() =  ", docids_->size(), "."));
   }
 
-  docid_lookup_.erase(string_view32(docids_->Get(docids_->size() - 1)));
+  SCANN_RETURN_IF_ERROR(
+      docid_lookup_->RemoveDatapoint(docids_->Get(docids_->size() - 1)));
   if (index != docids_->size() - 1) {
-    docid_lookup_.erase(string_view32(docids_->Get(index)));
+    SCANN_RETURN_IF_ERROR(docid_lookup_->RemoveDatapoint(docids_->Get(index)));
     std::copy(
         docids_->arr_.begin() + (docids_->size() - 1) * docids_->docid_length_,
         docids_->arr_.begin() + docids_->size() * docids_->docid_length_,
         docids_->arr_.begin() + index * docids_->docid_length_);
 
-    docid_lookup_[string_view32(docids_->Get(index))] = index;
+    SCANN_RETURN_IF_ERROR(
+        docid_lookup_->AddDatapoint(docids_->Get(index), index));
   }
   docids_->size_--;
   docids_->arr_.resize(docids_->size() * docids_->docid_length_);

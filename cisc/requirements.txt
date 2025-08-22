@@ -1,0 +1,16 @@
+absl-py>=1.4.0
+accelerate>=1.8.1
+datasets>=3.6.0
+matplotlib
+numpy
+pandas
+peft>=0.14.0
+scikit-learn
+scipy
+tensorflow>=2.5.0rc0
+torch>=2.6.0
+tqdm
+# For the models in the original paper we use a specific version of transformers
+# increase the version number to use the latest models.
+transformers==4.48.0
+more-itertools

@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -94,7 +94,7 @@ class KMeansTreeNode {
       const DatapointPtr<Real>& query,
       QuerySpillingConfig::SpillingType spilling_type,
       double spilling_threshold, int32_t max_centers,
-      const DistanceMeasure& dist,
+      int32_t num_tokenized_branch, const DistanceMeasure& dist,
       std::vector<pair<DatapointIndex, float>>* child_centers) const;
 
   template <typename Real, typename OutT = double>
@@ -204,6 +204,7 @@ StatusOr<Real> ComputeThreshold(
 Status PostprocessDistancesForSpilling(
     ConstSpan<float> distances, QuerySpillingConfig::SpillingType spilling_type,
     double spilling_threshold, int32_t max_centers,
+    int32_t num_tokenized_branch,
     std::vector<pair<DatapointIndex, float>>* child_centers);
 
 }  // namespace kmeans_tree_internal
@@ -258,7 +259,8 @@ template <typename Real, typename DataType>
 Status KMeansTreeNode::FindChildrenWithSpilling(
     const DatapointPtr<Real>& query,
     QuerySpillingConfig::SpillingType spilling_type, double spilling_threshold,
-    int32_t max_centers, const DistanceMeasure& dist,
+    int32_t max_centers, int32_t num_tokenized_branch,
+    const DistanceMeasure& dist,
     std::vector<pair<DatapointIndex, float>>* child_centers) const {
   const auto& centers = this->GetCentersByTemplateType<DataType>();
   DCHECK_GT(centers.size(), 0);
@@ -277,7 +279,7 @@ Status KMeansTreeNode::FindChildrenWithSpilling(
 
   return kmeans_tree_internal::PostprocessDistancesForSpilling(
       MakeMutableSpan(distances), spilling_type, spilling_threshold,
-      max_centers, child_centers);
+      max_centers, num_tokenized_branch, child_centers);
 }
 
 template <typename T>

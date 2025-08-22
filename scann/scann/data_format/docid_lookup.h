@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
 #ifndef SCANN_DATA_FORMAT_DOCID_LOOKUP_H_
 #define SCANN_DATA_FORMAT_DOCID_LOOKUP_H_
 
+#include <cstddef>
+
 #include "absl/functional/any_invocable.h"
 #include "scann/utils/common.h"
 #include "scann/utils/types.h"
@@ -28,18 +30,23 @@ class DocidLookup {
   virtual bool LookupDatapointIndex(string_view docid,
                                     DatapointIndex* idx) const = 0;
 
+  using DocidGetter = absl::AnyInvocable<string_view(size_t) const>;
+
   using LookupCallback =
       absl::AnyInvocable<void(size_t docids_idx, DatapointIndex dp_idx)>;
 
-  virtual void LookupDatapointIndices(ConstSpan<string_view> docids,
+  virtual void LookupDatapointIndices(size_t num_docids,
+                                      DocidGetter docid_getter,
                                       LookupCallback callback) const {
-    for (size_t i = 0; i < docids.size(); ++i) {
+    for (size_t i = 0; i < num_docids; ++i) {
       DatapointIndex dp_idx;
-      callback(i, LookupDatapointIndex(docids[i], &dp_idx)
+      callback(i, LookupDatapointIndex(docid_getter(i), &dp_idx)
                       ? dp_idx
                       : kInvalidDatapointIndex);
     }
   }
+
+  virtual string_view ImplName() const = 0;
 };
 
 }  // namespace research_scann

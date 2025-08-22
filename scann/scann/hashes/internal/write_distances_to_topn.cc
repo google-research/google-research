@@ -1,4 +1,4 @@
-// Copyright 2024 The Google Research Authors.
+// Copyright 2025 The Google Research Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,11 +15,15 @@
 #include "scann/hashes/internal/write_distances_to_topn.h"
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <utility>
 
-#include "scann/base/restrict_allowlist.h"
-#include "scann/utils/intrinsics/sse4.h"
+#include "absl/log/check.h"
+#include "scann/hashes/internal/asymmetric_hashing_postprocess.h"
+#include "scann/restricts/restrict_allowlist.h"
+#include "scann/utils/common.h"
+#include "scann/utils/types.h"
 
 namespace research_scann {
 namespace asymmetric_hashing_internal {
