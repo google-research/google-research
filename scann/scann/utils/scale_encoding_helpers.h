@@ -19,7 +19,6 @@
 
 #include "absl/status/status.h"
 #include "absl/strings/string_view.h"
-#include "absl/types/span.h"
 #include "scann/data_format/datapoint.h"
 #include "scann/distance_measures/one_to_many/scale_encoding.pb.h"
 #include "scann/utils/common.h"
@@ -27,13 +26,27 @@
 namespace research_scann {
 
 absl::Status AppendQuantizeScaledFloatDatapointWithNoiseShaping(
-    int bits, DatapointPtr<float> dptr,
-    absl::Span<const float> fixed8_multipliers, ScaleEncoding scale_encoding,
-    double noise_shaping_threshold, std::string& out);
+    int bits, DatapointPtr<float> dptr, ConstSpan<float> fixed8_multipliers,
+    ScaleEncoding scale_encoding, double noise_shaping_threshold,
+    std::string& out);
+
+absl::Status QuantizeScaledFloatDatapointWithNoiseShaping(
+    int bits, DatapointPtr<float> dptr, ConstSpan<float> fixed8_multipliers,
+    ScaleEncoding scale_encoding, double noise_shaping_threshold,
+    MutableSpan<uint8_t> encoded);
+
+absl::StatusOr<size_t> ScaledDatapointEncodedBytes(int bits,
+                                                   ScaleEncoding scale_encoding,
+                                                   size_t dimension);
 
 absl::Status DecodeScaledDatapoint(int bits, ScaleEncoding scale_encoding,
                                    absl::string_view encoded, float& scale,
                                    absl::string_view& data);
+
+absl::Status ReconstructScaledDatapoint(
+    int bits, ConstSpan<float> inverse_fixed8_multipliers,
+    ScaleEncoding scale_encoding, absl::string_view encoded,
+    MutableSpan<float>& dp);
 
 }  // namespace research_scann
 

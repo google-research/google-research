@@ -633,6 +633,7 @@ cc_library(
     deps = [
         ":common",
         ":scalar_quantization_helpers",
+        ":util_functions",
         "//scann/data_format:datapoint",
         "//scann/distance_measures/one_to_many:one_to_many_helpers",
         "//scann/distance_measures/one_to_many:scale_encoding_cc_proto",

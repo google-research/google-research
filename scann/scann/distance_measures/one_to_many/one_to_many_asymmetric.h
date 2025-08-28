@@ -276,8 +276,8 @@ SCANN_INLINE void OneToManyUint4Int8Dispatch(const int8_t* __restrict__ query,
 
 #else
 
-  fallback::OneToManyUint4Int8Impl<kHasIndices>(query, dataset_view, indices,
-                                                result, callback);
+  highway::OneToManyUint4Int8Impl<kHasIndices>(query, dataset_view, indices,
+                                               result, callback);
 #endif
 }
 

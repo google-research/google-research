@@ -76,12 +76,12 @@ template <typename T>
 Status Indexer<T>::Hash(const DatapointPtr<T>& input,
                         MutableSpan<uint8_t> hashed) const {
   if (model_->quantization_scheme() == AsymmetricHasherConfig::PRODUCT) {
-    DCHECK_EQ(hashed.size(), hash_space_dimension());
+    DCHECK_EQ(hashed.size(), hashed_space_bytes());
     return asymmetric_hashing_internal::IndexDatapoint<T>(
         input, *projector_, *quantization_distance_, model_->centers(), hashed);
   } else if (model_->quantization_scheme() ==
              AsymmetricHasherConfig::PRODUCT_AND_BIAS) {
-    DCHECK_EQ(hashed.size(), hash_space_dimension());
+    DCHECK_EQ(hashed.size(), hashed_space_bytes());
 
     SCANN_RETURN_IF_ERROR(asymmetric_hashing_internal::IndexDatapoint<T>(
         MakeDatapointPtr(input.values(), input.dimensionality() - 1),
@@ -89,18 +89,18 @@ Status Indexer<T>::Hash(const DatapointPtr<T>& input,
     std::string s =
         strings::FloatToKey(static_cast<float>(input.values_span().back()));
     DCHECK_EQ(sizeof(float), s.size());
-    const auto dim = hash_space_dimension() - sizeof(float);
+    const auto dim = hashed_space_bytes() - sizeof(float);
     for (int i = 0; i < sizeof(float); i++) {
       hashed[dim + i] = static_cast<uint8_t>(s[i]);
     }
     return OkStatus();
   } else if (model_->quantization_scheme() == AsymmetricHasherConfig::STACKED) {
-    DCHECK_EQ(hashed.size(), hash_space_dimension());
+    DCHECK_EQ(hashed.size(), hashed_space_bytes());
     return asymmetric_hashing_internal::StackedQuantizers<T>::Hash(
         input, *projector_, *quantization_distance_, model_->centers(), hashed);
   } else if (model_->quantization_scheme() ==
              AsymmetricHasherConfig::PRODUCT_AND_PACK) {
-    DCHECK_EQ(hashed.size(), hash_space_dimension());
+    DCHECK_EQ(hashed.size(), hashed_space_bytes());
     std::vector<uint8_t> unpacked(model_->centers().size());
     SCANN_RETURN_IF_ERROR(asymmetric_hashing_internal::IndexDatapoint<T>(
         input, *projector_, *quantization_distance_, model_->centers(),
@@ -126,7 +126,7 @@ Status Indexer<T>::Hash(const DatapointPtr<T>& input,
       AsymmetricHasherConfig::PRODUCT_AND_PACK) {
     hashed->set_dimensionality(model_->centers().size());
   }
-  hashed->mutable_values()->resize(hash_space_dimension());
+  hashed->mutable_values()->resize(hashed_space_bytes());
   return Hash(input, hashed->mutable_values_span());
 }
 
@@ -156,7 +156,7 @@ Status Indexer<T>::HashWithNoiseShaping(
     const DatapointPtr<T>& maybe_residual, const DatapointPtr<T>& original,
     Datapoint<uint8_t>* hashed,
     const NoiseShapingParameter& noise_shaping_param) const {
-  hashed->mutable_values()->resize(hash_space_dimension());
+  hashed->mutable_values()->resize(hashed_space_bytes());
   return HashWithNoiseShaping(maybe_residual, original,
                               hashed->mutable_values_span(),
                               noise_shaping_param);
@@ -212,10 +212,10 @@ Status Indexer<T>::HashWithNoiseShaping(
 template <typename T>
 Status Indexer<T>::Hash(const DatapointPtr<T>& input,
                         std::string* hashed) const {
-  hashed->resize(hash_space_dimension());
+  hashed->resize(hashed_space_bytes());
   auto mutable_span = MakeMutableSpan(
       reinterpret_cast<uint8_t*>(const_cast<char*>(hashed->data())),
-      hash_space_dimension());
+      hashed_space_bytes());
   SCANN_RETURN_IF_ERROR(Hash(input, mutable_span));
   return OkStatus();
 }
@@ -397,7 +397,7 @@ Status Indexer<T>::Reconstruct(absl::string_view input,
 }
 
 template <typename T>
-DimensionIndex Indexer<T>::hash_space_dimension() const {
+DimensionIndex Indexer<T>::hashed_space_bytes() const {
   DCHECK_EQ(model_->centers().size(), projector_->num_blocks())
       << model_->ToProto();
   switch (model_->quantization_scheme()) {

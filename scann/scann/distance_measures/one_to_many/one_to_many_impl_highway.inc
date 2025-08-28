@@ -582,6 +582,102 @@ COMPUTE_ONE_TO_MANY_SCORE_SQUAREDL2(4);
 #undef COMPUTE_ONE_TO_MANY_SCORE
 #undef COMPUTE_ONE_TO_MANY_SCORE_SQUAREDL2
 
+template <bool kIsSquaredL2, size_t kUnrollBy>
+SCANN_HIGHWAY_INLINE void ComputeOneToManyScores(
+    const int8_t* __restrict__ query, array<const uint8_t*, kUnrollBy> ptrs,
+    const float* __restrict__ inv_multipliers_for_squared_l2,
+    size_t dimensionality, size_t num_outer_iters,
+    array<int32_t, kUnrollBy>& results) {
+  static_assert(!kIsSquaredL2, "Uint4Int8 doesn't support squared l2.");
+  static_assert(kUnrollBy == 1, "Uint4Int8 doesn't support unrolling.");
+  const uint8_t* ptr = ptrs[0];
+  const size_t kWidth = 128;
+  const hn::FixedTag<int8_t, kWidth / 8> d8;
+  const hn::FixedTag<uint8_t, kWidth / 8> du8;
+  const hn::FixedTag<int32_t, kWidth / 32> d32;
+  const auto kMask = hn::Set(du8, 0x0F);
+  auto acc = hn::Zero(d32);
+  for (size_t i = 0; i * kWidth < dimensionality * 4; ++i) {
+    auto packed_data = hn::LoadU(du8, ptr + i * kWidth / 8);
+    auto data_low = hn::And(packed_data, kMask);
+    auto data_high = hn::ShiftRight<4>(packed_data);
+    auto query_low = hn::LoadU(d8, query + 2 * i * kWidth / 8);
+    auto query_high = hn::LoadU(d8, query + 2 * i * kWidth / 8 + kWidth / 8);
+    acc = hn::SumOfMulQuadAccumulate(d32, hn::BitCast(d8, data_low), query_low,
+                                     acc);
+    acc = hn::SumOfMulQuadAccumulate(d32, hn::BitCast(d8, data_high),
+                                     query_high, acc);
+  }
+  results[0] = -hn::ReduceSum(d32, acc);
+}
+
+SCANN_HIGHWAY_INLINE void PermuteQueryForUint4Int8(const int8_t* query,
+                                                   int8_t* permuted_query,
+                                                   size_t dimensionality) {
+  DCHECK_EQ(dimensionality % 64, 0);
+
+  const size_t kWidth = 128;
+  const hn::FixedTag<int8_t, kWidth / 8> d;
+  for (size_t i = 0; i < dimensionality; i += 2 * kWidth / 8) {
+    auto q0 = hn::LoadU(d, query + i);
+    auto q1 = hn::LoadU(d, query + i + kWidth / 8);
+
+    auto q_even = hn::ConcatEven(d, q1, q0);
+    auto q_odd = hn::ConcatOdd(d, q1, q0);
+    hn::StoreU(q_even, d, permuted_query + i);
+    hn::StoreU(q_odd, d, permuted_query + i + kWidth / 8);
+  }
+}
+
+template <typename CallbackT, typename ResultT, typename DataT>
+SCANN_HIGHWAY_INLINE void InvokeCallbackHighway(const CallbackT& callback,
+                                                size_t result_idx, ResultT val,
+                                                size_t datapoint_bytes,
+                                                const DataT* ptr) {
+  if constexpr (one_to_many_low_level::NeedsBottomBitsSideData<
+                    CallbackT>::value) {
+    static_assert(std::is_same_v<DataT, int8_t> ||
+                  std::is_same_v<DataT, uint8_t>);
+    if (datapoint_bytes % 32 == 0) {
+      const hn::FixedTag<DataT, 16> d;
+      const hn::FixedTag<uint8_t, 16> du8;
+      const hn::FixedTag<uint16_t, 8> du16;
+      auto data_low = hn::Zero(d);
+      auto data_high = hn::Zero(d);
+      for (size_t i = 0; i < datapoint_bytes; i += 32) {
+        data_low = hn::Xor(data_low, hn::LoadU(d, ptr + i));
+        data_high = hn::Xor(data_high, hn::LoadU(d, ptr + i + 16));
+      }
+      auto data_low_u16 = hn::BitCast(du16, data_low);
+      auto data_high_u16 = hn::BitCast(du16, data_high);
+      if constexpr (std::is_same_v<DataT, uint8_t>) {
+        data_low_u16 = hn::Xor(data_low_u16, hn::ShiftRight<4>(data_low_u16));
+        data_high_u16 =
+            hn::Xor(data_high_u16, hn::ShiftRight<4>(data_high_u16));
+      }
+      data_low_u16 = hn::ShiftLeft<7>(data_low_u16);
+      data_high_u16 = hn::ShiftLeft<7>(data_high_u16);
+      auto data_low_u8 = hn::BitCast(du8, data_low_u16);
+      auto data_high_u8 = hn::BitCast(du8, data_high_u16);
+      uint32_t bottom_bits =
+          hn::BitsFromMask(du8, hn::Gt(data_low_u8, hn::Set(du8, 0x7F))) |
+          (hn::BitsFromMask(du8, hn::Gt(data_high_u8, hn::Set(du8, 0x7F)))
+           << 16);
+
+      if constexpr (std::is_same_v<DataT, int8_t>) {
+        DCHECK_EQ(bottom_bits, DecodeBottomBitsDataFromInt8(
+                                   MakeConstSpan(ptr, datapoint_bytes)));
+      } else {
+        static_assert(std::is_same_v<DataT, uint8_t>);
+        DCHECK_EQ(bottom_bits, DecodeBottomBitsDataFromPackedInt4(
+                                   MakeConstSpan(ptr, datapoint_bytes)));
+      }
+      callback.invoke(result_idx, val, bottom_bits);
+      return;
+    }
+  }
+  InvokeCallback(callback, result_idx, val, datapoint_bytes, ptr);
+}
 }  // namespace HWY_NAMESPACE
 }  // namespace highway
 }  // namespace research_scann
@@ -637,10 +733,11 @@ inline size_t GetDatapointIndex(MutableSpan<pair<IndexT, ValueT>> result,
 }  // namespace
 
 template <int kDimensionality, size_t kUnrollBy, bool kHasIndices,
-          bool kIsSquaredL2, bool kShouldPrefetch, typename DatasetViewT,
-          typename IndexT, typename ResultElemT, typename CallbackT>
+          bool kIsSquaredL2, bool kShouldPrefetch, typename DataT,
+          typename DatasetViewT, typename IndexT, typename ResultElemT,
+          typename CallbackT, typename QueryT>
 SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
-    const float* __restrict__ query, DatasetViewT dataset_view,
+    const QueryT* __restrict__ query, DatasetViewT dataset_view,
     const float* __restrict__ inv_multipliers_for_squared_l2,
     const IndexT* indices, MutableSpan<ResultElemT> result,
     CallbackT callback) {
@@ -654,7 +751,9 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
   constexpr size_t kMinPrefetchAheadBytes = 2304;
 
   constexpr size_t kCacheLine = 64;
-  const size_t datapoint_bytes = dimensionality * sizeof(IntT);
+  const size_t datapoint_bytes = std::is_same_v<DataT, uint8_t>
+                                     ? DivRoundUp(dimensionality, 2)
+                                     : sizeof(DataT) * dimensionality;
   const size_t cache_lines_per_datapoint =
       DivRoundUp(datapoint_bytes, kCacheLine);
   size_t num_prefetch_datapoints;
@@ -696,27 +795,56 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
     }
   }
 
-  std::array<float, kDimensionality> query_storage;
-  if constexpr (kDimensionality > 0) {
-    DCHECK_EQ(dimensionality, kDimensionality);
+  std::array<QueryT, kDimensionality> query_stack_storage;
+  std::unique_ptr<QueryT[]> permuted_query_heap_storage;
+  if constexpr (std::is_same_v<QueryT, int8_t> &&
+                std::is_same_v<DataT, uint8_t>) {
+    QueryT* permuted_query;
 
-    std::copy(query, query + kDimensionality, query_storage.data());
-    query = query_storage.data();
-  }
-
-  for (size_t j = num_datapoints / kUnrollBy * kUnrollBy; j < num_datapoints;
-       j++) {
-    const IntT* ptr = get_db_ptr(j);
-    float result;
-    if constexpr (kIsSquaredL2) {
-      result = HWY_DISPATCH(ComputeOneToOneScoreSquaredL2)(
-          query, ptr, inv_multipliers_for_squared_l2, dimensionality);
+    const size_t round_up_dims = NextMultipleOf(dimensionality, 64);
+    if constexpr (kDimensionality > 0) {
+      DCHECK_EQ(round_up_dims, kDimensionality);
+      permuted_query = query_stack_storage.data();
     } else {
-      result = HWY_DISPATCH(ComputeOneToOneScore)(
-          query, ptr, inv_multipliers_for_squared_l2, dimensionality);
+      permuted_query_heap_storage = std::make_unique<QueryT[]>(round_up_dims);
+      permuted_query = permuted_query_heap_storage.get();
+    }
+    std::unique_ptr<QueryT[]> query_heap_storage;
+    if (dimensionality != round_up_dims) {
+      query_heap_storage = std::make_unique<QueryT[]>(round_up_dims);
+      std::copy(query, query + dimensionality, query_heap_storage.get());
+      std::fill(query_heap_storage.get() + dimensionality,
+                query_heap_storage.get() + round_up_dims, 0);
+      query = query_heap_storage.get();
     }
 
-    InvokeCallback(callback, j, result, datapoint_bytes, ptr);
+    HWY_DISPATCH(PermuteQueryForUint4Int8)
+    (query, permuted_query, round_up_dims);
+    query = permuted_query;
+  } else {
+    if constexpr (kDimensionality > 0) {
+      DCHECK_EQ(dimensionality, kDimensionality);
+
+      std::copy(query, query + kDimensionality, query_stack_storage.data());
+      query = query_stack_storage.data();
+    }
+  }
+
+  if constexpr (kUnrollBy > 1) {
+    for (size_t j = num_datapoints / kUnrollBy * kUnrollBy; j < num_datapoints;
+         j++) {
+      const IntT* ptr = get_db_ptr(j);
+      float result;
+      if constexpr (kIsSquaredL2) {
+        result = HWY_DISPATCH(ComputeOneToOneScoreSquaredL2)(
+            query, ptr, inv_multipliers_for_squared_l2, dimensionality);
+      } else {
+        result = HWY_DISPATCH(ComputeOneToOneScore)(
+            query, ptr, inv_multipliers_for_squared_l2, dimensionality);
+      }
+
+      InvokeCallback(callback, j, result, datapoint_bytes, ptr);
+    }
   }
 
   for (size_t j : Seq(num_outer_iters)) {
@@ -742,8 +870,16 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
       ptrs[jj] = get_db_ptr(j + jj * num_outer_iters);
     }
 
-    array<float, kUnrollBy> results;
-    if constexpr (kUnrollBy == 4) {
+    using ResultT = std::conditional_t<std::is_same_v<QueryT, int8_t> &&
+                                           std::is_same_v<DataT, uint8_t>,
+                                       int32_t, float>;
+    array<ResultT, kUnrollBy> results;
+    if constexpr (std::is_same_v<QueryT, int8_t> &&
+                  std::is_same_v<DataT, uint8_t>) {
+      HWY_DISPATCH(ComputeOneToManyScores)<kIsSquaredL2, kUnrollBy>(
+          query, ptrs, inv_multipliers_for_squared_l2, dimensionality, j,
+          results);
+    } else if constexpr (kUnrollBy == 4) {
       if constexpr (kIsSquaredL2) {
         HWY_DISPATCH(ComputeOneToManyScoreSquaredL24)
         (query, ptrs, inv_multipliers_for_squared_l2, dimensionality, results);
@@ -778,8 +914,9 @@ SCANN_HIGHWAY_INLINE void OneToManyIntFloatTemplate(
     }
 
     for (size_t jj : Seq(kUnrollBy)) {
-      InvokeCallback(callback, j + jj * num_outer_iters, results[jj],
-                     datapoint_bytes, ptrs[jj]);
+      HWY_DISPATCH(InvokeCallbackHighway)
+      (callback, j + jj * num_outer_iters, results[jj], datapoint_bytes,
+       ptrs[jj]);
     }
   }
 }
@@ -793,15 +930,15 @@ SCANN_HIGHWAY_OUTLINE void OneToManyInt8FloatImpl(
     CallbackT callback) {
   const size_t dims = dataset_view.dimensionality();
   if (dims == 128) {
-    OneToManyIntFloatTemplate<128, 3, kHasIndices, kIsSquaredL2, true>(
+    OneToManyIntFloatTemplate<128, 3, kHasIndices, kIsSquaredL2, true, int8_t>(
         query, std::move(dataset_view), inv_multipliers_for_squared_l2, indices,
         result, std::move(callback));
   } else if (dims == 64) {
-    OneToManyIntFloatTemplate<64, 3, kHasIndices, kIsSquaredL2, true>(
+    OneToManyIntFloatTemplate<64, 3, kHasIndices, kIsSquaredL2, true, int8_t>(
         query, std::move(dataset_view), inv_multipliers_for_squared_l2, indices,
         result, std::move(callback));
   } else {
-    OneToManyIntFloatTemplate<0, 3, kHasIndices, kIsSquaredL2, true>(
+    OneToManyIntFloatTemplate<0, 3, kHasIndices, kIsSquaredL2, true, int8_t>(
         query, std::move(dataset_view), inv_multipliers_for_squared_l2, indices,
         result, std::move(callback));
   }
@@ -815,15 +952,37 @@ SCANN_HIGHWAY_OUTLINE void OneToManyBf16FloatImpl(
     CallbackT callback) {
   const size_t dims = dataset_view.dimensionality();
   if (dims == 128) {
-    OneToManyIntFloatTemplate<128, 3, kHasIndices, kIsSquaredL2, true>(
+    OneToManyIntFloatTemplate<128, 3, kHasIndices, kIsSquaredL2, true, int16_t>(
         query, std::move(dataset_view), nullptr, indices, result,
         std::move(callback));
   } else if (dims == 64) {
-    OneToManyIntFloatTemplate<64, 3, kHasIndices, kIsSquaredL2, true>(
+    OneToManyIntFloatTemplate<64, 3, kHasIndices, kIsSquaredL2, true, int16_t>(
         query, std::move(dataset_view), nullptr, indices, result,
         std::move(callback));
   } else {
-    OneToManyIntFloatTemplate<0, 3, kHasIndices, kIsSquaredL2, true>(
+    OneToManyIntFloatTemplate<0, 3, kHasIndices, kIsSquaredL2, true, int16_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
+  }
+}
+
+template <bool kHasIndices, typename DatasetViewT, typename IndexT,
+          typename ResultElemT, typename CallbackT>
+SCANN_HIGHWAY_OUTLINE void OneToManyUint4Int8Impl(
+    const int8_t* __restrict__ query, DatasetViewT dataset_view,
+    const IndexT* indices, MutableSpan<ResultElemT> result,
+    CallbackT callback) {
+  const size_t dims = dataset_view.dimensionality();
+  if (dims == 128) {
+    OneToManyIntFloatTemplate<128, 1, kHasIndices, false, true, uint8_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
+  } else if (dims == 64) {
+    OneToManyIntFloatTemplate<64, 1, kHasIndices, false, true, uint8_t>(
+        query, std::move(dataset_view), nullptr, indices, result,
+        std::move(callback));
+  } else {
+    OneToManyIntFloatTemplate<0, 1, kHasIndices, false, true, uint8_t>(
         query, std::move(dataset_view), nullptr, indices, result,
         std::move(callback));
   }

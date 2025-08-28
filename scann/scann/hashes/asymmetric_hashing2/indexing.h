@@ -101,7 +101,10 @@ class Indexer {
       ConstSpan<FloatT> original, ConstSpan<uint8_t> hashed,
       shared_ptr<const DistanceMeasure> distance_override = nullptr) const;
 
-  DimensionIndex hash_space_dimension() const;
+  DimensionIndex hashed_space_bytes() const;
+
+  ABSL_DEPRECATED("Use hashed_space_bytes() instead.")
+  DimensionIndex hash_space_dimension() const { return hashed_space_bytes(); }
 
   DimensionIndex original_space_dimension() const;
 

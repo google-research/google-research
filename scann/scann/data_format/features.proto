@@ -34,6 +34,8 @@ message GenericFeatureVector {
 
   required FeatureType feature_type = 1;
 
+  optional bool feature_value_is_int8_compressed = 29;
+
   optional bytes data_id_str = 2;
 
   repeated float feature_value_float = 4 [packed = true];
@@ -43,6 +45,8 @@ message GenericFeatureVector {
   repeated int64 feature_value_int64 = 3 [packed = true];
 
   optional bytes feature_value_string = 13;
+
+  optional bytes feature_value_int8 = 30;
 
   repeated uint64 feature_index = 6 [packed = true];
 

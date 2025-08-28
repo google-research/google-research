@@ -1,5 +1,9 @@
 # ScaNN Release Notes
 
+### 1.4.2
+
+Added support for Python 3.13, and reintroduced ARM binaries.
+
 ### 1.4.1
 
 Match with the TF version from 2.19.0 to 2.20.0. This is **not** a

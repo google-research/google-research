@@ -46,7 +46,7 @@ References:
 pip install scann
 ```
 
-ScaNN supports Linux environments running Python versions 3.9-3.12. See
+ScaNN supports Linux environments running Python versions 3.9-3.13. See
 [docs/releases.md](docs/releases.md) for release notes; the page also contains
 download links for ScaNN wheels prior to version 1.1.0, which were not released
 on PyPI. **The x86 wheels require AVX and FMA instruction set support, while
@@ -87,7 +87,7 @@ explanation of ScaNN techniques, see [docs/algorithms.md](docs/algorithms.md).
 ## Building from source
 
 To build ScaNN from source, first install the build tool
-[bazel](https://bazel.build) (use version 7.x), Clang 18, and libstdc++ headers
+[bazel](https://bazel.build) (use version 7.x), Clang 19, and libstdc++ headers
 for C++17 (which are provided with GCC 9). Additionally, ScaNN requires a modern
 version of Python (3.9.x or later) and Tensorflow 2.20 installed on that version
 of Python. Once these prerequisites are satisfied, run the following command in
@@ -95,7 +95,7 @@ the root directory of the repository:
 
 ```
 python configure.py
-CC=clang-18 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+CC=clang-19 bazel build -c opt --features=thin_lto --copt=-mavx --copt=-mfma --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 
@@ -104,7 +104,7 @@ the compile flags are slightly modified:
 
 ```
 python configure.py
-CC=clang-18 bazel build -c opt --features=thin_lto --copt=-march=armv8-a+simd --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
+CC=clang-19 bazel build -c opt --features=thin_lto --copt=-march=armv8-a+simd --cxxopt="-std=c++17" --copt=-fsized-deallocation --copt=-w :build_pip_pkg
 ./bazel-bin/build_pip_pkg
 ```
 
