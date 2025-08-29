@@ -38,7 +38,7 @@ Jinja2==2.10.1
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 kfac==0.1.4
-lxml==4.3.4
+lxml==4.9.1
 Markdown==3.1.1
 MarkupSafe==1.1.1
 mesh-tensorflow==0.0.5
