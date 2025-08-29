@@ -6,4 +6,4 @@ seaborn==0.11.2
 torch==1.7.1+cu101
 torchinfo==0.1.2
 torchvision==0.8.2+cu101
-tqdm==4.46.0
+tqdm==4.66.3
