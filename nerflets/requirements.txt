@@ -1,6 +1,6 @@
 torch==1.10.0
 torchvision==0.11.1
-pytorch-lightning==1.5.2
+pytorch-lightning==2.4.0
 einops==0.3.2
 kornia==0.6.1
 opencv-python==4.5.4.58
