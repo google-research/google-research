@@ -1,0 +1,10 @@
+{
+  "data_base_path": "/path/to/your/data/egosocial_eval",
+  "model": "gemini-2.0-flash",
+  "question": "Task: You are analyzing a first-person (egocentric) video and audio feed captured by AR glasses worn by an individual. Is the wearer involved in a social interaction? \n Extra information: This is the text converted from the video audio, please use it if it helps. Text: <audio_text>\n Priori knowledge: There are 8 predicted factors graph related to social interaction in triplet fromat: [<sub_signal>]. There is a hierarchical relation in those 8 core factors, factors 1 and 5 are first level and if both false you don't need to analyze other core factors; factors 2,6,7 are midle levels, go further when anyone of them is true; factors 3,4,8 are third level and are very important. Do not 100% rely on this. Please refer one or some of them to help you answer the question. \n Respond concisely in the following format: \n Answer: [Yes/No]\n  Confidence: [High/Medium/Low] \n Reasoning: (List the core factor indexes you used.)",
+  "frame_num": 10,
+  "dataset": "/path/to/your/data/egosocial_eval/annotation_new_full_social_interaction_focus_v3.json",
+  "audio_folder": "/path/to/your/data/egosocial_eval/audio/",
+  "audio_text_path": "/path/to/your/data/egosocial_eval/logs/gemini2.5_aud2text_conv_dic.json",
+  "save_json_path": "/path/to/your/data/egosocial_eval/logs"
+}
