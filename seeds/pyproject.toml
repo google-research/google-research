@@ -5,10 +5,9 @@ name = "seeds"
 description = "Code and demo colab associated with the SEEDS paper (https://arxiv.org/abs/2306.14066)"
 readme = "README.md"
 requires-python = ">=3.8"
-license = {file = "LICENSE"}
+license = {text = "Apache-2.0"}
 authors = [{name = "Lizao (Larry) Li", email="lizaoli@google.com"}]
 classifiers = [  # List of https://pypi.org/classifiers/
-    "License :: OSI Approved :: Apache Software License",
     "Intended Audience :: Science/Research",
 ]
 version = "2023.12.12"
