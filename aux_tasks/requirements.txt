@@ -45,7 +45,7 @@ matplotlib==3.5.2
 ml-collections==0.1.1
 msgpack==1.0.4
 numpy==1.22.4
-oauthlib==3.2.0
+oauthlib==3.2.2
 opencv-python==4.5.5.64
 opt-einsum==3.3.0
 optax==0.1.2
