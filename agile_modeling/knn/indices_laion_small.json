@@ -1,0 +1,7 @@
+{
+    "laion_400m_subset": {
+        "indice_folder": "./laion_400m_subset",
+        "enable_faiss_memory_mapping": true,
+        "clip_model": "ViT-B/32"
+    }
+}
