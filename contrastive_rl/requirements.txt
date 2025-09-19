@@ -34,7 +34,7 @@ gast==0.5.3
 glfw==2.5.3
 google-auth==2.7.0
 google-auth-oauthlib==0.4.6
-grpcio==1.46.3
+grpcio==1.53.0
 gym==0.19.0
 gym-notices==0.0.7
 h5py==3.7.0
