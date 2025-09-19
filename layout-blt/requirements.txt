@@ -62,7 +62,7 @@ tensorflow-gpu==2.6.0
 tensorflow-metadata==1.2.0
 termcolor==1.1.0
 toolz==0.11.1
-tqdm==4.62.3
+tqdm==4.66.3
 typing-extensions==3.7.4.3
 urllib3==1.26.7
 Werkzeug==2.0.2
