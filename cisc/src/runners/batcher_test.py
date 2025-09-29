@@ -15,13 +15,76 @@
 
 from concurrent import futures
 import itertools
+from unittest import mock
+
 from absl.testing import absltest
 from absl.testing import parameterized
+
 from cisc.src.runners import batcher as batcher_lib
 from cisc.src.runners import fake_runner
 from cisc.src.runners import runner as runner_lib
 
+
 _INFINIT_TIMEOUT_SECS = 1000000
+
+
+class WaitForRequestsTest(absltest.TestCase):
+
+  def test_wait_for_requests_no_requests(self):
+    self.assertTrue(batcher_lib.wait_for_requests([], timeout=10))
+
+  def test_wait_for_requests_all_finish(self):
+    req1 = batcher_lib.Request("")
+    req2 = batcher_lib.Request("")
+    req1.event.wait = mock.Mock(return_value=True)
+    req2.event.wait = mock.Mock(return_value=True)
+    mock_time = mock.Mock()
+    mock_time.time.side_effect = [0, 0, 0]
+    self.assertTrue(
+        batcher_lib.wait_for_requests(
+            [req1, req2], timeout=10, time_module=mock_time
+        )
+    )
+    self.assertEqual(mock_time.time.call_count, 3)
+    req1.event.wait.assert_called_once_with(10)
+    req2.event.wait.assert_called_once_with(10)
+
+  def test_wait_for_requests_one_times_out_on_wait(self):
+    req1 = batcher_lib.Request("")
+    req2 = batcher_lib.Request("")
+    req1.event.wait = mock.Mock(return_value=True)
+    req2.event.wait = mock.Mock(return_value=False)
+    mock_time = mock.Mock()
+    mock_time.time.side_effect = [0, 0, 0]
+    self.assertFalse(
+        batcher_lib.wait_for_requests(
+            [req1, req2], timeout=10, time_module=mock_time
+        )
+    )
+    self.assertEqual(mock_time.time.call_count, 3)
+    req1.event.wait.assert_called_once_with(10)
+    req2.event.wait.assert_called_once_with(10)
+
+  def test_wait_for_requests_time_left_expires(self):
+    mock_time = mock.Mock()
+    # start=0, before 1st req elapsed=6, before 2nd req elapsed=12.
+    elapsed_first = 6
+    elapsed_second = 12
+    mock_time.time.side_effect = [0, elapsed_first, elapsed_second]
+    req1 = batcher_lib.Request("")
+    req2 = batcher_lib.Request("")
+    req1.event.wait = mock.Mock(return_value=True)
+    req2.event.wait = mock.Mock()
+    timeout = 10
+    self.assertGreater(elapsed_second, timeout)
+    self.assertFalse(
+        batcher_lib.wait_for_requests(
+            [req1, req2], timeout=timeout, time_module=mock_time
+        )
+    )
+    self.assertEqual(mock_time.time.call_count, 3)
+    req1.event.wait.assert_called_once_with(timeout - elapsed_first)
+    req2.event.wait.assert_not_called()
 
 
 class BatcherTest(parameterized.TestCase):

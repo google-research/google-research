@@ -25,6 +25,7 @@ import itertools
 import logging
 import threading
 import time
+from typing import Any
 import more_itertools
 from cisc.src.runners import runner as runner_lib
 
@@ -38,6 +39,30 @@ class Request:
     self.event: threading.Event = threading.Event()
     self.result: runner_lib.GenerationOutput | None = None
     self.exception: Exception | None = None
+
+
+def wait_for_requests(
+    requests, timeout, time_module = time
+):
+  """Waits for requests to be fulfilled or for the timeout to be reached.
+
+  Args:
+    requests: The requests to wait for.
+    timeout: The maximum time (in seconds) to wait for all the requests to be
+      fulfilled.
+    time_module: The time module to use. It should contain a `time` function
+      that returns the current time in seconds. This is useful for testing.
+
+  Returns:
+    True if all the requests were fulfilled before the timeout was reached,
+    False otherwise.
+  """
+  end_time = time_module.time() + timeout
+  for req in requests:
+    time_left = end_time - time_module.time()
+    if time_left <= 0 or not req.event.wait(time_left):
+      return False
+  return True
 
 
 _LOCK = threading.Lock()
@@ -145,15 +170,12 @@ class BatchRunner(runner_lib.Runner):
       _QUEUE.extend(my_requests)
     self._maybe_advance_queue(max_new_tokens, temperature, enable_formatting)
 
-    wait_for_requests = lambda timeout: all(
-        [req.event.wait(timeout) for req in my_requests]
-    )
-    if not wait_for_requests(self._max_wait_time_secs):
+    if not wait_for_requests(my_requests, self._max_wait_time_secs):
       # After `max_wait_time_secs`, if the requests were not finished yet (which
       # is quite likely), try to advance the queue again to make sure the
       # requests at least started to run.
       self._maybe_advance_queue(max_new_tokens, temperature, enable_formatting)
-      if not wait_for_requests(self._timeout_secs):
+      if not wait_for_requests(my_requests, self._timeout_secs):
         raise TimeoutError(f"Timed out after {self._timeout_secs} seconds.")
 
     results = []
