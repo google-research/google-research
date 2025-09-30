@@ -44,9 +44,7 @@ different random seeds, and we retain the aligner WFST which obtains the best
 likelihood.
 
 In the data alignment stage, we compute best alignments using the best aligner
-from the previous stage.
-
-In the encoding phase, we encode these alignments as FSAs.
+from the previous stage and encode those as FSAs.
 
 In the n-gram compilation phase, we build a n-gram model over these alignments,
 applying smoothing and shrinking, then decode the n-gram model to produce the
@@ -411,10 +409,8 @@ def _train_aligner(
   return best_aligner_path
 
 
-def _align_encode(
-    ifar_path: str, ofar_path: str, afst_path: str
-) -> Tuple[str, str]:
-  """Computes the unweighted alignments FAR.
+def _align(ifar_path: str, ofar_path: str, afst_path: str) -> Tuple[str, str]:
+  """Computes the alignments.
 
   Args:
     ifar_path: path to the input FAR.
@@ -422,34 +418,19 @@ def _align_encode(
     afst_path: path to the aligner FST.
 
   Returns:
-     A (path to the encoded FAR, path to the encoder) tuple.
+     A (path to encoded aligments FAR, path to the encoder) tuple.
   """
   afar_path = _mktemp("a.far")
-  _log_check_call(
-      ["baumwelchdecode", ifar_path, ofar_path, afst_path, afar_path]
-  )
-  _rmtemp(ifar_path)
-  _rmtemp(ofar_path)
-  efar_path = _mktemp("e.far")
-  reader = pywrapfst.FarReader.open(afar_path)
-  writer = pywrapfst.FarWriter.create(efar_path)
-  mapper = pywrapfst.EncodeMapper(reader.arc_type(), encode_labels=True)
-  while not reader.done():
-    # Removes weights, encodes labels, and compacts. One can convert to the
-    # most compact representation possible by doing this all at once.
-    fst = pywrapfst.arcmap(reader.get_fst(), map_type="rmweight")
-    fst.encode(mapper)
-    fst = pywrapfst.convert(fst, "compact_string")
-    writer.add(reader.get_key(), fst)
-    reader.next()
-  assert not reader.error()
-  del reader
-  assert not writer.error()
-  del writer
-  _rmtemp(afar_path)
   encoder_path = _mktemp("encoder")
-  mapper.write(encoder_path)
-  return efar_path, encoder_path
+  _log_check_call([
+      "baumwelchdecode",
+      ifar_path,
+      ofar_path,
+      afst_path,
+      afar_path,
+      encoder_path,
+  ])
+  return afar_path, encoder_path
 
 
 def _compile_pair_ngram(
@@ -522,8 +503,8 @@ def main(args: argparse.Namespace) -> None:
       args.alpha,
       args.max_iters,
   )
-  logging.info("Aligning and encoding data")
-  efar_path, encoder_path = _align_encode(ifar_path, ofar_path, aligner_path)
+  logging.info("Aligning data")
+  efar_path, encoder_path = _align(ifar_path, ofar_path, aligner_path)
   logging.info("Compiling pair n-gram model")
   _compile_pair_ngram(efar_path, encoder_path, args.fst, args.order, args.size)
 
