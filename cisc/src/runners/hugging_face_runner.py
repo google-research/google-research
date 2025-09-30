@@ -178,6 +178,9 @@ class Runner(runner_lib.Runner):
       use_cache = True,
   ):
     """Generates a single response for each prompt."""
+    # When generating only one token, no reason to use cache.
+    use_cache = use_cache and max_new_tokens > 1
+
     if return_scores is None:
       return_scores = self._return_scores
 
