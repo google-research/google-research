@@ -16,7 +16,7 @@
 """ConQUR agent to fine-tune the second-last layer of a Q-network."""
 import collections
 
-from dopamine.agents.dqn import dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -144,8 +144,8 @@ class ConqurAgent(dqn_agent.DQNAgent):
     self.online_convnet = tf.make_template('Online', self._network_template)
     self.target_convnet = tf.make_template('Target', self._network_template)
     self._net_outputs, self.linear_features = self.online_convnet(self.state_ph)
-    self._next_target_net_outputs_q, self.target_linear_features = self.target_convnet(
-        self.state_ph)
+    self._next_target_net_outputs_q, self.target_linear_features = (
+        self.target_convnet(self.state_ph))
     self.next_qt_max = tf.reduce_max(self._next_target_net_outputs_q)
     self.ddqn_replay_next_target_net_outputs, _ = self.online_convnet(
         self._replay.next_states)
