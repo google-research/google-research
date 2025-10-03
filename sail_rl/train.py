@@ -24,11 +24,11 @@ import os
 import random
 from absl import flags
 
-from dopamine.agents.dqn import dqn_agent
-from dopamine.agents.implicit_quantile import implicit_quantile_agent
 from dopamine.discrete_domains import atari_lib
 from dopamine.discrete_domains import gym_lib
 from dopamine.discrete_domains import run_experiment
+from dopamine.tf.agents.dqn import dqn_agent
+from dopamine.tf.agents.implicit_quantile import implicit_quantile_agent
 
 import gin.tf
 import numpy as np

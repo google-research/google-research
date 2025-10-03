@@ -27,7 +27,7 @@ import os
 
 from absl import flags
 from absl import logging
-from dopamine.agents.dqn import dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent
 import gin
 import tensorflow.compat.v2 as tf
 

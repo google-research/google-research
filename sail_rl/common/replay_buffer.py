@@ -17,8 +17,8 @@
 import collections
 import itertools
 
-from dopamine.replay_memory import circular_replay_buffer as crb
-from dopamine.replay_memory import sum_tree
+from dopamine.tf.replay_memory import circular_replay_buffer as crb
+from dopamine.tf.replay_memory import sum_tree
 import gin
 import numpy as np
 import tensorflow.compat.v2 as tf
