@@ -22,7 +22,7 @@ https://arxiv.org/abs/1512.04860.
 The class ALDQNAgent inherits from Dopamine's DQNAgent.
 """
 
-from dopamine.agents.dqn import dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent
 import gin.tf
 import tensorflow.compat.v1 as tf
 

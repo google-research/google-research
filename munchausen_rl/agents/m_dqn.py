@@ -19,7 +19,7 @@ The class MunchausenDQNAgent inherits from Dopamine's DQNAgent.
 """
 
 import random
-from dopamine.agents.dqn import dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent
 import gin
 import tensorflow.compat.v1 as tf
 

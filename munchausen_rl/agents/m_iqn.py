@@ -20,9 +20,10 @@ The class MunchausenIQNAgent inherits from Dopamine's RainbowAgent.
 
 import math
 import random
-from dopamine.agents.dqn import dqn_agent
-from dopamine.agents.rainbow import rainbow_agent
 from dopamine.discrete_domains import atari_lib
+from dopamine.discrete_domains import legacy_networks
+from dopamine.tf.agents.dqn import dqn_agent
+from dopamine.tf.agents.rainbow import rainbow_agent
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
@@ -42,7 +43,7 @@ class MunchausenIQNAgent(rainbow_agent.RainbowAgent):
                observation_shape=atari_lib.NATURE_DQN_OBSERVATION_SHAPE,
                observation_dtype=atari_lib.NATURE_DQN_DTYPE,
                stack_size=atari_lib.NATURE_DQN_STACK_SIZE,
-               network=atari_lib.ImplicitQuantileNetwork,
+               network=legacy_networks.ImplicitQuantileNetwork,
                kappa=1.0,
                alpha=0.9,
                tau=0.03,
@@ -185,7 +186,7 @@ class MunchausenIQNAgent(rainbow_agent.RainbowAgent):
       self._merged_summaries = tf.summary.merge_all()
     self._sess = sess
 
-    var_map = atari_lib.maybe_transform_variable_names(
+    var_map = legacy_networks.maybe_transform_variable_names(
         tf.global_variables())
     self._saver = tf.train.Saver(
         var_list=var_map, max_to_keep=max_tf_checkpoints_to_keep)
