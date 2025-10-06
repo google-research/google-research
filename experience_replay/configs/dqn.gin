@@ -3,8 +3,8 @@
 # comparison.
 import dopamine.discrete_domains.atari_lib
 import dopamine.discrete_domains.run_experiment
-import dopamine.agents.dqn.dqn_agent
-import dopamine.replay_memory.circular_replay_buffer
+import dopamine.tf.agents.dqn.dqn_agent
+import dopamine.tf.replay_memory.circular_replay_buffer
 import gin.tf.external_configurables
 
 import experience_replay.agents.dqn_agent
@@ -43,7 +43,7 @@ Runner.max_steps_per_episode = 27000  # agent steps
 Runner.log_every_n = 10  # iterations
 ElephantRunner.checkpoint_every_n = 10  # iterations
 
-dopamine.replay_memory.circular_replay_buffer.WrappedReplayBuffer.replay_capacity = 10000000
-dopamine.replay_memory.circular_replay_buffer.WrappedReplayBuffer.batch_size = 32
+dopamine.tf.replay_memory.circular_replay_buffer.WrappedReplayBuffer.replay_capacity = 10000000
+dopamine.tf.replay_memory.circular_replay_buffer.WrappedReplayBuffer.batch_size = 32
 
 run_experience_replay_experiment.create_agent.debug_mode = True

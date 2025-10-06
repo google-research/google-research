@@ -20,7 +20,7 @@ by Tom Schaul et al. (2015). Many thanks to Tom Schaul, John Quan, and Matteo
 Hessel for providing useful pointers on the algorithm and its implementation.
 """
 
-from dopamine.replay_memory import sum_tree
+from dopamine.tf.replay_memory import sum_tree
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf

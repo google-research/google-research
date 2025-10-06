@@ -18,9 +18,9 @@
 import collections
 
 
-from dopamine.agents.dqn import dqn_agent
-from dopamine.agents.rainbow import rainbow_agent
 from dopamine.discrete_domains import legacy_networks
+from dopamine.tf.agents.dqn import dqn_agent
+from dopamine.tf.agents.rainbow import rainbow_agent
 
 import gin
 import numpy as np
