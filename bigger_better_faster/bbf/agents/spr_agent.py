@@ -25,7 +25,7 @@ from absl import logging
 from dopamine.jax import losses
 from dopamine.jax.agents.dqn import dqn_agent
 from dopamine.jax.agents.rainbow import rainbow_agent as dopamine_rainbow_agent
-from dopamine.replay_memory import prioritized_replay_buffer
+from dopamine.tf.replay_memory import prioritized_replay_buffer
 from flax.core.frozen_dict import FrozenDict
 from flax.training import dynamic_scale as dynamic_scale_lib
 import gin

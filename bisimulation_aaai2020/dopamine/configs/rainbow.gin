@@ -1,7 +1,7 @@
-import dopamine.agents.rainbow.rainbow_agent
+import dopamine.tf.agents.rainbow.rainbow_agent
 import dopamine.discrete_domains.atari_lib
 import dopamine.discrete_domains.run_experiment
-import dopamine.replay_memory.prioritized_replay_buffer
+import dopamine.tf.replay_memory.prioritized_replay_buffer
 import gin.tf.external_configurables
 
 RainbowAgent.num_atoms = 51

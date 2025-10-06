@@ -17,7 +17,7 @@
 
 import functools
 
-from dopamine.replay_memory import sum_tree
+from dopamine.tf.replay_memory import sum_tree
 import jax
 from jax import numpy as jnp
 import numpy as np

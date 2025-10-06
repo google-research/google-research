@@ -1,6 +1,6 @@
 # Hyperparameters used for reporting DQN results in Bellemare et al. (2017).
 import dopamine.discrete_domains.atari_lib
-import dopamine.replay_memory.circular_replay_buffer
+import dopamine.tf.replay_memory.circular_replay_buffer
 import bonus_based_exploration.intrinsic_motivation.intrinsic_dqn_agent
 import bonus_based_exploration.intrinsic_motivation.intrinsic_rewards
 import bonus_based_exploration.run_experiment

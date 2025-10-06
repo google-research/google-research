@@ -21,9 +21,9 @@ from __future__ import print_function
 
 from bonus_based_exploration.intrinsic_motivation import intrinsic_dqn_agent
 from bonus_based_exploration.intrinsic_motivation import intrinsic_rewards
-from dopamine.agents.dqn import dqn_agent as base_dqn_agent
-from dopamine.agents.rainbow import rainbow_agent as base_rainbow_agent
 from dopamine.discrete_domains import atari_lib
+from dopamine.tf.agents.dqn import dqn_agent as base_dqn_agent
+from dopamine.tf.agents.rainbow import rainbow_agent as base_rainbow_agent
 import gin
 import tensorflow.compat.v1 as tf
 

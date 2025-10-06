@@ -21,7 +21,7 @@ from __future__ import division
 from __future__ import print_function
 
 import enum
-from dopamine.agents.dqn import dqn_agent as base_dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent as base_dqn_agent
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf
