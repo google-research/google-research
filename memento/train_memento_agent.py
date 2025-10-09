@@ -38,7 +38,7 @@ flags.DEFINE_string('original_base_dir', None,
                     'Base directory for original agent (for Memento).')
 flags.DEFINE_multi_string(
     'gin_files', [], 'List of paths to gin configuration files (e.g.'
-    '"third_party/py/dopamine/agents/dqn/dqn.gin").')
+    '"third_party/py/dopamine/tfagents/dqn/dqn.gin").')
 flags.DEFINE_multi_string(
     'gin_bindings', [],
     'Gin bindings to override the values set in the config files '

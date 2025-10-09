@@ -38,7 +38,7 @@ Hessel et al. (2018).
 import collections
 import math
 
-from dopamine.agents.dqn import dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent
 import gin
 import numpy as np
 import tensorflow.compat.v1 as tf

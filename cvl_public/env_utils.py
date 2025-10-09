@@ -22,7 +22,7 @@ import os
 import random
 
 import d4rl  # pylint: disable=unused-import
-from dopamine.replay_memory import circular_replay_buffer
+from dopamine.tf.replay_memory import circular_replay_buffer
 import gym
 from gym import spaces
 import metaworld

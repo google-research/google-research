@@ -38,7 +38,7 @@ flags.DEFINE_string('base_dir', None,
 flags.DEFINE_integer('seed', None, 'Random seed for the experiment.')
 flags.DEFINE_multi_string(
     'gin_files', [], 'List of paths to gin configuration files (e.g.'
-    '"third_party/py/dopamine/agents/dqn/dqn.gin").')
+    '"third_party/py/dopamine/tf/agents/dqn/dqn.gin").')
 flags.DEFINE_multi_string(
     'gin_bindings', [],
     'Gin bindings to override the values set in the config files '

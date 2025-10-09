@@ -17,7 +17,7 @@
 
 from absl import logging
 from batch_rl.fixed_replay.replay_memory import fixed_replay_buffer
-from dopamine.replay_memory import circular_replay_buffer
+from dopamine.tf.replay_memory import circular_replay_buffer
 import gin
 import numpy as np
 import tensorflow as tf

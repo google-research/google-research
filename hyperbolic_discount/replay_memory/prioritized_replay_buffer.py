@@ -37,7 +37,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from dopamine.replay_memory import sum_tree
+from dopamine.tf.replay_memory import sum_tree
 
 import gin
 import numpy as np

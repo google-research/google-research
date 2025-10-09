@@ -18,7 +18,7 @@ import collections
 import math
 
 
-from dopamine.agents.dqn import dqn_agent
+from dopamine.tf.agents.dqn import dqn_agent
 import gin
 import tensorflow.compat.v1 as tf
 
