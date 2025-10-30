@@ -34,12 +34,12 @@ class MoleculeGraphParserOp : public OpKernel {
     const Tensor& example_ids_in_tensor = context->input(0);
     OP_REQUIRES(context, example_ids_in_tensor.dims() == 1,
                 errors::InvalidArgument("example_ids_in must be a vector"));
-    const int32 batch_size_example_ids_in = example_ids_in_tensor.dim_size(0);
+    const int32_t batch_size_example_ids_in = example_ids_in_tensor.dim_size(0);
 
     const Tensor& in_molecule_tensor = context->input(1);
     OP_REQUIRES(context, in_molecule_tensor.dims() == 1,
                 errors::InvalidArgument("molecule graphs must be a vector"));
-    const int32 batch_size = in_molecule_tensor.dim_size(0);
+    const int32_t batch_size = in_molecule_tensor.dim_size(0);
 
     OP_REQUIRES(context, batch_size_example_ids_in == batch_size,
                 errors::InvalidArgument("Input tensor size mismatch"));
@@ -90,7 +90,7 @@ class MoleculeGraphParserOp : public OpKernel {
     pair_mask.setZero();
 
     // Gets atom and pair features for each molecule in a batch
-    int32 max_pair_distance = featurizer_.GetMaxPairDistance();
+    int32_t max_pair_distance = featurizer_.GetMaxPairDistance();
 
     auto in_molecule = in_molecule_tensor.flat<tstring>();
     auto example_ids = example_ids_in_tensor.flat<tstring>();
