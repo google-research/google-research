@@ -15,7 +15,7 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
 
-typedef tensorflow::int32 int32;
+typedef int32_t int32;
 
 namespace {
 

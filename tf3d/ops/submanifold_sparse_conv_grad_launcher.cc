@@ -36,8 +36,8 @@ absl::Status RunSubmanifoldSparseConvBackpropFilter(
   const int in_channels = opts.in_channels();
   const int out_channels = opts.out_channels();
 
-  const int* coordinates_ptr = opts.coordinates.tensor<int32, 3>().data();
-  auto num_valid_coordinates_t = opts.num_valid_coordinates.vec<int32>();
+  const int* coordinates_ptr = opts.coordinates.tensor<int32_t, 3>().data();
+  auto num_valid_coordinates_t = opts.num_valid_coordinates.vec<int32_t>();
   auto input_features_t = opts.input_features.tensor<float, 3>();
   auto d_output_features_t = opts.d_output_features.tensor<float, 3>();
   auto d_filter_t = opts.d_filter->tensor<float, dims + 2>();

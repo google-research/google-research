@@ -36,9 +36,9 @@ absl::Status RunSubmanifoldSparseConvolution(
   const int in_channels = opts.in_channels();
   const int out_channels = opts.out_channels();
 
-  const int* coordinates_ptr = opts.coordinates.tensor<int32, 3>().data();
+  const int* coordinates_ptr = opts.coordinates.tensor<int32_t, 3>().data();
   const float* filter_ptr = opts.filter.tensor<float, dims + 2>().data();
-  auto num_valid_coordinates_t = opts.num_valid_coordinates.vec<int32>();
+  auto num_valid_coordinates_t = opts.num_valid_coordinates.vec<int32_t>();
   auto input_features_t = opts.input_features.tensor<float, 3>();
   auto output_features_t = opts.output_features->tensor<float, 3>();
   output_features_t.setConstant(0.0f);
