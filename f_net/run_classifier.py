@@ -512,7 +512,7 @@ def train_and_evaluate(config, workdir,
       all_stats = []
       for _, eval_batch in zip(range(config.max_num_eval_steps), eval_ds):
         all_stats.append(
-            _evaluate(p_eval_step, optimizer.target, eval_batch, n_devices))
+            _evaluate(p_eval_step, optimizer.target, eval_batch, n_devices))  # pytype: disable=wrong-arg-types
       flat_stats = {}
       for k in all_stats[0]:  # All batches of output stats are the same size
         flat_stats[k] = np.concatenate([stat[k] for stat in all_stats], axis=0)

@@ -400,7 +400,7 @@ def get_ts_spec(state,
                                     state_shapes.opt_state,
                                     state_specs.opt_state)
 
-  step_ts_specs = param_info_getter(name='step',
+  step_ts_specs = param_info_getter(name='step',  # pytype: disable=wrong-arg-types
                                     array=state.step,
                                     global_shape=state_shapes.step,
                                     pspec=None)

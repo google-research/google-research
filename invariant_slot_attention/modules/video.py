@@ -67,13 +67,13 @@ class Processor(nn.Module):
 
     # Only apply corrector if we receive new inputs.
     if inputs is not None:
-      corrected_state = self.corrector(state, inputs, padding_mask, train=train)
+      corrected_state = self.corrector(state, inputs, padding_mask, train=train)  # pytype: disable=wrong-keyword-args
     # Otherwise simply use previous state as input for predictor.
     else:
       corrected_state = state
 
     # Always apply predictor (i.e. transition model).
-    predicted_state = self.predictor(corrected_state, train=train)
+    predicted_state = self.predictor(corrected_state, train=train)  # pytype: disable=wrong-keyword-args
 
     # Prepare outputs in a format compatible with nn.scan.
     new_state = predicted_state

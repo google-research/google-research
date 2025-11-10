@@ -145,7 +145,7 @@ def main(_):
                                      FLAGS.mixup_alpha)
       logits = model([images, True])
       if FLAGS.loss == 'ce':
-        loss = loss_op(labels, logits)
+        loss = loss_op(labels, logits)  # pytype: disable=missing-parameter
       else:
         loss = loss_op(
             labels,
@@ -168,7 +168,7 @@ def main(_):
       images, labels = batch['image'], batch['label']
       logits = model([images, False])
       if FLAGS.loss == 'ce':
-        avg_loss += loss_op(labels, logits).numpy()
+        avg_loss += loss_op(labels, logits).numpy()  # pytype: disable=missing-parameter
       else:
         loss = loss_op(
             labels,

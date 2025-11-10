@@ -238,7 +238,7 @@ def compute_gradient(
     if method == 'oracle':
       # This exactly determines the covariance in the tabular case,
       # i.e. when oracle_states = S.
-      Phi = compute_phi_no_params(oracle_states)
+      Phi = compute_phi_no_params(oracle_states)  # pytype: disable=wrong-arg-types
       num_states = oracle_states.shape[0]
 
       covariance_1 = jnp.linalg.pinv(Phi.T @ Phi) * num_states

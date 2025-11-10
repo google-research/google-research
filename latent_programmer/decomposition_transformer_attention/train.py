@@ -633,7 +633,7 @@ def main(_):
   else:
     raise ValueError('Unhandled dataset_type: {}'.format(FLAGS.dataset_type))
 
-  dataset = create_dataset_fn(
+  dataset = create_dataset_fn(  # pytype: disable=missing-parameter
       FLAGS.dataset_filepattern, spec_token_id_table,
       use_bos_separators=FLAGS.use_bos_separators)
   dataset = dataset.padded_batch(
@@ -655,7 +655,7 @@ def main(_):
     train_ds = train_ds.take(FLAGS.train_set_batches)
   train_ds = train_ds.repeat()
 
-  test_dataset = create_dataset_fn(
+  test_dataset = create_dataset_fn(  # pytype: disable=missing-parameter
       FLAGS.test_dataset_filepattern, spec_token_id_table,
       use_bos_separators=FLAGS.use_bos_separators)
   test_dataset = test_dataset.padded_batch(

@@ -170,7 +170,7 @@ class AudioModel(tf.keras.Model):
     if self._num_classes is None:
       return outputs
 
-    features_pooled = self._ops['dropout'](features_pooled, training)
+    features_pooled = self._ops['dropout'](features_pooled, training)  # pytype: disable=duplicate-keyword-argument
     logits = self._ops['cls'](features_pooled)
     if self.pred_aggregator is not None:
       logits = self.pred_aggregator(logits, training)

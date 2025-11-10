@@ -230,8 +230,8 @@ def add_path_to_spec(spec, checkpoint_directory):
   """Adds the given path to the spec and returns a deepcopy of the spec."""
   # From pathways.tensorstore_utils
   spec = copy.deepcopy(spec)
-  spec['kvstore']['path'] = os.path.join(checkpoint_directory,
-                                         spec['kvstore']['path'])
+  spec['kvstore']['path'] = os.path.join(checkpoint_directory,  # pytype: disable=unsupported-operands
+                                         spec['kvstore']['path'])  # pytype: disable=unsupported-operands
   return spec
 
 
@@ -249,7 +249,7 @@ def var(spec, checkpoint_dict, key,
     # Rank is a required property for transpose operations downstream
     # and not included in some PaLM checkpoints
     if 'rank' not in spec_dict:
-      spec_dict['rank'] = len(spec_dict['metadata']['shape'])
+      spec_dict['rank'] = len(spec_dict['metadata']['shape'])  # pytype: disable=unsupported-operands
     ts = tensorstore.Spec(spec_dict)
 
   if transpose and spec.transpose_scan_axis:
@@ -305,7 +305,7 @@ class Checkpoint:
 
     load_var = partial(var, spec, checkpoint_dict)
 
-    result = Checkpoint(
+    result = Checkpoint(  # pytype: disable=wrong-arg-types
         q_wi=load_var(
             'optimizer/target/decoder/decoder/q_wi_fused/kernel',
             transpose=True),
@@ -389,7 +389,7 @@ class QuantizedCheckpoint:
 
     load_var = partial(var, spec, checkpoint_dict)
 
-    result = QuantizedCheckpoint(
+    result = QuantizedCheckpoint(  # pytype: disable=wrong-arg-types
         q_wi=load_var(
             'optimizer/target/decoder/decoder/q_wi_fused/qkernel',
             transpose=spec.transpose_scan_axis),

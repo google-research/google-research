@@ -54,7 +54,7 @@ def create_mesh_pspec_sharding(mesh, pspec):
 def copy_to_device_with_mesh(mesh, x, spec, expected):
   spec = partitioning.logical_to_physical(spec)
   s = create_mesh_pspec_sharding(mesh, spec)
-  return partitioning.copy_to_device(x, s, expected)
+  return partitioning.copy_to_device(x, s, expected)  # pytype: disable=wrong-arg-types
 
 
 def _generate_fixed_pos_embedding(
@@ -309,8 +309,8 @@ class Weights:
     copy_to_device = partial(copy_to_device_with_mesh, mesh)
 
     sin, cos = _generate_fixed_pos_embedding(h.qkv, h.max_len)
-    sin = copy_to_device(sin, axes.sin, expected_shapes.sin)
-    cos = copy_to_device(cos, axes.cos, expected_shapes.cos)
+    sin = copy_to_device(sin, axes.sin, expected_shapes.sin)  # pytype: disable=wrong-arg-types
+    cos = copy_to_device(cos, axes.cos, expected_shapes.cos)  # pytype: disable=wrong-arg-types
 
     q_wi_input_axes = P(
         'layers', 'weight_load_embed', 'weight_load_heads', 'qkv'
@@ -579,8 +579,8 @@ class QuantizedWeights:
     expected_shapes = QuantizedWeights.make_shaped_arrays(h)
 
     sin, cos = _generate_fixed_pos_embedding(h.qkv, h.max_len)
-    sin = copy_to_device(sin, axes.sin, expected_shapes.sin)
-    cos = copy_to_device(cos, axes.cos, expected_shapes.cos)
+    sin = copy_to_device(sin, axes.sin, expected_shapes.sin)  # pytype: disable=wrong-arg-types
+    cos = copy_to_device(cos, axes.cos, expected_shapes.cos)  # pytype: disable=wrong-arg-types
 
     q_wi_input_axes = P(
         'layers', 'weight_load_embed', 'weight_load_heads', 'qkv'
