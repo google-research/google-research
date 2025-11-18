@@ -1,0 +1,12 @@
+# Requirements for Global MetNet
+# Versions are not strictly pinned; you might need to adjust them
+# based on your environment and other dependencies.
+
+absl-py
+flax
+jax
+ml_collections
+numpy
+optax
+tensorflow
+tensorflow-probability
