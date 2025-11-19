@@ -54,7 +54,7 @@ BankData::BankData(const char input_path[]) {
   double minn = 100000;
   double maxx = 0;
   for (int i = 0; i < input_.size(); i++) {
-    // Assigning age group between 0-5 and balance group between 0-10 to the
+    // Assigning age group between 0-5 and balance group between 0-4 to the
     // nodes
     int age_group = input_[i][0] / 10 - 2;
     age_group = std::max(age_group, 0);
@@ -66,7 +66,7 @@ BankData::BankData(const char input_path[]) {
     maxx = std::max(maxx, input_[i][1]);
     int balance_group = input_[i][1] / 2000 + 1;
     balance_group = std::max(balance_group, 0);
-    balance_group = std::min(balance_group, (int)balance_grpcards_.size());
+    balance_group = std::min(balance_group, (int)balance_grpcards_.size()-1);
     balance_map_[i] = balance_group;
     balance_grpcards_[balance_group]++;
   }
