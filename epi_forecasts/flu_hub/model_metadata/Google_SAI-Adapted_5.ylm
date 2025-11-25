@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Adapted_5
+model_abbr: Adapted_5
+methods: "This is an attempt to replicate UGuelph_CompositeCurve model."

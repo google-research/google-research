@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Adapted_7
+model_abbr: Adapted_7
+methods: "This is an attempt to replicate UMass-gbqr model."

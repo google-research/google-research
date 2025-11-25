@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Adapted_2
+model_abbr: Adapted_2
+methods: "This is an attempt to replicate PSI_PROF model."

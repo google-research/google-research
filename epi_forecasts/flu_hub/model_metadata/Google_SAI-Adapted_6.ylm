@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Adapted_6
+model_abbr: Adapted_6
+methods: "This is an attempt to replicate UMass-ar6_pooled model."

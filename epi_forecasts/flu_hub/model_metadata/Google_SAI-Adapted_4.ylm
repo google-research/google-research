@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Adapted_4
+model_abbr: Adapted_4
+methods: "This is an attempt to replicate UGA_flucast_Copycat model."

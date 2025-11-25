@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Hybrid_2
+model_abbr: Hybrid_2
+methods: "A hybrid model created by combining the core principles of two distinct parent models, CMU_climate_baseline and UGA_flucast_Copycat."
