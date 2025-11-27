@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Novel_1
+model_abbr: Novel_1
+methods: "This model employs a two-level stacking ensemble for probabilistic quantile forecasting. Level-0 integrates three heuristic time series models: one for seasonality and momentum, another for smoothed trend and persistence, and a third for local epidemiological growth with spatial influences, utilizing Ridge regression and generating Negative Binomial forecasts. These are then combined through horizon-dependent weighted averages, further enhanced by data augmentation converting historical ILI into synthetic hospital admissions using per-location Ridge regression to expand the training context."

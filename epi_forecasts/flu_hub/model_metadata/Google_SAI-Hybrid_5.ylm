@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Hybrid_5
+model_abbr: Hybrid_5
+methods: "A hybrid model created by combining the core principles of two distinct parent models, CU_SIRS and CMU_climate_baseline."

@@ -1,0 +1,5 @@
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_name: Novel_2
+model_abbr: Novel_2
+methods: "This model employs a pre-trained 1D Convolutional Neural Network (CNN) encoder to capture patterns in historical time series data. The encoder is initially pre-trained on state-level ILINet data using a masked reconstruction task, and then fine-tuned on actual influenza admission counts. A key feature is its dynamic data augmentation, which transforms historical ILINet data into synthetic admission counts via per-location linear regression, expanding the training context for the fine-tuning phase. The model directly predicts probabilistic quantiles for multiple forecast horizons using a dedicated quantile regression head and a pinball loss function, ensuring proper handling of missing future observations."
