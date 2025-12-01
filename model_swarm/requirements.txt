@@ -32,7 +32,7 @@ eval_type_backport==0.2.0
 exceptiongroup @ file:///home/conda/feedstock_root/build_artifacts/exceptiongroup_1720869315914/work
 executing @ file:///home/conda/feedstock_root/build_artifacts/executing_1698579936712/work
 filelock==3.16.1
-fonttools==4.53.1
+fonttools==4.61.0
 frozenlist==1.4.1
 fsspec==2024.5.0
 gitdb==4.0.11
