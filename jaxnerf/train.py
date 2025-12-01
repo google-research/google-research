@@ -221,10 +221,15 @@ def main(unused_argv):
               f"avg_loss={avg_loss:0.4f}, " +
               f"weight_l2={stats.weight_l2[0]:0.2e}, " + f"lr={lr:0.2e}, " +
               f"{rays_per_sec:0.0f} rays/sec")
-      if step % FLAGS.save_every == 0:
-        state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
-        checkpoints.save_checkpoint(
-            FLAGS.train_dir, state_to_save, int(step), keep=100)
+
+    if step % FLAGS.save_every == 0:
+      state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
+      checkpoints.save_checkpoint_multiprocess(
+          FLAGS.train_dir,
+          state_to_save,
+          int(step),
+          keep=100,
+      )
 
     # Test-set evaluation.
     if FLAGS.render_every > 0 and step % FLAGS.render_every == 0:
@@ -261,7 +266,7 @@ def main(unused_argv):
 
   if FLAGS.max_steps % FLAGS.save_every != 0:
     state = jax.device_get(jax.tree.map(lambda x: x[0], state))
-    checkpoints.save_checkpoint(
+    checkpoints.save_checkpoint_multiprocess(
         FLAGS.train_dir, state, int(FLAGS.max_steps), keep=100)
 
 
