@@ -103,7 +103,7 @@ class GloVeModelTf(object):
     if self._init_weight_dir:
       with open(
           os.path.join(self._init_weight_dir, '%s.txt' % load_name), 'rb') as f:
-        weights = np.reshape(np.loadtxt(f), newshape=[rowdim, coldim])
+        weights = np.reshape(np.loadtxt(f), [rowdim, coldim])
     else:
       weights = tf.random_uniform([rowdim, coldim], -init_width, init_width)
     return tf.Variable(weights, name=weight_name, dtype=tf.float32)

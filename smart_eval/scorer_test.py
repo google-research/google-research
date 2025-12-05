@@ -37,7 +37,7 @@ class ScorerTest(absltest.TestCase):
     for ref_sent in ref:
       for can_sent in can:
         pairwise_scores.append(matching_fn(ref_sent, can_sent))
-    score_matrix = np.reshape(pairwise_scores, newshape=(2, 2))
+    score_matrix = np.reshape(pairwise_scores, (2, 2))
     score_precomp = smart_scorer.smart_score_precomputed(
         ref_score_matrix=score_matrix)
 
