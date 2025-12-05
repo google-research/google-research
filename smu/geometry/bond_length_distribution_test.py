@@ -120,7 +120,7 @@ class GaussianTest(absltest.TestCase):
     # The precision/range here was empirical. Going to higher does get closer
     # and closer to 1.
     xs = np.arange(.99, 3.01, .0005)
-    self.assertAlmostEqual(np.trapz(y=[dist.pdf(x) for x in xs], x=xs), 1.0)
+    self.assertAlmostEqual(np.trapezoid(y=[dist.pdf(x) for x in xs], x=xs), 1.0)
 
 
 class EmpiricalTest(absltest.TestCase):

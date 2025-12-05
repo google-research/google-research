@@ -847,7 +847,7 @@ class MapVisualizer(object):
   def _calculate_area_under_cummulative_curve(cls, x, y, method='trapz'):
     """Estimates the area under the curve."""
     if method == 'trapz':
-      return np.trapz(y, x=x)
+      return np.trapezoid(y, x=x)
     else:
       raise ValueError('Method "%s" is not supported. Try "trapz".' % method)
 
