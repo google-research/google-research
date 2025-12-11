@@ -28,7 +28,7 @@ importlib-metadata==4.8.1
 importlib-resources==5.2.2
 jax==0.2.21
 jaxlib==0.1.69+cuda110
-keras==2.6.0
+keras==2.13.1
 Keras-Preprocessing==1.1.2
 kiwisolver==1.3.2
 Markdown==3.3.4
