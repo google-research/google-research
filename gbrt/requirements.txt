@@ -206,7 +206,7 @@ typing-inspect==0.9.0
 typing_extensions==4.8.0
 tzdata==2023.3
 uri-template==1.3.0
-urllib3==2.1.0
+urllib3==2.6.0
 wcwidth==0.2.12
 webcolors==1.13
 webencodings==0.5.1
