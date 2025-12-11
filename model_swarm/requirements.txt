@@ -160,7 +160,7 @@ typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_ext
 tyro==0.8.4
 tzdata==2024.1
 uritemplate==4.1.1
-urllib3==2.2.2
+urllib3==2.6.0
 wandb==0.17.2
 wcwidth @ file:///home/conda/feedstock_root/build_artifacts/wcwidth_1704731205417/work
 xxhash==3.4.1
