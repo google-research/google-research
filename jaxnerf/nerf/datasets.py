@@ -15,15 +15,18 @@
 
 """Different datasets implementation plus a general port for all the datasets."""
 import abc
+import concurrent.futures
 import json
 import os
 from os import path
 import queue
 import threading
+
 import cv2
 import jax
 import numpy as np
 from PIL import Image
+
 from jaxnerf.nerf import utils
 
 
@@ -216,22 +219,28 @@ class Blender(Dataset):
         path.join(args.data_dir, "transforms_{}.json".format(self.split)),
         "r") as fp:
       meta = json.load(fp)
-    images = []
     cams = []
+    imgfiles = []
     for frame in meta["frames"]:
       fname = os.path.join(args.data_dir, frame["file_path"] + ".png")
+      imgfiles.append(fname)
+      cams.append(np.array(frame["transform_matrix"], dtype=np.float32))
+
+    def read_fn(fname):
       with utils.open_file(fname, "rb") as imgin:
-        image = np.array(Image.open(imgin), dtype=np.float32) / 255.
+        image = np.array(Image.open(imgin), dtype=np.float32) / 255.0
         if args.factor == 2:
           [halfres_h, halfres_w] = [hw // 2 for hw in image.shape[:2]]
           image = cv2.resize(
               image, (halfres_w, halfres_h), interpolation=cv2.INTER_AREA)
         elif args.factor > 0:
-          raise ValueError("Blender dataset only supports factor=0 or 2, {} "
-                           "set.".format(args.factor))
-      cams.append(np.array(frame["transform_matrix"], dtype=np.float32))
-      images.append(image)
-    self.images = np.stack(images, axis=0)
+          raise ValueError(f"Blender dataset only supports factor=0 or 2, "
+                           f"{args.factor} set.")
+      return image
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+      images = executor.map(read_fn, imgfiles)
+    self.images = np.stack(list(images), axis=0)
     if args.white_bkgd:
       self.images = (
           self.images[Ellipsis, :3] * self.images[Ellipsis, -1:] +
@@ -266,12 +275,13 @@ class LLFF(Dataset):
         for f in sorted(utils.listdir(imgdir))
         if f.endswith("JPG") or f.endswith("jpg") or f.endswith("png")
     ]
-    images = []
-    for imgfile in imgfiles:
-      with utils.open_file(imgfile, "rb") as imgin:
-        image = np.array(Image.open(imgin), dtype=np.float32) / 255.
-        images.append(image)
-    images = np.stack(images, axis=-1)
+    def read_fn(fname):
+      with utils.open_file(fname, "rb") as imgin:
+        return np.array(Image.open(imgin), dtype=np.float32) / 255.0
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+      images = executor.map(read_fn, imgfiles)
+    images = np.stack(list(images), axis=-1)
 
     # Load poses and bds.
     with utils.open_file(path.join(args.data_dir, "poses_bounds.npy"),
