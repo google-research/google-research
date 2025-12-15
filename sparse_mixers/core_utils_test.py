@@ -98,8 +98,19 @@ class TreeTest(absltest.TestCase):
     self.assertIsInstance(replicated_tree["a"], jax.Array)
     self.assertIsInstance(replicated_tree["b"], int)
     self.assertEqual(replicated_tree["a"].shape, (n, 4))
-    self.assertEqual(replicated_tree["a"].sharding,
-                     jax.sharding.PmapSharding.default((n, 4), 0))
+    if isinstance(replicated_tree["a"].sharding, jax.sharding.NamedSharding):
+      self.assertEqual(
+          replicated_tree["a"].sharding,
+          jax.NamedSharding(
+              jax.sharding.Mesh(
+                  jax.local_devices()[:n], ("_device_put_replicated",)
+              ),
+              jax.sharding.PartitionSpec("_device_put_replicated"),
+          ),
+      )
+    else:
+      self.assertEqual(replicated_tree["a"].sharding,
+                       jax.sharding.PmapSharding.default((n, 4), 0))
 
   def test_tree_shard_by_name(self):
     n = jax.local_device_count()
@@ -110,8 +121,19 @@ class TreeTest(absltest.TestCase):
     self.assertIsInstance(sharded_tree["b"], int)
 
     self.assertEqual(sharded_tree["a"].shape, (n, 4))
-    self.assertEqual(sharded_tree["a"].sharding,
-                     jax.sharding.PmapSharding.default((n, 4), 0))
+    if isinstance(sharded_tree["a"].sharding, jax.sharding.NamedSharding):
+      self.assertEqual(
+          sharded_tree["a"].sharding,
+          jax.NamedSharding(
+              jax.sharding.Mesh(
+                  jax.local_devices()[:n], ("_device_put_sharded",)
+              ),
+              jax.sharding.PartitionSpec("_device_put_sharded"),
+          ),
+      )
+    else:
+      self.assertEqual(sharded_tree["a"].sharding,
+                       jax.sharding.PmapSharding.default((n, 4), 0))
 
   def test_tree_unreplicate_by_name(self):
     tree = dict(a=jnp.ones((8, 4)), b=25)
