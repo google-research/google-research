@@ -18,6 +18,8 @@
 import functools
 import gc
 import time
+from typing import Optional
+
 from absl import app
 from absl import flags
 import flax
@@ -112,6 +114,71 @@ def train_step(model, rng, state, batch, lr):
   return new_state, stats, rng
 
 
+def _log_train_summaries(summary_writer,
+                         stats, avg_loss, avg_psnr,
+                         lr, steps_per_sec, rays_per_sec,
+                         step):
+  """Log training summaries."""
+  summary_writer.scalar("train_loss", stats.loss[0], step)
+  summary_writer.scalar("train_psnr", stats.psnr[0], step)
+  summary_writer.scalar("train_loss_coarse", stats.loss_c[0], step)
+  summary_writer.scalar("train_psnr_coarse", stats.psnr_c[0], step)
+  summary_writer.scalar("weight_l2", stats.weight_l2[0], step)
+  summary_writer.scalar("train_avg_loss", avg_loss, step)
+  summary_writer.scalar("train_avg_psnr", avg_psnr, step)
+  summary_writer.scalar("learning_rate", lr, step)
+  summary_writer.scalar("train_steps_per_sec", steps_per_sec, step)
+  summary_writer.scalar("train_rays_per_sec", rays_per_sec, step)
+  precision = int(np.ceil(np.log10(FLAGS.max_steps))) + 1
+  print(("{:" + "{:d}".format(precision) + "d}").format(step) +
+        f"/{FLAGS.max_steps:d}: " + f"i_loss={stats.loss[0]:0.4f}, " +
+        f"avg_loss={avg_loss:0.4f}, " +
+        f"weight_l2={stats.weight_l2[0]:0.2e}, " + f"lr={lr:0.2e}, " +
+        f"{rays_per_sec:0.0f} rays/sec")
+
+
+def _log_eval_summaries(summary_writer,
+                        render_pfn, ssim_fn, test_dataset,
+                        state, keys, step):
+  """Log evaluation summaries."""
+  t_eval_start = time.time()
+  eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
+                                               state)).optimizer.target
+  test_case = next(test_dataset)
+  pred_color, pred_disp, pred_acc = utils.render_image(
+      functools.partial(render_pfn, eval_variables),
+      test_case["rays"],
+      keys[0],
+      FLAGS.dataset == "llff",
+      chunk=FLAGS.chunk)
+
+  if jax.host_id() == 0 and summary_writer is not None:
+    psnr = utils.compute_psnr(((pred_color - test_case["pixels"])**2).mean())
+    ssim = ssim_fn(pred_color, test_case["pixels"])
+    eval_time = time.time() - t_eval_start
+    num_rays = jnp.prod(jnp.array(test_case["rays"].directions.shape[:-1]))
+    rays_per_sec = num_rays / eval_time
+    summary_writer.scalar("test_rays_per_sec", rays_per_sec, step)
+    print(f"Eval {step}: {eval_time:0.3f}s., {rays_per_sec:0.0f} rays/sec")
+    summary_writer.scalar("test_psnr", psnr, step)
+    summary_writer.scalar("test_ssim", ssim, step)
+    summary_writer.image("test_pred_color", pred_color, step)
+    summary_writer.image("test_pred_disp", pred_disp, step)
+    summary_writer.image("test_pred_acc", pred_acc, step)
+    summary_writer.image("test_target", test_case["pixels"], step)
+
+
+def _save_checkpoint(state, step):
+  """Save checkpoint."""
+  state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
+  checkpoints.save_checkpoint_multiprocess(
+      FLAGS.train_dir,
+      state_to_save,
+      int(step),
+      keep=100,
+  )
+
+
 def main(unused_argv):
   rng = random.PRNGKey(20200823)
   # Shift the numpy random seed by host_id() to shuffle data loaded by different
@@ -174,6 +241,8 @@ def main(unused_argv):
 
   if jax.host_id() == 0:
     summary_writer = tensorboard.SummaryWriter(FLAGS.train_dir)
+  else:
+    summary_writer = None
 
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
@@ -183,6 +252,7 @@ def main(unused_argv):
   gc.disable()  # Disable automatic garbage collection for efficiency.
   stats_trace = []
   reset_timer = True
+  t_loop_start = time.time()
   for step, batch in zip(range(init_step, FLAGS.max_steps + 1), pdataset):
     if reset_timer:
       t_loop_start = time.time()
@@ -199,75 +269,28 @@ def main(unused_argv):
     # only use host 0 to record results.
     if jax.host_id() == 0:
       if step % FLAGS.print_every == 0:
-        summary_writer.scalar("train_loss", stats.loss[0], step)
-        summary_writer.scalar("train_psnr", stats.psnr[0], step)
-        summary_writer.scalar("train_loss_coarse", stats.loss_c[0], step)
-        summary_writer.scalar("train_psnr_coarse", stats.psnr_c[0], step)
-        summary_writer.scalar("weight_l2", stats.weight_l2[0], step)
         avg_loss = np.mean(np.concatenate([s.loss for s in stats_trace]))
         avg_psnr = np.mean(np.concatenate([s.psnr for s in stats_trace]))
         stats_trace = []
-        summary_writer.scalar("train_avg_loss", avg_loss, step)
-        summary_writer.scalar("train_avg_psnr", avg_psnr, step)
-        summary_writer.scalar("learning_rate", lr, step)
         steps_per_sec = FLAGS.print_every / (time.time() - t_loop_start)
         reset_timer = True
         rays_per_sec = FLAGS.batch_size * steps_per_sec
-        summary_writer.scalar("train_steps_per_sec", steps_per_sec, step)
-        summary_writer.scalar("train_rays_per_sec", rays_per_sec, step)
-        precision = int(np.ceil(np.log10(FLAGS.max_steps))) + 1
-        print(("{:" + "{:d}".format(precision) + "d}").format(step) +
-              f"/{FLAGS.max_steps:d}: " + f"i_loss={stats.loss[0]:0.4f}, " +
-              f"avg_loss={avg_loss:0.4f}, " +
-              f"weight_l2={stats.weight_l2[0]:0.2e}, " + f"lr={lr:0.2e}, " +
-              f"{rays_per_sec:0.0f} rays/sec")
+        _log_train_summaries(summary_writer, stats, avg_loss, avg_psnr, lr,
+                             steps_per_sec, rays_per_sec, step)
 
     if step % FLAGS.save_every == 0:
-      state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
-      checkpoints.save_checkpoint_multiprocess(
-          FLAGS.train_dir,
-          state_to_save,
-          int(step),
-          keep=100,
-      )
+      _save_checkpoint(state, step)
 
     # Test-set evaluation.
     if FLAGS.render_every > 0 and step % FLAGS.render_every == 0:
       # We reuse the same random number generator from the optimization step
       # here on purpose so that the visualization matches what happened in
       # training.
-      t_eval_start = time.time()
-      eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
-                                                   state)).optimizer.target
-      test_case = next(test_dataset)
-      pred_color, pred_disp, pred_acc = utils.render_image(
-          functools.partial(render_pfn, eval_variables),
-          test_case["rays"],
-          keys[0],
-          FLAGS.dataset == "llff",
-          chunk=FLAGS.chunk)
-
-      # Log eval summaries on host 0.
-      if jax.host_id() == 0:
-        psnr = utils.compute_psnr(
-            ((pred_color - test_case["pixels"])**2).mean())
-        ssim = ssim_fn(pred_color, test_case["pixels"])
-        eval_time = time.time() - t_eval_start
-        num_rays = jnp.prod(jnp.array(test_case["rays"].directions.shape[:-1]))
-        rays_per_sec = num_rays / eval_time
-        summary_writer.scalar("test_rays_per_sec", rays_per_sec, step)
-        print(f"Eval {step}: {eval_time:0.3f}s., {rays_per_sec:0.0f} rays/sec")
-        summary_writer.scalar("test_psnr", psnr, step)
-        summary_writer.scalar("test_ssim", ssim, step)
-        summary_writer.image("test_pred_color", pred_color, step)
-        summary_writer.image("test_pred_disp", pred_disp, step)
-        summary_writer.image("test_pred_acc", pred_acc, step)
-        summary_writer.image("test_target", test_case["pixels"], step)
+      _log_eval_summaries(summary_writer, render_pfn, ssim_fn, test_dataset,
+                          state, keys, step)
 
   if FLAGS.max_steps % FLAGS.save_every != 0:
-    state = jax.device_get(jax.tree.map(lambda x: x[0], state))
-    checkpoints.save_checkpoint_multiprocess(
-        FLAGS.train_dir, state, int(FLAGS.max_steps), keep=100)
+    _save_checkpoint(state, FLAGS.max_steps)
 
 
 if __name__ == "__main__":
