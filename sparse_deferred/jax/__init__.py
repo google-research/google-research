@@ -21,6 +21,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import sparse_deferred as sd
+matrix = sd.matrix
 
 Tensor = jax.Array
 Shape = sd.Shape
@@ -65,7 +66,7 @@ class _JaxEngine(sd.ComputeEngine):
     return jnp.where(condition, val_if_true, val_if_false)
 
   def assert_equal(self, array1, array2):
-    return np.allclose(array1, array2)
+    assert np.allclose(array1, array2)
 
   def assert_greater(self, array1, array2):
     assert (array1 > array2).all()
@@ -92,7 +93,7 @@ class _JaxEngine(sd.ComputeEngine):
     return jnp.sum(jnp.array(arrays), axis=0)
 
   def shape(self, array):
-    return np.shape(array)
+    return jnp.shape(array)  # pytype: disable=bad-return-type
 
   def eye(self, num_rows, dtype='float32'):
     return jnp.eye(num_rows, dtype=dtype)
@@ -147,6 +148,10 @@ class _JaxEngine(sd.ComputeEngine):
                  keepdims = False):
     return jnp.any(tensor, axis=axis, keepdims=keepdims)
 
+  def reduce_max(self, tensor, axis = None,
+                 keepdims = False):
+    return jnp.max(tensor, axis=axis, keepdims=keepdims)
+
   def maximum(self, x, y):
     return jnp.maximum(x, y)
 
@@ -155,5 +160,39 @@ class _JaxEngine(sd.ComputeEngine):
 
   def one_hot(self, tensor, num_classes):
     return jax.nn.one_hot(tensor, num_classes)
+
+  def argmax(self, tensor, axis = None):
+    return jnp.argmax(tensor, axis=axis)
+
+  def gather_nd(self, tensor, indices):
+    return jnp.take_along_axis(tensor, indices, axis=0)
+
+  def matrix_rank(self, a, tol = None):
+    return jnp.linalg.matrix_rank(a, tol=tol)
+
+  def qr(self, a):
+    return jnp.linalg.qr(a)
+
+  def random_normal(self, shape, dtype = 'float32'):
+    return jax.random.normal(jax.random.PRNGKey(0), shape, dtype=dtype)
+
+  def sign(self, tensor):
+    return jnp.sign(tensor)
+
+  def stack(self, tensors, axis):
+    return jnp.stack(tensors, axis=axis)
+
+  def svd(self, a):
+    u, s, vt = jnp.linalg.svd(a, full_matrices=False)
+    return u, s, vt.T
+
+  def fill_padding(
+      self, tensor, bigger_padding
+  ):
+    """No in-place updates in JAX."""
+    # Fill rows of `bigger_padding` with `tensor`
+    # TODO(mgalkin): Consider unifying with jnp.pad
+    return bigger_padding.at[:tensor.shape[0]].set(tensor)
+
 
 engine = _JaxEngine()

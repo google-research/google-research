@@ -13,12 +13,3 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Exports symbols to the module level."""
-
-from sparse_deferred.tfgnn import io
-
-graph_struct_from_tf_example = io.graph_struct_from_tf_example
-graph_struct_from_graph_tensor = io.graph_struct_from_graph_tensor
-graph_struct_to_tf_example = io.graph_struct_to_tf_example
-graph_struct_from_tf_example_dict = io.graph_struct_from_tf_example_dict
-

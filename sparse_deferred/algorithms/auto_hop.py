@@ -16,7 +16,6 @@
 """Implements recursive propagate method to get features of connected nodes."""
 
 from typing import Any
-import tensorflow as tf
 import sparse_deferred as sd
 
 
@@ -26,6 +25,7 @@ def recursive_propagate(
     query_key,
     hops = 3,
     bidirectional=False,
+    cache = None,
 ):
   """Recurses over all nodes that are connected via the adjacency matrices.
 
@@ -35,10 +35,15 @@ def recursive_propagate(
     query_key: Start recursion point
     hops: Max number of hops
     bidirectional: Allow one node go back to the previous node
+    cache: Memoization dictionary
 
   Returns:
     List of tensors with transformed features from connected nodes and edges.
   """
+  if cache is None:
+    cache = {}
+  if (query_key, hops) in cache:
+    return cache[(query_key, hops)]
   if hops == 0:
     return [feat_dict[query_key]]
   all_terms = []
@@ -46,15 +51,16 @@ def recursive_propagate(
     for adj in adj_list:
       if key1 == query_key:
         terms = recursive_propagate(
-            feat_dict, adjacency_dict, key2, hops - 1, bidirectional
+            feat_dict, adjacency_dict, key2, hops - 1, bidirectional, cache
         )
         terms = [adj @ term for term in terms]
         all_terms.extend(terms)
       elif bidirectional and key2 == query_key:
         terms = recursive_propagate(
-            feat_dict, adjacency_dict, key1, hops - 1, bidirectional
+            feat_dict, adjacency_dict, key1, hops - 1, bidirectional, cache
         )
         terms = [adj.T @ term for term in terms]
         all_terms.extend(terms)
   all_terms.append(feat_dict[query_key])
+  cache[(query_key, hops)] = all_terms
   return all_terms

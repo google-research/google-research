@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Provides `engine`: instance of `ComputeEngine` wraps TensorFlow functions."""
-from typing import Optional
+from typing import Any, Optional
 
 import numpy as np
 import tensorflow as tf
@@ -28,8 +28,9 @@ DType = tf.DType|str
 class _TFEngine(matrix.ComputeEngine):
   """Implements tensorflow as a `ComputeEngine`."""
 
-  def where(self, condition, val_if_true,
-            val_if_false):
+  def where(
+      self, condition, val_if_true, val_if_false
+  ):
     return tf.where(condition, val_if_true, val_if_false)
 
   def assert_equal(self, tensor1, tensor2):
@@ -43,6 +44,9 @@ class _TFEngine(matrix.ComputeEngine):
 
   def abs(self, tensor):
     return tf.abs(tensor)
+
+  def sign(self, tensor):
+    return tf.sign(tensor)
 
   def rsqrt(self, tensor):
     return tf.math.rsqrt(tensor)
@@ -74,22 +78,33 @@ class _TFEngine(matrix.ComputeEngine):
   def minimum(self, x, y):
     return tf.minimum(x, y)
 
+  def argmax(self, tensor, axis = None):
+    return tf.argmax(tensor, axis=axis)
+
   def argsort(self, tensor, axis=-1, direction='ASCENDING'):
     return tf.argsort(tensor, axis=axis, direction=direction)
 
-  def all(self, tensor, axis = None,
-          keepdims=False):
+  def all(
+      self, tensor, axis = None, keepdims=False
+  ):
     return tf.reduce_all(tensor, axis=axis, keepdims=keepdims)
 
   def gather(self, tensor, indices, axis = 0):
     return tf.gather(tensor, indices, axis=axis)
 
-  def unsorted_segment_sum(self, data, segment_ids,
-                           num_segments):
+  def gather_nd(self, tensor, indices):
+    return tf.gather_nd(tensor, indices)
+
+  def unsorted_segment_sum(
+      self, data, segment_ids, num_segments
+  ):
     return tf.math.unsorted_segment_sum(data, segment_ids, num_segments)
 
   def concat(self, tensors, axis):
     return tf.concat(tensors, axis=axis)
+
+  def stack(self, tensors, axis):
+    return tf.stack(tensors, axis=axis)
 
   def zeros(self, shape, dtype = 'float32'):
     return tf.zeros(shape, dtype=dtype)
@@ -100,13 +115,29 @@ class _TFEngine(matrix.ComputeEngine):
   def boolean_mask(self, tensor, mask):
     return tf.boolean_mask(tensor, mask)
 
-  def reduce_all(self, tensor, axis = None,
-                 keepdims = False):
+  def reduce_all(
+      self,
+      tensor,
+      axis = None,
+      keepdims = False,
+  ):
     return tf.reduce_all(tensor, axis=axis, keepdims=keepdims)
 
-  def reduce_any(self, tensor, axis = None,
-                 keepdims = False):
+  def reduce_any(
+      self,
+      tensor,
+      axis = None,
+      keepdims = False,
+  ):
     return tf.reduce_any(tensor, axis=axis, keepdims=keepdims)
+
+  def reduce_max(
+      self,
+      tensor,
+      axis = None,
+      keepdims = False,
+  ):
+    return tf.reduce_max(tensor, axis=axis, keepdims=keepdims)
 
   def maximum(self, x, y):
     return tf.math.maximum(x, y)
@@ -117,9 +148,44 @@ class _TFEngine(matrix.ComputeEngine):
   def one_hot(self, tensor, num_classes):
     return tf.one_hot(tensor, num_classes)
 
+  def random_normal(
+      self,
+      shape,
+      mean = 0.0,
+      stddev = 1.0,
+      dtype = 'float32',
+      seed = None,
+  ):
+    return tf.random.normal(
+        shape, mean=mean, stddev=stddev, dtype=dtype, seed=seed
+    )
+
+  def matrix_rank(self, a, tol = None):
+    return tf.linalg.matrix_rank(a, tol=tol)
+
+  def matmul(self, a, b):
+    return tf.matmul(a, b)
+
+  def svd(
+      self, a, full_matrices = False
+  ):
+    s, u, v = tf.linalg.svd(a, full_matrices=full_matrices)
+    return u, s, v
+
+  def qr(self, a):
+    return tf.linalg.qr(a)
+
   def to_cpu(self, tensor):
     """Brings a tensor to the CPU, so that python can access it."""
     return np.array(tensor)
+
+  def fill_padding(self, tensor, bigger_padding):
+    """Scatter_nd_update is equivalent to bigger_padding[indices] = tensor."""
+    if tf.size(tensor) == 0:
+      return bigger_padding
+    range_shape = tf.shape(tensor)
+    indices = tf.range(range_shape[0], dtype=tf.int32)[:, tf.newaxis]
+    return tf.tensor_scatter_nd_update(bigger_padding, indices, tensor)
 
 
 engine = _TFEngine()

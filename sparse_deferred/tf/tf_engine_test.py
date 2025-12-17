@@ -24,6 +24,22 @@ class TfEngineTest(tf.test.TestCase):
     """Tests verifies that _TFEngine implements all abstract methods."""
     tf_engine._TFEngine()
 
+  def test_fill_padding(self):
+    output = tf_engine.engine.fill_padding(
+        tf.constant([[1, 2], [3, 4]]),
+        tf.constant([[0, 0], [0, 0], [0, 0], [0, 0]]),
+    )
+    expected_output = tf.constant([[1, 2], [3, 4], [0, 0], [0, 0]])
+    self.assertAllEqual(output, expected_output)
+
+  def test_fill_padding_empty(self):
+    output = tf_engine.engine.fill_padding(
+        tf.constant([[], []]),
+        tf.constant([[0, 0], [0, 0], [0, 0], [0, 0]]),
+    )
+    expected_output = tf.constant([[0, 0], [0, 0], [0, 0], [0, 0]])
+    self.assertAllEqual(output, expected_output)
+
 
 if __name__ == '__main__':
   tf.test.main()

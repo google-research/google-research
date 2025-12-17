@@ -1,12 +1,14 @@
 [project]
 name = "sparse_deferred"
-version = "0.0.1"
+version = "1.0.0"
 authors = [
   { name="Sami Abu-El-Haija", email="haija@google.com" },
+  { name="Michael Galkin", email="mgalkin@google.com" },
+  { name="Brandom Mayer", email="bmayer@google.com" },
+  { name="Mathieu Guillame-Bert", email="gbm@google.com" },
+  { name="Bryan Perozzi", email="bperozzi@google.com" },
   { name="Hasan Awais", email="hasanawais@google.com" },
-  { name="Aditya Mishra", email="mishraaditya@google.com" },
-  { name="Mangpo Phothilimthana", email="mangpo@google.com" },
-  { name="Bryan Perozzi", email="bperozzi@google.com" }
+  { name="Aditya Mishra", email="mishraaditya@google.com" }
 ]
 description = "Linear algebra library for sparse and deferred operations."
 readme = "README.md"
@@ -28,3 +30,5 @@ Homepage = "https://github.com/google-research/google-research/tree/master/spars
 "sparse_deferred.structs" = "structs"
 "sparse_deferred.implicit" = "implicit"
 "sparse_deferred.algorithms" = "algorithms"
+"sparse_deferred.gnn" = "gnn"
+"sparse_deferred.nn" = "nn"

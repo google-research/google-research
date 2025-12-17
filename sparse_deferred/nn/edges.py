@@ -72,7 +72,6 @@ class EdgeInput(NamedTuple):
 
 class NodeInput(NamedTuple):
   """Contains features of a node set and all its incident edges."""
-
   engine: sd.ComputeEngine
   node_features: sd.Tensor  # (numNodes, ...)
   incidence_matrices: list[sd.Matrix]  # Each has shape (numEdges, numNodes).
@@ -90,15 +89,11 @@ class NodeInput(NamedTuple):
     return self.aggregate_edge_features()
 
   def aggregate_edge_features(
-      self,
-      normalization_fn = lambda adj: adj.normalize_right(),
-  ):
-    """Aggregates edge features to nodes."""
-
+      self, normalization_fn = lambda adj: adj.normalize_right()
+      ):
     aggregated_edge_features = []
     for mat, edge_features in zip(
-        self.incidence_matrices, self.preaggregated_edge_features
-    ):
+        self.incidence_matrices, self.preaggregated_edge_features):
       aggregated_edge_features.append(normalization_fn(mat.T) @ edge_features)
 
     return aggregated_edge_features
@@ -132,7 +127,7 @@ def map_nodes_to_incident_edges(
     edge_layer = concat_features,
     endpoint_ids = (0, 1),
     node_feature_names = None,
-):
+    ):
   """Returns the edge function.
 
   Args:
@@ -140,28 +135,22 @@ def map_nodes_to_incident_edges(
     graph: Graph containing edge set with name `edge_set_name`.
     edge_set_name: The features of endpoint nodes and the features of these
       edges will be extracted and fed into `edge_layer`.
-    edge_feature_name: If None and `len(graph.edges[edge_set_name][1]) == 1`,
-      then the only edge feature in `graph.edges[edge_set_name]` will be used.
-      If `None` and `len(graph.edges[edge_set_name][1]) != 1`, then `None` will
-      be the value of `edge_features` in `EdgeInput`. If given and not found,
-      then `None` will be the value of `edge_features` in `EdgeInput`. If given
-      and found in `graph.edges[edge_set_name]`, then the value of
-      `edge_features` in `EdgeInput` will be
-      `graph.edges[edge_set_name][1][edge_feature_name]`.
+    edge_feature_name: Name of the edge feature to use. If None, then no edge
+      features will be used.
     edge_layer: Layer that can map `EdgeInput` into a Tensor.
     endpoint_ids: The order of node endpoint features to extract. If == (0, 1),
       then, `endpoint_features` will be array as `[src_feats, tgt_feats]`. You
       must set this manually if your graph is a hypergraph -- e.g. to (0, 1, 2).
     node_feature_names: Node feature names. If given, List must be same size as
+      `endpoint_ids`.
   """
   node_set_names = graph.schema[edge_set_name]
 
   # Accumulate at every edge the features of every connected node.
   node_edge_features = []
   # M x N sparse matrices. Each is NumberOfEdges x NumberOfNodes.
-  incident_matrices = [
-      graph.incidence(engine, edge_set_name, i) for i in endpoint_ids
-  ]
+  incident_matrices = (
+      [graph.incidence(engine, edge_set_name, i) for i in endpoint_ids])
   for i, mat in zip(endpoint_ids, incident_matrices):
     node_set_name = node_set_names[i]
     if node_feature_names:
@@ -169,13 +158,11 @@ def map_nodes_to_incident_edges(
       if node_feature_name not in graph.nodes[node_set_name]:
         raise ValueError(
             f'Node set {node_set_name} does not have feature '
-            f'{node_feature_name}.'
-        )
+            f'{node_feature_name}.')
     elif len(graph.nodes[node_set_name]) != 1:
       raise ValueError(
           f'Node set {node_set_name} has multiple features, but '
-          'node_feature_names is not set.'
-      )
+          'node_feature_names is not set.')
     else:
       node_feature_name = list(graph.nodes[node_set_name].keys())[0]
     node_features = graph.nodes[node_set_name][node_feature_name]
@@ -184,10 +171,7 @@ def map_nodes_to_incident_edges(
 
   all_edge_features = graph.edges[edge_set_name][1]
   if edge_feature_name is None:
-    if len(all_edge_features) != 1:
-      edge_features = None
-    else:
-      edge_features = list(all_edge_features.values())[0]
+    edge_features = None
   else:
     edge_features = all_edge_features.get(edge_feature_name, None)
 
@@ -207,7 +191,7 @@ def combine_node_features(
     edge_names_and_features,
     node_feature_name = None,
     node_layer = sum_features,
-):
+    ):
   """Combines features of `node_set_name` with all its given edge features.
 
   Args:
@@ -216,17 +200,17 @@ def combine_node_features(
     node_set_name: The node set to combine features of.
     edge_names_and_features: List of `(edge_name, edge_features)`. `edge_name`s
       are only considered if they connect to `node_set_name`.
-    node_feature_name: If None and `len(graph.nodes[node_set_name]) == 1`, then
-      the only node feature in `graph.nodes[node_set_name]` will be used.
-    node_layer: will be called on `NodeInput` with attribute `node_features` set
-      to `graph.nodes[node_set_name][node_feature_name]`. and property
+    node_feature_name: If None and `len(graph.nodes[node_set_name]) == 1`,
+      then the only node feature in `graph.nodes[node_set_name]` will be used.
+    node_layer: will be called on `NodeInput` with attribute `node_features`
+      set to `graph.nodes[node_set_name][node_feature_name]`. and property
       `edge_features` returning a list of edge-features (gathered from
-      `edge_names_and_features`) where `node_set_name` is an endpoint. The size
-      of this list will be the total number of times that `node_set_name` is an
-      endpoint in `edge_names_and_features`. Specifically, a homogeneous
-      edge-set will insert two elements on this list: one when the node is a
-      source and one when it is a target. If a node has no edges where it is
-      source or target, then the corresponding row will be zero.
+      `edge_names_and_features`) where `node_set_name` is an endpoint.
+      The size of this list will be the total number of times that
+      `node_set_name` is an endpoint in `edge_names_and_features`. Specifically,
+      a homogeneous edge-set will insert two elements on this list: one when
+      the node is a source and one when it is a target. If a node has no edges
+      where it is source or target, then the corresponding row will be zero.
 
   Returns:
     `node_layer(NodeInput)`.
@@ -237,8 +221,7 @@ def combine_node_features(
     else:
       raise ValueError(
           f'Node set {node_set_name} has multiple features, but '
-          'node_feature_name is not set.'
-      )
+          'node_feature_name is not set.')
 
   node_features = graph.nodes[node_set_name][node_feature_name]
   all_edge_features = []
