@@ -48,8 +48,7 @@ class LinearEvalTest(absltest.TestCase):
          iris.data[:, :2].astype(onp.float32), iris.target, test_size=0.25,
          random_state=0xdeadbeef)
 
-    sklearn_logreg = linear_model.LogisticRegression(
-        C=1e5, solver='lbfgs', multi_class='multinomial')
+    sklearn_logreg = linear_model.LogisticRegression(C=1e5, solver='lbfgs')
     sklearn_logreg.fit(train_embeddings, train_labels)
     sklearn_y_pred = sklearn_logreg.predict(test_embeddings)
 

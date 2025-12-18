@@ -155,8 +155,7 @@ def get_ace_concept(concept_arraynew_active, dense2, predict, f_train,
         random_state=0,
         solver='lbfgs',
         max_iter=10000,
-        C=10.0,
-        multi_class='ovr').fit(concept_arraynew_active.reshape((-1, 200)), y)
+        C=10.0).fit(concept_arraynew_active.reshape((-1, 200)), y)
     weight_ace[:, i] = clf.coef_
 
   weight_rand = np.zeros((200, 200))
@@ -166,8 +165,7 @@ def get_ace_concept(concept_arraynew_active, dense2, predict, f_train,
         random_state=0,
         solver='lbfgs',
         max_iter=10000,
-        C=10.0,
-        multi_class='ovr').fit(concept_arraynew_active.reshape((-1, 200)), y)
+        C=10.0).fit(concept_arraynew_active.reshape((-1, 200)), y)
     weight_rand[:, i] = clf.coef_
 
   sig_list = np.zeros(n_cluster)

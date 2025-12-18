@@ -173,7 +173,6 @@ def main(args):
   # Evaluations
   # Evaluation model
   eval_model = linear_model.LogisticRegression(solver='lbfgs',
-                                               multi_class='auto',
                                                max_iter=2000)
 
   # 1. Robust learning (DVRL-weighted learning)

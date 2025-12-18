@@ -125,7 +125,7 @@ def main(argv):
   representations, _ = model([features_mat, features_mat, subgraph_mat],
                              training=False)
   representations = representations.numpy()
-  clf = LogisticRegression(solver='lbfgs', multi_class='multinomial')
+  clf = LogisticRegression(solver='lbfgs')
   clf.fit(representations[train_mask], labels[train_mask])
   clusters = clf.predict(representations[test_mask])
   print(

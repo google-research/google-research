@@ -28,13 +28,11 @@ RandomForestClassifier = ensemble.RandomForestClassifier
 def get_sklearn_models():
   return {
       'LogisticRegression':
-          lambda: LogisticRegression(
-              C=1e5, solver='lbfgs', multi_class='multinomial'),
+          lambda: LogisticRegression(C=1e5, solver='lbfgs'),
       'LogisticRegression_balanced':
           lambda: LogisticRegression(
               C=1e5,
               solver='lbfgs',
-              multi_class='multinomial',
               class_weight='balanced'),
       'LDA_LSQR_AUTO':
           lambda: LinearDiscriminantAnalysis(solver='lsqr', shrinkage='auto'),

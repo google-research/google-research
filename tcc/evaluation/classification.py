@@ -40,8 +40,7 @@ FLAGS = flags.FLAGS
 def fit_linear_model(train_embs, train_labels,
                      val_embs, val_labels):
   """Fit a linear classifier."""
-  lin_model = LogisticRegression(max_iter=100000, solver='lbfgs',
-                                 multi_class='multinomial', verbose=2)
+  lin_model = LogisticRegression(max_iter=100000, solver='lbfgs', verbose=2)
   lin_model.fit(train_embs, train_labels)
   train_acc = lin_model.score(train_embs, train_labels)
   val_acc = lin_model.score(val_embs, val_labels)
