@@ -142,8 +142,15 @@ def _log_eval_summaries(summary_writer,
                         state, keys, step):
   """Log evaluation summaries."""
   t_eval_start = time.time()
-  eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
-                                               state)).optimizer.target
+  # Avoid degraded performance under the new jax.pmap. See
+  # https://docs.jax.dev/en/latest/migrate_pmap.html#int-indexing-into-sharded-arrays.
+  if jax.config.jax_pmap_shmap_merge:
+    eval_variables = jax.device_get(jax.tree.map(
+        lambda x: x.addressable_shards[0].data.squeeze(0),
+        state)).optimizer.target
+  else:
+    eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
+                                                 state)).optimizer.target
   test_case = next(test_dataset)
   pred_color, pred_disp, pred_acc = utils.render_image(
       functools.partial(render_pfn, eval_variables),
@@ -170,7 +177,13 @@ def _log_eval_summaries(summary_writer,
 
 def _save_checkpoint(state, step):
   """Save checkpoint."""
-  state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
+  # Avoid degraded performance under the new jax.pmap. See
+  # https://docs.jax.dev/en/latest/migrate_pmap.html#int-indexing-into-sharded-arrays.
+  if jax.config.jax_pmap_shmap_merge:
+    state_to_save = jax.device_get(jax.tree.map(
+        lambda x: x.addressable_shards[0].data.squeeze(0), state))
+  else:
+    state_to_save = jax.device_get(jax.tree.map(lambda x: x[0], state))
   checkpoints.save_checkpoint_multiprocess(
       FLAGS.train_dir,
       state_to_save,
