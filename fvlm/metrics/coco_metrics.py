@@ -79,8 +79,7 @@ def get_host_evaluator(
     def filter_by_source_ids(self, predictions):
       """Filter the predictions by existing source ids to handle paddings."""
       output_source_ids = predictions['source_id'].reshape(-1)
-      overlap_indices = np.in1d(output_source_ids,
-                                np.array(list(self._existing_source_ids)))
+      overlap_indices = np.isin(output_source_ids, np.array(list(self._existing_source_ids))).ravel()
       new_source_ids = set(output_source_ids[~overlap_indices].tolist())
       logging.info('New source ids: %s', str(new_source_ids))
       self._existing_source_ids = self._existing_source_ids.union(

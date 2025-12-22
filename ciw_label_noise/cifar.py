@@ -164,8 +164,7 @@ def get_corrupted_labels(ds,
     # Therefore, noisy_frac is divided by 2 to be consistent with CIFAR-100.
     # ref: https://arxiv.org/pdf/2006.13554.pdf
     noisy_frac = noisy_frac / 2.0
-    noisy_examples_idx = np.arange(len(labels_noisy))[np.in1d(
-        labels_noisy, [2, 3, 4, 5, 9])]
+    noisy_examples_idx = np.arange(len(labels_noisy))[np.isin(labels_noisy, [2, 3, 4, 5, 9]).ravel()]
     noisy_examples_idx = noisy_examples_idx[rng.permutation(
         len(noisy_examples_idx))]
     noisy_examples_idx = noisy_examples_idx[:int(noisy_frac *
