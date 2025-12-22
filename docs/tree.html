@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="github-markdown.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <title>Project structure of: google-research/google-research</title>
+    <style>
+        .directory:hover {
+            cursor: pointer;
+            text-decoration: underline;
+        }
+
+        :target {
+            background-color: yellow !important;
+        }
+
+        .folded::before {
+            content: '\25B6';
+            margin-right: 8px;
+            /* Add space between marker and text */
+        }
+
+        .expanded::before {
+            content: '\25BC';
+            margin-right: 8px;
+            /* Add space between marker and text */
+        }
+    </style>
+    <script>
+        function toggleVisibility(element) {
+            let mclass = element.getAttribute("class");
+            if (mclass == "expanded") {
+                element.setAttribute('class', 'folded');
+            } else {
+                element.setAttribute('class', 'expanded');
+            }
+            const siblings = element.parentNode.children;
+            for (const sibling of siblings) {
+                if (sibling !== element) {
+                    sibling.style.display = (sibling.style.display === 'none') ? 'block' : 'none';
+                }
+            }
+        }
+    </script>
+    <style>
+        .markdown-body {
+            box-sizing: border-box;
+            min-width: 200px;
+            max-width: 980px;
+            margin: 0 auto;
+            padding: 45px;
+        }
+
+        @media (max-width: 767px) {
+            .markdown-body {
+                padding: 15px;
+            }
+
+            .partial-repository-url {
+                display: none;
+            }
+        }
+
+        ul {
+            list-style: none;
+        }
+        #feeling-lucky:hover{
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+    <article class="markdown-body">
+        <h2>Project structure<span hierarchy="0" class="partial-repository-url"> of: google-research/google-research</span><div style="float: right;"><a title="Document index" style="margin:3.5px;" href="index.html"><i class="bi bi-search"></i></a><a title="Feeling lucky" style="margin:3.5px;" id="feeling-lucky" href="#"><i class="bi bi-dice-3"></i></a><a title="Expand tree" style="margin:3.5px;" href="tree.html?full=true" id="expand-tree"><i class="bi bi-caret-down-square"></i></a></div></h2>
+<ul>
+<li><span hierarchy="0" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/"><code>google-research</code></strong> <em>Video dynamics analysis and adaptable video timeline modeling.</em></span><ul>
+<li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/video_structure/"><code>video&UnderBar;structure</code></strong> <em>Analyzing video dynamics with TensorFlow.</em></span><ul>
+<li><a class="file_link" href="index.html?q=/video_structure/__init__.py" id="/video_structure/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Google-Research/Video_Structure license notice.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/datasets.py" id="/video_structure/datasets.py"><code>datasets&period;py</code></a> <em>Loads sequence datasets for TensorFlow pipelines.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/datasets_test.py" id="/video_structure/datasets_test.py"><code>datasets&UnderBar;test&period;py</code></a> <em>Test Keras image classification model with data determinism check.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/dynamics.py" id="/video_structure/dynamics.py"><code>dynamics&period;py</code></a> <em>TensorFlow VRNN model for video keypoint prediction</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/dynamics_test.py" id="/video_structure/dynamics_test.py"><code>dynamics&UnderBar;test&period;py</code></a> <em>Tests VRNN training, KLDivergence annealing, and dynamics model's sampling schedule.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/hyperparameters.py" id="/video_structure/hyperparameters.py"><code>hyperparameters&period;py</code></a> <em>Hyperparameters class for video model configuration.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/losses.py" id="/video_structure/losses.py"><code>losses&period;py</code></a> <em>Calculates video trajectory separation loss using Gaussian functions and matrix operations.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/losses_test.py" id="/video_structure/losses_test.py"><code>losses&UnderBar;test&period;py</code></a> <em>Tests video structure losses for parallel keypoints.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/ops.py" id="/video_structure/ops.py"><code>ops&period;py</code></a> <em>Video operations for TensorFlow model: keypoint extraction, map scaling, data augmentation.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/ops_test.py" id="/video_structure/ops_test.py"><code>ops&UnderBar;test&period;py</code></a> <em>Tests <code>add_coord_channels</code> and heat map functions.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/README.md" id="/video_structure/README.md"><code>README&period;md</code></a> <em>Unsupervised learning of object structure and dynamics from videos.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/requirements.txt" id="/video_structure/requirements.txt"><code>requirements&period;txt</code></a> <em>TensorFlow GPU version constraint: 1.15.3 or below 2.0.0</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/run.sh" id="/video_structure/run.sh"><code>run&period;sh</code></a> <em>Script for setting up and testing video_structure package.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/train.py" id="/video_structure/train.py"><code>train&period;py</code></a> <em>Trains video model, predicts keypoints, recons images, compiles and validates.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/vision.py" id="/video_structure/vision.py"><code>vision&period;py</code></a> <em>Vision-enhanced video analysis with encoder-decoder model.</em></li>
+<li><a class="file_link" href="index.html?q=/video_structure/vision_test.py" id="/video_structure/vision_test.py"><code>vision&UnderBar;test&period;py</code></a> <em>Video Autoencoder Model Test with TensorFlow</em></li>
+</ul>
+</li>
+<li><span hierarchy="1" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/video_timeline_modeling/"><code>video&UnderBar;timeline&UnderBar;modeling</code></strong> <em>Video Timeline Modeling: Adaptable Components</em></span><ul>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/README.md" id="/video_timeline_modeling/README.md"><code>README&period;md</code></a> <em>Video timeline modeling dataset for news stories available on Google Drive</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/requirements.txt" id="/video_timeline_modeling/requirements.txt"><code>requirements&period;txt</code></a> <em>Dependencies: TensorFlow, PyTorch for video timeline modeling</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/run.sh" id="/video_timeline_modeling/run.sh"><code>run&period;sh</code></a> <em>Bash script sets up Python env, installs deps, runs model.</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/setup.py" id="/video_timeline_modeling/setup.py"><code>setup&period;py</code></a> <em>vtm setup script: Python module installation, no external packages required</em></li>
+<li><span hierarchy="2" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/video_timeline_modeling/vtm/"><code>vtm</code></strong> <em>Video Timeline Modeling with Adaptable Components</em></span><ul>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/__init__.py" id="/video_timeline_modeling/vtm/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Video timeline modeling license notice</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/dataset.py" id="/video_timeline_modeling/vtm/dataset.py"><code>dataset&period;py</code></a> <em>VTM PyTorch dataset: variable-length video timeline modeling.</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/eval.py" id="/video_timeline_modeling/vtm/eval.py"><code>eval&period;py</code></a> <em>Video timeline modeling evaluation script with accuracy and metrics.</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/main.py" id="/video_timeline_modeling/vtm/main.py"><code>main&period;py</code></a> <em>Video timeline model training with Transformers and distillation.</em></li>
+<li><span hierarchy="3" class="expanded" onclick="toggleVisibility(this)" ><strong class="directory" id="/video_timeline_modeling/vtm/model/"><code>model</code></strong> <em>Video Timeline Modeling with Adjustable Components</em></span><ul>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/model/__init__.py" id="/video_timeline_modeling/vtm/model/__init__.py"><code>&UnderBar;&UnderBar;init&UnderBar;&UnderBar;&period;py</code></a> <em>Video Timeline Modeling components import.</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/model/attention_head.py" id="/video_timeline_modeling/vtm/model/attention_head.py"><code>attention&UnderBar;head&period;py</code></a> <em>Video timeline modeling Attention Head class. Calculates attention scores, linear layers, log softmax activation.</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/model/encoder.py" id="/video_timeline_modeling/vtm/model/encoder.py"><code>encoder&period;py</code></a> <em>PyTorch Transformer Encoder with Positional Encoding</em></li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/model/model.py" id="/video_timeline_modeling/vtm/model/model.py"><code>model&period;py</code></a> <em>Video Timeline Modeling with Adjustable Classifiers</em></li>
+</ul>
+</li>
+<li><a class="file_link" href="index.html?q=/video_timeline_modeling/vtm/test.py" id="/video_timeline_modeling/vtm/test.py"><code>test&period;py</code></a> <em>Video timeline modeling module testing.</em></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+    </article>
+    <script type="text/javascript">
+        function getQueryParams() {
+            var search = window.location.search.substring(1); // Remove leading '?'
+            var queryParams = {};
+            search.split('&').forEach(function (pair) {
+                var parts = pair.split('=');
+                var key = decodeURIComponent(parts[0]);
+                var value = decodeURIComponent(parts[1]);
+                queryParams[key] = value;
+            });
+            return queryParams;
+        }
+
+        const queryParams = getQueryParams(window.location.search);
+        const show_full = queryParams.full == "true";
+        //const is_random = queryParams.random == 'true';
+        function feelingLucky() {
+            var elements = document.getElementsByClassName("file_link");
+            var randomIndex = Math.floor(Math.random() * elements.length);
+            window.location = elements[randomIndex].href;
+        }
+        //if (is_random) {feelingLucky();}
+        document.getElementById("feeling-lucky").onclick = feelingLucky;
+        if (!show_full) {
+            const spans = document.querySelectorAll('span');
+            for (let span of spans) {
+                if (span.getAttribute("hierarchy") == '0') { continue }
+                toggleVisibility(span);
+            }
+        } else {
+            const expand_elem = document.getElementById('expand-tree');
+            expand_elem.setAttribute("href", "tree.html");
+            expand_elem.setAttribute("title", "Undo expand");
+            expand_elem.innerHTML = '<i class="bi bi-caret-up-square"></i>'
+        }
+
+    </script>
+</body>
+
+</html>
