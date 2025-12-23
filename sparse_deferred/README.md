@@ -138,9 +138,11 @@ This section will be written as we add code to repo.
 This Framework is developed to satisfy research and production use-cases that
 our team cares about. The primary contributors to this framework are:
 * Sami Abu-el-Haija (haija@google.com)
+* Michael Galkin (mgalkin@google.com)
+* Brandon Mayer (bmayer@google.com)
+* Mathieu Guillame-Bert (gbm@google.com)
 * Hasan Awais (hasanawais@google.com)
 * Aditya Mishra (mishraaditya@google.com)
-* Mangpo Phothilimthana (mangpo@google.com)
 * Bryan Perozzi (bperozzi@google.com)
 
 ## Disclaimer
