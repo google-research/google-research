@@ -26,7 +26,7 @@ requests==2.26.0
 scipy==1.7.3
 six==1.16.0
 tensorboard==1.15.0
-tensorflow==1.15.0
+tensorflow==2.11.1
 tensorflow-datasets==3.2.1
 tensorflow-estimator==1.15.1
 tensorflow-metadata==1.5.0
