@@ -81,8 +81,9 @@ def compute_quantiles(features,
   if len(unique_features) >= num_keypoints:
     return np.quantile(
         unique_features,
-        np.linspace(0., 1., num=num_keypoints),
-        interpolation="nearest").astype(float)
+        np.linspace(0.0, 1.0, num=num_keypoints),
+        method="nearest",
+    ).astype(float)
   else:
     # Ensure no duplicates when num_keypoints > number of unique feature values.
     return unique_features

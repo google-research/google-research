@@ -275,8 +275,9 @@ def compute_quantiles(features,
   # Compute and return quantiles over unique non-missing feature values.
   return np.quantile(
       unique_features,
-      np.linspace(0., 1., num=num_keypoints),
-      interpolation='nearest').astype(float)
+      np.linspace(0.0, 1.0, num=num_keypoints),
+      method='nearest',
+  ).astype(float)
 
 
 def print_metrics_results_dict(results_dict, iterate='best'):

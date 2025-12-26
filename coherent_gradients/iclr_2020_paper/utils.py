@@ -46,10 +46,10 @@ def policy_sum_sign(t):
 
 def np_winsorize(t, c):
   assert c >= 0 and c <= 100
-  # l = np.percentile(t, c,     axis=-1, interpolation='higher', keepdims=True)
-  # h = np.percentile(t, 100-c, axis=-1, interpolation='lower',  keepdims=True)
+  # l = np.percentile(t, c,     axis=-1, method='higher', keepdims=True)
+  # h = np.percentile(t, 100-c, axis=-1, method='lower',  keepdims=True)
   [l, h] = np.percentile(
-      t, [c, 100 - c], axis=-1, interpolation='nearest', keepdims=True)
+      t, [c, 100 - c], axis=-1, method='nearest', keepdims=True)
   u = np.clip(t, l, h)
   return u
 

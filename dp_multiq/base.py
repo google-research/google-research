@@ -40,7 +40,7 @@ def quantiles(data, qs):
     data: A dataset sorted in increasing order.
     qs: Increasing array of quantiles in [0,1].
   """
-  return np.quantile(data, qs, interpolation='lower')
+  return np.quantile(data, qs, method='lower')
 
 
 def misclassified_points_error(sorted_data, true_quantiles, est_quantiles):
