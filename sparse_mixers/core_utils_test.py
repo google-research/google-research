@@ -27,6 +27,13 @@ import numpy as np
 from sparse_mixers import core_utils
 
 
+def _pmap_sharding(shape):
+  mesh = jax.sharding.Mesh(np.array(jax.local_devices()), ("_pmap",))
+  return jax.sharding.NamedSharding(
+      mesh, jax.sharding.PartitionSpec("_pmap", *([None] * (len(shape) - 1)))
+  )
+
+
 class ScatterNdTest(absltest.TestCase):
 
   def test_scatter_nd_simple(self):
@@ -110,7 +117,7 @@ class TreeTest(absltest.TestCase):
       )
     else:
       self.assertEqual(replicated_tree["a"].sharding,
-                       jax.sharding.PmapSharding.default((n, 4), 0))
+                       _pmap_sharding((n, 4)))
 
   def test_tree_shard_by_name(self):
     n = jax.local_device_count()
@@ -133,7 +140,7 @@ class TreeTest(absltest.TestCase):
       )
     else:
       self.assertEqual(sharded_tree["a"].sharding,
-                       jax.sharding.PmapSharding.default((n, 4), 0))
+                       _pmap_sharding((n, 4)))
 
   def test_tree_unreplicate_by_name(self):
     tree = dict(a=jnp.ones((8, 4)), b=25)
