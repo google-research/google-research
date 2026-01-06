@@ -66,7 +66,7 @@ class _JaxEngine(sd.ComputeEngine):
     return jnp.where(condition, val_if_true, val_if_false)
 
   def assert_equal(self, array1, array2):
-    assert jnp.allclose(array1, array2)
+    assert np.allclose(array1, array2)
 
   def assert_greater(self, array1, array2):
     assert (array1 > array2).all()
