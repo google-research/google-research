@@ -191,7 +191,7 @@ class RandomTrafficGenerator(object):
     """
     for edge_from, edge_to, rate in incomplete_routes_demands:
       flow_id = edge_from + '_to_' + edge_to + '_' + str(time_point)
-      num_cars = np.random.poisson(time_step_size * rate, 1)
+      num_cars = np.random.poisson(time_step_size * rate)
       token = ('    <flow id="%s" begin="%d" end="%d" number="%d" ' %
                (flow_id, time_point, time_point + time_step_size, num_cars))
       token += ('from="%s" to="%s" ' % (edge_from, edge_to))
@@ -217,7 +217,7 @@ class RandomTrafficGenerator(object):
     for route_index, rate in routes_demands:
       route_id = routes[route_index]['route_id']
       flow_id = route_id + '_' + str(time_point)
-      num_cars = np.random.poisson(time_step_size*rate, 1)
+      num_cars = np.random.poisson(time_step_size*rate)
       token = ('    <flow id="%s" begin="%d" end="%d" number="%d" ' %
                (flow_id, time_point, time_point + time_step_size, num_cars,))
       token += ('route="%s" ' % (route_id))

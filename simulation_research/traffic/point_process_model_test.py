@@ -34,14 +34,14 @@ class PointProcessModelTest(absltest.TestCase):
   def setUp(self):
     super(PointProcessModelTest, self).setUp()
     self.model = point_process_model.PointProcessModel()
-    np.random.seed(0)
+    self.rng = np.random.default_rng(0)
     self._output_dir = tempfile.mkdtemp(dir=absltest.get_default_test_tmpdir())
 
   def test_generator_homogeneous_poisson(self):
     lmbd = 1
     time_step_size = 10
     rates = np.ones(100000) * lmbd
-    events = self.model.generator(rates, time_step_size)
+    events = self.model.generator(rates, time_step_size, self.rng)
     actual_mean = np.mean(events)
     actual_std = np.std(events)
     target_mean = lmbd * time_step_size
@@ -55,7 +55,7 @@ class PointProcessModelTest(absltest.TestCase):
     lmbd = 1
     time_step_size = 10
     rates = np.ones(100000) * lmbd
-    events = self.model.generator(rates, time_step_size)
+    events = self.model.generator(rates, time_step_size, self.rng)
     actual_lmbd = self.model.fit_homo_poisson(events, time_step_size)
     self.assertAlmostEqual(actual_lmbd, lmbd, places=2)
 
@@ -91,7 +91,7 @@ class PointProcessModelTest(absltest.TestCase):
     lmbd = 1
     time_step_size = 10
     rates = np.ones(50) * lmbd
-    events = self.model.generator(rates, time_step_size)
+    events = self.model.generator(rates, time_step_size, self.rng)
     rates_hat = self.model.fit_inhomo_poisson(
         events, time_step_size, num_knots=3)
 
@@ -116,7 +116,7 @@ class PointProcessModelTest(absltest.TestCase):
     time_step_size = 10
     rates_target = np.exp(basis @ beta_target) / time_step_size
     # Generates events according to the inhomogeneous rates.
-    events = self.model.generator(rates_target, time_step_size)
+    events = self.model.generator(rates_target, time_step_size, self.rng)
     rates_hat = self.model.fit_inhomo_poisson(
         events, time_step_size, num_knots=4)
 

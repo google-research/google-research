@@ -60,7 +60,7 @@ class PointProcessModel(object):
   # def __init__(self):
 
   @classmethod
-  def generator(cls, rates, time_step_size):
+  def generator(cls, rates, time_step_size, rng=None):
     """Generate events according to the rates.
 
     If we know the underlying event rate of a point process, the number of
@@ -71,13 +71,16 @@ class PointProcessModel(object):
     Args:
       rates:
       time_step_size:
+      rng: A numpy random number generator. If None, use np.random.
 
     Returns:
       Number of events for each bin w.r.t. the `rates`.
     """
+    if rng is None:
+      rng = np.random
     num_events = np.zeros(len(rates))
     for t, rate in enumerate(rates):
-      num_events[t] = np.random.poisson(time_step_size * rate, 1)
+      num_events[t] = rng.poisson(time_step_size * rate)
     return num_events
 
   @classmethod
