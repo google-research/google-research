@@ -36,7 +36,7 @@ exceptiongroup==1.2.0
 executing==2.0.1
 fastjsonschema==2.19.0
 fiddle==0.2.11
-filelock==3.13.1
+filelock==3.20.1
 flatbuffers==1.12
 flax==0.7.4
 fonttools==4.46.0
