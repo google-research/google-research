@@ -49,8 +49,8 @@ struct __align__(4) InputInfo {
 template <int dims, typename FeatureType>
 __global__ void SubmanifoldSparseConvBackpropFilterKernel(
     const InputInfo info, const FilterSpatialDims<dims> filter_size,
-    const int32* __restrict__ coordinates,
-    const int32* __restrict__ num_valid_coordinates,
+    const int32_t* __restrict__ coordinates,
+    const int32_t* __restrict__ num_valid_coordinates,
     const CoordinatesHashMapGpu<dims> hashmap,
     const FeatureType* __restrict__ input_features,
     const FeatureType* __restrict__ d_output_features,
@@ -100,9 +100,9 @@ __global__ void SubmanifoldSparseConvBackpropFilterKernel(
 template <typename FeatureType>
 __global__ void SubmanifoldSparseConvBackpropFilterKernel_OneCoordPerWarp(
     const InputInfo info, const int filter_volume, int in_channels_per_block,
-    const int32* __restrict__ num_valid_coordinates,
+    const int32_t* __restrict__ num_valid_coordinates,
     const FeatureType* __restrict__ input_features,
-    const int32* __restrict__ neighbor_indices,
+    const int32_t* __restrict__ neighbor_indices,
     const FeatureType* __restrict__ d_output_features,
     FeatureType* __restrict__ d_filter) {
   const int kWarpSize = 32;
@@ -187,7 +187,7 @@ __global__ void SubmanifoldSparseConvBackpropFilterKernel_OneCoordPerWarp(
 
 // Launch convolution kernel with small convolution window.
 template <int dims>
-static Status LaunchSubmanifoldSparseConvBackpropFilterSmallWindow(
+static absl::Status LaunchSubmanifoldSparseConvBackpropFilterSmallWindow(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts,
     const int filter_volume, const InputInfo& info,
     CoordinatesHashMapWrapper<dims>* hashmap) {
@@ -247,15 +247,15 @@ static Status LaunchSubmanifoldSparseConvBackpropFilterSmallWindow(
       SubmanifoldSparseConvBackpropFilterKernel_OneCoordPerWarp<float>,
       config.block_count, config.thread_per_block, shared_memory_size_bytes,
       device.stream(), info, filter_volume, in_channels_per_block,
-      opts.num_valid_coordinates.flat<int32>().data(),
+      opts.num_valid_coordinates.flat<int32_t>().data(),
       opts.input_features.flat<float>().data(),
-      neighbor_indices.flat<int32>().data(),
+      neighbor_indices.flat<int32_t>().data(),
       opts.d_output_features.flat<float>().data(),
       opts.d_filter->flat<float>().data());
 }
 
 template <int dims>
-static Status LaunchSubmanifoldSparseConvBackpropFilterImpl(
+static absl::Status LaunchSubmanifoldSparseConvBackpropFilterImpl(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts) {
   // Reset the output.
   Eigen::GpuDevice device = opts.ctx->eigen_device<Eigen::GpuDevice>();
@@ -295,9 +295,9 @@ static Status LaunchSubmanifoldSparseConvBackpropFilterImpl(
   return GpuLaunchKernel(
       SubmanifoldSparseConvBackpropFilterKernel<dims, float>,
       config.block_count, config.thread_per_block, 0, device.stream(), info,
-      filter_size, opts.coordinates.flat<int32>().data(),
-      opts.num_valid_coordinates.flat<int32>().data(), hashmap.GetGpuHashMap(),
-      opts.input_features.flat<float>().data(),
+      filter_size, opts.coordinates.flat<int32_t>().data(),
+      opts.num_valid_coordinates.flat<int32_t>().data(),
+      hashmap.GetGpuHashMap(), opts.input_features.flat<float>().data(),
       opts.d_output_features.flat<float>().data(),
       opts.d_filter->flat<float>().data());
 }
@@ -305,7 +305,7 @@ static Status LaunchSubmanifoldSparseConvBackpropFilterImpl(
 }  // namespace cuda
 
 template <>
-Status LaunchSubmanifoldSparseConvBackpropFilter<Eigen::GpuDevice>(
+absl::Status LaunchSubmanifoldSparseConvBackpropFilter<Eigen::GpuDevice>(
     const SubmanifoldSparseConvBackpropFilterLaunchOptions& opts) {
   const int dims = opts.coordinates.dim_size(2);
   if (dims == 2) {
