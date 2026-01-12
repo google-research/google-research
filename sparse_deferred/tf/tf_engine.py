@@ -100,6 +100,11 @@ class _TFEngine(matrix.ComputeEngine):
   ):
     return tf.math.unsorted_segment_sum(data, segment_ids, num_segments)
 
+  def unsorted_segment_max(
+      self, data, segment_ids, num_segments
+  ):
+    return tf.math.unsorted_segment_max(data, segment_ids, num_segments)
+
   def concat(self, tensors, axis):
     return tf.concat(tensors, axis=axis)
 

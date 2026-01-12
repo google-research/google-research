@@ -154,6 +154,37 @@ class GraphStructTest(tf.test.TestCase):
     broadcasted = broadcast_adjacency @ y
     self.assertAllEqual(broadcasted, np.array([15, 15, 1.5, 1.5, 1.5]))
 
+  def test_max_pooling(self):
+    adj = np.array(  # Has shape 3 x 4.
+        [[1, 1, 0.0, 1],
+         [0, 0, 0.0, 0],  # <-- Note: zero connections.
+         [1, 0, 0.5, 0]],
+        dtype='float32')
+    rnd = np.array(
+        np.random.uniform(low=-100.0, high=90.5, size=[4, 10, 5]),
+        dtype='float32')
+    nonzero = adj.nonzero()
+    tgt = np.array(nonzero[0])
+    src = np.array(nonzero[1])
+
+    values = adj[tgt, src]
+    maxpool_adj = graph_struct.GraphStruct.new(
+        nodes={'s': {'x': np.zeros([4])}, 't': {'x': np.zeros([3])}},
+        edges={'e': ((src, tgt), {})},
+        schema={'e': ('s', 't')},
+    ).max_pooling_adj(sdnp.engine, 'e', values)
+
+    self.assertAllEqual(maxpool_adj.shape, (3, 4))
+    self.assertAllEqual(maxpool_adj.values, values)
+
+    pooled = maxpool_adj @ rnd
+    self.assertAllEqual(pooled.shape, [3, 10, 5])  # @ outputs 1st dim as 3.
+    self.assertAllClose(
+        pooled,
+        [np.max([rnd[0], rnd[1], rnd[3]], axis=0),
+         np.ones([10, 5]) * np.finfo(np.float32).min,
+         np.max([rnd[0], rnd[2] * 0.5], axis=0)])
+
   def test_graph_struct_get_outgoing_neighbors(self):
     """Test that the graph can get neighbors."""
     gt = graph_struct.GraphStruct.new(

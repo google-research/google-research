@@ -25,7 +25,7 @@ provide `ComputeEngine` instance. We have `sparse_deferred.tf.engine` as the
 only implementation, but we also plan to add `sparse_deferred.jax.engine`.
 """
 import abc
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 EPSILON = 1e-6  # To prevent division by 0.
 
@@ -147,6 +147,11 @@ class ComputeEngine(abc.ABC):
   def unsorted_segment_sum(self, data, segment_ids,
                            num_segments):
     """Like `tf.math.unsorted_segment_sum`."""
+
+  @abc.abstractmethod
+  def unsorted_segment_max(self, data, segment_ids,
+                           num_segments):
+    """Like `tf.math.unsorted_segment_max`."""
 
   @abc.abstractmethod
   def zeros(self, shape, dtype = 'float32'):
@@ -336,8 +341,9 @@ class SparseMatrix(Matrix):
       self, engine, *,
       indices,
       dense_shape,
-      values = None):
-    """Constructor.
+      values = None,
+      pooling_fn = None):
+    r"""Constructor.
 
     Args:
       engine: Compute engine that will be used for `gather` and
@@ -348,8 +354,16 @@ class SparseMatrix(Matrix):
         than `(max(row_ids)+1, max(col_ids)+1)`.
       values: If not set, it is assumed an all-ones vector (i.e., matrix would
         be binary). If set, it must be same length as `row_ids` (and `col_ids`).
+      pooling_fn: The pooling function. If not set, the matrix behaves as
+        expected. Specifically, the multiplication A @ W at entry (i,j) will be
+        the dot product <A_i, W_[:j]> = \sum_z A_{iz} W_{zj}. However, it can
+        be set to engine.unsorted_segment_max, such that, multiplication A @ W
+        implies a max-pooling operator, i.e., A @ W at entry (i,j) will be
+        \max_z A_{iz} W_{zj} -- in the graph sense, each node j gets the max
+        value of its neighbors (after the neighbor is scaled by A_{iz}).
     """
     self.set_engine(engine)
+    self.pooling_fn = pooling_fn or self.engine.unsorted_segment_sum
     num_rows, num_cols = dense_shape
     row_ids, col_ids = indices
     if num_rows is None:
@@ -376,8 +390,7 @@ class SparseMatrix(Matrix):
     rows_of_mat = self._engine.gather(mat, self.col_ids)
     if self.values is not None:
       rows_of_mat *= self._broadcast_and_cast(self.values, rows_of_mat)
-    return self._engine.unsorted_segment_sum(
-        rows_of_mat, self.row_ids, self.num_rows)
+    return self.pooling_fn(rows_of_mat, self.row_ids, self.num_rows)
 
   def rmatmul(self, mat):
     assert self._engine is not None, 'Compute engine is not set.'
@@ -387,8 +400,7 @@ class SparseMatrix(Matrix):
     if self.values is not None:
       rows_of_mat_t *= self._broadcast_and_cast(self.values, rows_of_mat_t)
     return self._engine.transpose(
-        self._engine.unsorted_segment_sum(
-            rows_of_mat_t, self.col_ids, self.num_cols))
+        self.pooling_fn(rows_of_mat_t, self.col_ids, self.num_cols))
 
   def _broadcast_and_cast(self, vector, tensor):
     """Broadcasts and casts `vector` to match dtype and shape of `tensor`."""

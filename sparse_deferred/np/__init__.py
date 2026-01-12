@@ -118,9 +118,18 @@ class _NumpyEngine(sd.ComputeEngine):
 
   def unsorted_segment_sum(self, data, segment_ids,
                            num_segments):
-    sum_tensor = np.zeros([num_segments] + list(data.shape[1:]))
+    sum_tensor = np.zeros(
+        [num_segments] + list(data.shape[1:]), dtype=data.dtype)
     np.add.at(sum_tensor, segment_ids, data)
     return sum_tensor
+
+  def unsorted_segment_max(self, data, segment_ids,
+                           num_segments):
+    info_cls = np.finfo if np.issubdtype(data.dtype, np.floating) else np.iinfo
+    max_tensor = info_cls(data.dtype).min * np.ones(
+        [num_segments] + list(data.shape[1:]), dtype=data.dtype)
+    np.maximum.at(max_tensor, segment_ids, data)
+    return max_tensor
 
   def concat(self, tensors, axis):
     return np.concatenate(tensors, axis=axis)

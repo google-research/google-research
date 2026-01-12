@@ -358,6 +358,7 @@ class GraphStruct(NamedTuple):
       engine,
       edge_name,
       values = None,
+      pooling_fn = None,
   ):
     """Adjacency over edge-set name.
 
@@ -371,6 +372,10 @@ class GraphStruct(NamedTuple):
       edge_name: Name of edge. It must be in `.schema`.
       values: If given, must be a vector equal to number of edges that should
         assign weight to every edge.
+      pooling_fn: If given, will be used to pool the values when the resulting
+        adjacency is multiplied against other tensors. It defaults to the
+        `unsorted_segment_sum` operation, i.e., allows the matrix to behave in
+        the usual (math-like) way.
 
     Returns:
       Multiplier with shape determined by `self.schema[edge_name]`.
@@ -388,7 +393,17 @@ class GraphStruct(NamedTuple):
             self.get_num_nodes(engine, col_node_name),
         ),
         values=values,
+        pooling_fn=pooling_fn,
     )
+
+  def max_pooling_adj(
+      self,
+      engine,
+      edge_name,
+      values = None,
+  ):
+    """Has shape of adjacency matrix. [A @ W]_ij = max_z A_{iz} W_{zj}."""
+    return self.adj(engine, edge_name, values, engine.unsorted_segment_max)
 
   def get_outgoing_neighbors(
       self, engine, edge_name, node_index

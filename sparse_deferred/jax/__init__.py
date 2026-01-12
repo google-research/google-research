@@ -128,6 +128,10 @@ class _JaxEngine(sd.ComputeEngine):
                            num_segments):
     return jax.ops.segment_sum(data, segment_ids, num_segments)
 
+  def unsorted_segment_max(self, data, segment_ids,
+                           num_segments):
+    return jax.ops.segment_max(data, segment_ids, num_segments)
+
   def concat(self, tensors, axis):
     return jnp.concatenate(tensors, axis=axis)
 
