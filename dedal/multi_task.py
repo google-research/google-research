@@ -98,6 +98,9 @@ class NamedLists(dict, Generic[T]):
         return self.__next__()
       return self._level[self._idx]
 
+    def __iter__(self):
+      return self
+
   def __iter__(self):
     return NamedLists._Iterator(self)
 
