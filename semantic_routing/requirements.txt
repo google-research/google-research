@@ -55,7 +55,7 @@ jupyterlab==4.2.5
 jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.3
 jupyterlab_widgets==3.0.13
-keras==3.6.0
+keras==3.13.1
 kiwisolver==1.4.7
 libclang==18.1.1
 Markdown==3.7
