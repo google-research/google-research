@@ -22,9 +22,9 @@ class StructMapper(torch.nn.Module):
   def __init__(self, structural_feature_dim, hidden_dim, memory_emb_dim):
     super().__init__()
 
-    self.layer1 = torch.torch.nn.Linear(structural_feature_dim, hidden_dim)
-    self.sigmoid = torch.torch.nn.Sigmoid()
-    self.layer2 = torch.torch.nn.Linear(hidden_dim, memory_emb_dim)
+    self.layer1 = torch.nn.Linear(structural_feature_dim, hidden_dim)
+    self.sigmoid = torch.nn.Sigmoid()
+    self.layer2 = torch.nn.Linear(hidden_dim, memory_emb_dim)
 
   def forward(self, x):
     out = self.layer1(x)
