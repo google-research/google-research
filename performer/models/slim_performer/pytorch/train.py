@@ -195,7 +195,7 @@ def set_default_flags(arg_code):
 
   chosen_flags = possible_flags[arg_code]
 
-  for flag_name, flag_value in chosen_flags._asdict().iteritems():
+  for flag_name, flag_value in chosen_flags._asdict().items():
     setattr(FLAGS, flag_name, flag_value)
 
 
