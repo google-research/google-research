@@ -1,0 +1,20 @@
+{
+    "summary": "The AttentionHead class in the code is for video timeline modeling, initializes linear layers, calculates attention scores with dot products, and applies log softmax activation.",
+    "details": [
+        {
+            "comment": "This code defines an AttentionHead class for a video timeline modeling task. It imports necessary libraries, and is derived from the nn.Module class. The attention operation follows the method used in specific papers, namely \"Neural Machine Translation by Jointly Learning to Align and Translate\" and \"Pointer Networks\". The code is licensed under Apache License, Version 2.0.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_timeline_modeling/vtm/model/attention_head.py\":0-28",
+            "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"The Attention based head module to attend each video representations to all cluster representations.\n\"\"\"\nimport torch\nfrom torch import nn\nimport torch.nn.functional as F\nclass AttentionHead(nn.Module):\n  \"\"\"Attention head.\n  The detailed attention operation follows the one used in \"Neural Machine\n  Translation by Jointly Learning to Align and Translate\"\n  (https://arxiv.org/abs/1409.0473) and \"Pointer Networks\""
+        },
+        {
+            "comment": "This code defines an attention head class that takes in a number of hidden layers as input. It initializes linear layers (`w1`, `w2`, and `v`) for transforming query and key vectors, and calculates the attention scores using a dot product between transformed queries and keys. The forward pass returns the normalized attention scores using log softmax.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_timeline_modeling/vtm/model/attention_head.py\":29-58",
+            "content": "  (https://arxiv.org/abs/1506.03134)\n  \"\"\"\n  def __init__(self, num_hidden):\n    super().__init__()\n    self.num_hidden = num_hidden\n    self.w1 = nn.Linear(num_hidden, num_hidden, bias=False)\n    self.w2 = nn.Linear(num_hidden, num_hidden, bias=False)\n    self.v = nn.Linear(num_hidden, 1, bias=False)  # working as dot product\n  def forward(self, x_query, x_key):\n    \"\"\"Forward pass.\n    Args:\n      x_query: Query vectors (video representations).\n      x_key: Key vectors (cluster representations).\n    Shape:\n      x_query: (B, N_q, num_hidden)\n      x_key: (B, N_k, num_hidden)\n    Returns:\n      The normalized attention scores (log_softmax) with shape (B, N_q, N_k).\n    \"\"\"\n    # (B, N_q, N_k, C) <- (B, N_k, C)\n    key_transform = self.w1(x_key).unsqueeze(1).expand(-1, x_query.shape[1], -1,\n                                                       -1)\n    # (B, N_q, 1, C) <- (B, N_q, C)\n    query_transform = self.w2(x_query).unsqueeze(2)\n    # (B, N_q, N_k) <- (B, N_q, N_k, C), (B, N_q, 1, C)\n    prod = self.v(torch.tanh(key_transform + query_transform)).squeeze(-1)"
+        },
+        {
+            "comment": "Applies log softmax activation to the product of query, key, and value matrices in an attention head.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_timeline_modeling/vtm/model/attention_head.py\":59-59",
+            "content": "    return F.log_softmax(prod, dim=-1)"
+        }
+    ]
+}
