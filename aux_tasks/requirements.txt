@@ -54,7 +54,7 @@ pandas==1.4.2
 Pillow==9.1.1
 portpicker==1.5.0
 promise==2.3
-protobuf==3.19.4
+protobuf==3.19.5
 psutil==5.9.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
