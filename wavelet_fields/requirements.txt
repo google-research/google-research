@@ -41,7 +41,7 @@ frozenlist @ file:///home/conda/feedstock_root/build_artifacts/frozenlist_166793
 fsspec==2023.12.2
 future==0.18.3
 gitdb==4.0.10
-GitPython==3.1.31
+GitPython==3.1.41
 glcontext==2.3.7
 google-auth @ file:///home/conda/feedstock_root/build_artifacts/google-auth_1686724583094/work
 google-auth-oauthlib @ file:///home/conda/feedstock_root/build_artifacts/google-auth-oauthlib_1630497468950/work
