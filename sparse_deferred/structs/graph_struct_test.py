@@ -896,5 +896,38 @@ class InMemoryDBTest(tf.test.TestCase, parameterized.TestCase):
     )
 
 
+class GraphBuilderTest(tf.test.TestCase):
+
+  def test_graph_builder(self):
+    builder = graph_struct.GraphBuilder()
+    graph = (
+        builder
+        .add_node('n1', 'n1_0', {'f1': 1.0, 'f2': 2.0})
+        .add_node('n1', 'n1_1', {'f1': 3.0, 'f2': 4.0})
+        .add_node('n2', 'n2_0', {'f3': 5.0})
+        .add_edge(('n1', 'n1_1'), ('n2', 'n2_0'))
+    ).build()
+
+    np.testing.assert_equal(graph.nodes, {
+        'n1': {
+            'f1': np.array([1.0, 3.0]),
+            'f2': np.array([2.0, 4.0]),
+            '_name': np.array(['n1_0', 'n1_1']),
+        },
+        'n2': {
+            'f3': np.array([5.0]),
+            '_name': np.array(['n2_0']),
+        },
+    })
+
+    np.testing.assert_equal(graph.edges,
+                            {'n1>n2': ((np.array([1]), np.array([0])), {})})
+    # Add another edge:
+    builder.add_edge(('n1', 'n1_0'), ('n2', 'n2_0'))
+    np.testing.assert_equal(
+        builder.build().edges,
+        {'n1>n2': ((np.array([1, 0]), np.array([0, 0])), {})})
+
+
 if __name__ == '__main__':
   tf.test.main()

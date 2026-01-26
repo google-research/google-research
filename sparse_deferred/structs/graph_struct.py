@@ -21,8 +21,7 @@ import copy
 import glob
 import io
 import json
-from typing import Any, Callable, NamedTuple, Sequence, Optional
-
+from typing import Any, Callable, NamedTuple, Sequence, Optional, Generic, TypeVar
 import networkx as nx
 import numpy as np
 import tqdm
@@ -31,6 +30,7 @@ import sparse_deferred as sd
 
 open_file = open
 glob_files = glob.glob
+T = TypeVar('T')
 
 
 
@@ -1285,3 +1285,105 @@ class InMemoryDB:
       )
 
     self._features[key].append(feat_val)
+
+
+class GraphBuilder(Generic[T]):
+  """Builder-pattern for GraphStruct. This is ideal for creating small graphs.
+
+  For training loops, it is better to use GraphStruct.new() directly.
+  """
+
+  def build(self):
+    """Builds the graph."""
+    return GraphStruct.new(
+        nodes={
+            node_set_name: {
+                k: np.stack(v, axis=0) for k, v in node_features.items()}
+            for node_set_name, node_features in self.node_features.items()},
+        schema=self._schema,
+        edges={edge_name: ((np.array(srcs), np.array(tgts)), {})
+               for edge_name, (srcs, tgts) in self._edges.items()})
+
+  def __init__(self):
+    # node_set_name -> feature name -> value array.
+    self.node_features: dict[str, dict[str, list[np.ndarray]]] = {}
+    self._node_idx: dict[str, dict[T, int]] = {}
+    # edge_set_name -> (src, tgt)
+    self._schema: dict[str, tuple[str, str]] = {}
+    self._edges: dict[str, tuple[list[int], list[int]]] = {}
+
+  def add_node(self, node_set_name, node_name,
+               features = None):
+    """Adds a node (if new) to the graph and returns its index."""
+    self._add_node(node_set_name, node_name, features)
+    return self
+
+  def add_edge(self, src_node, tgt_node,
+               edge_name = None
+               ):
+    """Adds an edge between a source and a target node.
+
+    `edge_name` defaults to '{src_node_set}>{tgt_node_set}'. If the nodes do not
+    exist, they are added to their respective node sets.
+
+    Args:
+      src_node: A tuple of (node_set_name, node_name) for the source node.
+      tgt_node: A tuple of (node_set_name, node_name) for the target node.
+      edge_name: Optional edge set name. If not provided, the edge set name is
+        inferred as '{src_node_set}>{tgt_node_set}'.
+
+    Returns:
+      `self` to allow for method chaining.
+    """
+    if edge_name is None:
+      edge_name = f'{src_node[0]}>{tgt_node[0]}'
+    if edge_name not in self._schema:
+      self._schema[edge_name] = (src_node[0], tgt_node[0])
+      self._edges[edge_name] = ([], [])
+    src_id = self._add_node(*src_node)
+    tgt_id = self._add_node(*tgt_node)
+    self._edges[edge_name][0].append(src_id)
+    self._edges[edge_name][1].append(tgt_id)
+    return self
+
+  def _add_node(self, node_set_name, node_name,
+                features = None):
+    """Adds a node (if new) to the graph and returns its index.
+
+    Args:
+      node_set_name: The node-set name.
+      node_name: The node name.
+      features: Optional dictionary of features to be associated with the node.
+        If node is new, the features must match the existing features of the
+        node-set. If node is already present, the features are updated using
+        only present features.
+
+    Returns:
+      The index of the node.
+    """
+    if features is None:
+      features = {}
+    if node_set_name not in self.node_features:
+      self._node_idx[node_set_name] = {}
+      # Initiualize all features to empty arrays.
+      self.node_features[node_set_name] = (
+          {k: [] for k in list(features) + ['_name']})
+
+    if node_name in self._node_idx[node_set_name]:
+      node_id = self._node_idx[node_set_name][node_name]
+      for k, v in features.items():
+        self.node_features[node_set_name][k][node_id] = np.array(v)
+    else:
+      node_id = len(self._node_idx[node_set_name])
+      self._node_idx[node_set_name][node_name] = node_id
+      existing_features = set(self.node_features[node_set_name])
+      if existing_features.difference(set(features)) != {'_name'}:
+        raise ValueError(
+            f'Inconsistent features for node {node_name} in node-set '
+            f'{node_set_name}: {existing_features} VS {set(features)}+["_name"]'
+        )
+
+      self.node_features[node_set_name]['_name'].append(node_name)
+      for k, v in features.items():
+        self.node_features[node_set_name][k].append(np.array(v))
+    return node_id
