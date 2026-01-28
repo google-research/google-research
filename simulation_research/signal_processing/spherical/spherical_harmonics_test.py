@@ -36,11 +36,11 @@ def _compute_spherical_harmonics(l_max, theta, phi, nonnegative_order=True):
   if nonnegative_order:
     for l in np.arange(l_max + 1):
       for m in np.arange(l + 1):
-        sph_harm[l, m, :, :] = sp_special.sph_harm(m, l, phi, theta)
+        sph_harm[l, m, :, :] = sp_special.sph_harm_y(l, m, theta, phi)
   else:
     for l in np.arange(l_max + 1):
       for m in np.arange(l + 1):
-        sph_harm[l, m, :, :] = sp_special.sph_harm(-m, l, phi, theta)
+        sph_harm[l, m, :, :] = sp_special.sph_harm_y(l, -m, theta, phi)
 
   return jnp.asarray(sph_harm)
 
