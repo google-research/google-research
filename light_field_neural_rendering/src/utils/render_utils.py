@@ -123,7 +123,7 @@ def render_image(render_fn, batch, rng, normalize_disp, chunk=8192):
   batch = preprocess_eval_batch(batch, num_rays)
 
   unused_rng, key_0, key_1 = jax.random.split(rng, 3)
-  host_id = jax.host_id()
+  host_id = jax.process_index()
   results = []
 
   reference_batch = data_utils.shard(batch.reference_views)

@@ -60,14 +60,14 @@ def main(executable_dict, argv):
   # it unavailable to JAX.
   tf.config.experimental.set_visible_devices([], 'GPU')
 
-  host_id = jax.host_id()
-  n_host = jax.host_count()
+  host_id = jax.process_index()
+  n_host = jax.process_count()
   logging.info('JAX host: %d / %d', host_id, n_host)
   logging.info('JAX devices: %r', jax.devices())
   # Add a note so that we can tell which task is which JAX host.
   # (task 0 is not guaranteed to be host 0)
   work_unit.set_task_status(
-      f'host_id: {jax.host_id()}, host_count: {jax.host_count()}')
+      f'host_id: {jax.process_index()}, host_count: {jax.process_count()}')
 
   # Read configuration
   if FLAGS.config_json:

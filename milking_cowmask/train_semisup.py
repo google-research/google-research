@@ -694,7 +694,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
   if mix_conf_mode not in {'mix_prob', 'mix_conf'}:
     raise ValueError('Unknown mix_conf_mode \'{}\''.format(mix_conf_mode))
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(model_dir)
   else:
     summary_writer = None
@@ -724,8 +724,8 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
   if eval_batch_size % jax.device_count() > 0:
     raise ValueError('Eval batch size must be divisible by the number of '
                      'devices')
-  local_batch_size = batch_size // jax.host_count()
-  local_eval_batch_size = eval_batch_size // jax.host_count()
+  local_batch_size = batch_size // jax.process_count()
+  local_eval_batch_size = eval_batch_size // jax.process_count()
   device_batch_size = batch_size // jax.device_count()
 
   if dataset == 'svhn':
@@ -1024,7 +1024,7 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
         epoch += 1
 
         if checkpoints != 'none':
-          if jax.host_id() == 0:
+          if jax.process_index() == 0:
             # Write to new checkpoint file so that we don't immediately
             # overwrite the old one
             with tf.io.gfile.GFile(checkpoint_new_path, 'wb') as f_out:
@@ -1046,6 +1046,6 @@ def experiment(model_dir='.',  # pylint: disable=dangerous-default-value
     step += 1
 
   if checkpoints == 'on':
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       if tf.io.gfile.exists(checkpoint_path):
         tf.io.gfile.remove(checkpoint_path)

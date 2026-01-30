@@ -237,7 +237,7 @@ def get_teacher_data_iterator(fname):
 
 def train(config, workdir):
   """Train model."""
-  # if jax.host_count() > 1:
+  # if jax.process_count() > 1:
   #   raise ValueError(
   #       'CIFAR-10 example should not be run on more than 1 host (for now)'
   #   )

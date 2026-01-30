@@ -107,11 +107,11 @@ def tfds_loader(name = gin.REQUIRED,
     # Read separate slices of data in each replica. This is important to avoid
     # IO congestion for multi-host setup. Also, this is important to avoid
     # double-counting examples during eval.
-    percent_per_replica = 100 // jax.host_count()
+    percent_per_replica = 100 // jax.process_count()
     read_instructions = tfds.core.ReadInstruction(
         split_name=split,
-        from_=jax.host_id() * percent_per_replica,
-        to=(jax.host_id() + 1) * percent_per_replica,
+        from_=jax.process_index() * percent_per_replica,
+        to=(jax.process_index() + 1) * percent_per_replica,
         unit='%')
 
   data = tfds.load(
@@ -134,7 +134,7 @@ def tfrecords_loader(
   # fetch file paths to python to split files per host.
   files = list(dataset)
   files = [
-      f for i, f in enumerate(files) if i % jax.host_count() == jax.host_id()
+      f for i, f in enumerate(files) if i % jax.process_count() == jax.process_index()
   ]
   dataset = tf.data.Dataset.from_tensor_slices(files)
   if shuffle_files:

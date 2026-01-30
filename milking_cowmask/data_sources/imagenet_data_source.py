@@ -231,8 +231,8 @@ def deserialize_and_decode_image_dataset(ds, batch_size):
 
 def _load_tfds_imagenet(split_name, n_total):
   """Load ImageNet from TFDS."""
-  split_size = float(n_total) // jax.host_count()
-  start = split_size * jax.host_id()
+  split_size = float(n_total) // jax.process_count()
+  start = split_size * jax.process_index()
   end = start + split_size
   start_index = int(round(start))
   end_index = int(round(end))
@@ -246,9 +246,9 @@ def _load_custom_imagenet_split(split_path):
     raise RuntimeError('Cannot find {}'.format(split_path))
   shard_filenames = tf.io.gfile.listdir(split_path)
   shard_filenames.sort()
-  if jax.host_count() > 1:
-    n_hosts = jax.host_count()
-    host_id = jax.host_id()
+  if jax.process_count() > 1:
+    n_hosts = jax.process_count()
+    host_id = jax.process_index()
     shard_filenames = [f for i, f in enumerate(shard_filenames)
                        if (i % n_hosts) == host_id]
   files_in_split = [os.path.join(split_path, f) for f in shard_filenames]

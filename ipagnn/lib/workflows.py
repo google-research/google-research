@@ -70,7 +70,7 @@ def run_train(run_configuration):
 
   random_seed = 0
   rng = jax.random.PRNGKey(random_seed)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   rng, init_rng = jax.random.split(rng)
   dropout_rngs = jax.random.split(rng, jax.local_device_count())
 
@@ -80,7 +80,7 @@ def run_train(run_configuration):
   # Set up train step.
   train_step = adapter.make_train_step()
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(log_dir)
 
   # Set up checkpointing.
@@ -113,7 +113,7 @@ def run_train(run_configuration):
     # Save a Checkpoint
     if ((step % config.logging.save_freq == 0 and step > 0)
         or step == num_train_steps - 1):
-      if jax.host_id() == 0 and config.logging.save_freq:
+      if jax.process_index() == 0 and config.logging.save_freq:
         # Save unreplicated optimizer + model state.
         checkpoint_utils.save_checkpoint(
             checkpoint_dir, jax_utils.unreplicate(optimizer), step)
@@ -129,7 +129,7 @@ def run_train(run_configuration):
       # Calculate (clipped) perplexity after averaging log-perplexities:
       summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
       logging.info('train step: %d, loss: %.4f', step, summary['loss'])
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         tock = time.time()
         steps_per_sec = summary_freq / (tock - tick)
         examples_per_sec = denominator / (tock - tick)
@@ -157,7 +157,7 @@ def run_train_single_device(run_configuration):
 
   random_seed = 0
   rng = jax.random.PRNGKey(random_seed)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   dropout_rng, init_rng = jax.random.split(rng)
 
   # Set up optimizer.
@@ -191,7 +191,7 @@ def run_train_single_device(run_configuration):
     # Save a Checkpoint.
     if ((step % config.logging.save_freq == 0 and step > 0) or
         step == num_train_steps - 1):
-      if jax.host_id() == 0 and config.logging.save_freq:
+      if jax.process_index() == 0 and config.logging.save_freq:
         # Save unreplicated optimizer + model state.
         checkpoint_utils.save_checkpoint(checkpoint_dir, optimizer, step)
 
@@ -267,7 +267,7 @@ def eval_once(run_configuration, checkpoint_path, optimizer=None):
   eval_name = config.eval_name or 'eval'
   log_dir = os.path.join(run_dir, eval_name)
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(log_dir)
 
   # Restore checkpoint
@@ -300,7 +300,7 @@ def eval_once(run_configuration, checkpoint_path, optimizer=None):
   summary = jax.tree.map(lambda x: x / denominator, metrics_sums)  # pylint: disable=cell-var-from-loop
   summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
   logging.info('eval @ train step: %d, loss: %.4f', step, summary['loss'])
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     tock = time.time()
     steps_per_sec = len(metrics_all) / (tock - tick)
     examples_per_sec = denominator / (tock - tick)

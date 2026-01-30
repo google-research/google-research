@@ -123,7 +123,7 @@ def get_prepacked_examples(file_pattern,
 
   # This only reads the dataset files meant for this host.
   if shard_data:
-    dataset = dataset.shard(jax.host_count(), jax.process_index())
+    dataset = dataset.shard(jax.process_count(), jax.process_index())
 
   # Up to 10 files are read in parallel.
   dataset = dataset.interleave(

@@ -54,7 +54,7 @@ class TrainState:
 
 def is_chief():
   """Is this the chief host?"""
-  return jax.host_id() == 0
+  return jax.process_index() == 0
 
 
 def maybe_save_checkpoint(step,

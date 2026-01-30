@@ -822,7 +822,7 @@ def main(_):
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(
         os.path.join(FLAGS.save_dir, 'tb', hparam_str))
 
@@ -925,7 +925,7 @@ def main(_):
       shift=False, deterministic=True, decode=not FLAGS.slow_decode)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   rng, init_rng = jax.random.split(rng)
 
   m = models.DecomposeExpandingLayerTransformer(
@@ -1116,7 +1116,7 @@ def main(_):
     if (step % FLAGS.checkpoint_freq == 0 and step > 0) or is_last_step:
       optimizer = maybe_copy_model_from_pretraining(
           optimizer, pretrain_optimizer, step, adam_opt_def)
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         # Save unreplicated optimizer + model state.
         checkpoints.save_checkpoint(
             os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
@@ -1144,7 +1144,7 @@ def main(_):
     # Calculate (clipped) perplexity after averaging log-perplexities:
     summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
 
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
       tock = time.time()
       steps_per_sec = FLAGS.log_freq / (tock - tick)
@@ -1164,7 +1164,7 @@ def main(_):
         p_eval_step=p_eval_step,
         target=optimizer.target,
         eval_ds=eval_ds)
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
                    time.time()-t_evaluation_start, step, eval_summary['loss'])
       for key, val in eval_summary.items():
@@ -1189,7 +1189,7 @@ def main(_):
           slow_decode=FLAGS.slow_decode)
 
       # Write to tensorboard.
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         slow_or_fast = 'slow' if FLAGS.slow_decode else 'fast'
         logging.info(
             'Prediction time, %s (beam %d): %.4f s, step %d, score %.4f',
@@ -1219,7 +1219,7 @@ def main(_):
             slow_decode=FLAGS.slow_decode)
 
         # Write to tensorboard.
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           slow_or_fast = 'slow' if FLAGS.slow_decode else 'fast'
           beam_search_or_bfs = ('bfs' if FLAGS.best_first_search
                                 else 'beam-search')

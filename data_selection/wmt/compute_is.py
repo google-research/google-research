@@ -247,7 +247,7 @@ def compute_is_scores(filename):
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     tf.io.gfile.makedirs(FLAGS.model_dir)
 
   if FLAGS.batch_size % n_devices:
@@ -264,8 +264,8 @@ def compute_is_scores(filename):
   train_ds, (_, encoder_tgt) = input_pipeline.get_wmt_is_datasets(
       n_devices=n_devices,
       dataset_name=FLAGS.dataset_name,
-      shard_idx=jax.host_id(),
-      shard_count=jax.host_count(),
+      shard_idx=jax.process_index(),
+      shard_count=jax.process_count(),
       data_dir=FLAGS.data_dir,
       vocab_path=vocab_path,
       target_vocab_size=FLAGS.vocab_size,
@@ -378,7 +378,7 @@ def compute_is_scores(filename):
             lambda x: common.pad_examples(x, padded_size), eval_batch)  # pylint: disable=cell-var-from-loop
       eval_batch = common_utils.shard(eval_batch)
       losses, lengths = p_eval_step(optimizer.target, eval_batch)
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         losses = common.tohost(losses)
         lengths = common.tohost(lengths)
         if cur_pred_batch_size % n_devices:

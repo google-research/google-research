@@ -143,7 +143,7 @@ def load(dataset,
   elif dataset == "imagenet":
     img_size = 224
     split = ImageNetSplit.from_string(subset)
-  start, end = _shard(split, jax.host_id(), jax.host_count())
+  start, end = _shard(split, jax.process_index(), jax.process_count())
 
   total_batch_size = np.prod(batch_dims)
 
@@ -171,7 +171,7 @@ def load(dataset,
 
   if preprocess_mode is not PreprocessMode.EVAL:
     options.experimental_deterministic = False
-    if jax.host_count() > 1 and allow_caching:
+    if jax.process_count() > 1 and allow_caching:
       # Only cache if we are reading a subset of the dataset.
       ds = ds.cache()
     ds = ds.repeat()

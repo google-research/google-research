@@ -41,7 +41,7 @@ class BaseDataset(threading.Thread):
       raise ValueError(
           "the split argument should be either \"train\" or \"test\", set"
           "to {} here.".format(split))
-    self.batch_size = args.dataset.batch_size // jax.host_count()
+    self.batch_size = args.dataset.batch_size // jax.process_count()
     self.batching = args.dataset.batching
     self.render_path = args.dataset.render_path
     # Set the image height and width in the config

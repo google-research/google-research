@@ -59,8 +59,8 @@ def run(hparams, experiment_dir, summary_writer=None):
 
   device_count = jax.device_count()
   logging.info('device_count: %d', device_count)
-  logging.info('num_hosts : %d', jax.host_count())
-  logging.info('host_id : %d', jax.host_id())
+  logging.info('num_hosts : %d', jax.process_count())
+  logging.info('host_id : %d', jax.process_index())
 
   rng = jax.random.PRNGKey(hparams.rng_seed)
   logging.info('rng: %s', rng)
@@ -77,8 +77,8 @@ def run(hparams, experiment_dir, summary_writer=None):
 
   # Set batch sizes in hparams and log them too
   with hparams.unlocked():
-    hparams.local_batch_size = batch_size // jax.host_count()
-    hparams.eval_local_batch_size = eval_batch_size // jax.host_count()
+    hparams.local_batch_size = batch_size // jax.process_count()
+    hparams.eval_local_batch_size = eval_batch_size // jax.process_count()
     hparams.device_batch_size = batch_size // device_count
   logging.info('local_batch_size : %d', hparams.local_batch_size)
   logging.info('device_batch_size : %d', hparams.device_batch_size)
@@ -105,7 +105,7 @@ def run(hparams, experiment_dir, summary_writer=None):
 
 
 def main(_):
-  master = jax.host_id() == 0
+  master = jax.process_index() == 0
   # make sure TF does not allocate gpu memory
   tf.config.experimental.set_visible_devices([], 'GPU')
 
@@ -121,7 +121,7 @@ def main(_):
     logging.warning('DEBUG MODE IS ENABLED!')
 
   # set tensorflow random seed
-  tf.random.set_seed(jax.host_id() + hparams.rng_seed)
+  tf.random.set_seed(jax.process_index() + hparams.rng_seed)
   experiment_dir = FLAGS.experiment_dir
   logging.info('Experiment directory: %s', experiment_dir)
   summary_writer = None

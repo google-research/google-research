@@ -49,12 +49,12 @@ def main(argv):
     jax.config.update("jax_xla_backend", "tpu_driver")
     jax.config.update("jax_backend_target", FLAGS.jax_backend_target)
 
-  logging.info("JAX host: %d / %d", jax.host_id(), jax.host_count())
+  logging.info("JAX host: %d / %d", jax.process_index(), jax.process_count())
   logging.info("JAX devices: %r", jax.devices())
 
   # Add a note so that we can tell which task is which JAX host.
   platform.work_unit().set_task_status(
-      f"host_id: {jax.host_id()}, host_count: {jax.host_count()}")
+      f"host_id: {jax.process_index()}, host_count: {jax.process_count()}")
   platform.work_unit().create_artifact(platform.ArtifactType.DIRECTORY,
                                        FLAGS.workdir, "workdir")
 
