@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 
-#include "google/protobuf/text_format.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
@@ -32,6 +31,7 @@
 #include "intent_recognition/processing/class_mappings_provider_helpers.h"
 #include "intent_recognition/processing/string_label_class_map.pb.h"
 #include "intent_recognition/processing/string_label_class_mappings_provider_helpers.h"
+#include "third_party/protobuf/text_format.h"
 
 namespace ambient_sensing {
 namespace {

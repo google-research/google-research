@@ -32,10 +32,10 @@
 #include <thread>  // NOLINT(build/c++11)
 
 #include "glog/logging.h"
-#include "instruction.pb.h"
-#include "google/protobuf/text_format.h"
 #include "absl/flags/flag.h"
 #include "Eigen/Core"
+#include "instruction.pb.h"
+#include "third_party/protobuf/text_format.h"
 
 ////////////////////////////////////////////////////////////////////////////////
 // Conventions.

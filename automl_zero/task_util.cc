@@ -23,17 +23,17 @@
 #include <utility>
 #include <vector>
 
+#include "absl/flags/flag.h"
+#include "absl/memory/memory.h"
 #include "algorithm.h"
-#include "task.h"
-#include "task.pb.h"
 #include "definitions.h"
 #include "executor.h"
 #include "generator.h"
 #include "memory.h"
 #include "random_generator.h"
-#include "google/protobuf/text_format.h"
-#include "absl/flags/flag.h"
-#include "absl/memory/memory.h"
+#include "task.h"
+#include "task.pb.h"
+#include "third_party/protobuf/text_format.h"
 
 namespace automl_zero {
 

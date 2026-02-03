@@ -27,7 +27,6 @@
 #include <string_view>
 
 #include "glog/logging.h"
-#include "google/protobuf/repeated_field.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "absl/algorithm/container.h"
 #include "absl/container/flat_hash_map.h"
@@ -40,6 +39,7 @@
 #include "intent_recognition/annotated_recording_collection.pb.h"
 #include "intent_recognition/annotated_recording_collection_utils.h"
 #include "intent_recognition/processing/filter_annotated_recording_collection_calculator.pb.h"
+#include "third_party/protobuf/repeated_field.h"
 
 namespace ambient_sensing {
 namespace {

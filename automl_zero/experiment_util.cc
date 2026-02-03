@@ -19,12 +19,12 @@
 #include <memory>
 #include <ostream>
 
-#include "google/protobuf/repeated_field.h"
 #include "absl/algorithm/container.h"
 #include "absl/container/node_hash_map.h"
 #include "absl/container/node_hash_set.h"
 #include "absl/memory/memory.h"
 #include "task.pb.h"
+#include "third_party/protobuf/repeated_field.h"
 
 namespace automl_zero {
 

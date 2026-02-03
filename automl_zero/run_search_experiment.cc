@@ -21,24 +21,24 @@
 #include <random>
 
 
+#include "absl/flags/flag.h"
+#include "absl/flags/parse.h"
+#include "absl/time/time.h"
 #include "algorithm.h"
-#include "task_util.h"
-#include "task.pb.h"
 #include "definitions.h"
-#include "instruction.pb.h"
 #include "evaluator.h"
 #include "experiment.pb.h"
 #include "experiment_util.h"
 #include "fec_cache.h"
 #include "generator.h"
+#include "instruction.pb.h"
 #include "mutator.h"
 #include "random_generator.h"
 #include "regularized_evolution.h"
+#include "task.pb.h"
+#include "task_util.h"
 #include "train_budget.h"
-#include "google/protobuf/text_format.h"
-#include "absl/flags/flag.h"
-#include "absl/flags/parse.h"
-#include "absl/time/time.h"
+#include "third_party/protobuf/text_format.h"
 
 typedef automl_zero::IntegerT IntegerT;
 typedef automl_zero::RandomSeedT RandomSeedT;

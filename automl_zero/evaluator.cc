@@ -21,18 +21,18 @@
 #include <memory>
 #include <string>
 
-#include "task.h"
-#include "task_util.h"
-#include "task.pb.h"
-#include "definitions.h"
-#include "executor.h"
-#include "random_generator.h"
-#include "train_budget.h"
-#include "google/protobuf/text_format.h"
 #include "absl/algorithm/container.h"
 #include "absl/flags/flag.h"
 #include "absl/memory/memory.h"
 #include "absl/strings/str_cat.h"
+#include "definitions.h"
+#include "executor.h"
+#include "random_generator.h"
+#include "task.h"
+#include "task.pb.h"
+#include "task_util.h"
+#include "train_budget.h"
+#include "third_party/protobuf/text_format.h"
 
 namespace automl_zero {
 
