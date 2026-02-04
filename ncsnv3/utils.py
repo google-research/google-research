@@ -223,7 +223,7 @@ class Checkpoint:
     if not latest_checkpoint:
       logging.info("No previous checkpoint found.")
       # Only save one copy for host 0.
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         self.save(state)
       return state
     self.tf_checkpoint.restore(latest_checkpoint)

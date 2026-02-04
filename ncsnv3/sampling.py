@@ -250,7 +250,7 @@ def anneal_langevin_dynamics(rng,
       x = x + step * grad + noise * jnp.sqrt(step * 2)
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         grad_norm = jnp.linalg.norm(
             grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
         noise_norm = jnp.linalg.norm(
@@ -354,7 +354,7 @@ def diffusion_sampling(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -442,7 +442,7 @@ def reverse_diffusion(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -525,7 +525,7 @@ def gradient_flow(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -618,7 +618,7 @@ def anneal_langevin_dynamics_fix_snr(rng,
       x = x + step_size * grad + noise * jnp.sqrt(step_size * 2)
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -699,7 +699,7 @@ def ddpm_sampling(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -773,7 +773,7 @@ def ddpm_reverse_diffusion(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -844,7 +844,7 @@ def ddpm_gradient_flow(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -932,7 +932,7 @@ def ddpm_ald_fix_snr(rng,
 
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -1022,7 +1022,7 @@ def ddpm_sampling_reproduce(rng,
 
     if not final_only:
       images.append(inverse_scaler(np.asarray(x)))
-    if verbose and jax.host_id() == 0:
+    if verbose and jax.process_index() == 0:
       grad_norm = jnp.linalg.norm(
           grad.reshape((grad.shape[1] * grad.shape[0], -1)), axis=-1).mean()
       image_norm = jnp.linalg.norm(
@@ -1135,7 +1135,7 @@ def ddpm_ald_fix_snr_diffusion_sampling(rng,
 
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -1242,7 +1242,7 @@ def ddpm_ald_fix_snr_reverse_diffusion(rng,
 
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -1348,7 +1348,7 @@ def ddpm_ald_fix_snr_gradient_flow(rng,
 
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -1455,7 +1455,7 @@ def ald_fix_snr_diffusion_sampling(rng,
 
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -1559,7 +1559,7 @@ def ald_fix_snr_reverse_diffusion(rng,
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
 
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:
@@ -1663,7 +1663,7 @@ def ald_fix_snr_gradient_flow(rng,
       if not final_only:
         images.append(inverse_scaler(np.asarray(x)))
 
-      if verbose and jax.host_id() == 0:
+      if verbose and jax.process_index() == 0:
         image_norm = jnp.linalg.norm(
             x.reshape((x.shape[0] * x.shape[1], -1)), axis=-1).mean()
         if colab:

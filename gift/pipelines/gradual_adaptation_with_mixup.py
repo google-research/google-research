@@ -277,7 +277,7 @@ class GradualDomainAdaptationWithMixup(
   def train(self):
     """Training loop."""
 
-    master = jax.host_id() == 0
+    master = jax.process_index() == 0
     global_start_step = self.start_step
 
     # current_step keeps track of global (cumulative) number of steps the model

@@ -362,7 +362,7 @@ class Trainer(object):
   def train(self):
     """Training loop."""
 
-    master = jax.host_id() == 0
+    master = jax.process_index() == 0
     train_metrics = []
     train_summary, eval_summary = None, None
 
@@ -436,7 +436,7 @@ class Trainer(object):
         train_state=train_state, split_name=split_name)
 
     # log eval summary
-    master = jax.host_id() == 0
+    master = jax.process_index() == 0
 
     if master:
       self.write_eval_summary(
@@ -489,7 +489,7 @@ class Trainer(object):
     if checkpoint_flag:
       # Sync model state across replicas.
       train_state = pipeline_utils.sync_model_state_across_replicas(train_state)
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         pipeline_utils.save_checkpoint(
             self.experiment_dir, train_state, keep=self.hparams.keep_ckpts)
 

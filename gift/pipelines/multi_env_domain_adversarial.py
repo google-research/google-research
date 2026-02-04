@@ -218,7 +218,7 @@ class MultiEnvDomainAdverserial(multi_env_trainer.MultiEnvTrainer):
   def train(self):
     """Training loop."""
 
-    master = jax.host_id() == 0
+    master = jax.process_index() == 0
 
     eval_env_ids = list(
         map(int, self.task.dataset.data_iters.validation.keys()))

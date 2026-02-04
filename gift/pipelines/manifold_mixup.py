@@ -189,7 +189,7 @@ class ManifoldMixup(end2end.End2end):
   def train(self):
     """Training loop."""
 
-    master = jax.host_id() == 0
+    master = jax.process_index() == 0
     train_metrics = []
     train_summary, eval_summary = None, None
     tick = time.time()

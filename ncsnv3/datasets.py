@@ -67,7 +67,7 @@ def get_dataset(rng, config, evaluation=False):
                      f'the number of devices ({jax.device_count()})')
 
   per_device_batch_size = batch_size // jax.device_count()
-  data_rng = jax.random.fold_in(rng, jax.host_id())
+  data_rng = jax.random.fold_in(rng, jax.process_index())
   train_rng, eval_rng = jax.random.split(data_rng)
   # Reduce this when image resolution is too large and data pointer is stored.
   shuffle_buffer_size = 10000

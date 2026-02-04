@@ -155,7 +155,7 @@ def save_checkpoint(experiment_dir, train_state, keep=3):
       training.
     keep: int; Number of checkpoints to keep.
   """
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     # get train state from the first replica
     checkpoint_state = jax.device_get(jax_utils.unreplicate(train_state))
     ckpt_path = checkpoint_path(experiment_dir,
@@ -186,7 +186,7 @@ def bind_rng_to_host_device(rng, axis_name, bind_to=None):
   for entry in bind_to:
     assert entry in ['host', 'device']
   if 'host' in bind_to:
-    rng = jax.random.fold_in(rng, jax.host_id())
+    rng = jax.random.fold_in(rng, jax.process_index())
   if 'device' in bind_to:
     rng = jax.random.fold_in(rng, jax.lax.axis_index(axis_name))
   return rng

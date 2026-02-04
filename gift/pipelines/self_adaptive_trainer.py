@@ -104,7 +104,7 @@ class SelfAdaptiveGradualTrainer(multi_env_end2end.MultiEnvEnd2End):
 
   def train(self):
     """Training loop."""
-    master = jax.host_id() == 0
+    master = jax.process_index() == 0
     train_summary, eval_summary = None, None
     global_start_step = self.start_step
 
