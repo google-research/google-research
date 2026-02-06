@@ -33,7 +33,7 @@ class SequentialAttention(tf.Module):
       name='sequential_attention',
       reset_weights=True,
       **kwargs,
-  ):
+  ):  
     """Creates a new SequentialAttention module."""
 
     super(SequentialAttention, self).__init__(name=name, **kwargs)
@@ -133,9 +133,6 @@ class SequentialAttention(tf.Module):
   def _k_hot_mask(self, indices, depth, dtype=tf.float32):
     """Converts selected indices to k-hot mask (multi-hot encoding).
 
-    I have tf.shape(indices)[0] ones, add the first 1 to the bucket at index-1,
-    add the 2nd 1 to the bucket at index-3, etc.
-
     Args:
       indices: Tensor of shape [k] indicating which positions should be set to 1
       depth: Length of output mask (total number of candidates)
@@ -146,6 +143,8 @@ class SequentialAttention(tf.Module):
 
     Example:
       _k_hot_mask([1, 3], depth=5) → [0, 1, 0, 1, 0]
+
+      Add the first 1 to the bucket at index-1, add the 2nd 1 to the bucket at index-3, etc.
     """
     return tf.math.unsorted_segment_sum(
         tf.ones(tf.shape(indices)[0], dtype=dtype),
