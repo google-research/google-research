@@ -24,8 +24,7 @@ import tensorflow as tf
 class SequentialAttention(tf.Module):
   """SequentialAttention module."""
 
-  def __init__(
-      self,
+  def __init__(self,
       num_candidates,
       num_candidates_to_select,
       num_candidates_to_select_per_step=1,
@@ -34,7 +33,7 @@ class SequentialAttention(tf.Module):
       name='sequential_attention',
       reset_weights=True,
       **kwargs,
-  ):
+  ):  
     """Creates a new SequentialAttention module."""
 
     super(SequentialAttention, self).__init__(name=name, **kwargs)
@@ -132,7 +131,26 @@ class SequentialAttention(tf.Module):
 
   @tf.Module.with_name_scope
   def _k_hot_mask(self, indices, depth, dtype=tf.float32):
-    return tf.math.reduce_sum(tf.one_hot(indices, depth, dtype=dtype), 0)
+    """Converts selected indices to k-hot mask (multi-hot encoding).
+
+    Args:
+      indices: Tensor of shape [k] indicating which positions should be set to 1
+      depth: Length of output mask (total number of candidates)
+      dtype: Output data type
+
+    Returns:
+      A mask of shape [depth] where positions in indices have value 1, others 0
+
+    Example:
+      _k_hot_mask([1, 3], depth=5) → [0, 1, 0, 1, 0]
+
+      Add the first 1 to the bucket at index-1, add the 2nd 1 to the bucket at index-3, etc.
+    """
+    return tf.math.unsorted_segment_sum(
+        tf.ones(tf.shape(indices)[0], dtype=dtype),
+        indices,
+        num_segments=depth
+    )
 
   @tf.Module.with_name_scope
   def _softmax_with_mask(self, logits, mask):
