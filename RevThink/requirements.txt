@@ -18,4 +18,4 @@ transformers==4.45.1
 peft==0.11.1
 vllm==0.5.3
 ratelimit==2.2.1
-protobuf==3.20.0
+protobuf==5.29.6
