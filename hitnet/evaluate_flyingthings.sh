@@ -13,7 +13,7 @@ GT_LEFT_PATTERN="flying/TEST/**/**/left/*.pfm"
 GT_RIGHT_PATTERN="flying/TEST/**/**/right/*.pfm"
 
 #!/bin/bash
-# Copyright 2025 The Google Research Authors.
+# Copyright 2026 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.

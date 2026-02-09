@@ -1,0 +1,86 @@
+Screen {
+    layout: grid;
+    grid-size: 1;
+    grid-rows: auto 1fr auto;
+}
+
+#main {
+    height: 100%;
+    padding: 1;
+    layout: vertical;
+}
+
+Footer {
+    dock: bottom;
+    content-align: center middle;
+}
+
+#content {
+    height: auto;
+    min-height: 0;
+}
+
+.smart-input-container {
+    height: auto;
+    margin-top: 0;
+    padding: 0;
+    min-height: 0;
+}
+
+.multi-input {
+    height: auto;
+    max-height: 20;
+    min-height: 3;
+}
+
+.prompt-display {
+    margin-bottom: 1;
+    padding: 0 1;
+    text-style: bold;
+}
+
+.hint-text{
+    margin-top: 1;
+    margin-bottom: 1;
+    padding: 0 1;
+    color: white;
+}
+
+.message-container {
+    margin: 1;
+    padding: 1;
+    background: $surface;
+    height: auto;
+    width: 100%;
+}
+
+.message-header {
+    text-align: left;
+    color: $primary;
+    padding: 0 1;
+    text-style: bold;
+}
+
+.input-request-header {
+    color: $warning;
+}
+
+.message-content {
+    margin-top: 1;
+    padding: 0 1;
+}
+
+Header.running {
+    background: $error;
+}
+
+.button-container {
+    layout: horizontal;
+    align-horizontal: center;
+    margin-top: 1;
+}
+
+.button-container Button {
+    margin: 0 1;
+    min-width: 10;
+}

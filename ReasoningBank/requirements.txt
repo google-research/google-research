@@ -1,0 +1,15 @@
+browsergym==0.14.1  
+google-ai-generativelanguage==0.6.15  
+google-generativeai==0.8.5   
+gym==0.26.2  
+gymnasium==1.2.0   
+langchain==0.3.26  
+langchain-anthropic==0.3.19  
+langchain-community==0.3.26  
+langchain-core==0.3.74  
+langchain-text-splitters==0.3.8   
+openai==1.90.0  
+transformers==4.53.3  
+tree-sitter==0.25.1  
+tree-sitter-languages==1.10.2
+tree-sitter-python==0.21.0
