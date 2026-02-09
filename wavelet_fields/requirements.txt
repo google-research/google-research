@@ -84,7 +84,7 @@ multidict @ file:///home/conda/feedstock_root/build_artifacts/multidict_16723394
 multipledispatch==0.6.0
 multiprocess==0.70.14
 nbclient==0.8.0
-nbconvert==7.5.0
+nbconvert==7.17.0
 nbformat==5.9.0
 networkx==3.1
 nox==2023.4.22
