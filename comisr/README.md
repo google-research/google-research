@@ -7,15 +7,31 @@ This repo contains the testing code for the paper in the ICCV 2021.
 
 ![COMISR sample](resources/comisr.png)
 
-## Pre-requisite
+## Requirements
 
 Install dependencies:
 ```
 pip3 install -r requirements.txt
 ```
+***or***
+```
+python3 -m pip install -r requirements.txt
+```
 
-The vid4 testing data can be downloaded from: *gs://gresearch/comisr/data/*
-[gcloud sdk](https://cloud.google.com/sdk/docs/install)
+**Pre-trained Model**
+
+To install the pre-trained model, you need to first install the [gcloud sdk](https://cloud.google.com/sdk/docs/install).
+
+The pre-trained model can be downloaded from: `gs://gresearch/comisr/model/`
+
+Download the model files using the `gsutil` command (which is a command from the [gcloud sdk](https://cloud.google.com/sdk/docs/install)):
+```shell
+gsutil cp -r dir gs://gresearch/comisr/model/ model/
+```
+
+## Testing data
+
+The vid4 testing data can be downloaded from: `gs://gresearch/comisr/data/`
 
 The folder path should be similar to:\
 .../testdata/lr_crf25/calendar\
@@ -39,18 +55,17 @@ ffmpeg -framerate 10 -i im%2d.png -c:v libx264 -crf 0 lossless.mp4 \
 && ffmpeg -ss 00:00:00 -t 00:00:10 -i crf25.mp4 -r 10 crf25_%2d.png
 ```
 
-## Pre-trained Model
-The pre-trained model can be downloaded from: *gs://gresearch/comisr/model/*
-
-
 ## Usage
 ```shell
 python inference_and_eval.py \
---checkpoint_path=/tmp/model.ckpt \
---input_lr_dir=/tmp/lr_4x_crf25 \
---targets=/tmp/hr \
---output_dir=/tmp/output_dir
+--checkpoint_path=model/model.ckpt \
+--input_lr_dir=lr/ \
+--targets=hr/ \
+--output_dir=output_dir/
 ```
+
+- `--targets` is the folder containing the Ground Truth, this is used for evaluating the result
+- `--output_dir` is the folder where the Upscaled image sequence goes
 
 ## Citation
 If you find this code is useful for your publication, please cite the original paper:

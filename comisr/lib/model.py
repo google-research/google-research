@@ -18,7 +18,7 @@
 import tensorflow.compat.v1 as tf
 import tensorflow.compat.v2 as tf2
 
-from comisr.lib import ops
+from lib import ops
 
 
 # Definition of the fnet, more details can be found in TecoGAN paper
