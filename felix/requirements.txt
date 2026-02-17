@@ -41,7 +41,7 @@ opencv-python-headless==4.6.0.66
 opt-einsum==3.3.0
 packaging==21.3
 pandas==1.4.3
-Pillow==9.2.0
+Pillow==10.3.0
 portalocker==2.5.1
 promise==2.3
 protobuf==3.19.4
