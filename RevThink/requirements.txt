@@ -11,7 +11,7 @@ pandas==2.2.3
 scikit-learn==1.5.1
 scipy==1.14.1
 seaborn==0.13.2
-sentencepiece==0.1.99
+sentencepiece==0.2.1
 tiktoken==0.7.0
 tqdm==4.66.5
 transformers==4.45.1
