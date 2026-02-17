@@ -1009,6 +1009,9 @@ class LLFF(Dataset):
       poses, bounds = transform_poses_to_hemisphere(poses, bounds)
       self.render_poses = generate_hemispherical_orbit(
           poses, n_frames=config.render_path_frames)
+      self.near = bounds.min()
+      self.far = bounds.max()
+
     else:
       self.render_poses = generate_spiral_path(
           poses, bounds, n_frames=config.render_path_frames)
