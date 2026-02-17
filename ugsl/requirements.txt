@@ -1,5 +1,5 @@
 tensorflow==2.12.0
-scipy==1.9.3
+scipy==1.10.0
 numpy
 ml_collections
 absl-py
