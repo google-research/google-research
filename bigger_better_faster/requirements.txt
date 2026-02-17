@@ -17,7 +17,7 @@ wandb
 pyglet == 1.4.11
 matplotlib
 dm-haiku
-protobuf == 3.19.1
+protobuf == 3.19.5
 importlib-metadata == 4.11.3
 importlib-resources == 5.7.1
 etils
