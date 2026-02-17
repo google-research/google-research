@@ -95,7 +95,7 @@ toolz==0.11.2
 tqdm==4.64.0
 traitlets==5.2.1.post0
 typing-extensions==4.2.0
-urllib3==1.26.9
+urllib3==1.26.18
 wandb==0.12.16
 wcwidth==0.2.5
 Werkzeug==2.1.2
