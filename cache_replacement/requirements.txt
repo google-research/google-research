@@ -51,6 +51,6 @@ termcolor==1.1.0
 torch==0.4.1.post2
 tqdm==4.42.1
 urllib3==1.25.8
-Werkzeug==1.0.0
+Werkzeug==3.0.1
 wrapt==1.12.0
 zmq==0.0.0
