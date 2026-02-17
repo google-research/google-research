@@ -181,11 +181,12 @@ Our operators are differentiable. By default, the top-k with PAV algorithm uses 
 >>> @jax.jit
 >>> def sparse_soft_f(x):
 >>>   out = sparse_soft_topk.sparse_soft_topk_mask_pav(x, k=k, l=l) + sparse_soft_topk.sparse_soft_topk_mask_pav(x**2, k=k, l=l)
->>>   return out.sum()
+>>>   return (out ** 2).mean()
 
 >>> @jax.jit
 >>> def hard_f(x):
->>>   return (sparse_soft_topk.hard_topk_mask(x, k=k) + sparse_soft_topk.hard_topk_mask(x**2, k=k)).sum()
+>>>   out = sparse_soft_topk.hard_topk_mask(x, k=k) + sparse_soft_topk.hard_topk_mask(x**2, k=k)
+>>>   return (out ** 2).mean()
 
 >>> x = jax.random.normal(jax.random.PRNGKey(2), (10,)) 
 ```
@@ -201,9 +202,8 @@ whereas our soft operator has non-zero derivatives:
 
 ```python
 >>> print(jax.grad(sparse_soft_f)(x))
-[ 0.0000000e+00 -2.2090350e-07  4.7683716e-07  0.0000000e+00
- -3.6416495e-07 -3.7008726e-07 -1.1920929e-07 -1.7615172e-07
-  0.0000000e+00 -1.7881393e-07]
+[ 0.          0.09063217  0.2323066   0.          0.12527105  0.05957882
+ -0.13923873  0.05559958  0.         -0.09306791]
 ```
 
 Cite
@@ -213,7 +213,7 @@ If you use this code in your project, please cite:
 
     Michael E. Sander, Joan Puigcerver, Josip Djolonga, Gabriel Peyré, Mathieu Blondel
     Fast, Differentiable and Sparse Top-k: a Convex Analysis Perspective
-    arXiv preprint arXiv:2302.01425
+    In International Conference on Machine Learning (pp. 29919-29936). PMLR.
     https://arxiv.org/abs/2302.01425
 
   
