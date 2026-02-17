@@ -7,5 +7,5 @@ numpy >= 1.14
 pillow
 pygame
 six
-scipy == 1.1.0
+scipy == 1.10.0
 tensorflow < 2.0
