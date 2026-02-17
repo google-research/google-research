@@ -28,7 +28,7 @@ dm-tree==0.1.7
 fasteners==0.17.3
 flatbuffers==2.0
 flax==0.5.0
-fonttools==4.33.3
+fonttools==4.43.0
 future==0.18.2
 gast==0.5.3
 glfw==2.5.3
