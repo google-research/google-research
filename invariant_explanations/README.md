@@ -68,5 +68,5 @@ s/_EXPLANATION_TYPE/_EXPLAINER
 
 For Fig 3:
 ```console
-python main.py --dataset=cifar10 --min_base_model_accuracy=0 --num_samples_per_base_model=32 --num_samples_to_plot_te_for=10 --run_on_precomputed_gcp_data=True
+python main.py --dataset=cifar10 --min_base_model_accuracy=0 --num_samples_per_base_model=100 --num_samples_to_plot_te_for=10 --run_on_precomputed_gcp_data=True
 ```
