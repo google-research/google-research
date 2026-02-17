@@ -34,7 +34,7 @@ oauthlib==3.2.2
 opt-einsum==3.3.0
 packaging==22.0
 pandas==1.5.2
-protobuf==3.19.6
+protobuf==5.29.6
 pyarrow==10.0.1
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
