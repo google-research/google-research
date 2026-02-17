@@ -64,7 +64,7 @@ termcolor==1.1.0
 toolz==0.11.1
 tqdm==4.62.3
 typing-extensions==3.7.4.3
-urllib3==1.26.7
+urllib3==1.26.18
 Werkzeug==2.0.2
 wrapt==1.12.1
 zipp==3.6.0
