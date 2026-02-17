@@ -58,7 +58,6 @@ def synchronize_jax_hosts():
   for i in range(num_hosts):
     assert gathered_array[i][0] == i
 
-
 def parallel_write_images(image_write_fn, img_and_path_list):
   """Parallelizes image writing over JAX hosts and CPU cores.
 
@@ -87,7 +86,35 @@ def parallel_write_images(image_write_fn, img_and_path_list):
     pool.close()
     pool.join()
 
+def export_snerg_scene_raw(output_directory, atlas, atlas_block_indices,
+                       viewdir_mlp_params, render_params, atlas_params,
+                       scene_params, input_height, input_width, input_focal):
+  
+  np.save(output_directory+'/indirection_grid.npy', atlas_block_indices)
 
+  np.save(output_directory+'/atlas.npy', atlas)
+
+  import pickle
+
+  def pickle_file(output_directory, obj_to_pickle, filename):
+    with open(output_directory+f'/{filename}.pickle', 'wb') as handle:
+        pickle.dump(obj_to_pickle, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+  pickle_file(output_directory, viewdir_mlp_params, 'viewdir_mlp_params')
+
+  pickle_file(output_directory, render_params, 'render_params')
+
+  pickle_file(output_directory, atlas_params, 'atlas_params')
+
+  pickle_file(output_directory, scene_params, 'scene_params')
+
+  input_data = {
+    'input_height':input_height,
+    'input_width':input_width,
+    'input_focal':input_focal,
+  }
+  pickle_file(output_directory, input_data, 'input_data')
+    
 def export_snerg_scene(output_directory, atlas, atlas_block_indices,
                        viewdir_mlp_params, render_params, atlas_params,
                        scene_params, input_height, input_width, input_focal):

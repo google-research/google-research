@@ -1,8 +1,8 @@
 dataset: blender
 batching: single_image
 factor: 0
-num_coarse_samples: 64
-num_fine_samples: 128
+num_coarse_samples: 32
+num_fine_samples: 64
 use_viewdirs: true
 white_bkgd: true
 batch_size: 1024
@@ -16,5 +16,5 @@ gc_every: 5000
 use_pixel_centers: true
 sparsity_strength: 0.0001
 chunk: 1024
-net_width: 256
-voxel_resolution: 128
+net_width: 64
+voxel_resolution: 64
