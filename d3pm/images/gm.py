@@ -283,8 +283,8 @@ class TrainableModel:
 
     # Logging setup
     writer = metric_writers.create_default_writer(
-        work_unit_dir, just_logging=jax.host_id() > 0)
-    if jax.host_id() == 0:
+        work_unit_dir, just_logging=jax.process_index() > 0)
+    if jax.process_index() == 0:
       utils.write_config_json(config, os.path.join(work_unit_dir,
                                                    'config.json'))
 
@@ -301,8 +301,8 @@ class TrainableModel:
         repeat=True,
         shuffle=True,
         augment=True,
-        shard_id=jax.host_id(),
-        num_shards=jax.host_count())
+        shard_id=jax.process_index(),
+        num_shards=jax.process_count())
     train_iter = utils.numpy_iter(train_ds)
     eval_ds = self.dataset.get_tf_dataset(
         split='eval',
@@ -311,8 +311,8 @@ class TrainableModel:
         repeat=True,
         shuffle=True,
         augment=False,
-        shard_id=jax.host_id(),
-        num_shards=jax.host_count())
+        shard_id=jax.process_index(),
+        num_shards=jax.process_count())
     eval_iter = utils.numpy_iter(eval_ds)
 
     samples_shape = (device_bs, *self.dataset.data_shape)
@@ -415,7 +415,7 @@ class TrainableModel:
         else:
           should_ckpt = False
 
-        if should_ckpt and jax.host_id() == 0:
+        if should_ckpt and jax.process_index() == 0:
           checkpoints.save_checkpoint(
               checkpoint_dir,
               flax.jax_utils.unreplicate(state),
@@ -428,7 +428,7 @@ class TrainableModel:
         if (('retain_checkpoint_every_steps' in config.train) and
             ((new_step % config.train.retain_checkpoint_every_steps == 0) or
              (new_step == config.train.num_train_steps)) and
-            (jax.host_id() == 0)):
+            (jax.process_index() == 0)):
           # Below, overwrite=True because training might resume from a
           # checkpoint from an earlier step than the latest retained checkpoint,
           # causing the latest retained checkpoint to be overwritten.

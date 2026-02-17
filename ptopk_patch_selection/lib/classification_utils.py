@@ -315,7 +315,7 @@ def training_loop(
   state = flax.jax_utils.replicate(state)
 
   writer = metric_writers.create_default_writer(
-      workdir, just_logging=jax.host_id() > 0)
+      workdir, just_logging=jax.process_index() > 0)
   step_timer = utils.StepTimer(
       batch_size=config.batch_size, initial_step=initial_step)
 
@@ -418,7 +418,7 @@ def training_loop(
         eval_metrics, first_batch_stats, eval_rngs = evaluate(
             state, module, eval_ds, eval_metrics_dict, eval_rngs)
 
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         log_histograms = config.get("log_histograms", False)
         log_images = config.get("log_images", True)
         # Log the last gradients and updates histograms.

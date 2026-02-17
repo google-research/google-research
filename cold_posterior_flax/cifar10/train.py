@@ -284,13 +284,13 @@ def train(config, model_def, device_batch_size, eval_ds, num_steps,
   make_lr_fn = schedulers.get_make_lr_fn(config)
   make_temp_fn = schedulers.get_make_temp_fn(config)
   make_step_size_fn = schedulers.get_make_step_size_fn(config)
-  if jax.host_count() > 1:
+  if jax.process_count() > 1:
     raise ValueError('CIFAR10 example should not be run on '
                      'more than 1 host due to preconditioner updating.')
 
   initial_step = 0  # TODO(basv): load from checkpoint.
   writer = metric_writers.create_default_writer(
-      workdir, just_logging=jax.host_id() > 0)
+      workdir, just_logging=jax.process_index() > 0)
 
   # Write config to the summary files. This makes the hyperparameters available
   # in TensorBoard and makes comparison of runs in TensorBoard easier.

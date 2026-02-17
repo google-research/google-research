@@ -172,16 +172,16 @@ def _get_birds200_dataset(
     mode: str,
     rng: np.ndarray) -> Tuple[tf.data.Dataset, tf.data.Dataset, int]:
   """Load the caltech_birds2011 dataset."""
-  assert jax.host_count() == 1, (
+  assert jax.process_count() == 1, (
       "caltech_birds2011 dataset does not support multihost training. "
-      "Found {} hosts.".format(jax.host_count()))
+      "Found {} hosts.".format(jax.process_count()))
 
   dataset_builder = tfds.builder("caltech_birds2011")
   num_classes = 200
 
   # Make sure each host uses a different RNG for the training data.
   rng, data_rng = jax.random.split(rng)
-  data_rng = jax.random.fold_in(data_rng, jax.host_id())
+  data_rng = jax.random.fold_in(data_rng, jax.process_index())
   data_rng, shuffle_rng = jax.random.split(data_rng)
 
   if mode == "train-val":
@@ -221,7 +221,7 @@ def _get_tfds_dataset(
 
   # Make sure each host uses a different RNG for the training data.
   rng, data_rng = jax.random.split(rng)
-  data_rng = jax.random.fold_in(data_rng, jax.host_id())
+  data_rng = jax.random.fold_in(data_rng, jax.process_index())
   data_rng, shuffle_rng = jax.random.split(data_rng)
   train_split = deterministic_data.get_read_instruction_for_host(
       "train", dataset_builder.info.splits["train"].num_examples)
@@ -268,10 +268,10 @@ def _prepare_dataset(
   if shuffle and rng is None:
     raise ValueError("Shuffling without RNG is not supported.")
 
-  if global_batch_size % jax.host_count() != 0:
+  if global_batch_size % jax.process_count() != 0:
     raise ValueError(f"Batch size {global_batch_size} not divisible by number "
-                     f"of hosts ({jax.host_count()}).")
-  local_batch_size = global_batch_size // jax.host_count()
+                     f"of hosts ({jax.process_count()}).")
+  local_batch_size = global_batch_size // jax.process_count()
   batch_dims = [jax.local_device_count(), local_batch_size]
 
   # tf.data uses single integers as seed.

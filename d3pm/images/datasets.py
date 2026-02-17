@@ -101,8 +101,8 @@ class Dataset:
       repeat: bool: enables repeating the dataset
       shuffle: bool: enables shuffling
       augment: bool: data augmentation
-      shard_id: int: the current shard (jax.host_id())
-      num_shards: int: total number of shards (jax.host_count())
+      shard_id: int: the current shard (jax.process_index())
+      num_shards: int: total number of shards (jax.process_count())
 
     Returns:
       tf.data.Dataset

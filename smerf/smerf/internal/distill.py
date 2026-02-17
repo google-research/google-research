@@ -153,7 +153,7 @@ def load_config(save_config = True):
 
 def save_config(logdir):
   """Saves Gin config to logdir."""
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     logdir.mkdir(parents=True, exist_ok=True)
     (logdir / 'config.gin').write_text(gin.config_str())
 

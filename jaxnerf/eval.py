@@ -100,7 +100,7 @@ def main(unused_argv):
           rng,
           FLAGS.dataset == "llff",
           chunk=FLAGS.chunk)
-      if jax.host_id() != 0:  # Only record via host 0.
+      if jax.process_index() != 0:  # Only record via host 0.
         continue
       if not FLAGS.eval_once and idx == showcase_index:
         showcase_color = pred_color
@@ -118,7 +118,7 @@ def main(unused_argv):
         utils.save_img(pred_color, path.join(out_dir, "{:03d}.png".format(idx)))
         utils.save_img(pred_disp[Ellipsis, 0],
                        path.join(out_dir, "disp_{:03d}.png".format(idx)))
-    if (not FLAGS.eval_once) and (jax.host_id() == 0):
+    if (not FLAGS.eval_once) and (jax.process_index() == 0):
       summary_writer.image("pred_color", showcase_color, step)
       summary_writer.image("pred_disp", showcase_disp, step)
       summary_writer.image("pred_acc", showcase_acc, step)
@@ -126,7 +126,8 @@ def main(unused_argv):
         summary_writer.scalar("psnr", np.mean(np.array(psnr_values)), step)
         summary_writer.scalar("ssim", np.mean(np.array(ssim_values)), step)
         summary_writer.image("target", showcase_gt, step)
-    if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
+    if (FLAGS.save_output and (not FLAGS.render_path)
+        and (jax.process_index() == 0)):
       with utils.open_file(path.join(out_dir, f"psnrs_{step}.txt"), "w") as f:
         f.write(" ".join([str(v) for v in psnr_values]))
       with utils.open_file(path.join(out_dir, f"ssims_{step}.txt"), "w") as f:

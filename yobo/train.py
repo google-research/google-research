@@ -59,7 +59,7 @@ def main(unused_argv):
   rng = random.PRNGKey(config.jax_rng_seed)
   # Shift the numpy random seed by host_id() to shuffle data loaded by different
   # hosts.
-  np.random.seed(config.np_rng_seed + jax.host_id())
+  np.random.seed(config.np_rng_seed + jax.process_index())
 
   if config.disable_pmap_and_jit:
     chex.fake_pmap_and_jit().start()
@@ -116,7 +116,7 @@ def main(unused_argv):
   init_step = state.step + 1
   state = flax.jax_utils.replicate(state)
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(config.checkpoint_dir)
     summary_writer.text(
         'gin_config', gin.config.markdown(gin.operative_config_str()), step=0
@@ -130,7 +130,7 @@ def main(unused_argv):
   # Prefetch_buffer_size = 3 x batch_size.
   raybatcher = datasets.RayBatcher(dataset)
   p_raybatcher = flax.jax_utils.prefetch_to_device(raybatcher, 3)
-  rng = rng + jax.host_id()  # Make random seed separate across hosts.
+  rng = rng + jax.process_index()  # Make random seed separate across hosts.
   rngs = random.split(rng, jax.local_device_count())  # For pmapping RNG keys.
   gc.disable()  # Disable automatic garbage collection for efficiency.
   total_time = 0
@@ -148,7 +148,7 @@ def main(unused_argv):
       if batch is None or step % config.grad_accum_steps == 0:
         batch = next(p_raybatcher)
 
-      if reset_stats and (jax.host_id() == 0):
+      if reset_stats and (jax.process_index() == 0):
         stats_buffer = []
         train_start_time = time.time()
         reset_stats = False
@@ -164,7 +164,7 @@ def main(unused_argv):
       # Log training summaries. This is put behind a host_id check because in
       # multi-host evaluation, all hosts need to run inference even though we
       # only use host 0 to record results.
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         stats = flax.jax_utils.unreplicate(stats)
 
         stats_buffer.append(stats)
@@ -393,7 +393,7 @@ def main(unused_argv):
         )
 
         # Log eval summaries on host 0.
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           eval_time = time.time() - eval_start_time
           num_rays = np.prod(test_case.rays.near.shape[:-1])
           rays_per_sec = num_rays / eval_time
@@ -473,7 +473,7 @@ def main(unused_argv):
         keep=config.checkpoint_keep,
     )
 
-  if jax.host_id() == 0 and config.dinnerf_report_events:
+  if jax.process_index() == 0 and config.dinnerf_report_events:
 
 
 if __name__ == '__main__':

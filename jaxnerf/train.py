@@ -159,7 +159,7 @@ def _log_eval_summaries(summary_writer,
       FLAGS.dataset == "llff",
       chunk=FLAGS.chunk)
 
-  if jax.host_id() == 0 and summary_writer is not None:
+  if jax.process_index() == 0 and summary_writer is not None:
     psnr = utils.compute_psnr(((pred_color - test_case["pixels"])**2).mean())
     ssim = ssim_fn(pred_color, test_case["pixels"])
     eval_time = time.time() - t_eval_start
@@ -196,7 +196,7 @@ def main(unused_argv):
   rng = random.PRNGKey(20200823)
   # Shift the numpy random seed by host_id() to shuffle data loaded by different
   # hosts.
-  np.random.seed(20201473 + jax.host_id())
+  np.random.seed(20201473 + jax.process_index())
 
   if FLAGS.config is not None:
     utils.update_flags(FLAGS)
@@ -252,7 +252,7 @@ def main(unused_argv):
   init_step = state.optimizer.state.step + 1
   state = flax.jax_utils.replicate(state)
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(FLAGS.train_dir)
   else:
     summary_writer = None
@@ -260,7 +260,7 @@ def main(unused_argv):
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
   n_local_devices = jax.local_device_count()
-  rng = rng + jax.host_id()  # Make random seed separate across hosts.
+  rng = rng + jax.process_index()  # Make random seed separate across hosts.
   keys = random.split(rng, n_local_devices)  # For pmapping RNG keys.
   gc.disable()  # Disable automatic garbage collection for efficiency.
   stats_trace = []
@@ -272,7 +272,7 @@ def main(unused_argv):
       reset_timer = False
     lr = learning_rate_fn(step)
     state, stats, keys = train_pstep(keys, state, batch, lr)
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       stats_trace.append(stats)
     if step % FLAGS.gc_every == 0:
       gc.collect()
@@ -280,7 +280,7 @@ def main(unused_argv):
     # Log training summaries. This is put behind a host_id check because in
     # multi-host evaluation, all hosts need to run inference even though we
     # only use host 0 to record results.
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       if step % FLAGS.print_every == 0:
         avg_loss = np.mean(np.concatenate([s.loss for s in stats_trace]))
         avg_psnr = np.mean(np.concatenate([s.psnr for s in stats_trace]))

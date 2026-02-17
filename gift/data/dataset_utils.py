@@ -193,7 +193,7 @@ def get_data_range(builder, split, host_id, host_count):
   host_start = full_start + examples_per_host * host_id
   host_end = full_start + examples_per_host * (host_id + 1)
   logging.info('Host %d data range: from %s to %s (from split %s)',
-               jax.host_id(), host_start, host_end, full_range.splitname)
+               jax.process_index(), host_start, host_end, full_range.splitname)
   return full_range.splitname, host_start, host_end
 
 
@@ -202,7 +202,7 @@ def get_num_examples(dataset, split, data_dir=None):
   builder = tfds.builder(dataset, data_dir=data_dir)
 
   n = 0
-  host_count = jax.host_count()
+  host_count = jax.process_count()
   for ihost in range(host_count):
     _, start, end = get_data_range(builder, split, ihost, host_count)
     n += end - start

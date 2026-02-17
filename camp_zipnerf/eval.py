@@ -278,7 +278,7 @@ def main(unused_argv):
         rendering = jax.tree_util.tree_map(np.asarray, rendering)
         rays = jax.tree_util.tree_map(np.asarray, rays)
 
-        if jax.host_id() != 0:  # Only record via host 0.
+        if jax.process_index() != 0:  # Only record via host 0.
           continue
 
         render_times.append((time.time() - eval_start_time))
@@ -406,7 +406,7 @@ def main(unused_argv):
                   path_fn(f'masked_input_{idx:03d}.png'),
               )
 
-    if (not config.eval_only_once) and (jax.host_id() == 0):
+    if (not config.eval_only_once) and (jax.process_index() == 0):
       summary_writer.scalar(
           'eval_median_render_time', np.median(render_times), step
       )
@@ -524,7 +524,7 @@ def main(unused_argv):
     if (
         config.eval_save_output
         and (not config.render_path)
-        and (jax.host_id() == 0)
+        and (jax.process_index() == 0)
     ):
       with utils.open_file(path_fn(f'render_times_{step}.txt'), 'w') as f:
         f.write(' '.join([str(r) for r in render_times]))

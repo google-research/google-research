@@ -101,7 +101,7 @@ def run_experiment(
   if xid is not None:
     model_dir = os.path.join(model_dir, '%s_l%s' % (str(xid), max_train_length))
   tf.enable_v2_behavior()
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tf_summary.create_file_writer(
         os.path.join(model_dir, 'metrics'), max_queue=1, flush_millis=1000)
     train_summary_writer = logging_lib.ScalarSummary(
@@ -127,7 +127,7 @@ def run_experiment(
       shuffle_buffer=16384)
 
   with contextlib.ExitStack() as stack:  # pylint: disable=using-constant-test
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       # Only need metric writer context manager on host 0.
       stack.enter_context(summary_writer.as_default())
     model = model_cls(domain=data.protein_domain, batch_size=batch_size)
@@ -145,7 +145,7 @@ def run_experiment(
     train_metrics = []
     tick = time.time()
 
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       _write_gin_configs(os.path.join(model_dir, 'config.gin'))
 
     num_evals = 0
@@ -154,15 +154,17 @@ def run_experiment(
       metrics = model.fit_batch(batch)
       train_metrics.append(metrics)
 
-      if jax.host_id() == 0 and ((save_checkpoints and checkpoint_frequency and
-                                  step % checkpoint_frequency == 0 and step > 0)
-                                 or step == max_train_steps - 1):
+      should_save = (
+          save_checkpoints and checkpoint_frequency
+          and step % checkpoint_frequency == 0 and step > 0)
+      if jax.process_index() == 0 and (
+          should_save or step == max_train_steps - 1):
         model.save_checkpoint(model_dir)
 
       if (step + 1) % train_summary_frequency == 0:
         summary = evaluation.combine_metrics(train_metrics)
         logging.info('train in step: %d, loss: %.4f', step, summary['loss'])
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           tock = time.time()
           steps_per_sec = eval_frequency / (tock - tick)
           tick = tock
@@ -180,7 +182,7 @@ def run_experiment(
             model=model, eval_ds=eval_ds, num_eval_steps=num_eval_steps)
 
         logging.info('eval in step: %d, loss: %.4f', step, eval_summary['loss'])
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           for key, val in eval_summary.items():
             eval_summary_writer(key, val, step)
           tf_summary.flush()
@@ -191,7 +193,7 @@ def run_experiment(
             _write_gin_configs(os.path.join(model_dir, 'config_after_eval.gin'))
           num_evals += 1
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     tf_summary.flush()
     summary_writer.close()
     _write_gin_configs(os.path.join(model_dir, 'config_end.gin'))

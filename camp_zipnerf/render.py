@@ -69,7 +69,7 @@ def render_pipeline(config):
   if not utils.isdir(out_dir):
     utils.makedirs(out_dir)
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     # Save out numpy array of the render poses.
     posefile = os.path.join(base_dir, 'render_poses.npy')
     with utils.open_file(posefile, 'wb') as fp:
@@ -109,7 +109,7 @@ def render_pipeline(config):
     )
     logging.info('Rendered in %0.3fs', time.time() - eval_start_time)
 
-    if jax.host_id() != 0:  # Only record via host 0.
+    if jax.process_index() != 0:  # Only record via host 0.
       continue
 
     rendering['rgb'] = postprocess_fn(rendering['rgb'])

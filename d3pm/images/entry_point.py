@@ -53,11 +53,11 @@ def main(executable_dict, argv):
   # it unavailable to JAX.
   tf.config.experimental.set_visible_devices([], 'GPU')
 
-  logging.info('JAX host: %d / %d', jax.host_id(), jax.host_count())
+  logging.info('JAX host: %d / %d', jax.process_index(), jax.process_count())
   logging.info('JAX devices: %r', jax.devices())
 
   work_unit.set_task_status(
-      f'host_id: {jax.host_id()}, host_count: {jax.host_count()}')
+      f'host_id: {jax.process_index()}, host_count: {jax.process_count()}')
 
   # Read configuration
   if FLAGS.config_json:
@@ -80,10 +80,10 @@ def main(executable_dict, argv):
                FLAGS.work_unit_dir)
 
   # Seeding
-  random.seed(config.seed * jax.host_count() + jax.host_id())
-  onp.random.seed(config.seed * jax.host_count() + jax.host_id())
+  random.seed(config.seed * jax.process_count() + jax.process_index())
+  onp.random.seed(config.seed * jax.process_count() + jax.process_index())
   rng = utils.RngGen(
-      jax.random.fold_in(jax.random.PRNGKey(config.seed), jax.host_id()))
+      jax.random.fold_in(jax.random.PRNGKey(config.seed), jax.process_index()))
 
   # Run the main function
   logging.info('Running executable: %s', FLAGS.executable_name)

@@ -83,7 +83,7 @@ class Dataset(threading.Thread, abc.ABC):
       raise ValueError(
           "the split argument should be either \"train\" or \"test\", set"
           "to {} here.".format(split))
-    self.batch_size = args.batch_size // jax.host_count()
+    self.batch_size = args.batch_size // jax.process_count()
     self.batching = args.batching
     self.render_path = args.render_path
     self.start()
