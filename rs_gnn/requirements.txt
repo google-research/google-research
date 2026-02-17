@@ -17,7 +17,7 @@ packaging==21.3
 Pillow==9.1.0
 pyparsing==3.0.8
 python-dateutil==2.8.2
-scipy==1.8.0
+scipy==1.10.0
 six==1.16.0
 toolz==0.11.2
 typing-extensions==4.2.0
