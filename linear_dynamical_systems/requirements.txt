@@ -35,5 +35,5 @@ statsmodels==0.9.0
 subprocess32==3.5.3
 tqdm==4.31.1
 tslearn==0.1.29
-urllib3==1.24.3
+urllib3==1.26.5
 wfdb==2.2.1
