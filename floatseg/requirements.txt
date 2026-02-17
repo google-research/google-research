@@ -1,6 +1,6 @@
 matplotlib==3.4.3
 numpy==1.18.1
-opencv_python==4.5.2.52
+opencv_python==4.8.1.78
 Pillow==9.2.0
 seaborn==0.11.2
 torch==1.7.1+cu101
