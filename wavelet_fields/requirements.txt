@@ -35,7 +35,7 @@ executing==1.2.0
 fastjsonschema==2.17.1
 filelock==3.12.2
 flatbuffers==23.5.26
-fonttools==4.40.0
+fonttools==4.61.0
 freetype-py==2.4.0
 frozenlist @ file:///home/conda/feedstock_root/build_artifacts/frozenlist_1667935432857/work
 fsspec==2023.12.2
