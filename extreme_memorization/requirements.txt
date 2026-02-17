@@ -1,2 +1,2 @@
 absl-py==0.7.1
-tensorflow==2.1.0
+tensorflow==2.11.1
