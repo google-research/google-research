@@ -40,7 +40,7 @@ oauthlib==3.1.1
 opt-einsum==3.3.0
 optax==0.0.9
 packaging==21.0
-Pillow==8.3.2
+Pillow==9.3.0
 promise==2.3
 protobuf==3.18.1
 pyasn1==0.4.8
