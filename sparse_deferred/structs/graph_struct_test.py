@@ -154,6 +154,94 @@ class GraphStructTest(tf.test.TestCase):
     broadcasted = broadcast_adjacency @ y
     self.assertAllEqual(broadcasted, np.array([15, 15, 1.5, 1.5, 1.5]))
 
+  def test_remove_pooling(self):
+    g1 = graph_struct.GraphStruct.new(
+        nodes={
+            'ns1': {'f': np.array([1.0, 2.0])},
+            'ns2': {'f': np.zeros([3]) + 5.0},
+        },
+        edges={'e': ((np.array([0, 1, 1]), np.array([0, 0, 1])), {})},
+        schema={'e': ('ns1', 'ns2')},
+    ).add_pooling(sdnp.engine)
+    g2 = g1.remove_pooling()
+    # 'g' node and its edges are removed.
+    self.assertSetEqual(set(g2.nodes.keys()), {'ns1', 'ns2'})
+    self.assertSetEqual(set(g2.edges.keys()), {'e'})
+    self.assertEqual(g2.schema, {'e': ('ns1', 'ns2')})
+
+    # Sanity check: original graph (g1) is not modified.
+    self.assertSetEqual(set(g1.nodes.keys()), {'ns1', 'ns2', 'g'})
+    self.assertSetEqual(set(g1.edges.keys()), {'e', 'g_ns1', 'g_ns2'})
+    self.assertEqual(g1.schema['g_ns1'], ('g', 'ns1'))
+    self.assertEqual(g1.schema['g_ns2'], ('g', 'ns2'))
+
+  def test_refresh_pooling_honors_new_node_sets(self):
+    g = graph_struct.GraphStruct.new(
+        nodes={
+            'ns1': {'f': np.array([1.0, 2.0])},
+            'ns2': {'f': np.zeros([3]) + 5.0},
+        },
+        edges={'e': ((np.array([0, 1, 1]), np.array([0, 0, 1])), {})},
+        schema={'e': ('ns1', 'ns2')},
+    ).add_pooling(  # Add pooling
+        sdnp.engine, {'graph_level_x': np.array([[10]])}
+    ).update(  # Add node set (ns3)
+        nodes={'ns3': {'f': np.zeros([4])}},
+        edges={
+            'e2': ((np.array([0, 1, 1]), np.array([0, 0, 1])), {}),
+        },
+        schema={'e2': ('ns1', 'ns3')},
+    ).refresh_pooling(sdnp.engine)
+
+    # Note: 'ns3' is now included in pooling.
+    self.assertSetEqual(set(g.nodes.keys()), {'ns1', 'ns2', 'ns3', 'g'})
+    self.assertSetEqual(set(g.edges.keys()),
+                        {'e', 'e2', 'g_ns1', 'g_ns2', 'g_ns3'})
+    self.assertEqual(g.schema['g_ns1'], ('g', 'ns1'))
+    self.assertEqual(g.schema['g_ns2'], ('g', 'ns2'))
+    self.assertEqual(g.schema['g_ns3'], ('g', 'ns3'))
+    np.testing.assert_equal(g.nodes['g'], {'graph_level_x': np.array([[10]])})
+
+  def test_graph_struct_with_dots_in_names(self):
+    """Test GraphStruct can handle node/edge sets with dots in names."""
+    g = graph_struct.GraphStruct.new(
+        nodes={
+            'my.nodes': {'f1': np.array([1.0, 2.0])},
+            'another.nodeset': {'f2': np.array([3.0, 4.0, 5.0])},
+        },
+        edges={
+            'edge.one': ((np.array([0]), np.array([1])), {}),
+            'edge.two': ((np.array([0, 1]), np.array([1, 2])), {}),
+        },
+        schema={
+            'edge.one': ('my.nodes', 'another.nodeset'),
+            'edge.two': ('my.nodes', 'another.nodeset'),
+        },
+        engine=sdnp.engine,
+    )
+    self.assertSetEqual(set(g.nodes.keys()), {'my.nodes', 'another.nodeset'})
+    self.assertSetEqual(set(g.edges.keys()), {'edge.one', 'edge.two'})
+    self.assertEqual(
+        g.schema,
+        {
+            'edge.one': ('my.nodes', 'another.nodeset'),
+            'edge.two': ('my.nodes', 'another.nodeset'),
+        },
+    )
+
+    # Test saving and loading with dots in names via InMemoryDB
+    db = graph_struct.InMemoryDB()
+    db.add(g)
+    db.finalize()
+    save_path = os.path.join(self.get_temp_dir(), 'dotted_names_db.npz')
+    db.save(save_path)
+
+    loaded_db = graph_struct.InMemoryDB.from_file(save_path)
+    loaded_g = loaded_db.get_item(0)
+
+    self.assertTrue(graph_struct.are_graphs_exactly_equal(
+        sdnp.engine, g, loaded_g))
+
   def test_max_pooling(self):
     adj = np.array(  # Has shape 3 x 4.
         [[1, 1, 0.0, 1],

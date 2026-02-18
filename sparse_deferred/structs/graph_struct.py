@@ -342,6 +342,30 @@ class GraphStruct(NamedTuple):
         nodes={'g': graph_features}, edges=g_edges, schema=g_edges_schema
     )
 
+  def remove_pooling(self):
+    """Removes the virtual node 'g' and its edges."""
+    nodes = {n: f for n, f in self.nodes.items() if n != 'g'}
+    # Keep edge-sets where all node-sets are still present.
+    schema = {e: n_names for e, n_names in self.schema.items()
+              if all([n in nodes for n in n_names])}
+    edges = {e: self.edges[e] for e in schema}
+    return GraphStruct.new(nodes=nodes, edges=edges, schema=schema)
+
+  def refresh_pooling(self, engine):
+    """Removes then re-adds virtual node 'g' w/ edges to all nodes.
+
+    Useful for post graph updates. **Note:** this only works if every node set
+    has at least one feature, i.e., your previous call to `add_pooling()` never
+    supplied `num_nodes_map`.
+
+    Args:
+      engine: Compute engine.
+
+    Returns:
+      new copy of the graph (without modifying self).
+    """
+    return self.remove_pooling().add_pooling(engine, self.nodes['g'])
+
   def get_num_nodes(
       self, engine, node_name
   ):
@@ -1005,15 +1029,23 @@ class InMemoryDB:
     for k, np_arr in np_data.items():
       k_parts = k.split('.')
       if k_parts[0] == 'feat':
-        self._features[tuple(k_parts[1:])] = to_device_fn(np_arr)
+        n_or_e = k_parts[1]
+        name = '.'.join(k_parts[2:-1])
+        feat_name = k_parts[-1]
+        self._features[(n_or_e, name, feat_name)] = to_device_fn(np_arr)
       elif k_parts[0] == 'size':
-        self._sizes[tuple(k_parts[1:])] = to_device_fn(np_arr)
+        n_or_e = k_parts[1]
+        name = '.'.join(k_parts[2:])
+        self._sizes[(n_or_e, name)] = to_device_fn(np_arr)
       elif k_parts[0] == 'csumsize':
+        n_or_e = k_parts[1]
+        name = '.'.join(k_parts[2:])
         csizes = to_device_fn(np_arr)
         csizes -= csizes[0]
-        self._cumsum_sizes[tuple(k_parts[1:])] = csizes
+        self._cumsum_sizes[(n_or_e, name)] = csizes
       elif k_parts[0] == 'edge':
-        self._edges[k_parts[1]] = to_device_fn(np.array(np_arr, 'int32'))
+        edge_name = '.'.join(k_parts[1:])
+        self._edges[edge_name] = to_device_fn(np.array(np_arr, 'int32'))
       elif k == 'schema':
         self.schema = json.loads(str(np_arr))
         self.schema = {
