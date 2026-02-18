@@ -1,0 +1,7 @@
+torch
+torchvision
+pandas
+numpy
+pillow
+google-genai
+opencv-python-headless
