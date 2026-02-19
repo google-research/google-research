@@ -17,6 +17,7 @@ r"""Training script for the VIS model.
 
 See model.py for more details and usage.
 """
+from __future__ import print_function
 import os
 import common  # pylint: disable=unused-import
 from deeplab import preprocess_utils
@@ -421,7 +422,7 @@ def model_fn(features, labels, mode, params):
 
 def tf_dbg_sess_wrapper(sess):
   if FLAGS.debug:
-    print 'DEBUG'
+    print('DEBUG')
     sess = tf_debug.LocalCLIDebugWrapperSession(
         sess,
         thread_name_filter='MainThread$',
