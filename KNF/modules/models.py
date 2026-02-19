@@ -106,7 +106,7 @@ class Koopman(nn.Module):
     num_poly: the highest order of polynomial functions
     num_exp: number of exponential functions
     num_heads: Number of the head the transformer encoder
-    transformer_dim: hidden dimension of tranformer encoder
+    transformer_dim: hidden dimension of transformer encoder
     transformer_num_layers: number of layers in the transformer encoder
     dropout_rate: dropout rate of MLP modules
   """
