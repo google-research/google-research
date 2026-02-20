@@ -137,7 +137,7 @@ def main(unused_argv):
         config)
     print(f'Rendered in {(time.time() - eval_start_time):0.3f}s')
 
-    if jax.host_id() != 0:  # Only record via host 0.
+    if jax.process_index() != 0:  # Only record via host 0.
       continue
 
     utils.save_img_u8(rendering['rgb'], path_fn(f'color_{idx:03d}.png'))

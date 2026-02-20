@@ -82,7 +82,7 @@ def main(unused_argv):
   last_step = 0
   out_dir = path.join(FLAGS.train_dir, "baked")
   out_render_dir = path.join(out_dir, "test_preds")
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     utils.makedirs(out_dir)
     utils.makedirs(out_render_dir)
 
@@ -287,7 +287,7 @@ def main(unused_argv):
             render_and_path[1]),
         renders_and_paths)
 
-    if (not FLAGS.eval_once) and (jax.host_id() == 0):
+    if (not FLAGS.eval_once) and (jax.process_index() == 0):
       summary_writer.image("baked_raw_color", pre_refined_images[0], step)
       summary_writer.image("baked_refined_color", post_refined_images[0], step)
       summary_writer.image("baked_target", test_dataset.images[0], step)
@@ -299,7 +299,8 @@ def main(unused_argv):
       summary_writer.scalar("baked_size_byte_gb", byte_size_gb, step)
       summary_writer.scalar("baked_size_float_gb", float_size_gb, step)
 
-    if FLAGS.save_output and (not FLAGS.render_path) and (jax.host_id() == 0):
+    if (FLAGS.save_output and (not FLAGS.render_path)
+        and (jax.process_index() == 0)):
       with utils.open_file(path.join(out_dir, "psnr.txt"), "w") as f:
         f.write("{}".format(post_psnr))
       with utils.open_file(path.join(out_dir, "ssim.txt"), "w") as f:

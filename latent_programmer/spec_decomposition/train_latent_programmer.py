@@ -799,13 +799,13 @@ def main(_):
 
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
-  logging.info('host %d says n_devices=%d', jax.host_id(), n_devices)
-  logging.info('There are %d hosts', jax.host_count())
+  logging.info('host %d says n_devices=%d', jax.process_index(), n_devices)
+  logging.info('There are %d hosts', jax.process_count())
 
-  if jax.host_count() * n_devices * FLAGS.per_device_batch_size != 128:
+  if jax.process_count() * n_devices * FLAGS.per_device_batch_size != 128:
     raise ValueError('The per_device_batch_size might be wrong')
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(
         os.path.join(FLAGS.save_dir, 'tb', hparam_str))
   else:
@@ -1132,7 +1132,7 @@ def main(_):
       shift=False, deterministic=True, decode=not FLAGS.slow_decode)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   rng, init_rng = jax.random.split(rng)
 
   dropout_rng = jax.random.split(rng, jax.local_device_count())
@@ -1186,7 +1186,8 @@ def main(_):
       for _ in range(start_step):
         dropout_rng = dummy_p_train_step(dropout_rng)
       logging.info('Finished skipping steps')
-      logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
+      logging.info('Host %s has dropout_rng = %s',
+                   jax.process_index(), dropout_rng)
 
   # Replicate optimizer.
   state = jax_utils.replicate(state)
@@ -1277,7 +1278,7 @@ def main(_):
         # Calculate (clipped) perplexity after averaging log-perplexities:
         summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
 
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
           tock = time.time()
           steps_per_sec = FLAGS.log_freq / (tock - tick)
@@ -1310,7 +1311,7 @@ def main(_):
             lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
             eval_metrics_sums)
 
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
                        time.time()-t_evaluation_start, step,
                        eval_summary['loss'])
@@ -1335,14 +1336,14 @@ def main(_):
           ios, targets_list, predictions, _, top_of_beams, scores = (
               [], [], [], [], [], [])
           logging.info('host %d: starting %s',
-                       jax.host_id(), predict_or_test)
+                       jax.process_index(), predict_or_test)
           for batch_i, batches in enumerate(dataset.as_numpy_iterator()):
             pred_batch = batches
             # Handle final odd-sized batch by padding instead of dropping it.
             cur_pred_batch_size = pred_batch['inputs'].shape[0]
             logging.info('host %d %s: got batch %d, cur_pred_batch_size = %d, '
                          'n_devices = %d',
-                         jax.host_id(), predict_or_test, batch_i,
+                         jax.process_index(), predict_or_test, batch_i,
                          cur_pred_batch_size, n_devices)
             if cur_pred_batch_size % n_devices:
               padded_size = int(
@@ -1351,7 +1352,7 @@ def main(_):
               pred_batch = jax.tree.map(
                   lambda x: pad_examples(x, padded_size), pred_batch)
               logging.info('host %d %s: padded batch to padded_size=%d',
-                           jax.host_id(), predict_or_test, padded_size)
+                           jax.process_index(), predict_or_test, padded_size)
             inputs, outputs, targets, rng = load_data(pred_batch, rng)
 
             cache, lp_cache = (p_init_cache(inputs, outputs, targets)  # pylint: disable=undefined-variable
@@ -1413,14 +1414,15 @@ def main(_):
               top_of_beams.append('\n\n'.join(top_of_beam))
 
           logging.info('host %d %s: total_success=%d, total_denominator=%d',
-                       jax.host_id(), predict_or_test, total_successes,
+                       jax.process_index(), predict_or_test, total_successes,
                        total_denominator)
           all_total_successes, all_total_denominator = per_host_sum_pmap(
               jax.tree.map(np.array, (total_successes, total_denominator)))
-          logging.info('host %d %s: all_total_successes=%d, '
-                       'all_total_denominator=%d',
-                       jax.host_id(), predict_or_test, all_total_successes,
-                       all_total_denominator)
+          logging.info(
+              'host %d %s: all_total_successes=%d, '
+              'all_total_denominator=%d',
+              jax.process_index(), predict_or_test,
+              all_total_successes, all_total_denominator)
 
           # Record beam search results as text summaries.
           message = []
@@ -1432,7 +1434,7 @@ def main(_):
             message.append(text)
 
           # Write to tensorboard.
-          if jax.host_id() == 0:
+          if jax.process_index() == 0:
             accuracy = 100 * all_total_successes / all_total_denominator
             logging.info(
                 '%s results, step %d, beam size %d: %s / %s = %.2f%% (%.2f s)',

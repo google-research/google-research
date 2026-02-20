@@ -175,15 +175,16 @@ def get_batch_dims(global_batch_size):
       number of devices.
   """
   num_local_devices = jax.local_device_count()
-  if global_batch_size % jax.host_count() != 0:
+  if global_batch_size % jax.process_count() != 0:
     raise ValueError(f"Global batch size {global_batch_size} not evenly "
-                     f"divisble with {jax.host_count()}.")
-  per_host_batch_size = global_batch_size // jax.host_count()
+                     f"divisble with {jax.process_count()}.")
+  per_host_batch_size = global_batch_size // jax.process_count()
   if per_host_batch_size % num_local_devices != 0:
-    raise ValueError(f"Global batch size {global_batch_size} not evenly "
-                     f"divisible with {jax.host_count()} hosts with a per host "
-                     f"batch size of {per_host_batch_size} and "
-                     f"{num_local_devices} local devices. ")
+    raise ValueError(
+        f"Global batch size {global_batch_size} not evenly"
+        f" divisible with {jax.process_count()} hosts with"
+        f" a per host batch size of {per_host_batch_size}"
+        f" and {num_local_devices} local devices. ")
   return [num_local_devices, per_host_batch_size // num_local_devices]
 
 
@@ -382,7 +383,7 @@ def create_datasets(
     eval_batch_size = batch_dims[0] * batch_dims[1]
     # We don't pad the last batch => floor.
     eval_num_batches = int(
-        jnp.floor(1872 / eval_batch_size / jax.host_count()))
+        jnp.floor(1872 / eval_batch_size / jax.process_count()))
     eval_ds = eval_ds.apply(
         tf.data.experimental.assert_cardinality(
             eval_num_batches))

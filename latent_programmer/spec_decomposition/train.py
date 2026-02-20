@@ -545,7 +545,7 @@ def main(_):
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(
         os.path.join(FLAGS.save_dir, 'tb', hparam_str))
   else:
@@ -865,7 +865,7 @@ def main(_):
           max_len=max(FLAGS.predict_max_input_length, FLAGS.max_target_length)))
 
   rng = jax.random.PRNGKey(FLAGS.seed)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   rng, init_rng = jax.random.split(rng)
 
   dropout_rng = jax.random.split(rng, jax.local_device_count())
@@ -913,7 +913,8 @@ def main(_):
       for _ in range(start_step):
         dropout_rng = dummy_p_train_step(dropout_rng)
       logging.info('Finished skipping steps')
-      logging.info('Host %s has dropout_rng = %s', jax.host_id(), dropout_rng)
+      logging.info('Host %s has dropout_rng = %s',
+                   jax.process_index(), dropout_rng)
 
   # Replicate optimizer.
   optimizer = jax_utils.replicate(optimizer)
@@ -986,7 +987,7 @@ def main(_):
         # Calculate (clipped) perplexity after averaging log-perplexities:
         summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
 
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
           tock = time.time()
           steps_per_sec = FLAGS.log_freq / (tock - tick)
@@ -1016,7 +1017,7 @@ def main(_):
             lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
             eval_metrics_sums)
 
-        if jax.host_id() == 0:
+        if jax.process_index() == 0:
           logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
                        time.time()-t_evaluation_start, step,
                        eval_summary['loss'])
@@ -1114,7 +1115,7 @@ def main(_):
 
           logging.info('host %d %s: total_success=%d, total_denominator=%d. '
                        'all_total_successes=%d, all_total_denominator=%d.',
-                       jax.host_id(), predict_or_test,
+                       jax.process_index(), predict_or_test,
                        total_successes, total_denominator,
                        all_total_successes, all_total_denominator)
 
@@ -1128,7 +1129,7 @@ def main(_):
             message.append(text)
 
           # Write to tensorboard.
-          if jax.host_id() == 0:
+          if jax.process_index() == 0:
             accuracy = 100 * all_total_successes / all_total_denominator
             logging.info(
                 '%s results, step %d, beam size %d: %s / %s = %.2f%% (%.2f s)',

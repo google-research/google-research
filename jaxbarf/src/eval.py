@@ -164,7 +164,7 @@ def main(unused_argv):
           FLAGS.dataset == "llff",
           chunk=FLAGS.chunk,
           step=step/FLAGS.max_steps)
-      if jax.host_id() != 0:  # Only record via host 0.
+      if jax.process_index() != 0:  # Only record via host 0.
         continue
 
       psnr = utils.compute_psnr(((pred_color - batch["pixels"])**2).mean())

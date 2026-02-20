@@ -73,7 +73,7 @@ def render_voxel_block(mlp_model, mlp_params, block_coordinates_world,
     output_alpha: A [H, W, D, 1] numpy array for the alpha values at each voxel.
   """
   num_devices = jax.device_count()
-  host_id = jax.host_id()
+  host_id = jax.process_index()
 
   chunk_size = scene_params['chunk_size']
   channels = scene_params['_channels']

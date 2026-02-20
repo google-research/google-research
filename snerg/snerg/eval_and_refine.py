@@ -96,9 +96,9 @@ def build_sharded_dataset_for_view_dependence(source_dataset, atlas_t,
       (N/NUM_HOSTS, NUM_LOCAL_DEVICES, H, W, 3) numpy array.
   """
 
-  num_hosts = jax.host_count()
+  num_hosts = jax.process_count()
   num_local_devices = jax.local_device_count()
-  host_id = jax.host_id()
+  host_id = jax.process_index()
   num_images = source_dataset.camtoworlds.shape[0]
   num_batches = math.ceil(num_images / num_hosts)
   num_batches = num_local_devices * math.ceil(num_batches / num_local_devices)
@@ -192,7 +192,7 @@ def eval_dataset_and_unshard(viewdir_mlp_model, viewdir_mlp_params,
     output = jnp.minimum(1.0, rgb_and_feature_chunk[Ellipsis, 0:3] + residual)
     return jax.lax.all_gather(output, axis_name="batch")
 
-  num_hosts = jax.host_count()
+  num_hosts = jax.process_count()
   num_local_devices = jax.local_device_count()
   num_images = source_dataset.camtoworlds.shape[0]
   num_batches = math.ceil(num_images / num_hosts)

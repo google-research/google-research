@@ -220,7 +220,7 @@ def main(unused_argv):
   rng = random.PRNGKey(20200823)
   # Shift the numpy random seed by host_id() to shuffle data loaded by different
   # hosts.
-  np.random.seed(20201473 + jax.host_id())
+  np.random.seed(20201473 + jax.process_index())
 
   config = configs.load_config()
 
@@ -276,13 +276,13 @@ def main(unused_argv):
   init_step = state.optimizer.state.step + 1
   state = flax.jax_utils.replicate(state)
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(config.checkpoint_dir)
     summary_writer.text('config', f'<pre>{config}</pre>', step=0)
 
   # Prefetch_buffer_size = 3 x batch_size
   pdataset = flax.jax_utils.prefetch_to_device(dataset, 3)
-  rng = rng + jax.host_id()  # Make random seed separate across hosts.
+  rng = rng + jax.process_index()  # Make random seed separate across hosts.
   rngs = random.split(rng, jax.local_device_count())  # For pmapping RNG keys.
   gc.disable()  # Disable automatic garbage collection for efficiency.
   total_time = 0
@@ -330,7 +330,7 @@ def main(unused_argv):
     # Log training summaries. This is put behind a host_id check because in
     # multi-host evaluation, all hosts need to run inference even though we
     # only use host 0 to record results.
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       avg_psnr_numer += stats.psnr[0]
       avg_psnr_denom += 1
       if step % config.print_every == 0:
@@ -414,7 +414,7 @@ def main(unused_argv):
       print(f'Visualized in {(time.time() - vis_start_time):0.3f}s')
 
       # Log eval summaries on host 0.
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         if not config.render_path:
           psnr = float(
               math.mse_to_psnr(((

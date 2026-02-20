@@ -137,7 +137,7 @@ def main(unused_argv):
           config)
       print(f'Rendered in {(time.time() - eval_start_time):0.3f}s')
 
-      if jax.host_id() != 0:  # Only record via host 0.
+      if jax.process_index() != 0:  # Only record via host 0.
         continue
       if not config.eval_only_once and idx in showcase_indices:
         showcase_idx = idx if config.deterministic_showcase else len(showcases)
@@ -203,7 +203,7 @@ def main(unused_argv):
                              path_fn(f'distance_median_{idx:03d}.tiff'))
           utils.save_img_f32(rendering['acc'], path_fn(f'acc_{idx:03d}.tiff'))
 
-    if (not config.eval_only_once) and (jax.host_id() == 0):
+    if (not config.eval_only_once) and (jax.process_index() == 0):
       for name in list(metrics[0].keys()):
         summary_writer.scalar(name, np.mean([m[name] for m in metrics]), step)
       for i, r, b in showcases:
@@ -212,7 +212,7 @@ def main(unused_argv):
         if not config.render_path:
           summary_writer.image(f'target_{i}', b['rgb'], step)
     if (config.eval_save_output and (not config.render_path) and
-        (jax.host_id() == 0)):
+        (jax.process_index() == 0)):
       for name in list(metrics[0].keys()):
         with utils.open_file(path_fn(f'metric_{name}_{step}.txt'), 'w') as f:
           f.write(' '.join([str(m[name]) for m in metrics]))

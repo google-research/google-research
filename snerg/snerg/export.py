@@ -42,8 +42,8 @@ def synchronize_jax_hosts():
   """Makes sure that the JAX hosts have all reached this point."""
   # Build an array containing the host_id.
   num_local_devices = jax.local_device_count()
-  num_hosts = jax.host_count()
-  host_id = jax.host_id()
+  num_hosts = jax.process_count()
+  host_id = jax.process_index()
   dummy_array = np.ones((num_local_devices, 1), dtype=np.int32) * host_id
 
   # Then broadcast it between all JAX hosts. This makes sure that all hosts are
@@ -68,8 +68,8 @@ def parallel_write_images(image_write_fn, img_and_path_list):
     img_and_path_list: A list of tuples (image, path) containing all the images
       that should be written.
   """
-  num_hosts = jax.host_count()
-  host_id = jax.host_id()
+  num_hosts = jax.process_count()
+  host_id = jax.process_index()
   num_images = len(img_and_path_list)
   num_images_per_batch = math.ceil(num_images / num_hosts)
 
@@ -180,7 +180,7 @@ def export_snerg_scene(output_directory, atlas, atlas_block_indices,
   # To avoid partial overwrites, first dump the scene to a temporary directory.
   output_tmp_directory = output_directory + '/temp'
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     # Delete the folder if it already exists.
     if utils.isdir(output_tmp_directory):
       tf.io.gfile.rmtree(output_tmp_directory)
@@ -188,7 +188,7 @@ def export_snerg_scene(output_directory, atlas, atlas_block_indices,
 
   # Now store the indirection grid.
   atlas_indices_path = '%s/atlas_indices.png' % output_tmp_directory
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     save_8bit_png((atlas_index_image, atlas_indices_path))
 
   # Make sure that all JAX hosts have reached this point in the code before we
@@ -232,7 +232,7 @@ def export_snerg_scene(output_directory, atlas, atlas_block_indices,
   # Now export the scene parameters and the network weights as a JSON.
   export_scene_params['format'] = 'png'
   scene_params_path = '%s/scene_params.json' % output_tmp_directory
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     with utils.open_file(scene_params_path, 'wb') as f:
       f.write(json.dumps(export_scene_params).encode('utf-8'))
 
@@ -242,7 +242,7 @@ def export_snerg_scene(output_directory, atlas, atlas_block_indices,
 
   # Finally move the scene to the appropriate output path.
   output_png_directory = output_directory + '/png'
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     # Delete the folder if it already exists.
     if utils.isdir(output_png_directory):
       tf.io.gfile.rmtree(output_png_directory)

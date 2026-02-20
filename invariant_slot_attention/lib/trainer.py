@@ -93,7 +93,7 @@ def train_step(
 
   # Split PRNGKey and bind to host / device.
   new_rng, rng = jax.random.split(rng)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   rng = jax.random.fold_in(rng, jax.lax.axis_index("batch"))
   init_rng, dropout_rng = jax.random.split(rng, 2)
 
@@ -154,7 +154,7 @@ def train_and_evaluate(config,
   rng, data_rng = jax.random.split(rng)
   # Make sure each host uses a different RNG for the training data.
   if config.get("seed_data", True):  # Default to seeding data if not specified.
-    data_rng = jax.random.fold_in(data_rng, jax.host_id())
+    data_rng = jax.random.fold_in(data_rng, jax.process_index())
   else:
     data_rng = None
   train_ds, eval_ds = input_pipeline.create_datasets(config, data_rng)
@@ -221,7 +221,7 @@ def train_and_evaluate(config,
 
   # Only write metrics on host 0, write to logs on all other hosts.
   writer = metric_writers.create_default_writer(
-      workdir, just_logging=jax.host_id() > 0)
+      workdir, just_logging=jax.process_index() > 0)
   writer.write_hparams(utils.prepare_dict_for_logging(config.to_dict()))
 
   logging.info("Starting training loop at step %d.", initial_step)

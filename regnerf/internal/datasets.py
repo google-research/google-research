@@ -393,8 +393,8 @@ class Dataset(threading.Thread):
     else:
       raise ValueError(
           f'`split` should be \'train\' or \'test\', but is \'{split}\'.')
-    self.batch_size = config.batch_size // jax.host_count()
-    self.batch_size_random = config.batch_size_random // jax.host_count()
+    self.batch_size = config.batch_size // jax.process_count()
+    self.batch_size_random = config.batch_size_random // jax.process_count()
     print('Using following batch size', self.batch_size)
     self.patch_size = config.patch_size
     self.batching = config.batching

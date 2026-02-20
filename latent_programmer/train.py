@@ -110,7 +110,7 @@ def main(_):
   # Number of local devices for this host.
   n_devices = jax.local_device_count()
 
-  if jax.host_id() == 0:
+  if jax.process_index() == 0:
     summary_writer = tensorboard.SummaryWriter(
         os.path.join(FLAGS.save_dir, 'tb', hparam_str))
 
@@ -199,7 +199,7 @@ def main(_):
       shift=False, deterministic=True, decode=True)
 
   rng = jax.random.PRNGKey(FLAGS.seed)
-  rng = jax.random.fold_in(rng, jax.host_id())
+  rng = jax.random.fold_in(rng, jax.process_index())
   rng, init_rng = jax.random.split(rng)
 
   m = models.ProgramTransformer(eval_config)
@@ -270,7 +270,7 @@ def main(_):
     # Save a Checkpoint
     if ((step % FLAGS.checkpoint_freq == 0 and step > 0) or
         step == FLAGS.num_train_steps - 1):
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         # Save unreplicated optimizer + model state.
         checkpoints.save_checkpoint(
             os.path.join(FLAGS.save_dir, 'checkpoints', hparam_str),
@@ -294,7 +294,7 @@ def main(_):
     # Calculate (clipped) perplexity after averaging log-perplexities:
     summary['perplexity'] = jnp.clip(jnp.exp(summary['loss']), max=1.0e4)
 
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       logging.info('Train in step: %d, loss: %.4f', step, summary['loss'])
       tock = time.time()
       steps_per_sec = FLAGS.log_freq / (tock - tick)
@@ -323,7 +323,7 @@ def main(_):
         lambda x: x / eval_denominator,  # pylint: disable=cell-var-from-loop
         eval_metrics_sums)
 
-    if jax.host_id() == 0:
+    if jax.process_index() == 0:
       logging.info('Evaluation time: %.4f s step %d, loss: %.4f.',
                    time.time()-t_evaluation_start, step, eval_summary['loss'])
       for key, val in eval_summary.items():
@@ -385,7 +385,7 @@ def main(_):
         message.append(text)
 
       # Write to tensorboard.
-      if jax.host_id() == 0:
+      if jax.process_index() == 0:
         logging.info('Prediction time (beam %d): %.4f s step %d, score %.4f.',
                      beam_size, time.time() - t_inference_start, step,
                      all_pred_acc / all_pred_denominator)
