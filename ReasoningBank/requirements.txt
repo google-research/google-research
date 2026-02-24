@@ -6,7 +6,7 @@ gymnasium==1.2.0
 langchain==0.3.26  
 langchain-anthropic==0.3.19  
 langchain-community==0.3.26  
-langchain-core==0.3.74  
+langchain-core==1.2.11  
 langchain-text-splitters==0.3.8   
 openai==1.90.0  
 transformers==4.53.3  
