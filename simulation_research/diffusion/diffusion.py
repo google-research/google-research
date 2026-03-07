@@ -204,7 +204,7 @@ class Diffusion(object):
   tmin = 1e-4
   tmax = 1.
 
-  def __init__(self, covariance = Identity):
+  def __init__(self, covariance=Identity):
     super().__init__()
     self.covsqrt = covariance
 
@@ -240,7 +240,8 @@ class Diffusion(object):
     return cls.f(t) * x - cls.g2(t) * score_fn(x, t)
 
   @classmethod
-  def diffusion(cls, score_fn, x, t):  # pylint: disable=unused-argument
+  def diffusion(cls, score_fn, x, t):
+    # pylint: disable=unused-argument
     """Backwards SDE diffusion term (independent of score_fn)."""
     return jnp.sqrt(cls.g2(t))
 
@@ -317,11 +318,11 @@ def train_diffusion(
     epochs = 100,
     lr = 1e-3,
     diffusion = VarianceExploding(),
-    cond_fn = nonefn,  # function: array -> array or None
+    cond_fn=nonefn,  # function: array -> array or None
     num_ema_foldings = 5,
-    writer = None,
-    report = None,
-    ckpt = None,
+    writer=None,
+    report=None,
+    ckpt=None,
     seed = None,  # to avoid initing jax
 ):
   """Train diffusion model with score matching according to diffusion type.

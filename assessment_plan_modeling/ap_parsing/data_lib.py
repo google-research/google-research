@@ -637,7 +637,8 @@ def convert_note(note_event):
 
 
 def convert_ratings(
-    csv_labeled_char_span):
+    csv_labeled_char_span,
+):
   """Converts labeled spans from CSV to LabeledCharSpan object."""
   labeled_char_span = ap_parsing_lib.LabeledCharSpan(
       start_char=csv_labeled_char_span.char_start,

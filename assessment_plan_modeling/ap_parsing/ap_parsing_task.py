@@ -335,9 +335,9 @@ class APParsingTaskBase(base_task.Task):
     inputs = emb_inputs
     return tf.keras.Model(inputs=inputs, outputs=outputs)
 
-  def build_inputs(self,
-                   params,
-                   input_context = None):
+  def build_inputs(
+      self, params, input_context=None
+  ):
     """Returns tf.data.Dataset for AP parsing task."""
     loader = ap_parsing_dataloader.APParsingDataLoader(params)
     return loader.load(input_context)

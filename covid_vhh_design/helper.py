@@ -171,7 +171,7 @@ def read_csv(
 
 def impute_inf(
     df_or_series: DataFrameOrSeries,
-    imputation_fn: ...,
+    imputation_fn,
     fill_value: float = np.nan,
 ) -> DataFrameOrSeries:
   """Replaces Inf values of a Series or DataFrame.

@@ -44,8 +44,8 @@ def offset_labeled_token_span(
 
 
 def predict_single(
-    model,
-    features):
+    model, features
+):
   """Predicts labeled token spans for the sample using the given model.
 
   Args:
