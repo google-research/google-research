@@ -9,5 +9,5 @@ wget -P data/full_dataset/ https://storage.googleapis.com/gresearch/goemotions/d
 Alternatively, to copy the entire directory you may also use:
 
 ```
-gsutil cp -r gs://gresearch/goemotions/data/full_dataset/ .
+gcloud storage cp --recursive gs://gresearch/goemotions/data/full_dataset/ .
 ```

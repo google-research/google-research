@@ -10,7 +10,7 @@ export MODEL_NAME=imagenet32  # or imagenet64
 
 # Download model checkpoint
 mkdir logdir
-gsutil cp gs://axial-transformers/$MODEL_NAME/{checkpoint,model.ckpt.data-00000-of-00001,model.ckpt.index,model.ckpt.meta} logdir
+gcloud storage cp gs://axial-transformers/$MODEL_NAME/{checkpoint,model.ckpt.data-00000-of-00001,model.ckpt.index,model.ckpt.meta} logdir
 
 # Run the model
 python3 -m axial.main --config $MODEL_NAME --logdir logdir

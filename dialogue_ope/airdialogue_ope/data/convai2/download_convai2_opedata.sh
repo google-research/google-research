@@ -17,7 +17,7 @@
 
 
 FNAME=convai2_opedata.tar.gz
-gsutil cp gs://airdialogue_share/$FNAME ./
+gcloud storage cp gs://airdialogue_share/$FNAME ./
 rm -rf cleaned_logs
 tar -xvzf $FNAME
 rm $FNAME

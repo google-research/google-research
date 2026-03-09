@@ -19,7 +19,7 @@
 mkdir syn_opedata
 cd syn_opedata
 FNAME=syn_opedata.tar.gz
-gsutil  cp gs://airdialogue_share/$FNAME ./
+gcloud storage cp gs://airdialogue_share/$FNAME ./
 tar -xvzf $FNAME
 rm $FNAME
 cd ..
