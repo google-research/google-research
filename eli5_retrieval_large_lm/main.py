@@ -396,10 +396,10 @@ def save_model(
     model_or_replicas.save_pretrained(os.path.join(save_directory, "model"))
     subprocess.run(
         [
-            "/root/google-cloud-sdk/bin/gsutil",
-            "-m",
+            "/root/google-cloud-sdk/bin/gcloud",
+            "storage",
             "cp",
-            "-R",
+            "--recursive",
             save_directory,
             instance_output_dir,
         ],
@@ -912,4 +912,3 @@ def main(argv):
 
 if __name__ == "__main__":
   app.run(main)
-
