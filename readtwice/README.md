@@ -73,8 +73,8 @@ python -m readtwice.models.hotpot_qa.preprocess \
 --generate_answers \
 --nltk_data_path=${NLTK_DATA_PATH}
 
-gsutil -m cp ${HOTPOTQA_EXAMPLE_DIR}/* ${HOTPOTQA_EXAMPLE_GCP_BUCKET}
-gsutil -m cp ${HOTPOTQA_DATA_DIR}/hotpot_dev_distractor_v1.json ${HOTPOTQA_EXAMPLE_GCP_BUCKET}
+gcloud storage cp ${HOTPOTQA_EXAMPLE_DIR}/* ${HOTPOTQA_EXAMPLE_GCP_BUCKET}
+gcloud storage cp ${HOTPOTQA_DATA_DIR}/hotpot_dev_distractor_v1.json ${HOTPOTQA_EXAMPLE_GCP_BUCKET}
 ```
 
 Finally, launch a fine-tuning using a pre-training.
@@ -171,8 +171,8 @@ python -m readtwice.models.trivia_qa.preprocess \
 --generate_answers \
 --nltk_data_path=${NLTK_DATA_PATH}
 
-gsutil -m cp ${TRIVIAQA_EXAMPLE_DIR}/* ${TRIVIAQA_EXAMPLE_GCP_BUCKET}
-gsutil -m cp ${TRIVIAQA_DATA_DIR}/qa/wikipedia-dev.json ${TRIVIAQA_EXAMPLE_GCP_BUCKET}
+gcloud storage cp ${TRIVIAQA_EXAMPLE_DIR}/* ${TRIVIAQA_EXAMPLE_GCP_BUCKET}
+gcloud storage cp ${TRIVIAQA_DATA_DIR}/qa/wikipedia-dev.json ${TRIVIAQA_EXAMPLE_GCP_BUCKET}
 ```
 
 Finally, launch a fine-tuning using a pre-training.
@@ -276,7 +276,7 @@ python -m readtwice.models.narrative_qa.preprocess \
 --generate_answers \
 --nltk_data_path=${NLTK_DATA_PATH}
 
-gsutil cp ${NARRATIVEQA_DATA_DIR}qaps.csv ${NARRATIVEQA_EXAMPLE_DIR}
+gcloud storage cp ${NARRATIVEQA_DATA_DIR}qaps.csv ${NARRATIVEQA_EXAMPLE_DIR}
 ```
 
 Finally, launch a fine-tuning using a pre-training.

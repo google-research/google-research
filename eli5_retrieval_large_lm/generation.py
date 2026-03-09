@@ -140,16 +140,16 @@ def main(argv):
           with tempfile.TemporaryDirectory() as td:
             td += os.path.sep
 
-            if os.path.exists("/root/google-cloud-sdk/bin/gsutil"):
-              exec_ = "/root/google-cloud-sdk/bin/gsutil"
+            if os.path.exists("/root/google-cloud-sdk/bin/gcloud"):
+              exec_ = "/root/google-cloud-sdk/bin/gcloud"
             else:
-              exec_ = "gsutil"
+              exec_ = "gcloud"
 
             command = [
                 exec_,
-                "-m",
+                "storage",
                 "cp",
-                "-r",
+                "--recursive",
                 os.path.join(model_path, "*"),
                 td,
             ]

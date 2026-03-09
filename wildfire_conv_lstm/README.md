@@ -20,7 +20,7 @@ https://cloud.google.com/sdk/docs/install
 You can view all the datasets via:
 
 ```
-gsutil ls gs://wildfire_conv_lstm/data
+gcloud storage ls gs://wildfire_conv_lstm/data
 ```
 
 There is a single subdirectory for each dataset:
@@ -33,7 +33,7 @@ There is a single subdirectory for each dataset:
 The data folders each contain 10 sub directories, each containing roughly 10% of the data for that dataset.  E.g.:
 
 ```
-gsutil ls gs://wildfire_conv_lstm/data/california_wn
+gcloud storage ls gs://wildfire_conv_lstm/data/california_wn
 ```
 
 Results in:
@@ -81,7 +81,7 @@ All of the files are publicly accessible.  In order to use them in the colab, fi
 mkdir -p ~/tmp/test
 
 # Copy over one shard of the sharded TFRecordIO.
-gsutil cp gs://wildfire_conv_lstm/data/california_wn/00/real_wn_test_temporal.tfr-00164-of-00165 ~/tmp/test
+gcloud storage cp gs://wildfire_conv_lstm/data/california_wn/00/real_wn_test_temporal.tfr-00164-of-00165 ~/tmp/test
 ```
 
 # Model Checkpoints
@@ -89,7 +89,7 @@ gsutil cp gs://wildfire_conv_lstm/data/california_wn/00/real_wn_test_temporal.tf
 You can view all the model check points:
 
 ```
-gsutil ls gs://wildfire_conv_lstm/checkpoints
+gcloud storage ls gs://wildfire_conv_lstm/checkpoints
 ```
 
 Like the data files, there are 4 groups of models for each of the 4 datasets evaluated in the paper.  Each subdirectory contains two models:
@@ -100,7 +100,7 @@ Like the data files, there are 4 groups of models for each of the 4 datasets eva
 Since the data file we copied contains the tag 'temporal', we need the EPD-ConvLSTM model checkpoint stored in lstm.h5:
 
 ```
-gsutil cp gs://wildfire_conv_lstm/checkpoints/california_wn/lstm.h5 ~/tmp/test
+gcloud storage cp gs://wildfire_conv_lstm/checkpoints/california_wn/lstm.h5 ~/tmp/test
 ```
 
 # Colab

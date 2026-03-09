@@ -586,7 +586,7 @@ def main(argv):
     output_file.close()
     with utils.log_duration(LOGGER, "main", "gsutil transfer"):
       command = [
-          "/root/google-cloud-sdk/bin/gsutil", "-m", "cp", "-r",
+          "/root/google-cloud-sdk/bin/gcloud", "storage", "cp", "--recursive",
           str(tmp_dir / "*"), target_path
       ]
       LOGGER.debug("Command: %s", " ".join(command))
