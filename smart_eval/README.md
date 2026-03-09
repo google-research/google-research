@@ -26,7 +26,7 @@ You first need to download the necessary datasets:
 You also need to download the precomputed scores for model-based matching functions (e.g., BLEURT, BERTScore, and T5-ANLI). In the terminal, follow the instructions and install [gsutil](https://cloud.google.com/storage/docs/gsutil_install). Then run:
 
 ```
-gsutil cp -r gs://gresearch/SMART ./
+gcloud storage cp --recursive gs://gresearch/SMART ./
 ```
 
 Then, finally, run the following:

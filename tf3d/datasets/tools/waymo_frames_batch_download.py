@@ -41,7 +41,7 @@ def main(_):
           % (key, i, value))
       logging.info(file_url)
       assert os.system(
-          'gsutil cp ' + file_url + ' ' +
+          'gcloud storage cp ' + file_url + ' ' +
           FLAGS.target_dir) == 0, 'Failed to download %s' % file_url
 
 

@@ -20,7 +20,7 @@ FNAME=air_human_ope_data.tar.gz
 rm -rf human_opedata
 mkdir -p human_opedata
 cd human_opedata
-gsutil cp gs://airdialogue_share/$FNAME ./
+gcloud storage cp gs://airdialogue_share/$FNAME ./
 tar -xvzf $FNAME
 rm $FNAME
 
