@@ -1,4 +1,3 @@
-
 Code for the distracting DM control experiments in [Contrastive behavioral similarity embeddings
 for generalization in reinforcement learning](https://agarwl.github.io/pse/), published at ICLR 2021.
 
@@ -17,9 +16,9 @@ To run the code, follow the following instructions:
 
         ```
         # All Distracting Control environments:
-        gsutil -m cp -R gs://pse_iclr21/dm_control/pse_data
+        gcloud storage cp --recursive gs://pse_iclr21/dm_control/pse_data
         # A specific `ENV` (such as 'ball_in_cup-catch'):
-        gsutil -m cp -R gs://pse_iclr21/dm_control/pse_data/ENV
+        gcloud storage cp --recursive gs://pse_iclr21/dm_control/pse_data/ENV
         ```
 
     - To collect data on your own domain, please use the `data_collection/collect_data` script with a pretrained checkpoint.

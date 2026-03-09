@@ -136,7 +136,7 @@ We provide checkpoints of trained models on the Sintel and KITTI dataset. The ch
 To use these checkpoints, download all files into a local checkpoint directory, e.g. /tmp/smurf/, either by using the Google Cloud Storage web interface or using gsutil:
 
 ```
-gsutil cp -r gs://gresearch/smurf* /tmp/smurf/
+gcloud storage cp --recursive gs://gresearch/smurf* /tmp/smurf/
 ```
 
 You can then restore the checkpoints by passing

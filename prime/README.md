@@ -28,7 +28,7 @@ grade simulator. The dataset is available on Google Cloud Storage:
 You may download the dataset either by using the Google Cloud Storage web interface or using gsutil:
 
 ```
-gsutil cp -r gs://gresearch/prime /tmp/prime/
+gcloud storage cp --recursive gs://gresearch/prime /tmp/prime/
 ```
 
 This dataset contains both infeasible and feasible data points as described in
