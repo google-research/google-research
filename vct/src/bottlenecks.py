@@ -279,8 +279,7 @@ class ConditionalLocScaleShiftBottleneck(tf.Module):
       quantized_latent = self._entropy_model.quantize(latent)
     return quantized_latent + shift, bits
 
-  def compress(self, latent, mean,
-               scale):
+  def compress(self, latent, mean, scale):
     """Compresses into a bytestring."""
     indexes = self._get_indexes(mean, scale, training=False)
     shift = self._get_shift(mean)
