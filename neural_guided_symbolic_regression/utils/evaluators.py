@@ -164,8 +164,8 @@ def numpy_array_eval(string, callables=None, arguments=None):
           callable function in string is not in callables, or the input string
           is malformed.
     """
-    if isinstance(node, ast.Num):
-      return node.n
+    if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)):
+      return node.value
     elif isinstance(node, ast.UnaryOp):
       return _OPERATORS[type(node.op)](_eval(node.operand))
     elif isinstance(node, ast.BinOp):
