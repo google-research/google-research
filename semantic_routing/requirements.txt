@@ -117,7 +117,7 @@ tensorflow-io-gcs-filesystem==0.37.1
 termcolor==2.5.0
 terminado==0.18.1
 tinycss2==1.4.0
-tornado==6.4.1
+tornado==6.5.5
 traitlets==5.14.3
 types-python-dateutil==2.9.0.20241003
 typing_extensions==4.12.2
