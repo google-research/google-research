@@ -19,7 +19,7 @@ gym-notices==0.0.6
 h5py==3.7.0
 idna==3.3
 importlib-metadata==4.11.4
-keras==2.9.0
+keras==2.13.1
 Keras-Preprocessing==1.1.2
 kiwisolver==1.4.2
 libclang==14.0.1
