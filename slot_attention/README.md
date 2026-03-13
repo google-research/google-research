@@ -87,7 +87,7 @@ directory, e.g. `/tmp/object_discovery/`, either by using the Google Cloud
 Storage web interface or using [gsutil](https://cloud.google.com/storage/docs/gsutil):
 
 ```
-gsutil cp gs://gresearch/slot-attention/object-discovery/* /tmp/object_discovery/
+gcloud storage cp gs://gresearch/slot-attention/object-discovery/* /tmp/object_discovery/
 ```
 
 We also provide zip-compressed versions of the checkpoints for easier download

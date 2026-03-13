@@ -99,8 +99,8 @@ You can grab released checkpoints and vocabulary files using
 
 ```shell
 mkdir data
-gsutil cp -r gs://t5-data/pretrained_models/t5x/mt5_large/checkpoint_1000000 ./data
-gsutil cp -r gs://t5-data/vocabs/mc4.250000.100extra ./data
+gcloud storage cp --recursive gs://t5-data/pretrained_models/t5x/mt5_large/checkpoint_1000000 ./data
+gcloud storage cp --recursive gs://t5-data/vocabs/mc4.250000.100extra ./data
 ```
 
 If you have the necessary packages and data, you can use `get_t5x_scores.sh` to

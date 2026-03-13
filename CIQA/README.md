@@ -62,7 +62,7 @@ test set (1536 pairwise comparisons). Column names in the data are
 
 ## Access
 The train and test sets are stored in the Google Research GCP public data
-storage. The data can be accessed through the gsutil CLI, tf.io.gfile API and
+storage. The data can be accessed through the gcloud storage CLI, tf.io.gfile API and
 HTTP api. It is stored in gs://gresearch bucket under the CIQA directory.
 
 * Training Set - http://storage.googleapis.com/gresearch/ciqa/train.csv

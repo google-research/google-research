@@ -12,7 +12,7 @@ The HalfCheetah environment requires Mujoco, so make sure you also followed the 
 Example checkpoints are stored in Google Cloud Storage and can be downloaded by running:
 
 ```
-gsutil cp -r gs://gresearch/norml/example_checkpoints/ .
+gcloud storage cp --recursive gs://gresearch/norml/example_checkpoints/ .
 ```
 
 You can start training from scratch by

@@ -25,7 +25,7 @@ replace `~/airdialogue_model_transformer` by your path
 cd ParlAI
 mkdir data
 cd data
-gsutil cp gs://airdialogue_share/airdialogue_data.tar.gz ./airdialogue.tar.gz
+gcloud storage cp gs://airdialogue_share/airdialogue_data.tar.gz ./airdialogue.tar.gz
 cd ../..
 ```
 
@@ -55,7 +55,7 @@ CUDA_VISIBLE_DEVICS=0 python train_agent.py
 ```
 mkdir outputs
 cd outputs
-gsutil cp gs://airdialogue_share/air_pretrain_model.tar.gz ./
+gcloud storage cp gs://airdialogue_share/air_pretrain_model.tar.gz ./
 tar -xvzf air_pretrain_model.tar.gz
 ```
 
