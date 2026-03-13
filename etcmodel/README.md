@@ -165,7 +165,7 @@ use the following commands:
 mkdir ${NQ_PROCESSED_FOLDER}/proc
 python3 -m etcmodel.models.nq.preproc_nq --input_dir=${NQ_ORIGINAL_FOLDER} \
 --output_dir=${NQ_PROCESSED_FOLDER}/proc --vocab_file=${BERT_VOCAB}
-gsutil -m cp -R ${NQ_PROCESSED_FOLDER}/proc ${NQ_GCP_BUCKET_PATH}
+gcloud storage cp --recursive ${NQ_PROCESSED_FOLDER}/proc ${NQ_GCP_BUCKET_PATH}
 ```
 
 To pre-process the data using the RoBERTa SentencePiece tokenizer, use the
@@ -176,7 +176,7 @@ mkdir ${NQ_PROCESSED_FOLDER}/proc-sp
 python3 -m etcmodel.models.nq.preproc_nq --input_dir=${NQ_ORIGINAL_FOLDER} \
 --output_dir=${NQ_PROCESSED_FOLDER}/proc-sp --tokenizer_type=ALBERT \
 --spm_model_path=${ROBERTA_VOCAB}
-gsutil -m cp -R ${NQ_PROCESSED_FOLDER}/proc-sp ${NQ_GCP_BUCKET_PATH}
+gcloud storage cp --recursive ${NQ_PROCESSED_FOLDER}/proc-sp ${NQ_GCP_BUCKET_PATH}
 ```
 
 After the data is pre-processed, the next step is to generate the gold data
@@ -185,7 +185,7 @@ cache needed by the Natural Questions evaluation script:
 ```
 python3 -m etcmodel.models.nq.make_gold_cache \
 --gold_path=${NQ_ORIGINAL_FOLDER}/dev/nq-dev-??.jsonl.gz
-gsutil cp ${NQ_ORIGINAL_FOLDER}/dev/cache ${NQ_GCP_BUCKET_PATH}
+gcloud storage cp ${NQ_ORIGINAL_FOLDER}/dev/cache ${NQ_GCP_BUCKET_PATH}
 ```
 
 Finally, we launch the fine-tuning jobs. The following two calls will start
@@ -277,7 +277,7 @@ python3 -m etcmodel.models.hotpotqa.generate_tf_examples_beam \
 --answer_encoding_method="span" \
 --direct_num_workers=1
 
-gsutil -m cp -R ${HOTPOTQA_EXAMPLE_DIR} ${HOTPOTQA_EXAMPLE_GCP_BUCKET}
+gcloud storage cp --recursive ${HOTPOTQA_EXAMPLE_DIR} ${HOTPOTQA_EXAMPLE_GCP_BUCKET}
 ```
 
 In order to use the SentencePiece tokenizer, please set
@@ -509,7 +509,7 @@ python3 -m etcmodel.models.openkp.generate_examples \
 --bert_vocab_path=${BERT_VOCAB} \
 --do_lower_case=true
 
-gsutil -m cp -R ${OPENKP_EXAMPLE_DIR} ${OPENKP_EXAMPLE_GCP_BUCKET}
+gcloud storage cp --recursive ${OPENKP_EXAMPLE_DIR} ${OPENKP_EXAMPLE_GCP_BUCKET}
 ```
 
 In order to use the SentencePiece tokenizer, please set
