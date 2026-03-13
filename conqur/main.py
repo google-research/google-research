@@ -27,7 +27,8 @@ from absl import flags
 from dopamine.discrete_domains import checkpointer
 import numpy as np
 import scipy as sp
-import tensorflow.compat.v1 as tf
+# import tensorflow.compat.v1 as tf
+import tensorflow as tf
 
 from conqur import atari
 
@@ -48,6 +49,8 @@ flags.DEFINE_bool("sample_consis_buffer", False,
 flags.DEFINE_integer("training_iterations", 100, "Iterations to train for.")
 flags.DEFINE_string("atari_game", None,
                     "Specify atari environment if env=\'atari\'.")
+flags.DEFINE_string("pretrain_model_path", './',
+                    "pretrain DQN model checkpoint")
 flags.DEFINE_integer("random_seed", 0, "Random seed.")
 flags.DEFINE_string("tfboard_path", "./", "Tensorboard root path.")
 flags.DEFINE_string("checkpoint_path", "./",
@@ -311,9 +314,9 @@ def create_single_layer_from_weights(num_actions, state_dimensions,
   Returns:
     keras.layer object with the params determined by the weights_vector
   """
-  if isinstance(weights_vector[0]) == tuple:
+  if isinstance(weights_vector[0], tuple):
     weights_vector[0] = weights_vector[0][0]
-  if isinstance(weights_vector[1]) == tuple:
+  if isinstance(weights_vector[1], tuple):
     weights_vector[1] = weights_vector[1][0]
 
   single_layer = tf.keras.Sequential()
@@ -818,7 +821,7 @@ def run_training(environment, exploration_fn, random_state, args_dict=None):
         target_weight=target_weight,
         tree_exp_replay=tree_exp_replay,
         pre_load=pre_load,
-        q=q,
+        node_queue=q,
         tree_level_size=tree_level_size,
         weights_to_be_rollout=weights_to_be_rollout,
         best_sampler=best_sampler,
@@ -840,9 +843,11 @@ def run_atari():
   # TODO(dijiasu): Fix hard coding.
   environment = atari.Atari(FLAGS.atari_roms_source, FLAGS.atari_roms_path,
                             FLAGS.gin_files, FLAGS.gin_bindings,
-                            FLAGS.random_seed, FLAGS.no_op, True)
+                            FLAGS.random_seed, FLAGS.no_op, True,
+                            FLAGS.pretrain_model_path)
   args_dict = {
       "atari_game": FLAGS.atari_game,
+      "pretrain_model_path": FLAGS.pretrain_model_path,
       "enable_back_tracking": FLAGS.enable_back_tracking,
       "sample_consis_buffer": FLAGS.sample_consis_buffer,
       "max_num_nodes": FLAGS.max_num_nodes,
@@ -876,7 +881,7 @@ def run_atari():
 
 
 def main(_):
-  tf.compat.v1.enable_eager_execution()
+  tf.enable_eager_execution()
   os.environ["TF_CPP_MIN_LOG_LEVEL"] = "0"
   logger = tf.get_logger()
   logger.setLevel(tf.logging.ERROR)

@@ -46,11 +46,11 @@ class Atari(env.Environment):
   """Manages episodic sampling and evaluation of policies."""
 
   def __init__(self, atari_roms_source, atari_roms_path, gin_files,
-               gin_bindings, random_seed, no_op, best_sampling):
-    atari_lib.copy_roms(atari_roms_source, destination_dir=atari_roms_path)
+               gin_bindings, random_seed, no_op, best_sampling, pretrain_model_path):
+    # atari_lib.copy_roms(atari_roms_source, destination_dir=atari_roms_path)
     run_experiment.load_gin_configs(gin_files, gin_bindings)
     self.random_state = np.random.RandomState(random_seed)
-    self.runner = ConqurRunner(self.random_state, no_op, best_sampling)
+    self.runner = ConqurRunner(self.random_state, no_op, pretrain_model_path, best_sampling)
     self.num_actions = self.runner.num_actions
     super(Atari, self).__init__()
 
@@ -135,8 +135,8 @@ class ConqurRunner(run_experiment.TrainRunner):
   def __init__(self,
                random_state,
                no_op,
+               representation_checkpoint='./Pong/lucid_dqn_Pong_2_tf_ckpt-199',
                best_sampling=True,
-               representation_checkpoint=None,
                create_environment_fn=create_atari_environment,
                game_name='Pong',
                game_version='v0',
@@ -176,13 +176,12 @@ class ConqurRunner(run_experiment.TrainRunner):
     self.action_vals = np.zeros((self.num_actions,), dtype='f8')
     self.no_op = no_op
     self.best_sampling = best_sampling
-
     self._representation_checkpoint = representation_checkpoint
     if self._representation_checkpoint:
       self._control_graph = tf.Graph()
       with self._control_graph.as_default():
         self._control_sess = tf.Session(
-            'local', config=tf.ConfigProto(allow_soft_placement=True))
+            '', config=tf.ConfigProto(allow_soft_placement=True))
         self._control_agent = create_agent(self._control_sess,
                                            self._environment, self.random_state)
         self._control_sess.run(tf.global_variables_initializer())
