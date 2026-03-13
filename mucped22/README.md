@@ -93,7 +93,7 @@ To download the results, install [gsutil](https://cloud.google.com/storage/docs/
 and copy the files:
 
 ```console
-gsutil -m cp -r gs://gresearch/mucped22 /tmp
+gcloud storage cp -r gs://gresearch/mucped22 /tmp
 ```
 
 The JSON file contains a list of objects with the following fields:
