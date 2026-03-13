@@ -122,7 +122,7 @@ Download goldmine_data.zip from gs://gresearch/simpdom/goldmine_data.zip and
 unzip it. The data contains the annotation types for each node, e.g. date,
 address, we call such annotation 'goldmine annotations'.
 
-gsutil cp gs://gresearch/simpdom/goldmine_data.zip <your_dir>
+gcloud storage cp gs://gresearch/simpdom/goldmine_data.zip <your_dir>
 
 ### 6. Generate combined file for different seed number.
 
@@ -167,4 +167,3 @@ of the other. See example results in Fig 2 of the paper linked above. You can
 remove the "--vertical" setup if you want to visualize all the verticals.
 python -m simpdom.visualize_field_graph \
 --domtree_data_path=/path/to/swde/extracted_xpaths --vertical=auto
-

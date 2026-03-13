@@ -134,7 +134,7 @@ def check_and_convert_gcs_filepath(filepath, raise_if_not_gcs=False):
       print('downloading file from GCS: ' + filepath)
       dir_index = local_filepath.rfind('/')
       os.system('mkdir -p ' + local_filepath[:dir_index])
-      os.system('gsutil cp ' + filepath + ' ' + local_filepath)
+      os.system('gcloud storage cp ' + filepath + ' ' + local_filepath)
     return local_filepath
 
   else:

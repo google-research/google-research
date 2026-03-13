@@ -60,7 +60,7 @@ created by `ctpu up`, this argument may not be necessary.)
 `$MODEL_DIR` is a GCS location (a URL starting with `gs://` where both the GCE
 VM and the associated Cloud TPU have write access, something like `gs://userid-
 dev-imagenet-output/model`.  (TensorFlow can't create the bucket; you have to
-create it with `gsutil mb <bucket>`.)  This bucket is used to save checkpoints
+create it with `gcloud storage buckets create <bucket>`.)  This bucket is used to save checkpoints
 and the training result, so that the training steps are cumulative when you
 reuse the model directory.  If you do 1000 steps, for example, and you reuse the
 model directory, on a subsequent run, it will skip the first 1000 steps, because

@@ -53,7 +53,7 @@ To obtain this data:
     significantly faster):
 
     ```shell
-    $ gsutil -m cp -r gs://gresearch/lens-flare /your/local/path
+    $ gcloud storage cp --recursive gs://gresearch/lens-flare /your/local/path
     ```
 
 ### Flare-free (scene) images
