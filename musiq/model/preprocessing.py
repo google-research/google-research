@@ -299,7 +299,7 @@ def decode_image(encoded_image_bytes):
   Returns:
     The decoded image tensor [H, W, 3].
   """
-  return tf.image.decode_jpeg(encoded_image_bytes)
+  return tf.image.decode_jpeg(encoded_image_bytes, channels=3)
 
 
 def get_preprocess_fn(**preprocessing_kwargs):
