@@ -101,7 +101,7 @@ def main(argv):
     logging.info("Initializing from scratch.")
 
   start = time.time()
-  for _ in range(num_train_steps):
+  while global_step < num_train_steps:
     batch = next(data_iterator)
 
     # Learning rate warm-up.
