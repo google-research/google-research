@@ -280,7 +280,7 @@ class StableDiffusionPipelineExtended(StableDiffusionPipeline):
           )
           old_log_prob = (
               self.scheduler.step_forward_logprob(
-                  noise_pred,
+                  old_noise_pred,
                   unet_times,
                   prev_latents,
                   latents,
