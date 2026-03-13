@@ -85,7 +85,7 @@ def _dropout_block(input_tensor, dropout_prob, spatial):
   """
   shape = input_tensor.shape
   ns = [shape[0], 1, 1, shape[3]] if spatial else None
-  out = tf.nn.dropout(input_tensor, dropout_prob, noise_shape=ns)
+  out = tf.nn.dropout(input_tensor, rate=dropout_prob, noise_shape=ns)
   return out
 
 
