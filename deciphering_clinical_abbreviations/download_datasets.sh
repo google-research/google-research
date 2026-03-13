@@ -32,7 +32,7 @@ declare -a filenames=(
 for filename in "${filenames[@]}"
 do
   if [ ! -f "${SCRIPT_DIR}/datasets/${filename}" ]; then
-    gsutil cp "gs://gresearch/deciphering_clinical_abbreviations/${filename}" "${SCRIPT_DIR}/datasets/${filename}"
+    gcloud storage cp "gs://gresearch/deciphering_clinical_abbreviations/${filename}" "${SCRIPT_DIR}/datasets/${filename}"
     else echo "${SCRIPT_DIR}/datasets/${filename} file already exists; Skipping download."
   fi
 done

@@ -13,9 +13,9 @@ ENV PATH="/root/google-cloud-sdk/bin:${PATH}"
 RUN git clone https://github.com/google-research/google-research.git --depth=1
 
 # Download the data that is needed for running the notebooks
-RUN gsutil -m cp -r gs://cloud-samples-data/research/activation_clustering/work_dir google-research/activation_clustering/examples/cifar10/
+RUN gcloud storage cp --recursive gs://cloud-samples-data/research/activation_clustering/work_dir google-research/activation_clustering/examples/cifar10/
 
-RUN gsutil -m cp -r gs://cloud-samples-data/research/activation_clustering/model.h5 google-research/activation_clustering/examples/cifar10/
+RUN gcloud storage cp --recursive gs://cloud-samples-data/research/activation_clustering/model.h5 google-research/activation_clustering/examples/cifar10/
 
 RUN cd google-research/activation_clustering && pip install -e .
 

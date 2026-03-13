@@ -20,7 +20,7 @@ FNAME=air_selfchat_ope_data.tar.gz
 rm -rf selfplay_opedata
 mkdir -p selfplay_opedata
 cd selfplay_opedata
-gsutil cp gs://airdialogue_share/$FNAME ./
+gcloud storage cp gs://airdialogue_share/$FNAME ./
 tar -xvzf $FNAME
 rm $FNAME
 
