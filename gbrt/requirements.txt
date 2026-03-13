@@ -54,7 +54,7 @@ graphviz==0.20.1
 grpcio==1.60.0
 h5py==3.10.0
 huggingface-hub==0.19.4
-idna==3.6
+idna==3.7
 immutabledict==4.0.0
 importlib-resources==6.1.1
 ipykernel==6.27.1
