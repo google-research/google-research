@@ -1,0 +1,14 @@
+google-genai
+google-colab
+autofaiss
+numpy
+Pillow
+requests
+scikit-learn
+ipywidgets
+ipython
+torch
+open_clip_torch
+clip @ git+https://github.com/openai/CLIP.git
+clip-retrieval
+python-slugify
