@@ -23,7 +23,7 @@ joblib==0.14.1
 Keras-Applications==1.0.8
 Keras-Preprocessing==1.1.0
 lockfile==0.12.2
-Markdown==3.2.1
+Markdown==3.8.1
 mpi4py==3.0.3
 numpy==1.18.1
 oauthlib==3.1.0
