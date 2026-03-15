@@ -20,9 +20,8 @@ PWIL demonstrations are available in a GCS bucket.
 
     DEMO_DIR=/tmp/demonstrations
     mkdir $DEMO_DIR
-    gsutil cp -r gs://gresearch/pwil/* $DEMO_DIR
+    gcloud storage cp --recursive gs://gresearch/pwil/* $DEMO_DIR
 
 # Run PWIL
 
     python -m pwil.trainer --workdir='/tmp/pwil' --env_name='Hopper-v2' --demo_dir=$DEMO_DIR
-

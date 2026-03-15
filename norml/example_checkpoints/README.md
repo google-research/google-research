@@ -3,5 +3,5 @@ The contents of this directory have been moved to https://storage.googleapis.com
 To copy:
 
 ```
-gsutil cp -r gs://gresearch/norml/example_checkpoints/ .
+gcloud storage cp --recursive gs://gresearch/norml/example_checkpoints/ .
 ```

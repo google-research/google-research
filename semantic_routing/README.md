@@ -12,7 +12,7 @@ pip install -r requirements.txt
 
 Download the dataset into the root directory:
 ```bash
-gsutil cp gs://argon-zoo-432801-i8/semantic_routing .
+gcloud storage cp gs://argon-zoo-432801-i8/semantic_routing .
 ```
 
 Update `benchmark/config.py` to point to the dataset's path.
