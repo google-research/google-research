@@ -6,7 +6,7 @@ This is a companion codebase and dataset associated with the paper
 ## Introduction
 In our Agile Deliberation paper, we introduce a human-in-the-loop framework for classifying subjective and evolving visual concepts. By guiding users through structured concept scoping and iteratively surfacing borderline examples for reflection, our system helps users clarify their ambiguous mental models. 
 
-Here we release a Colab with step-by-step instructions guiding users through
+Here we release a Jupyter notebook with step-by-step instructions guiding users through
 the Agile Deliberation process.
 
 ## Setting up
@@ -60,13 +60,31 @@ laion400m/
     |- image.index
 ```
 
-Warning: this downloads ~XX GB of data! If you want to test it on a smaller set,
-you can change how many shard of LAION data are downloaded in `setup.sh`.
+**Storage warning:** each shard is roughly 130 MB (embeddings + metadata), so
+100 shards total ~13 GB.  By default `setup.sh` downloads only the first **2
+shards** (~260 MB), which is enough to verify the pipeline end-to-end.
+Re-run with a larger count (e.g. `bash setup.sh 20`) once you are ready for a
+full experiment — more shards mean a richer retrieval pool and better results.
 
 ## Running the Demo
-`Demo.ipynb` contains an end-to-end implementation of our prototype. You can
-run it using [Jupyter notebook](https://docs.jupyter.org/en/latest/running.html) or,
-for a nice interface, [Google Colab](https://colab.google/).
+
+> **A note on performance.** The prototype interleaves image retrieval over a
+> large vector index, image downloads from external URLs, and LLM calls — so
+> individual steps can take anywhere from a few seconds to a couple of minutes.
+> If you are using a single API key the LLM may also be rate-limited.  Please
+> be patient when waiting for responses to appear in the notebook.  If you have
+> access to multiple model endpoints you can register them with `ModelClient`
+> to spread the load.
+>
+> **Caching.** Several stages of the pipeline support caching to disk so that
+> you do not have to redo expensive work across sessions.  See the inline
+> comments in `Demo.ipynb` for the exact cells and options — in particular, you
+> can pre-collect the candidate image pool for the reflection stage once and
+> reuse it in every subsequent run.
+
+`Demo.ipynb` contains an end-to-end implementation of our prototype.  Run it
+using [Jupyter notebook](https://docs.jupyter.org/en/latest/running.html)
+(recommended) or [Google Colab](https://colab.google/).
 
 ### How to run using Jupyter
 To run it in Jupyter, first install Jupyter inside the environment and start it:
@@ -97,7 +115,7 @@ To run it in Google Colab:
 !pip install -r requirements.txt
 !pip install faiss-cpu  # or faiss-gpu
 
-# Setup the index (Warning: downloads ~XX GB of data!)
+# Setup the index (downloads 2 shards by default; see setup.sh for options)
 !bash setup.sh
 ```
 

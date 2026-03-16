@@ -21,12 +21,12 @@ from typing import Optional
 import numpy as np
 from sklearn import cluster
 
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import llm as llm_py
-from agile_deliberation.agile_deliberation_lib import retrieval as retrieval_py
-from agile_deliberation.agile_deliberation_lib import search_images as search_images_py
-from agile_deliberation.agile_deliberation_lib import utils as utils_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import llm as llm_py
+from agile_deliberation_lib import retrieval as retrieval_py
+from agile_deliberation_lib import search_images as search_images_py
+from agile_deliberation_lib import utils as utils_py
 
 
 DBSCAN = cluster.DBSCAN

@@ -29,9 +29,7 @@ import xml.etree.ElementTree as ET
 import numpy as np
 from sklearn import decomposition
 from sklearn import preprocessing
-import tensorflow as tf
-
-from agile_deliberation.agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import image as image_py
 
 
 normalize = preprocessing.normalize
@@ -215,6 +213,7 @@ def get_image_proto(
   Returns:
     The image proto, or None if not found.
   """
+  import tensorflow as tf  # pylint: disable=g-import-not-at-top
   # We assume existing sstable paths are now sqlite paths.
   imgtable = SQLiteShardedAccessor(
       paths=generate_sharded_filenames(sstable_name),
@@ -313,6 +312,7 @@ def load_images(
       cursor.execute("SELECT key, value FROM kv")
       for key, value_bytes in cursor:
         try:
+          import tensorflow as tf  # pylint: disable=g-import-not-at-top
           example = tf.train.Example.FromString(value_bytes)
           image_bytes = example.features.feature['image/data'].bytes_list.value[0]
           image_features = get_image_embedding(

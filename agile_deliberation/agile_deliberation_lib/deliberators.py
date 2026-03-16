@@ -20,16 +20,19 @@ import os
 import pickle
 from typing import Any, Optional
 
-from agile_deliberation.agile_deliberation_lib import classifier as classifier_py
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import diverse_sample as diverse_sample_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import interaction as interaction_py
-from agile_deliberation.agile_deliberation_lib import llm as llm_py
-from agile_deliberation.agile_deliberation_lib import refine_definition as refine_definition_py
-from agile_deliberation.agile_deliberation_lib import reflection as reflection_py
-from agile_deliberation.agile_deliberation_lib import retrieval as retrieval_py
-from agile_deliberation.agile_deliberation_lib import search_images as search_images_py
+from IPython.display import display
+import ipywidgets as widgets
+
+from agile_deliberation_lib import classifier as classifier_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import diverse_sample as diverse_sample_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import interaction as interaction_py
+from agile_deliberation_lib import llm as llm_py
+from agile_deliberation_lib import refine_definition as refine_definition_py
+from agile_deliberation_lib import reflection as reflection_py
+from agile_deliberation_lib import retrieval as retrieval_py
+from agile_deliberation_lib import search_images as search_images_py
 
 
 Definition = definitions_py.Definition
@@ -176,7 +179,7 @@ class ConceptDeliberator:
       images_to_reflect = []
     else:
       images_to_reflect = self.prepare_images_for_reflection(
-          definition, total_images_num=1000
+          definition, total_images_num=200
       )
 
     self.image_sampler = DiverseImageSampler(
@@ -228,6 +231,11 @@ class ConceptDeliberator:
       self.interaction.image_reflections(
           definition, images_to_reflect, continue_reflection
       )
+
+    # Give this stage its own fresh Output widget so it doesn't share state
+    # with a previous stage (e.g. enrich_definitions) that also used _output.
+    self.interaction._output = widgets.Output()
+    display(self.interaction._output)
 
     continue_reflection(definition)
 
@@ -332,6 +340,11 @@ class ConceptDeliberator:
             definition,
             f'{self.definition_folder}/definition_scoping.pkl',
         )
+
+    # Give this stage its own fresh Output widget so it doesn't share state
+    # with other stages.
+    self.interaction._output = widgets.Output()
+    display(self.interaction._output)
 
     if not definition.necessary_signals and not decompose_tried:
       self.interaction.decompose_concept(definition, continue_enrichment)

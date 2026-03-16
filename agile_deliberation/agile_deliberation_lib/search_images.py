@@ -17,10 +17,10 @@
 
 import logging
 from typing import Iterator, Optional, List, Any
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import llm as llm_py
-from agile_deliberation.agile_deliberation_lib import retrieval as retrieval_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import llm as llm_py
+from agile_deliberation_lib import retrieval as retrieval_py
 
 
 MyImage = image_py.MyImage

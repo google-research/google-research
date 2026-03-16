@@ -22,7 +22,7 @@ import random
 from typing import Optional, Any, TYPE_CHECKING, List, Dict
 
 if TYPE_CHECKING:
-  from agile_deliberation.agile_deliberation_lib.definitions import Definition
+  from agile_deliberation_lib.definitions import Definition
 
 import numpy as np
 from PIL import Image
@@ -104,11 +104,19 @@ class MyImage:
     """
     return Image.open(io.BytesIO(self.image_bytes))
 
-  def show(self):
-    """Displays the image."""
+  def show(self, max_size=300):
+    """Displays the image inline in Jupyter, or via system viewer otherwise.
+
+    Args:
+      max_size: Maximum width and height in pixels for the displayed image.
+    """
     image = self.to_image()
-    image.thumbnail((500, 500))
-    image.show()
+    image.thumbnail((max_size, max_size))
+    try:
+      from IPython.display import display as ipy_display  # pylint: disable=g-import-not-at-top
+      ipy_display(image)
+    except ImportError:
+      image.show()
 
   def get_image_bytes(self):
     """Gets the raw image bytes.

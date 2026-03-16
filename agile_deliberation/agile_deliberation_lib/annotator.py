@@ -20,16 +20,14 @@ import logging
 import time
 from typing import Optional
 
-from google.colab import output
 from IPython.display import clear_output
 from IPython.display import display
-from IPython.display import Javascript
 import ipywidgets as widgets
 import numpy as np
 
-from agile_deliberation.agile_deliberation_lib import components as components_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import utils
+from agile_deliberation_lib import components as components_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import utils
 
 
 logger = logging.getLogger(__name__)
@@ -361,33 +359,7 @@ class Annotator:
     display(self.out)
 
     self.show_next()
-    self.add_keyboard_callback()
     return self.annotations
-
-  def add_keyboard_callback(self):
-    """Allow users to annotate images with keyboard shortcuts."""
-
-    def key_handler(key):
-      # TODO(kenjihata): I don't know why the arrows have to come before the
-      # number keys.
-      if key == 'ArrowLeft':
-        self.show_prev()
-        return
-      elif key == 'ArrowRight':
-        self.show_next()
-        return
-      for i, label in enumerate(self.options):
-        if int(key) == i + 1:
-          self.add_annotation(label)
-
-    output.register_callback('keydown', key_handler)
-
-    display(
-        Javascript("""
-    document.body.addEventListener('keydown', (e) => {
-      google.colab.kernel.invokeFunction('keydown', [e.key], {});
-    });
-    """))
 
   def get_counts(self):
     """Get the counts of positive, negative, and no image annotations.

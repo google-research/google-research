@@ -22,9 +22,9 @@ from typing import Any, Optional
 
 import numpy as np
 
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import utils as utils_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import utils as utils_py
 
 
 Definition = definitions_py.Definition
