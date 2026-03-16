@@ -84,6 +84,6 @@ typing_extensions==4.4.0
 urllib3==1.26.14
 urwid==2.1.2
 urwid-readline==0.13
-Werkzeug==2.2.2
+Werkzeug==3.0.1
 wrapt==1.14.1
 zipp==3.12.0
