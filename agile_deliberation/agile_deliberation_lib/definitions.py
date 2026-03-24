@@ -18,8 +18,8 @@
 import logging
 from typing import Optional, Union, Any
 import xml.etree.ElementTree as ET
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import utils
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import utils
 
 MyImage = image_py.MyImage
 logger = logging.getLogger(__name__)

@@ -1,0 +1,10 @@
+# API keys — never commit
+.env
+
+# Dataset and index files (large binaries)
+laion400m/
+
+# Python
+__pycache__/
+*.pyc
+venv/

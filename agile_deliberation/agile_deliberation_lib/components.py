@@ -22,13 +22,18 @@ import logging
 import re
 from typing import Any, Callable, Optional, Union
 
-from google.colab import files as colab_files
+try:
+  from google.colab import files as colab_files
+  _IN_COLAB = True
+except ImportError:
+  colab_files = None
+  _IN_COLAB = False
 from IPython.display import display
 from IPython.display import HTML
 import ipywidgets as widgets
 
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import image as image_py
 
 
 logger = logging.getLogger(__name__)
@@ -161,12 +166,17 @@ def with_loading(
       button.description = 'Loading...'
       button.disabled = True
 
-      # Call the original function.
-      func(*args, **kwargs)
-
-      # Restore original button label and re-enable it.
-      button.description = original_label
-      button.disabled = False
+      try:
+        # Call the original function.
+        func(*args, **kwargs)
+      except Exception:
+        logging.getLogger(__name__).warning(
+            'Error in button callback.', exc_info=True
+        )
+      finally:
+        # Always restore button state, even if an exception occurred.
+        button.description = original_label
+        button.disabled = False
     return wrapper
   return decorator
 
@@ -396,13 +406,28 @@ def upload_image():
   """Upload images from the local device.
 
   Returns:
-    A list of upregulated MyImage objects.
+    A list of MyImage objects uploaded by the user.
   """
-  image_map = colab_files.upload()
-  images = []
-  for _, image_bytes in image_map.items():
-    images.append(MyImage(image_bytes))
-  return images
+  if _IN_COLAB:
+    image_map = colab_files.upload()
+    images = []
+    for _, image_bytes in image_map.items():
+      images.append(MyImage(image_bytes))
+    return images
+  else:
+    # Standard Jupyter: use ipywidgets FileUpload.
+    import asyncio
+    uploader = widgets.FileUpload(accept='image/*', multiple=True)
+    output = widgets.Output()
+    result = []
+
+    def on_upload(change):
+      for file_info in uploader.value:
+        result.append(MyImage(file_info['content']))
+
+    uploader.observe(on_upload, names='value')
+    display(uploader)
+    return result
 
 
 def insert_widgets(

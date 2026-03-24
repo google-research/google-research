@@ -20,8 +20,8 @@ from typing import Any, Callable
 
 import ipywidgets as widgets
 
-from agile_deliberation.agile_deliberation_lib import components as components_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import components as components_py
+from agile_deliberation_lib import image as image_py
 
 
 ThreadPoolExecutor = futures.ThreadPoolExecutor

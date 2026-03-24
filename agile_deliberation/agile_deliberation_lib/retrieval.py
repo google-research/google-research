@@ -25,8 +25,8 @@ import urllib
 import numpy as np
 from sklearn.metrics import pairwise
 
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib.nearest_neighbor import clip_knn_service
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib.nearest_neighbor import clip_knn_service
 
 
 logger = logging.getLogger(__name__)
@@ -151,7 +151,7 @@ class RetrievalClient:
       with urllib.request.urlopen(req, timeout=10, context=ctx) as r:
         return r.read()
     except Exception as e:
-      logger.debug('Failed to download image from %s: %s', url, e)
+      logger.log(logging.DEBUG - 1, 'Failed to download image from %s: %s', url, e)
       return None
 
   def rank_images_by_criteria(
@@ -253,7 +253,10 @@ class RetrievalClient:
         image_bytes = downloaded[i]
       if image_bytes is None:
         continue
-      img = image_py.MyImage(image_bytes=image_bytes)
+      try:
+        img = image_py.MyImage(image_bytes=image_bytes)
+      except Exception:
+        continue
       img.distance = res['similarity']
       img.image_features = np.array(res['embedding'])
       if 'url' in res:
@@ -286,7 +289,7 @@ class RetrievalClient:
         modality='image',
         num_images=num_neighbors,
         num_result_ids=num_neighbors * 3,
-        deduplicate=True,
+        deduplicate=False,
         indice_name=self.first_index_name,
     )
     images = self._results_to_images(results)
@@ -320,7 +323,7 @@ class RetrievalClient:
         modality='image',
         num_images=num_neighbors,
         num_result_ids=num_neighbors * 3,
-        deduplicate=True,
+        deduplicate=False,
         indice_name=self.first_index_name,
     )
     return self._results_to_images(results)

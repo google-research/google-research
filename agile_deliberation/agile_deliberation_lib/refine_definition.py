@@ -23,11 +23,11 @@ from typing import Optional, Any
 
 import numpy as np
 
-from agile_deliberation.agile_deliberation_lib import classifier as classifier_py
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import llm as llm_py
-from agile_deliberation.agile_deliberation_lib import utils
+from agile_deliberation_lib import classifier as classifier_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import llm as llm_py
+from agile_deliberation_lib import utils
 
 
 MyImage = image_py.MyImage

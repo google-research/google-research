@@ -1,7 +1,7 @@
 {
     "laion_400m": {
         "indice_folder": "./laion400m",
-        "enable_faiss_memory_mapping": true,
+        "enable_faiss_memory_mapping": false,
         "clip_model": "ViT-B/32"
     }
 }

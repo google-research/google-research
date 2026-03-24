@@ -34,9 +34,8 @@ import ssl
 from typing import Any, Callable, Dict
 import urllib
 
-from clip_retrieval.clip_back import load_mclip
 import torch
-from load_clip import load_clip, get_tokenizer
+from agile_deliberation_lib.nearest_neighbor.load_clip import load_clip, get_tokenizer
 
 import faiss
 import h5py
@@ -322,9 +321,7 @@ class KnnService:
 
     index = image_index if modality == "image" else text_index
 
-    distances, indices, embeddings = index.search_and_reconstruct(
-        query, num_result_ids
-    )
+    distances, indices = index.search(query, num_result_ids)
     results = indices[0]
 
     nb_results = np.where(results == -1)[0]
@@ -335,7 +332,12 @@ class KnnService:
       nb_results = len(results)
     result_indices = results[:nb_results]
     result_distances = distances[0][:nb_results]
-    result_embeddings = embeddings[0][:nb_results]
+    if len(result_indices) > 0:
+      result_embeddings = np.stack(
+          [index.reconstruct(int(i)) for i in result_indices]
+      )
+    else:
+      result_embeddings = np.empty((0, query.shape[1]), dtype="float32")
     result_embeddings = normalized(result_embeddings)
     local_indices_to_remove = self.post_filter(result_embeddings, deduplicate)
     indices_to_remove = set()
@@ -721,6 +723,7 @@ def load_clip_index(clip_options):
   tokenizer = get_tokenizer(clip_options.clip_model)
 
   if clip_options.enable_mclip_option:
+    from clip_retrieval.clip_back import load_mclip  # pylint: disable=g-import-not-at-top
     model_txt_mclip = load_mclip(clip_options.clip_model)
   else:
     model_txt_mclip = None
@@ -809,7 +812,7 @@ def create(
     enable_faiss_memory_mapping=True,
     enable_mclip_option=True,
     clip_model="ViT-B/32",
-    use_jit=True,
+    use_jit=False,
 ):
   """Creates the KNN service.
 

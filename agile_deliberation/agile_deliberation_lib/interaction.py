@@ -24,13 +24,13 @@ from IPython.display import display
 from IPython.display import HTML
 import ipywidgets as widgets
 
-from agile_deliberation.agile_deliberation_lib import classifier as classifier_py
-from agile_deliberation.agile_deliberation_lib import components as components_py
-from agile_deliberation.agile_deliberation_lib import definitions as definitions_py
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import refine_definition as refine_definition_py
-from agile_deliberation.agile_deliberation_lib import reflection as reflection_py
-from agile_deliberation.agile_deliberation_lib import utils
+from agile_deliberation_lib import classifier as classifier_py
+from agile_deliberation_lib import components as components_py
+from agile_deliberation_lib import definitions as definitions_py
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import refine_definition as refine_definition_py
+from agile_deliberation_lib import reflection as reflection_py
+from agile_deliberation_lib import utils
 
 
 Definition = definitions_py.Definition
@@ -76,6 +76,9 @@ class DeliberationInteraction:
     self.classifier = classifier
     self.keep_output = keep_output
     self.test_signal_times = 3
+    # Persistent Output widget so display() calls from button callbacks are
+    # routed to the correct cell output rather than a hidden widget output.
+    self._output = widgets.Output()
 
   def decompose_concept(
       self,
@@ -148,11 +151,7 @@ class DeliberationInteraction:
       for definition in children_definitions:
         definition.delete()
 
-      display_with_styles(
-          self.decompose_concept(
-              now_definition, continue_fn, want_decomposition=True
-          )
-      )
+      self.decompose_concept(now_definition, continue_fn, want_decomposition=True)
 
     retry_button.on_click(lambda _: redefine_concept())
     @components_py.with_loading(confirm_button)
@@ -168,7 +167,9 @@ class DeliberationInteraction:
       continue_fn(True)
 
     confirm_button.on_click(lambda _: confirm_decomposition())
-    display_with_styles(all_widgets)
+    with self._output:
+      clear_output(wait=True)
+      display_with_styles(all_widgets)
 
   def sufficient_signal_feedback(
       self,
@@ -231,7 +232,14 @@ class DeliberationInteraction:
         display_needed = True
 
       if future_images:
-        image_examples = future_images.result()
+        try:
+          image_examples = future_images.result(timeout=120)
+        except concurrent_futures.TimeoutError:
+          logger.warning('Image search timed out for this signal.')
+          image_examples = []
+        except Exception:
+          logger.warning('Image search failed for this signal.', exc_info=True)
+          image_examples = []
       else:
         image_examples = []
       if image_examples:
@@ -359,6 +367,10 @@ class DeliberationInteraction:
           </div>
         """)
 
+    # Placeholder Output widget so the continue button appears inline in the
+    # layout rather than being sent to a hidden widget-callback output.
+    continue_output = widgets.Output()
+
     feedback_collected = [False for _ in range(signal_number)]
     def display_continue_button(index):
       """Display the continue button after the user feedback."""
@@ -402,7 +414,8 @@ class DeliberationInteraction:
           width='75%'
       )
 
-      display_with_styles(next_widget)
+      with continue_output:
+        display_with_styles(next_widget)
 
     signal_widgets = []
     for index in range(signal_number):
@@ -423,15 +436,15 @@ class DeliberationInteraction:
                 signal_widgets,
                 align_items='stretch',
             ),
+            continue_output,
         ],
         overflow='hidden hidden',
     )
 
-    if not self.keep_output:
-      # Clear the output from the previous turn.
-      clear_output()
-
-    display_with_styles(all_widgets)
+    with self._output:
+      if not self.keep_output:
+        clear_output(wait=True)
+      display_with_styles(all_widgets)
 
   def examine_improvements(
       self,
@@ -511,15 +524,14 @@ class DeliberationInteraction:
     # Initial display
     show_diff_view()  # Start with the diff view
 
-    display_with_styles(
-        components_py.vbox(
-            [
-                top_bar,
-                output_area,
-            ],
-            align_items='stretch',
-        )
-    )
+    with self._output:
+      clear_output(wait=True)
+      display_with_styles(
+          components_py.vbox(
+              [top_bar, output_area],
+              align_items='stretch',
+          )
+      )
 
   def evaluate_image(
       self, image, definition
@@ -866,7 +878,6 @@ class DeliberationInteraction:
       # Show annotation UIs.
       logger.debug('show annotation UIs')
       output_area.clear_output(wait=True)
-      # components_py.load_css_styles()
 
       annotation_widgets = []
       for reflection_widget in reflection_widgets:
@@ -892,12 +903,16 @@ class DeliberationInteraction:
               components_py.vbox(annotation_widgets, align_items='center'),
           ])
       )
-    components_py.load_css_styles()
-    display(components_py.vbox(
-        [
-            output_area,
-            components_py.hbox([finish_label_button, submit_feedback_button])
-        ],
-        align_items='stretch',
-        width='100%',
-    ))
+
+    with self._output:
+      if not self.keep_output:
+        clear_output(wait=True)
+      components_py.load_css_styles()
+      display(components_py.vbox(
+          [
+              output_area,
+              components_py.hbox([finish_label_button, submit_feedback_button])
+          ],
+          align_items='stretch',
+          width='100%',
+      ))

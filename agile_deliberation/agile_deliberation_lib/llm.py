@@ -27,8 +27,8 @@ import xml.etree.ElementTree as ET
 
 from google import genai
 
-from agile_deliberation.agile_deliberation_lib import image as image_py
-from agile_deliberation.agile_deliberation_lib import utils
+from agile_deliberation_lib import image as image_py
+from agile_deliberation_lib import utils
 
 
 MyImage = image_py.MyImage
@@ -393,20 +393,22 @@ class ModelClient:
 
   def __init__(
       self,
-      client_names = None,
+      cheap_model_names = None,
       api_key = None,
-      client_name = DEFAULT_MODEL_NAME,
+      expensive_model_name = DEFAULT_MODEL_NAME,
   ):
     """Initializes the ModelClient with configs for cheap and expensive clients.
 
     Args:
-      client_names: List of names of cheap model clients to use.
+      cheap_model_names: List of model names used for fast, cheap calls (e.g.
+        image search query generation). Defaults to [DEFAULT_CHEAP_MODEL_NAME].
       api_key: Optional API key. If not provided, defaults to GEMINI_API_KEY
         env var.
-      client_name: The name of the expensive model client to use.
+      expensive_model_name: Model name used for heavier reasoning tasks.
+        Defaults to DEFAULT_MODEL_NAME.
     """
-    self.client_name = client_name
-    self.cheap_client_names = client_names or [DEFAULT_CHEAP_MODEL_NAME]
+    self.client_name = expensive_model_name
+    self.cheap_client_names = cheap_model_names or [DEFAULT_CHEAP_MODEL_NAME]
     self.cheap_model_client = AgentAPI(
         self.cheap_client_names, api_key=api_key
     )
@@ -524,7 +526,7 @@ class ModelClient:
           elif child_xml.text is not None:
             result.append(child_xml.text.strip())
         return result
-      except Exception as e:  # pylint: disable=broad-except
+      except Exception:  # pylint: disable=broad-except
         retries = retries - 1
         cleaned_xml = self.create_valid_xml(cleaned_xml)
     return None

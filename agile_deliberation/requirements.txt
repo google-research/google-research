@@ -1,6 +1,4 @@
 google-genai
-google-colab
-autofaiss
 numpy
 Pillow
 requests
@@ -10,5 +8,8 @@ ipython
 torch
 open_clip_torch
 clip @ git+https://github.com/openai/CLIP.git
-clip-retrieval
 python-slugify
+h5py
+pandas
+tqdm
+notebook
