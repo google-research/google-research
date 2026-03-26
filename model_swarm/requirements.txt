@@ -127,7 +127,7 @@ pytz==2024.1
 PyYAML==6.0.2
 pyzmq @ file:///home/conda/feedstock_root/build_artifacts/pyzmq_1715024408309/work
 regex==2024.9.11
-requests==2.32.3
+requests==2.33.0
 rich==13.7.1
 rsa==4.9
 safetensors==0.4.5
