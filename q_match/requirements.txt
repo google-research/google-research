@@ -23,7 +23,7 @@ google-pasta==0.2.0
 googleapis-common-protos==1.58.0
 grpcio==1.51.1
 h5py==3.8.0
-idna==3.4
+idna==3.7
 importlib-resources==5.10.2
 jax==0.4.1
 jaxlib==0.4.1
