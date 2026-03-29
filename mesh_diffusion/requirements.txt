@@ -37,7 +37,7 @@ opt-einsum==3.3.0
 optax==0.2.1
 orbax-checkpoint==0.5.3
 packaging==23.2
-pillow==10.2.0
+pillow==10.3.0
 plyfile==1.0.3
 protobuf==4.25.3
 pyasn1==0.5.1
