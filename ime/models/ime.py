@@ -121,7 +121,7 @@ class IME(nn.Module):
               past_values=None,
               noise=False):
 
-    if self.gate_type == "Linear":
+    if self.expert_type == "Linear":
       inputs = original_inputs
     else:
       inputs = original_inputs[:, :, 0].squeeze(-1)
@@ -198,7 +198,7 @@ class IME(nn.Module):
       assignment module
     """
     # Interpetable model only take single feature as input
-    if self.gate_type == "Linear":
+    if self.expert_type == "Linear":
       inputs = original_inputs
     else:
       inputs = original_inputs[:, :, 0].squeeze(-1)
