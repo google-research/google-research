@@ -1,0 +1,542 @@
+{
+    "100": {
+        "file_id": 6,
+        "content": "/video_structure/hyperparameters.py",
+        "type": "filepath"
+    },
+    "101": {
+        "file_id": 6,
+        "content": "The \"ConfigDict\" class extends Python dictionaries, providing convenient attribute access. The code defines default hyperparameters for a video structure model and neural network layers, including directories, architecture, optimization settings, and loss functions.",
+        "type": "summary"
+    },
+    "102": {
+        "file_id": 6,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Hyperparameters of the structured video prediction models.\"\"\"\nimport tensorflow.compat.v1 as tf\nclass ConfigDict(dict):\n  \"\"\"A dictionary whose keys can be accessed as attributes.\"\"\"\n  def __getattr__(self, name):\n    try:\n      return self[name]\n    except KeyError:\n      raise AttributeError(name)\n  def __setattr__(self, name, value):\n    self[name] = value\n  def get(self, key, default=None):\n    \"\"\"Allows to specify defaults when accessing the config.\"\"\"",
+        "type": "code",
+        "location": "/video_structure/hyperparameters.py:1-34"
+    },
+    "103": {
+        "file_id": 6,
+        "content": "The code defines a class \"ConfigDict\" that extends the built-in Python dictionary. This class allows its keys to be accessed as attributes, which provides a more convenient way of accessing and modifying values in the dictionary. The class also overrides the __getattr__ and __setattr__ methods to achieve this functionality.",
+        "type": "comment"
+    },
+    "104": {
+        "file_id": 6,
+        "content": "    if key not in self:\n      return default\n    return self[key]\ndef get_config():\n  \"\"\"Default values for all hyperparameters.\"\"\"\n  cfg = ConfigDict()\n  # Directories:\n  cfg.dataset = 'debug'\n  cfg.data_dir = 'video_structure/testdata'\n  cfg.train_dir = ''\n  cfg.test_dir = ''\n  # Architecture:\n  cfg.layers_per_scale = 2\n  cfg.conv_layer_kwargs = _conv_layer_kwargs()\n  cfg.dense_layer_kwargs = _dense_layer_kwargs()\n  # Optimization:\n  cfg.batch_size = 32\n  cfg.steps_per_epoch = 100\n  cfg.num_epochs = 100\n  cfg.learning_rate = 0.001\n  cfg.clipnorm = 10\n  # Image sequence parameters:\n  cfg.observed_steps = 8\n  cfg.predicted_steps = 8\n  # Keypoint encoding settings:\n  cfg.num_keypoints = 64\n  cfg.heatmap_width = 16\n  cfg.heatmap_regularization = 5.0\n  cfg.keypoint_width = 1.5\n  cfg.num_encoder_filters = 32\n  cfg.separation_loss_scale = 10.0\n  cfg.separation_loss_sigma = 0.1\n  # Dynamics:\n  cfg.num_rnn_units = 512\n  cfg.prior_net_dim = 128\n  cfg.posterior_net_dim = 128\n  cfg.latent_code_size = 16\n  cfg.kl_loss_scale = 0.0\n  cfg.kl_annealing_steps = 1000",
+        "type": "code",
+        "location": "/video_structure/hyperparameters.py:35-82"
+    },
+    "105": {
+        "file_id": 6,
+        "content": "The code defines default values for hyperparameters in a video structure model. It includes settings for directories, architecture, optimization, image sequence parameters, keypoint encoding, dynamics, and loss functions.",
+        "type": "comment"
+    },
+    "106": {
+        "file_id": 6,
+        "content": "  cfg.use_deterministic_belief = False\n  cfg.scheduled_sampling_ramp_steps = (\n      cfg.steps_per_epoch * int(cfg.num_epochs * 0.8))\n  cfg.scheduled_sampling_p_true_start_obs = 1.0\n  cfg.scheduled_sampling_p_true_end_obs = 0.1\n  cfg.scheduled_sampling_p_true_start_pred = 1.0\n  cfg.scheduled_sampling_p_true_end_pred = 0.5\n  cfg.num_samples_for_bom = 10\n  return cfg\ndef _conv_layer_kwargs():\n  \"\"\"Returns a configDict with default conv layer hyperparameters.\"\"\"\n  cfg = ConfigDict()\n  cfg.kernel_size = 3\n  cfg.padding = 'same'\n  cfg.activation = tf.nn.leaky_relu\n  cfg.kernel_regularizer = tf.keras.regularizers.l2(1e-4)\n  # He-uniform initialization is suggested by this paper:\n  # https://arxiv.org/abs/1803.01719\n  # The paper only considers ReLU units and it might be different for leaky\n  # ReLU, but it is a better guess than Glorot.\n  cfg.kernel_initializer = 'he_uniform'\n  return cfg\ndef _dense_layer_kwargs():\n  \"\"\"Returns a configDict with default dense layer hyperparameters.\"\"\"\n  cfg = ConfigDict()\n  cfg.activation = tf.nn.relu",
+        "type": "code",
+        "location": "/video_structure/hyperparameters.py:83-118"
+    },
+    "107": {
+        "file_id": 6,
+        "content": "Code snippet contains functions to define default hyperparameters for convolutional and dense layers in a neural network. It also sets deterministic belief, scheduled sampling parameters, and number of samples for Bayesian optimization Markov chain.",
+        "type": "comment"
+    },
+    "108": {
+        "file_id": 6,
+        "content": "  cfg.kernel_initializer = 'he_uniform'\n  return cfg",
+        "type": "code",
+        "location": "/video_structure/hyperparameters.py:119-121"
+    },
+    "109": {
+        "file_id": 6,
+        "content": "These lines set the kernel initializer to 'he_uniform' in the configuration object and return it. The 'he_uniform' is an initialization method, which stands for He-normal distribution. It helps initialize the weights of the neural network layers with a uniform distribution to promote learning efficiency and stability during training.",
+        "type": "comment"
+    },
+    "110": {
+        "file_id": 7,
+        "content": "/video_structure/losses.py",
+        "type": "filepath"
+    },
+    "111": {
+        "file_id": 7,
+        "content": "The code defines a function, `temporal_separation_loss`, which calculates the separation loss for video trajectories by computing pairwise distance matrices, applying Gaussian functions, and averaging across batches. It also calculates the loss between keypoints in a video structure using matrix operations.",
+        "type": "summary"
+    },
+    "112": {
+        "file_id": 7,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Losses for the video representation model.\"\"\"\nimport tensorflow.compat.v1 as tf\ndef temporal_separation_loss(cfg, coords):\n  \"\"\"Encourages keypoint to have different temporal trajectories.\n  If two keypoints move along trajectories that are identical up to a time-\n  invariant translation (offset), this suggest that they both represent the same\n  object and are redundant, which we want to avoid.\n  To measure this similarity of trajectories, we first center each trajectory by",
+        "type": "code",
+        "location": "/video_structure/losses.py:1-28"
+    },
+    "113": {
+        "file_id": 7,
+        "content": "This code defines a function called `temporal_separation_loss` that aims to encourage keypoints to have different temporal trajectories. It measures the similarity of trajectories by centering each trajectory before comparison.",
+        "type": "comment"
+    },
+    "114": {
+        "file_id": 7,
+        "content": "  subtracting its mean. Then, we compute the pairwise distance between all\n  trajectories at each timepoint. These distances are higher for trajectories\n  that are less similar. To compute the loss, the distances are transformed by\n  a Gaussian and averaged across time and across trajectories.\n  Args:\n    cfg: ConfigDict.\n    coords: [batch, time, num_landmarks, 3] coordinate tensor.\n  Returns:\n    Separation loss.\n  \"\"\"\n  x = coords[Ellipsis, 0]\n  y = coords[Ellipsis, 1]\n  # Center trajectories:\n  x -= tf.reduce_mean(x, axis=1, keepdims=True)\n  y -= tf.reduce_mean(y, axis=1, keepdims=True)\n  # Compute pairwise distance matrix:\n  d = ((x[:, :, :, tf.newaxis] - x[:, :, tf.newaxis, :]) ** 2.0 +\n       (y[:, :, :, tf.newaxis] - y[:, :, tf.newaxis, :]) ** 2.0)\n  # Temporal mean:\n  d = tf.reduce_mean(d, axis=1)\n  # Apply Gaussian function such that loss falls off with distance:\n  loss_matrix = tf.exp(-d / (2.0 * cfg.separation_loss_sigma ** 2.0))\n  loss_matrix = tf.reduce_mean(loss_matrix, axis=0)  # Mean across batch.",
+        "type": "code",
+        "location": "/video_structure/losses.py:29-57"
+    },
+    "115": {
+        "file_id": 7,
+        "content": "This code calculates the separation loss for video trajectories by centering each trajectory, computing pairwise distance matrices, and applying a Gaussian function to fall off with distance. The temporal mean is taken, and the loss matrix is averaged across the batch.",
+        "type": "comment"
+    },
+    "116": {
+        "file_id": 7,
+        "content": "  loss = tf.reduce_sum(loss_matrix)  # Sum matrix elements.\n  # Subtract sum of values on diagonal, which are always 1:\n  loss -= cfg.num_keypoints\n  # Normalize by maximal possible value. The loss is now scaled between 0 (all\n  # keypoints are infinitely far apart) and 1 (all keypoints are at the same\n  # location):\n  loss /= cfg.num_keypoints * (cfg.num_keypoints - 1)\n  return loss",
+        "type": "code",
+        "location": "/video_structure/losses.py:58-68"
+    },
+    "117": {
+        "file_id": 7,
+        "content": "This code calculates the loss between keypoints in a video structure. It first sums all matrix elements, subtracts the sum of values on the diagonal (which are always 1), then normalizes the result by the maximal possible value to give a scaled loss between 0 and 1. The final loss is returned.",
+        "type": "comment"
+    },
+    "118": {
+        "file_id": 8,
+        "content": "/video_structure/losses_test.py",
+        "type": "filepath"
+    },
+    "119": {
+        "file_id": 8,
+        "content": "This code tests video structure losses for parallel-moving keypoints, with a high loss expected and precision of approximately 1.0, while creating trajectories for non-parallel movement to ensure low temporal separation loss.",
+        "type": "summary"
+    },
+    "120": {
+        "file_id": 8,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Tests for video_structure.vision.\"\"\"\nfrom absl.testing import absltest\nimport numpy as np\nimport tensorflow.compat.v1 as tf\nfrom video_structure import hyperparameters\nfrom video_structure import losses\nclass LossesTest(tf.test.TestCase):\n  def setUp(self):\n    # Hyperparameter config for test models:\n    self.cfg = hyperparameters.get_config()\n    self.cfg.batch_size = 1\n    self.cfg.observed_steps = 2\n    self.cfg.predicted_steps = 2",
+        "type": "code",
+        "location": "/video_structure/losses_test.py:1-33"
+    },
+    "121": {
+        "file_id": 8,
+        "content": "This code snippet appears to be part of a test class for testing video structure losses. It imports necessary libraries, sets up hyperparameters for the test models, and defines a setUp method to prepare the environment for the tests.",
+        "type": "comment"
+    },
+    "122": {
+        "file_id": 8,
+        "content": "    self.cfg.num_keypoints = 3\n    super().setUp()\n  def _create_parallel_coords(self):\n    \"\"\"Create 3 keypoints that move along straight, parallel trajectories.\"\"\"\n    self.cfg.separation_loss_sigma = 0.01\n    num_timesteps = self.cfg.observed_steps + self.cfg.predicted_steps\n    # Create three points:\n    coords = np.array([[0, 0], [0, 1], [1, 0]], dtype=np.float32)\n    # Expand in time:\n    coords = np.stack([coords] * num_timesteps, axis=0)\n    # Add identical linear motion to all points:\n    coords += np.linspace(-1, 1, num_timesteps)[:, np.newaxis, np.newaxis]\n    return coords[np.newaxis, Ellipsis]  # Add batch dimension.\n  def testTemporalSeparationLossParallelMovement(self):\n    \"\"\"Temporal separation loss should be high for parallel-moving keypoints.\"\"\"\n    with self.session() as sess:\n      coords = tf.convert_to_tensor(self._create_parallel_coords())\n      loss = sess.run(losses.temporal_separation_loss(self.cfg, coords))\n    np.testing.assert_almost_equal(loss, 1.0, decimal=4)\n  def testTemporalSeparationLossDifferentMovement(self):",
+        "type": "code",
+        "location": "/video_structure/losses_test.py:34-57"
+    },
+    "123": {
+        "file_id": 8,
+        "content": "Code creates three parallel moving keypoints and tests temporal separation loss for these points. Loss should be high for parallel-moving keypoints, asserted to be approximately 1.0 with decent precision.",
+        "type": "comment"
+    },
+    "124": {
+        "file_id": 8,
+        "content": "    \"\"\"Temporal separation loss should be low for nonparallel movement.\"\"\"\n    # Create trajectories in which all keypoints move differently:\n    coords = self._create_parallel_coords()\n    coords[:, 0, :] = -coords[:, 0, :]\n    coords[:, 1, :] = 0.0\n    with self.session() as sess:\n      coords = tf.convert_to_tensor(coords)\n      loss = sess.run(losses.temporal_separation_loss(self.cfg, coords))\n    np.testing.assert_almost_equal(loss, 0.0, decimal=4)\nif __name__ == '__main__':\n  absltest.main()",
+        "type": "code",
+        "location": "/video_structure/losses_test.py:58-69"
+    },
+    "125": {
+        "file_id": 8,
+        "content": "This code creates trajectories with all keypoints moving differently, then tests that the temporal separation loss should be low for non-parallel movement. The test checks if the calculated loss is close to 0.0 using assert_almost_equal function.",
+        "type": "comment"
+    },
+    "126": {
+        "file_id": 9,
+        "content": "/video_structure/ops.py",
+        "type": "filepath"
+    },
+    "127": {
+        "file_id": 9,
+        "content": "This code defines TensorFlow operations for a video representation model, extracting keypoints from heatmaps and generating 2-D maps. It scales the map, adds pixel indices as channels for data augmentation, and returns a tensor representing the heatmaps.",
+        "type": "summary"
+    },
+    "128": {
+        "file_id": 9,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"TensorFlow ops for the structured video representation model.\"\"\"\nimport enum\nimport tensorflow.compat.v1 as tf\nEPSILON = 1e-6  # Constant for numerical stability.\nclass Axis(enum.Enum):\n  \"\"\"Maps axes to image indices, assuming that 0th dimension is the batch.\"\"\"\n  y = 1\n  x = 2\ndef maps_to_keypoints(heatmaps):\n  \"\"\"Turns feature-detector heatmaps into (x, y, scale) keypoints.\n  This function takes a tensor of feature maps as input. Each map is normalized",
+        "type": "code",
+        "location": "/video_structure/ops.py:1-33"
+    },
+    "129": {
+        "file_id": 9,
+        "content": "This code defines TensorFlow operations for a structured video representation model. It includes a constant EPSILON and an enum class Axis that maps axes to image indices. The function maps_to_keypoints takes heatmaps as input, normalizes them, and transforms the feature-detector heatmaps into (x, y, scale) keypoints.",
+        "type": "comment"
+    },
+    "130": {
+        "file_id": 9,
+        "content": "  to a probability distribution and the location of the mean of the distribution\n  (in image coordinates) is computed. This location is used as a low-dimensional\n  representation of the heatmap (i.e. a keypoint).\n  To model keypoint presence/absence, the mean intensity of each feature map is\n  also computed, so that each keypoint is represented by an (x, y, scale)\n  triplet.\n  Args:\n    heatmaps: [batch_size, H, W, num_keypoints] tensors.\n  Returns:\n    A [batch_size, num_keypoints, 3] tensor with (x, y, scale)-triplets for each\n    keypoint. Coordinate range is [-1, 1] for x and y, and [0, 1] for scale.\n  \"\"\"\n  # Check that maps are non-negative:\n  map_min = tf.reduce_min(heatmaps)\n  assert_nonneg = tf.Assert(tf.greater_equal(map_min, 0.0), [map_min])\n  with tf.control_dependencies([assert_nonneg]):\n    heatmaps = tf.identity(heatmaps)\n  x_coordinates = _maps_to_coordinates(heatmaps, Axis.x)\n  y_coordinates = _maps_to_coordinates(heatmaps, Axis.y)\n  map_scales = tf.reduce_mean(heatmaps, axis=[1, 2])\n  # Normalize map scales to [0.0, 1.0] across keypoints. This removes a",
+        "type": "code",
+        "location": "/video_structure/ops.py:34-59"
+    },
+    "131": {
+        "file_id": 9,
+        "content": "This code extracts keypoints from heatmaps by computing the mean intensity and coordinates for each feature map, representing each keypoint as an (x, y, scale) triplet in [-1, 1], [0, 1] range. The code also ensures that heatmap values are non-negative before processing.",
+        "type": "comment"
+    },
+    "132": {
+        "file_id": 9,
+        "content": "  # degeneracy between the encoder and decoder heatmap scales and ensures that\n  # the scales are in a reasonable range for the RNN:\n  map_scales /= (EPSILON + tf.reduce_max(map_scales, axis=-1, keepdims=True))\n  return tf.stack([x_coordinates, y_coordinates, map_scales], axis=-1)\ndef _maps_to_coordinates(maps, axis):\n  \"\"\"Reduces heatmaps to coordinates along one axis (x or y).\n  Args:\n    maps: [batch_size, H, W, num_keypoints] tensors.\n    axis: Axis Enum.\n  Returns:\n    A [batch_size, num_keypoints, 2] tensor with (x, y)-coordinates.\n  \"\"\"\n  width = maps.get_shape()[axis.value]\n  grid = _get_pixel_grid(axis, width)\n  shape = [1, 1, 1, 1]\n  shape[axis.value] = -1\n  grid = tf.reshape(grid, shape)\n  if axis == Axis.x:\n    marginalize_dim = 1\n  elif axis == Axis.y:\n    marginalize_dim = 2\n  # Normalize the heatmaps to a probability distribution (i.e. sum to 1):\n  weights = tf.reduce_sum(maps + EPSILON, axis=marginalize_dim, keep_dims=True)\n  weights /= tf.reduce_sum(weights, axis=axis.value, keep_dims=True)\n  # Compute the center of mass of the marginalized maps to obtain scalar",
+        "type": "code",
+        "location": "/video_structure/ops.py:60-93"
+    },
+    "133": {
+        "file_id": 9,
+        "content": "This code defines a function that takes heatmaps and reduces them to coordinates along one axis (x or y). It ensures the scales are within a reasonable range for an RNN. The function then returns a tensor with (x, y)-coordinates.",
+        "type": "comment"
+    },
+    "134": {
+        "file_id": 9,
+        "content": "  # coordinates:\n  coordinates = tf.reduce_sum(weights * grid, axis=axis.value, keep_dims=True)\n  return tf.squeeze(coordinates, axis=[1, 2])\ndef keypoints_to_maps(keypoints, sigma=1.0, heatmap_width=16):\n  \"\"\"Turns (x, y, scale)-tuples into pixel maps with a Gaussian blob at (x, y).\n  Args:\n    keypoints: [batch_size, num_keypoints, 3] tensor of keypoints where the last\n      dimension contains (x, y, scale) triplets.\n    sigma: Std. dev. of the Gaussian blob, in units of heatmap pixels.\n    heatmap_width: Width of output heatmaps in pixels.\n  Returns:\n    A [batch_size, heatmap_width, heatmap_width, num_keypoints] tensor.\n  \"\"\"\n  coordinates, map_scales = tf.split(keypoints, [2, 1], axis=-1)\n  def get_grid(axis):\n    grid = _get_pixel_grid(axis, heatmap_width)\n    shape = [1, 1, 1, 1]\n    shape[axis.value] = -1\n    return tf.reshape(grid, shape)\n  # Expand to [batch_size, 1, 1, num_keypoints] for broadcasting later:\n  x_coordinates = coordinates[:, tf.newaxis, tf.newaxis, :, 0]\n  y_coordinates = coordinates[:, tf.newaxis, tf.newaxis, :, 1]",
+        "type": "code",
+        "location": "/video_structure/ops.py:94-123"
+    },
+    "135": {
+        "file_id": 9,
+        "content": "This code transforms (x, y, scale)-tuples into pixel maps with a Gaussian blob at (x, y). It splits the input keypoints tensor into coordinates and map_scales, and then creates a grid of pixel coordinates for each keypoint. The x and y coordinates are expanded to broadcast later. The function returns a [batch_size, heatmap_width, heatmap_width, num_keypoints] tensor representing the heatmaps.",
+        "type": "comment"
+    },
+    "136": {
+        "file_id": 9,
+        "content": "  # Create two 1-D Gaussian vectors (marginals) and multiply to get a 2-d map:\n  sigma = tf.cast(sigma, tf.float32)\n  keypoint_width = 2.0 * (sigma / heatmap_width) ** 2.0\n  x_vec = tf.exp(-tf.square(get_grid(Axis.x) - x_coordinates)/keypoint_width)\n  y_vec = tf.exp(-tf.square(get_grid(Axis.y) - y_coordinates)/keypoint_width)\n  maps = tf.multiply(x_vec, y_vec)\n  return maps * map_scales[:, tf.newaxis, tf.newaxis, :, 0]\ndef _get_pixel_grid(axis, width):\n  \"\"\"Returns an array of length `width` containing pixel coordinates.\"\"\"\n  if axis == Axis.x:\n    return tf.linspace(-1.0, 1.0, width)  # Left is negative, right is positive.\n  elif axis == Axis.y:\n    return tf.linspace(1.0, -1.0, width)  # Top is positive, bottom is negative.\ndef add_coord_channels(image_tensor):\n  \"\"\"Adds channels containing pixel indices (x and y coordinates) to an image.\n  Note: This has nothing to do with keypoint coordinates. It is just a data\n  augmentation to allow convolutional networks to learn non-translation-\n  equivariant outputs. This is similar to the \"CoordConv\" layers:",
+        "type": "code",
+        "location": "/video_structure/ops.py:125-148"
+    },
+    "137": {
+        "file_id": 9,
+        "content": "This code creates two 1-D Gaussian vectors representing keypoint marginals and multiplies them to form a 2-D map. It then scales this map by a factor defined in map_scales and returns it. The function also adds pixel indices (x and y coordinates) as channels to an image for data augmentation, allowing convolutional networks to learn non-translation-equivariant outputs.",
+        "type": "comment"
+    },
+    "138": {
+        "file_id": 9,
+        "content": "  https://arxiv.org/abs/1603.09382.\n  Args:\n    image_tensor: [batch_size, H, W, C] tensor.\n  Returns:\n    [batch_size, H, W, C + 2] tensor with x and y coordinate channels.\n  \"\"\"\n  batch_size = tf.shape(image_tensor)[0]\n  x_size = tf.shape(image_tensor)[2]\n  y_size = tf.shape(image_tensor)[1]\n  x_grid = tf.lin_space(-1.0, 1.0, x_size)\n  x_map = tf.tile(\n      x_grid[tf.newaxis, tf.newaxis, :, tf.newaxis], (batch_size, y_size, 1, 1))\n  y_grid = tf.lin_space(1.0, -1.0, y_size)\n  y_map = tf.tile(\n      y_grid[tf.newaxis, :, tf.newaxis, tf.newaxis], (batch_size, 1, x_size, 1))\n  return tf.concat([image_tensor, x_map, y_map], axis=-1)",
+        "type": "code",
+        "location": "/video_structure/ops.py:149-170"
+    },
+    "139": {
+        "file_id": 9,
+        "content": "This code takes an image tensor and adds two new channels, one for x coordinates and the other for y coordinates. It does this by creating grids of x and y values, then tiling them according to batch size and image dimensions. Finally, it concatenates these new channels with the original image tensor along the last axis.",
+        "type": "comment"
+    },
+    "140": {
+        "file_id": 10,
+        "content": "/video_structure/ops_test.py",
+        "type": "filepath"
+    },
+    "141": {
+        "file_id": 10,
+        "content": "The code tests the `add_coord_channels` function and `maps_to_keypoints` operation, as well as the `compute_map` function which identifies 2D heat map maximum positions. Test cases cover various scenarios including different object positions and zero scale outputs.",
+        "type": "summary"
+    },
+    "142": {
+        "file_id": 10,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Tests for video_structure.ops.\"\"\"\nfrom absl.testing import absltest\nimport numpy as np\nimport tensorflow.compat.v1 as tf\nfrom video_structure import ops\nclass OpsTest(tf.test.TestCase):\n  def testAddCoordChannel(self):\n    batch_size, height, width, channels = 2, 32, 32, 3\n    image = tf.zeros((batch_size, height, width, channels))\n    image_with_coords = ops.add_coord_channels(image)\n    self.assertEqual(\n        image_with_coords.shape.as_list(),",
+        "type": "code",
+        "location": "/video_structure/ops_test.py:1-31"
+    },
+    "143": {
+        "file_id": 10,
+        "content": "This code is a test case for the `add_coord_channels` function from the `video_structure.ops` module. It creates a zero-filled tensor of shape (batch_size, height, width, channels) and adds coordinate channels to it using the `add_coord_channels` function, then checks if the resulting tensor's shape is as expected.",
+        "type": "comment"
+    },
+    "144": {
+        "file_id": 10,
+        "content": "        [batch_size, height, width, channels + 2])\nclass MapsToKeypointsTest(tf.test.TestCase):\n  def setUp(self):\n    super(MapsToKeypointsTest, self).setUp()\n    self.map_shape = 1, 33, 33, 1  # [batch_size, H, W, num_keypoints]\n  def compute_coords(self, test_map):\n    map_tensor = tf.convert_to_tensor(test_map, tf.float32)\n    keypoints_op = tf.squeeze(ops.maps_to_keypoints(map_tensor))\n    with self.session() as sess:\n      return sess.run(keypoints_op)\n  def testZeroMapIsZeroCoords(self):\n    \"\"\"Tests that an all-zero map defaults to zero (centered) coordinates.\"\"\"\n    test_map = np.zeros(self.map_shape)\n    np.testing.assert_array_almost_equal(\n        self.compute_coords(test_map), [0.0, 0.0, 0.0], decimal=2)\n  def testObjectInTopLeft(self):\n    test_map = np.zeros(self.map_shape)\n    test_map[0, 0, 0, 0] = 1.0  # Set one pixel to 1 to simulate object.\n    np.testing.assert_array_almost_equal(\n        self.compute_coords(test_map), [-1.0, 1.0, 1.0], decimal=2)\n  def testObjectInBottomRight(self):\n    test_map = np.zeros(self.map_shape)",
+        "type": "code",
+        "location": "/video_structure/ops_test.py:32-60"
+    },
+    "145": {
+        "file_id": 10,
+        "content": "This code is from the \"google-research/video_structure/ops_test.py\" file. The class `MapsToKeypointsTest` tests the `maps_to_keypoints` operation using different test cases and a session to run the operation. It compares the expected coordinates with the computed ones, ensuring their correctness. The `compute_coords` function is used for computing keypoint coordinates based on the given map tensor, and the `testZeroMapIsZeroCoords`, `testObjectInTopLeft`, and `testObjectInBottomRight` functions test various scenarios of maps and their corresponding coordinates.",
+        "type": "comment"
+    },
+    "146": {
+        "file_id": 10,
+        "content": "    test_map[0, -1, -1, 0] = 1.0  # Set one pixel to 1 to simulate object.\n    np.testing.assert_array_almost_equal(\n        self.compute_coords(test_map), [1.0, -1.0, 1.0], decimal=2)\n  def testObjectInCenter(self):\n    test_map = np.zeros(self.map_shape)\n    test_map[0, self.map_shape[1]//2, self.map_shape[2]//2, 0] = 1.0\n    np.testing.assert_array_almost_equal(\n        self.compute_coords(test_map), [0.0, 0.0, 1.0], decimal=2)\nclass KeypointsToMapsTest(tf.test.TestCase):\n  def setUp(self):\n    super(KeypointsToMapsTest, self).setUp()\n    self.heatmap_width = 17\n  def compute_map(self, test_coords):\n    test_coords = np.array(test_coords, dtype=np.float32)\n    test_coords = test_coords[None, None, :]\n    maps_op = ops.keypoints_to_maps(\n        test_coords, sigma=2, heatmap_width=self.heatmap_width)\n    with self.session() as sess:\n      return sess.run(tf.squeeze(maps_op))\n  def testZeroScaleIsZeroMap(self):\n    \"\"\"Tests that if scale==0.0, the output map is all zeros.\"\"\"\n    np.testing.assert_array_equal(self.compute_map([0.0, 0.0, 0.0]), 0.0)",
+        "type": "code",
+        "location": "/video_structure/ops_test.py:61-88"
+    },
+    "147": {
+        "file_id": 10,
+        "content": "Code snippet includes two test cases for `KeypointsToMapsTest` class, which tests the function `compute_map`. The first test sets one pixel to 1 to simulate an object and asserts that the computed coordinates are [1.0, -1.0, 1.0]. The second test places the object at the center of the map and asserts that the computed coordinates are [0.0, 0.0, 1.0]. The final test checks if output map is all zeros when scale is 0.0.",
+        "type": "comment"
+    },
+    "148": {
+        "file_id": 10,
+        "content": "  def testObjectInTopLeft(self):\n    test_map = self.compute_map([-1.0, 1.0, 1.0])\n    arg_max = np.concatenate((test_map == np.max(test_map)).nonzero())\n    np.testing.assert_array_equal(arg_max, [0, 0])\n  def testObjectInBottomRight(self):\n    test_map = self.compute_map([1.0, -1.0, 1.0])\n    arg_max = np.concatenate((test_map == np.max(test_map)).nonzero())\n    np.testing.assert_array_equal(\n        arg_max, [self.heatmap_width-1, self.heatmap_width-1])\n  def testObjectInCenter(self):\n    test_map = self.compute_map([0.0, 0.0, 1.0])\n    arg_max = np.concatenate((test_map == np.max(test_map)).nonzero())\n    np.testing.assert_array_equal(\n        arg_max, [self.heatmap_width//2, self.heatmap_width//2])\nif __name__ == '__main__':\n  absltest.main()",
+        "type": "code",
+        "location": "/video_structure/ops_test.py:90-108"
+    },
+    "149": {
+        "file_id": 10,
+        "content": "This code defines test functions for an unknown `compute_map` function. The tests check if the function correctly identifies the position of a maximum value in a 2D heat map, given different input values (top left, bottom right, and center). It uses numpy's `nonzero` and `testing.assert_array_equal` methods for assertion.",
+        "type": "comment"
+    },
+    "150": {
+        "file_id": 11,
+        "content": "/video_structure/requirements.txt",
+        "type": "filepath"
+    },
+    "151": {
+        "file_id": 11,
+        "content": "This line specifies a version constraint for the TensorFlow GPU library, ensuring compatibility between 1.15.3 and below 2.0.0 versions are used in the codebase.",
+        "type": "summary"
+    },
+    "152": {
+        "file_id": 11,
+        "content": "tensorflow-gpu>=1.15.3,<2.0.0",
+        "type": "code",
+        "location": "/video_structure/requirements.txt:1-1"
+    },
+    "153": {
+        "file_id": 11,
+        "content": "This line specifies a version constraint for the TensorFlow GPU library, ensuring compatibility between 1.15.3 and below 2.0.0 versions are used in the codebase.",
+        "type": "comment"
+    },
+    "154": {
+        "file_id": 12,
+        "content": "/video_structure/run.sh",
+        "type": "filepath"
+    },
+    "155": {
+        "file_id": 12,
+        "content": "This script sets up a virtual environment, installs necessary packages, and runs tests for the video_structure package.",
+        "type": "summary"
+    },
+    "156": {
+        "file_id": 12,
+        "content": "# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n#!/bin/bash\n# This script runs tests for the video_structure package.\nset -e\nset -x\nvirtualenv -p python3 .\nsource ./bin/activate\npip install -r video_structure/requirements.txt\npython -m video_structure.datasets_test\npython -m video_structure.ops_test\npython -m video_structure.losses_test\npython -m video_structure.vision_test\npython -m video_structure.dynamics_test",
+        "type": "code",
+        "location": "/video_structure/run.sh:1-31"
+    },
+    "157": {
+        "file_id": 12,
+        "content": "This script sets up a virtual environment, installs necessary packages, and runs tests for the video_structure package.",
+        "type": "comment"
+    },
+    "158": {
+        "file_id": 13,
+        "content": "/video_structure/train.py",
+        "type": "filepath"
+    },
+    "159": {
+        "file_id": 13,
+        "content": "The code trains a video_structure model on GPU 0, utilizing vision models to predict keypoints, reconstruct images and calculate losses for training. It compiles the model with Adam optimizer, fits it to the dataset, validates with test data and runs as the main application.",
+        "type": "summary"
+    },
+    "160": {
+        "file_id": 13,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\nr\"\"\"Minimal example for training a video_structure model.\nSee README.md for installation instructions. To run on GPU device 0:\nCUDA_VISIBLE_DEVICES=0 python -m video_structure.train\n\"\"\"\nfrom __future__ import absolute_import\nfrom __future__ import division\nfrom __future__ import print_function\nimport os\nfrom absl import app\nfrom absl import flags\nimport tensorflow.compat.v1 as tf\nfrom video_structure import datasets",
+        "type": "code",
+        "location": "/video_structure/train.py:1-34"
+    },
+    "161": {
+        "file_id": 13,
+        "content": "The code is a minimal example for training a video_structure model. It requires installing the necessary packages, specifies that to run on GPU device 0 use 'CUDA_VISIBLE_DEVICES=0 python -m video_structure.train'. It imports several modules and libraries for execution including absolute import, division, print function, os module, absl library, tensorflow. The code is written in Python and uses tf.compat.v1 from tensorflow to work with the dataset module from the video_structure package.",
+        "type": "comment"
+    },
+    "162": {
+        "file_id": 13,
+        "content": "from video_structure import dynamics\nfrom video_structure import hyperparameters\nfrom video_structure import losses\nfrom video_structure import vision\nFLAGS = flags.FLAGS\ndef build_model(cfg, data_shapes):\n  \"\"\"Builds the complete model with image encoder plus dynamics model.\n  This architecture is meant for testing/illustration only.\n  Model architecture:\n    image_sequence --> keypoints --> reconstructed_image_sequence\n                          |\n                          V\n                    dynamics_model --> predicted_keypoints\n  The model takes a [batch_size, timesteps, H, W, C] image sequence as input. It\n  \"observes\" all frames, detects keypoints, and reconstructs the images. The\n  dynamics model learns to predict future keypoints based on the detected\n  keypoints.\n  Args:\n    cfg: ConfigDict with model hyperparameters.\n    data_shapes: Dict of shapes of model input tensors, as returned by\n      datasets.get_sequence_dataset.\n  Returns:\n    tf.keras.Model object.\n  \"\"\"\n  input_shape_no_batch = data_shapes['image'][1:]  # Keras uses shape w/o batch.",
+        "type": "code",
+        "location": "/video_structure/train.py:35-67"
+    },
+    "163": {
+        "file_id": 13,
+        "content": "This code builds a complete model with image encoder and dynamics model for processing an image sequence. It takes in the config and data shapes as inputs, then reconstructs images and predicts future keypoints based on detected ones.",
+        "type": "comment"
+    },
+    "164": {
+        "file_id": 13,
+        "content": "  input_images = tf.keras.Input(shape=input_shape_no_batch, name='image')\n  # Vision model:\n  observed_keypoints, _ = vision.build_images_to_keypoints_net(\n      cfg, input_shape_no_batch)(input_images)\n  keypoints_to_images_net = vision.build_keypoints_to_images_net(\n      cfg, input_shape_no_batch)\n  reconstructed_images = keypoints_to_images_net([\n      observed_keypoints,\n      input_images[:, 0, Ellipsis],\n      observed_keypoints[:, 0, Ellipsis]])\n  # Dynamics model:\n  observed_keypoints_stop = tf.keras.layers.Lambda(tf.stop_gradient)(\n      observed_keypoints)\n  dynamics_model = dynamics.build_vrnn(cfg)\n  predicted_keypoints, kl_divergence = dynamics_model(observed_keypoints_stop)\n  model = tf.keras.Model(\n      inputs=[input_images],\n      outputs=[reconstructed_images, observed_keypoints, predicted_keypoints],\n      name='autoencoder')\n  # Losses:\n  image_loss = tf.nn.l2_loss(input_images - reconstructed_images)\n  # Normalize by batch size and sequence length:\n  image_loss /= tf.to_float(\n      tf.shape(input_images)[0] * tf.shape(input_images)[1])",
+        "type": "code",
+        "location": "/video_structure/train.py:68-95"
+    },
+    "165": {
+        "file_id": 13,
+        "content": "In this code, a vision model is used to convert images into keypoints. A dynamics model (VRNN) predicts the future keypoints. The images are reconstructed based on observed and predicted keypoints. L2 loss is applied between original and reconstructed images, normalizing by batch size and sequence length.",
+        "type": "comment"
+    },
+    "166": {
+        "file_id": 13,
+        "content": "  model.add_loss(image_loss)\n  separation_loss = losses.temporal_separation_loss(\n      cfg, observed_keypoints[:, :cfg.observed_steps, Ellipsis])\n  model.add_loss(cfg.separation_loss_scale * separation_loss)\n  vrnn_coord_pred_loss = tf.nn.l2_loss(\n      observed_keypoints_stop - predicted_keypoints)\n  # Normalize by batch size and sequence length:\n  vrnn_coord_pred_loss /= tf.to_float(\n      tf.shape(input_images)[0] * tf.shape(input_images)[1])\n  model.add_loss(vrnn_coord_pred_loss)\n  kl_loss = tf.reduce_mean(kl_divergence)  # Mean over batch and timesteps.\n  model.add_loss(cfg.kl_loss_scale * kl_loss)\n  return model\ndef main(argv):\n  if len(argv) > 1:\n    raise app.UsageError('Too many command-line arguments.')\n  cfg = hyperparameters.get_config()\n  train_dataset, data_shapes = datasets.get_sequence_dataset(\n      data_dir=os.path.join(cfg.data_dir, cfg.train_dir),\n      batch_size=cfg.batch_size,\n      num_timesteps=cfg.observed_steps + cfg.predicted_steps)\n  test_dataset, _ = datasets.get_sequence_dataset(",
+        "type": "code",
+        "location": "/video_structure/train.py:96-127"
+    },
+    "167": {
+        "file_id": 13,
+        "content": "This code is part of a video structure model training process. It calculates various losses such as image, separation, coordinate prediction, and KL divergence. The calculated losses are added to the model, and the model is returned for further processing.",
+        "type": "comment"
+    },
+    "168": {
+        "file_id": 13,
+        "content": "      data_dir=os.path.join(cfg.data_dir, cfg.test_dir),\n      batch_size=cfg.batch_size,\n      num_timesteps=cfg.observed_steps + cfg.predicted_steps)\n  model = build_model(cfg, data_shapes)\n  optimizer = tf.keras.optimizers.Adam(\n      lr=cfg.learning_rate, clipnorm=cfg.clipnorm)\n  model.compile(optimizer)\n  model.fit(\n      x=train_dataset,\n      steps_per_epoch=cfg.steps_per_epoch,\n      epochs=cfg.num_epochs,\n      validation_data=test_dataset,\n      validation_steps=1)\nif __name__ == '__main__':\n  app.run(main)",
+        "type": "code",
+        "location": "/video_structure/train.py:128-146"
+    },
+    "169": {
+        "file_id": 13,
+        "content": "Training a video structure prediction model using given configuration and data. Compiling the model with Adam optimizer, fitting it to training dataset for specified epochs and steps, while validating with test dataset. Running this script as main application.",
+        "type": "comment"
+    },
+    "170": {
+        "file_id": 14,
+        "content": "/video_structure/vision.py",
+        "type": "filepath"
+    },
+    "171": {
+        "file_id": 14,
+        "content": "The code integrates vision components in a video model using TensorFlow ops as Keras layers, defines an encoding function for image sequences, and constructs an encoder-decoder model for video analysis and image sequence generation, offering adjustable parameters and heatmap penalty calculation.",
+        "type": "summary"
+    },
+    "172": {
+        "file_id": 14,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Vision-related components of the structured video representation model.\nThese components perform the pixels <--> keypoints transformation.\n\"\"\"\nimport functools\nimport numpy as np\nimport tensorflow.compat.v1 as tf\nfrom video_structure import ops\nlayers = tf.keras.layers\n# Wrap commonly used Tensorflow ops in Keras layers:\ndef stack_time(inputs):\n  return layers.Lambda(lambda x: tf.stack(x, axis=1, name='stack_time'))(inputs)",
+        "type": "code",
+        "location": "/video_structure/vision.py:1-31"
+    },
+    "173": {
+        "file_id": 14,
+        "content": "This code is for vision-related components in a structured video representation model. It performs a pixels to keypoints transformation and wraps TensorFlow ops as Keras layers, including the stack_time function.",
+        "type": "comment"
+    },
+    "174": {
+        "file_id": 14,
+        "content": "def unstack_time(inputs):\n  return layers.Lambda(lambda x: tf.unstack(x, axis=1, name='unstack_time'))(\n      inputs)\ndef add_coord_channels(inputs):\n  return layers.Lambda(ops.add_coord_channels)(inputs)\ndef maps_to_keypoints(inputs):\n  return layers.Lambda(ops.maps_to_keypoints)(inputs)\ndef build_images_to_keypoints_net(cfg, image_shape):\n  \"\"\"Builds a model that encodes an image sequence into a keypoint sequence.\n  The model applies the same convolutional feature extractor to all images in\n  the sequence. The feature maps are then reduced to num_keypoints heatmaps, and\n  the heatmaps to (x, y, scale)-keypoints.\n  Args:\n    cfg: ConfigDict with model hyperparamters.\n    image_shape: Image shape tuple: (num_timesteps, H, W, C).\n  Returns:\n    A tf.keras.Model object.\n  \"\"\"\n  image_sequence = tf.keras.Input(shape=image_shape, name='encoder_input')\n  # Adjust channel number to account for add_coord_channels:\n  encoder_input_shape = image_shape[1:-1] + (image_shape[-1] + 2,)\n  # Build feature extractor:\n  image_encoder = build_image_encoder(",
+        "type": "code",
+        "location": "/video_structure/vision.py:34-67"
+    },
+    "175": {
+        "file_id": 14,
+        "content": "This code defines a function build_images_to_keypoints_net that constructs a model for encoding image sequences into keypoint sequences. It applies a convolutional feature extractor to all images in the sequence, reduces the feature maps to num_keypoints heatmaps and converts them to (x, y, scale)-keypoints using lambda layers. The function takes a ConfigDict with model hyperparameters and an image shape tuple as inputs, and returns a tf.keras.Model object.",
+        "type": "comment"
+    },
+    "176": {
+        "file_id": 14,
+        "content": "      input_shape=encoder_input_shape,\n      initial_num_filters=cfg.num_encoder_filters,\n      output_map_width=cfg.heatmap_width,\n      layers_per_scale=cfg.layers_per_scale,\n      **cfg.conv_layer_kwargs)\n  # Build final layer that maps to the desired number of heatmaps:\n  features_to_keypoint_heatmaps = layers.Conv2D(\n      filters=cfg.num_keypoints,\n      kernel_size=1,\n      padding='same',\n      activation=tf.nn.softplus,  # Heatmaps must be non-negative.\n      activity_regularizer=functools.partial(\n          _get_heatmap_penalty, factor=cfg.heatmap_regularization))\n  # Separate timesteps into list:\n  image_list = unstack_time(image_sequence)\n  heatmaps_list = []\n  keypoints_list = []\n  # Image to keypoints:\n  for image in image_list:\n    image = add_coord_channels(image)\n    encoded = image_encoder(image)\n    heatmaps = features_to_keypoint_heatmaps(encoded)\n    keypoints = maps_to_keypoints(heatmaps)\n    heatmaps_list.append(heatmaps)\n    keypoints_list.append(keypoints)\n  # Combine timesteps:\n  heatmaps = stack_time(heatmaps_list)",
+        "type": "code",
+        "location": "/video_structure/vision.py:68-98"
+    },
+    "177": {
+        "file_id": 14,
+        "content": "This code builds an encoder network for video structure analysis using a specified input shape, number of filters, heatmap width, and layers per scale. It then adds a final layer that maps to the desired number of heatmaps, ensuring non-negative values. The timesteps are separated into a list and for each image in the list, it applies encoding, produces heatmaps, and converts them to keypoints. Finally, it combines all the heatmaps across the time dimension.",
+        "type": "comment"
+    },
+    "178": {
+        "file_id": 14,
+        "content": "  keypoints = stack_time(keypoints_list)\n  return tf.keras.Model(inputs=image_sequence, outputs=[keypoints, heatmaps])\ndef build_keypoints_to_images_net(cfg, image_shape):\n  \"\"\"Builds a model to reconstructs an image sequence from a keypoint sequence.\n  Model architecture:\n    (keypoint_sequence, image[0], keypoints[0]) --> reconstructed_image_sequence\n  For all frames image[t] we also we also concatenate the Gaussian maps for\n  the keypoints obtained from the initial frame image[0]. This helps the\n  decoder \"inpaint\" the image regions that are occluded by objects in the first\n  frame.\n  Args:\n    cfg: ConfigDict with model hyperparameters.\n    image_shape: Image shape tuple: (num_timesteps, H, W, C).\n  Returns:\n    A tf.keras.Model object.\n  \"\"\"\n  num_timesteps = cfg.observed_steps + cfg.predicted_steps\n  keypoints_shape = [num_timesteps, cfg.num_keypoints, 3]\n  keypoints_sequence = tf.keras.Input(shape=keypoints_shape, name='keypoints')\n  first_frame = tf.keras.Input(shape=image_shape[1:], name='first_frame')",
+        "type": "code",
+        "location": "/video_structure/vision.py:99-126"
+    },
+    "179": {
+        "file_id": 14,
+        "content": "The code builds a model that reconstructs an image sequence from a keypoint sequence. The model architecture takes keypoint_sequence, image[0], and keypoints[0] as inputs to generate the output of the reconstructed image sequence. It concatenates Gaussian maps for keypoints obtained from the initial frame to help the decoder inpaint occluded image regions. The function returns a tf.keras.Model object.",
+        "type": "comment"
+    },
+    "180": {
+        "file_id": 14,
+        "content": "  first_frame_keypoints = tf.keras.Input(\n      shape=keypoints_shape[1:], name='first_frame_keypoints')\n  # Build encoder net to extract appearance features from the first frame:\n  appearance_feature_extractor = build_image_encoder(\n      input_shape=image_shape[1:],\n      initial_num_filters=cfg.num_encoder_filters,\n      layers_per_scale=cfg.layers_per_scale,\n      **cfg.conv_layer_kwargs)\n  # Build image decoder that goes from Gaussian maps to reconstructed images:\n  num_encoder_output_channels = (\n      cfg.num_encoder_filters * image_shape[1] // cfg.heatmap_width)\n  input_shape = [\n      cfg.heatmap_width, cfg.heatmap_width, num_encoder_output_channels]\n  image_decoder = build_image_decoder(\n      input_shape=input_shape,\n      output_width=image_shape[1],\n      layers_per_scale=cfg.layers_per_scale,\n      **cfg.conv_layer_kwargs)\n  # Build layers to adjust channel numbers for decoder input and output image:\n  kwargs = dict(cfg.conv_layer_kwargs)\n  kwargs['kernel_size'] = 1\n  adjust_channels_of_decoder_input = layers.Conv2D(",
+        "type": "code",
+        "location": "/video_structure/vision.py:127-151"
+    },
+    "181": {
+        "file_id": 14,
+        "content": "This code is building the network architecture for a video structure analysis model. It defines input layers (keypoints), appearance feature extractor, image decoder, and adjustment layers for channel numbers of decoder input and output image. The model aims to extract appearance features from the first frame and reconstruct images using Gaussian maps.",
+        "type": "comment"
+    },
+    "182": {
+        "file_id": 14,
+        "content": "      num_encoder_output_channels, **kwargs)\n  kwargs = dict(cfg.conv_layer_kwargs)\n  kwargs['kernel_size'] = 1\n  kwargs['activation'] = None\n  adjust_channels_of_output_image = layers.Conv2D(\n      image_shape[-1], **kwargs)\n  # Build keypoints_to_maps layer:\n  keypoints_to_maps = layers.Lambda(\n      functools.partial(\n          ops.keypoints_to_maps,\n          sigma=cfg.keypoint_width,\n          heatmap_width=cfg.heatmap_width))\n  # Get features and maps for first frame:\n  # Note that we cannot use the Gaussian maps above because the\n  # first_frame_keypoints may be different than the keypoints (i.e. obs vs\n  # pred).\n  first_frame_features = appearance_feature_extractor(first_frame)\n  first_frame_gaussian_maps = keypoints_to_maps(first_frame_keypoints)\n  # Separate timesteps:\n  keypoints_list = unstack_time(keypoints_sequence)\n  image_list = []\n  # Loop over timesteps:\n  for keypoints in keypoints_list:\n    # Convert keypoints to pixel maps:\n    gaussian_maps = keypoints_to_maps(keypoints)\n    # Reconstruct image:",
+        "type": "code",
+        "location": "/video_structure/vision.py:152-183"
+    },
+    "183": {
+        "file_id": 14,
+        "content": "This code builds and utilizes a Conv2D layer to adjust the output image's channels, followed by a Lambda layer for keypoints-to-maps conversion. It retrieves features and maps for the first frame while handling differences between obs and pred. The code then unstacks time in keypoints_sequence, loops over timesteps to convert keypoints to pixel maps, and reconstruct images.",
+        "type": "comment"
+    },
+    "184": {
+        "file_id": 14,
+        "content": "    combined_representation = layers.Concatenate(axis=-1)(\n        [gaussian_maps, first_frame_features, first_frame_gaussian_maps])\n    combined_representation = add_coord_channels(combined_representation)\n    combined_representation = adjust_channels_of_decoder_input(\n        combined_representation)\n    decoded_representation = image_decoder(combined_representation)\n    image_list.append(adjust_channels_of_output_image(decoded_representation))\n  # Combine timesteps:\n  image_sequences = stack_time(image_list)\n  # Add in the first frame of the sequence such that the model only needs to\n  # predict the change from the first frame:\n  image_sequences = layers.Add()([image_sequences, first_frame[:, None, Ellipsis]])\n  return tf.keras.Model(\n      inputs=[keypoints_sequence, first_frame, first_frame_keypoints],\n      outputs=image_sequences)\ndef build_image_encoder(\n    input_shape, initial_num_filters=32, output_map_width=16,\n    layers_per_scale=1, **conv_layer_kwargs):\n  \"\"\"Extracts feature maps from images.",
+        "type": "code",
+        "location": "/video_structure/vision.py:184-207"
+    },
+    "185": {
+        "file_id": 14,
+        "content": "This code snippet combines different representations of a video sequence to generate an image sequence. It uses convolutional layers, concatenation, and channel adjustments for the input and output images. The model then predicts the change from the first frame of the sequence by stacking timesteps, appending the first frame, and returning a Keras Model.",
+        "type": "comment"
+    },
+    "186": {
+        "file_id": 14,
+        "content": "  The encoder iteratively halves the resolution and doubles the number of\n  filters until the size of the feature maps is output_map_width by\n  output_map_width.\n  Args:\n    input_shape: Shape of the input image (without batch dimension).\n    initial_num_filters: Number of filters to apply at the input resolution.\n    output_map_width: Width of the output feature maps.\n    layers_per_scale: How many additional size-preserving conv layers to apply\n      at each map scale.\n    **conv_layer_kwargs: Passed to layers.Conv2D.\n  Raises:\n    ValueError: If the width of the input image is not compatible with\n      output_map_width, i.e. if input_width/output_map_width is not a perfect\n      square.\n  \"\"\"\n  inputs = tf.keras.Input(shape=input_shape, name='encoder_input')\n  if np.log2(input_shape[0] / output_map_width) % 1:\n    raise ValueError(\n        'The ratio of input width and output_map_width must be a perfect '\n        'square, but got {} and {} with ratio {}'.format(\n            input_shape[0], output_map_width, inputs[0]/output_map_width))",
+        "type": "code",
+        "location": "/video_structure/vision.py:209-233"
+    },
+    "187": {
+        "file_id": 14,
+        "content": "This code defines a function that creates an encoder for image processing. It takes input shape, number of filters, output map width, and layers per scale as arguments. The code checks if the ratio of input width to output map width is a perfect square; if not, it raises a ValueError.",
+        "type": "comment"
+    },
+    "188": {
+        "file_id": 14,
+        "content": "  # Expand image to initial_num_filters maps:\n  x = layers.Conv2D(initial_num_filters, **conv_layer_kwargs)(inputs)\n  for _ in range(layers_per_scale):\n    x = layers.Conv2D(initial_num_filters, **conv_layer_kwargs)(x)\n  # Apply downsampling blocks until feature map width is output_map_width:\n  width = int(inputs.get_shape()[1])\n  num_filters = initial_num_filters\n  while width > output_map_width:\n    num_filters *= 2\n    width //= 2\n    # Reduce resolution:\n    x = layers.Conv2D(num_filters, strides=2, **conv_layer_kwargs)(x)\n    # Apply additional layers:\n    for _ in range(layers_per_scale):\n      x = layers.Conv2D(num_filters, strides=1, **conv_layer_kwargs)(x)\n  return tf.keras.Model(inputs=inputs, outputs=x, name='image_encoder')\ndef build_image_decoder(\n    input_shape, output_width, layers_per_scale=1, **conv_layer_kwargs):\n  \"\"\"Decodes images from feature maps.\n  The encoder iteratively doubles the resolution and halves the number of\n  filters until the size of the feature maps is output_width.\n  Args:",
+        "type": "code",
+        "location": "/video_structure/vision.py:235-264"
+    },
+    "189": {
+        "file_id": 14,
+        "content": "This code defines an image encoder and a function to build an image decoder. The image encoder expands the input image, reduces its resolution by doubling the number of filters, and applies downsampling blocks until the feature map width is equal to the specified output_map_width. Meanwhile, the image decoder aims to decode images from feature maps, iteratively increasing the resolution and halving the number of filters until the size of the feature maps reaches the specified output_width. Both functions use convolutional layers with adjustable parameters (layers_per_scale, conv_layer_kwargs) for flexibility in the model architecture.",
+        "type": "comment"
+    },
+    "190": {
+        "file_id": 14,
+        "content": "    input_shape: Shape of the input image (without batch dimension).\n    output_width: Width of the output image.\n    layers_per_scale: How many additional size-preserving conv layers to apply\n      at each map scale.\n    **conv_layer_kwargs: Passed to layers.Conv2D.\n  Raises:\n    ValueError: If the width of the input feature maps is not compatible with\n      output_width, i.e. if output_width/input_map_width is not a perfect\n      square.\n  \"\"\"\n  feature_maps = tf.keras.Input(shape=input_shape, name='feature_maps')\n  num_levels = np.log2(output_width / input_shape[0])\n  if num_levels % 1:\n    raise ValueError(\n        'The ratio of output_width and input width must be a perfect '\n        'square, but got {} and {} with ratio {}'.format(\n            output_width, input_shape[0], output_width/input_shape[0]))\n  # Expand until we have filters_out channels:\n  x = feature_maps\n  num_filters = input_shape[-1]\n  def upsample(x):\n    new_size = [x.get_shape()[1] * 2, x.get_shape()[2] * 2]\n    return tf.image.resize_bilinear(x, new_size, align_corners=True)",
+        "type": "code",
+        "location": "/video_structure/vision.py:265-291"
+    },
+    "191": {
+        "file_id": 14,
+        "content": "This code defines a function that takes input image shape, output width, and number of convolutional layers to apply at each map scale. It checks for compatibility between input and output widths. If the ratio is not a perfect square, it raises a ValueError. The function expands filters until there are 'filters_out' channels by upsampling the input image.",
+        "type": "comment"
+    },
+    "192": {
+        "file_id": 14,
+        "content": "  for _ in range(int(num_levels)):\n    num_filters //= 2\n    x = layers.Lambda(upsample)(x)\n    # Apply additional layers:\n    for _ in range(layers_per_scale):\n      x = layers.Conv2D(num_filters, **conv_layer_kwargs)(x)\n  return tf.keras.Model(inputs=feature_maps, outputs=x, name='image_decoder')\ndef _get_heatmap_penalty(weight_matrix, factor):\n  \"\"\"L1-loss on mean heatmap activations, to encourage sparsity.\"\"\"\n  weight_shape = weight_matrix.shape.as_list()\n  assert len(weight_shape) == 4, weight_shape\n  heatmap_mean = tf.reduce_mean(weight_matrix, axis=(1, 2))\n  penalty = tf.reduce_mean(tf.abs(heatmap_mean))\n  return penalty * factor",
+        "type": "code",
+        "location": "/video_structure/vision.py:292-310"
+    },
+    "193": {
+        "file_id": 14,
+        "content": "This code defines a function that creates an image decoder model and another function that calculates a heatmap penalty using L1-loss to encourage sparsity. The image decoder takes input feature maps, performs downsampling and convolutions, and returns output with the same spatial dimensions as input feature maps. The _get_heatmap_penalty function computes the mean of activation values in each heatmap and sums their absolute values to calculate the penalty.",
+        "type": "comment"
+    },
+    "194": {
+        "file_id": 15,
+        "content": "/video_structure/vision_test.py",
+        "type": "filepath"
+    },
+    "195": {
+        "file_id": 15,
+        "content": "This code tests an Autoencoder model's image encoder and decoder outputs' dimensions using TensorFlow's tf.test.TestCase in a video setup, while defining the model for image processing tasks with given hyperparameters and shapes of input tensors.",
+        "type": "summary"
+    },
+    "196": {
+        "file_id": 15,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Tests for video_structure.vision.\"\"\"\nimport os\nfrom absl import flags\nfrom absl.testing import absltest\nimport tensorflow.compat.v1 as tf\nfrom video_structure import datasets\nfrom video_structure import hyperparameters\nfrom video_structure import vision\nFLAGS = flags.FLAGS\nTESTDATA_DIR = 'video_structure/testdata'\nclass VisionTest(tf.test.TestCase):\n  def setUp(self):\n    # Hyperparameter config for test models:\n    self.cfg = hyperparameters.get_config()",
+        "type": "code",
+        "location": "/video_structure/vision_test.py:1-36"
+    },
+    "197": {
+        "file_id": 15,
+        "content": "This code file contains test cases for the video_structure.vision module using TensorFlow's tf.test.TestCase. The code sets up a hyperparameter configuration and uses it in test models. It also imports necessary libraries and defines constants such as TESTDATA_DIR.",
+        "type": "comment"
+    },
+    "198": {
+        "file_id": 15,
+        "content": "    self.cfg.train_dir = os.path.join(FLAGS.test_srcdir, TESTDATA_DIR)\n    self.cfg.batch_size = 4\n    self.cfg.observed_steps = 2\n    self.cfg.predicted_steps = 2\n    self.cfg.heatmap_width = 16\n    self.cfg.layers_per_scale = 1\n    self.cfg.num_keypoints = 3\n    # Shapes of test dataset:\n    self.time_steps = self.cfg.observed_steps + self.cfg.predicted_steps\n    self.data_shapes = {\n        'filename': (None, self.time_steps),\n        'frame_ind': (None, self.time_steps),\n        'image': (None, self.time_steps, 64, 64, 3),\n        'true_object_pos': (None, self.time_steps, 0, 2)}\n    super().setUp()\n  def testAutoencoderTrainingLossGoesDown(self):\n    \"\"\"Tests a minimal Keras training loop for the non-dynamic model parts.\"\"\"\n    dataset, data_shapes = datasets.get_sequence_dataset(\n        data_dir=self.cfg.train_dir,\n        file_glob='acrobot*',\n        batch_size=self.cfg.batch_size,\n        num_timesteps=self.cfg.observed_steps + self.cfg.predicted_steps,\n        random_offset=True)\n    autoencoder = Autoencoder(self.cfg, data_shapes)",
+        "type": "code",
+        "location": "/video_structure/vision_test.py:37-63"
+    },
+    "199": {
+        "file_id": 15,
+        "content": "This code sets up a test environment for an Autoencoder model. It defines the configuration and data shapes, gets the training dataset, and initializes the Autoencoder model instance.",
+        "type": "comment"
+    }
+}

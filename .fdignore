@@ -1,0 +1,5 @@
+/*
+!/video_structure
+!/video_timeline_modeling
+*.{png,npz,jpg,jpeg}
+docs
