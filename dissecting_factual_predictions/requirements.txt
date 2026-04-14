@@ -1,5 +1,5 @@
 torch==1.12.1
-transformers==4.27.4
+transformers==5.0.0rc3
 datasets
 numpy
 pandas
