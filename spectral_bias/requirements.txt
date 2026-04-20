@@ -2,7 +2,7 @@ absl-py==1.0.0
 astor==0.8.1
 attrs==21.2.0
 cached-property==1.5.2
-certifi==2021.10.8
+certifi==2023.7.22
 charset-normalizer==2.0.9
 dill==0.3.4
 future==0.18.2
