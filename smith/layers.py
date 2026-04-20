@@ -347,7 +347,7 @@ def get_seq_rep_from_bert(bert_model):
   siamese_input_tensor = bert_model.get_pooled_output()
   hidden_size = siamese_input_tensor.shape[-1].value
   siamese_input_tensor = tf.layers.dense(
-      siamese_input_tensor, units=hidden_size, activation=tf.nn.relu)
+      siamese_input_tensor, units=hidden_size, activation=tf.nn.relu, name='dense')
   normalized_siamese_input_tensor = tf.nn.l2_normalize(
       siamese_input_tensor, axis=1)
   return normalized_siamese_input_tensor
