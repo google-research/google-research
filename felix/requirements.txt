@@ -26,7 +26,7 @@ h5py==3.7.0
 httplib2==0.20.4
 idna==3.3
 importlib-resources==5.8.0
-joblib==1.1.0
+joblib==1.2.0
 kaggle==1.5.12
 keras==2.9.0
 Keras-Preprocessing==1.1.2
