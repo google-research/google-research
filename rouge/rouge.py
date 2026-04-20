@@ -22,7 +22,7 @@ Output is a text file in CSV format.
 
 Sample usage:
 
-rouge ---rouge_types=rouge1,rouge2,rougeL \
+rouge --rouge_types=rouge1,rouge2,rougeL \
     --target_filepattern=*.targets \
     --prediction_fliepattern=*.decodes \
     --output_filename=scores.csv \
