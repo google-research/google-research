@@ -5,6 +5,6 @@ pandas==1.2.4
 scikit-learn==0.24.2
 scipy==1.6.3
 tensorflow==2.6.0
-pyarrow==5.0.0
+pyarrow==14.0.1
 absl-py==1.4.0
 tensorflow-probability==0.21.0
