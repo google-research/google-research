@@ -5,4 +5,4 @@ scipy
 torch_scatter==2.0.5
 sympy
 matplotlib
-tensorflow==2.3.1
+tensorflow==2.11.1
