@@ -15,4 +15,4 @@ sklearn==0.0
 tensorboard==1.12.0
 tensorflow>=1.12.1
 termcolor==1.1.0
-Werkzeug==0.15.3
+Werkzeug==2.2.3
