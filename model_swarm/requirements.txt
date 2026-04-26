@@ -36,7 +36,7 @@ fonttools==4.53.1
 frozenlist==1.4.1
 fsspec==2024.5.0
 gitdb==4.0.11
-GitPython==3.1.43
+GitPython==3.1.47
 google==3.0.0
 google-ai-generativelanguage==0.6.6
 google-api-core==2.19.0
