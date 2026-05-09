@@ -30,7 +30,7 @@ jestimator==0.3.3
 keras==2.12.0
 libclang==16.0.0
 libcst==0.4.9
-Markdown==3.4.3
+Markdown==3.8.1
 markdown-it-py==2.2.0
 MarkupSafe==2.1.2
 mdurl==0.1.2
