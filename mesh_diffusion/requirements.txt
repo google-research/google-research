@@ -39,7 +39,7 @@ orbax-checkpoint==0.5.3
 packaging==23.2
 pillow==10.2.0
 plyfile==1.0.3
-protobuf==4.25.3
+protobuf==5.29.6
 pyasn1==0.5.1
 pyasn1-modules==0.3.0
 Pygments==2.17.2
