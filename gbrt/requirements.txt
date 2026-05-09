@@ -134,7 +134,7 @@ praxis==1.2.0
 prometheus-client==0.19.0
 promise==2.3
 prompt-toolkit==3.0.41
-protobuf==3.19.6
+protobuf==4.25.8
 psutil==5.9.6
 ptyprocess==0.7.0
 pure-eval==0.2.2
