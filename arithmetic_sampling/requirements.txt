@@ -50,7 +50,7 @@ psutil==5.9.5
 pyasn1==0.5.0
 pyasn1-modules==0.3.0
 pyglove==0.3.0
-Pygments==2.15.1
+Pygments==2.20.0
 PyYAML==6.0
 requests==2.30.0
 requests-oauthlib==1.3.1
