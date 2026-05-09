@@ -360,6 +360,7 @@ def compute_metrics(input_flags):
 
 
 def main(_):
+  print("Welcome to inference and evaluation")
   if FLAGS.checkpoint_path:
     folder_list = gfile.listdir(FLAGS.input_lr_dir)
     for folder_name in folder_list:
