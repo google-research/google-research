@@ -13,9 +13,21 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pathlib import Path
+
 dependencies = ["torch", "torchvision"]
 
 from lila.dpt_lila import load_lila_model
+
+
+RELEASED_CHECKPOINTS = {
+    "dinov2_vits14": (
+        "http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_s14_ytvos.pt"
+    ),
+    "dinov2_vitb14": (
+        "http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_b14_ytvos.pt"
+    ),
+}
 
 
 def lila(
@@ -30,6 +42,11 @@ def lila(
     device=None,
 ):
     """Load a LILA model from Torch Hub."""
+    if pretrained and not (checkpoint_path or checkpoint_url or model_name):
+        checkpoint_url = RELEASED_CHECKPOINTS.get(encoder)
+        if checkpoint_url and checkpoint_name == "best_checkpoint.pt":
+            checkpoint_name = Path(checkpoint_url).name
+
     return load_lila_model(
         encoder_name=encoder,
         pretrained=pretrained,

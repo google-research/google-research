@@ -24,44 +24,46 @@
 ## Overview
 
 This repository contains the reference implementation of LILA.
-
 It includes code for model training, evaluation on DAVIS / COCO-Stuff / NYUv2, and Torch Hub entrypoints for loading released checkpoints.
 
 * * *
 
 ## 🚀 Usage
 
-> Note: Currently we only support loading local snapshots. Please manually download the snapshots below.
+Clone the monorepo and load the LILA Torch Hub entrypoints from the `./lila` subdirectory. For the released `lila_dinov2_vits14` and `lila_dinov2_vitb14` checkpoints, `pretrained=True` downloads the snapshot automatically. You can still override this with `checkpoint_path` or `checkpoint_url`.
 
-You can load and run LILA directly via PyTorch Hub or from a local clone of this repository.
+🔹 Clone the repository
 
-For an end-to-end image demo, see [notebooks/lila_demo.ipynb](notebooks/lila_demo.ipynb). It shows how to load a local snapshot, run inference on an example image, and visualise a cosine-similarity heatmap from the decoder features.
+```bash
+git clone git@github.com:google-research/google-research.git
+cd google-research
+```
 
-🔹 Load from PyTorch Hub
+🔹 Load from a local clone of `google-research`
 
 ```python
 import torch
 
 model = torch.hub.load(
-    "<github-user>/<repo>",
+    "./lila",
     "lila_dinov2_vitb14",
     pretrained=True,
-    checkpoint_url="<checkpoint-url>",
+    source="local",
 )
 
 model.eval()
 ```
 
-🔹 Load from a local clone
+🔹 Load a specific local snapshot
 
 ```python
 import torch
 
 model = torch.hub.load(
-    ".",
+    "./lila",
     "lila_dinov2_vitb14",
     pretrained=True,
-    checkpoint_path="./checkpoints/lila_dinov2_vitb14.pt",
+    checkpoint_path="./lila/checkpoints/lila_dino2_b14_ytvos.pt",
     source="local",
 )
 
@@ -91,12 +93,12 @@ print(y_dec.shape)  # decoder feature grid, e.g. (1, 192, 224, 224)
 
 ## 🧰 Pre-trained Models
 
-The Torch Hub entrypoints accept either `checkpoint_path` or `checkpoint_url`.
+The Torch Hub entrypoints accept either `checkpoint_path` or `checkpoint_url`. Released pretrained checkpoints are currently available for the following entrypoints:
 
 | Torch Hub entrypoint | Encoder | Decoder dim | Download |
 | --- | --- | ---: | --- |
-| `lila_dinov2_vitb14` | `dinov2_vitb14` | 192 | [Download (1.8GB)](https://drive.usercontent.google.com/download?id=13rkBLFDoDTt7kHIwmsfZcmIq7PQjWjEx&export=download&authuser=0&confirm=t&uuid=bbce813b-e1c7-4c26-b411-3878035e82d2&at=ALBwUgnRVLXb6xms0_3IIuerA2Pz%3A1777218601920) |
-| `lila_dinov2_vitl14` | `dinov2_vitl14` | 256 | [Download (1.5GB)](https://drive.usercontent.google.com/download?id=1mxmjc1-IrEz1c8dO74VKcdqLqVJ2cVRx&export=download&authuser=0&confirm=t&uuid=88134464-902d-4183-8b97-9dc40e574971&at=ALBwUgk-MW6ncK48ESRs_yjoWE90:1777218719244) |
+| `lila_dinov2_vits14` | `dinov2_vits14` | 128 | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_s14_ytvos.pt) |
+| `lila_dinov2_vitb14` | `dinov2_vitb14` | 192 | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_b14_ytvos.pt) |
 
 
 ## 🏋️‍♀️ Training Instructions
@@ -104,8 +106,8 @@ The Torch Hub entrypoints accept either `checkpoint_path` or `checkpoint_url`.
 ### Step 0. Clone the repositories
 
 ```bash
-git clone <repo-url>
-cd <repo-dir>
+git clone git@github.com:google-research/google-research.git
+cd google-research/lila
 git clone https://github.com/princeton-vl/SEA-RAFT.git raft
 ```
 
@@ -123,7 +125,7 @@ pip install torch torchvision lightning hydra-core omegaconf tensorboard tqdm al
 
 ### Step 2. Set up checkpoints and data
 
-Place checkpoints under `./checkpoints/` or set `LILA_CHECKPOINTS_DIR` to a custom directory.
+Place checkpoints under `./checkpoints/` after `cd google-research/lila` (or under `./lila/checkpoints/` if you stay at the monorepo root), or set `LILA_CHECKPOINTS_DIR` to a custom directory.
 
 Keep the SEA-RAFT checkout at `./raft` so the optical-flow loader can import `raft/core`.
 
@@ -166,7 +168,7 @@ Example evaluation command:
 ```bash
 bash launch/eval.sh vos lila_dinov2_vitb14 demo_eval \
   model.encoder=dinov2_vitb14 \
-  model.checkpoint_path=/path/to/checkpoints/lila_dinov2_vitb14.pt \
+  model.checkpoint_path=/path/to/checkpoints/lila_dino2_b14_ytvos.pt \
   data.davis_root=/path/to/DAVIS2017 \
   eval.resize_input=True \
   eval.resize_input_size=476
