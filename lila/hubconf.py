@@ -27,6 +27,12 @@ RELEASED_CHECKPOINTS = {
     "dinov2_vitb14": (
         "http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_b14_ytvos.pt"
     ),
+    "dinov2_vitl14": (
+        "http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_l14_ytvos.pt"
+    ),
+    "dinov2_vitl14_kts": (
+        "http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_l14_kts.pt"
+    ),
 }
 
 
@@ -40,10 +46,11 @@ def lila(
     checkpoint_name="best_checkpoint.pt",
     strict=False,
     device=None,
+    release_key=None,
 ):
     """Load a LILA model from Torch Hub."""
     if pretrained and not (checkpoint_path or checkpoint_url or model_name):
-        checkpoint_url = RELEASED_CHECKPOINTS.get(encoder)
+        checkpoint_url = RELEASED_CHECKPOINTS.get(release_key or encoder)
         if checkpoint_url and checkpoint_name == "best_checkpoint.pt":
             checkpoint_name = Path(checkpoint_url).name
 
@@ -70,6 +77,14 @@ def lila_dinov2_vitb14(**kwargs):
 
 def lila_dinov2_vitl14(**kwargs):
     return lila(encoder="dinov2_vitl14", **kwargs)
+
+
+def lila_dinov2_vitl14_kts(**kwargs):
+    return lila(
+        encoder="dinov2_vitl14",
+        release_key="dinov2_vitl14_kts",
+        **kwargs,
+    )
 
 
 def lila_dinov2reg_vits14(**kwargs):

@@ -30,7 +30,7 @@ It includes code for model training, evaluation on DAVIS / COCO-Stuff / NYUv2, a
 
 ## 🚀 Usage
 
-Clone the monorepo and load the LILA Torch Hub entrypoints from the `./lila` subdirectory. For the released `lila_dinov2_vits14` and `lila_dinov2_vitb14` checkpoints, `pretrained=True` downloads the snapshot automatically. You can still override this with `checkpoint_path` or `checkpoint_url`.
+Clone the monorepo and load the LILA Torch Hub entrypoints from the `./lila` subdirectory. For the released `lila_dinov2_vits14`, `lila_dinov2_vitb14`, `lila_dinov2_vitl14`, and `lila_dinov2_vitl14_kts` checkpoints, `pretrained=True` downloads the snapshot automatically. You can still override this with `checkpoint_path` or `checkpoint_url`.
 
 🔹 Clone the repository
 
@@ -76,6 +76,7 @@ model.eval()
 lila_dinov2_vits14
 lila_dinov2_vitb14
 lila_dinov2_vitl14
+lila_dinov2_vitl14_kts
 ```
 
 🔹 Example inference
@@ -95,10 +96,12 @@ print(y_dec.shape)  # decoder feature grid, e.g. (1, 192, 224, 224)
 
 The Torch Hub entrypoints accept either `checkpoint_path` or `checkpoint_url`. Released pretrained checkpoints are currently available for the following entrypoints:
 
-| Torch Hub entrypoint | Encoder | Decoder dim | Download |
-| --- | --- | ---: | --- |
-| `lila_dinov2_vits14` | `dinov2_vits14` | 128 | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_s14_ytvos.pt) |
-| `lila_dinov2_vitb14` | `dinov2_vitb14` | 192 | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_b14_ytvos.pt) |
+| Torch Hub entrypoint | Encoder | Decoder dim | Pre-training data | Download |
+| --- | --- | ---: | --- | --- |
+| `lila_dinov2_vits14` | `dinov2_vits14` | 128 | YTVOS | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_s14_ytvos.pt) |
+| `lila_dinov2_vitb14` | `dinov2_vitb14` | 192 | YTVOS | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_b14_ytvos.pt) |
+| `lila_dinov2_vitl14` | `dinov2_vitl14` | 256 | YTVOS | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_l14_ytvos.pt) |
+| `lila_dinov2_vitl14_kts` | `dinov2_vitl14` | 256 | Kinetics | [Download](http://storage.googleapis.com/gresearch/lila-ckpts/lila_dino2_l14_kts.pt) |
 
 
 ## 🏋️‍♀️ Training Instructions
@@ -136,8 +139,8 @@ Training additionally expects:
 
 Dataset paths are configured through Hydra overrides. The default training configs use:
 
-- `train_dataset.root_dir` for Ref-YTVOS or DAVIS-2017
-- `val_dataset.root_dir` for DAVIS-2017
+- `train_dataset.root_dir` for [Ref-YTVOS (Refer-YouTube-VOS)](https://youtube-vos.org/dataset/rvos/) or [DAVIS-2017](https://davischallenge.org/davis2017/code.html)
+- `val_dataset.root_dir` for [DAVIS-2017](https://davischallenge.org/davis2017/code.html)
 
 ### Step 3. Run training
 
