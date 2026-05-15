@@ -3,12 +3,12 @@
 # Featurising Pixels from Dynamic 3D Scenes with Linear In-Context Learners
 **Nikita Araslanov**, **Martin Sundermeyer**, **Hidenobu Matsuki**, **David Joseph Tan**, **Federico Tombari**
 
-### CVPR 2026 ✨ oral presentation ✨
+### ✨ CVPR 2026 Oral Presentation ✨
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Framework](https://img.shields.io/badge/PyTorch-%23EE4C2C.svg?&logo=PyTorch&logoColor=white)](https://pytorch.org/)
 
-[[arXiv]](https://arxiv.org/abs/2604.26488) | [[Supplemental Material]](https://storage.googleapis.com/gresearch/lila-ckpts/lila_cvpr2026_supp.zip)
+[Paper (arXiv)](https://arxiv.org/abs/2604.26488) | [Supplemental material (.zip, 26MB)](https://storage.googleapis.com/gresearch/lila-ckpts/lila_cvpr2026_supp.zip) | [Project website](https://lila-pixels.github.io/)
 
 ---
 
