@@ -161,7 +161,7 @@ Available evaluation entrypoints:
 ```text
 vos 	 # video object segmentation with linear probing
 vosknn   # video object segmentation with k-nn
-seg	 # semantic segmentation
+seg	     # semantic segmentation
 openseg  # zero-shot semantic segmentation
 norml    # surface normal estimation
 ```
