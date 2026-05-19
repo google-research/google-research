@@ -1,0 +1,39 @@
+# From google-research/
+
+# d-sharpness
+
+Artifacts accompanying the paper: Certification of Machine Learning Models via Directional Sharpness
+
+## Layout
+
+- `df_util/df.py` — directional-sharpness measuring utilities.
+- `experiments/` — runnable experiment scripts (training + measuring sharpness).
+- `grid_train/` — grid-search training driver (`NN.py`, `train.py`).
+
+
+## Requirements
+
+- Python 3.11 
+- CUDA-capable GPU recommended (CPU fallback is available via
+  `--probe-allow-cpu-fallback`)
+- Core packages:
+  - `torch`, `torchvision`
+  - `numpy`, `pandas`, `tqdm`
+  - `matplotlib` 
+
+
+## Setup
+
+```bash
+git clone <repo-url> 
+cd d-sharpness
+pip install -r requirements.txt 
+```
+
+## Minimal example
+Train two VGG-16-BN pairs on CIFAR-10 with SAM and SGD, and measure their directional sharpness score.
+
+```bash
+python experiments/light_test.py
+```
+
