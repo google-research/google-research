@@ -57,7 +57,10 @@ _EXPERIMENT_NAME = flags.DEFINE_string(
 
 
 def main(argv):
-  """Main function to run the Poly-Sense2 fine-tuning experiment.
+  """Runs fine-tuning experiments.
+
+  Dispatches to the appropriate training pipeline based on the model_flavor
+  configuration field.
 
   Args:
     argv: Command-line arguments.
@@ -81,6 +84,8 @@ def main(argv):
   else:
     raise app.UsageError("Either --config or --config_json must be provided.")
 
+  config_utils.derive_paths(cfg)
+
   if _MODEL_ID.value:
     cfg.model_id = _MODEL_ID.value
   if _DATASET_PATH.value:
@@ -89,6 +94,7 @@ def main(argv):
     cfg.output_dir = _OUTPUT_DIR.value
   if _EXPERIMENT_NAME.value:
     cfg.experiment_name = _EXPERIMENT_NAME.value
+
 
   logging.info("Starting experiment: %s", cfg.experiment_name)
   logging.info("Using model: %s", cfg.model_id)
@@ -270,6 +276,7 @@ def main(argv):
 
   cfg.eval.eval_json = str(eval_json_path)
   config_save_path.write_text(json.dumps(cfg.to_dict(), indent=2, default=str))
+
 
 
 if __name__ == "__main__":
