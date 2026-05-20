@@ -247,7 +247,9 @@ def main(argv):
     logging.info("Skipping training as run_eval_only is set to True.")
 
   logging.info("Running final evaluation...")
-  eval_results = custom_trainer.evaluate(eval_dataset=test_dataset)
+  eval_results = custom_trainer.evaluate(
+      eval_dataset=test_dataset, metric_key_prefix="best_eval"
+  )
   logging.info("Final eval results: %s", eval_results)
 
   train_loss = None
@@ -269,6 +271,7 @@ def main(argv):
       label_names=valid_categories,
       model_label2id=model_label2id,
       train_metrics=train_metrics,
+      prefix="best_eval",
   )
   eval_json_path = output_path / "evaluation.json"
   eval_json_path.write_text(json.dumps(publisher_eval, indent=2, default=str))

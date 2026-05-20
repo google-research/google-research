@@ -107,30 +107,32 @@ def format_for_publisher(
     label_names,
     model_label2id,
     train_metrics = None,
+    prefix = "eval",
 ):
   """Builds a unified evaluation dict for both publisher and result collection.
 
   Args:
-    eval_results: Flat dict from compute_metrics (keys prefixed with "eval_").
+    eval_results: Flat dict from compute_metrics (keys prefixed with `prefix`).
     label_names: Ordered list of class names used during training.
     model_label2id: Mapping from label name to integer class id.
     train_metrics: Optional dict with training metadata (e.g. train_loss,
       total_steps, wall_clock_seconds, status).
+    prefix: Prefix used for evaluation keys (e.g., "eval" or "best_eval").
 
   Returns:
     Dict containing flat metrics at the top level (for collect_results.py)
     and the nested evaluation_metrics block (for parse_evaluation).
   """
   overall = {
-      pub_key: eval_results[f"eval_{tm_key}"]
+      pub_key: eval_results[f"{prefix}_{tm_key}"]
       for tm_key, pub_key in _TORCHMETRICS_TO_PUBLISHER.items()
-      if f"eval_{tm_key}" in eval_results
+      if f"{prefix}_{tm_key}" in eval_results
   }
 
   per_label = {
-      name: {"ap_50": eval_results[f"eval_map_50_class_{class_idx}"]}
+      name: {"ap_50": eval_results[f"{prefix}_map_50_class_{class_idx}"]}
       for name, class_idx in model_label2id.items()
-      if f"eval_map_50_class_{class_idx}" in eval_results
+      if f"{prefix}_map_50_class_{class_idx}" in eval_results
   }
 
   return {
