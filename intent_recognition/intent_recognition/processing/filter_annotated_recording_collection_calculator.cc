@@ -213,7 +213,7 @@ class FilterAnnotatedRecordingCollectionCalculator
 
   absl::Duration GetTraceDuration(
       const AnnotatedRecordingCollection& annotated_recording_collection) {
-    absl::optional<absl::Duration> min_timestamp, max_timestamp;
+    std::optional<absl::Duration> min_timestamp, max_timestamp;
     for (const auto& sequence :
          annotated_recording_collection.recording_collection().sequence()) {
       for (const auto& window : sequence.repeated_window().window()) {

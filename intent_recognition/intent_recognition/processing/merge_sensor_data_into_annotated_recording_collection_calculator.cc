@@ -103,7 +103,7 @@ class MergeSensorDataIntoAnnotatedRecordingCollectionCalculator
       sequence->mutable_metadata()->set_type(sensor_options.type());
       sequence->mutable_metadata()->set_subtype(sensor_options.subtype());
       sequence_by_input_stream_index_.push_back(std::move(sequence));
-      sequence_sample_size_.push_back(absl::optional<int32_t>());
+      sequence_sample_size_.push_back(std::optional<int32_t>());
     }
     return absl::OkStatus();
   }
@@ -209,7 +209,7 @@ class MergeSensorDataIntoAnnotatedRecordingCollectionCalculator
 
   absl::Status VerifyDataSizeMatch(
       int32_t current_sample_size,
-      absl::optional<int32_t>* previous_sample_sizes) {
+      std::optional<int32_t>* previous_sample_sizes) {
     if (previous_sample_sizes->has_value() &&
         previous_sample_sizes->value() != current_sample_size) {
       return absl::InvalidArgumentError(absl::Substitute(
@@ -225,7 +225,7 @@ class MergeSensorDataIntoAnnotatedRecordingCollectionCalculator
   absl::flat_hash_map<int32_t, std::pair<std::string, std::string>>
       sensor_type_by_input_stream_index_;
   std::vector<std::unique_ptr<Sequence>> sequence_by_input_stream_index_;
-  std::vector<absl::optional<int32_t>> sequence_sample_size_;
+  std::vector<std::optional<int32_t>> sequence_sample_size_;
   MergeSensorDataIntoAnnotatedRecordingCollectionCalculatorOptions options_;
 };
 REGISTER_CALCULATOR(MergeSensorDataIntoAnnotatedRecordingCollectionCalculator);
