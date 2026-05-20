@@ -15,6 +15,26 @@
 /**
  * This is an MQM template for evaluating Speech-to-Speech translation.
  * It provides play buttons aligned to text segments.
+ *
+ * To function, audio URLs and alignment info must be provided via annotations
+ * (the last column in the input TSV) for each segment. An example annotation
+ * is shown below:
+ * {"audio":
+ *   {
+ *     "source": {
+ *       "url": "https://url/to/source/audio.wav",
+ *       "alignment": [{"substring": "Word1", "time_start": 0.01234567,
+ *                      "time_end": 0.12345678}, {"substring": "Word2",
+ *                      "time_start": 0.15, "time_end": 0.20}],
+ *     },
+ *     "target": {
+ *       "url": "https://url/to/target/audio.wav",
+ *       "alignment": [{"substring": "Palabra1", "time_start": 0.01234567,
+ *                      "time_end": 0.22222222}, {"substring": "Palabra2",
+ *                      "time_start": 0.3, "time_end": 0.6}],
+ *     }
+ *   }
+ * }
  */
 antheaTemplates['MQM-Speech-to-Speech'] = {
   severities: {
