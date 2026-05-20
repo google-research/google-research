@@ -561,6 +561,17 @@ body, p, div, span, table, tr, td, th, ul, ol, li {
   outline: 5px solid #fef08a;
   outline-offset: 2px;
 }
+.anthea-error-desc-line {
+  align-items: center;
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+.anthea-error-desc-line .anthea-play-button {
+  flex-shrink: 0;
+  font-size: 10px;
+  height: 22px;
+  width: 22px;
+}
 .anthea-error-span-preview {
   display: -webkit-box;
   -webkit-line-clamp: 3;

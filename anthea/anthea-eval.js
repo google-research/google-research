@@ -1965,19 +1965,6 @@ class AntheaEval {
       textCls += ' anthea-being-edited';
     }
     const lang = error.location == 'source' ? this.srcLang : this.tgtLang;
-    /**
-     * Use 0-width spaces to ensure leading/trailing spaces get shown.
-     */
-    const textCell = googdom.createDom(
-        'td', {class: textCls}, desc,
-        googdom.createDom(
-            'span', {
-              class: 'anthea-error-span-preview',
-              dir: 'auto',
-              lang: lang,
-              style: 'background-color:' + color,
-            },
-            '\u200b' + error.selected + '\u200b'));
 
     const segment = this.segments_[this.cursor.seg];
     let audioRanges = null;
@@ -2015,10 +2002,30 @@ class AntheaEval {
              true, (time) => {
                AntheaEval.syncHighlighting(time, subparas, audioRanges);
              });
-         playBtnContainer.style.marginLeft = '8px';
-         textCell.appendChild(playBtnContainer);
        }
     }
+
+    // Build the category description line with optional play button inline.
+    const descLine = googdom.createDom(
+        'div', 'anthea-error-desc-line', desc);
+    if (playBtnContainer) {
+      playBtnContainer.style.marginLeft = '4px';
+      descLine.appendChild(playBtnContainer);
+    }
+
+    /**
+     * Use 0-width spaces to ensure leading/trailing spaces get shown.
+     */
+    const textCell = googdom.createDom(
+        'td', {class: textCls}, descLine,
+        googdom.createDom(
+            'span', {
+              class: 'anthea-error-span-preview',
+              dir: 'auto',
+              lang,
+              style: `background-color:${color}`,
+            },
+            `\u200b${error.selected}\u200b`));
 
     tr.appendChild(textCell);
 
