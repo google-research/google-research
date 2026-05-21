@@ -61,9 +61,9 @@ void CopyDataToFeatureContainer(T datapoints, bool flatten,
   }
 }
 
-absl::optional<absl::Duration> UpdateFirstArcMeasurement(
+std::optional<absl::Duration> UpdateFirstArcMeasurement(
     const google::protobuf::Duration& first_sequence_timestamp_proto,
-    absl::optional<absl::Duration> first_arc_measurement) {
+    std::optional<absl::Duration> first_arc_measurement) {
   absl::Duration first_sequence_timestamp =
       ConvertProtoToDuration(first_sequence_timestamp_proto);
   if (!first_arc_measurement.has_value() ||
@@ -81,7 +81,7 @@ absl::StatusOr<bool> AddSequence(
     google::protobuf::Map<std::string, tensorflow::FeatureList>* feature_list
 ) {
   bool added_data = false;
-  absl::optional<absl::Duration> first_arc_measurement;
+  std::optional<absl::Duration> first_arc_measurement;
   for (const auto& sequence :
        annotated_recording_collection.recording_collection().sequence()) {
     std::string feature_name = absl::StrJoin(
