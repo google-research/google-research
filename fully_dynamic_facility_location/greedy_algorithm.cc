@@ -186,7 +186,7 @@ GreedyAlgorithm::IsBlockingAtLevel(const int facility_id) {
   return std::nullopt;
 }
 
-absl::optional<std::tuple<int, double, std::vector<int>>>
+std::optional<std::tuple<int, double, std::vector<int>>>
 GreedyAlgorithm::FindBlockingCluster() {
   std::vector<int> best_blocking_cluster;
   double best_blocking_cost = std::numeric_limits<double>::max();
