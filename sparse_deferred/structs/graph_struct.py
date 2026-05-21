@@ -725,14 +725,14 @@ class FixedSizePadder:
 
     Args:
       examples: iterable that yields `GraphStruct` examples.
-      num_steps: If positive, considers this many samples of `examples`.
+      num_steps: If positive (>0), considers this many samples of `examples`.
         Otherwise, iterates over all `examples`. Warning: this may run
         infinitely on infinite iterators (e.g., `dataset.repeat()`).
     """
     sizes: dict[tuple[str, str], list[int]] = collections.defaultdict(list)
     for i, graph in enumerate(examples):
       # assert isinstance(graph, GraphStruct)
-      if i > 0 and i >= num_steps:
+      if num_steps > 0 and i >= num_steps:
         break
       for node_name, features in graph.nodes.items():
         value_list = sizes[('nodes', node_name)]

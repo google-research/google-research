@@ -483,6 +483,23 @@ class FixedSizePadderTest(tf.test.TestCase, parameterized.TestCase):
     self.assertEqual(new_padder.slack, padder.slack)
     self.assertEqual(new_padder.stack_edges, padder.stack_edges)
 
+  @parameterized.parameters(0, -1)
+  def test_calculate_pad_statistics_non_positive_num_steps(self, num_steps):
+    graph1 = graph_struct.GraphStruct.new(
+        nodes={'n1': {'f': np.zeros([5, 1])}},
+    )
+    graph2 = graph_struct.GraphStruct.new(
+        nodes={'n1': {'f': np.zeros([10, 1])}},
+    )
+
+    padder = graph_struct.FixedSizePadder(engine=sdnp.engine, slack=0.0)
+    padder.calculate_pad_statistics([graph1, graph2], num_steps=num_steps)
+    self.assertEqual(
+        padder.sizes[('nodes', 'n1')],
+        11,
+        msg='Expected size: 1 + max(5, 10) + 0 * std = 11',
+    )
+
   def test_graph_struct_new_from_nx(self):
     """Test the new_from_nx method can construct properly."""
     nx_graph = nx.Graph()
