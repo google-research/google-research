@@ -1,0 +1,17 @@
+{
+  "cashew": {
+    "0": "tree",
+    "1": "flower",
+    "2": "premature",
+    "3": "unripe",
+    "4": "ripe",
+    "5": "spoilt"
+  },
+  "coffee": {
+    "0": "unripe",
+    "1": "ripening",
+    "2": "ripe",
+    "3": "spoilt",
+    "4": "coffee_tree"
+  }
+}

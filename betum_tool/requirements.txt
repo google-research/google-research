@@ -1,0 +1,21 @@
+# python_version >= "3.11"
+# Pip does not directly support a global python version constraint in
+# requirements.txt. It is included here for documentation purposes.
+
+absl-py>=1.4.0
+accelerate>=0.21.0
+datasets>=2.14.0
+etils[epath]>=1.5.0
+matplotlib>=3.7.0
+ml-collections>=0.1.1
+numpy>=1.24.0
+Pillow>=9.5.0
+pycocotools>=2.0.7
+pytest>=7.0.0
+safetensors>=0.4.0
+scipy>=1.10.0
+torch>=2.0.0
+tensorboardX>=2.6
+torchmetrics>=1.8.0
+torchvision>=0.15.0
+transformers>=4.36.2,<5.0.0
