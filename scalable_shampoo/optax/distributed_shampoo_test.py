@@ -307,13 +307,17 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         pad_ms, 4, ridge_epsilon=1e-3, padding_start=sz)
     pad_err = metrics.inverse_pth_root_errors
     pad_rt_principal = pad_rt[:sz, :sz]
+    # GPU float32 precision is slightly lower/non-deterministic.
+    is_gpu = jax.default_backend() == 'gpu'
+    rtol = 6e-2 if is_gpu else 1e-2
     np.testing.assert_allclose(
         rt,
         pad_rt_principal,
         # The fact that this is so large keeps vladf up at night,
         # but without padding_start argument it's even worse (>1).
-        rtol=1e-2,
-        err_msg=np.array2string(rt - pad_rt_principal))
+        rtol=rtol,
+        err_msg=np.array2string(rt - pad_rt_principal),
+    )
     self.assertLessEqual(pad_err, 4 * err)
     self.assertEqual(np.abs(pad_rt[sz:]).sum(), 0)
     self.assertEqual(np.abs(pad_rt[:, sz:]).sum(), 0)
