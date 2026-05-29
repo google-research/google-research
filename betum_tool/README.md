@@ -45,9 +45,19 @@ annotated in YOLO format; we convert to COCO JSON for evaluation.
 | 4 | `ripe` | 7,481 | 8.5 |
 | 5 | `spoilt` | 25,820 | 29.2 |
 
-> **Note:** Data is downloaded from
-> [Mendeley](https://data.mendeley.com/datasets/r46c6bpfpf/1) inside each
-> Colab notebook - it is never committed to this repo.
+## Dataset & Attribution
+
+This project utilizes the **Coffee & Cashew Nut** dataset published by
+Sanya et al. (2024), which is hosted on Mendeley Data and licensed under
+the **Creative Commons Attribution 4.0 International (CC BY 4.0)** license.
+
+* **Original Dataset & Paper:** Sanya, et al. (2024).
+*A dataset of coffee and cashew nut maturity stages and yield estimation
+in Uganda*. Data in Brief. [DOI Link](https://doi.org/10.1016/j.dib.2023.109952)
+| [Mendeley Page](https://data.mendeley.com/datasets/r46c6bpfpf/1)
+* **Modifications:** Original bounding box annotations in YOLO format have been
+converted to COCO JSON splits (e.g., `cashew_val.json`, `coffee_val.json`)
+using `common/yolo_to_coco.py` to enable standardized validation via COCOEval.
 
 ## Repository Structure
 
