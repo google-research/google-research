@@ -33,6 +33,8 @@ class Precision(str, enum.Enum):
 
 class TaskModality(str, enum.Enum):
   VISION = "VISION"
+  TEXT = "TEXT"
+  AUDIO = "AUDIO"
 
 
 class TaskType(str, enum.Enum):

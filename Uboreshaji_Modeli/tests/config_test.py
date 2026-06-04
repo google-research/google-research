@@ -18,6 +18,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from Uboreshaji_Modeli.common import config
+from Uboreshaji_Modeli.common import config_utils
 
 
 class GetBaseConfigTest(parameterized.TestCase):
@@ -65,6 +66,73 @@ class GetBaseConfigTest(parameterized.TestCase):
       value = getattr(value, part)
     self.assertEqual(value, expected)
 
+
+class DerivePathsTest(absltest.TestCase):
+
+  def test_vision_modality_derives_paths(self):
+    cfg = config.get_base_config()
+    cfg.task_modality = config.TaskModality.VISION
+    cfg.dataset.dataset_base = "/base"
+    cfg.dataset.dataset_uri = "ds"
+    cfg.dataset.dataset_version = "v1"
+    cfg.model_base = "/mbase"
+    cfg.model_name = "mname"
+    config_utils.derive_paths(cfg)
+    self.assertEqual(
+        cfg.dataset.dataset_path, "/base/ds/huggingface_dataset/v1/"
+    )
+    self.assertEqual(cfg.model_id, "/mbase/mname")
+
+  def test_audio_modality_preserves_explicit_model_id(self):
+    cfg = config.get_base_config()
+    cfg.task_modality = config.TaskModality.AUDIO
+    cfg.model_id = "openai/whisper-large-v3"
+    cfg.model_base = "/mbase"
+    cfg.model_name = "mname"
+    cfg.dataset.dataset_base = "/base"
+    cfg.dataset.dataset_uri = "ds"
+    config_utils.derive_paths(cfg)
+    self.assertEqual(cfg.model_id, "openai/whisper-large-v3")
+    self.assertEqual(cfg.dataset.dataset_path, "/base/ds")
+
+  def test_audio_modality_derives_path_if_model_id_is_legacy_default(self):
+    cfg = config.get_base_config()
+    # cfg.model_id is pre-populated by get_base_config() with the vision default
+    cfg.task_modality = config.TaskModality.AUDIO
+    cfg.model_base = "/audio/base"
+    cfg.model_name = "model"
+    config_utils.derive_paths(cfg)
+    self.assertEqual(cfg.model_id, "/audio/base/model")
+
+  def test_vision_modality_preserves_explicit_dataset_path(self):
+    cfg = config.get_base_config()
+    cfg.task_modality = config.TaskModality.VISION
+    cfg.dataset.dataset_path = "/explicit/path"
+    cfg.dataset.dataset_base = "/ignored/base"
+    cfg.dataset.dataset_uri = "ds"
+    cfg.dataset.dataset_version = "v1"
+    config_utils.derive_paths(cfg)
+    self.assertEqual(cfg.dataset.dataset_path, "/explicit/path")
+
+  def test_hasattr_value_unwraps_custom_enum_modality(self):
+    import enum  # pylint: disable=g-import-not-at-top
+
+    class CustomModality(enum.Enum):
+      VISION = "VISION"
+
+    cfg = config.get_base_config()
+    del cfg.task_modality
+    cfg.task_modality = CustomModality.VISION
+    cfg.dataset.dataset_base = "/custom/base"
+    cfg.dataset.dataset_uri = "ds"
+    cfg.dataset.dataset_version = "v1"
+    cfg.model_base = "/custom/mbase"
+    cfg.model_name = "mname"
+    config_utils.derive_paths(cfg)
+    self.assertEqual(
+        cfg.dataset.dataset_path, "/custom/base/ds/huggingface_dataset/v1/"
+    )
+    self.assertEqual(cfg.model_id, "/custom/mbase/mname")
 
 if __name__ == "__main__":
   absltest.main()
