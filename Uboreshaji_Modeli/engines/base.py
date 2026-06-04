@@ -13,32 +13,128 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Base class for model-specific engines."""
+"""Base classes and protocols for model engines."""
 
-import abc
-from collections.abc import Mapping
-from typing import Any, Callable
+from collections.abc import Mapping, Sequence
+import typing
+from typing import Any, Callable, Protocol
 
 import ml_collections
 import torch
 from torch import nn
 
 
-class ModelEngine(abc.ABC):
-  """Abstract base class for model-specific logic."""
+@typing.runtime_checkable
+class DataPreprocessor(Protocol):
+  """Protocol for data preprocessing components."""
 
-  @property
-  @abc.abstractmethod
-  def inference_kwargs(self):
-    """Returns model-specific inference keyword arguments."""
-
-  @abc.abstractmethod
-  def load_model_and_processor(
-      self, model_id, device
+  def get_transform_fn(
+      self,
+      processor,
+      cfg = None,
+      *,
+      is_train = False,
+      **kwargs,
   ):
-    """Loads the model and processor."""
+    """Returns the transformation function for the dataset."""
+    Ellipsis
 
-  @abc.abstractmethod
+  def get_collate_fn(
+      self,
+      cfg = None,
+      **kwargs,
+  ):
+    """Returns the collation function for the data loader."""
+    Ellipsis
+
+
+@typing.runtime_checkable
+class LossHandler(Protocol):
+  """Protocol for loss computation and post-processing."""
+
+  def get_criterion(
+      self,
+      num_classes,
+      cfg,
+      device,
+  ):
+    """Returns the criterion (loss function) and loss weights."""
+    Ellipsis
+
+  def post_process(
+      self,
+      processor,
+      outputs,
+      target_sizes,
+      score_threshold,
+  ):
+    """Post-processes model outputs (e.g. converting logits to boxes)."""
+    Ellipsis
+
+
+@typing.runtime_checkable
+class PredictionDecoder(Protocol):
+  """Protocol for prediction decoding components."""
+
+  def decode(
+      self,
+      processor,
+      outputs,
+      **kwargs,
+  ):
+    """Decodes model outputs into readable formats."""
+    Ellipsis
+
+
+class ModelEngine:
+  """Coordinator container for composed model engines.
+
+  Can be instantiated directly with composed components (Composition Mode)
+  or subclassed by legacy engines (Subclass Mode).
+  """
+
+  def __init__(
+      self,
+      backbone = None,
+      preprocessor = None,
+      loss_handler = None,
+      decoder = None,
+  ):
+    self.backbone = backbone
+    self.preprocessor = preprocessor
+    self.loss_handler = loss_handler
+    self.decoder = decoder
+
+  # Core Composed & Legacy Adapter Interface
+
+  def load_model_and_processor(
+      self,
+      model_id,
+      device,
+      **kwargs,
+  ):
+    """Loads model and processor. Delegates to composed backbone if present.
+
+    Args:
+      model_id: Model repository name or local path.
+      device: Targeted hardware execution mapping device.
+      **kwargs: Additional model-specific loading arguments.
+
+    Returns:
+      A tuple (model, processor), where model is the initialized neural network
+      module on the device, and processor is the input data processing component
+      instance.
+    """
+    if self.backbone is not None:
+      if hasattr(self.backbone, "load_model_and_processor"):
+        return self.backbone.load_model_and_processor(
+            model_id, device, **kwargs
+        )
+    raise NotImplementedError(
+        "load_model_and_processor must be overridden by subclass or delegated"
+        " to a composed backbone."
+    )
+
   def get_transform_fn(
       self,
       processor,
@@ -47,31 +143,85 @@ class ModelEngine(abc.ABC):
       model_label2id,
       cfg = None,
       is_train = False,
+      **kwargs,
   ):
-    """Returns the transformation function for the dataset."""
+    """Delegates to composed preprocessor or handles legacy signature."""
+    if self.preprocessor is not None:
+      # Composition mode: expects cfg to be passed as kwarg or positional.
+      resolved_cfg = cfg if cfg is not None else kwargs.get("cfg")
+      return self.preprocessor.get_transform_fn(
+          processor,
+          resolved_cfg,
+          is_train=is_train,
+          text_inputs=text_inputs,
+          dataset_id2label=dataset_id2label,
+          model_label2id=model_label2id,
+          **kwargs
+      )
 
-  @abc.abstractmethod
+    raise NotImplementedError(
+        "get_transform_fn must be overridden by subclass or delegated to a"
+        " composed preprocessor."
+    )
+
   def get_collate_fn(
       self,
       cfg = None,
+      **kwargs,
   ):
-    """Returns the collation function for the data loader."""
+    """Delegates to composed preprocessor."""
+    if self.preprocessor is not None:
+      return self.preprocessor.get_collate_fn(cfg, **kwargs)
+    raise NotImplementedError(
+        "get_collate_fn must be overridden by subclass or delegated to a"
+        " composed preprocessor."
+    )
 
-  @abc.abstractmethod
   def get_criterion(
       self,
       num_classes,
       cfg,
       device,
+      **kwargs,
   ):
-    """Returns the loss criterion and weight dictionary."""
+    """Delegates to composed loss handler."""
+    del kwargs  # Unused in this method.
+    if self.loss_handler is not None:
+      return self.loss_handler.get_criterion(num_classes, cfg, device)
+    raise NotImplementedError(
+        "get_criterion must be overridden by subclass or delegated to a"
+        " composed loss handler."
+    )
 
-  @abc.abstractmethod
   def post_process(
       self,
       processor,
       outputs,
       target_sizes,
       score_threshold,
+      **kwargs,
   ):
-    """Post-processes model outputs into detections."""
+    """Delegates to composed loss handler."""
+    del kwargs  # Unused in this method.
+    if self.loss_handler is not None:
+      return self.loss_handler.post_process(
+          processor, outputs, target_sizes, score_threshold
+      )
+    raise NotImplementedError(
+        "post_process must be overridden by subclass or delegated to a"
+        " composed loss handler."
+    )
+
+  def decode_predictions(
+      self,
+      processor,
+      outputs,
+      **kwargs,
+  ):
+    """Delegates to composed prediction decoder."""
+    if self.decoder is not None:
+      return self.decoder.decode(processor, outputs, **kwargs)
+    raise NotImplementedError(
+        "decode_predictions must be overridden by subclass or delegated to a"
+        " composed prediction decoder."
+    )

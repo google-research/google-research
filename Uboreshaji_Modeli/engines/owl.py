@@ -13,9 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""OWL-v2 implementation of ModelEngine."""
+"""Owlv2 engine for object detection in composed architecture."""
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any, Callable
 
 from absl import logging
@@ -23,9 +23,9 @@ import ml_collections
 import numpy as np
 import torch
 from torch import nn
-import transformers
+from transformers import Owlv2ForObjectDetection
+from transformers import Owlv2Processor
 
-from Uboreshaji_Modeli.common import augmentations
 from Uboreshaji_Modeli.common import box_utils
 from Uboreshaji_Modeli.common import config as base_config
 from Uboreshaji_Modeli.common import losses
@@ -36,33 +36,7 @@ from Uboreshaji_Modeli.engines import base
 def normalize_annotation_for_owlv2(
     boxes, original_size
 ):
-  """Normalizes bounding boxes for the OWL-v2 model.
-
-  Converts boxes from [xmin, ymin, width, height] to the normalized
-  [center_x, center_y, width, height] format expected by OWL-v2. Coordinates
-  are normalized to [0, 1] relative to the longest edge of the image to match
-  the model's square canvas padding.
-
-  Args:
-    boxes: A torch.Tensor of shape (N, 4) or (4,) with bounding boxes in [xmin,
-      ymin, width, height] pixel format.
-    original_size: A tuple (height, width) of the original image.
-
-  Returns:
-    A torch.Tensor of the same shape as `boxes` with normalized bounding
-    boxes in [center_x, center_y, width, height] format.
-
-  Example:
-    A 100x200 box at (10, 20) in a 1000x800 image:
-      - box: [10, 20, 100, 200]
-      - original_size: (1000, 800)
-      - max_side: 1000
-      - cx = (10 + 100 / 2) / 1000 = 0.06
-      - cy = (20 + 200 / 2) / 1000 = 0.12
-      - w = 100 / 1000 = 0.1
-      - h = 200 / 1000 = 0.2
-    Returns: [0.06, 0.12, 0.1, 0.2]
-  """
+  """Normalizes bounding boxes to [0, 1] relative to image size."""
   orig_h, orig_w = original_size
   max_side = float(max(orig_h, orig_w))
 
@@ -79,33 +53,32 @@ def normalize_annotation_for_owlv2(
   )
 
 
-class Owlv2Engine(base.ModelEngine):
-  """Model engine for OWL-v2.
-
-  This class implements the base.ModelEngine interface for OWL-v2. It provides
-  methods for loading the model and processor, transforming the data, and
-  computing the loss.
-  """
-
-  def load_model_and_processor(
-      self, model_id, device
-  ):
-    processor = transformers.AutoProcessor.from_pretrained(model_id)
-    model = transformers.Owlv2ForObjectDetection.from_pretrained(model_id).to(
-        device
-    )
-    return model, processor
+class Owlv2Preprocessor(base.DataPreprocessor):
+  """Preprocessor for OWL-v2 object detection."""
 
   def get_transform_fn(
       self,
       processor,
-      text_inputs,
-      dataset_id2label,
-      model_label2id,
       cfg = None,
       is_train = False,
+      **kwargs,
   ):
-    """Returns the transformation function for the dataset."""
+    from Uboreshaji_Modeli.common import augmentations  # pylint: disable=g-import-not-at-top
+
+    # Unpack legacy arguments passed from ModelEngine coordinator
+    text_inputs = kwargs.get("text_inputs")
+    dataset_id2label = kwargs.get("dataset_id2label")
+    model_label2id = kwargs.get("model_label2id")
+
+    if (
+        text_inputs is None
+        or dataset_id2label is None
+        or model_label2id is None
+    ):
+      raise ValueError(
+          "text_inputs, dataset_id2label, and model_label2id are required in"
+          " kwargs for Owlv2Preprocessor."
+      )
 
     aug = None
     if is_train and cfg:
@@ -137,12 +110,11 @@ class Owlv2Engine(base.ModelEngine):
           image, new_bboxes, new_labels_aug = augmentations.apply_augmentation(
               aug, image, new_bboxes, new_labels
           )
-          # filter out cases where all bboxes were dropped
           if not new_bboxes:
             continue
           new_labels = new_labels_aug
 
-        h, w = image.shape[:2]  # height/width might change with crop
+        h, w = image.shape[:2]
         labels_dict = {}
         owl_dict = processor(
             text=text_inputs,
@@ -153,7 +125,6 @@ class Owlv2Engine(base.ModelEngine):
         )
 
         if not new_labels:
-          # If no foreground objects are matched, create empty tensors.
           labels_dict["class_labels"] = torch.zeros(0, dtype=torch.long)
           labels_dict["boxes"] = torch.zeros((0, 4))
         else:
@@ -182,7 +153,19 @@ class Owlv2Engine(base.ModelEngine):
   def get_collate_fn(
       self,
       cfg = None,
+      **kwargs,
   ):
+    """Returns a collate function for batching processed examples.
+
+    Args:
+      cfg: Optional configuration dictionary.
+      **kwargs: Additional keyword arguments.
+    Returns:
+      A callable that takes a list of preprocessed examples and
+      returns a collated batch.
+    """
+
+    del self  # Unused in this method.
 
     def collate_fn(batch):
       input_ids = torch.stack(
@@ -217,12 +200,17 @@ class Owlv2Engine(base.ModelEngine):
 
     return collate_fn
 
+
+class Owlv2LossHandler(base.LossHandler):
+  """Loss handler for OWL-v2 object detection (SetCriterion)."""
+
   def get_criterion(
       self,
       num_classes,
       cfg,
       device,
   ):
+    del self  # Unused in this method.
     if cfg.matcher.matcher_type == base_config.MatcherType.HUNGARIAN:
       matcher_instance = matcher.HungarianMatcher(
           cost_class=cfg.matcher.cost_class,
@@ -258,11 +246,6 @@ class Owlv2Engine(base.ModelEngine):
 
     return criterion, weight_dict
 
-  @property
-  def inference_kwargs(self):
-    """Returns model-specific inference keyword arguments."""
-    return {"interpolate_pos_encoding": True}
-
   def post_process(
       self,
       processor,
@@ -271,6 +254,7 @@ class Owlv2Engine(base.ModelEngine):
       score_threshold,
   ):
     """Post-processes raw model outputs into standardised detections."""
+    del self  # Unused in this method.
     batch_logits = outputs.logits
     batch_boxes = outputs.pred_boxes
     probs = batch_logits.sigmoid()
@@ -289,7 +273,6 @@ class Owlv2Engine(base.ModelEngine):
             [max_size, max_size, max_size, max_size], device=boxes.device
         )
         boxes = boxes * scale_fct
-        # Clamp to remove white square padding and keep boxes inside image.
         boxes[:, 0::2] = boxes[:, 0::2].clamp(0, w)
         boxes[:, 1::2] = boxes[:, 1::2].clamp(0, h)
 
@@ -299,3 +282,37 @@ class Owlv2Engine(base.ModelEngine):
       )
 
     return results
+
+
+class Owlv2Engine(base.ModelEngine):
+  """Composed Owlv2 Engine for object detection."""
+
+  def __init__(self):
+    super().__init__(
+        preprocessor=Owlv2Preprocessor(),
+        loss_handler=Owlv2LossHandler(),
+        decoder=None,  # post_process is bundled in LossHandler for Owlv2
+    )
+
+  def load_model_and_processor(
+      self,
+      model_id,
+      device,
+      **kwargs,
+  ):
+    """Loads the pretrained OWL-v2 object detector model and its processor.
+
+    Args:
+      model_id: Pretrained repository ID or local path.
+      device: PyTorch target mapping device.
+      **kwargs: Additional load options.
+
+    Returns:
+      A tuple (model, processor), where model is the initialized
+      Owlv2ForObjectDetection model on the device, and processor is the
+      Owlv2Processor instance.
+    """
+    processor = Owlv2Processor.from_pretrained(model_id)
+    model = Owlv2ForObjectDetection.from_pretrained(model_id)
+    model.to(device)
+    return model, processor
