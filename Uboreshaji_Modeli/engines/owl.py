@@ -23,14 +23,19 @@ import ml_collections
 import numpy as np
 import torch
 from torch import nn
+import transformers
 from transformers import Owlv2ForObjectDetection
 from transformers import Owlv2Processor
+
 
 from Uboreshaji_Modeli.common import box_utils
 from Uboreshaji_Modeli.common import config as base_config
 from Uboreshaji_Modeli.common import losses
 from Uboreshaji_Modeli.common import matcher
 from Uboreshaji_Modeli.engines import base
+
+Owlv2ForObjectDetection = transformers.Owlv2ForObjectDetection
+Owlv2Processor = transformers.Owlv2Processor
 
 
 def normalize_annotation_for_owlv2(
@@ -85,6 +90,16 @@ class Owlv2Preprocessor(base.DataPreprocessor):
       aug = augmentations.get_train_augmentation(cfg)
       logging.info("Using data augmentation: %s", aug is not None)
 
+    # Tokenize text inputs once outside the image loop for efficiency.
+    text_encoding = processor(
+        text=text_inputs,
+        padding="max_length",
+        truncation=True,
+        return_tensors="pt",
+    )
+    shared_input_ids = text_encoding["input_ids"].squeeze(0)
+    shared_attention_mask = text_encoding["attention_mask"].squeeze(0)
+
     def transform_fn(
         examples,
     ):
@@ -95,7 +110,7 @@ class Owlv2Preprocessor(base.DataPreprocessor):
       for image_id, image, objects in zip(
           examples["image_id"], examples["image"], examples["objects"]
       ):
-        image = np.array(image.convert("RGB"))[:, :, ::-1]
+        image = np.array(image.convert("RGB")).copy()
 
         new_labels = []
         new_bboxes = []
@@ -110,19 +125,15 @@ class Owlv2Preprocessor(base.DataPreprocessor):
           image, new_bboxes, new_labels_aug = augmentations.apply_augmentation(
               aug, image, new_bboxes, new_labels
           )
-          if not new_bboxes:
-            continue
-          new_labels = new_labels_aug
+
+          new_labels = new_labels_aug if new_bboxes else []
 
         h, w = image.shape[:2]
         labels_dict = {}
-        owl_dict = processor(
-            text=text_inputs,
-            images=image,
-            padding="max_length",
-            truncation=True,
-            return_tensors="pt",
-        )
+        # Process only the image. Text features are already precomputed.
+        pixel_values_encoded = processor(images=image, return_tensors="pt")[
+            "pixel_values"
+        ].squeeze(0)
 
         if not new_labels:
           labels_dict["class_labels"] = torch.zeros(0, dtype=torch.long)
@@ -134,12 +145,10 @@ class Owlv2Preprocessor(base.DataPreprocessor):
           )
         labels_dict["image_id"] = torch.tensor([image_id])
 
-        owl_dict["labels"] = labels_dict
-
-        input_ids.append(owl_dict["input_ids"].squeeze(0))
-        attention_masks.append(owl_dict["attention_mask"].squeeze(0))
-        labels.append(owl_dict["labels"])
-        pixel_values.append(owl_dict["pixel_values"].squeeze(0))
+        input_ids.append(shared_input_ids)
+        attention_masks.append(shared_attention_mask)
+        labels.append(labels_dict)
+        pixel_values.append(pixel_values_encoded)
 
       return {
           "input_ids": input_ids,
@@ -174,6 +183,8 @@ class Owlv2Preprocessor(base.DataPreprocessor):
       attention_mask = torch.stack(
           [torch.as_tensor(item["attention_mask"]) for item in batch], dim=0
       )
+      input_ids = input_ids.view(-1, input_ids.shape[-1])
+      attention_mask = attention_mask.view(-1, attention_mask.shape[-1])
       pixel_values = torch.stack(
           [torch.as_tensor(item["pixel_values"]) for item in batch], dim=0
       )
@@ -187,13 +198,9 @@ class Owlv2Preprocessor(base.DataPreprocessor):
           processed_labels[key] = torch.as_tensor(value)
         labels.append(processed_labels)
 
-      _, _, seq_len = input_ids.shape
-      final_input_ids = input_ids.view(-1, seq_len)
-      final_attention_mask = attention_mask.view(-1, seq_len)
-
       return {
-          "input_ids": final_input_ids.int(),
-          "attention_mask": final_attention_mask.int(),
+          "input_ids": input_ids.long(),
+          "attention_mask": attention_mask.long(),
           "pixel_values": pixel_values,
           "labels": labels,
       }

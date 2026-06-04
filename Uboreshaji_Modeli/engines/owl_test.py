@@ -15,6 +15,8 @@
 
 """Tests for OWL-v2 engine."""
 
+import types
+
 from absl.testing import absltest
 from absl.testing import parameterized
 import ml_collections
@@ -79,13 +81,16 @@ class Owlv2EngineTest(parameterized.TestCase):
     self.assertLen(collated["labels"], 2)
 
   def test_transform_fn_mapping_and_filtering(self):
-    def mock_processor(text, images, return_tensors, *args, **kwargs):
-      del text, images, return_tensors, args, kwargs
-      return {
-          "input_ids": torch.tensor([[1, 2, 3]]),
-          "attention_mask": torch.tensor([[1, 1, 1]]),
-          "pixel_values": torch.ones((1, 3, 960, 960)),
-      }
+    def mock_processor(*args, **kwargs):
+      del args
+      if "text" in kwargs:
+        # Text-only call made once at get_transform_fn time.
+        return {
+            "input_ids": torch.tensor([[1, 2, 3]]),
+            "attention_mask": torch.tensor([[1, 1, 1]]),
+        }
+      # Image-only call made per example inside transform_fn.
+      return {"pixel_values": torch.ones((1, 3, 960, 960))}
 
     text_inputs = ["leaf", "stem"]
     dataset_id2label = ["background", "leaf", "stem", "discard"]
@@ -97,7 +102,7 @@ class Owlv2EngineTest(parameterized.TestCase):
 
     class MockImage:
       def convert(self, mode):
-        del mode
+        del self, mode
         return type(
             "Image",
             (),
@@ -118,6 +123,123 @@ class Owlv2EngineTest(parameterized.TestCase):
     labels = result["labels"][0]
     torch.testing.assert_close(labels["class_labels"], torch.tensor([0, 1]))
     self.assertLen(labels["boxes"], 2)
+
+  def test_normalize_annotation_square_image(self):
+    # When image is square, max_side == h == w, so normalization is symmetric.
+    boxes = torch.tensor([[0, 0, 100, 100]], dtype=torch.float32)
+    original_size = (200, 200)
+    norm_boxes = owl.normalize_annotation_for_owlv2(boxes, original_size)
+    # cx = (0 + 50) / 200 = 0.25, cy = (0 + 50) / 200 = 0.25, w = h = 0.5
+    expected = torch.tensor([[0.25, 0.25, 0.5, 0.5]], dtype=torch.float32)
+    torch.testing.assert_close(norm_boxes, expected)
+
+  def test_transform_fn_missing_kwargs_raises(self):
+    # The ValueError is raised immediately at get_transform_fn call time
+    # (via the base-class delegate) when required kwargs are None.
+    def mock_processor(*args, **kwargs):
+      del args, kwargs
+      return {}
+
+    with self.assertRaisesRegex(
+        ValueError,
+        "text_inputs, dataset_id2label, and model_label2id are required in"
+        " kwargs for Owlv2Preprocessor.",
+    ):
+      self.engine.get_transform_fn(
+          mock_processor,
+          text_inputs=None,
+          dataset_id2label=None,
+          model_label2id=None,
+      )
+
+  def test_transform_fn_no_valid_objects(self):
+    def mock_processor(*args, **kwargs):
+      del args
+      if "text" in kwargs:
+        return {
+            "input_ids": torch.tensor([[1, 2, 3]]),
+            "attention_mask": torch.tensor([[1, 1, 1]]),
+        }
+      return {"pixel_values": torch.ones((1, 3, 960, 960))}
+
+    # "unknown" label is not in model_label2id, so all objects are filtered out.
+    tf = self.engine.get_transform_fn(
+        mock_processor,
+        text_inputs=["cat"],
+        dataset_id2label=["unknown"],
+        model_label2id={"cat": 0},
+    )
+
+    class MockImage:
+      def convert(self, mode):
+        del self, mode
+        return type(
+            "Image",
+            (),
+            {"__array__": lambda s, *a, **k: np.zeros((100, 100, 3))},
+        )()
+
+    examples = {
+        "image_id": [1],
+        "image": [MockImage()],
+        "objects": [{"category": [0], "bbox": [[0, 0, 10, 10]]}],
+    }
+    result = tf(examples)
+    self.assertIsNotNone(result)
+    labels = result["labels"][0]
+    self.assertEqual(labels["class_labels"].shape, (0,))
+    self.assertEqual(labels["boxes"].shape, (0, 4))
+
+  def test_post_process_score_threshold(self):
+    # Three predictions per image: scores [0.9, 0.1, 0.8], threshold=0.5
+    # → only indices 0 and 2 should survive.
+    logits = torch.tensor([[[2.2, -1.0], [0.0, -2.0], [2.0, -1.0]]])
+    pred_boxes_cxcywh = torch.tensor(
+        [[[0.5, 0.5, 0.2, 0.2], [0.5, 0.5, 0.2, 0.2], [0.3, 0.7, 0.1, 0.1]]]
+    )
+
+    outputs = types.SimpleNamespace(logits=logits, pred_boxes=pred_boxes_cxcywh)
+
+    target_sizes = torch.tensor([[100, 100]])
+    results = self.engine.post_process(
+        processor=None,
+        outputs=outputs,
+        target_sizes=target_sizes,
+        score_threshold=0.5,
+    )
+    self.assertLen(results, 1)
+    self.assertLen(results[0]["scores"], 2)
+
+  def test_post_process_no_target_sizes(self):
+    logits = torch.tensor([[[2.2, -1.0]]])
+    pred_boxes = torch.tensor([[[0.5, 0.5, 0.2, 0.2]]])
+
+    outputs = types.SimpleNamespace(logits=logits, pred_boxes=pred_boxes)
+
+    results = self.engine.post_process(
+        processor=None,
+        outputs=outputs,
+        target_sizes=None,
+        score_threshold=0.0,
+    )
+    self.assertLen(results, 1)
+    # Box should not be scaled when target_sizes is None.
+    self.assertEqual(results[0]["boxes"].shape[-1], 4)
+
+  def test_collate_fn_output_dtypes(self):
+    collate_fn = self.engine.get_collate_fn(cfg=None)
+    batch = [{
+        "input_ids": torch.ones((2, 5), dtype=torch.int),
+        "attention_mask": torch.ones((2, 5), dtype=torch.int),
+        "pixel_values": torch.ones((3, 32, 32), dtype=torch.float),
+        "labels": {
+            "class_labels": torch.tensor([0]),
+            "boxes": torch.tensor([[0.1, 0.1, 0.2, 0.2]]),
+        },
+    }]
+    collated = collate_fn(batch)
+    self.assertEqual(collated["input_ids"].dtype, torch.int64)
+    self.assertEqual(collated["attention_mask"].dtype, torch.int64)
 
   def test_get_criterion(self):
     cfg = ml_collections.ConfigDict()
@@ -157,6 +279,26 @@ class Owlv2EngineTest(parameterized.TestCase):
     cfg.matcher.matcher_type = config.MatcherType.GREEDY
     criterion, _ = self.engine.get_criterion(5, cfg, device)
     self.assertIsInstance(criterion.matcher, matcher.GreedyMatcher)
+
+  def test_get_criterion_unsupported_matcher_raises(self):
+    cfg = ml_collections.ConfigDict()
+    cfg.detection = ml_collections.ConfigDict()
+    cfg.detection.weight_sigmoid_focal = 1.0
+    cfg.detection.weight_bbox = 1.0
+    cfg.detection.weight_giou = 1.0
+    cfg.detection.eos_coef = 0.1
+    cfg.detection.losses = ["labels"]
+    cfg.detection.focal_loss_alpha = 0.25
+    cfg.detection.focal_loss_gamma = 2.0
+    cfg.matcher = ml_collections.ConfigDict()
+    cfg.matcher.matcher_type = "unsupported_type"
+    cfg.matcher.cost_class = 1.0
+    cfg.matcher.cost_bbox = 1.0
+    cfg.matcher.cost_giou = 1.0
+    with self.assertRaisesRegex(
+        ValueError, "Unsupported matcher type: unsupported_type"
+    ):
+      self.engine.get_criterion(5, cfg, torch.device("cpu"))
 
 
 if __name__ == "__main__":
