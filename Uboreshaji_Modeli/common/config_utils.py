@@ -95,12 +95,10 @@ def derive_paths(cfg):
     # or match legacy defaults.
     if (
         not cfg.dataset.get("dataset_path")
-        and cfg.dataset.get("dataset_base")
         and cfg.dataset.get("dataset_uri")
     ):
-      cfg.dataset.dataset_path = os.path.join(
-          cfg.dataset.dataset_base, cfg.dataset.dataset_uri
-      )
+      base = cfg.dataset.get("dataset_base") or ""
+      cfg.dataset.dataset_path = os.path.join(base, cfg.dataset.dataset_uri)
     if (
         (not cfg.get("model_id") or cfg.get("model_id") in _OWL_DEFAULTS)
         and cfg.get("model_base")

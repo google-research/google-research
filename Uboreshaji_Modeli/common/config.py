@@ -82,6 +82,7 @@ def get_base_config():
   config.dataset.dataset_uri = "/path/to/huggingface_dataset"
   config.dataset.dataset_version = "dataset_version"
   config.dataset.dataset_base = ""
+  config.dataset.dataset_path = ""
   config.dataset.train_split = "train"
   config.dataset.eval_split = "valid"
   config.dataset.image_size = 840
