@@ -217,10 +217,15 @@ class SetCriterion(nn.Module):
 
     num_boxes = sum(len(t["class_labels"]) for t in targets)
     num_boxes = torch.as_tensor(
-        [max(num_boxes, 1)],
+        max(num_boxes, 1),
         dtype=torch.float,
         device=next(iter(outputs.values())).device,
     )
+    if torch.distributed.is_initialized():
+      torch.distributed.all_reduce(num_boxes)
+      num_boxes = torch.clamp(
+          num_boxes / torch.distributed.get_world_size(), min=1
+      )
 
     losses = {}
     for loss in self.losses:

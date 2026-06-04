@@ -107,6 +107,7 @@ def main(argv):
   logging.info("Using device: %s", device)
   logging.info("Using bf16: %s", use_bf16)
 
+
   engine = factory.get_engine(cfg.model_flavor)
   model, processor = engine.load_model_and_processor(cfg.model_id, device)
 
