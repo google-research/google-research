@@ -14,6 +14,7 @@
 # limitations under the License.
 
 import collections
+from unittest import mock
 
 from absl.testing import absltest
 import numpy as np
@@ -137,6 +138,68 @@ class MetricsTest(absltest.TestCase):
     result = compute_metrics(eval_pred)
 
     self.assertAlmostEqual(result["map_50"], -1.0)
+
+  @mock.patch("evaluate.load")
+  def test_asr_wer(self, mock_load):
+    tokenizer = mock.Mock()
+    tokenizer.batch_decode.side_effect = [
+        ["predicted string"],
+        ["reference string"],
+    ]
+    tokenizer.pad_token_id = 0
+
+    mock_wer = mock.Mock()
+    mock_wer.compute.return_value = 0.5
+    mock_load.return_value = mock_wer
+
+    compute_metrics = metrics.create_asr_compute_metrics_fn(tokenizer)
+
+    eval_pred = EvalPrediction(
+        predictions=np.array([[1, 2]]), label_ids=np.array([[3, 4]])
+    )
+
+    result = compute_metrics(eval_pred)
+
+    self.assertEqual(result["wer"], 0.5)
+    mock_wer.compute.assert_called_once_with(
+        predictions=["predicted string"], references=["reference string"]
+    )
+
+    # Verify skip_special_tokens=True was passed to batch_decode
+    self.assertEqual(tokenizer.batch_decode.call_count, 2)
+    for _, kwargs in tokenizer.batch_decode.call_args_list:
+      self.assertTrue(kwargs.get("skip_special_tokens"))
+
+  @mock.patch("evaluate.load")
+  def test_ast_bleu(self, mock_load):
+    tokenizer = mock.Mock()
+    tokenizer.batch_decode.side_effect = [
+        ["predicted string"],
+        ["reference string"],
+    ]
+    tokenizer.pad_token_id = 0
+
+    mock_bleu = mock.Mock()
+    mock_bleu.compute.return_value = {"score": 42.0}
+    mock_load.return_value = mock_bleu
+
+    compute_metrics = metrics.create_ast_compute_metrics_fn(tokenizer)
+
+    eval_pred = EvalPrediction(
+        predictions=np.array([[1, 2]]), label_ids=np.array([[3, 4]])
+    )
+
+    result = compute_metrics(eval_pred)
+
+    self.assertEqual(result["bleu"], 42.0)
+    mock_bleu.compute.assert_called_once_with(
+        predictions=["predicted string"], references=[["reference string"]]
+    )
+
+    # Verify skip_special_tokens=True was passed to batch_decode
+    self.assertEqual(tokenizer.batch_decode.call_count, 2)
+    for _, kwargs in tokenizer.batch_decode.call_args_list:
+      self.assertTrue(kwargs.get("skip_special_tokens"))
 
 
 class FormatForPublisherTest(absltest.TestCase):

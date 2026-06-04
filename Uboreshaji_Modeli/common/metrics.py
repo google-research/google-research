@@ -17,6 +17,7 @@
 
 from typing import Any, Callable, Mapping, MutableMapping, Sequence
 
+import evaluate
 import immutabledict
 import torch
 from torchmetrics.detection import mean_ap
@@ -98,6 +99,54 @@ def create_compute_metrics_fn(
     }
 
     return computed_metrics
+  return compute_metrics
+
+
+def create_asr_compute_metrics_fn(
+    tokenizer,
+):
+  """Creates compute_metrics function for ASR (WER)."""
+  wer_metric = evaluate.load("wer")
+
+  def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    if isinstance(predictions, tuple):
+      predictions = predictions[0]
+
+    pred_str = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    # Handle label masking
+    labels[labels == -100] = tokenizer.pad_token_id
+    label_str = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+    wer = wer_metric.compute(predictions=pred_str, references=label_str)
+
+    return {"wer": wer}
+
+  return compute_metrics
+
+
+def create_ast_compute_metrics_fn(
+    tokenizer,
+):
+  """Creates compute_metrics function for AST (BLEU)."""
+  bleu_metric = evaluate.load("sacrebleu")
+
+  def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    if isinstance(predictions, tuple):
+      predictions = predictions[0]
+
+    pred_str = tokenizer.batch_decode(predictions, skip_special_tokens=True)
+    # Handle label masking
+    labels[labels == -100] = tokenizer.pad_token_id
+    label_str = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+    references = [[ref] for ref in label_str]
+
+    results = bleu_metric.compute(predictions=pred_str, references=references)
+
+    return {"bleu": results["score"]}
+
   return compute_metrics
 
 
