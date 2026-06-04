@@ -47,32 +47,15 @@ class MatcherType(str, enum.Enum):
 
 
 def get_base_config():
-  """Returns the base experiment configuration for Poly-Sense2."""
+  """Returns the minimal base experiment configuration."""
   config = ml_collections.ConfigDict()
 
-  config.experiment_name = "owl_finetune"
+  config.experiment_name = "experiment"
   config.model_flavor = ModelFlavor.OWL_V2_TORCH
   config.task_modality = TaskModality.VISION
   config.task_type = TaskType.DETECTION
-  config.model_id = "/path/to/models/owlv2"
-  config.output_dir = "/path/to/models/owl_hf"
-
-  # Matcher specialized settings
-  config.matcher = ml_collections.ConfigDict()
-  config.matcher.matcher_type = MatcherType.HUNGARIAN
-  config.matcher.cost_class = 2.459
-  config.matcher.cost_bbox = 2.406
-  config.matcher.cost_giou = 1.848
-
-  # Detection specialized settings
-  config.detection = ml_collections.ConfigDict()
-  config.detection.weight_sigmoid_focal = 1.233
-  config.detection.weight_bbox = 2.671
-  config.detection.weight_giou = 1.045
-  config.detection.eos_coef = 0.3153
-  config.detection.losses = ["labels", "boxes", "cardinality"]
-  config.detection.focal_loss_alpha = 0.25
-  config.detection.focal_loss_gamma = 5.0
+  config.model_id = ""
+  config.output_dir = "/path/to/output"
 
   # Training hyperparameters
   config.training = ml_collections.ConfigDict()
@@ -131,3 +114,35 @@ def get_base_config():
 
   config.sweeps = ml_collections.ConfigDict()
   return config
+
+
+def get_detection_base_config():
+  """Returns the base configuration for detection experiments."""
+  config = get_base_config()
+  config.experiment_name = "owl_finetune"
+  config.model_flavor = ModelFlavor.OWL_V2_TORCH
+  config.task_modality = TaskModality.VISION
+  config.task_type = TaskType.DETECTION
+  config.model_id = "/path/to/models/owlv2"
+  config.output_dir = "/path/to/models/owl_hf"
+
+  # Matcher specialized settings
+  config.matcher = ml_collections.ConfigDict()
+  config.matcher.matcher_type = MatcherType.HUNGARIAN
+  config.matcher.cost_class = 2.459
+  config.matcher.cost_bbox = 2.406
+  config.matcher.cost_giou = 1.848
+
+  # Detection specialized settings
+  config.detection = ml_collections.ConfigDict()
+  config.detection.weight_sigmoid_focal = 1.233
+  config.detection.weight_bbox = 2.671
+  config.detection.weight_giou = 1.045
+  config.detection.eos_coef = 0.3153
+  config.detection.losses = ["labels", "boxes", "cardinality"]
+  config.detection.focal_loss_alpha = 0.25
+  config.detection.focal_loss_gamma = 5.0
+
+  return config
+
+

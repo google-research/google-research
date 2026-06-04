@@ -108,6 +108,7 @@ def format_for_publisher(
     model_label2id,
     train_metrics = None,
     prefix = "eval",
+    metrics_category = "detection_metrics",
 ):
   """Builds a unified evaluation dict for both publisher and result collection.
 
@@ -118,31 +119,45 @@ def format_for_publisher(
     train_metrics: Optional dict with training metadata (e.g. train_loss,
       total_steps, wall_clock_seconds, status).
     prefix: Prefix used for evaluation keys (e.g., "eval" or "best_eval").
+    metrics_category: Category used for nesting evaluation block (e.g.
+      "detection_metrics", "text_sft_metrics", or "speech_metrics").
 
   Returns:
     Dict containing flat metrics at the top level (for collect_results.py)
     and the nested evaluation_metrics block (for parse_evaluation).
   """
-  overall = {
-      pub_key: eval_results[f"{prefix}_{tm_key}"]
-      for tm_key, pub_key in _TORCHMETRICS_TO_PUBLISHER.items()
-      if f"{prefix}_{tm_key}" in eval_results
-  }
-
-  per_label = {
-      name: {"ap_50": eval_results[f"{prefix}_map_50_class_{class_idx}"]}
-      for name, class_idx in model_label2id.items()
-      if f"{prefix}_map_50_class_{class_idx}" in eval_results
-  }
+  if metrics_category == "detection_metrics":
+    overall = {
+        pub_key: eval_results[f"{prefix}_{tm_key}"]
+        for tm_key, pub_key in _TORCHMETRICS_TO_PUBLISHER.items()
+        if f"{prefix}_{tm_key}" in eval_results
+    }
+    per_label = {
+        name: {"ap_50": eval_results[f"{prefix}_map_50_class_{class_idx}"]}
+        for name, class_idx in model_label2id.items()
+        if f"{prefix}_map_50_class_{class_idx}" in eval_results
+    }
+    category_block = {
+        metrics_category: {
+            "overall_metrics": overall,
+            "per_label_metrics": per_label,
+        }
+    }
+  else:
+    overall = {
+        k.replace(f"{prefix}_", ""): v
+        for k, v in eval_results.items()
+        if isinstance(v, (int, float))
+    }
+    category_block = {
+        metrics_category: {
+            "overall_metrics": overall,
+        }
+    }
 
   return {
       **(train_metrics if train_metrics else {}),
       **{k: v for k, v in eval_results.items() if isinstance(v, (int, float))},
       "label_names": label_names,
-      "evaluation_metrics": {
-          "detection_metrics": {
-              "overall_metrics": overall,
-              "per_label_metrics": per_label,
-          },
-      },
+      "evaluation_metrics": category_block,
   }

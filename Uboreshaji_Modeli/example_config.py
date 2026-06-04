@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Configuration for OWL-v2 fine-tuning on maize dataset."""
+"""Configuration for overriding the base config for fine-tuning on a detection dataset."""
 
 import ml_collections
 from Uboreshaji_Modeli.common import config
@@ -22,12 +22,9 @@ from Uboreshaji_Modeli.common import config_utils
 
 def get_config():
   """Returns the experiment configuration."""
-  cfg = config.get_base_config()
+  cfg = config.get_detection_base_config()
 
   cfg.experiment_name = "maize_owlv2_finetune"
-  cfg.model_flavor = config.ModelFlavor.OWL_V2_TORCH
-  cfg.task_modality = config.TaskModality.VISION
-  cfg.task_type = config.TaskType.DETECTION
 
   cfg.model_id = "/path/to/models/owlv2"
 

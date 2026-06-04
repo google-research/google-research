@@ -25,7 +25,7 @@ class GetBaseConfigTest(parameterized.TestCase):
 
   def setUp(self):
     super().setUp()
-    self.cfg = config.get_base_config()
+    self.cfg = config.get_detection_base_config()
 
   def test_returns_config_dict(self):
     self.assertIsNotNone(self.cfg)
@@ -65,6 +65,12 @@ class GetBaseConfigTest(parameterized.TestCase):
     for part in field_path.split("."):
       value = getattr(value, part)
     self.assertEqual(value, expected)
+
+  def test_get_base_config_minimalism(self):
+    cfg = config.get_base_config()
+    self.assertFalse(hasattr(cfg, "matcher"))
+    self.assertFalse(hasattr(cfg, "detection"))
+
 
 
 class DerivePathsTest(absltest.TestCase):
