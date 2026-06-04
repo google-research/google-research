@@ -156,3 +156,40 @@ class PolygonSegmentationDecoder(base.PredictionDecoder):
           "polygons": polygons,
       })
     return results
+
+
+class TextDecoder(base.PredictionDecoder):
+  """A decoder mapping token IDs to plain strings via batch_decode."""
+
+  def decode(self, processor, outputs, **kwargs):
+    """Decodes token IDs from model outputs to a list of strings.
+
+    Args:
+      processor: The processor (tokenizer) used for decoding.
+      outputs: The raw outputs from the model. Expected to contain token IDs.
+        This can be a tensor or a list of tensors.
+      **kwargs: Additional keyword arguments.
+
+    Returns:
+      A list of decoded strings.
+    """
+    # Outputs can be a list of tensors or a single tensor.
+    # `batch_decode` expects a 2D tensor or a list of token sequences.
+    # If a single tensor is 1D:
+    if hasattr(outputs, "dim") and outputs.dim() == 1:
+      outputs = [outputs]
+    return processor.batch_decode(outputs, skip_special_tokens=True)
+
+
+class MmsDecoder(base.PredictionDecoder):
+  """A decoder for MMS Wav2Vec2-CTC logits using argmax decoding."""
+
+  def decode(self, processor, outputs, **kwargs):
+    import numpy as np  # pylint: disable=g-import-not-at-top
+    logits = outputs.logits
+    if isinstance(logits, torch.Tensor):
+      logits = logits.detach().cpu().numpy()
+    predicted_ids = np.argmax(logits, axis=-1)
+    return processor.batch_decode(predicted_ids, skip_special_tokens=True)
+
+

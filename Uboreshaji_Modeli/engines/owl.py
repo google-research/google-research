@@ -65,6 +65,7 @@ class Owlv2Preprocessor(base.DataPreprocessor):
       self,
       processor,
       cfg = None,
+      *,
       is_train = False,
       **kwargs,
   ):

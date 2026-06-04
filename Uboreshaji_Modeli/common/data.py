@@ -15,6 +15,8 @@
 
 """Data loading and processing utilities."""
 
+from collections.abc import Mapping, Sequence
+import dataclasses
 import json
 from typing import Any
 
@@ -199,6 +201,34 @@ def convert_coco_folder_to_hf(
 
 
 
+
+
 def get_dataset(cfg):
   """Loads and prepares the dataset."""
-  return datasets.load_from_disk(cfg.dataset.dataset_path)
+  world_size = int(os.environ.get("WORLD_SIZE", 1))
+
+  # Ensure HuggingFace datasets cache is writable inside Borg containers.
+  # (Default ~/.cache is not writable.)
+  hf_cache_dir = os.path.join(
+      os.environ.get("TMPDIR", "/tmp"), "hf_datasets_cache"
+  )
+  os.makedirs(hf_cache_dir, exist_ok=True)
+  os.environ["HF_DATASETS_CACHE"] = hf_cache_dir
+
+  if world_size > 1 and str(dataset_path).startswith("/cns"):
+    return _get_dataset_distributed(cfg)
+
+  # Try loading as a pre-saved HuggingFace Dataset first
+  try:
+    return datasets.load_from_disk(str(dataset_path))
+  except FileNotFoundError:
+    # Fall back to loading raw parquet files from directory
+    logging.info(
+        "Directory %s is not a saved Dataset, trying to load as parquet files.",
+        dataset_path,
+    )
+    dataset = datasets.load_dataset(
+        "parquet", data_dir=str(dataset_path), cache_dir=hf_cache_dir,
+    )
+
+    return dataset

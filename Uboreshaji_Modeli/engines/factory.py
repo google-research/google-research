@@ -24,4 +24,6 @@ def get_engine(model_flavor):
   """Returns the engine for the given model flavor."""
   if model_flavor == config.ModelFlavor.OWL_V2_TORCH:
     return owl.Owlv2Engine()
+
+
   raise ValueError(f"Unsupported model flavor: {model_flavor}")
