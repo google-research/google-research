@@ -13,8 +13,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from unittest import mock
 from absl.testing import absltest
 from absl.testing import parameterized
+import ml_collections
 
 from Uboreshaji_Modeli.common import config
 from Uboreshaji_Modeli.engines import base
@@ -42,6 +44,34 @@ class EngineFactoryTest(parameterized.TestCase):
     with self.subTest("DecoderInstance"):
       # Owlv2 doesn't have a separate composed decoder yet.
       self.assertIsNone(engine.decoder)
+
+  def test_get_transform_fn_delegation_with_cfg(self):
+    engine = factory.get_engine(config.ModelFlavor.OWL_V2_TORCH)
+    mock_preprocessor = mock.create_autospec(
+        base.DataPreprocessor, instance=True
+    )
+    engine.preprocessor = mock_preprocessor
+
+    cfg = ml_collections.ConfigDict()
+    engine.get_transform_fn(
+        processor="dummy_processor",
+        text_inputs=["a"],
+        dataset_id2label=["b"],
+        model_label2id={"c": 1},
+        cfg=cfg,
+        is_train=True,
+        extra_kwarg="val",
+    )
+
+    mock_preprocessor.get_transform_fn.assert_called_once_with(
+        "dummy_processor",
+        cfg,
+        is_train=True,
+        text_inputs=["a"],
+        dataset_id2label=["b"],
+        model_label2id={"c": 1},
+        extra_kwarg="val",
+    )
 
 
 if __name__ == "__main__":

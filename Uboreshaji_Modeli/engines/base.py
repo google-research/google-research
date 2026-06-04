@@ -225,3 +225,21 @@ class ModelEngine:
         "decode_predictions must be overridden by subclass or delegated to a"
         " composed prediction decoder."
     )
+
+  def freeze_vision_tower(self, model):
+    """Freezes the vision tower of the model. Default is no-op."""
+    if self.backbone is not None and hasattr(
+        self.backbone, "freeze_vision_tower"
+    ):
+      self.backbone.freeze_vision_tower(model)
+
+  def get_sft_config_overrides(
+      self, cfg
+  ):
+    """Returns model-specific SFT config overrides. Default is empty dict."""
+    if self.preprocessor is not None and hasattr(
+        self.preprocessor, "get_sft_config_overrides"
+    ):
+      return self.preprocessor.get_sft_config_overrides(cfg)
+    return {}
+
