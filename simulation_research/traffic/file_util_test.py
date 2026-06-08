@@ -136,20 +136,22 @@ class UtilTest(absltest.TestCase):
     # an iterative object.
     self.assertListEqual(list(actual_variable), list(data))
 
-    # Case 6: In python2, the itertools.tee cannot be saved by cPickle. However,
-    # in python3, it can be saved.
+    # Case 6: In python2 and python 3.14+, the itertools.tee cannot be saved by
+    # cPickle. However, in python 3.0-3.13, it can be saved.
     x = [1, 2, 3]
     y = ['a', 'b', 'c']
     data = zip(x, y)
     data_tee, _ = itertools.tee(data)
-    python_version = sys.version_info[0]
     try:
       file_util.save_variable(file_path, data_tee)
       pickle_save_correctly = True
-    except cPickle.PicklingError:
+    except (cPickle.PicklingError, TypeError):
       pickle_save_correctly = False
-    self.assertTrue((pickle_save_correctly and python_version == 3) or
-                    (not pickle_save_correctly and python_version == 2))
+    is_python_3_pre_3_14 = sys.version_info[0] == 3 and sys.version_info < (
+        3,
+        14,
+    )
+    self.assertEqual(pickle_save_correctly, is_python_3_pre_3_14)
 
 
 if __name__ == '__main__':
