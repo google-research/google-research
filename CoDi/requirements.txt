@@ -68,7 +68,7 @@ sympy==1.12
 tensorstore==0.1.45
 tokenizers==0.15.0
 toolz==0.12.0
-torch==2.1.1
+torch==2.8.0
 torchvision==0.16.1
 tqdm==4.66.1
 transformers==4.36.0
