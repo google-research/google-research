@@ -222,8 +222,29 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
       }
 
       if _is_global_master():
+        publisher_eval = metrics.format_for_publisher(
+            eval_results=eval_results,
+            label_names=valid_categories,
+            model_label2id=id_by_model_label,
+            train_metrics=train_metrics,
+        )
         eval_json_path = resolved_output_path / "evaluation.json"
-        eval_json_path.write_text(json.dumps(train_metrics, indent=2))
+        eval_json_path.write_text(json.dumps(publisher_eval, indent=2))
         logging.info("Saved evaluation.json to %s", eval_json_path)
+
+        if cfg.eval.get("run_eval_only", True):
+          logging.info("Running post-training visualization loop...")
+          lumascope_visualizer.run_visualization_loop(
+              model=model,
+              processor=processor,
+              dataset_split=test_dataset,
+              cfg=cfg,
+              output_dir=resolved_output_path,
+              device=device,
+              text_inputs=valid_categories,
+              dataset_id2label=label_by_dataset_id,
+              model_label2id=id_by_model_label,
+              engine=engine,
+          )
 
       logging.info("Final training metrics exported: %s", train_metrics)

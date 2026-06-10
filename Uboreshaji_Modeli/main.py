@@ -34,22 +34,32 @@ from Uboreshaji_Modeli.common import config_utils
 
 
 
-_CONFIG = flags.DEFINE_string("config", None, "Path to Python config file.")
-_CONFIG_JSON = flags.DEFINE_string(
-    "config_json", None, "JSON string of the experiment configuration."
-)
-_MODEL_ID = flags.DEFINE_string(
-    "model_id", None, "Path or ID of the pretrained model (overrides config)."
-)
-_DATASET_PATH = flags.DEFINE_string(
-    "dataset_path", None, "Path to the dataset (overrides config)."
-)
-_OUTPUT_DIR = flags.DEFINE_string(
-    "output_dir", None, "Directory to save outputs (overrides config)."
-)
-_EXPERIMENT_NAME = flags.DEFINE_string(
-    "experiment_name", None, "Name of the experiment (overrides config)."
-)
+if "config" not in flags.FLAGS:
+  flags.DEFINE_string("config", None, "Path to Python config file.")
+if "config_json" not in flags.FLAGS:
+  flags.DEFINE_string(
+      "config_json", None, "JSON string of the experiment configuration."
+  )
+if "model_id" not in flags.FLAGS:
+  flags.DEFINE_string(
+      "model_id", None, "Path or ID of the pretrained model (overrides config)."
+  )
+if "dataset_path" not in flags.FLAGS:
+  flags.DEFINE_string(
+      "dataset_path", None, "Path to the dataset (overrides config)."
+  )
+if "output_dir" not in flags.FLAGS:
+  flags.DEFINE_string(
+      "output_dir", None, "Directory to save outputs (overrides config)."
+  )
+if "experiment_name" not in flags.FLAGS:
+  flags.DEFINE_string(
+      "experiment_name", None, "Name of the experiment (overrides config)."
+  )
+if "norun_validations" not in flags.FLAGS:
+  flags.DEFINE_bool(
+      "norun_validations", False, "Internal validation bypass flag."
+  )
 
 flags.mark_flags_as_mutual_exclusive(["config", "config_json"], required=True)
 
@@ -78,19 +88,19 @@ def main(argv):
   # Early environmental variables configuration.
   os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
 
-  if _CONFIG.value:
-    cfg = config_utils.load_config(_CONFIG.value)
+  if flags.FLAGS.config:
+    cfg = config_utils.load_config(flags.FLAGS.config)
   else:
-    cfg = ml_collections.ConfigDict(json.loads(_CONFIG_JSON.value))
+    cfg = ml_collections.ConfigDict(json.loads(flags.FLAGS.config_json))
 
-  if _MODEL_ID.value:
-    cfg.model_id = _MODEL_ID.value
-  if _DATASET_PATH.value:
-    cfg.dataset.dataset_path = _DATASET_PATH.value
-  if _OUTPUT_DIR.value:
-    cfg.output_dir = _OUTPUT_DIR.value
-  if _EXPERIMENT_NAME.value:
-    cfg.experiment_name = _EXPERIMENT_NAME.value
+  if flags.FLAGS.model_id:
+    cfg.model_id = flags.FLAGS.model_id
+  if flags.FLAGS.dataset_path:
+    cfg.dataset.dataset_path = flags.FLAGS.dataset_path
+  if flags.FLAGS.output_dir:
+    cfg.output_dir = flags.FLAGS.output_dir
+  if flags.FLAGS.experiment_name:
+    cfg.experiment_name = flags.FLAGS.experiment_name
 
   output_path = epath.Path(cfg.output_dir)
   logging.info("Root output directory parsed: %s", output_path)
