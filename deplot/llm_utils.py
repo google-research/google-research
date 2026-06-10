@@ -108,7 +108,7 @@ def _call_openai(
         stop=stop)
     return [choice['text'] for choice in reply['choices']] if reply else []
 
-  except openai.error.RateLimitError as e:
+  except openai.RateLimitError as e:
     print('Sleeping 60 secs.')
     time.sleep(60)
     raise ValueError('RateLimitError') from e
