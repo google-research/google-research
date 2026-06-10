@@ -19,6 +19,14 @@
 
 #include <string>
 
+#if !defined(PLATFORM_IS_X86) && defined(__x86_64__)
+#define PLATFORM_IS_X86 1
+#endif
+
+#if !defined(PLATFORM_IS_ARM64) && defined(__aarch64__)
+#define PLATFORM_IS_ARM64 1
+#endif
+
 #if defined(_MSC_VER)
 
 #include <intrin.h>

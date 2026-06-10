@@ -14,6 +14,9 @@
 
 
 #include "scann/oss_wrappers/scann_cpu_info.h"
+#include "absl/log/check.h"
+#include <cstdint>
+#include <string>
 
 #include "absl/base/call_once.h"
 #if defined(PLATFORM_IS_X86)
@@ -126,7 +129,7 @@ class CPUIDInfo {
     CHECK(cpuid == nullptr) << __func__ << " ran more than once";
     cpuid = new CPUIDInfo;
 
-    uint32 eax, ebx, ecx, edx;
+    uint32_t eax, ebx, ecx, edx;
 
     GETCPUID(eax, ebx, ecx, edx, 0, 0);
     cpuid->vendor_str_.append(reinterpret_cast<char *>(&ebx), 4);
@@ -154,15 +157,15 @@ class CPUIDInfo {
     cpuid->have_ssse3_ = (ecx >> 9) & 0x1;
     cpuid->have_hypervisor_ = (ecx >> 31) & 1;
 
-    const uint64 xcr0_xmm_mask = 0x2;
-    const uint64 xcr0_ymm_mask = 0x4;
-    const uint64 xcr0_maskreg_mask = 0x20;
-    const uint64 xcr0_zmm0_15_mask = 0x40;
-    const uint64 xcr0_zmm16_31_mask = 0x80;
+    const uint64_t xcr0_xmm_mask = 0x2;
+    const uint64_t xcr0_ymm_mask = 0x4;
+    const uint64_t xcr0_maskreg_mask = 0x20;
+    const uint64_t xcr0_zmm0_15_mask = 0x40;
+    const uint64_t xcr0_zmm16_31_mask = 0x80;
 
-    const uint64 xcr0_avx_mask = xcr0_xmm_mask | xcr0_ymm_mask;
-    const uint64 xcr0_avx512_mask = xcr0_avx_mask | xcr0_maskreg_mask |
-                                    xcr0_zmm0_15_mask | xcr0_zmm16_31_mask;
+    const uint64_t xcr0_avx_mask = xcr0_xmm_mask | xcr0_ymm_mask;
+    const uint64_t xcr0_avx512_mask = xcr0_avx_mask | xcr0_maskreg_mask |
+                                      xcr0_zmm0_15_mask | xcr0_zmm16_31_mask;
 
     const bool have_avx =
 
@@ -183,7 +186,7 @@ class CPUIDInfo {
     cpuid->have_f16c_ = have_avx && ((ecx >> 29) & 0x1);
 
     GETCPUID(eax, ebx, ecx, edx, 7, 0);
-    const uint32 kMaxNumSubLeaves = eax;
+    const uint32_t kMaxNumSubLeaves = eax;
 
     cpuid->have_adx_ = (ebx >> 19) & 0x1;
     cpuid->have_avx2_ = have_avx && ((ebx >> 5) & 0x1);
@@ -327,7 +330,7 @@ class CPUIDInfo {
     return false;
   }
 
-  string vendor_str() const { return vendor_str_; }
+  std::string vendor_str() const { return vendor_str_; }
   int family() const { return family_; }
   int model_num() { return model_num_; }
 
@@ -379,7 +382,7 @@ class CPUIDInfo {
   int have_sse4_2_ : 1;
   int have_ssse3_ : 1;
   int have_hypervisor_ : 1;
-  string vendor_str_;
+  std::string vendor_str_;
   int family_;
   int model_num_;
 };
@@ -450,7 +453,7 @@ class CPUIDInfo {
     if (midr_el1_file.is_open()) {
       std::string line;
       if (static_cast<bool>(getline(midr_el1_file, line))) {
-        uint32 midr_el1 = std::stoul(line, nullptr, 16);
+        uint32_t midr_el1 = std::stoul(line, nullptr, 16);
 
         cpuid->implementer_ = (midr_el1 >> 24) & 0xFF;
         cpuid->variant_ = (midr_el1 >> 20) & 0xF;
@@ -555,7 +558,7 @@ int CPUModelNum() {
 int CPUIDNumSMT() {
 #ifdef PLATFORM_IS_X86
 
-  uint32 eax, ebx, ecx, edx;
+  uint32_t eax, ebx, ecx, edx;
 
   GETCPUID(eax, ebx, ecx, edx, 0, 0);
   if (eax >= 11) {
