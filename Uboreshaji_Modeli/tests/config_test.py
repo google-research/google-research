@@ -59,6 +59,11 @@ class GetBaseConfigTest(parameterized.TestCase):
           field_path="training.save_strategy",
           expected="steps",
       ),
+      dict(
+          testcase_name="training_max_steps",
+          field_path="training.max_steps",
+          expected=-1,
+      ),
   )
   def test_default_value(self, field_path, expected):
     value = self.cfg

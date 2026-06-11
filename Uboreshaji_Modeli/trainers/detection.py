@@ -23,6 +23,7 @@ import time
 from typing import Any
 
 from absl import logging
+import datasets
 from etils import epath
 import ml_collections
 import torch  # pylint: disable=unused-import
@@ -137,6 +138,7 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
         lr_scheduler_type=cfg.training.lr_scheduler_type,
         warmup_ratio=cfg.training.warmup_ratio,
         max_grad_norm=cfg.training.max_grad_norm,
+        max_steps=cfg.training.max_steps,
     )
 
     compute_metrics_fn = metrics.create_compute_metrics_fn(
@@ -171,11 +173,28 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
         is_train=False,
     )
 
-    transformed_train_dataset = train_dataset.with_transform(transform_fn)
-    transformed_eval_dataset = eval_dataset.with_transform(eval_transform_fn)
+    if isinstance(train_dataset, datasets.IterableDataset):
+      transformed_train_dataset = train_dataset.map(transform_fn, batched=True)
+    else:
+      transformed_train_dataset = train_dataset.with_transform(transform_fn)
+
+    if isinstance(eval_dataset, datasets.IterableDataset):
+      transformed_eval_dataset = eval_dataset.map(
+          eval_transform_fn, batched=True
+      )
+    else:
+      transformed_eval_dataset = eval_dataset.with_transform(eval_transform_fn)
+
     transformed_test_dataset = None
     if test_dataset is not None:
-      transformed_test_dataset = test_dataset.with_transform(eval_transform_fn)
+      if isinstance(test_dataset, datasets.IterableDataset):
+        transformed_test_dataset = test_dataset.map(
+            eval_transform_fn, batched=True
+        )
+      else:
+        transformed_test_dataset = test_dataset.with_transform(
+            eval_transform_fn
+        )
 
     criterion, weight_dict = engine.get_criterion(num_classes, cfg, device)
     collate_fn = engine.get_collate_fn(cfg)

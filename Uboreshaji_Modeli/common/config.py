@@ -76,6 +76,7 @@ def get_base_config():
   config.training.lr_scheduler_type = "linear"
   config.training.warmup_ratio = 0.0
   config.training.max_grad_norm = 1.0
+  config.training.max_steps = -1
 
   # Data settings
   config.dataset = ml_collections.ConfigDict()

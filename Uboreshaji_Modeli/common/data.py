@@ -228,7 +228,10 @@ def get_dataset(cfg):
         dataset_path,
     )
     dataset = datasets.load_dataset(
-        "parquet", data_dir=str(dataset_path), cache_dir=hf_cache_dir,
+        "parquet",
+        data_dir=str(dataset_path),
+        cache_dir=hf_cache_dir,
+        streaming=True,
     )
 
     return dataset

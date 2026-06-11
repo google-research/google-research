@@ -17,6 +17,7 @@
 
 import json
 import os
+from unittest import mock
 
 from absl.testing import absltest
 import datasets
@@ -165,6 +166,23 @@ class GetDatasetTest(absltest.TestCase):
     cfg.dataset.dataset_path = os.path.join(temp_dir, "nonexistent")
     with self.assertRaises(FileNotFoundError):
       data.get_dataset(cfg)
+
+  def test_parquet_fallback_streaming(self):
+    temp_dir = self.create_tempdir().full_path
+    cfg = ml_collections.ConfigDict()
+    cfg.dataset = ml_collections.ConfigDict()
+    cfg.dataset.dataset_path = os.path.join(temp_dir, "parquet_dir")
+
+    with mock.patch.object(
+        datasets, "load_dataset", autospec=True
+    ) as mock_load_dataset:
+      mock_load_dataset.return_value = "mocked_dataset"
+      result = data.get_dataset(cfg)
+
+      mock_load_dataset.assert_called_once()
+      _, kwargs = mock_load_dataset.call_args
+      self.assertTrue(kwargs.get("streaming"))
+      self.assertEqual(result, "mocked_dataset")
 
 
 if __name__ == "__main__":
