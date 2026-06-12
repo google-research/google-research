@@ -9,7 +9,7 @@ langchain_elasticsearch==0.3.0
 langchain_google_genai==2.0.6
 numpy==2.1.3
 pandas==2.2.3
-protobuf==5.29.0
+protobuf==5.29.5
 Requests==2.32.3
 scikit_learn==1.5.2
 scipy==1.14.1
