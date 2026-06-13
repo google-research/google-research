@@ -3,7 +3,7 @@ jax==0.4.23
 jaxlib==0.4.23
 flax==0.7.5
 opencv-python==4.9.0.80
-pillow==10.2.0
+pillow==10.3.0
 tensorboard==2.15.1
 tensorflow==2.15.0.post1
 gin-config==0.5.0
