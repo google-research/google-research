@@ -12,7 +12,7 @@ pip install -r requirements.txt
 ```
 
 ## Data
-Download datasets and pre-built databases from [here]().
+You can download the dataset from [this link](https://console.cloud.google.com/storage/browser/tapas_models/wtq/tables).
 
 ```shell
 tar zxvf arcade_qa.tar.gz
