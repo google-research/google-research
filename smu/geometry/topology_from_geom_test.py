@@ -45,10 +45,10 @@
 
 from absl.testing import absltest
 
+from google.protobuf import text_format
 import numpy as np
 import pandas as pd
 
-from google.protobuf import text_format
 from smu import dataset_pb2
 from smu.geometry import bond_length_distribution
 from smu.geometry import topology_from_geom

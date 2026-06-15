@@ -17,11 +17,11 @@ import copy
 import os
 
 from absl.testing import absltest
+from google.protobuf import text_format
 import mock
 import tensorflow.compat.v1 as tf
 
 from tensorflow.python.util.protobuf import compare
-from google.protobuf import text_format
 from readtwice.data_utils import data_utils
 from readtwice.data_utils import tokenization
 

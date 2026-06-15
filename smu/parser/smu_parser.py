@@ -42,9 +42,8 @@ from absl import app
 from absl import flags
 from absl import logging
 
-from tensorflow.io import gfile
-
 from google.protobuf import text_format
+from tensorflow.io import gfile
 
 from smu import dataset_pb2
 from smu.parser import smu_parser_lib

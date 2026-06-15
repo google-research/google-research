@@ -33,11 +33,11 @@ import os
 from typing import List, Tuple
 import unittest
 
+from google.protobuf import text_format
 import numpy as np
 import pandas as pd
 import tensorflow.compat.v1 as tf  # tf
 
-from google.protobuf import text_format
 from gigamol.molecule_graph_parsing_ops.py import molecule_graph_parsing_ops as mgpo
 from gigamol.molecule_graph_proto import molecule_graph_pb2 as mgpb
 

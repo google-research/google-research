@@ -30,10 +30,10 @@
 # Tester for SMU utilities functions.
 
 from absl.testing import absltest
+from google.protobuf import text_format
 from parameterized import parameterized
 from rdkit import Chem
 
-from google.protobuf import text_format
 from smu import dataset_pb2
 from smu.geometry import utilities
 from smu.parser import smu_utils_lib

@@ -34,11 +34,11 @@ import tempfile
 
 from absl.testing import absltest
 from absl.testing import parameterized
+from google.protobuf import text_format
 import numpy as np
 from rdkit import Chem
 from tensorflow.io import gfile
 
-from google.protobuf import text_format
 from smu import dataset_pb2
 from smu.geometry import utilities
 from smu.parser import smu_parser_lib

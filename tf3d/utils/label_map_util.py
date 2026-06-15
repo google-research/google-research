@@ -14,8 +14,8 @@
 # limitations under the License.
 
 """Label map utility functions."""
-import tensorflow as tf
 from google.protobuf import text_format
+import tensorflow as tf
 from tf3d.utils.protos import string_int_label_map_pb2
 
 _LABEL_OFFSET = 1

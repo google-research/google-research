@@ -16,9 +16,9 @@
 """Helpers to define models for xmanager runs.
 """
 
+from google.protobuf import text_format
 import tensorflow.compat.v1 as tf
 
-from google.protobuf import text_format
 from fm4tlp.models import model_config_pb2
 
 

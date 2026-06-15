@@ -21,9 +21,9 @@ import apache_beam as beam
 from apache_beam.options import pipeline_options
 import apache_beam.testing.util as beam_testing
 import attr
+from google.protobuf import text_format
 import tensorflow.compat.v1 as tf
 
-from google.protobuf import text_format
 from readtwice.data_utils import beam_utils
 from readtwice.data_utils import data_utils
 

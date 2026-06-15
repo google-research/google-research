@@ -18,10 +18,10 @@
 import collections
 from typing import Any, Text
 
+from google.protobuf import text_format
 import tensorflow.compat.v1 as tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 
-from google.protobuf import text_format
 from smith import constants
 
 
