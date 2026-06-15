@@ -42,6 +42,16 @@ ABSL_RETIRED_FLAG(bool, ignore_avx, false, "Ignore AVX1.");
 
 ABSL_RETIRED_FLAG(bool, ignore_sse4, false, "Ignore SSE4");
 
+ABSL_FLAG(bool, ignore_neon, false, "Ignore Neon/ASIMD.");
+
+ABSL_FLAG(bool, ignore_neon_dotprod, false, "Ignore Neon DotProd.");
+
+ABSL_FLAG(bool, ignore_neon_i8mm, false, "Ignore Neon I8MM.");
+
+ABSL_FLAG(bool, ignore_sve, false, "Ignore SVE.");
+
+ABSL_FLAG(bool, ignore_sve2, false, "Ignore SVE2.");
+
 namespace research_scann {
 namespace flags_internal {
 
@@ -58,6 +68,20 @@ bool should_use_amx = should_use_avx512_vnni &&
                       port::TestCPUFeature(port::AMX_INT8) &&
                       port::TestCPUFeature(port::AMX_BF16) &&
                       port::TestCPUFeature(port::AMX_TILE);
+
+bool should_use_neon =
+    port::TestCPUFeature(port::ARM_NEON) && !absl::GetFlag(FLAGS_ignore_neon);
+bool should_use_neon_dotprod = should_use_neon &&
+                               port::TestCPUFeature(port::ARM_DOTPROD) &&
+                               !absl::GetFlag(FLAGS_ignore_neon_dotprod);
+bool should_use_neon_i8mm = should_use_neon_dotprod &&
+                            port::TestCPUFeature(port::ARM_I8MM) &&
+                            !absl::GetFlag(FLAGS_ignore_neon_i8mm);
+bool should_use_sve = should_use_neon_i8mm &&
+                      port::TestCPUFeature(port::ARM_SVE) &&
+                      !absl::GetFlag(FLAGS_ignore_sve);
+bool should_use_sve2 = should_use_sve && port::TestCPUFeature(port::ARM_SVE2) &&
+                       !absl::GetFlag(FLAGS_ignore_sve2);
 
 bool TryEnableAmx() {
 #ifdef __x86_64__
