@@ -1,0 +1,4 @@
+numpy >= 1.26.3
+scipy >= 1.13.1
+absl-py >= 2.1.0
+matplotlib >= 3.8.4
