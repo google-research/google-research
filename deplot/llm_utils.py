@@ -93,11 +93,12 @@ def _call_openai(
   Returns:
     Text completion
   """
-  openai.api_key = random.choice(_OPENAI_CREDENTIALS.value)
+  api_key = random.choice(_OPENAI_CREDENTIALS.value)
+  client = openai.OpenAI(api_key=api_key)
 
   try:
-    reply = openai.Completion.create(
-        engine=engine,
+    reply = client.completions.create(
+        model=engine,
         prompt=prompt,
         temperature=temperature,
         max_tokens=max_decode_steps,
@@ -106,7 +107,7 @@ def _call_openai(
         presence_penalty=presence_penalty,
         n=samples,
         stop=stop)
-    return [choice['text'] for choice in reply['choices']] if reply else []
+    return [choice.text for choice in reply.choices] if reply else []
 
   except openai.RateLimitError as e:
     print('Sleeping 60 secs.')
