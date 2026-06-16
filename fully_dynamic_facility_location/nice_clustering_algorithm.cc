@@ -294,7 +294,7 @@ void NiceClusteringAlgorithm::InsertPoint(
           online_neighbors_of_clients_[client_id][cluster_center];
 
       cluster_of_client_[client_id] = unique_critical_cluster_id;
-      UpdateNeighborsOfClient(client_id, absl::nullopt,
+      UpdateNeighborsOfClient(client_id, std::nullopt,
                               cluster_level_[unique_critical_cluster_id]);
     }
   }
@@ -706,7 +706,7 @@ int NiceClusteringAlgorithm::CreateCluster(std::vector<int> new_cluster,
   // Remove points from their old clusters
   absl::flat_hash_set<int> clusters_that_lost_nodes;
   for (const int client : new_cluster) {
-    std::optional<int> old_cluster_level = absl::nullopt;
+    std::optional<int> old_cluster_level = std::nullopt;
     if (cluster_of_client_.contains(client)) {
       int old_cluster_id = cluster_of_client_[client];
       int old_cluster_center = cluster_center_[old_cluster_id];
