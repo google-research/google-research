@@ -10,7 +10,7 @@ async-lru==2.0.4
 attrs==23.1.0
 Babel==2.13.1
 beautifulsoup4==4.12.2
-bleach==6.1.0
+bleach==6.4.0
 cachetools==5.3.2
 certifi==2023.11.17
 cffi==1.16.0
