@@ -42,7 +42,7 @@ def compute_frechet_inception_distance(mu1, sigma1, mu2, sigma2, epsilon=1e-6):
   diff = mu1 - mu2
 
   # Product might be almost singular.
-  covmean, _ = scipy.linalg.sqrtm(sigma1.dot(sigma2), disp=False)
+  covmean = scipy.linalg.sqrtm(sigma1.dot(sigma2))
   if not np.isfinite(covmean).all():
     logging.warning('FID calculated produced singular product -> adding epsilon'
                     '(%g) to the diagonal of the covariances.', epsilon)

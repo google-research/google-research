@@ -83,7 +83,7 @@ def _stable_trace_sqrt_product(sigma_test, sigma_train, eps=1e-7):
         numbers with large imaginary parts.
   """
   # product might be almost singular
-  sqrt_product, _ = linalg.sqrtm(sigma_test.dot(sigma_train), disp=False)
+  sqrt_product = linalg.sqrtm(sigma_test.dot(sigma_train))
   if not np.isfinite(sqrt_product).all():
     # add eps to the diagonal to avoid a singular product.
     offset = np.eye(sigma_test.shape[0]) * eps
