@@ -1,0 +1,74 @@
+llm_models:
+  initial_event_acquisition: gemini-3.5-flash
+  single_source_summary: gemini-3.5-flash
+  final_synthesis: gemini-3.5-flash
+  information_sufficiency_evaluator: gemini-3.5-flash
+  claim_verifier: gemini-3.5-flash
+domain: currency analyst
+keywords_to_process:
+- USD to CHF exchange rate
+- USD to INR exchange rate
+- USD to KRW exchange rate
+geography_str: United States
+processing_mode:
+  mode: incremental
+  status_file: data/processed_keywords-currency.log
+project_name: SearchTrend-Event-1112-Currency-2018-2019
+target_variable: USD to CHF exchange rate
+geography:
+  country_code: US
+  subdivision_code: World
+  city: ''
+time_range:
+  start: '2018-01-01'
+  end: '2019-12-31'
+frequency: D
+event_sourcing:
+  iterative_crawl_count: 10
+  save_research_trees: true
+  run_trend_exploration_after_validation: false
+  max_content_length: 20000
+  reconnaissance_query_templates:
+  - '{target_variable} news in {geography_str} on {date_str}'
+  - Why is {target_variable} trending in {geography_str} on {date_str}
+  - '{domain} events in {geography_str} about {target_variable} on {date_str}'
+  recalibration:
+    enabled: true
+    recalibration_model: gemini-3.5-flash
+  initial_event_iterations: 3
+  max_initial_events: 50
+  max_evaluation_actions: 6
+  coverage_early_stop_threshold: 0.9
+  coverage_min_acceptable: 0.75
+  coverage_time_window_days: 5
+  coverage_early_stop_enabled: false
+dual_channel_discovery:
+  llm_channel:
+    enabled: true
+    max_events_per_request: 30
+    time_granularity: daily
+    use_geography_in_prompt: true
+  trends_channel:
+    enabled: true
+    detection_thresholds:
+      absolute_value: 75
+      percentile: 0.9
+    suppression_radius_days: 3
+cross_validation:
+  time_window_matching_days: 5
+  confidence_threshold: 0.7
+task_execution:
+  validation_tasks:
+    query_budget_per_event: 1
+    crawl_count_per_query: 5
+  exploration_tasks:
+    query_budget_per_peak: 3
+    crawl_count_per_query: 8
+    max_exploration_time_minutes: 10
+paths:
+  output_root: null
+  raw_trends: data/raw/trends_test.csv
+  raw_weather: data/raw/weather_test.csv
+  raw_nasdaq: data/raw/nasdaq_test.csv
+  final_dataset: data/final/final_dataset_test.json
+  research_output_dir: data/research_trees

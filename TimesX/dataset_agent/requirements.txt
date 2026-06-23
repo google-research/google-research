@@ -1,0 +1,12 @@
+beautifulsoup4>=4.14.0
+crawl4ai>=0.6.3
+google-genai>=1.68.0
+numpy>=2.0.0
+pandas>=2.0.0
+playwright>=1.58.0
+pydantic>=2.0.0
+pytrends>=4.9.2
+python-dotenv>=1.2.0
+PyYAML>=6.0
+requests>=2.32.0
+trafilatura>=1.12
