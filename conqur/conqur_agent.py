@@ -43,16 +43,20 @@ class ConqurAgent(dqn_agent.DQNAgent):
     self.random_state = random_state
     super(ConqurAgent, self).__init__(session, num_actions)
 
-  def reload_checkpoint(self, checkpoint_path):
+  def reload_checkpoint(self, checkpoint_path, restore_varlist=False):
     """Reload variables from a fully specified checkpoint.
 
     Args:
       checkpoint_path: string, full path to a checkpoint to reload.
+      restore_varlist: bool, whether to load the checkpoint or now.
     """
     assert checkpoint_path
     variables_to_restore = tf_slim.get_variables_to_restore()
     reloader = tf.train.Saver(var_list=variables_to_restore)
-    reloader.restore(self._sess, checkpoint_path)
+    try:
+      reloader.restore(self._sess, checkpoint_path)
+    except Exception as e:
+      print ('Unable to load the checkpointed model, error message = {}'.format(e))
 
     var = [
         v for v in variables_to_restore
