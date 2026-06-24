@@ -58,7 +58,9 @@ python3 -m pip install -e .
     ```
 
 2. Download teacher checkpoints (Coming soon!). Unzip their contents like so,
+Download teacher checkpoints.
 
+Note: Teacher checkpoints are provided in the following structure and are expected to be placed under the `teachers/` directory as shown below.
     ```
     teachers/
       bicycle/
