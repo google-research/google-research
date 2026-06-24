@@ -1,0 +1,10 @@
+{
+    "summary": "This line specifies a version constraint for the TensorFlow GPU library, ensuring compatibility between 1.15.3 and below 2.0.0 versions are used in the codebase.",
+    "details": [
+        {
+            "comment": "This line specifies a version constraint for the TensorFlow GPU library, ensuring compatibility between 1.15.3 and below 2.0.0 versions are used in the codebase.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_structure/requirements.txt\":0-0",
+            "content": "tensorflow-gpu>=1.15.3,<2.0.0"
+        }
+    ]
+}

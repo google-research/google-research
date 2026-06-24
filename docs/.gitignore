@@ -1,0 +1,6 @@
+!.gitignore
+!*
+!*/*
+cache_db.json
+cache_tree.json
+vector_cache

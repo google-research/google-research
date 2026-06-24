@@ -1,0 +1,10 @@
+{
+    "summary": "This code is a setup script for the \"vtm\" module. It defines the name as 'vtm', specifies 'vtm' as a Python module to be installed, and includes no required external packages in the install_requires list.",
+    "details": [
+        {
+            "comment": "This code is a setup script for the \"vtm\" module. It defines the name as 'vtm', specifies 'vtm' as a Python module to be installed, and includes no required external packages in the install_requires list.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_timeline_modeling/setup.py\":0-23",
+            "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Setup script.\"\"\"\nfrom setuptools import setup\nsetup(\n    name='vtm',\n    py_modules=['vtm'],\n    install_requires=[]\n)"
+        }
+    ]
+}

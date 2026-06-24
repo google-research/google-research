@@ -1,0 +1,544 @@
+{
+    "200": {
+        "file_id": 15,
+        "content": "    optimizer = tf.keras.optimizers.Adam(lr=1e-4)\n    autoencoder.compile(optimizer)\n    history = autoencoder.fit(dataset, steps_per_epoch=1, epochs=3)\n    self.assertLess(history.history['loss'][-1], history.history['loss'][0])\n  def testImagesToKeypointsNetShapes(self):\n    model = vision.build_images_to_keypoints_net(\n        self.cfg, self.data_shapes['image'][1:])\n    images = tf.zeros((self.cfg.batch_size,) + self.data_shapes['image'][1:])\n    keypoints, heatmaps = model(images)\n    self.assertEqual(\n        keypoints.shape.as_list(),\n        [self.cfg.batch_size, self.time_steps, self.cfg.num_keypoints, 3])\n    self.assertEqual(\n        heatmaps.shape.as_list(),\n        [self.cfg.batch_size, self.time_steps, self.cfg.heatmap_width,\n         self.cfg.heatmap_width, 3])\n  def testKeypointsToImagesNetShapes(self):\n    model = vision.build_keypoints_to_images_net(\n        self.cfg, self.data_shapes['image'][1:])\n    keypoints = tf.zeros(\n        (self.cfg.batch_size, self.time_steps, self.cfg.num_keypoints, 3))",
+        "type": "code",
+        "location": "/video_structure/vision_test.py:64-86"
+    },
+    "201": {
+        "file_id": 15,
+        "content": "This code snippet contains three different test cases: 1) Training an autoencoder using Adam optimizer, 2) Testing the shapes of output from the \"images_to_keypoints_net\" model, and 3) Testing the shapes of output from the \"keypoints_to_images_net\" model. It ensures that these models are producing outputs with correct dimensions.",
+        "type": "comment"
+    },
+    "202": {
+        "file_id": 15,
+        "content": "    first_frame = tf.zeros(\n        (self.cfg.batch_size,) + self.data_shapes['image'][2:])\n    reconstructed_images = model([keypoints, first_frame, keypoints[:, 0, Ellipsis]])\n    self.assertEqual(\n        reconstructed_images.shape.as_list(),\n        [self.cfg.batch_size] + list(self.data_shapes['image'][1:]))\n  def testImageEncoderShapes(self):\n    model = vision.build_image_encoder(\n        self.data_shapes['image'][2:], **self.cfg.conv_layer_kwargs)\n    images = tf.zeros((self.cfg.batch_size,) + self.data_shapes['image'][2:])\n    encoded = model(images)\n    self.assertEqual(\n        encoded.shape.as_list()[:-1],\n        [self.cfg.batch_size, self.cfg.heatmap_width, self.cfg.heatmap_width])\n  def testImageDecoderShapes(self):\n    features_shape = [\n        self.cfg.batch_size, self.cfg.heatmap_width, self.cfg.heatmap_width, 64]\n    image_width = self.data_shapes['image'][-2]\n    model = vision.build_image_decoder(\n        features_shape[1:], output_width=image_width,\n        **self.cfg.conv_layer_kwargs)",
+        "type": "code",
+        "location": "/video_structure/vision_test.py:87-109"
+    },
+    "203": {
+        "file_id": 15,
+        "content": "The code is testing the shapes of encoded and decoded images in a video structure model. It builds an image encoder, generates encoded images, checks their shape against expected values, and builds an image decoder, generates reconstructed images, and verifies their shape. This ensures that the model's output conforms to its expected dimensions.",
+        "type": "comment"
+    },
+    "204": {
+        "file_id": 15,
+        "content": "    output = model(tf.zeros(features_shape))\n    self.assertEqual(\n        output.shape.as_list()[:-1],\n        [self.cfg.batch_size, image_width, image_width])\nclass Autoencoder(tf.keras.Model):\n  \"\"\"Simple image autoencoder without dynamics.\n  This architecture is meant for testing the image-processing submodels.\n  Model architecture:\n    image_sequence --> keypoints --> reconstructed_image_sequence\n  The model takes a standard [batch_size, timesteps, H, W, C] image sequence as\n  input. It \"observes\" all frames, detects keypoints, and reconstructs the\n  images.\n  \"\"\"\n  def __init__(self, cfg, data_shapes):\n    \"\"\"Constructs the autoencoder.\n    Args:\n      cfg: ConfigDict with model hyperparameters.\n      data_shapes: Dict of shapes of model input tensors, as returned by\n        datasets.get_sequence_dataset.\n    \"\"\"\n    input_sequence = tf.keras.Input(\n        shape=data_shapes['image'][1:],\n        name='image')\n    image_shape = data_shapes['image'][1:]\n    keypoints, _ = vision.build_images_to_keypoints_net(",
+        "type": "code",
+        "location": "/video_structure/vision_test.py:110-143"
+    },
+    "205": {
+        "file_id": 15,
+        "content": "The code defines an Autoencoder model for image processing tasks. It takes a standard [batch_size, timesteps, H, W, C] image sequence as input, detects keypoints, and reconstructs the images without considering dynamics. The model architecture involves observing all frames, detecting keypoints, and reconstructing images. The Autoencoder is constructed with given hyperparameters and shapes of model input tensors.",
+        "type": "comment"
+    },
+    "206": {
+        "file_id": 15,
+        "content": "        cfg, image_shape)(input_sequence)\n    reconstructed_sequence = vision.build_keypoints_to_images_net(\n        cfg, image_shape)([\n            keypoints,\n            input_sequence[:, 0, Ellipsis],\n            keypoints[:, 0, Ellipsis]])\n    super(Autoencoder, self).__init__(\n        inputs=input_sequence, outputs=reconstructed_sequence,\n        name='autoencoder')\n    self.add_loss(tf.nn.l2_loss(input_sequence - reconstructed_sequence))\nif __name__ == '__main__':\n  absltest.main()",
+        "type": "code",
+        "location": "/video_structure/vision_test.py:144-159"
+    },
+    "207": {
+        "file_id": 15,
+        "content": "This code defines an autoencoder class in the vision_test.py file, takes input sequences and reconstructs them using keypoints to build a network, calculates loss using l2 norm, and initializes the class with specified inputs and outputs.",
+        "type": "comment"
+    },
+    "208": {
+        "file_id": 16,
+        "content": "/video_timeline_modeling/README.md",
+        "type": "filepath"
+    },
+    "209": {
+        "file_id": 16,
+        "content": "This code introduces a new dataset, YouTube-News-Timeline, for video timeline modeling in news story understanding with 12k timelines and 300k videos. The dataset structure is explained, and it's available in JSON format on Google Drive. It lists updated YouTube video URLs for news story timelines.",
+        "type": "summary"
+    },
+    "210": {
+        "file_id": 16,
+        "content": "# YouTube-News-Timeline: Video Timeline Modeling For News Story Understanding\n## Introduction\nWe present a novel problem, namely **video timeline modeling**. Our objective is to create a video-associated timeline from a set of videos related to a specific topic, thereby facilitating the content and structure understanding of the story being told. This problem has significant potential in various real-world applications, such as news story summarization. To bootstrap research in this area, we curate a realistic benchmark dataset, **YouTube-News-Timeline**.\nFor more details please check our paper: https://arxiv.org/abs/2309.13446\n![](https://github.com/google-research/google-research/blob/master/video_timeline_modeling/vtm.png)\n## YouTube-News-Timeline Dataset\nYouTube-News-Timeline consists of over 12k timelines and 300k YouTube news videos. The duration of these videos ranges from 3 seconds to 12 hours, and their average duration is around 10 minutes. We randomly split the timelines into trai",
+        "type": "code",
+        "location": "/video_timeline_modeling/README.md:1-14"
+    },
+    "211": {
+        "file_id": 16,
+        "content": "This code introduces the concept of video timeline modeling for news story understanding and presents a new dataset, YouTube-News-Timeline, to advance research in this field. The dataset contains over 12k timelines and 300k YouTube news videos with varying durations.",
+        "type": "comment"
+    },
+    "212": {
+        "file_id": 16,
+        "content": "ning, validation, and testing subsets. The number of timelines, timeline nodes, and videos on training/validation/testing split in the final dataset are summarized in the table below. \n| # Timelines | # Nodes | # Videos|\n| -------- | -------- | -------- |\n|9936/1255/1220|74886/9325/9171|242685/30369/29930|\nIn the following, we show the distributions of the number of videos per node, the number of nodes per timeline, and the number of videos per timeline in the training, validation, and testing subsets.\n![](https://github.com/google-research/google-research/blob/master/video_timeline_modeling/data_dist.png)\nThe dataset is available via [this Google Drive link](https://drive.google.com/drive/folders/1SChGxFb_Vl58Nn8jKOKTyoofxu6hz7tF?usp=sharing). Each data sample is organized in the following format.\n```json\n{\n     \"https://apnews.com/article/japan-accidents-tsunamis-earthquakes-42d4947609becd7f141e9524a8c98937\":  // The URL link of the webpage where we crawl the timeline.\n     [\n      [\n        \"OhEbGK4PnZg\",",
+        "type": "code",
+        "location": "/video_timeline_modeling/README.md:14-31"
+    },
+    "213": {
+        "file_id": 16,
+        "content": "This code explains the dataset structure and provides a summary of its contents. It includes the number of timelines, nodes, and videos in training, validation, and testing subsets. The distributions of video per node, node per timeline, and video per timeline are shown in an image. The dataset is available via a Google Drive link, and each sample follows a specific JSON format.",
+        "type": "comment"
+    },
+    "214": {
+        "file_id": 16,
+        "content": "        \"cl19tfn33hI\",\n        \"R0l6z0HaUAM\",\n        \"5QhCsR-t-qM\",\n        \"ev3FBIoHMX8\"\n      ],\n      [\n        \"psAuFr8Xeqs\",\n        \"BsRd7WQuBHc\",\n        \"Dp_8rLL1Y18\",\n        \"h1m7GFPAq3o\"\n      ],\n      [\n        \"f4TaKPKe1gg\",\n        \"DLlsKd-QC2o\"\n      ],\n      [\n        \"ocluW1Vhvcg\",\n        \"vusthiUFx_0\",\n        \"vGHzuZQLYtg\",\n        \"7XpLbhQxpLw\",\n        \"UsPFUzXisq4\"\n      ],\n      [\n        \"hA3fNK0rxcs\"\n      ]\n    ] // The URL links of the retrieved YouTube news videos. Each list in the nested list corresponds to one node on the timeline. These nodes are ordered in the nested list.\n}\n```\nDue to data privacy concern, we periodically refresh our dataset to remove invalid YouTube videos thus the exact size of our dataset may change slightly.\n## Citation \n```\n@inproceedings{\n  liu2023video,\n  title={Video Timeline Modeling For News Story Understanding},\n  author={Liu, Meng and Zhang, Mingda and Liu, Jialu and Dai, Hanjun and Yang, Ming-Hsuan and Ji, Shuiwang and Feng, Zheyun and Gong, Boqing},\n  boo",
+        "type": "code",
+        "location": "/video_timeline_modeling/README.md:32-69"
+    },
+    "215": {
+        "file_id": 16,
+        "content": "This code represents a list of YouTube video URLs, each representing a node on the timeline for news story understanding. The nested lists show the order of videos for different nodes. The dataset is periodically refreshed to remove invalid videos, and more authors are mentioned in the citation.",
+        "type": "comment"
+    },
+    "216": {
+        "file_id": 16,
+        "content": "ktitle={Thirty-seventh Conference on Neural Information Processing Systems Datasets and Benchmarks Track},\n  year={2023}\n}\n```\n## Disclaimer\nThe reference timelines used to construct the dataset are crawled from the web, and the videos are sourced from YouTube. The opinions expressed in the timelines and videos do not necessarily reflect our own, and we do not endorse or promote any specific viewpoint. The dataset is intended for research and educational purposes only, and users should exercise their own judgment when interpreting and using it.",
+        "type": "code",
+        "location": "/video_timeline_modeling/README.md:69-75"
+    },
+    "217": {
+        "file_id": 16,
+        "content": "The code is specifying the title and year of a conference paper related to neural information processing systems (NIPS) datasets and benchmarks track.",
+        "type": "comment"
+    },
+    "218": {
+        "file_id": 17,
+        "content": "/video_timeline_modeling/requirements.txt",
+        "type": "filepath"
+    },
+    "219": {
+        "file_id": 17,
+        "content": "This code specifies the dependencies for the project, which are TensorFlow and PyTorch. These libraries provide essential functionalities for handling data structures, neural networks, and machine learning tasks in the video timeline modeling context.",
+        "type": "summary"
+    },
+    "220": {
+        "file_id": 17,
+        "content": "tensorflow\ntorch",
+        "type": "code",
+        "location": "/video_timeline_modeling/requirements.txt:1-2"
+    },
+    "221": {
+        "file_id": 17,
+        "content": "This code specifies the dependencies for the project, which are TensorFlow and PyTorch. These libraries provide essential functionalities for handling data structures, neural networks, and machine learning tasks in the video timeline modeling context.",
+        "type": "comment"
+    },
+    "222": {
+        "file_id": 18,
+        "content": "/video_timeline_modeling/run.sh",
+        "type": "filepath"
+    },
+    "223": {
+        "file_id": 18,
+        "content": "This Bash script sets up a Python virtual environment, installs dependencies from `requirements.txt` and the project itself, then runs the model defined in `vtm.model.model`. It follows Apache License 2.0.",
+        "type": "summary"
+    },
+    "224": {
+        "file_id": 18,
+        "content": "# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n#!/bin/bash\nset -e\nset -x\nvirtualenv -p python3 .\nsource ./bin/activate\npip install -r ./requirements.txt\npip install -e .\npython -m vtm.model.model",
+        "type": "code",
+        "location": "/video_timeline_modeling/run.sh:1-24"
+    },
+    "225": {
+        "file_id": 18,
+        "content": "This Bash script sets up a Python virtual environment, installs dependencies from `requirements.txt` and the project itself, then runs the model defined in `vtm.model.model`. It follows Apache License 2.0.",
+        "type": "comment"
+    },
+    "226": {
+        "file_id": 19,
+        "content": "/video_timeline_modeling/setup.py",
+        "type": "filepath"
+    },
+    "227": {
+        "file_id": 19,
+        "content": "This code is a setup script for the \"vtm\" module. It defines the name as 'vtm', specifies 'vtm' as a Python module to be installed, and includes no required external packages in the install_requires list.",
+        "type": "summary"
+    },
+    "228": {
+        "file_id": 19,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Setup script.\"\"\"\nfrom setuptools import setup\nsetup(\n    name='vtm',\n    py_modules=['vtm'],\n    install_requires=[]\n)",
+        "type": "code",
+        "location": "/video_timeline_modeling/setup.py:1-24"
+    },
+    "229": {
+        "file_id": 19,
+        "content": "This code is a setup script for the \"vtm\" module. It defines the name as 'vtm', specifies 'vtm' as a Python module to be installed, and includes no required external packages in the install_requires list.",
+        "type": "comment"
+    },
+    "230": {
+        "file_id": 20,
+        "content": "/video_timeline_modeling/vtm/__init__.py",
+        "type": "filepath"
+    },
+    "231": {
+        "file_id": 20,
+        "content": "This code block is a license notice for the \"google-research/video_structure\" package. It states copyright information, licensing terms (Apache License, Version 2.0), and the absence of warranties or conditions, encouraging compliance with the given license.",
+        "type": "summary"
+    },
+    "232": {
+        "file_id": 20,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.",
+        "type": "code",
+        "location": "/video_structure/__init__.py:1-14"
+    },
+    "233": {
+        "file_id": 20,
+        "content": "This code block is a license notice for the \"google-research/video_structure\" package. It states copyright information, licensing terms (Apache License, Version 2.0), and the absence of warranties or conditions, encouraging compliance with the given license.",
+        "type": "comment"
+    },
+    "234": {
+        "file_id": 21,
+        "content": "/video_timeline_modeling/vtm/dataset.py",
+        "type": "filepath"
+    },
+    "235": {
+        "file_id": 21,
+        "content": "This code creates a PyTorch dataset for timeline modeling, handling variable-length video tokens and providing constants. It utilizes input data in dictionaries, pads sequences, and returns padded tensors for features, labels, and masks. Additionally, it defines classes for loading and validating Google Cloud Storage datasets with partitions and features.",
+        "type": "summary"
+    },
+    "236": {
+        "file_id": 21,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Construct PyTorch dataset for timeline modeling.\"\"\"\nimport glob\nimport os\nfrom typing import Dict\nimport tensorflow as tf\nimport torch\nfrom torch.nn.utils.rnn import pad_sequence\nfrom torch.utils.data import Dataset\nNUM_OF_TRAINING_SAMPLES = 9936\nNUM_OF_VALIDATION_SAMPLES = 1255\nNUM_OF_TEST_SAMPLES = 1220\nMAX_NUM_CLUSTERS = 24\ndef collate_topics(topic_dicts,\n                   max_num_cluster=MAX_NUM_CLUSTERS):\n  \"\"\"Customized batch collate function for padding variable-length video tokens.",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:1-34"
+    },
+    "237": {
+        "file_id": 21,
+        "content": "Constructs a PyTorch dataset for timeline modeling, includes functions to collate topics with variable-length video tokens. Provides constants NUM_OF_TRAINING_SAMPLES, NUM_OF_VALIDATION_SAMPLES, NUM_OF_TEST_SAMPLES and MAX_NUM_CLUSTERS.",
+        "type": "comment"
+    },
+    "238": {
+        "file_id": 21,
+        "content": "  For example, if a batch has two data sample. The first one has 3 videos and 2\n  clusters, while the second one has 4 videos and 3 clusters. Then, the\n  data_batch['video_padding_mask'] for this batch is a (2,4) tensor: [[0, 0, 0,\n  1], [0, 0, 0, 0]], where 1 denotes video padding token. The\n  data_batch['cluster_non_padding_mask'] for this batch is a (2, 24) tensor:\n  [[1, 1, 0, ..., 0], [1, 1, 1, 0, ..., 0]], where 0 denotes the cluster padding\n  token. The features and labels are also padded accordingly.\n  Args:\n    topic_dicts (list[dict[str, torch.Tensor]]): the list of data to be batched,\n      where each data is a dict with keys 'video_features',\n      'cluster_text_features', and 'video_cluster_label'.\n    max_num_cluster: the maximum number of clusters in the dataset, which is\n      fixed to be 24 in our dataset.\n  Returns:\n    A dict with keys 'video_features', 'cluster_text_features',\n    'video_cluster_label', 'video_padding_mask', and 'cluster_non_padding_mask'.\n    Each value is a tensor. The first dimension of each value is batch_size,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:36-54"
+    },
+    "239": {
+        "file_id": 21,
+        "content": "This function takes a list of dictionaries containing 'video_features', 'cluster_text_features', and 'video_cluster_label' data, along with the maximum number of clusters. It returns a dictionary with 'video_features', 'cluster_text_features', 'video_cluster_label', 'video_padding_mask', and 'cluster_non_padding_mask' as tensors. The function handles variable-length video and cluster data within each batch, padding the features and labels accordingly.",
+        "type": "comment"
+    },
+    "240": {
+        "file_id": 21,
+        "content": "    which is also the length of the input .\n  \"\"\"\n  data_batch = {}\n  data_batch['video_features'] = pad_sequence(\n      [topic_dict['video_features'] for topic_dict in topic_dicts],\n      batch_first=True)\n  mask = [\n      torch.zeros_like(\n          topic_dict['video_features'][Ellipsis, 0].squeeze(-1),\n          dtype=torch.bool).view(-1) for topic_dict in topic_dicts\n  ]\n  data_batch['video_padding_mask'] = pad_sequence(\n      mask, batch_first=True, padding_value=1)\n  data_batch['video_cluster_label'] = pad_sequence(\n      [topic_dict['video_cluster_label'] for topic_dict in topic_dicts],\n      batch_first=True,\n      padding_value=-1)\n  # Pad the first cluster sequence to the max_num_cluster length\n  ## This ensures that the padded cluster num in each batch is max_num_cluster\n  cluster_non_padding_mask = [\n      torch.ones_like(\n          topic_dict['cluster_text_features'][Ellipsis, 0].squeeze(-1),\n          dtype=torch.bool).view(-1) for topic_dict in topic_dicts\n  ]\n  cluster_non_padding_mask[0] = torch.cat(",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:55-79"
+    },
+    "241": {
+        "file_id": 21,
+        "content": "This code is creating a 'data_batch' with video features, padding masks, and cluster labels for a batch of topic dictionaries. The video features are padded to the maximum length of the input, and padding value 1 is used in the padding mask. Additionally, the first cluster sequence in each batch is padded to the max_num_cluster length. This ensures consistency across batches.",
+        "type": "comment"
+    },
+    "242": {
+        "file_id": 21,
+        "content": "      (cluster_non_padding_mask[0],\n       torch.zeros(\n           max_num_cluster - cluster_non_padding_mask[0].shape[0],\n           dtype=torch.bool).view(-1)),\n      dim=0)\n  data_batch['cluster_non_padding_mask'] = pad_sequence(\n      cluster_non_padding_mask, batch_first=True, padding_value=0)\n  topic_dicts[0]['cluster_text_features'] = torch.cat(\n      (topic_dicts[0]['cluster_text_features'],\n       torch.zeros(\n           (max_num_cluster - topic_dicts[0]['cluster_text_features'].shape[0],\n            topic_dicts[0]['cluster_text_features'].shape[-1]),\n           dtype=torch.float)),\n      dim=0)\n  data_batch['cluster_text_features'] = pad_sequence(\n      [topic_dict['cluster_text_features'] for topic_dict in topic_dicts],\n      batch_first=True, padding_value=0)\n  return data_batch\nclass TimelineDataset(Dataset):\n  \"\"\"The timline modeling dataset.\"\"\"\n  def __init__(self,\n               partition='train',\n               feature_key='vca_video_features_pulsar_embedding',\n               feature_dim=256,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:80-107"
+    },
+    "243": {
+        "file_id": 21,
+        "content": "This code segment is part of a dataset class called TimelineDataset. It pads sequences, creates masks for non-padding clusters, and combines the data into a batch for training. The dataset is partitioned based on 'train', 'val', or 'test' labels. Feature_key refers to the key used to fetch features from the input, and feature_dim is the dimension of the extracted features.",
+        "type": "comment"
+    },
+    "244": {
+        "file_id": 21,
+        "content": "               data_path=None):\n    super().__init__()\n    # Data paths on google cloud storage\n    if partition == 'train':\n      path = os.path.join(data_path, 'train-*.tfrecord')\n    elif partition == 'valid':\n      path = os.path.join(data_path, 'val-*.tfrecord')\n    elif partition == 'test':\n      path = os.path.join(data_path, 'test-*.tfrecord')\n    filenames = glob.glob(path)\n    self.dataset = []\n    raw_dataset = tf.data.TFRecordDataset(filenames)\n    for raw_record in raw_dataset:\n      data = {}\n      (video_features, video_cluster_label, timeline_url,\n       cluster_text_features) = self.parse_function(raw_record, feature_key)\n      # Ignore the data sample without valid features.\n      if video_features.shape[-1] == feature_dim:\n        data['video_features'] = video_features\n        data['video_cluster_label'] = video_cluster_label\n        data['timeline_url'] = timeline_url.decode('ascii')\n        data['cluster_text_features'] = cluster_text_features\n        self.dataset.append(data)\n    if partition == 'train':",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:108-131"
+    },
+    "245": {
+        "file_id": 21,
+        "content": "This code defines a class with an initializer that takes data partition as input, sets up the file path for the specified partition, and loads the dataset by parsing each TFRecord file. The code checks if the features in the data sample are valid before adding it to the dataset list. This class could be used for different partitions (train, validation, test) of a dataset stored on Google Cloud Storage.",
+        "type": "comment"
+    },
+    "246": {
+        "file_id": 21,
+        "content": "      assert len(self.dataset) == NUM_OF_TRAINING_SAMPLES\n    elif partition == 'valid':\n      assert len(self.dataset) == NUM_OF_VALIDATION_SAMPLES\n    elif partition == 'test':\n      assert len(self.dataset) == NUM_OF_TEST_SAMPLES\n  def parse_function(self, raw_record, feature_key):\n    context_description = {\n        'video_to_moment': tf.io.VarLenFeature(dtype=tf.int64),\n        'webpage_url': tf.io.FixedLenFeature([], dtype=tf.string)\n    }\n    sequence_description = {\n        feature_key: tf.io.VarLenFeature(dtype=tf.float32),\n        'moment_newsembed_embedding': tf.io.VarLenFeature(dtype=tf.float32)\n    }\n    contexts, feature_lists = tf.io.parse_single_sequence_example(\n        raw_record,\n        context_features=context_description,\n        sequence_features=sequence_description)\n    video_features = torch.from_numpy(\n        tf.sparse.to_dense(feature_lists[feature_key]).numpy())\n    cluster_text_features = torch.from_numpy(\n        tf.sparse.to_dense(feature_lists['moment_newsembed_embedding']).numpy())",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:132-154"
+    },
+    "247": {
+        "file_id": 21,
+        "content": "This code asserts that the dataset length matches the specified number of samples for training, validation, and testing partitions. It defines feature descriptions for context and sequence, then parses a single sequence example using tf.io.parse_single_sequence_example. Finally, it converts parsed video features and cluster text features to PyTorch tensors.",
+        "type": "comment"
+    },
+    "248": {
+        "file_id": 21,
+        "content": "    video_cluster_label = torch.from_numpy(\n        tf.sparse.to_dense(contexts['video_to_moment']).numpy())\n    timeline_url = contexts['webpage_url'].numpy()\n    return (video_features, video_cluster_label,\n            timeline_url, cluster_text_features)\n  def __len__(self):\n    return len(self.dataset)\n  def __getitem__(self, index):\n    return self.dataset[index]\nclass TimelineDatasetTest(Dataset):\n  \"\"\"A random dataset used for testing the collate_topics function only.\"\"\"\n  def __init__(self):\n    super().__init__()\n    self.dataset = []\n    # We randomly generated several data with certain number of videos and\n    # clusters. The we can verify if the batched data via collate_topics\n    # function is correct or not, in the test functions.\n    for i in range(10):\n      data = {}\n      data['video_features'] = torch.randn(i + 1, 4)\n      data['video_cluster_label'] = torch.randint(0, 2, (i + 1,))\n      data['cluster_text_features'] = torch.randn(i + 5, 8)\n      self.dataset.append(data)\n  def __len__(self):",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:155-184"
+    },
+    "249": {
+        "file_id": 21,
+        "content": "This code defines a dataset class for video timeline modeling. It includes methods for loading and accessing data from the dataset, as well as an example test dataset for validating the collate_topics function. The dataset consists of video features, video cluster labels, timeline URLs, and cluster text features.",
+        "type": "comment"
+    },
+    "250": {
+        "file_id": 21,
+        "content": "    return len(self.dataset)\n  def __getitem__(self, index):\n    return self.dataset[index]",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/dataset.py:185-188"
+    },
+    "251": {
+        "file_id": 21,
+        "content": "The code defines a dataset class with a method to return the length of the dataset and an indexing method to get a specific item from the dataset.",
+        "type": "comment"
+    },
+    "252": {
+        "file_id": 22,
+        "content": "/video_timeline_modeling/vtm/eval.py",
+        "type": "filepath"
+    },
+    "253": {
+        "file_id": 22,
+        "content": "The script compares cluster assignments in video timeline modeling, calculating accuracy and metrics like Levenshtein distance, edit distance, and clustering quality. It also suggests improvements for temporal order in videos and outputs results in JSON format.",
+        "type": "summary"
+    },
+    "254": {
+        "file_id": 22,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"Evaluation script for video timeline modeling.\nThis script takes a single json file containing groundtruth and predictions, and\ncalculates the pre-defined evaluation metrics including:\n  - Video-to-cluster prediction accuracy\n  - Levenshtein distance\n  - Edit distance\n  - Relative order prediction accuracy\n  - Clustering quality metrics\nSample input format:\n  [\n    {\n      \"timeline_url\": \"foo\",\n      \"label\": [0, 0, 1, 2, 3, 3],",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:1-30"
+    },
+    "255": {
+        "file_id": 22,
+        "content": "This code is an evaluation script for video timeline modeling. It calculates various metrics including video-to-cluster prediction accuracy, Levenshtein distance, edit distance, relative order prediction accuracy and clustering quality metrics using a given input file in the specified format.",
+        "type": "comment"
+    },
+    "256": {
+        "file_id": 22,
+        "content": "      \"pred\": [0, 1, 1, 2, 3, 4]\n    },\n    ...\n  ]\nSample usage:\n  python3 -m vtm.eval --input_path=<input_path> --output_path=<output_path>\n\"\"\"\nfrom collections.abc import Sequence\nimport json\nfrom typing import Union\nfrom absl import app\nfrom absl import flags\nimport Levenshtein\nfrom sklearn.metrics.cluster import adjusted_rand_score\nfrom sklearn.metrics.cluster import completeness_score\nfrom sklearn.metrics.cluster import homogeneity_score\nfrom sklearn.metrics.cluster import v_measure_score\nimport tensorflow as tf\nimport tqdm\n_INPUT_PATH = flags.DEFINE_string(\n    'input_path',\n    None,\n    'File pattern to the prediction and groundtruth json file.',\n    required=True)\n_OUTPUT_PATH = flags.DEFINE_string('output_path', None,\n                                   'Path for saving the evaluation result.')\n_TIMELINE_TOTAL = 'timeline_total'\n_CLASSIFICATION_ACCURACY = 'classification_accuracy'\n_CLASSIFICATION_CORRECT = 'classification_correct'\n_CLASSIFICATION_TOTAL = 'classification_total'\n_ORDER_PAIRS_ACCURACY = 'order_pairs_accuracy'",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:31-67"
+    },
+    "257": {
+        "file_id": 22,
+        "content": "The code snippet defines flags for input and output paths, as well as various evaluation metrics. It uses TensorFlow, tqdm (progress bar), and several scikit-learn cluster metrics for evaluating a video timeline model's performance. The provided function reads JSON files containing prediction and ground truth data to compute these metrics and save the results in an output file.",
+        "type": "comment"
+    },
+    "258": {
+        "file_id": 22,
+        "content": "_ORDER_PAIRS_CORRECT = 'order_pairs_correct'\n_ORDER_PAIRS_TOTAL = 'order_pairs_total'\n_HOMOGENEITY_SCORE = 'homogeneity_score'\n_COMPLETENESS_SCORE = 'completeness_score'\n_ADJUSTED_RAND_SCORE = 'adjusted_rand_score'\n_V_MEASURE_SCORE = 'v_measure_score'\n_NORMALIZED_LEVENSHTEIN_DISTANCE = 'normalized_levenshtein_distance'\n_NORMALIZED_CUSTOM_EDIT_DISTANCE = 'normalized_custom_edit_distance'\n_NORMALIZED_CUSTOM_EDIT_DISTANCE_SUM = 'normalized_custom_edit_distance_sum'\ndef _generate_order_pairs(assignments):\n  \"\"\"Generates a list of relative orders given cluster assignment.\n  Assume given assignment is [0, 2, 1, 1], then this function will generate a\n  list of pairwise order comparison, with length of (N * (N-1) // 2).\n    - 0 < 2: -1\n    - 0 < 1: -1\n    - 0 < 1: -1\n    - 2 > 1:  1\n    - 2 > 1:  1\n    - 1 = 1:  0\n  The generated sequence will be [-1, -1, -1, 1, 1, 0].\n  If there is only one element in the assignment then the order will be empty.\n  This aims at evaluating the algorithm with respect to the temporal orders.",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:68-95"
+    },
+    "259": {
+        "file_id": 22,
+        "content": "The code calculates the pairwise order comparison between elements within a given cluster assignment, generating a list of relative orders. The generated list is useful in evaluating the algorithm's performance with respect to temporal order. If there's only one element in the assignment, the order will be empty.",
+        "type": "comment"
+    },
+    "260": {
+        "file_id": 22,
+        "content": "  Specifically, since there might be multiple \"reasonable\" timelines but only\n  a few groundtruth annotations, it is possible that number of nodes in the\n  timeline may differ from groundtruth and predictions. However, any reasonable\n  timelines should be consistent in the temporal order. We take this intuition\n  as an additional evaluation metric.\n  At this moment we define three relations regarding two arbitrary videos A & B:\n    (1) video A belongs to a cluster that is before video B (-1);\n    (2) video A and B belong to an identical cluster in timeline (0);\n    (3) video A belongs to a cluster that is after video B (1).\n  Currently we just apply equal penalty to all misclassifications, however,\n  we may consider using different weights to penalize misclassifications\n  differently. For example, misclassifying -1 to 0 might be less severe than\n  misclassifying -1 to 1, as the former may follow a different granularity on\n  clusters but the latter totally reversed temporal order.\n  Args:\n    assignments: list of integers representing video assignments.",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:96-113"
+    },
+    "261": {
+        "file_id": 22,
+        "content": "The code discusses an evaluation metric for timeline modeling in videos. It defines three relations between arbitrary videos A and B, assigns them integer values (-1, 0, or 1), and applies equal penalties to misclassifications. Future improvements may consider different weights for these misclassifications.",
+        "type": "comment"
+    },
+    "262": {
+        "file_id": 22,
+        "content": "  Returns:\n    List of integers of relative order comparison.\n  \"\"\"\n  pair_list = []\n  for i, x in enumerate(assignments):\n    for y in assignments[i + 1:]:\n      if x == y:\n        pair_list.append(0)  # Both videos belong to the same cluster.\n      elif x < y:\n        pair_list.append(-1)  # First video happens before second video.\n      elif x > y:\n        pair_list.append(1)  # First video happens after second video.\n  return pair_list\ndef evaluate_timeline(groundtruths,\n                      predictions):\n  \"\"\"Evaluates a single timeline.\"\"\"\n  output = {}\n  # Video-to-cluster classification metrics.\n  classification_correct = sum(\n      p == g for p, g in zip(predictions, groundtruths))\n  classification_total = len(predictions)\n  output.update({\n      _CLASSIFICATION_TOTAL: classification_total,\n      _CLASSIFICATION_CORRECT: classification_correct,\n      _CLASSIFICATION_ACCURACY: classification_correct / classification_total,\n  })\n  # Clustering quality metrics.\n  output.update({\n      _HOMOGENEITY_SCORE:\n          homogeneity_score(labels_true=groundtruths, labels_pred=predictions),",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:115-148"
+    },
+    "263": {
+        "file_id": 22,
+        "content": "This function evaluates a timeline by calculating video-to-cluster classification metrics and clustering quality metrics. It compares ground truth assignments to predicted assignments, counting correct matches and total assignments for accuracy calculation. It also calculates the homogeneity score between true and predicted labels. The results are stored in a dictionary with predefined keys for easy access.",
+        "type": "comment"
+    },
+    "264": {
+        "file_id": 22,
+        "content": "      _COMPLETENESS_SCORE:\n          completeness_score(labels_true=groundtruths, labels_pred=predictions),\n      _ADJUSTED_RAND_SCORE:\n          adjusted_rand_score(\n              labels_true=groundtruths, labels_pred=predictions),\n      _V_MEASURE_SCORE:\n          v_measure_score(labels_true=groundtruths, labels_pred=predictions)\n  })\n  # Edit distance metrics.\n  levenshtein = Levenshtein.distance(''.join(\n      chr(int(x)) for x in groundtruths), ''.join(\n          chr(int(x)) for x in predictions)) / len(groundtruths)\n  custom_edit_distance_sum = sum(\n      abs(x - y) / len(groundtruths) for x, y in zip(groundtruths, predictions))\n  output.update({\n      _NORMALIZED_LEVENSHTEIN_DISTANCE:\n          levenshtein,\n      _NORMALIZED_CUSTOM_EDIT_DISTANCE_SUM:\n          custom_edit_distance_sum,\n      _NORMALIZED_CUSTOM_EDIT_DISTANCE:\n          custom_edit_distance_sum / len(groundtruths),\n  })\n  # Relative order classification metrics.\n  prediction_order_pairs = _generate_order_pairs(predictions)\n  groundtruth_order_pairs = _generate_order_pairs(groundtruths)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:149-175"
+    },
+    "265": {
+        "file_id": 22,
+        "content": "Calculates several metrics for comparison between ground truth and predictions: Completeness score, Adjusted Rand score, V-measure score, normalized Levenshtein distance, normalized custom edit distance sum. Also calculates relative order classification metrics using prediction and groundtruth order pairs.",
+        "type": "comment"
+    },
+    "266": {
+        "file_id": 22,
+        "content": "  order_pairs_correct = sum(\n      p == g for (p, g) in zip(prediction_order_pairs, groundtruth_order_pairs))\n  order_pairs_total = len(groundtruth_order_pairs)\n  output.update({\n      _ORDER_PAIRS_CORRECT: order_pairs_correct,\n      _ORDER_PAIRS_TOTAL: order_pairs_total,\n      _ORDER_PAIRS_ACCURACY: order_pairs_correct / order_pairs_total,\n  })\n  return output\ndef calculate_dataset_metric(\n    dataset_summary\n):\n  \"\"\"Aggregates individual timeline eval results to obtain dataset metric.\"\"\"\n  output = {'inputs': _INPUT_PATH.value}\n  def _aggregate_stats(target, stats):\n    return sum((x[target][stats] for x in dataset_summary))\n  def _summarize_dataset(target):\n    counters = {\n        _TIMELINE_TOTAL:\n            len(dataset_summary),\n        _CLASSIFICATION_CORRECT:\n            _aggregate_stats(target, _CLASSIFICATION_CORRECT),\n        _CLASSIFICATION_TOTAL:\n            _aggregate_stats(target, _CLASSIFICATION_TOTAL),\n        _ORDER_PAIRS_CORRECT:\n            _aggregate_stats(target, _ORDER_PAIRS_CORRECT),\n        _ORDER_PAIRS_TOTAL:",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:177-208"
+    },
+    "267": {
+        "file_id": 22,
+        "content": "This code calculates and aggregates evaluation metrics for a dataset. It uses functions to summarize individual timeline evaluation results, keeping track of input paths, classification correct and total counts, order pair correct and total counts, and overall timeline count. The function returns an output dictionary containing these metrics.",
+        "type": "comment"
+    },
+    "268": {
+        "file_id": 22,
+        "content": "            _aggregate_stats(target, _ORDER_PAIRS_TOTAL),\n    }\n    timeline_total = counters[_TIMELINE_TOTAL]\n    timeline_level_average = {\n        _CLASSIFICATION_ACCURACY:\n            _aggregate_stats(target, _CLASSIFICATION_ACCURACY) / timeline_total,\n        _HOMOGENEITY_SCORE:\n            _aggregate_stats(target, _HOMOGENEITY_SCORE) / timeline_total,\n        _COMPLETENESS_SCORE:\n            _aggregate_stats(target, _COMPLETENESS_SCORE) / timeline_total,\n        _ADJUSTED_RAND_SCORE:\n            _aggregate_stats(target, _ADJUSTED_RAND_SCORE) / timeline_total,\n        _V_MEASURE_SCORE:\n            _aggregate_stats(target, _V_MEASURE_SCORE) / timeline_total,\n        _NORMALIZED_LEVENSHTEIN_DISTANCE:\n            _aggregate_stats(target, _NORMALIZED_LEVENSHTEIN_DISTANCE) /\n            timeline_total,\n        _NORMALIZED_CUSTOM_EDIT_DISTANCE:\n            _aggregate_stats(target, _NORMALIZED_CUSTOM_EDIT_DISTANCE) /\n            timeline_total,\n        _ORDER_PAIRS_ACCURACY:\n            _aggregate_stats(target, _ORDER_PAIRS_ACCURACY) / timeline_total,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:209-231"
+    },
+    "269": {
+        "file_id": 22,
+        "content": "This code calculates statistics for various metrics related to video timeline modeling. It divides the aggregated stats of each metric by the total number of timelines to get average scores for each metric.",
+        "type": "comment"
+    },
+    "270": {
+        "file_id": 22,
+        "content": "    }\n    video_level_average = {\n        _CLASSIFICATION_ACCURACY:\n            counters[_CLASSIFICATION_CORRECT] / counters[_CLASSIFICATION_TOTAL],\n        _ORDER_PAIRS_ACCURACY:\n            counters[_ORDER_PAIRS_CORRECT] / counters[_ORDER_PAIRS_TOTAL],\n        _NORMALIZED_CUSTOM_EDIT_DISTANCE:\n            _aggregate_stats(target, 'normalized_custom_edit_distance_sum') /\n            counters[_CLASSIFICATION_TOTAL],\n    }\n    return {\n        'counters': counters,\n        'timeline_level_average': timeline_level_average,\n        'video_level_average': video_level_average,\n    }\n  # Evaluation metrics with raw predictions.\n  output.update({\n      'raw': _summarize_dataset('raw'),\n      'shrunk': _summarize_dataset('shrunk'),\n  })\n  return output\ndef main(argv):\n  if len(argv) > 1:\n    raise app.UsageError(f'Too many command-line arguments: {argv[1:]}')\n  with tf.io.gfile.GFile(_INPUT_PATH.value, 'r') as fp:\n    inputs = json.load(fp)\n  dataset_summary = []\n  for item in tqdm.tqdm(inputs):\n    predictions = item['pred']",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:232-267"
+    },
+    "271": {
+        "file_id": 22,
+        "content": "This code calculates video-level and timeline-level average metrics for classification accuracy, order pairs accuracy, and normalized custom edit distance. It returns these averages along with the counters and summarizes the dataset as raw and shrunk. The main function reads inputs from a file, iterates over each item, and adds the predictions to the dataset summary.",
+        "type": "comment"
+    },
+    "272": {
+        "file_id": 22,
+        "content": "    groundtruths = item['label']\n    shrink_mapping = {x: i for i, x in enumerate(sorted(set(predictions)))}\n    shrunk_predictions = [shrink_mapping[x] for x in predictions]\n    timeline_summary = {\n        'raw': evaluate_timeline(groundtruths, predictions),\n        'shrunk': evaluate_timeline(groundtruths, shrunk_predictions),\n    }\n    dataset_summary.append(timeline_summary)\n  dataset_metric = calculate_dataset_metric(dataset_summary)\n  with tf.io.gfile.GFile(_OUTPUT_PATH.value, 'w') as fp:\n    json.dump(dataset_metric, fp, indent=2)\nif __name__ == '__main__':\n  app.run(main)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/eval.py:268-287"
+    },
+    "273": {
+        "file_id": 22,
+        "content": "This code segment calculates and stores timeline summaries for a video dataset. It takes ground truths and predictions, shrinks the latter using a mapping dictionary, evaluates timelines, computes a dataset metric, and outputs it to a JSON file.",
+        "type": "comment"
+    },
+    "274": {
+        "file_id": 23,
+        "content": "/video_timeline_modeling/vtm/main.py",
+        "type": "filepath"
+    },
+    "275": {
+        "file_id": 23,
+        "content": "PyTorch code trains video timeline model using Transformer encoders, performs distillation, evaluates accuracy, logs data on TensorBoard, and saves best state.",
+        "type": "summary"
+    },
+    "276": {
+        "file_id": 23,
+        "content": "# coding=utf-8\n# Copyright 2023 The Google Research Authors.\n#\n# Licensed under the Apache License, Version 2.0 (the \"License\");\n# you may not use this file except in compliance with the License.\n# You may obtain a copy of the License at\n#\n#     http://www.apache.org/licenses/LICENSE-2.0\n#\n# Unless required by applicable law or agreed to in writing, software\n# distributed under the License is distributed on an \"AS IS\" BASIS,\n# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.\n# See the License for the specific language governing permissions and\n# limitations under the License.\n\"\"\"ENTRYPOINT for training and testing the model for video timeline modeling.\nThis code is PyTorch-based, which aims to run on XCloud with GPUs.\n\"\"\"\nimport json\nimport os\nfrom typing import List, Tuple\nfrom absl import app\nfrom absl import flags\nfrom absl import logging\nimport torch\nfrom torch import nn\nfrom torch import optim\nimport torch.nn.functional as F\nfrom torch.utils import tensorboard\nfrom torch.utils.data import DataLoader",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:1-33"
+    },
+    "277": {
+        "file_id": 23,
+        "content": "This code is the entrypoint for training and testing a video timeline modeling model using PyTorch. It imports necessary libraries, handles arguments, and sets up the environment to run on XCloud with GPUs.",
+        "type": "comment"
+    },
+    "278": {
+        "file_id": 23,
+        "content": "from vtm.dataset import collate_topics\nfrom vtm.dataset import TimelineDataset\nfrom vtm.model.model import ClassifierModel\nfrom vtm.model.model import TimelineModel\n_FAIL_ON_CPU = flags.DEFINE_boolean('fail_on_cpu', False,\n                                    'fail if not run on GPU')\n_DATA_PATH = flags.DEFINE_string('data_path', None, 'The dataset path.')\n_CHECKPOINT_DIR = flags.DEFINE_string('checkpoint_dir', None,\n                                      'Directory for saving checkpoints.')\n_TENSORBOARD_DIR = flags.DEFINE_string(\n    'tensorboard_dir', None, 'Directory for saving tensorboard events.')\n_TRAINED_MODEL_PATH = flags.DEFINE_string(\n    'trained_model_path', None,\n    'If given, only run inference using the trained model.')\n# Problem hyperparas\n_MAX_NUM_CLUSTER = flags.DEFINE_integer('max_num_cluster', 24,\n                                        'max number of clusters')\n_MAX_NUM_VIDEO = flags.DEFINE_integer('max_num_video', 120,\n                                      'max number of videos')\n_VIDEO_FEATURE = flags.DEFINE_string('video_feature',",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:34-55"
+    },
+    "279": {
+        "file_id": 23,
+        "content": "This code defines several flags for dataset path, checkpoint directory, tensorboard directory, trained model path, maximum number of clusters, and maximum number of videos. These flags control the training process and inference using a pre-trained model for video timeline modeling.",
+        "type": "comment"
+    },
+    "280": {
+        "file_id": 23,
+        "content": "                                     'vca_video_features_pulsar_embedding',\n                                     'The used video input feature.')\n_OFFLINE_DISTILLATION = flags.DEFINE_boolean(\n    'offline_distillation', False,\n    ('Apply knowledge distillation if True.'\n     'The teacher model is the model with text embeddings as input.'))\n_TRAINED_TEACHER_MODEL_PATH = flags.DEFINE_string(\n    'trained_teacher_model_path', None,\n    'The pretrained teacher model path, used for distillation.')\n_ONLINE_DISTILLATION = flags.DEFINE_boolean(\n    'online_distillation', False,\n    ('Apply online knowledge distillation if True.'\n     'The teacher model is the model with text embeddings as input.'))\n_FEATURE_DISTILLATION = flags.DEFINE_boolean(\n    'feature_distillation', False,\n    ('Distill the intermediate features if True.'\n     'The teacher model is the model with text embeddings as input.'))\n# Model hyperparas\n_RUN_BASELINE = flags.DEFINE_boolean(\n    'run_baseline', False,\n    'Run the baseline model if True; otherwise run our model.')",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:56-77"
+    },
+    "281": {
+        "file_id": 23,
+        "content": "This code segment is from the \"google-research/video_timeline_modeling/vtm/main.py\" file and contains various flags that control different aspects of the model. The 'vca_video_features_pulsar_embedding' flag defines the video input feature, while 'offline_distillation', 'online_distillation', and 'feature_distillation' are boolean flags that enable or disable distillation methods. The 'trained_teacher_model_path' flag specifies the pre-trained teacher model path used for distillation, and the 'run_baseline' flag determines whether to run the baseline model or the proposed model.",
+        "type": "comment"
+    },
+    "282": {
+        "file_id": 23,
+        "content": "_REMOVE_VIDEO_AND_CLUSTER_ENCODERS = flags.DEFINE_boolean(\n    'remove_video_and_cluster_encoders', False,\n    'Remove video and cluster corresponding encoders if True.')\n_SEMANTICS_AWARE_HEAD = flags.DEFINE_boolean(\n    'semantics_aware_head', False, 'Add the semantics-aware head if True.')\n_CONTRASTIVE_LOSS = flags.DEFINE_boolean(\n    'contrastive_loss', False,\n    ('Use contrastive loss for the semantics-aware head if True.'\n     'Otherwise, use the consine similarity loss.'))\n_TEMPERATURE = flags.DEFINE_float(\n    'temperature', 0.07, 'Temperature value used for contrastive loss.')\n_SEMANTICS_AWARE_HEAD_POS = flags.DEFINE_enum(\n    'semantics_aware_head_pos', 'pos1', ['pos1', 'pos2'],\n    'The position to place the semantics-aware head.')\n_TEXT_EMBEDDING_AS_INPUT = flags.DEFINE_boolean(\n    'text_embedding_as_input', False,\n    'Include the text embeddings as input if True.')\n_NUM_EMB = flags.DEFINE_integer(\n    'num_emb', 256,\n    'number of hidden dimensions for learnable cluster embeddings')\n_NUM_INPUT_HIDDEN_VIDEO = flags.DEFINE_integer(",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:78-98"
+    },
+    "283": {
+        "file_id": 23,
+        "content": "This code is using flags to define various settings for the video timeline modeling. These include whether to remove video and cluster encoders, use a semantics-aware head, apply contrastive loss, set temperature value, position of semantics-aware head, whether to include text embeddings as input, number of hidden dimensions for learnable cluster embeddings, and the number of input hidden video. Each flag is defined with default values that can be changed if needed.",
+        "type": "comment"
+    },
+    "284": {
+        "file_id": 23,
+        "content": "    'num_input_hidden_video', 256,\n    'number of hidden dimensions for input video embeddings')\n_NUM_HIDDEN = flags.DEFINE_integer(\n    'num_hidden', 256, 'number of hidden dimensions in Transformer encoders')\n_NUM_HEAD = flags.DEFINE_integer(\n    'num_head', 2, 'number of attention heads in Transformer encoders')\n_NUM_LAYERS = flags.DEFINE_integer('num_layers', 1,\n                                   'number of layers in Transformer encoders')\n_VIDEO_PE = flags.DEFINE_boolean('video_pe', False,\n                                 'if apply positional encoding to videos')\n_DROPOUT = flags.DEFINE_float('dropout', 0.1,\n                              'dropout rate in Transformer encoders')\n_SEMANTICS_LOSS_WEIGHT = flags.DEFINE_float(\n    'semantics_loss_weight', 1, 'the weight for the semantics-aware head loss')\n_DISTILLATION_LOSS_WEIGHT = flags.DEFINE_float(\n    'distillation_loss_weight', 0.1, 'the weight for the distillation loss')\n_TEACHER_LOSS_WEIGHT = flags.DEFINE_float(\n    'teacher_loss_weight', 1,\n    'the weight for the teacher model loss during online distillation')",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:99-117"
+    },
+    "285": {
+        "file_id": 23,
+        "content": "This code defines various flags for hyperparameters in the Transformer encoders of a video timeline modeling algorithm. The parameters include number of hidden dimensions, attention heads, layers, dropout rate, and loss weights for different components. These flags can be used to customize the model's architecture and training process.",
+        "type": "comment"
+    },
+    "286": {
+        "file_id": 23,
+        "content": "# Training hyperparas\n_BATCH_SIZE = flags.DEFINE_integer('batch_size', 16, 'batch size')\n_EPOCHS = flags.DEFINE_integer('epochs', 10, 'epochs')\n_LOG_STEPSIZE = flags.DEFINE_integer('log_stepsize', 100, 'log step size')\n_LEARNING_RATE = flags.DEFINE_float('learning_rate', 0.01, 'learning rate')\n_WEIGHT_DECAY = flags.DEFINE_float('weight_decay', 0.00001, 'weight decay')\ndef check_gpu():\n  \"\"\"Print GPU info and return 'cuda' if found, 'cpu' otherwise.\"\"\"\n  try:\n    logging.info('FLAGS.fail_on_cpu: %s', _FAIL_ON_CPU.value)\n    logging.info('torch.__version__: %s', torch.__version__)\n    logging.info('torch.cuda.device_count(): %s', torch.cuda.device_count())\n    logging.info('torch.cuda.current_device(): %s', torch.cuda.current_device())\n    logging.info('torch.cuda.get_device_name(0): %s',\n                 torch.cuda.get_device_name(0))\n    logging.info('torch.cuda.is_available(0): %s', torch.cuda.is_available())\n    if torch.cuda.is_available():\n      return 'cuda'\n  except Exception as e:  # pylint: disable=broad-except",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:119-139"
+    },
+    "287": {
+        "file_id": 23,
+        "content": "This code defines training hyperparameters and a function to check GPU availability. The batch size, number of epochs, log step size, learning rate, and weight decay are set as flags. The check_gpu() function logs GPU information and returns 'cuda' if available, otherwise 'cpu'.",
+        "type": "comment"
+    },
+    "288": {
+        "file_id": 23,
+        "content": "    logging.warning(e)\n  if _FAIL_ON_CPU.value:\n    logging.error('Not able to run on CPU')\n    exit(1)\n  logging.error('Falling back to CPU.')\n  return 'cpu'\n# We cannot use built-in types (tuple/list/dict) for parametric annotations (\n# supported by python >=3.9), since the xcloud pre-built PyTorch image only\n# supports up to python 3.8.\ndef get_dataset():\n  \"\"\"Initialize datasets.\"\"\"\n  train_dataset = TimelineDataset(\n      partition='train',\n      feature_key=_VIDEO_FEATURE.value,\n      feature_dim=_NUM_INPUT_HIDDEN_VIDEO.value,\n      data_path=_DATA_PATH.value)\n  valid_dataset = TimelineDataset(\n      partition='valid',\n      feature_key=_VIDEO_FEATURE.value,\n      feature_dim=_NUM_INPUT_HIDDEN_VIDEO.value,\n      data_path=_DATA_PATH.value)\n  test_dataset = TimelineDataset(\n      partition='test',\n      feature_key=_VIDEO_FEATURE.value,\n      feature_dim=_NUM_INPUT_HIDDEN_VIDEO.value,\n      data_path=_DATA_PATH.value)\n  return train_dataset, valid_dataset, test_dataset\ndef train_epoch(timeline_model,\n                device,",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:140-172"
+    },
+    "289": {
+        "file_id": 23,
+        "content": "Code initializes datasets for training, validation, and testing using TimelineDataset with specified feature key, feature dimension, and data path. The function get_dataset() returns the three datasets. If unable to run on CPU, it logs an error and exits, otherwise falls back to CPU.",
+        "type": "comment"
+    },
+    "290": {
+        "file_id": 23,
+        "content": "                train_loader,\n                optimizer,\n                teacher_model = None):\n  \"\"\"Training loop for one epoch.\"\"\"\n  timeline_model.train()\n  train_loss = 0\n  total_video = 0\n  if _SEMANTICS_AWARE_HEAD.value:\n    train_semantics_loss = 0\n    total_clusters = 0\n  if _OFFLINE_DISTILLATION.value:\n    teacher_model.eval()\n    train_distillation_loss = 0\n    total_clusters = 0\n  if _ONLINE_DISTILLATION.value:\n    teacher_model.train()\n    train_distillation_loss = 0\n    train_teacher_model_loss = 0\n    total_clusters = 0\n  for step, data_batch in enumerate(train_loader):\n    for key in data_batch:\n      data_batch[key] = data_batch[key].to(device)\n    optimizer.zero_grad()\n    if _SEMANTICS_AWARE_HEAD.value:\n      log_score, cluster_semantics_h, _ = timeline_model(data_batch)\n    else:\n      log_score, cluster_intermediate_h, video_intermediate_h = timeline_model(\n          data_batch)\n    # Only compute loss for non-padding video tokens\n    log_score = log_score.view(-1, _MAX_NUM_CLUSTER.value)\n    video_cluster_label = data_batch['video_cluster_label'].view(-1)",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:173-203"
+    },
+    "291": {
+        "file_id": 23,
+        "content": "This code contains a training loop for one epoch in a video timeline modeling system. It includes handling of various options such as semantics-aware head and distillation techniques. The loop iterates over the train_loader, performs forward pass through the model, computes loss based on non-padding video tokens, and updates the model using the optimizer.",
+        "type": "comment"
+    },
+    "292": {
+        "file_id": 23,
+        "content": "    video_non_padding_mask = ~data_batch['video_padding_mask'].view(-1)\n    loss = F.nll_loss(\n        log_score[video_non_padding_mask],\n        video_cluster_label[video_non_padding_mask],\n        reduction='sum')\n    # With semantics-aware head: compute loss for non-padding cluster tokens\n    if _SEMANTICS_AWARE_HEAD.value:\n      if _CONTRASTIVE_LOSS.value:\n        # (max_num_cluster, num_emb, batch_size)\n        cluster_semantics_h = cluster_semantics_h.permute((1, 2, 0))\n        # (max_num_cluster, max_num_cluster, batch_size)\n        cosine_similarity_pairwise = F.cosine_similarity(\n            cluster_semantics_h, cluster_semantics_h.unsqueeze(1), dim=-2)\n        # (batch_size, max_num_cluster, max_num_cluster)\n        cosine_similarity_pairwise = cosine_similarity_pairwise.permute(\n            (2, 0, 1)) / _TEMPERATURE.value\n        # (batch_size, max_num_cluster)\n        self_cosine_similarity = torch.diagonal(\n            cosine_similarity_pairwise, dim1=-2, dim2=-1)\n        semantics_loss = (\n            -self_cosine_similarity[data_batch['cluster_non_padding_mask']] +",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:204-225"
+    },
+    "293": {
+        "file_id": 23,
+        "content": "This code calculates the loss for non-padding video cluster tokens in a semantics-aware head. It uses negative cosine similarity between each token and itself to compute the semantics loss. The temperature parameter controls the scale of the cosine similarities.",
+        "type": "comment"
+    },
+    "294": {
+        "file_id": 23,
+        "content": "            torch.logsumexp(\n                cosine_similarity_pairwise[\n                    data_batch['cluster_non_padding_mask']],\n                dim=-1)).sum()\n      else:\n        semantics_loss = (1 - F.cosine_similarity(\n            cluster_semantics_h[data_batch['cluster_non_padding_mask']],\n            data_batch['cluster_text_features'][\n                data_batch['cluster_non_padding_mask']])).sum()\n      loss_sum = loss + _SEMANTICS_LOSS_WEIGHT.value * semantics_loss\n      loss_sum.backward()\n      optimizer.step()\n      if step % _LOG_STEPSIZE.value == 0:\n        logging.info('[%s/%s] Loss: %s',\n                     step * len(data_batch['video_features']),\n                     len(train_loader.dataset),\n                     loss.item() / video_non_padding_mask.sum().item())\n        logging.info(\n            '[%s/%s] Semantics Loss: %s',\n            step * len(data_batch['video_features']), len(train_loader.dataset),\n            semantics_loss.item() /\n            data_batch['cluster_non_padding_mask'].sum().item())",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:226-247"
+    },
+    "295": {
+        "file_id": 23,
+        "content": "This code calculates a loss for a video timeline modeling task. It includes two parts: one is based on pairwise cosine similarity, and the other compares cluster semantics with text features. The combined losses are then backpropagated and updated using an optimizer. Logging information about the losses at specified intervals is also performed.",
+        "type": "comment"
+    },
+    "296": {
+        "file_id": 23,
+        "content": "      train_semantics_loss += semantics_loss.item()\n      train_loss += loss.item()\n      total_video += video_non_padding_mask.sum().item()\n      total_clusters += data_batch['cluster_non_padding_mask'].sum().item()\n    # Offline knowledge distillation\n    elif _OFFLINE_DISTILLATION.value:\n      with torch.no_grad():\n        teacher_log_score, teacher_cluster_h, teacher_video_h = teacher_model(\n            data_batch)\n      teacher_log_score = teacher_log_score.view(-1, _MAX_NUM_CLUSTER.value)\n      if _FEATURE_DISTILLATION.value:\n        distillation_cluster_loss = torch.norm(\n            teacher_cluster_h - cluster_intermediate_h, dim=-1).sum()\n        distillation_video_loss = torch.norm(\n            teacher_video_h[~data_batch['video_padding_mask']] -\n            video_intermediate_h[~data_batch['video_padding_mask']],\n            dim=-1).sum()\n        distillation_loss = distillation_cluster_loss + distillation_video_loss\n      else:\n        distillation_loss = F.kl_div(\n            log_score[video_non_padding_mask],",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:248-269"
+    },
+    "297": {
+        "file_id": 23,
+        "content": "This code snippet is part of a video modeling system. It calculates losses and performs knowledge distillation for offline learning, either using feature distillation or KL divergence between logits and teacher's logits. The total video and cluster counts are also updated.",
+        "type": "comment"
+    },
+    "298": {
+        "file_id": 23,
+        "content": "            teacher_log_score[video_non_padding_mask],\n            reduction='sum',\n            log_target=True)\n      loss_sum = loss + _DISTILLATION_LOSS_WEIGHT.value * distillation_loss\n      loss_sum.backward()\n      optimizer.step()\n      if step % _LOG_STEPSIZE.value == 0:\n        logging.info('[%s/%s] Loss: %s',\n                     step * len(data_batch['video_features']),\n                     len(train_loader.dataset),\n                     loss.item() / video_non_padding_mask.sum().item())\n        logging.info(\n            '[%s/%s] Distillation Loss: %s',\n            step * len(data_batch['video_features']), len(train_loader.dataset),\n            distillation_loss.item() /\n            (video_non_padding_mask.sum().item() +\n             torch.numel(data_batch['cluster_non_padding_mask'])))\n      train_distillation_loss += distillation_loss.item()\n      train_loss += loss.item()\n      total_video += video_non_padding_mask.sum().item()\n      total_clusters += data_batch['cluster_non_padding_mask'].sum().item()",
+        "type": "code",
+        "location": "/video_timeline_modeling/vtm/main.py:270-290"
+    },
+    "299": {
+        "file_id": 23,
+        "content": "This code calculates and updates the loss for video and distillation tasks in a model training process. It also keeps track of the total losses, number of videos, and clusters throughout the training. The logging information shows the current step, total length of training data, and per-video/cluster loss values.",
+        "type": "comment"
+    }
+}

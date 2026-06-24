@@ -1,0 +1,10 @@
+{
+    "summary": "This code specifies the dependencies for the project, which are TensorFlow and PyTorch. These libraries provide essential functionalities for handling data structures, neural networks, and machine learning tasks in the video timeline modeling context.",
+    "details": [
+        {
+            "comment": "This code specifies the dependencies for the project, which are TensorFlow and PyTorch. These libraries provide essential functionalities for handling data structures, neural networks, and machine learning tasks in the video timeline modeling context.",
+            "location": "\"/media/root/Prima/works/google-research/docs/src/video_timeline_modeling/requirements.txt\":0-1",
+            "content": "tensorflow\ntorch"
+        }
+    ]
+}
