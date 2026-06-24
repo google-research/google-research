@@ -1370,7 +1370,7 @@ class TemporalFusionTransformer(object):
     else:
       # Loads tensorflow graph for optimal models.
       utils.load(
-          tf.keras.backend.get_session(),
+          tf.compat.v1.keras.backend.get_session(),
           model_folder,
           cp_name=self.name,
           scope=self.name)
