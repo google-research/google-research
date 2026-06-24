@@ -3,7 +3,7 @@ numpy==1.21.5
 pillow==9.3.0
 scikit-learn==1.2.0
 tensorboard==2.8.0
-tensorflow==2.8.0
+tensorflow==2.11.1
 tensorflow-datasets==4.5.2
 tensorflow-probability==0.16.0
 tqdm==4.63.0
