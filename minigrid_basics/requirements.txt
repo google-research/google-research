@@ -26,7 +26,7 @@ libclang==14.0.1
 Markdown==3.3.7
 matplotlib==3.5.2
 numpy==1.22.4
-oauthlib==3.2.0
+oauthlib==3.2.2
 opt-einsum==3.3.0
 packaging==21.3
 Pillow==9.1.1
