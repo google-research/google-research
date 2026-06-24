@@ -45,8 +45,6 @@ flags.DEFINE_string('logdir', None, 'Log dir for checkpoint.')
 flags.DEFINE_string('path_to_tfrecords', '/tmp/%s_tfrecords', 'Path to '
                     'TFRecords.')
 flags.DEFINE_integer('frames_per_batch', 30, 'frames_per_batch')
-flags.DEFINE_boolean('visualize', False, 'Visualize images. Switched off by '
-                     'for default to speed traininig up and take less memory.')
 flags.DEFINE_boolean('keep_data', False, 'Keep frames of video with '
                      'embeddings.')
 flags.DEFINE_boolean('keep_labels', True, 'Keep per-frame labels with '
