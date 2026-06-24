@@ -27,6 +27,8 @@ from . import graph_sampler
 from rdkit import Chem
 from rdkit import RDLogger
 
+import numpy as np
+
 
 def parse_dict_flag(lst):
   """Converts a list of strings like "foo=5" to a str->int dictionary."""
@@ -111,11 +113,8 @@ class Stoichiometry:
     return Stoichiometry(counts, valences, charges)
 
   def max_hydrogens(self):
-    total_valence = 0
-    total_atoms = 0
-    for symbol, count in self.counts.items():
-      total_atoms += count
-      total_valence += count * self.valences[symbol]
+    total_valence = np.sum(self.counts.values())
+    total_atoms = np.sum([count * self.valences[symbol] for symbol, count in self.counts.items()])
     return total_valence - 2 * (total_atoms - 1)
 
   def charge(self):
