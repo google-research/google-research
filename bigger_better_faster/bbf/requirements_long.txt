@@ -33,7 +33,7 @@ grpcio==1.46.1
 gym==0.23.1
 gym-notices==0.0.6
 h5py==3.1.0
-idna==3.3
+idna==3.7
 importlib-metadata==4.11.3
 importlib-resources==5.7.1
 ipdb==0.13.9
