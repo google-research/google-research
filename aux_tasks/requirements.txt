@@ -51,7 +51,7 @@ opt-einsum==3.3.0
 optax==0.1.2
 packaging==21.3
 pandas==1.4.2
-Pillow==9.1.1
+Pillow==9.3.0
 portpicker==1.5.0
 promise==2.3
 protobuf==3.19.4
