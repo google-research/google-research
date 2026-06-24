@@ -1,7 +1,7 @@
 absl-py>=0.5.0
 mujoco-py<1.50.2,>=1.50.1
 numpy>=1.13.3
-tensorflow==1.14.0
+tensorflow==2.7.2
 tensorflow-probability==0.7.0rc0
 gin-config
 gym==0.12.1
