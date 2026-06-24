@@ -18,7 +18,7 @@ dopamine-rl==4.0.5
 etils==0.6.0
 flatbuffers==2.0
 flax==0.5.0
-fonttools==4.33.3
+fonttools==4.43.0
 frozendict==2.3.2
 gast==0.5.3
 gin-config==0.5.0
