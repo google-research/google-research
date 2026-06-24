@@ -12,7 +12,7 @@ mediapy
 ml_collections
 numpy>=1.21.5
 regex
-git+git://github.com/google-research/scenic.git
+git+https://github.com/google-research/scenic.git
 scipy
 tensorflow>=2.7.0
 tqdm
