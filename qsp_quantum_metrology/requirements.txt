@@ -37,7 +37,7 @@ nptyping==2.5.0
 numpy==1.23.5
 packaging==23.1
 pandas==2.0.1
-Pillow==9.5.0
+Pillow==10.3.0
 proto-plus==1.22.2
 protobuf==3.20.3
 py==1.11.0
