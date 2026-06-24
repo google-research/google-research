@@ -804,8 +804,7 @@ def joint_extraction_model_fn(features, labels, mode, params):
     logging.info("pred_ids.shape: %s", pred_ids.shape)
   # Predict for new sentences in target set.
   if mode == tf_estimator.ModeKeys.PREDICT:
-    reverse_vocab_tags = _index_table_from_file(params["tags"], 1)
-    pred_strings = reverse_vocab_tags.lookup(tf.strings.as_string(pred_ids))
+    pred_strings = tf.gather(np.genfromtxt(params["tags"], dtype="O"), pred_ids)
     predictions = {
         "pred_ids": pred_ids,
         "tags": pred_strings,
