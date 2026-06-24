@@ -122,7 +122,7 @@ python3 run_pretraining.py \
   --use_einsum \
   --use_summary \
   --use_tpu \
-  --tpu_name=${TPU_NAME} \
+  --tpu_name=${TPU_NAME}
 ```
 
 ### Run Quantization-aware-training with Squad
@@ -155,7 +155,7 @@ python3 run_squad.py \
   --use_tpu \
   --tpu_name=${TPU_NAME} \
   --vocab_file=${INIT_CHECKPOINT}/vocab.txt \
-  --warmup_proportion=0.1
+  --warmup_proportion=0.1 \
   --use_quantized_training=true
 ```
 
