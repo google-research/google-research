@@ -61,7 +61,7 @@ tqdm==4.64.1
 transformers==4.25.1
 typing_extensions==4.4.0
 urllib3==1.26.13
-Werkzeug==2.2.2
+Werkzeug==2.2.3
 wrapt==1.14.1
 xxhash==3.1.0
 yarl==1.8.2
