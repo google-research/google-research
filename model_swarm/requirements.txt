@@ -110,7 +110,7 @@ pillow==11.0.0
 platformdirs @ file:///home/conda/feedstock_root/build_artifacts/platformdirs_1715777629804/work
 prompt_toolkit @ file:///home/conda/feedstock_root/build_artifacts/prompt-toolkit_1718047967974/work
 proto-plus==1.23.0
-protobuf==4.25.3
+protobuf==4.25.8
 psutil @ file:///home/conda/feedstock_root/build_artifacts/psutil_1719274564771/work
 ptyprocess @ file:///home/conda/feedstock_root/build_artifacts/ptyprocess_1609419310487/work/dist/ptyprocess-0.7.0-py2.py3-none-any.whl
 pure_eval @ file:///home/conda/feedstock_root/build_artifacts/pure_eval_1721585709575/work
