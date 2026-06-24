@@ -27,7 +27,7 @@ setup(
         "gin-config==0.5.0",
         "regex==2022.10.31",
         "gym==0.26.2",
-        "tensorflow==2.11.0",
+        "tensorflow==2.11.1",
         "dm-sonnet==2.0.0"
     ],
 )
