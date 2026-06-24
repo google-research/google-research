@@ -49,7 +49,7 @@ tensorflow==2.1.0
 tensorflow-estimator==2.1.0
 termcolor==1.1.0
 torch==0.4.1.post2
-tqdm==4.42.1
+tqdm==4.66.3
 urllib3==1.25.8
 Werkzeug==1.0.0
 wrapt==1.12.0
