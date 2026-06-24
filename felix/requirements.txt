@@ -88,7 +88,7 @@ tqdm==4.64.0
 typeguard==2.13.3
 typing_extensions==4.3.0
 uritemplate==4.1.1
-urllib3==1.26.10
+urllib3==1.26.18
 Werkzeug==2.1.2
 wrapt==1.14.1
 zipp==3.8.1
