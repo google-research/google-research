@@ -15,6 +15,8 @@
 
 """Tests for TriMap."""
 
+from unittest import mock
+
 from absl.testing import absltest
 import jax
 import jax.numpy as jnp
@@ -100,6 +102,35 @@ class TestTrimap(absltest.TestCase):
     embedding = trimap.transform(key, inputs, n_dims=4)
     npt.assert_equal(embedding.shape[0], inputs.shape[0])
     npt.assert_equal(embedding.shape[1], 4)
+
+  def test_transform_normalizes_without_pca(self):
+    key = random.PRNGKey(42)
+    inputs = np.array(
+        [[2.0, 4.0], [4.0, 8.0], [6.0, 12.0], [8.0, 16.0]],
+        dtype=np.float32)
+    expected_inputs = inputs.copy()
+    expected_inputs -= np.min(expected_inputs)
+    expected_inputs /= np.max(expected_inputs)
+    expected_inputs -= np.mean(expected_inputs, axis=0)
+
+    captured_inputs = []
+
+    def fake_generate_triplets(key, inputs, *args, **kwargs):
+      del key, args, kwargs
+      captured_inputs.append(inputs.copy())
+      return np.array([[0, 1, 2]], dtype=np.int32), np.array([1.0],
+                                                            dtype=np.float32)
+
+    with mock.patch.object(trimap, 'generate_triplets', fake_generate_triplets):
+      embedding = trimap.transform(
+          key,
+          inputs,
+          n_inliers=2,
+          init_embedding=np.zeros((inputs.shape[0], 2), dtype=np.float32),
+          n_iters=0)
+
+    npt.assert_equal(embedding.shape, (inputs.shape[0], 2))
+    npt.assert_allclose(captured_inputs[0], expected_inputs)
 
 
 if __name__ == '__main__':
