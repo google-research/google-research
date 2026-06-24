@@ -43,7 +43,7 @@ protobuf==3.20.3
 py==1.11.0
 pyasn1==0.5.0
 pyasn1-modules==0.3.0
-pydantic==1.10.7
+pydantic==1.10.13
 PyJWT==2.7.0
 pyparsing==3.0.9
 pyquil==3.5.0
