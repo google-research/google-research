@@ -14,7 +14,7 @@ numpy==1.22.3
 opt-einsum==3.3.0
 optax==0.1.2
 packaging==21.3
-Pillow==9.1.0
+Pillow==10.3.0
 pyparsing==3.0.8
 python-dateutil==2.8.2
 scipy==1.8.0
