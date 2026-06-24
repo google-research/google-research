@@ -49,7 +49,7 @@ SEED = 1
 def main(unused_argv):
 
   # Fix random seeds
-  tf.set_random_seed(SEED)
+  tf.random.set_seed(SEED)  # set_random_seed deprecated in Tensorflow version 2.1.2.0
   np.random.seed(SEED)
 
   # Define the TabNet model
