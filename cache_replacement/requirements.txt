@@ -14,7 +14,7 @@ glfw==1.10.1
 google-auth==1.11.2
 google-auth-oauthlib==0.4.1
 google-pasta==0.1.8
-grpcio==1.27.2
+grpcio==1.53.0
 gym==0.15.7
 h5py==2.10.0
 idna==2.8
