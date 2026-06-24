@@ -212,7 +212,7 @@ class ElectricityFormatter(GenericDataFormatter):
 
       for col in column_names:
         if col not in {'forecast_time', 'identifier'}:
-          sliced_copy[col] = target_scaler.inverse_transform(sliced_copy[col])
+          sliced_copy[col] = target_scaler.inverse_transform(sliced_copy[col].values.reshape(-1,1))
       df_list.append(sliced_copy)
 
     output = pd.concat(df_list, axis=0)
