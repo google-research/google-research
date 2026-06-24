@@ -7,6 +7,6 @@ ml_collections==0.1.0
 numpy==1.21.4
 simclr==1.0.2
 sonnet==0.1.6
-tensorflow==2.7.0
+tensorflow==2.11.1
 tensorflow_datasets==4.4.0
 tf_nightly_gpu==2.8.0.dev20211210
