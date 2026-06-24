@@ -12,7 +12,7 @@ keras-self-attention==0.41.0
 keras-transformer==0.29.0
 keras-vis==0.4.1
 Markdown==3.1.1
-numpy==1.16.4
+numpy==1.22.0
 numpydoc==0.6.0
 pandas==0.25.0
 py==1.4.33
