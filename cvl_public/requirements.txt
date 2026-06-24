@@ -65,7 +65,7 @@ numpy==1.22.4
 opt-einsum==3.3.0
 optax==0.1.2
 packaging==21.3
-Pillow==7.2.0
+Pillow==9.3.0
 portpicker==1.5.2
 promise==2.3
 protobuf==3.19.1
