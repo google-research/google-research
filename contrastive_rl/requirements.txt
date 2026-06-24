@@ -7,7 +7,7 @@ blinker==1.4
 brotlipy==0.7.0
 cached-property==1.5.2
 cachetools==5.2.0
-certifi==2021.10.8
+certifi==2023.7.22
 cffi==1.15.0
 charset-normalizer==2.0.12
 chex==0.1.3
