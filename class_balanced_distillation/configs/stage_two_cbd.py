@@ -60,7 +60,7 @@ def get_config():
   # Distillation parameters
   model_dir = "/home/user/class_balanced_distillation/data/models/"
   model_ids = [
-      "vanilla_seed1", "vanilla_seed2", "data_aug_seed1", "data_aug_seed2"
+      "vanilla_seed1"
   ]
 
   num_teachers = len(model_ids)
