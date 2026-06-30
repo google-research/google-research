@@ -16,9 +16,10 @@
 """Smoke test for augmentation pipeline."""
 
 from absl.testing import absltest
-import albumentations as A
 import ml_collections
 import numpy as np
+import torch
+from torchvision.transforms import v2
 
 from Uboreshaji_Modeli.common import augmentations
 
@@ -57,19 +58,14 @@ class AugmentationTest(absltest.TestCase):
     image = np.zeros((500, 800, 3), dtype=np.uint8)
     bboxes = [[10, 20, 100, 50]]
     cats = [0]
-    aug_flip = A.Compose(
-        [A.HorizontalFlip(p=1.0)],
-        bbox_params=A.BboxParams(
-            format="coco",
-            min_area=1.0,
-            min_visibility=0.3,
-            label_fields=["category_ids"],
-        ),
+    aug_flip = v2.Compose([v2.RandomHorizontalFlip(p=1.0)])
+    out_img, out_boxes, out_cats = augmentations.apply_augmentation(
+        aug_flip, image, bboxes, cats
     )
-    result = aug_flip(image=image, bboxes=bboxes, category_ids=cats)
-    self.assertEqual(result["image"].shape, (500, 800, 3))
-    self.assertLen(result["bboxes"], 1)
-    out_x, out_y, out_w, out_h = result["bboxes"][0]
+    self.assertLen(out_cats, 1)
+    self.assertEqual(out_img.shape, (500, 800, 3))
+    self.assertLen(out_boxes, 1)
+    out_x, out_y, out_w, out_h = out_boxes[0]
     self.assertAlmostEqual(out_x, 800 - 10 - 100, places=0)
     self.assertAlmostEqual(out_y, 20, places=0)
     self.assertAlmostEqual(out_w, 100, places=0)
@@ -79,24 +75,16 @@ class AugmentationTest(absltest.TestCase):
     image = np.zeros((500, 800, 3), dtype=np.uint8)
     bboxes = [[10, 20, 100, 50], [200, 300, 80, 60]]
     cats = [0, 1]
-    aug = A.Compose(
-        [
-            A.ColorJitter(
-                brightness=0.2, contrast=0.25, saturation=0.25, hue=0.05, p=1.0
-            )
-        ],
-        bbox_params=A.BboxParams(
-            format="coco",
-            min_area=1.0,
-            min_visibility=0.3,
-            label_fields=["category_ids"],
-        ),
+    aug = v2.Compose([
+        v2.ColorJitter(brightness=0.2, contrast=0.25, saturation=0.25, hue=0.05)
+    ])
+    out_img, out_boxes, out_cats = augmentations.apply_augmentation(
+        aug, image, bboxes, cats
     )
-    result = aug(image=image, bboxes=bboxes, category_ids=cats)
-    self.assertEqual(result["image"].shape, (500, 800, 3))
-    self.assertLen(result["bboxes"], 2)
-    self.assertLen(result["category_ids"], 2)
-    for orig, out in zip(bboxes, result["bboxes"]):
+    self.assertEqual(out_img.shape, (500, 800, 3))
+    self.assertLen(out_boxes, 2)
+    self.assertLen(out_cats, 2)
+    for orig, out in zip(bboxes, out_boxes):
       for a, b in zip(orig, out):
         self.assertAlmostEqual(a, b, places=0)
 
@@ -130,6 +118,72 @@ class AugmentationTest(absltest.TestCase):
     self.assertEqual(out_img.shape, (800, 800, 3))
     self.assertIsInstance(out_boxes, list)
     self.assertIsInstance(out_cats, list)
+
+
+class RandomRotate90Test(absltest.TestCase):
+
+  def test_zero_probability_returns_identical(self):
+    transform = augmentations.RandomRotate90(p=0.0)
+    inpt = torch.rand(3, 100, 100)
+    res = transform(inpt)
+    self.assertIs(res, inpt)
+
+  def test_one_probability_returns_different(self):
+    transform = augmentations.RandomRotate90(p=1.0)
+    inpt = torch.rand(3, 100, 100)
+    res = transform(inpt)
+    self.assertIsNot(res, inpt)
+    self.assertFalse(torch.allclose(res, inpt))
+
+  def test_make_params_angle_range(self):
+    transform = augmentations.RandomRotate90(p=1.0)
+    params = transform.make_params([])
+    self.assertIn(params["angle"], [90, 180, 270])
+
+  def test_transform_zero_angle_returns_identical(self):
+    transform = augmentations.RandomRotate90()
+    inpt = torch.rand(3, 100, 100)
+    res = transform.transform(inpt, {"angle": 0})
+    self.assertIs(res, inpt)
+
+  def test_transform_non_zero_angle_returns_different(self):
+    transform = augmentations.RandomRotate90()
+    inpt = torch.rand(3, 100, 100)
+    res = transform.transform(inpt, {"angle": 90})
+    self.assertIsNot(res, inpt)
+
+
+class RandomGaussianBlurTest(absltest.TestCase):
+
+  def test_zero_probability_returns_identical(self):
+    transform = augmentations.RandomGaussianBlur(kernel_sizes=[3, 5], p=0.0)
+    inpt = torch.rand(3, 100, 100)
+    res = transform(inpt)
+    self.assertIs(res, inpt)
+
+  def test_one_probability_returns_different(self):
+    transform = augmentations.RandomGaussianBlur(kernel_sizes=[3, 5], p=1.0)
+    inpt = torch.rand(3, 100, 100)
+    res = transform(inpt)
+    self.assertIsNot(res, inpt)
+    self.assertFalse(torch.allclose(res, inpt))
+
+  def test_make_params_kernel_size(self):
+    transform = augmentations.RandomGaussianBlur(kernel_sizes=[3, 5], p=1.0)
+    params = transform.make_params([])
+    self.assertIn(params["kernel_size"], [3, 5])
+
+  def test_transform_zero_kernel_size_returns_identical(self):
+    transform = augmentations.RandomGaussianBlur(kernel_sizes=[3, 5])
+    inpt = torch.rand(3, 100, 100)
+    res = transform.transform(inpt, {"kernel_size": 0})
+    self.assertIs(res, inpt)
+
+  def test_transform_non_zero_kernel_size_returns_different(self):
+    transform = augmentations.RandomGaussianBlur(kernel_sizes=[3, 5])
+    inpt = torch.rand(3, 100, 100)
+    res = transform.transform(inpt, {"kernel_size": 3})
+    self.assertIsNot(res, inpt)
 
 
 if __name__ == "__main__":
