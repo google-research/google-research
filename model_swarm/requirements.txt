@@ -149,7 +149,7 @@ sympy==1.13.1
 tenacity==8.4.2
 threadpoolctl==3.5.0
 tokenizers==0.19.1
-torch==2.5.0
+torch==2.12.0
 tornado @ file:///home/conda/feedstock_root/build_artifacts/tornado_1717722887379/work
 tqdm==4.66.5
 traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_1713535121073/work
