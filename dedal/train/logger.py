@@ -116,9 +116,9 @@ class Logger:
     shape = tuple(max(scalars.shape[i], images.shape[i]) for i in range(2))
     enveloppe = multi_task.Backbone.constant_from_shape([], shape)
 
-    means = set(means).union(['loss'])
+    means = set(means).union(['loss'])  # pyrefly: ignore[bad-assignment]
     if self.training:
-      means = means.union(['gradient_norm'])
+      means = means.union(['gradient_norm'])  # pyrefly: ignore[missing-attribute]
 
     with strategy.scope():
       self._scalars = enveloppe.pack(

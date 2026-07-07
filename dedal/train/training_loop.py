@@ -114,7 +114,7 @@ class TrainingLoop:
     self._eval_in_train_job = eval_in_train_job
 
     with self.strategy.scope():
-      self.model = self._model_cls()
+      self.model = self._model_cls()  # pyrefly: ignore[not-callable]
       self._step = tf.Variable(0, dtype=tf.int64, trainable=False, name='step')
       self._optimizer = optimizer_cls() if optimizer_cls is not None else None
 
@@ -168,8 +168,8 @@ class TrainingLoop:
       if self._optimizer is None:
         raise ValueError('No optimizer set.')
       with tf.GradientTape() as tape:
-        y_pred = self.model(features, training=training)
-        local_loss, individual_losses = self._loss_fn(y_true, y_pred, weights)
+        y_pred = self.model(features, training=training)  # pyrefly: ignore[not-callable]
+        local_loss, individual_losses = self._loss_fn(y_true, y_pred, weights)  # pyrefly: ignore[not-callable]
         local_loss += sum(self.model.losses)
 
       replica_ctx = tf.distribute.get_replica_context()
@@ -205,7 +205,7 @@ class TrainingLoop:
     # Uses eval splits configured in the dataset builder. If none are present,
     # defaults to `tfds.Split.TEST`.
     split = self._dataset_builder.split
-    split = tfds.Split.TEST if split is None else split
+    split = tfds.Split.TEST if split is None else split  # pyrefly: ignore[missing-attribute]
     # In single-input mode, i.e. when dataset_builder is a `DatasetBuilder`
     # instance, `split` can be
     #  + a `str` (one eval split),
@@ -223,10 +223,10 @@ class TrainingLoop:
         split = (split,) if isinstance(split, str) else tuple(split)
         logging.info(
             'Eval splits (%d / %d): %s.', i + 1, len(splits), ', '.join(split))
-    return splits
+    return splits  # pyrefly: ignore[bad-return]
 
   def make_ds(self, split=None):
-    return self._dataset_builder.make(split, self._batch_size, self.strategy)
+    return self._dataset_builder.make(split, self._batch_size, self.strategy)  # pyrefly: ignore[bad-argument-type]
 
   def make_logger(self, split, task, dummy = False):
     if dummy:
@@ -240,7 +240,7 @@ class TrainingLoop:
                      else self.train_step)
 
     logging.info('Starting training.')
-    train_split = tfds.Split.TRAIN
+    train_split = tfds.Split.TRAIN  # pyrefly: ignore[missing-attribute]
     train_examples = iter(self.make_ds(train_split))
     logging.info('train: train dataset ready.')
     eval_ds = None
@@ -262,7 +262,7 @@ class TrainingLoop:
       logged = train_log.log_and_reset(step, step >= self._num_steps)
       self._checkpointer.may_save(step >= self._num_steps)
       if logged and eval_ds is not None:
-        for ds, log in zip(eval_ds, eval_logs):
+        for ds, log in zip(eval_ds, eval_logs):  # pyrefly: ignore[unbound-name]
           self.evaluate_once(ds, log)
         train_log.restart_clock()
 
@@ -275,8 +275,8 @@ class TrainingLoop:
     """Run a single eval step, in a distributed strategy."""
 
     def step_fn(x, y_true, weights, metadata):
-      y_pred = self.model(x, training=training)
-      local_loss, individual_losses = self._loss_fn(y_true, y_pred, weights)
+      y_pred = self.model(x, training=training)  # pyrefly: ignore[not-callable]
+      local_loss, individual_losses = self._loss_fn(y_true, y_pred, weights)  # pyrefly: ignore[not-callable]
       local_loss += sum(self.model.losses)
 
       replica_ctx = tf.distribute.get_replica_context()
@@ -341,15 +341,15 @@ class TrainingLoop:
     # Dataset and logger for train and test.
     eval_splits = self.parse_eval_splits()
     ds_logs = [(self.make_ds(split), self.make_logger(split, 'downstream'))
-               for split in (tfds.Split.TRAIN,) + eval_splits]
+               for split in (tfds.Split.TRAIN,) + eval_splits]  # pyrefly: ignore[missing-attribute]
 
-    while self._reference_step.numpy() < self._num_reference_steps - 1:
+    while self._reference_step.numpy() < self._num_reference_steps - 1:  # pyrefly: ignore[unsupported-operation]
       # Re-initializes model, preventing weights in head being trained from
       # being re-used from the last train-eval cycle.
       with self.strategy.scope():
-        self.model = self._model_cls()
+        self.model = self._model_cls()  # pyrefly: ignore[not-callable]
       self._checkpointer.set_model(self.model)
-      self._reference_ckpt.set_model(self.model)
+      self._reference_ckpt.set_model(self.model)  # pyrefly: ignore[missing-attribute]
       # TODO(oliviert): Consider instead having one logging folder per upstream
       # step to save the whole downstream learning curve.
       self.train(freeze=True, silent=True)
@@ -381,7 +381,7 @@ class TrainingLoop:
     # Initializes the weights to be able to restore them.
     @tf.function
     def predict(inputs):
-      self.model(inputs)
+      self.model(inputs)  # pyrefly: ignore[not-callable]
     self.strategy.run(predict, args=[inputs])
 
     # Backs up random init vals of params of output heads that are not to be
@@ -392,7 +392,7 @@ class TrainingLoop:
       if reset_head_flag:
         head_init_vars.extend([v.value() for v in head.variables])
 
-    self._reference_ckpt.restore_after(self._reference_step.numpy())
+    self._reference_ckpt.restore_after(self._reference_step.numpy())  # pyrefly: ignore[missing-attribute]
     # TODO(oliviert): make this more configurable.
     if freeze:
       self.model.encoder.trainable = False

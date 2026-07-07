@@ -213,7 +213,7 @@ def div_constrained_loss(labels,
           mixing_probs=None)
     else:
       raise ValueError('Unknown mixup_type: {}'.format(mixup_type))
-    preds_mix = model([images_mix, is_train])
+    preds_mix = model([images_mix, is_train])  # pyrefly: ignore[not-callable]
     cce_mix = tf.keras.backend.categorical_crossentropy(
         labels_mix, preds_mix, from_logits=from_logits)
     if dcl_w_mixup:

@@ -30,7 +30,7 @@ class KeyPhrase:
   """Key phrase, a list of words."""
   words = attr.ib(type=List[Text])
 
-  @words.validator
+  @words.validator  # pyrefly: ignore[missing-attribute]
   def validate(self, unused_attribute, value):
     if not isinstance(value, list):
       raise ValueError(
@@ -78,7 +78,7 @@ class VdomFeatures:
 
   @classmethod
   def from_floats(cls, floats: Sequence[float]) -> 'VdomFeatures':
-    return cls(*floats)
+    return cls(*floats)  # pyrefly: ignore[bad-argument-type]
 
 
 @attr.s
@@ -369,14 +369,14 @@ class OpenKpExample:
       long_total_len = len(etc_features.long_token_ids) + long_new_len
       if long_total_len > long_max_len:
         break
-      global_total_len = long_total_len // config.fixed_block_len
-      if long_total_len % config.fixed_block_len != 0:
+      global_total_len = long_total_len // config.fixed_block_len  # pyrefly: ignore[unsupported-operation]
+      if long_total_len % config.fixed_block_len != 0:  # pyrefly: ignore[unsupported-operation]
         global_total_len += 1
       if global_total_len > global_max_len:
         break
 
       for i in range(len(etc_features.long_token_ids), long_total_len):
-        etc_features.long_vdom_idx.append(i // config.fixed_block_len)
+        etc_features.long_vdom_idx.append(i // config.fixed_block_len)  # pyrefly: ignore[unsupported-operation]
       etc_features.long_input_mask.extend([1] * long_new_len)
       # Note: len(text_words) can be larger than new_long_tokens_count since
       # there are trivial inputs such as `text_words=['']` that have no tokens

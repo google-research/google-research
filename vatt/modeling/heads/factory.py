@@ -62,12 +62,12 @@ class HeadStack(tf.keras.layers.Layer):
       head_name = head_param.name.lower()
       module_kwargs = head_param.as_dict()
       self._bridge_heads.append(
-          head_modules["bridge"][head_name](**module_kwargs)
+          head_modules["bridge"][head_name](**module_kwargs)  # pyrefly: ignore[not-callable]
           )
 
   def call(self,  # pytype: disable=annotation-type-mismatch
            inputs,
-           training = None,
+           training = None,  # pyrefly: ignore[bad-function-definition]
            mask = None):
     """Call the layer.
 
@@ -83,7 +83,7 @@ class HeadStack(tf.keras.layers.Layer):
         "bridge": {},
     }
 
-    with tf.name_scope("bridge"):
+    with tf.name_scope("bridge"):  # pyrefly: ignore[bad-instantiation]
       for head_layer in self._bridge_heads:
         outs = head_layer(inputs,
                           training)

@@ -101,7 +101,7 @@ def get_model_config(
     model_config_json_str = base64.b64decode(
         source_base64.encode('utf-8')).decode('utf-8')
   model_config_dict = json.loads(
-      model_config_json_str, object_pairs_hook=collections.OrderedDict)
+      model_config_json_str, object_pairs_hook=collections.OrderedDict)  # pyrefly: ignore[unbound-name]
 
   if write_from_source:
     with tf.io.gfile.GFile(model_config_path, 'w') as writer:
@@ -560,7 +560,7 @@ def create_bytes_feature(values: Iterable[Text]) -> tf.train.Feature:
   Returns:
     An entry of byte tf.train.Feature.
   """
-  values = [value.encode('utf-8') for value in values]
+  values = [value.encode('utf-8') for value in values]  # pyrefly: ignore[bad-assignment]
 
   feature = tf.train.Feature(bytes_list=tf.train.BytesList(value=values))
   return feature

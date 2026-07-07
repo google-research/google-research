@@ -41,24 +41,24 @@ def initialize_builder(
       converter_insertion = insertion_converter.InsertionConverter(
           max_seq_length=max_seq_length,
           max_predictions_per_seq=max_predictions_per_seq,
-          label_map=label_map,
+          label_map=label_map,  # pyrefly: ignore[bad-argument-type]
           vocab_file=vocab_file)
       converter_tagging = pointing_converter.PointingConverter({},
                                                                do_lower_case)
 
     builder = bert_example.BertExampleBuilder(
-        label_map=label_map,
+        label_map=label_map,  # pyrefly: ignore[bad-argument-type]
         vocab_file=vocab_file,
         max_seq_length=max_seq_length,
-        converter=converter_tagging,
+        converter=converter_tagging,  # pyrefly: ignore[unbound-name]
         do_lower_case=do_lower_case,
         use_open_vocab=use_open_vocab,
-        converter_insertion=converter_insertion,
+        converter_insertion=converter_insertion,  # pyrefly: ignore[unbound-name]
         special_glue_string_for_sources=special_glue_string_for_sources)
   else:  # Pointer disabled.
     if use_open_vocab:
       builder = example_builder_for_felix_insert.FelixInsertExampleBuilder(
-          label_map,
+          label_map,  # pyrefly: ignore[bad-argument-type]
           vocab_file,
           do_lower_case,
           max_seq_length,

@@ -57,7 +57,7 @@ def inverse_decreasing_function(
   """Returns the smallest x at which function(x) <= value."""
   # A heuristic initial guess of 10 is chosen. This only costs in efficiency.
   search_params = pld.common.BinarySearchParameters(0, np.inf, 10)
-  value = pld.common.inverse_monotone_function(function, value, search_params)
+  value = pld.common.inverse_monotone_function(function, value, search_params)  # pyrefly: ignore[bad-assignment]
   if value is None:
     raise ValueError(f'No input x found for {value=}.')
   return value
@@ -86,7 +86,7 @@ class DeterministicAccountant:
       A list of hockey stick divergence values corresponding to each epsilon.
     """
     sigma = sigma / np.sqrt(num_epochs)
-    epsilons = np.atleast_1d(epsilons)
+    epsilons = np.atleast_1d(epsilons)  # pyrefly: ignore[bad-assignment]
     upper_cdfs = stats.norm.cdf(0.5 / sigma - sigma * epsilons)
     lower_log_cdfs = stats.norm.logcdf(-0.5 / sigma - sigma * epsilons)
     return list(upper_cdfs - np.exp(epsilons + lower_log_cdfs))
@@ -187,7 +187,7 @@ class PoissonPLDAccountant:
         num_compositions=num_steps_per_epoch * num_epochs,
         sampling_prob=1.0/num_steps_per_epoch,
         discretization=discretization)
-    return list(pl_dist.get_delta_for_epsilon(epsilons))
+    return list(pl_dist.get_delta_for_epsilon(epsilons))  # pyrefly: ignore[bad-argument-type]
 
   @functools.cache  # pylint: disable=method-cache-max-size-none
   def get_epsilons(self,
@@ -408,19 +408,19 @@ class ShuffleAccountant:
       caps: The parameter defining the cube E_C given as {x : max_t x_t <= C}.
       verbose: When True, prints the optimal C value for each epsilon.
     """
-    caps = np.arange(0, 100, 0.01) if caps is None else np.asarray(caps)
+    caps = np.arange(0, 100, 0.01) if caps is None else np.asarray(caps)  # pyrefly: ignore[bad-assignment]
     upper_masses = self._out_cube_mass(
-        sigma, num_steps, caps, self.mean_upper)
+        sigma, num_steps, caps, self.mean_upper)  # pyrefly: ignore[bad-argument-type]
     lower_masses = self._out_cube_mass(
-        sigma, num_steps, caps, self.mean_lower)
-    epsilons = np.atleast_1d(epsilons)
+        sigma, num_steps, caps, self.mean_lower)  # pyrefly: ignore[bad-argument-type]
+    epsilons = np.atleast_1d(epsilons)  # pyrefly: ignore[bad-assignment]
     if verbose:
       print('Shuffle hockey stick divergence logs:')
       ans = []
       for epsilon in epsilons:
         hsd = upper_masses - np.exp(epsilon) * lower_masses
         i = np.argmax(hsd)
-        print(f'* optimal C for {epsilon=} is: {caps[i]}')
+        print(f'* optimal C for {epsilon=} is: {caps[i]}')  # pyrefly: ignore[bad-index, unsupported-operation]
         ans.append(hsd[i])
     else:
       ans = [
@@ -560,7 +560,7 @@ class ShuffleAccountant:
           (math.log(upper_out_cube_mass) - math.log(lower_out_cube_mass))
           / discretization
       )
-      pmf[rounded_privacy_loss] += upper_out_cube_mass
+      pmf[rounded_privacy_loss] += upper_out_cube_mass  # pyrefly: ignore[unsupported-operation]
 
       # max_t x_t <= lower_C
       upper_log_in_cube_mass = self._log_in_cube_mass(
@@ -579,7 +579,7 @@ class ShuffleAccountant:
 
     return pld.privacy_loss_distribution.PrivacyLossDistribution(
         pld.pld_pmf.SparsePLDPmf(
-            pmf, discretization, infinity_mass, pessimistic_estimate
+            pmf, discretization, infinity_mass, pessimistic_estimate  # pyrefly: ignore[bad-argument-type]
         )
     )
 
@@ -656,7 +656,7 @@ class ShuffleAccountant:
     pl_dist = self._get_multi_epoch_pld(
         sigma, num_steps_per_epoch, num_epochs, discretization,
         pessimistic_estimate, log_truncation_mass, verbose)
-    return list(pl_dist.get_delta_for_epsilon(epsilons))
+    return list(pl_dist.get_delta_for_epsilon(epsilons))  # pyrefly: ignore[bad-argument-type]
 
   @functools.cache  # pylint: disable=method-cache-max-size-none
   def get_epsilons(

@@ -289,8 +289,8 @@ class EtcModel(tf.keras.layers.Layer):
           use_one_hot_lookup=use_one_hot_embeddings,
           name="position_emb_lookup_global")
       # Call layers to force variable initialization.
-      self.position_embedding(tf.ones([1, 1], tf.int32))
-      self.global_position_embedding(tf.ones([1, 1], tf.int32))
+      self.position_embedding(tf.ones([1, 1], tf.int32))  # pyrefly: ignore[not-callable]
+      self.global_position_embedding(tf.ones([1, 1], tf.int32))  # pyrefly: ignore[not-callable]
     else:
       self.position_embedding = None
       self.global_position_embedding = None
@@ -405,34 +405,34 @@ class EtcModel(tf.keras.layers.Layer):
           "Cannot specify `position_ids` or `global_position_ids` arguments "
           "when `max_absolute_position_embeddings` is 0.")
 
-    long_input = self.token_embedding(token_ids)
-    long_input += self.segment_embedding(segment_ids)
+    long_input = self.token_embedding(token_ids)  # pyrefly: ignore[not-callable]
+    long_input += self.segment_embedding(segment_ids)  # pyrefly: ignore[not-callable]
     if self.position_embedding is not None:
       if position_ids is None:
         long_input += self.position_embedding.embedding_table[
             tf.newaxis, :long_input.shape[1], :]
       else:
-        long_input += self.position_embedding(position_ids)
+        long_input += self.position_embedding(position_ids)  # pyrefly: ignore[not-callable]
     if long_embedding_adder is not None:
       long_input += long_embedding_adder
     long_input = self.token_embedding_norm(long_input)
     long_input = self.token_embedding_dropout(long_input, training=training)
 
-    global_input = self.global_token_embedding(global_token_ids)
-    global_input += self.segment_embedding(global_segment_ids)
+    global_input = self.global_token_embedding(global_token_ids)  # pyrefly: ignore[not-callable]
+    global_input += self.segment_embedding(global_segment_ids)  # pyrefly: ignore[not-callable]
     if self.global_position_embedding is not None:
       if global_position_ids is None:
         global_input += self.global_position_embedding.embedding_table[
             tf.newaxis, :global_input.shape[1], :]
       else:
-        global_input += self.global_position_embedding(global_position_ids)
+        global_input += self.global_position_embedding(global_position_ids)  # pyrefly: ignore[not-callable]
     if global_embedding_adder is not None:
       global_input += global_embedding_adder
     global_input = self.global_token_embedding_norm(global_input)
     global_input = self.global_token_embedding_dropout(
         global_input, training=training)
 
-    return self.global_local_transformer(
+    return self.global_local_transformer(  # pyrefly: ignore[not-callable]
         long_input=long_input,
         global_input=global_input,
         l2l_att_mask=l2l_att_mask,

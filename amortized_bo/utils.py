@@ -213,9 +213,9 @@ def hash_structure(structure):
   """
   array = np.asarray(structure)
   if np.can_cast(array, np.int32, 'same_kind'):
-    return np.int32(array).tostring()
+    return np.int32(array).tostring()  # pyrefly: ignore[missing-attribute]
   elif np.can_cast(array, np.float32, 'same_kind'):
-    return np.float32(array).tostring()
+    return np.float32(array).tostring()  # pyrefly: ignore[missing-attribute]
   raise ValueError('%s can not be safely cast to np.int32 or '
                    'np.float32' % str(structure))
 

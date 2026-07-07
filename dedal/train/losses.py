@@ -91,7 +91,7 @@ class SmithWatermanLoss(tf.losses.Loss):
       The loss value for each example in the batch.
     """
     solution_values, _, sw_params = alignment_output
-    return (solution_values -
+    return (solution_values -  # pyrefly: ignore[unsupported-operation]
             alignment.sw_score(sw_params, true_alignments_or_paths))
 
 
@@ -277,7 +277,7 @@ class ContactLoss(tf.losses.Loss):
       pairw_dist_pred = self._dist_to_prob(
           -pairw_dist_pred / self._threshold**2)
 
-    mat_losses = self._prob_loss(contact_true, pairw_dist_pred)
+    mat_losses = self._prob_loss(contact_true, pairw_dist_pred)  # pyrefly: ignore[not-callable]
     return weights_square * mat_losses
 
 
@@ -306,8 +306,8 @@ class MultiTaskLoss:
                y_pred,
                weights = None):
     # TODO(oliviert): Should we unflatten?
-    y_true = multi_task.Backbone.unflatten(y_true)
-    weights = multi_task.Backbone.unflatten(weights)
+    y_true = multi_task.Backbone.unflatten(y_true)  # pyrefly: ignore[bad-assignment]
+    weights = multi_task.Backbone.unflatten(weights)  # pyrefly: ignore[bad-argument-type, bad-assignment]
     if y_pred.shape != self._losses.shape:
       raise ValueError(
           f'The SeqAlign MultiTaskLoss shape {self._losses.shape} is not '
@@ -316,7 +316,7 @@ class MultiTaskLoss:
     total_loss = 0.0
     individual_losses = {}
     for weighted_loss, label, pred, batch_w in zip(self._losses, y_true, y_pred,
-                                                   weights):
+                                                   weights):  # pyrefly: ignore[bad-argument-type]
       loss_w, loss_fn = weighted_loss
       if loss_fn is None:
         continue

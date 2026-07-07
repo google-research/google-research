@@ -145,7 +145,7 @@ def create_ast_compute_metrics_fn(
 
     results = bleu_metric.compute(predictions=pred_str, references=references)
 
-    return {"bleu": results["score"]}
+    return {"bleu": results["score"]}  # pyrefly: ignore[unsupported-operation]
 
   return compute_metrics
 

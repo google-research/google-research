@@ -25,7 +25,7 @@ from __future__ import print_function
 import re
 
 import six
-from six.moves import zip
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 from etcmodel.models import lamb_optimizer

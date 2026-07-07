@@ -150,10 +150,10 @@ def main(_):
         loss = loss_op(
             labels,
             logits,
-            lambda_hyp=lambda_hyp,
-            iteration=iteration,
-            model=model,
-            images=images)
+            lambda_hyp=lambda_hyp,  # pyrefly: ignore[unexpected-keyword]
+            iteration=iteration,  # pyrefly: ignore[unexpected-keyword]
+            model=model,  # pyrefly: ignore[unexpected-keyword]
+            images=images)  # pyrefly: ignore[unexpected-keyword]
     grads = tape.gradient(loss, model.trainable_variables)
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
     return loss
@@ -173,11 +173,11 @@ def main(_):
         loss = loss_op(
             labels,
             logits,
-            lambda_hyp=lambda_hyp,
-            iteration=iteration,
-            model=model,
-            images=images,
-            is_train=False)
+            lambda_hyp=lambda_hyp,  # pyrefly: ignore[unexpected-keyword]
+            iteration=iteration,  # pyrefly: ignore[unexpected-keyword]
+            model=model,  # pyrefly: ignore[unexpected-keyword]
+            images=images,  # pyrefly: ignore[unexpected-keyword]
+            is_train=False)  # pyrefly: ignore[unexpected-keyword]
         avg_loss += loss.numpy()
       num_samples += len(labels)
       num_correct += tf.reduce_sum(

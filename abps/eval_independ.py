@@ -83,7 +83,7 @@ def main(_):
         root_dir=FLAGS.root_dir,
         env_name=suite_atari.game(name=FLAGS.game_name),
         **get_run_args())
-  runner.run()
+  runner.run()  # pyrefly: ignore[unbound-name]
 
 
 if __name__ == '__main__':

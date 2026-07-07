@@ -27,7 +27,7 @@ import re
 import unicodedata
 
 import six
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 import sentencepiece as spm
@@ -146,7 +146,7 @@ def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
         "should pass in `--do_lower_case=%s` so that the fine-tuning matches "
         "how the model was pre-training. If this error is wrong, please "
         "just comment out this check." %
-        (actual_flag, init_checkpoint, model_name, case_name, opposite_flag))
+        (actual_flag, init_checkpoint, model_name, case_name, opposite_flag))  # pyrefly: ignore[unbound-name]
 
 
 def printable_text(text):
@@ -231,7 +231,7 @@ class FullTokenizer(object):
       self.vocab = load_vocab(vocab_file)
       self.basic_tokenizer = BasicTokenizer(do_lower_case=do_lower_case)
       self.wordpiece_tokenizer = WordpieceTokenizer(vocab=self.vocab)
-    self.inv_vocab = {v: k for k, v in self.vocab.items()}
+    self.inv_vocab = {v: k for k, v in self.vocab.items()}  # pyrefly: ignore[missing-attribute]
 
   def tokenize(self, text):
     if self.sp_model:

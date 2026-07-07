@@ -119,7 +119,7 @@ def run_method_across_l0_bounds(
     for _ in range(num_trials):
       begin = time.time()
       if method == SetUnionMethod.POLICY_GREEDY:
-        output = _PARTIAL_METHODS[method](input_data, epsilon, delta)
+        output = _PARTIAL_METHODS[method](input_data, epsilon, delta)  # pyrefly: ignore[missing-argument]
       else:
         output = _PARTIAL_METHODS[method](input_data, l0_bound, epsilon, delta)
       end = time.time()

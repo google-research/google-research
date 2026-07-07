@@ -97,11 +97,11 @@ class NonLinearProj(tf.keras.layers.Layer):
       self.dense_inner = tf.keras.layers.Dense(d_inner,
                                                name="final_projection_inner")
 
-    inputs = self.dense_inner(inputs)
-    inputs = self.bn_relu(inputs, is_training)
-    inputs = self.dense_final(inputs)
+    inputs = self.dense_inner(inputs)  # pyrefly: ignore[not-callable]
+    inputs = self.bn_relu(inputs, is_training)  # pyrefly: ignore[not-callable]
+    inputs = self.dense_final(inputs)  # pyrefly: ignore[not-callable]
     if self._use_bn_out:
-      inputs = self.bn_out(inputs, is_training)
+      inputs = self.bn_out(inputs, is_training)  # pyrefly: ignore[not-callable]
 
     return inputs
 
@@ -126,7 +126,7 @@ class ReluDenseBN(tf.keras.layers.Layer):
     if bn_config is None:
       bn_config = {"scale": True}
     if use_xreplica_bn:
-      bn_config.update({"momentum": 0.9})
+      bn_config.update({"momentum": 0.9})  # pyrefly: ignore[no-matching-overload]
 
     if self.pre_bn:
       self.pre_bn = bn_module(**bn_config)
@@ -138,10 +138,10 @@ class ReluDenseBN(tf.keras.layers.Layer):
 
   def call(self, inputs, training):
     if self.pre_bn:
-      inputs = self.pre_bn(inputs, training)
+      inputs = self.pre_bn(inputs, training)  # pyrefly: ignore[not-callable]
 
     inputs = tf.nn.relu(inputs)
-    inputs = self.dense(inputs)
+    inputs = self.dense(inputs)  # pyrefly: ignore[not-callable]
     inputs = self.bn(inputs, training)
 
     return inputs

@@ -134,13 +134,13 @@ def run_method_across_ks(input_data, method, k_range, params, num_trials=1):
       if method == TopKMethod.WGM_THEN_PEEL:
         eps_schedule = [eps/2, eps/2]
         delta_schedule = [delta/2, delta/2]
-        output = _PARTIAL_METHODS[method](
+        output = _PARTIAL_METHODS[method](  # pyrefly: ignore[missing-argument]
             input_data,
             k,
             eps_schedule,
             delta_schedule,
             l0_bound,
-            peel_users=False,
+            peel_users=False,  # pyrefly: ignore[unexpected-keyword]
         )
       else:
         k_bar_multiplier = params["k_bar_multiplier"]

@@ -209,7 +209,7 @@ def sample_gaussians_conditioned_on_min_max_value(
 
   # 2. Sample coordinates with values at most the corresponding max value,
   # with shape = (sample_size, dim)
-  samples = sample_gaussians_conditioned_on_max_value(sigma, dim, max_values)
+  samples = sample_gaussians_conditioned_on_max_value(sigma, dim, max_values)  # pyrefly: ignore[bad-argument-type]
 
   # 3. Insert the max values in a random coordinate within each row.
   row_indices = np.arange(sample_size)
@@ -255,8 +255,8 @@ def sample_order_statistics_from_uniform(
   else:
     size = size + (len(orders),)
   # Sample Z_1, ..., Z_R
-  orders = np.asarray(orders)
-  random_seed = stats.beta.rvs(dim - orders + 1,
+  orders = np.asarray(orders)  # pyrefly: ignore[bad-assignment]
+  random_seed = stats.beta.rvs(dim - orders + 1,  # pyrefly: ignore[unsupported-operation]
                                np.diff(np.insert(orders, 0, 0)),
                                size=size)
   # We use a numerically stable alternative to np.cumprod(random_seed, axis=-1).
@@ -611,7 +611,7 @@ class BnBAccountant:
           loc=1, scale=sigma, size=(sample_size, num_epochs, 1))
       other_coordinates_samples = stats.norm.ppf(
           sample_order_statistics_from_uniform(num_steps_per_epoch - 1,
-                                               order_stats_seq,
+                                               order_stats_seq,  # pyrefly: ignore[bad-argument-type]
                                                (sample_size, num_epochs)),
           scale=sigma,
       )
@@ -623,7 +623,7 @@ class BnBAccountant:
       order_stats_weights = np.diff(np.insert(order_stats_seq, 0, 0))
       samples = stats.norm.ppf(
           sample_order_statistics_from_uniform(num_steps_per_epoch,
-                                               order_stats_seq,
+                                               order_stats_seq,  # pyrefly: ignore[bad-argument-type]
                                                (sample_size, num_epochs)),
           scale=sigma,
       )
@@ -703,7 +703,7 @@ class BnBAccountant:
           epsilon, privacy_losses)  # pylint: disable=cell-var-from-loop
 
       hsd_estimates.append(mce.get_monte_carlo_estimate_with_scaling(
-          sampler, f, scaling_factor, sample_size, max_batch_size
+          sampler, f, scaling_factor, sample_size, max_batch_size  # pyrefly: ignore[bad-argument-type]
       ))
     return hsd_estimates
 
@@ -750,9 +750,9 @@ class BnBAccountant:
     # Interpret `order_stats_seq` as a numpy array and check for any errors.
     if order_stats_seq is None:
       if adjacency_type == AdjacencyType.ADD:
-        order_stats_seq = np.arange(1, num_steps_per_epoch + 1, dtype=int)
+        order_stats_seq = np.arange(1, num_steps_per_epoch + 1, dtype=int)  # pyrefly: ignore[bad-assignment]
       else:  # Case: adjacency_type = AdjacencyType.REMOVE
-        order_stats_seq = np.arange(1, num_steps_per_epoch, dtype=int)
+        order_stats_seq = np.arange(1, num_steps_per_epoch, dtype=int)  # pyrefly: ignore[bad-assignment]
     elif isinstance(order_stats_seq, int):
       # For ADD adjacency, it is also okay for order_stats_seq to be
       # num_steps_per_epoch. But since this is not an interesting setting we do
@@ -762,24 +762,24 @@ class BnBAccountant:
             'If an integer, order_stats_seq must be in '
             f'[1, num_steps_per_epoch - 1]. Found {order_stats_seq=}.'
         )
-      order_stats_seq = np.arange(1, order_stats_seq + 1, dtype=int)
+      order_stats_seq = np.arange(1, order_stats_seq + 1, dtype=int)  # pyrefly: ignore[bad-assignment]
     else:
-      order_stats_seq = np.asarray(order_stats_seq)
-      if np.any(np.diff(order_stats_seq) < 1):
+      order_stats_seq = np.asarray(order_stats_seq)  # pyrefly: ignore[bad-assignment]
+      if np.any(np.diff(order_stats_seq) < 1):  # pyrefly: ignore[no-matching-overload]
         raise ValueError(
             'If a sequence, `order_stats_seq` must be sorted in increasing '
             f'order. Found {order_stats_seq=}'
         )
       if adjacency_type == AdjacencyType.ADD:
-        if (order_stats_seq[0] < 1 or
-            order_stats_seq[-1] > num_steps_per_epoch):
+        if (order_stats_seq[0] < 1 or  # pyrefly: ignore[bad-index, unsupported-operation]
+            order_stats_seq[-1] > num_steps_per_epoch):  # pyrefly: ignore[bad-index, unsupported-operation]
           raise ValueError(
               'Under ADD adjacency, all orders must be in '
               f'[1, num_steps_per_epoch]. Found {order_stats_seq=}'
           )
       else:  # Case: adjacency_type = AdjacencyType.REMOVE
-        if (order_stats_seq[0] != 1 or
-            order_stats_seq[-1] > num_steps_per_epoch - 1):
+        if (order_stats_seq[0] != 1 or  # pyrefly: ignore[bad-index, unsupported-operation]
+            order_stats_seq[-1] > num_steps_per_epoch - 1):  # pyrefly: ignore[bad-index, unsupported-operation]
           raise ValueError(
               'Under REMOVE adjacency the first order should be 1 and the '
               'last order should be at most num_steps_per_epoch - 1. Found '
@@ -787,7 +787,7 @@ class BnBAccountant:
           )
 
     # Determine maximum batch size for Monte-Carlo estimation.
-    if num_epochs * (len(order_stats_seq) + 1) > self.max_memory_limit:
+    if num_epochs * (len(order_stats_seq) + 1) > self.max_memory_limit:  # pyrefly: ignore[bad-argument-type]
       raise ValueError(
           'The number of epochs and the number of order statistics are too '
           'large for the given memory limit.'
@@ -799,7 +799,7 @@ class BnBAccountant:
     scaling_factor = 1.0  # Since no importance sampling is used.
 
     sampler = lambda sample_size: self.sample_order_stats_privacy_loss(
-        sample_size, sigma, num_steps_per_epoch, order_stats_seq, num_epochs,
+        sample_size, sigma, num_steps_per_epoch, order_stats_seq, num_epochs,  # pyrefly: ignore[bad-argument-type]
         adjacency_type)
 
     hsd_estimates = []

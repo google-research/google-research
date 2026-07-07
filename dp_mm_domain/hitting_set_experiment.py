@@ -115,16 +115,16 @@ def run_method_across_ks(input_data, method, k_range, params, num_trials=1):
         output = _PARTIAL_METHODS[method](
             input_data,
             k,
-            eps_schedule,
+            eps_schedule,  # pyrefly: ignore[bad-argument-count]
             delta_schedule,
             l0_bound,
-            peel_users=True,
+            peel_users=True,  # pyrefly: ignore[unexpected-keyword]
         )
       elif method == HittingSetMethod.GREEDY:
-        output = _PARTIAL_METHODS[method](input_data, k)
+        output = _PARTIAL_METHODS[method](input_data, k)  # pyrefly: ignore[missing-argument]
       else:
         domain = set(itertools.chain.from_iterable(input_data))
-        output = _PARTIAL_METHODS[method](input_data, domain, k, eps, delta)
+        output = _PARTIAL_METHODS[method](input_data, domain, k, eps, delta)  # pyrefly: ignore[bad-argument-count]
 
       end = time.time()
       missed_users = compute_missed_users(input_data, output)

@@ -184,7 +184,7 @@ class SetCriterion(nn.Module):
             boxes2=box_utils.box_cxcywh_to_xyxy(target_boxes),
         )
     )
-    losses["loss_giou"] = loss_giou.sum() / num_boxes
+    losses["loss_giou"] = loss_giou.sum() / num_boxes  # pyrefly: ignore[missing-attribute]
     return losses
 
   def get_loss(

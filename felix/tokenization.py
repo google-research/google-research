@@ -82,12 +82,13 @@ def validate_case_matches_checkpoint(do_lower_case, init_checkpoint):
 
   if is_bad_config:
     raise ValueError(
+        # pyrefly: ignore[unbound-name]
         "You passed in `--do_lower_case=%s` with `--init_checkpoint=%s`. "
         "However, `%s` seems to be a %s model, so you "
         "should pass in `--do_lower_case=%s` so that the fine-tuning matches "
         "how the model was pre-training. If this error is wrong, please "
         "just comment out this check." % (actual_flag, init_checkpoint,
-                                          model_name, case_name, opposite_flag))
+                                          model_name, case_name, opposite_flag))  # pyrefly: ignore[unbound-name]
 
 
 def convert_to_unicode(text):
@@ -101,7 +102,7 @@ def convert_to_unicode(text):
       raise ValueError("Unsupported string type: %s" % (type(text)))
   elif six.PY2:
     if isinstance(text, str):
-      return text.decode("utf-8", "ignore")
+      return text.decode("utf-8", "ignore")  # pyrefly: ignore[missing-attribute]
     else:
       raise ValueError("Unsupported string type: %s" % (type(text)))
   else:

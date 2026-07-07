@@ -296,7 +296,7 @@ class FelixInsertExampleBuilder:
         input_mask=input_mask,
         segment_ids=segment_ids,
         labels=labels,
-        labels_mask=labels_mask,
+        labels_mask=labels_mask,  # pyrefly: ignore[bad-argument-type]
         input_tokens=input_tokens,
         label_tokens=label_tokens,
         source_text=merged_sources,
@@ -358,10 +358,10 @@ class FelixInsertExampleBuilder:
           target_buffer = []
         if self._insert_after_token:
           masked_tokens.extend([source_token] + masks)
-          target_tokens.extend([source_token] + insertions)
+          target_tokens.extend([source_token] + insertions)  # pyrefly: ignore[unsupported-operation]
         else:
           masked_tokens.extend(masks + [source_token])
-          target_tokens.extend(insertions + [source_token])
+          target_tokens.extend(insertions + [source_token])  # pyrefly: ignore[unsupported-operation]
       else:  # base_tag == constants.DELETE
         if not deletion_started:
           masked_tokens.append(constants.DELETE_SPAN_START)

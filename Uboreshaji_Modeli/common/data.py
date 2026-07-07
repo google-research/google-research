@@ -220,7 +220,7 @@ def get_dataset(cfg):
 
   # Try loading as a pre-saved HuggingFace Dataset first
   try:
-    return datasets.load_from_disk(str(dataset_path))
+    return datasets.load_from_disk(str(dataset_path))  # pyrefly: ignore[bad-return]
   except FileNotFoundError:
     # Fall back to loading raw parquet files from directory
     logging.info(
@@ -234,4 +234,4 @@ def get_dataset(cfg):
         streaming=True,
     )
 
-    return dataset
+    return dataset  # pyrefly: ignore[bad-return]

@@ -214,8 +214,8 @@ def get_dataset(batch_size,
         np.reshape([0.2673, 0.2564, 0.2762], [1, 1, 1, 3]), dtype=tf.float32)
   preproc_fn_train = functools.partial(
       preprocess_fn,
-      mean=mean,
-      std=std,
+      mean=mean,  # pyrefly: ignore[unbound-name]
+      std=std,  # pyrefly: ignore[unbound-name]
       image_size=image_size,
       augment=True,
       noise_type=noise_type)
@@ -226,7 +226,7 @@ def get_dataset(batch_size,
   if noise_type != 'none':
     labels_noisy = get_corrupted_labels(ds, noise_type, noisy_frac, num_classes)
     labels_noisy = tf.data.Dataset.from_tensor_slices(labels_noisy)
-    ds = tf.data.Dataset.zip((ds, labels_noisy))
+    ds = tf.data.Dataset.zip((ds, labels_noisy))  # pyrefly: ignore[bad-argument-type]
   ds = ds.repeat().shuffle(
       batch_size * 4, seed=1).batch(
           batch_size,
@@ -238,7 +238,7 @@ def get_dataset(batch_size,
     labels_noisy = get_corrupted_labels(
         ds_valid, noise_type, noisy_frac, num_classes, seed=1338)
     labels_noisy = tf.data.Dataset.from_tensor_slices(labels_noisy)
-    ds_valid = tf.data.Dataset.zip((ds_valid, labels_noisy))
+    ds_valid = tf.data.Dataset.zip((ds_valid, labels_noisy))  # pyrefly: ignore[bad-argument-type]
   ds_valid = ds_valid.shuffle(
       10000, seed=1).batch(
           batch_size,

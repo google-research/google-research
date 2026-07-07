@@ -71,7 +71,7 @@ class OpenKpTextExample:
     """Serializes this instance to a JSON string."""
     d = {'url': self.url, 'text': ' '.join(self.words)}
     if self.key_phrases is not None:
-      d['KeyPhrases'] = [[kp] for kp in sorted(self.key_phrases)]
+      d['KeyPhrases'] = [[kp] for kp in sorted(self.key_phrases)]  # pyrefly: ignore[bad-assignment]
     return json.dumps(d)
 
   @classmethod

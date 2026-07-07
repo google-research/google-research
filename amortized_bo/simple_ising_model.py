@@ -17,7 +17,7 @@
 
 import gin
 import numpy as np
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 from amortized_bo import base_problem
@@ -167,13 +167,13 @@ class AlternatingChainIsingModel(base_problem.BaseProblem):
 
   def _get_global_optima(self):
     optima = []
-    for i in range(0, self._domain.vocab_size, 2):
+    for i in range(0, self._domain.vocab_size, 2):  # pyrefly: ignore[missing-attribute]
       optima.append(
           _alternating_sequence(
-              token1=i, token2=(i + 1), length=self._domain.length))
+              token1=i, token2=(i + 1), length=self._domain.length))  # pyrefly: ignore[missing-attribute]
       optima.append(
           _alternating_sequence(
-              token1=(i + 1), token2=i, length=self._domain.length))
+              token1=(i + 1), token2=i, length=self._domain.length))  # pyrefly: ignore[missing-attribute]
     return optima
 
   def compute_metrics(self, population, fast_only=False):

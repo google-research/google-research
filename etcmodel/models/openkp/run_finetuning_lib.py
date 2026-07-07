@@ -441,7 +441,7 @@ def _create_global_visual_feature_embeddings(model_config, features,
       initializer_range=initializer_range,
       use_one_hot_lookup=flags.use_tpu,
       name='indicator_cross_emb_lookup')
-  global_embedding_adder = indicator_cross_emb_lookup(
+  global_embedding_adder = indicator_cross_emb_lookup(  # pyrefly: ignore[not-callable]
       features['global_indicator_cross'])
 
   font_id_emb_lookup = etc_layers.EmbeddingLookup(
@@ -450,7 +450,7 @@ def _create_global_visual_feature_embeddings(model_config, features,
       initializer_range=initializer_range,
       use_one_hot_lookup=flags.use_tpu,
       name='font_id_emb_lookup')
-  global_embedding_adder += font_id_emb_lookup(features['global_font_ids'])
+  global_embedding_adder += font_id_emb_lookup(features['global_font_ids'])  # pyrefly: ignore[not-callable]
 
   parent_font_id_emb_lookup = etc_layers.EmbeddingLookup(
       vocab_size=generate_examples_lib.FONT_ID_VOCAB_SIZE,
@@ -458,7 +458,7 @@ def _create_global_visual_feature_embeddings(model_config, features,
       initializer_range=initializer_range,
       use_one_hot_lookup=flags.use_tpu,
       name='parent_font_id_emb_lookup')
-  global_embedding_adder += parent_font_id_emb_lookup(
+  global_embedding_adder += parent_font_id_emb_lookup(  # pyrefly: ignore[not-callable]
       features['global_parent_font_ids'])
 
   # Add transformation of dense features

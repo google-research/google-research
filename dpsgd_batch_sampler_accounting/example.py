@@ -52,14 +52,14 @@ various batch samplers.
   # 1. Deterministic batch sampler.
   print('1. delta_D corresponding to the Deterministic batch sampler.')
   det_accountant = dpsgd_bounds.DeterministicAccountant()
-  data['delta_D'] = det_accountant.get_deltas(sigma, epsilons, num_epochs)
+  data['delta_D'] = det_accountant.get_deltas(sigma, epsilons, num_epochs)  # pyrefly: ignore[bad-assignment]
 
   # 2. Poisson batch sampler.
   # (a) Upper bound using RDP analysis.
   print('2. delta_P corresponding to the Poissson subsampling batch sampler.')
   print('   (a) Upper bound using RDP analysis, and')
   poisson_rdp_accountant = dpsgd_bounds.PoissonRDPAccountant()
-  data['delta_P (RDP: upper)'] = poisson_rdp_accountant.get_deltas(
+  data['delta_P (RDP: upper)'] = poisson_rdp_accountant.get_deltas(  # pyrefly: ignore[bad-assignment]
       sigma, epsilons, num_steps_per_epoch, num_epochs
   )
   # (b) Upper and lower bound using PLD analysis.
@@ -72,10 +72,10 @@ various batch samplers.
   poisson_pld_lb_accountant = dpsgd_bounds.PoissonPLDAccountant(
       pessimistic_estimate=False
   )
-  data['delta_P (PLD: upper)'] = poisson_pld_ub_accountant.get_deltas(
+  data['delta_P (PLD: upper)'] = poisson_pld_ub_accountant.get_deltas(  # pyrefly: ignore[bad-assignment]
       sigma, epsilons, num_steps_per_epoch, num_epochs, discretization
   )
-  data['delta_P (PLD: lower)'] = poisson_pld_lb_accountant.get_deltas(
+  data['delta_P (PLD: lower)'] = poisson_pld_lb_accountant.get_deltas(  # pyrefly: ignore[bad-assignment]
       sigma, epsilons, num_steps_per_epoch, num_epochs, discretization,
   )
 
@@ -83,7 +83,7 @@ various batch samplers.
   print('3. delta_S corresponding to the Shuffle batch sampler '
         '(lower bound only).')
   shuffle_lb_accountant = dpsgd_bounds.ShuffleAccountant()
-  data['delta_S (lower)'] = shuffle_lb_accountant.get_deltas(
+  data['delta_S (lower)'] = shuffle_lb_accountant.get_deltas(  # pyrefly: ignore[bad-assignment]
       sigma, epsilons, num_steps_per_epoch, num_epochs
   )
 
@@ -93,7 +93,7 @@ various batch samplers.
   # (a) Lower bound.
   print('   (a) Lower bound using a similar approach as for the Shuffle batch '
         'sampler.')
-  data['delta_B (lower)'] = bnb_accountant.get_deltas_lower_bound(
+  data['delta_B (lower)'] = bnb_accountant.get_deltas_lower_bound(  # pyrefly: ignore[bad-assignment]
       sigma, epsilons, num_steps_per_epoch, num_epochs
   )
   # (b) Estimate and upper confidence bound using importance sampling.
@@ -108,8 +108,8 @@ various batch samplers.
       sigma, epsilons, num_steps_per_epoch, sample_size, num_epochs,
       adjacency_type, use_importance_sampling=True,
   )
-  data['delta_B (imp: mean)'] = [e.mean for e in delta_estimates]
-  data['delta_B (imp: ucb)'] = [
+  data['delta_B (imp: mean)'] = [e.mean for e in delta_estimates]  # pyrefly: ignore[bad-assignment]
+  data['delta_B (imp: ucb)'] = [  # pyrefly: ignore[bad-assignment]
       e.get_upper_confidence_bound(error_prob) for e in delta_estimates
   ]
   # (c) Estimate and upper confidence bound using order statistics sampling.
@@ -128,11 +128,11 @@ various batch samplers.
       order_stats_encoding, num_steps_per_epoch
   )
   delta_estimates = bnb_accountant.estimate_order_stats_deltas(
-      sigma, epsilons, num_steps_per_epoch, sample_size, order_stats_seq,
+      sigma, epsilons, num_steps_per_epoch, sample_size, order_stats_seq,  # pyrefly: ignore[bad-argument-type]
       num_epochs, adjacency_type,
   )
-  data['delta_B (os: mean)'] = [e.mean for e in delta_estimates]
-  data['delta_B (os: ucb)'] = [
+  data['delta_B (os: mean)'] = [e.mean for e in delta_estimates]  # pyrefly: ignore[bad-assignment]
+  data['delta_B (os: ucb)'] = [  # pyrefly: ignore[bad-assignment]
       e.get_upper_confidence_bound(error_prob) for e in delta_estimates
   ]
 

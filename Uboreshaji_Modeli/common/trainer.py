@@ -69,7 +69,7 @@ class CustomTrainer(transformers.Trainer):
 
     return {"logits": outputs.logits, "pred_boxes": outputs.pred_boxes}
 
-  def compute_loss(
+  def compute_loss(  # pyrefly: ignore[bad-override]
       self,
       model,
       inputs,
@@ -85,13 +85,13 @@ class CustomTrainer(transformers.Trainer):
       # by the data collator.
       outputs = model(**inputs, interpolate_pos_encoding=True, return_dict=True)
 
-      loss_dict = self.criterion(outputs, labels)
+      loss_dict = self.criterion(outputs, labels)  # pyrefly: ignore[not-callable]
       self._loss_components_buffer.append(
           {k: v.detach().cpu() for k, v in loss_dict.items()}
       )
 
       loss = sum(
-          loss_dict[k] * self.weight_dict[k]
+          loss_dict[k] * self.weight_dict[k]  # pyrefly: ignore[unsupported-operation]
           for k in loss_dict.keys()
           if k in self.weight_dict
       )
@@ -114,12 +114,12 @@ class CustomTrainer(transformers.Trainer):
     with torch.no_grad():
       with self.autocast_smart_context_manager():
         outputs = self._run_forward(model, inputs)
-      loss_dict = self.criterion(outputs, labels)
+      loss_dict = self.criterion(outputs, labels)  # pyrefly: ignore[not-callable]
       self._eval_loss_components_buffer.append(
           {k: v.detach().cpu() for k, v in loss_dict.items()}
       )
       loss = sum(
-          loss_dict[k] * self.weight_dict[k]
+          loss_dict[k] * self.weight_dict[k]  # pyrefly: ignore[unsupported-operation]
           for k in loss_dict.keys()
           if k in self.weight_dict
       )

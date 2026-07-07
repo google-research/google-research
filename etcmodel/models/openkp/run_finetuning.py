@@ -262,9 +262,9 @@ class _MetricAverager:
   def add_example(self, precision: float, recall: float, f1: float):
     """Adds metrics for 1 example."""
     self._count += 1
-    self._total_precision += precision
-    self._total_recall += recall
-    self._total_f1 += f1
+    self._total_precision += precision  # pyrefly: ignore[bad-assignment]
+    self._total_recall += recall  # pyrefly: ignore[bad-assignment]
+    self._total_f1 += f1  # pyrefly: ignore[bad-assignment]
 
   @property
   def precision(self):

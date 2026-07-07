@@ -220,7 +220,7 @@ def write_csv(outdir, tag, value, step, iteration):
 class AtariQNetwork(q_network.QNetwork):
   """QNetwork subclass that divides observations by 255."""
 
-  def call(self, observation, step_type=None, network_state=None):
+  def call(self, observation, step_type=None, network_state=None):  # pyrefly: ignore[bad-override]
     state = tf.cast(observation, tf.float32)
     # We divide the grayscale pixel values by 255 here rather than storing
     # normalized values beause uint8s are 4x cheaper to store than float32s.
@@ -415,7 +415,7 @@ class Runner(object):
 
     self._py_observation_spec = self._env.observation_spec()
     self._py_time_step_spec = ts.time_step_spec(self._py_observation_spec)
-    self._py_action_spec = policy_step.PolicyStep(self._env.action_spec())
+    self._py_action_spec = policy_step.PolicyStep(self._env.action_spec())  # pyrefly: ignore[missing-argument]
     self._data_spec = trajectory.from_transition(self._py_time_step_spec,
                                                  self._py_action_spec,
                                                  self._py_time_step_spec)
@@ -475,7 +475,7 @@ class Runner(object):
     self._agents = {}
     self._init_agent_ops = []
     self._device_name = {}
-    for i, worker in enumerate(self._worker_names):
+    for i, worker in enumerate(self._worker_names):  # pyrefly: ignore[bad-argument-type]
       hparam = self._hparams[worker]
       if self._devices:
         device = '/gpu:' + str(i % len(self._devices))
@@ -492,14 +492,14 @@ class Runner(object):
         self._init_agent_ops.append(agent.initialize())
     self._init_agent_op = tf.group(self._init_agent_ops)
     with (tf.device('/gpu:' +
-                    str((len(self._worker_names) + 1) % len(self._devices)))
+                    str((len(self._worker_names) + 1) % len(self._devices)))  # pyrefly: ignore[bad-argument-type]
           if self._devices else tf.device('/cpu:0')):
       self._behavior_index = tf.Variable(0, dtype=tf.int32, trainable=False)
 
   def save_hparam(self, ckpt_step, snapshot=False):
     """Save hparam."""
     hparam_dict = {
-        worker: self._hparams[worker].values() for worker in self._worker_names
+        worker: self._hparams[worker].values() for worker in self._worker_names  # pyrefly: ignore[not-iterable]
     }
     if snapshot:
       filename = os.path.join(self._hparam_dir,
@@ -579,7 +579,7 @@ class Runner(object):
     return hparam
 
   def _init_graph(self, sess):
-    self._train_checkpointer.initialize_or_restore(sess)
+    self._train_checkpointer.initialize_or_restore(sess)  # pyrefly: ignore[missing-attribute]
     common.initialize_uninitialized_variables(sess)
     sess.run(self._init_agent_op)
     self._collect_timer = timer.Timer()
@@ -590,9 +590,9 @@ class Runner(object):
     # Clip the reward to (-1, 1) to normalize rewards in training.
     traj = traj._replace(reward=np.asarray(np.clip(traj.reward, -1, 1)))
     if worker_name:
-      self._replay_buffer[worker_name].add_batch(traj)
+      self._replay_buffer[worker_name].add_batch(traj)  # pyrefly: ignore[missing-attribute]
     else:
-      self._replay_buffer.add_batch(traj)
+      self._replay_buffer.add_batch(traj)  # pyrefly: ignore[missing-attribute]
 
   def create_or_copy_agent(self,
                            hparam,
@@ -605,11 +605,11 @@ class Runner(object):
     """Create or copy agent."""
     hname = hparam.name.replace('-', '_').replace('.', '_')
     if parent_agent:
-      step_int = sess.run(parent_agent.train_step_counter)
+      step_int = sess.run(parent_agent.train_step_counter)  # pyrefly: ignore[missing-attribute]
     with tf.device(device):
       if do_copy:
         train_step = tf.Variable(
-            step_int,
+            step_int,  # pyrefly: ignore[unbound-name]
             dtype=tf.int64,
             trainable=False,
             name='train_step_' + hname)
@@ -678,16 +678,16 @@ class Runner(object):
             train_step_counter=train_step,
             name=hname)
     if do_copy:
-      agent.train(self._rb_iterator[current_worker])
+      agent.train(self._rb_iterator[current_worker])  # pyrefly: ignore[unbound-name]
       common.initialize_uninitialized_variables(sess)
-      sess.run(agent.initialize())
+      sess.run(agent.initialize())  # pyrefly: ignore[missing-attribute]
       common.soft_variables_update(
           agent._q_network.variables,  # pylint: disable=protected-access
-          parent_agent._q_network.variables,  # pylint: disable=protected-access
+          parent_agent._q_network.variables,  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
           tau=1.0)
       common.soft_variables_update(
           agent._target_q_network.variables,  # pylint: disable=protected-access
-          parent_agent._target_q_network.variables,  # pylint: disable=protected-access
+          parent_agent._target_q_network.variables,  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
           tau=1.0)
     return agent
 
@@ -699,10 +699,10 @@ class Runner(object):
                             metrics=None):
     """Online eval parallel."""
     del sess
-    with self._eval_timer:
+    with self._eval_timer:  # pyrefly: ignore[missing-attribute]
       num_env = batched_env.batch_size
       time_steps = batched_env.reset()
-      for metric in metrics:
+      for metric in metrics:  # pyrefly: ignore[not-iterable]
         metric.reset()
       count_started_episode = len(np.where(time_steps.is_first())[0])
       done_create_process = False
@@ -735,13 +735,13 @@ class Runner(object):
             if count_started_episode >= episode_limit:
               done_create_process = True
           else:
-            for metric in metrics:
+            for metric in metrics:  # pyrefly: ignore[not-iterable]
               count_masked = metric.set_mask(is_over)
               logging.info('finished_process:%d', count_masked)
         if count_masked == num_env:
           break
-    logging.info('%s', 'online eval time = {}'.format(self._eval_timer.value()))
-    self._eval_timer.reset()
+    logging.info('%s', 'online eval time = {}'.format(self._eval_timer.value()))  # pyrefly: ignore[missing-attribute]
+    self._eval_timer.reset()  # pyrefly: ignore[missing-attribute]
 
   def _run_step(self, sess, env, time_step, policy):
     """Run step."""
@@ -783,10 +783,10 @@ class Runner(object):
 
   def _online_eval(self, sess, policy, run_steps=1000, metrics=None):
     env_steps = 0
-    for metric in metrics:
+    for metric in metrics:  # pyrefly: ignore[not-iterable]
       metric.reset()
     while env_steps < run_steps:
-      env_steps += self._run_episode(
+      env_steps += self._run_episode(  # pyrefly: ignore[missing-attribute]
           sess, env=self._env, policy=policy, metrics=metrics, train=False)
 
   def _maybe_log_train(self, train_step, total_loss, agent_name):
@@ -800,13 +800,13 @@ class Runner(object):
     self._collect_py_policies = {}
     self._select_py_policies = {}
     self._rb_iterator = {}
-    for i in range(len(self._worker_names)):
-      worker = self._worker_names[i]
+    for i in range(len(self._worker_names)):  # pyrefly: ignore[bad-argument-type]
+      worker = self._worker_names[i]  # pyrefly: ignore[unsupported-operation]
       agent = self._agents[worker]
       device = self._device_name[worker]
       with tf.device('/cpu:0'):
-        ds = self._replay_buffer[worker].as_dataset(
-            sample_batch_size=self._batch_size,
+        ds = self._replay_buffer[worker].as_dataset(  # pyrefly: ignore[missing-attribute]
+            sample_batch_size=self._batch_size,  # pyrefly: ignore[missing-attribute]
             num_steps=self._hparams[worker].n_step_update + 1)
         ds = ds.prefetch(4)
         ds = ds.apply(tf.data.experimental.prefetch_to_device(device))
@@ -820,27 +820,27 @@ class Runner(object):
         agent.train(self._rb_iterator[worker])
 
   def create_metrics_checkpointer(self):
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       self._metric_checkpointer[worker] = common.Checkpointer(
           ckpt_dir=os.path.join(self._train_dir, worker, 'behaviormetric'),
           max_to_keep=self._max_ckpt,
           **{
               ('behavior_metric_' + worker):
-                  metric_utils.MetricsGroup(self._behavior_metrics[worker],
+                  metric_utils.MetricsGroup(self._behavior_metrics[worker],  # pyrefly: ignore[missing-attribute]
                                             worker + '_metric')
           })
 
   def record_log_metric(self):
     """Record log metric."""
-    for worker in self._worker_names:
-      env_step = int(self._env_steps_metric[worker].result())
-      if self._pbt or self._use_bandit:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
+      env_step = int(self._env_steps_metric[worker].result())  # pyrefly: ignore[missing-attribute]
+      if self._pbt or self._use_bandit:  # pyrefly: ignore[missing-attribute]
         add_summary(self._train_file_writer,
-                    'QMetrics/' + self._bandit_arm_q[worker].name,
-                    self._bandit_arm_q[worker].result('most_recent'), env_step)
-        write_csv(self._csv_dir, self._bandit_arm_q[worker].name,
-                  self._bandit_arm_q[worker].result(), env_step,
-                  self._episode_metric[worker].result())
+                    'QMetrics/' + self._bandit_arm_q[worker].name,  # pyrefly: ignore[missing-attribute]
+                    self._bandit_arm_q[worker].result('most_recent'), env_step)  # pyrefly: ignore[missing-attribute]
+        write_csv(self._csv_dir, self._bandit_arm_q[worker].name,  # pyrefly: ignore[missing-attribute]
+                  self._bandit_arm_q[worker].result(), env_step,  # pyrefly: ignore[missing-attribute]
+                  self._episode_metric[worker].result())  # pyrefly: ignore[missing-attribute]
       add_summary(self._train_file_writer, 'WorkerID/' + 'pbt_id_' + worker,
                   int(self._agent_names[worker].split('-')[1]), env_step)
       add_summary(self._train_file_writer,
@@ -856,7 +856,7 @@ class Runner(object):
                   self._hparams[worker].edecay, env_step)
       write_csv(self._csv_dir, 'worker_status_' + worker,
                 self._agent_names[worker], env_step,
-                self._episode_metric[worker].result())
+                self._episode_metric[worker].result())  # pyrefly: ignore[missing-attribute]
 
   def update_rb_metric_checkpointer(
       self, use_common=False):  # iteration_metrics=self._iteration_metric,
@@ -869,7 +869,7 @@ class Runner(object):
     #   metric_utils.MetricsGroup(self._behavior_metrics[worker],
     #   worker+'_metric') for worker in self._worker_names}
     if use_common:
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         # all = {
         #     ('behavior_metric_' + worker):
         #         metric_utils.MetricsGroup(self._behavior_metrics[worker],
@@ -878,38 +878,38 @@ class Runner(object):
         self._rb_checkpointer[worker] = common.Checkpointer(
             ckpt_dir=os.path.join(self._train_dir, worker, 'replay_buffer'),
             max_to_keep=10,
-            replay_buffer=self._replay_buffer[worker])
+            replay_buffer=self._replay_buffer[worker])  # pyrefly: ignore[missing-attribute]
         self._metric_checkpointer[worker] = common.Checkpointer(
             ckpt_dir=os.path.join(self._train_dir, worker, 'behaviormetric'),
             max_to_keep=self._max_ckpt,
             behavior_metric=metric_utils.MetricsGroup(
-                self._behavior_metrics[worker], worker + '_metric'))
+                self._behavior_metrics[worker], worker + '_metric'))  # pyrefly: ignore[missing-attribute]
       self._basic_checkpointer = common.Checkpointer(
           ckpt_dir=os.path.join(self._train_dir, 'basic'),
           max_to_keep=self._max_ckpt,
           metrics=metric_utils.MetricsGroup(
-              [self._iteration_metric, self._pbt_id], 'basice_metric'))
+              [self._iteration_metric, self._pbt_id], 'basice_metric'))  # pyrefly: ignore[missing-attribute]
     else:
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         # all = {
         #     ('behavior_metric_' + worker):
         #         metric_utils.MetricsGroup(self._behavior_metrics[worker],
         #                                   worker + '_metric')
         # }
         self._rb_checkpointer[worker] = tf.train.CheckpointManager(
-            tf.train.Checkpoint(replay_buffer=self._replay_buffer[worker]),
+            tf.train.Checkpoint(replay_buffer=self._replay_buffer[worker]),  # pyrefly: ignore[missing-attribute]
             directory=os.path.join(self._train_dir, worker, 'replay_buffer'),
             max_to_keep=10)
         self._metric_checkpointer[worker] = tf.train.CheckpointManager(
             tf.train.Checkpoint(
                 behavior_metric=metric_utils.MetricsGroup(
-                    self._behavior_metrics[worker], worker + '_metric')),
+                    self._behavior_metrics[worker], worker + '_metric')),  # pyrefly: ignore[missing-attribute]
             directory=os.path.join(self._train_dir, worker, 'behaviormetric'),
             max_to_keep=self._max_ckpt)
       self._basic_checkpointer = tf.train.CheckpointManager(
           tf.train.Checkpoint(
               metrics=metric_utils.MetricsGroup(
-                  [self._iteration_metric, self._pbt_id], 'basice_metric')),
+                  [self._iteration_metric, self._pbt_id], 'basice_metric')),  # pyrefly: ignore[missing-attribute]
           directory=os.path.join(self._train_dir, 'basic'),
           max_to_keep=self._max_ckpt)
 
@@ -922,7 +922,7 @@ class Runner(object):
     logging.info('updating train and bandit checkpointer with common=%s',
                  use_common)
     if use_common:
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         self._train_checkpointer[worker] = common.Checkpointer(
             ckpt_dir=os.path.join(self._train_dir, worker),
             max_to_keep=self._max_ckpt,
@@ -933,11 +933,11 @@ class Runner(object):
               max_to_keep=self._max_ckpt,
               **{
                   ('pbt_metrics_' + worker):
-                      metric_utils.MetricsGroup([self._bandit_arm_q[worker]],
+                      metric_utils.MetricsGroup([self._bandit_arm_q[worker]],  # pyrefly: ignore[missing-attribute]
                                                 'metric_q_' + worker)
               })
     else:
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         self._train_checkpointer[worker] = tf.train.CheckpointManager(
             tf.train.Checkpoint(**{worker: self._agents[worker]}),
             directory=os.path.join(self._train_dir, worker),
@@ -948,7 +948,7 @@ class Runner(object):
                   **{
                       ('pbt_metrics_' + worker):
                           metric_utils.MetricsGroup(
-                              [self._bandit_arm_q[worker]], 'metric_q_' +
+                              [self._bandit_arm_q[worker]], 'metric_q_' +  # pyrefly: ignore[missing-attribute]
                               worker)
                   }),
               directory=os.path.join(self._train_dir, worker, 'bandit'),
@@ -968,23 +968,23 @@ class Runner(object):
   def save_checkpoints(self, ep_step_int, use_common=False, save_basic=False):
     """Save checkpoints."""
     if use_common:
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         self._train_checkpointer[worker].save(global_step=ep_step_int)
-        if self._use_bandit or self._pbt:
+        if self._use_bandit or self._pbt:  # pyrefly: ignore[missing-attribute]
           self._bandit_checkpointer[worker].save(global_step=ep_step_int)
         self._rb_checkpointer[worker].save(global_step=ep_step_int)
         self._metric_checkpointer[worker].save(global_step=ep_step_int)
       if save_basic:
         self._basic_checkpointer.save(global_step=ep_step_int)
     else:
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         self._train_checkpointer[worker].save(checkpoint_number=ep_step_int)
-        if self._use_bandit or self._pbt:
+        if self._use_bandit or self._pbt:  # pyrefly: ignore[missing-attribute]
           self._bandit_checkpointer[worker].save(checkpoint_number=ep_step_int)
         self._rb_checkpointer[worker].save(checkpoint_number=ep_step_int)
         self._metric_checkpointer[worker].save(checkpoint_number=ep_step_int)
       if save_basic:
-        self._basic_checkpointer.save(checkpoint_number=ep_step_int)
+        self._basic_checkpointer.save(checkpoint_number=ep_step_int)  # pyrefly: ignore[missing-argument, unexpected-keyword]
 
 
 @gin.configurable
@@ -1093,7 +1093,7 @@ class PBTRunner(Runner):
             batch_size=self._eval_parallel_size),
     ]
 
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       if not tf.gfile.Exists(os.path.join(self._train_dir, worker)):
         tf.gfile.MakeDirs(os.path.join(self._train_dir, worker))
       self._train_file_writers[worker] = tf.summary.FileWriter(
@@ -1122,7 +1122,7 @@ class PBTRunner(Runner):
 
     if self._use_bandit or self._pbt:
       self._bandit_arm_q = {}
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         self._bandit_arm_q[worker] = new_pymetrics.QMetric(
             name='QMetric_' + worker, buffer_size=self._bandit_buffer_size)
 
@@ -1136,7 +1136,7 @@ class PBTRunner(Runner):
 
   def iterdone(self):
     done = True
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       done = done & tf.gfile.Exists(
           os.path.join(self._train_dir, worker, 'IterDone'))
     return done
@@ -1168,7 +1168,7 @@ class PBTRunner(Runner):
         # Train phase
         num_episode = 0
         while num_episode < self._train_episode_per_iteration:
-          for worker in self._worker_names:
+          for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
             self._run_episode(
                 sess,
                 env=self._env,
@@ -1181,7 +1181,7 @@ class PBTRunner(Runner):
                          self._episode_metric[worker].result(), worker)
           num_episode += 1
           # Fix worker
-          worker = self._worker_names[0]
+          worker = self._worker_names[0]  # pyrefly: ignore[unsupported-operation]
           if self._episode_metric[worker].result(
           ) % self._update_policy_period == 0:
             self.record_log_metric()
@@ -1190,7 +1190,7 @@ class PBTRunner(Runner):
         ep_step_int = int(ep_step)
         num_iter = ep_step_int + 1
         self._update_eval(sess)
-        with self._checkpoint_timer:
+        with self._checkpoint_timer:  # pyrefly: ignore[bad-context-manager]
           logging.info('saving checkpoints')
           self.save_checkpoints(num_iter, use_common=True)
       self._maybe_log_and_reset_timer()
@@ -1198,7 +1198,7 @@ class PBTRunner(Runner):
         tf.reset_default_graph()
         if self.pbtdone():
           tf.gfile.Remove(os.path.join(self._train_dir, 'PBTDone'))
-        for worker in self._worker_names:
+        for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
           with tf.gfile.GFile(
               os.path.join(self._train_dir, worker, 'IterDone'), 'w') as writer:
             writer.write('IterDone')
@@ -1220,7 +1220,7 @@ class PBTRunner(Runner):
   def _initialize_graph(self, sess, is_first=True):
     """Initialize the graph for sess."""
     self._basic_checkpointer.initialize_or_restore(sess)
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       self._rb_checkpointer[worker].initialize_or_restore(sess)
       self._train_checkpointer[worker].initialize_or_restore(sess)
       if self._use_bandit or self._pbt:
@@ -1235,18 +1235,18 @@ class PBTRunner(Runner):
 
     if is_first:
       self._timed_at_step = {}
-      self._collect_timer = {}
+      self._collect_timer = {}  # pyrefly: ignore[bad-assignment]
       self._eval_timer = timer.Timer()
-      self._train_timer = {}
+      self._train_timer = {}  # pyrefly: ignore[bad-assignment]
       self._pbt_timer = {}
       self._checkpoint_timer = {}
-      for worker in self._worker_names:
-        self._collect_timer[worker] = timer.Timer()
-        self._train_timer[worker] = timer.Timer()
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
+        self._collect_timer[worker] = timer.Timer()  # pyrefly: ignore[unsupported-operation]
+        self._train_timer[worker] = timer.Timer()  # pyrefly: ignore[unsupported-operation]
       self._pbt_timer = timer.Timer()
       self._checkpoint_timer = timer.Timer()
 
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       self._timed_at_step[worker] = sess.run(
           self._agents[worker].train_step_counter)
 
@@ -1264,7 +1264,7 @@ class PBTRunner(Runner):
     random_policy = random_py_policy.RandomPyPolicy(time_step_spec,
                                                     self._env.action_spec())
     time_step = self._env.reset()
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       logging.info('collecting experience for %s', worker)
       while self._replay_buffer[worker].size < self._initial_collect_steps:
         if game_over(self._env):
@@ -1309,7 +1309,7 @@ class PBTRunner(Runner):
     num_steps = 0
     time_step = env.reset()
     while True:
-      with self._collect_timer[worker_name]:
+      with self._collect_timer[worker_name]:  # pyrefly: ignore[bad-index]
         time_step, train_traj, metric_traj = self._run_step(
             sess, env, time_step, policy)
         num_steps += 1
@@ -1319,9 +1319,9 @@ class PBTRunner(Runner):
         self._update_metrics(metrics, metric_traj)
 
       if train and not self._freeze_before_select:
-        with self._train_timer[worker_name]:
+        with self._train_timer[worker_name]:  # pyrefly: ignore[bad-index]
           train_step, _ = self._train_one_step(sess, worker_name)
-      if train_step:
+      if train_step:  # pyrefly: ignore[unbound-name]
         self._maybe_time_train(train_step, worker_name)
       if game_over(env):
         break
@@ -1345,12 +1345,12 @@ class PBTRunner(Runner):
 
   def _update_eval(self, sess):
     del sess
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       reward = self._behavior_metrics[worker][2].result()
       self._bandit_arm_q[worker](reward)
     logging.info('bandit updated:%s', [
         self._bandit_arm_q[worker].result('most_recent')
-        for worker in self._worker_names
+        for worker in self._worker_names  # pyrefly: ignore[not-iterable]
     ])
 
   def _maybe_record_behavior_summaries(self, env_step, worker_name):
@@ -1364,25 +1364,25 @@ class PBTRunner(Runner):
     """Maybe time train."""
     if train_step % self._log_interval == 0:
       steps_per_sec = ((train_step - self._timed_at_step[worker_name]) /
-                       (self._collect_timer[worker_name].value() +
-                        self._train_timer[worker_name].value()))
+                       (self._collect_timer[worker_name].value() +  # pyrefly: ignore[bad-index]
+                        self._train_timer[worker_name].value()))  # pyrefly: ignore[bad-index]
       add_summary(self._train_file_writers[worker_name], 'train_steps_per_sec',
                   steps_per_sec, train_step)
       logging.info('%.3f steps/sec', steps_per_sec)
       logging.info(
           '%s', 'collect_time = {}, train_time = {}'.format(
-              self._collect_timer[worker_name].value(),
-              self._train_timer[worker_name].value()))
+              self._collect_timer[worker_name].value(),  # pyrefly: ignore[bad-index]
+              self._train_timer[worker_name].value()))  # pyrefly: ignore[bad-index]
     self._timed_at_step[worker_name] = train_step
-    self._collect_timer[worker_name].reset()
-    self._train_timer[worker_name].reset()
+    self._collect_timer[worker_name].reset()  # pyrefly: ignore[bad-index]
+    self._train_timer[worker_name].reset()  # pyrefly: ignore[bad-index]
 
   def _maybe_log_and_reset_timer(self):
     logging.info(
         'iteration time: %s', 'pbt_time = {}, checkpoint_time = {}'.format(
-            self._pbt_timer.value(), self._checkpoint_timer.value()))
-    self._pbt_timer.reset()
-    self._checkpoint_timer.reset()
+            self._pbt_timer.value(), self._checkpoint_timer.value()))  # pyrefly: ignore[missing-attribute]
+    self._pbt_timer.reset()  # pyrefly: ignore[missing-attribute]
+    self._checkpoint_timer.reset()  # pyrefly: ignore[missing-attribute]
 
 
 @gin.configurable
@@ -1487,7 +1487,7 @@ class PBTController(Runner):
             batch_size=self._eval_parallel_size),
     ]
 
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       if not tf.gfile.Exists(os.path.join(self._train_dir, worker)):
         tf.gfile.MakeDirs(os.path.join(self._train_dir, worker))
       self._train_file_writers[worker] = tf.summary.FileWriter(
@@ -1516,7 +1516,7 @@ class PBTController(Runner):
 
     if self._use_bandit or self._pbt:
       self._bandit_arm_q = {}
-      for worker in self._worker_names:
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
         self._bandit_arm_q[worker] = new_pymetrics.QMetric(
             name='QMetric_' + worker, buffer_size=self._bandit_buffer_size)
 
@@ -1527,7 +1527,7 @@ class PBTController(Runner):
 
   def iterdone(self):
     done = True
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       done = done & tf.gfile.Exists(
           os.path.join(self._train_dir, worker, 'IterDone'))
     return done
@@ -1551,7 +1551,7 @@ class PBTController(Runner):
           self._initialize_graph(sess)
           if self._iteration_metric.result() > self._num_iterations:
             break
-          with self._pbt_timer:
+          with self._pbt_timer:  # pyrefly: ignore[bad-context-manager]
             logging.info('pbt exploitation start',)
             self.exploit(sess, way=self._pbt_exploit_way)
             self._iteration_metric()
@@ -1559,7 +1559,7 @@ class PBTController(Runner):
             ep_step_int = int(ep_step)
             self.save_hparam(ckpt_step=ep_step_int)
           num_iter = self._iteration_metric.result()
-          with self._checkpoint_timer:
+          with self._checkpoint_timer:  # pyrefly: ignore[bad-context-manager]
             self.update_train_bandit_checkpointer(
                 update_bandit=True, use_common=False)
             self.update_rb_metric_checkpointer(use_common=False)
@@ -1567,9 +1567,9 @@ class PBTController(Runner):
             logging.info('saving checkpoints')
             self.save_checkpoints(
                 ep_step_int, use_common=False, save_basic=True)
-            self._train_checkpointer_large.save(checkpoint_number=ep_step_int)
+            self._train_checkpointer_large.save(checkpoint_number=ep_step_int)  # pyrefly: ignore[missing-argument, unexpected-keyword]
             # self.record_log_metric()
-        for worker in self._worker_names:
+        for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
           tf.gfile.Remove(os.path.join(self._train_dir, worker, 'IterDone'))
         with tf.gfile.GFile(os.path.join(self._train_dir, 'PBTDone'),
                             'w') as writer:
@@ -1580,7 +1580,7 @@ class PBTController(Runner):
   def _initialize_graph(self, sess, is_first=True):
     """Initialize the graph for sess."""
     self._basic_checkpointer.initialize_or_restore(sess)
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       self._rb_checkpointer[worker].initialize_or_restore(sess)
       self._train_checkpointer[worker].initialize_or_restore(sess)
       if self._use_bandit or self._pbt:
@@ -1591,9 +1591,9 @@ class PBTController(Runner):
     sess.run(self._init_agent_op)
     logging.info('bandit:%s', [
         self._bandit_arm_q[worker].result('most_recent')
-        for worker in self._worker_names
+        for worker in self._worker_names  # pyrefly: ignore[not-iterable]
     ])
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       logging.info('bandit buffer for %s:%s', worker,
                    self._bandit_arm_q[worker]._buffer._buffer)  # pylint: disable=protected-access
 
@@ -1602,40 +1602,40 @@ class PBTController(Runner):
 
     if is_first:
       self._timed_at_step = {}
-      self._collect_timer = {}
+      self._collect_timer = {}  # pyrefly: ignore[bad-assignment]
       self._eval_timer = timer.Timer()
-      self._train_timer = {}
+      self._train_timer = {}  # pyrefly: ignore[bad-assignment]
       self._pbt_timer = {}
       self._checkpoint_timer = {}
-      for worker in self._worker_names:
-        self._collect_timer[worker] = timer.Timer()
-        self._train_timer[worker] = timer.Timer()
+      for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
+        self._collect_timer[worker] = timer.Timer()  # pyrefly: ignore[unsupported-operation]
+        self._train_timer[worker] = timer.Timer()  # pyrefly: ignore[unsupported-operation]
       self._pbt_timer = timer.Timer()
       self._checkpoint_timer = timer.Timer()
 
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       self._timed_at_step[worker] = sess.run(
           self._agents[worker].train_step_counter)
 
   def _update_eval(self, sess):
     del sess
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       reward = self._behavior_metrics[worker][2].result()
       self._bandit_arm_q[worker](reward)
     logging.info('bandit updated:%s', [
         self._bandit_arm_q[worker].result('most_recent')
-        for worker in self._worker_names
+        for worker in self._worker_names  # pyrefly: ignore[not-iterable]
     ])
 
   def exploit(self, sess, way='uniform'):
     """Exploit."""
     bottom_table = np.asarray([
         self._bandit_arm_q[worker].result('most_recent')
-        for worker in self._worker_names
+        for worker in self._worker_names  # pyrefly: ignore[not-iterable]
     ])
     top_table = np.asarray([
         self._bandit_arm_q[worker].result('most_recent')
-        for worker in self._worker_names
+        for worker in self._worker_names  # pyrefly: ignore[not-iterable]
     ])
     logging.info('bottom table = %s, top table=%s', bottom_table, top_table)
     top_list = np.argsort(
@@ -1653,11 +1653,11 @@ class PBTController(Runner):
       bottom_prob = np.ones_like(
           bottom_list, dtype=np.float32) * self._pbt_drop_prob
     for i, target_id in enumerate(bottom_list):
-      if np.random.binomial(1, bottom_prob[i]):
-        target_agent = self._worker_names[target_id]
+      if np.random.binomial(1, bottom_prob[i]):  # pyrefly: ignore[unbound-name]
+        target_agent = self._worker_names[target_id]  # pyrefly: ignore[unsupported-operation]
         source_id = top_list[np.where(
-            np.random.multinomial(1, top_prob) == 1)[0][0]]
-        source_agent = self._worker_names[source_id]
+            np.random.multinomial(1, top_prob) == 1)[0][0]]  # pyrefly: ignore[unbound-name]
+        source_agent = self._worker_names[source_id]  # pyrefly: ignore[unsupported-operation]
         logging.info('exploit agent %s(%s) to worker %s(%s), exploration start',
                      source_agent, self._agent_names[source_agent],
                      target_agent, self._agent_names[target_agent])
@@ -1785,7 +1785,7 @@ class EvalRunner(Runner):
     self._eval_metrics = {}
     self._eval_py_policies = {}
 
-    for worker in self._worker_names:
+    for worker in self._worker_names:  # pyrefly: ignore[not-iterable]
       # Use the policy directly for eval.
       self._eval_metrics[worker] = [
           new_pymetrics.DistributionReturnMetric(
@@ -1811,7 +1811,7 @@ class EvalRunner(Runner):
   def run(self):
     """Execute the eval loop."""
     self._eval_file_writer = {}
-    for worker_name in self._eval_agents:
+    for worker_name in self._eval_agents:  # pyrefly: ignore[not-iterable]
       if not tf.gfile.Exists(os.path.join(self._train_dir, worker_name)):
         tf.gfile.MakeDirs(os.path.join(self._train_dir, worker_name))
       self._eval_file_writer[worker_name] = tf.summary.FileWriter(
@@ -1852,7 +1852,7 @@ class EvalRunner(Runner):
         # Initialize the graph.
         self._initialize_graph(sess, checkpoint_path)
         logging.info('Starting evaluation')
-        for worker_name in self._eval_agents:
+        for worker_name in self._eval_agents:  # pyrefly: ignore[not-iterable]
           logging.info('evaluating agent %s', worker_name)
           if worker_name in self._worker_names:
             agent = self._agents[worker_name]

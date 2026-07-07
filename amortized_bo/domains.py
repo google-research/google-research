@@ -22,7 +22,7 @@ from collections.abc import Iterable
 import gin
 import numpy as np
 import six
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 
 from amortized_bo import utils
 

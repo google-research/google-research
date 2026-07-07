@@ -48,7 +48,7 @@ class PolicyUsageFrequency(py_metric.PyStepMetric):
   def result(self):
     """Returns the value of this metric."""
     if self._buffer:
-      return self._buffer.mean(dtype=np.float32)
+      return self._buffer.mean(dtype=np.float32)  # pyrefly: ignore[bad-argument-type]
     return np.array(0.0, dtype=np.float32)
 
   def _batched_call(self, is_selected):
@@ -74,7 +74,7 @@ class StatsNumpyDeque(py_metrics.NumpyDeque):
       assert self._start_index == 0
       data = self._buffer[:self._len]
     new_buffer[0:self._len] = data
-    self._start_index = 0
+    self._start_index = 0  # pyrefly: ignore[bad-assignment]
     self._maxlen = np.array(new_size)
     self._buffer = new_buffer
 
@@ -176,7 +176,7 @@ class DistributionReturnMetric(py_metrics.StreamingMetric):
     """Returns the value of this metric."""
     if self._buffer:
       if way == 'mean':
-        return self._buffer.mean(dtype=np.float32)
+        return self._buffer.mean(dtype=np.float32)  # pyrefly: ignore[bad-argument-type]
       elif way == 'std':
         return self._buffer.std(dtype=np.float32)
       elif way == 'ucb':
@@ -238,13 +238,13 @@ class DistributionEpisodeLengthMetric(py_metrics.StreamingMetric):
     """Returns the value of this metric."""
     if self._buffer:
       if way == 'mean':
-        return self._buffer.mean(dtype=np.float32)
+        return self._buffer.mean(dtype=np.float32)  # pyrefly: ignore[bad-argument-type]
       elif way == 'std':
         return self._buffer.std(dtype=np.float32)
       elif way == 'ucb':
         return self._buffer.ucb(coeff=coeff, dtype=np.float32)
       elif way == '95ucb':
-        return self._buffer.mean(dtype=np.float32) + 1.96 * self._buffer.std(
+        return self._buffer.mean(dtype=np.float32) + 1.96 * self._buffer.std(  # pyrefly: ignore[bad-argument-type]
             dtype=np.float32) / self.get_buffer_size()
     return np.array(0.0, dtype=np.float32)
 

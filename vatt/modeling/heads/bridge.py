@@ -96,21 +96,21 @@ class FACHead(tf.keras.layers.Layer):
     text_representation = inputs["text"]["features_pooled"]
 
     # mapping of video to va space
-    vid2hid = self.vid_to_hid(inputs=video_representation,
+    vid2hid = self.vid_to_hid(inputs=video_representation,  # pyrefly: ignore[not-callable]
                               training=training)
-    vid2aud = self.hid_to_va(inputs=vid2hid,
+    vid2aud = self.hid_to_va(inputs=vid2hid,  # pyrefly: ignore[not-callable]
                              training=training)
 
     # mapping of vid2aud to vat space
-    vid2txt = self.va_to_vat(inputs=vid2aud,
+    vid2txt = self.va_to_vat(inputs=vid2aud,  # pyrefly: ignore[not-callable]
                              training=training)
 
     # mapping of audio to va space
-    aud2vid = self.aud_to_va(inputs=audio_representation,
+    aud2vid = self.aud_to_va(inputs=audio_representation,  # pyrefly: ignore[not-callable]
                              training=training)
 
     # mapping of text to vat space
-    txt2vid = self.txt_to_vat(inputs=text_representation,
+    txt2vid = self.txt_to_vat(inputs=text_representation,  # pyrefly: ignore[not-callable]
                               training=training)
 
     video_embd = {"toaud": vid2aud,
@@ -202,15 +202,15 @@ class JointHead(tf.keras.layers.Layer):
     text_representation = inputs["text"]["features_pooled"]
 
     # mapping of video to vat space
-    vid2vat = self.vid_to_vat(inputs=video_representation,
+    vid2vat = self.vid_to_vat(inputs=video_representation,  # pyrefly: ignore[not-callable]
                               training=training)
 
     # mapping of audio to vat space
-    aud2vat = self.aud_to_vat(inputs=audio_representation,
+    aud2vat = self.aud_to_vat(inputs=audio_representation,  # pyrefly: ignore[not-callable]
                               training=training)
 
     # mapping of text to vat space
-    txt2vat = self.txt_to_vat(inputs=text_representation,
+    txt2vat = self.txt_to_vat(inputs=text_representation,  # pyrefly: ignore[not-callable]
                               training=training)
 
     video_embd = {"toaud": vid2vat,

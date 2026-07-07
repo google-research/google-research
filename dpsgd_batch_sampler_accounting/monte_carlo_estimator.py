@@ -150,7 +150,7 @@ class Estimate:
         stds * np.sqrt(sample_sizes * (sample_sizes - 1))
         / math.sqrt(total_sample_size * (total_sample_size - 1))
     )
-    return Estimate(mean, std, total_sample_size, scale)
+    return Estimate(mean, std, total_sample_size, scale)  # pyrefly: ignore[bad-argument-type]
 
   def get_upper_confidence_bound(self, error_prob):
     """Returns an upper confidence bound for the estimate.

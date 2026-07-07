@@ -303,7 +303,7 @@ class BertExampleBuilder:
         input_ids=input_ids,
         input_mask=input_mask,
         segment_ids=segment_ids,
-        labels=labels,
+        labels=labels,  # pyrefly: ignore[bad-argument-type]
         point_indexes=point_indexes,
         labels_mask=labels_mask,
         input_tokens=input_tokens,
@@ -315,7 +315,7 @@ class BertExampleBuilder:
     insertion_example = None
     if self._converter_insertion is not None:
       insertion_example = self._converter_insertion.create_insertion_example(
-          input_tokens, labels, point_indexes, output_tokens)
+          input_tokens, labels, point_indexes, output_tokens)  # pyrefly: ignore[bad-argument-type]
 
     return example, insertion_example
 

@@ -886,7 +886,7 @@ def create_game_objects(ascii_map_string):
       if char == "#" or char == "O" or char == "D":
         inventory_object = copy.deepcopy(PREFABS["inventory"])
         go_transform = game_object_utils.get_first_named_component(
-            inventory_object, "Transform")
+            inventory_object, "Transform")  # pyrefly: ignore[bad-argument-type]
         go_transform["kwargs"]["position"] = (transform.position.x,
                                               transform.position.y)
         game_objects.append(inventory_object)
@@ -895,7 +895,7 @@ def create_game_objects(ascii_map_string):
       if char == "C":
         loading_object = copy.deepcopy(PREFABS["loading_bar"])
         go_transform = game_object_utils.get_first_named_component(
-            loading_object, "Transform")
+            loading_object, "Transform")  # pyrefly: ignore[bad-argument-type]
         go_transform["kwargs"]["position"] = (transform.position.x,
                                               transform.position.y)
         game_objects.append(loading_object)
@@ -1037,7 +1037,7 @@ def create_avatar_objects(num_players):
     # Add inventory game object which will be connected to player at init.
     inventory_object = copy.deepcopy(PREFABS["inventory"])
     game_object_utils.get_first_named_component(
-        inventory_object, "Inventory")["kwargs"]["playerIndex"] = lua_index
+        inventory_object, "Inventory")["kwargs"]["playerIndex"] = lua_index  # pyrefly: ignore[bad-argument-type]
     game_objects.append(inventory_object)
 
   return game_objects
@@ -1423,7 +1423,7 @@ def get_config(ascii_map):
       "ORIENTATION":
           specs.OBSERVATION["ORIENTATION"],
       "WORLD.RGB":
-          specs.rgb(*world_size),
+          specs.rgb(*world_size),  # pyrefly: ignore[unbound-name]
       "WORLD.CONCEPT_AGENT_POSITIONS":
           concept_specs.position_concept(
               config.num_players, config.num_players, is_agent=True),

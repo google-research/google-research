@@ -950,13 +950,13 @@ class MutationPredictorSolver(base_solver.BaseSolver):
       # Update the value function
       # Compute the difference between predicted value of intermediate states
       # and the final reward.
-      self._value_predictor.update_step(
+      self._value_predictor.update_step(  # pyrefly: ignore[missing-attribute]
           rewards=terminal_rewards,
           inputs=all_states[:-1],
           actions=None,
       )
-      advantage = compute_advantage(self._value_predictor.params,
-                                    self._value_predictor.run_model,
+      advantage = compute_advantage(self._value_predictor.params,  # pyrefly: ignore[missing-attribute]
+                                    self._value_predictor.run_model,  # pyrefly: ignore[missing-attribute]
                                     terminal_rewards, all_states[:-1])
     else:
       advantage = child_rewards - parent_rewards

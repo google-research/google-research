@@ -117,7 +117,7 @@ class AlignmentPrecisionRecall(tf.metrics.Metric):
 
     sol_paths_pred = alignments_pred[1]
     if self._threshold is not None:  # Otherwise, we assume already binarized.
-      sol_paths_pred = tf.cast(sol_paths_pred >= self._threshold, tf.float32)
+      sol_paths_pred = tf.cast(sol_paths_pred >= self._threshold, tf.float32)  # pyrefly: ignore[unsupported-operation]
 
     true_positives, pred_positives, cond_positives = confusion_matrix(
         alignments_true, sol_paths_pred)
@@ -221,7 +221,7 @@ class AlignmentMSE(tf.metrics.Mean):
     len_x, len_y = tf.shape(sol_paths_pred)[1], tf.shape(sol_paths_pred)[2]
     sol_paths_true = alignment.alignments_to_paths(
         alignments_true, len_x, len_y)
-    mse = tf.reduce_sum((sol_paths_pred - sol_paths_true) ** 2, axis=[1, 2, 3])
+    mse = tf.reduce_sum((sol_paths_pred - sol_paths_true) ** 2, axis=[1, 2, 3])  # pyrefly: ignore[unsupported-operation]
     super().update_state(mse, sample_weight)
 
 
@@ -248,7 +248,7 @@ class MeanList(tf.metrics.Metric):
     pos = tf.nest.map_structure(lambda t: t[:tf.shape(t)[0] // 2], inputs)
     if return_neg:
       neg = tf.nest.map_structure(lambda t: t[tf.shape(t)[0] // 2:], inputs)
-    return (pos, neg) if return_neg else (pos,)
+    return (pos, neg) if return_neg else (pos,)  # pyrefly: ignore[unbound-name]
 
   def result(self):
     return {f'{self.name}/{k}': m.result() for k, m in self._means.items()}
@@ -313,7 +313,7 @@ class AlignmentScore(MeanList):
     """Updates alignment scores for a batch of true and predicted alignments."""
     del sample_weight  # Logic in this metric controlled by process_negatives.
 
-    vals_true = (self._split(alignments_pred[2], False) +
+    vals_true = (self._split(alignments_pred[2], False) +  # pyrefly: ignore[bad-argument-type]
                  self._split(alignments_true, False))
     self._means[self._keys[0]].update_state(alignment.sw_score(*vals_true))
 
@@ -349,7 +349,7 @@ class SWParamsStats(MeanList):
     del alignments_true  # Present for compatibility with SeqAlign.
     del sample_weight  # Logic in this metric controlled by process_negatives.
 
-    vals = self._split(alignments_pred[2])
+    vals = self._split(alignments_pred[2])  # pyrefly: ignore[bad-argument-type]
     for k, sw_params in zip(self._keys, vals):
       for p, t in zip(self.PARAMS, sw_params):
         # Prevents entries corresponding to padding from being tracked.

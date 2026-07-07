@@ -43,7 +43,7 @@ def _norm_relu(input_tensor, norm='group', training=True):
         axis=channel_axis,
         momentum=BATCH_NORM_DECAY,
         epsilon=BATCH_NORM_EPSILON)(input_tensor, training)
-  return tf.keras.layers.Activation('relu')(x)
+  return tf.keras.layers.Activation('relu')(x)  # pyrefly: ignore[not-callable]
 
 
 def _conv_norm_relu(input_tensor,
@@ -347,7 +347,7 @@ def create_resnet(input_shape,
   for i, r in enumerate(repetitions):
     x = _residual_block(
         x,
-        block_fn,
+        block_fn,  # pyrefly: ignore[unbound-name]
         filters=filters,
         num_blocks=r,
         strides=(strides[i], strides[i]),
@@ -363,7 +363,7 @@ def create_resnet(input_shape,
   x = tf.keras.layers.GlobalAveragePooling2D()(x)
 
   if dense_layer == 'dense':
-    x = tf.keras.layers.Dense(
+    x = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
         num_classes,
         # activation='softmax',
         kernel_initializer=tf.keras.initializers.RandomNormal(stddev=0.01),
@@ -372,9 +372,9 @@ def create_resnet(input_shape,
         bias_regularizer=None)(
             x)
   elif dense_layer == 'dense_diagcov':
-    x = ed.layers.MCSoftmaxDense(**dense_layer_args)(x)
+    x = ed.layers.MCSoftmaxDense(**dense_layer_args)(x)  # pyrefly: ignore[bad-unpacking, not-callable]
   elif dense_layer == 'dense_fullcov':
-    x = ed.layers.MCSoftmaxDenseFA(**dense_layer_args)(x)
+    x = ed.layers.MCSoftmaxDenseFA(**dense_layer_args)(x)  # pyrefly: ignore[bad-unpacking, not-callable]
   else:
     raise ValueError('Unkown last layer type: {}'.format(dense_layer))
 

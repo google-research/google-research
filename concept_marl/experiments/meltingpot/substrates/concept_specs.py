@@ -157,7 +157,7 @@ def binary_concept(num_agents,
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return ConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects,),
-      dtype=np.int32,
+      dtype=np.int32,  # pyrefly: ignore[bad-argument-type]
       concept_type=ConceptType.BINARY,
       object_type=obj_type,
       name=name)
@@ -181,7 +181,7 @@ def scalar_concept(num_agents,
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return ConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects,),
-      dtype=np.float32,
+      dtype=np.float32,  # pyrefly: ignore[bad-argument-type]
       concept_type=ConceptType.SCALAR,
       object_type=obj_type,
       name=name)
@@ -208,7 +208,7 @@ def categorical_concept(num_agents,
       shape=(num_agents, num_objects,),
       num_categories=num_values,
       object_type=obj_type,
-      dtype=np.int32,
+      dtype=np.int32,  # pyrefly: ignore[bad-argument-type]
       name=name)
 
 
@@ -230,7 +230,7 @@ def position_concept(num_agents,
   obj_type = ObjectType.AGENT if is_agent else ObjectType.ENVIRONMENT_OBJECT
   return ConceptArray(  # pytype: disable=wrong-arg-types  # numpy-scalars
       shape=(num_agents, num_objects, 2),
-      dtype=np.int32,
+      dtype=np.int32,  # pyrefly: ignore[bad-argument-type]
       concept_type=ConceptType.POSITION,
       object_type=obj_type,
       name=name)

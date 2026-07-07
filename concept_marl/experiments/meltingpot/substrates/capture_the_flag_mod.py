@@ -466,7 +466,7 @@ def create_flag_prefab(team):
                   "spriteNames": [dropped_sprite_name, carried_sprite_name],
                   "spriteShapes": [shapes.FLAG,
                                    shapes.FLAG_HELD],
-                  "palettes": [shapes.get_palette(flag_color)] * 2,
+                  "palettes": [shapes.get_palette(flag_color)] * 2,  # pyrefly: ignore[unbound-name]
                   "noRotates": [True, True]
               }
           },
@@ -683,9 +683,9 @@ def create_avatar_object(
   health2_avatar_sprite_name = "avatarSprite{}Health2".format(lua_index)
   health3_avatar_sprite_name = "avatarSprite{}Health3".format(lua_index)
 
-  health1_color_palette = shapes.get_palette(multiply_tuple(team_color, 0.35))
+  health1_color_palette = shapes.get_palette(multiply_tuple(team_color, 0.35))  # pyrefly: ignore[bad-argument-type]
   health2_color_palette = shapes.get_palette(team_color)
-  health3_color_palette = shapes.get_palette(multiply_tuple(team_color, 1.75))
+  health3_color_palette = shapes.get_palette(multiply_tuple(team_color, 1.75))  # pyrefly: ignore[bad-argument-type]
 
   taste_kwargs = {
       "defaultTeamReward": 1.0,
@@ -839,7 +839,7 @@ def _even_vs_odd_team_assignment(
       team = "red"
     elif player_idx % 2 == 1:
       team = "blue"
-    game_object = create_avatar_object(player_idx, team,
+    game_object = create_avatar_object(player_idx, team,  # pyrefly: ignore[unbound-name]
                                        override_taste_kwargs=taste_kwargs)
     avatar_objects.append(game_object)
 
@@ -857,7 +857,7 @@ def _low_vs_high_team_assignment(
       team = "blue"
     elif player_idx > median:
       team = "red"
-    game_object = create_avatar_object(player_idx, team,
+    game_object = create_avatar_object(player_idx, team,  # pyrefly: ignore[unbound-name]
                                        override_taste_kwargs=taste_kwargs)
     avatar_objects.append(game_object)
 

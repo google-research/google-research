@@ -53,7 +53,7 @@ class Policy(Enum):
   GREEDY = 3
 
 
-class OrderedCounter(collections.Counter, collections.OrderedDict):
+class OrderedCounter(collections.Counter, collections.OrderedDict):  # pyrefly: ignore[inconsistent-inheritance]
   pass
 
 

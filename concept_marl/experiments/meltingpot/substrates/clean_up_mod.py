@@ -381,7 +381,7 @@ def create_prefabs():
       "potential_dirt": create_dirt_prefab("dirtWait"),
       "actual_dirt": create_dirt_prefab("dirt"),
   }
-  return prefabs
+  return prefabs  # pyrefly: ignore[bad-return]
 
 
 def create_scene(num_players, num_closest_objs = 5):
