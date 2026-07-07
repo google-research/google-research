@@ -78,7 +78,7 @@ class GCNLayer(tf.keras.layers.Layer):
     if self._layer_number < self._depth - 1:
       layers.append(
           make_map_node_features_layer(
-              tf.keras.layers.Dropout(self._dropout_rate)
+              tf.keras.layers.Dropout(self._dropout_rate)  # pyrefly: ignore[bad-argument-type]
           )
       )
     self._model = tf.keras.Sequential(layers)
@@ -153,11 +153,11 @@ class GINModel(tf.keras.layers.Layer):
       pooled = tfgnn.pool_edges_to_node(
           graph, edge_set_name, receiver, "mean", feature_value=source_bcast
       )
-      h = h * tf.keras.activations.relu(1 + self._epsilons[i]) + pooled
+      h = h * tf.keras.activations.relu(1 + self._epsilons[i]) + pooled  # pyrefly: ignore[unsupported-operation]
       if i == self._depth - 1:
         node_embeddings = h
-      h = self._mlps[i](h)
-    return node_embeddings, h
+      h = self._mlps[i](h)  # pyrefly: ignore[not-callable]
+    return node_embeddings, h  # pyrefly: ignore[bad-return, unbound-name]
 
   def get_config(self):
     return dict(
@@ -209,7 +209,7 @@ class GCNModel(tf.keras.layers.Layer):
       )
       layers.append(
           make_map_node_features_layer(
-              tf.keras.layers.Dropout(self._dropout_rate)
+              tf.keras.layers.Dropout(self._dropout_rate)  # pyrefly: ignore[bad-argument-type]
           )
       )
     self._initial_layers = tf.keras.Sequential(layers)
@@ -283,7 +283,7 @@ class MLPModel(tf.keras.layers.Layer):
     node_embeddings = self._initial_layers(
         inputs.node_sets["nodes"]["hidden_state"]
     )
-    return node_embeddings, self._final_layer(node_embeddings)
+    return node_embeddings, self._final_layer(node_embeddings)  # pyrefly: ignore[not-callable]
 
   def get_config(self):
     return dict(

@@ -177,10 +177,10 @@ class OURS(object):
     if observation_spec.shape == (64, 64, 3):
       conv_stack_critic.output_size = state_dim
       conv_target_stack_critic.output_size = state_dim
-    critic_kwargs['encoder'] = ImageEncoder(
+    critic_kwargs['encoder'] = ImageEncoder(  # pyrefly: ignore[bad-assignment]
         conv_stack_critic, feature_dim=state_dim, bprop_conv_stack=True)
     # Note: the target critic does not share any weights.
-    critic_kwargs['encoder_target'] = ImageEncoder(
+    critic_kwargs['encoder_target'] = ImageEncoder(  # pyrefly: ignore[bad-assignment]
         conv_target_stack_critic, feature_dim=state_dim, bprop_conv_stack=True)
 
     conv_stack_critic_per_level = conv_stack()
@@ -205,16 +205,16 @@ class OURS(object):
       dummy_state = tf.constant(np.zeros([1] + list(observation_spec.shape)))
     else:  # account for padding of +4 everywhere and then cropping out 68
       dummy_state = tf.constant(np.zeros(shape=[1, 68, 68, 3]))
-    dummy_enc = critic_kwargs['encoder'](dummy_state)
+    dummy_enc = critic_kwargs['encoder'](dummy_state)  # pyrefly: ignore[not-callable]
 
     @tf.function
     def init_models():
       """This function initializes all auxiliary networks (state and action encoders) with dummy input (Procgen-specific, 68x68x3, 15 actions).
       """
-      critic_kwargs['encoder'](dummy_state)
-      critic_kwargs['encoder_target'](dummy_state)
-      self.encoder_per_level(dummy_state)
-      self.encoder_per_level_target(dummy_state)
+      critic_kwargs['encoder'](dummy_state)  # pyrefly: ignore[not-callable]
+      critic_kwargs['encoder_target'](dummy_state)  # pyrefly: ignore[not-callable]
+      self.encoder_per_level(dummy_state)  # pyrefly: ignore[not-callable]
+      self.encoder_per_level_target(dummy_state)  # pyrefly: ignore[not-callable]
 
     init_models()
 
@@ -230,14 +230,14 @@ class OURS(object):
         state_dim,
         action_dim,
         hidden_dims=hidden_dims,
-        encoder=critic_kwargs['encoder'],
+        encoder=critic_kwargs['encoder'],  # pyrefly: ignore[bad-argument-type]
         discrete_actions=True,
         linear='linear_Q' in self.rep_learn_keywords)
     self.critic_target = criticCL.Critic(
         state_dim,
         action_dim,
         hidden_dims=hidden_dims,
-        encoder=critic_kwargs['encoder_target'],
+        encoder=critic_kwargs['encoder_target'],  # pyrefly: ignore[bad-argument-type]
         discrete_actions=True,
         linear='linear_Q' in self.rep_learn_keywords)
 
@@ -265,7 +265,7 @@ class OURS(object):
     # This snipet initializes all auxiliary networks (state and action encoders)
     # with dummy input (Procgen-specific, 68x68x3, 15 actions).
     dummy_state = tf.zeros((1, 68, 68, 3), dtype=tf.float32)
-    phi_s = self.critic.encoder(dummy_state)
+    phi_s = self.critic.encoder(dummy_state)  # pyrefly: ignore[not-callable]
     phi_a = tf.eye(action_dim, dtype=tf.float32)
     if 'linear_Q' in self.rep_learn_keywords:
       _ = self.critic.critic1.state_encoder(phi_s)
@@ -314,13 +314,13 @@ class OURS(object):
         encoder=None,  # critic_kwargs['encoder'],
         discrete_actions=True,
         cross_norm=False)
-    self.task_critic_one(
+    self.task_critic_one(  # pyrefly: ignore[not-callable]
         dummy_enc,
         actions=None,
         training=False,
         return_features=False,
         stop_grad_features=False)
-    self.task_critic_target_one(
+    self.task_critic_target_one(  # pyrefly: ignore[not-callable]
         dummy_enc,
         actions=None,
         training=False,
@@ -457,7 +457,7 @@ class OURS(object):
     if self.num_augmentations > 1:
       target_q = 0.
       for i in range(self.num_augmentations):
-        next_q1_i, next_q2_i = self.critic_target(
+        next_q1_i, next_q2_i = self.critic_target(  # pyrefly: ignore[not-callable]
             next_states[i], actions=None, stop_grad_features=self.stop_grad_fqi)
         target_q_i = tf.expand_dims(
             rewards, 1) + self.discount * tf.expand_dims(
@@ -465,13 +465,13 @@ class OURS(object):
         target_q += target_q_i
       target_q /= self.num_augmentations
     elif self.num_augmentations == 1:
-      next_q1, next_q2 = self.critic_target(
+      next_q1, next_q2 = self.critic_target(  # pyrefly: ignore[not-callable]
           next_states[0], actions=None, stop_grad_features=self.stop_grad_fqi)
       target_q = tf.expand_dims(
           rewards, 1) + self.discount * tf.expand_dims(
               discounts, 1) * tf.minimum(next_q1, next_q2)
     else:
-      next_q1, next_q2 = self.target_critic_to_use(
+      next_q1, next_q2 = self.target_critic_to_use(  # pyrefly: ignore[not-callable]
           next_states, actions=None, stop_grad_features=self.stop_grad_fqi)
       target_q = tf.expand_dims(rewards, 1) + self.discount * tf.expand_dims(
           discounts, 1) * tf.minimum(next_q1, next_q2)
@@ -487,7 +487,7 @@ class OURS(object):
         q1 = 0.
         q2 = 0.
         for i in range(self.num_augmentations):
-          q1_i, q2_i = self.critic_to_use(
+          q1_i, q2_i = self.critic_to_use(  # pyrefly: ignore[not-callable]
               states[i], actions=None, stop_grad_features=self.stop_grad_fqi)
           critic_loss_i = (
               tf.losses.mean_squared_error(
@@ -501,7 +501,7 @@ class OURS(object):
         q2 /= self.num_augmentations
         critic_loss /= self.num_augmentations
       elif self.num_augmentations == 1:
-        q1, q2 = self.critic_to_use(
+        q1, q2 = self.critic_to_use(  # pyrefly: ignore[not-callable]
             states[0], actions=None, stop_grad_features=self.stop_grad_fqi)
         q = tf.minimum(q1, q2)
         critic_loss = (
@@ -510,7 +510,7 @@ class OURS(object):
             tf.losses.mean_squared_error(
                 target_q, tf.gather_nd(q2, indices=action_indices)))
       else:
-        q1, q2 = self.critic_to_use(
+        q1, q2 = self.critic_to_use(  # pyrefly: ignore[not-callable]
             states, actions=None, stop_grad_features=self.stop_grad_fqi)
         q = tf.minimum(q1, q2)
         critic_loss = (
@@ -520,7 +520,7 @@ class OURS(object):
                 target_q, tf.gather_nd(q2, indices=action_indices)))
 
       # LSE from CQL
-      cql_logsumexp = tf.reduce_logsumexp(q, 1)
+      cql_logsumexp = tf.reduce_logsumexp(q, 1)  # pyrefly: ignore[unbound-name]
       cql_loss = tf.reduce_mean(cql_logsumexp -
                                 tf.gather_nd(q, indices=action_indices))
       # Jointly optimize both losses
@@ -575,7 +575,7 @@ class OURS(object):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(ssl_variables)
       # Compute Q(s,a) as well as phi(s)
-      q1, q2 = self.critic(
+      q1, q2 = self.critic(  # pyrefly: ignore[not-callable]
           states[0],
           actions=None,
           return_features=False,
@@ -585,12 +585,12 @@ class OURS(object):
       rep_loss = tf.constant(0., dtype=tf.float32)
 
       n_quantiles = self.n_quantiles
-      states_enc = [self.critic.encoder(states[0])]
+      states_enc = [self.critic.encoder(states[0])]  # pyrefly: ignore[not-callable]
 
       # Use encoder_per_level (NOT CQL encoder)
-      states_level_enc = [tf.stop_gradient(self.encoder_per_level(states[0]))]
+      states_level_enc = [tf.stop_gradient(self.encoder_per_level(states[0]))]  # pyrefly: ignore[not-callable]
       q_level = tf.minimum(
-          *self.task_critic_one(states_level_enc[0], actions=None))
+          *self.task_critic_one(states_level_enc[0], actions=None))  # pyrefly: ignore[not-callable]
 
       actions_argmax = tf.argmax(q, 1)
       action_indices = tf.stack([
@@ -708,7 +708,7 @@ class OURS(object):
         quantile_features = quantile_features / self.temp
         logits = self.classifier(quantile_features)
         rep_loss += tf.reduce_mean(
-            self.cce(tf.argmax(quantile_bins, 1), logits))
+            self.cce(tf.argmax(quantile_bins, 1), logits))  # pyrefly: ignore[not-callable]
       elif 'energy' in self.rep_learn_keywords:
         energy = tf.exp(
             -tf.reduce_sum(tf.abs(tf.expand_dims(q_level, 1) - q_level), -1))
@@ -759,14 +759,14 @@ class OURS(object):
 
     next_action_indices = tf.stack([
         tf.range(tf.shape(mb_next_actions)[0],
-                 dtype=tf.int32), level_ids * self.output_dim_level +
+                 dtype=tf.int32), level_ids * self.output_dim_level +  # pyrefly: ignore[unsupported-operation]
         tf.cast(mb_next_actions, dtype=tf.int32)
     ],
                                    axis=-1)
 
     action_indices = tf.stack([
         tf.range(tf.shape(mb_actions)[0], dtype=tf.int32),
-        level_ids * self.output_dim_level + tf.cast(mb_actions, dtype=tf.int32)
+        level_ids * self.output_dim_level + tf.cast(mb_actions, dtype=tf.int32)  # pyrefly: ignore[unsupported-operation]
     ],
                               axis=-1)
     level_ids = tf.stack([
@@ -775,8 +775,8 @@ class OURS(object):
     ],
                          axis=-1)
 
-    next_states = [self.encoder_per_level_target(mb_next_states[0])]
-    next_q1, next_q2 = self.task_critic_target_one(
+    next_states = [self.encoder_per_level_target(mb_next_states[0])]  # pyrefly: ignore[not-callable]
+    next_q1, next_q2 = self.task_critic_target_one(  # pyrefly: ignore[not-callable]
         next_states[0], actions=None)
     # Learn d-dimensional successor features
     if 'successor_features' in self.rep_learn_keywords:
@@ -810,8 +810,8 @@ class OURS(object):
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(trainable_variables)
 
-      states = [self.encoder_per_level(mb_states[0])]
-      q1_all, q2_all = self.task_critic_one(states[0], actions=None)
+      states = [self.encoder_per_level(mb_states[0])]  # pyrefly: ignore[not-callable]
+      q1_all, q2_all = self.task_critic_one(states[0], actions=None)  # pyrefly: ignore[not-callable]
 
       q = tf.minimum(q1_all, q2_all)
       if ('successor_features' in self.rep_learn_keywords or
@@ -911,7 +911,7 @@ class OURS(object):
     next_actions_b1 = next_actions_pi
     rewards_b1 = rewards
     discounts_b1 = discounts
-    level_ids_b1 = level_ids
+    level_ids_b1 = level_ids  # pyrefly: ignore[unbound-name]
 
     states_b2 = states
     next_states_b2 = next_states
@@ -950,7 +950,7 @@ class OURS(object):
                                     next_actions_b1, rewards_b1, discounts_b1,
                                     level_ids)
 
-    return {**ssl_dict, **critic_dict, **critic_distillation_dict}
+    return {**ssl_dict, **critic_dict, **critic_distillation_dict}  # pyrefly: ignore[unbound-name]
 
   @tf.function
   def act(self, states, data_aug=False):
@@ -973,7 +973,7 @@ class OURS(object):
       states = tf.cast(
           tf.pad(tf.cast(states * 255., tf.int32), paddings, 'SYMMETRIC'),
           tf.float32) / 255.
-    q1, q2 = self.critic_to_use(states, actions=None)
+    q1, q2 = self.critic_to_use(states, actions=None)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
     actions = tf.argmax(q, -1)
     return actions
@@ -1000,9 +1000,9 @@ class OURS(object):
       states = tf.cast(
           tf.pad(tf.cast(states * 255., tf.int32), paddings, 'SYMMETRIC'),
           tf.float32) / 255.
-    features = self.encoder_per_level(states)
+    features = self.encoder_per_level(states)  # pyrefly: ignore[not-callable]
     # n_batch x 200 x 15
-    q1, q2 = self.task_critic_one(features, actions=None)
+    q1, q2 = self.task_critic_one(features, actions=None)  # pyrefly: ignore[not-callable]
 
     # n_batch x 200 x 15
     q = tf.minimum(q1, q2)

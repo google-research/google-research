@@ -109,7 +109,7 @@ class DenoisingModel(tf.keras.layers.Layer):
       if i < self._depth - 1:
         layers.append(
             make_map_node_features_layer(
-                tf.keras.layers.Dropout(self._dropout_rate)
+                tf.keras.layers.Dropout(self._dropout_rate)  # pyrefly: ignore[bad-argument-type]
             )
         )
     self._model = tf.keras.Sequential(layers)
@@ -265,7 +265,7 @@ class ContrastiveModel(tf.keras.layers.Layer):
           normalized_node_similarities, axis=0
       )
       return (
-          regular_to_annotated_log_softmax + annotated_to_regular_log_softmax
+          regular_to_annotated_log_softmax + annotated_to_regular_log_softmax  # pyrefly: ignore[unsupported-operation]
       ) / 2
 
   def get_config(self):
@@ -334,7 +334,7 @@ def add_denoising_loss(
     cfg,
 ):
   denoising_model = DenoisingModel(node_features, **cfg.denoising_cfg)
-  model.add_loss(cfg.denoising_cfg.w * denoising_model(model_graph))
+  model.add_loss(cfg.denoising_cfg.w * denoising_model(model_graph))  # pyrefly: ignore[not-callable]
   return model
 
 
@@ -362,6 +362,6 @@ def add_contrastive_loss(
   )
   model.add_loss(
       cfg.contrastive_cfg.w
-      * contrastive_model((node_embeddings, augmented_node_embeddings))
+      * contrastive_model((node_embeddings, augmented_node_embeddings))  # pyrefly: ignore[not-callable]
   )
   return model

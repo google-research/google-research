@@ -75,8 +75,8 @@ class BCQ(object):
       Batch of actions.
     """
     states = tf.repeat(states, num_candidates, axis=0)
-    actions = self.actor(states)
-    q1, q2 = self.critic_learner.critic(states, actions)
+    actions = self.actor(states)  # pyrefly: ignore[not-callable]
+    q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
     q = tf.reshape(q, [-1, num_candidates])
     max_inds = tf.math.argmax(q, -1)

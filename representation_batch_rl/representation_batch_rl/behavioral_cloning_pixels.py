@@ -114,7 +114,7 @@ class BehavioralCloning(object):
 
       @tf.function
       def init_models():
-        encoder(dummy_state)
+        encoder(dummy_state)  # pyrefly: ignore[not-callable]
 
       init_models()
 
@@ -250,4 +250,4 @@ class BehavioralCloning(object):
       states = tf.cast(
           tf.pad(tf.cast(states * 255., tf.int32), paddings, 'SYMMETRIC'),
           tf.float32) / 255.
-    return self.policy(states, sample=False)
+    return self.policy(states, sample=False)  # pyrefly: ignore[not-callable]

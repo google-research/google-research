@@ -105,14 +105,14 @@ class FBRAC(object):
       conv_stack_critic.output_size = state_dim
       conv_target_stack_critic.output_size = state_dim
     # Combine and stop_grad some of the above conv stacks
-    actor_kwargs['encoder_bc'] = ImageEncoder(
+    actor_kwargs['encoder_bc'] = ImageEncoder(  # pyrefly: ignore[bad-assignment]
         conv_stack_bc, feature_dim=state_dim, bprop_conv_stack=True)
-    actor_kwargs['encoder'] = ImageEncoder(
+    actor_kwargs['encoder'] = ImageEncoder(  # pyrefly: ignore[bad-assignment]
         conv_stack_critic, feature_dim=state_dim, bprop_conv_stack=False)
-    critic_kwargs['encoder'] = ImageEncoder(
+    critic_kwargs['encoder'] = ImageEncoder(  # pyrefly: ignore[bad-assignment]
         conv_stack_critic, feature_dim=state_dim, bprop_conv_stack=True)
     # Note: the target critic does not share any weights.
-    critic_kwargs['encoder_target'] = ImageEncoder(
+    critic_kwargs['encoder_target'] = ImageEncoder(  # pyrefly: ignore[bad-assignment]
         conv_target_stack_critic, feature_dim=state_dim, bprop_conv_stack=True)
 
     if self.num_augmentations == 0:
@@ -123,10 +123,10 @@ class FBRAC(object):
 
     @tf.function
     def init_models():
-      actor_kwargs['encoder_bc'](dummy_state)
-      actor_kwargs['encoder'](dummy_state)
-      critic_kwargs['encoder'](dummy_state)
-      critic_kwargs['encoder_target'](dummy_state)
+      actor_kwargs['encoder_bc'](dummy_state)  # pyrefly: ignore[not-callable]
+      actor_kwargs['encoder'](dummy_state)  # pyrefly: ignore[not-callable]
+      critic_kwargs['encoder'](dummy_state)  # pyrefly: ignore[not-callable]
+      critic_kwargs['encoder_target'](dummy_state)  # pyrefly: ignore[not-callable]
 
     init_models()
 
@@ -136,7 +136,7 @@ class FBRAC(object):
           state_dim,
           action_spec,
           hidden_dims=hidden_dims,
-          encoder=actor_kwargs['encoder'])
+          encoder=actor_kwargs['encoder'])  # pyrefly: ignore[bad-argument-type]
       action_dim = action_spec.maximum.item() + 1
     else:
       hidden_dims = (256, 256, 256)
@@ -144,7 +144,7 @@ class FBRAC(object):
           state_dim,
           action_spec,
           hidden_dims=hidden_dims,
-          encoder=actor_kwargs['encoder'])
+          encoder=actor_kwargs['encoder'])  # pyrefly: ignore[bad-argument-type]
       action_dim = action_spec.shape[0]
 
     self.action_dim = action_dim
@@ -171,12 +171,12 @@ class FBRAC(object):
         state_dim,
         action_dim,
         hidden_dims=hidden_dims,
-        encoder=critic_kwargs['encoder'])
+        encoder=critic_kwargs['encoder'])  # pyrefly: ignore[bad-argument-type]
     self.critic_target = critic.Critic(
         state_dim,
         action_dim,
         hidden_dims=hidden_dims,
-        encoder=critic_kwargs['encoder_target'])
+        encoder=critic_kwargs['encoder_target'])  # pyrefly: ignore[bad-argument-type]
 
     critic.soft_update(self.critic, self.critic_target, tau=1.0)
     self.critic_optimizer = tf.keras.optimizers.Adam(learning_rate=critic_lr)
@@ -206,9 +206,9 @@ class FBRAC(object):
       dist
     """
     if target:
-      q1, q2 = self.critic_target(states, actions)
+      q1, q2 = self.critic_target(states, actions)  # pyrefly: ignore[not-callable]
     else:
-      q1, q2 = self.critic(states, actions)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
     if self.discrete_actions:
       # expects (n_batch,) tensor instead of (n_batch x n_actions)
       actions = tf.argmax(actions, 1)
@@ -235,19 +235,19 @@ class FBRAC(object):
     """
 
     if self.num_augmentations > 0:
-      next_actions = self.actor(next_states[0], sample=True)
-      policy_actions = self.actor(states[0], sample=True)
+      next_actions = self.actor(next_states[0], sample=True)  # pyrefly: ignore[not-callable]
+      policy_actions = self.actor(states[0], sample=True)  # pyrefly: ignore[not-callable]
       target_q = 0.
       for i in range(self.num_augmentations):
         next_target_q1_i, next_target_q2_i = self.dist_critic(
             next_states[i], next_actions, target=True)
-        target_q_i = rewards + self.discount * discounts * tf.minimum(
+        target_q_i = rewards + self.discount * discounts * tf.minimum(  # pyrefly: ignore[unsupported-operation]
             next_target_q1_i, next_target_q2_i)
         target_q += target_q_i
       target_q /= self.num_augmentations
     else:
-      next_actions = self.actor(next_states, sample=True)
-      policy_actions = self.actor(states, sample=True)
+      next_actions = self.actor(next_states, sample=True)  # pyrefly: ignore[not-callable]
+      policy_actions = self.actor(states, sample=True)  # pyrefly: ignore[not-callable]
       if self.discrete_actions:
         next_actions = tf.cast(
             tf.one_hot(next_actions, depth=self.action_dim), tf.float32)
@@ -256,7 +256,7 @@ class FBRAC(object):
 
       next_target_q1, next_target_q2 = self.dist_critic(
           next_states, next_actions, target=True)
-      target_q = rewards + self.discount * discounts * tf.minimum(
+      target_q = rewards + self.discount * discounts * tf.minimum(  # pyrefly: ignore[unsupported-operation]
           next_target_q1, next_target_q2)
 
     critic_variables = self.critic.trainable_variables
@@ -271,7 +271,7 @@ class FBRAC(object):
               watch_accessed_variables=False, persistent=True) as tape2:
             tape2.watch([policy_actions])
 
-            q1_reg, q2_reg = self.critic(states[i], policy_actions)
+            q1_reg, q2_reg = self.critic(states[i], policy_actions)  # pyrefly: ignore[not-callable]
 
           q1_grads = tape2.gradient(q1_reg, policy_actions)
           q2_grads = tape2.gradient(q2_reg, policy_actions)
@@ -294,7 +294,7 @@ class FBRAC(object):
             watch_accessed_variables=False, persistent=True) as tape2:
           tape2.watch([policy_actions])
 
-          q1_reg, q2_reg = self.critic(states, policy_actions)
+          q1_reg, q2_reg = self.critic(states, policy_actions)  # pyrefly: ignore[not-callable]
 
         q1_grads = tape2.gradient(q1_reg, policy_actions)
         q2_grads = tape2.gradient(q2_reg, policy_actions)
@@ -316,12 +316,12 @@ class FBRAC(object):
 
     critic.soft_update(self.critic, self.critic_target, tau=self.tau)
 
-    return {
-        'q1': tf.reduce_mean(q1),
-        'q2': tf.reduce_mean(q2),
+    return {  # pyrefly: ignore[bad-return]
+        'q1': tf.reduce_mean(q1),  # pyrefly: ignore[unbound-name]
+        'q2': tf.reduce_mean(q2),  # pyrefly: ignore[unbound-name]
         'critic_loss': critic_loss,
-        'q1_grad': tf.reduce_mean(q1_grad_norm),
-        'q2_grad': tf.reduce_mean(q2_grad_norm)
+        'q1_grad': tf.reduce_mean(q1_grad_norm),  # pyrefly: ignore[unbound-name]
+        'q2_grad': tf.reduce_mean(q2_grad_norm)  # pyrefly: ignore[unbound-name]
     }
 
   @property
@@ -340,7 +340,7 @@ class FBRAC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
       if self.discrete_actions:
         actions = tf.cast(
             tf.one_hot(actions, depth=self.action_dim), tf.float32)
@@ -423,4 +423,4 @@ class FBRAC(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]

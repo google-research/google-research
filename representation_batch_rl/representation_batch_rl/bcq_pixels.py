@@ -172,7 +172,7 @@ class BCQ(object):
     """
     if self.discrete_actions:
       # tf.shape(states)[0]
-      q1, q2 = self.critic_learner.critic(
+      q1, q2 = self.critic_learner.critic(  # pyrefly: ignore[not-callable]
           tf.repeat(states, self.action_dim, axis=0),
           tf.cast(
               tf.concat([tf.eye(self.action_dim, dtype=tf.float32)] *
@@ -180,8 +180,8 @@ class BCQ(object):
           return_features=False)
       q = tf.minimum(q1, q2)
       q = tf.reshape(q, (-1, self.action_dim))
-      features = self.critic_learner.critic.encoder(states)
-      act_logits = self.action_encoder(features)
+      features = self.critic_learner.critic.encoder(states)  # pyrefly: ignore[not-callable]
+      act_logits = self.action_encoder(features)  # pyrefly: ignore[not-callable]
       act_log_softmax = tf.nn.log_softmax(act_logits, axis=1)
       act_log_softmax = tf.math.exp(act_log_softmax)
       act_log_softmax = tf.cast(
@@ -196,8 +196,8 @@ class BCQ(object):
       return next_action
     else:
       states = tf.repeat(states, num_candidates, axis=0)
-      actions = self.actor(states)
-      q1, q2 = self.critic_learner.critic(states, actions)
+      actions = self.actor(states)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       q = tf.reshape(q, [-1, num_candidates])
       max_inds = tf.math.argmax(q, -1)
@@ -296,7 +296,7 @@ class BCQ(object):
     if self.discrete_actions:
       return critic_dict
     else:
-      return {**actor_dict, **critic_dict}
+      return {**actor_dict, **critic_dict}  # pyrefly: ignore[unbound-name]
 
   @tf.function
   def act(self, states):

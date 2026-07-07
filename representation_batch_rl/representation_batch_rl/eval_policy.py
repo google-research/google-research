@@ -163,12 +163,13 @@ def main(_):
 
   if FLAGS.env_name.startswith('procgen'):
     # map env string to digit [1,16]
-    env_id = [i for i, name in enumerate(PROCGEN_ENVS) if name == env_name
+    env_id = [i for i, name in enumerate(PROCGEN_ENVS) if name == env_name  # pyrefly: ignore[unbound-name]
              ][0] + 1
     if FLAGS.ckpt_timesteps == 10_000_000:
       ckpt_iter = '0000020480'
     elif FLAGS.ckpt_timesteps == 25_000_000:
       ckpt_iter = '0000051200'
+    # pyrefly: ignore[unbound-name]
     policy_weights_dir = ('ppo_darts/'
                           '2021-06-22-16-36-54/%d/policies/checkpoints/'
                           'policy_checkpoint_%s/' % (env_id, ckpt_iter))
@@ -176,7 +177,7 @@ def main(_):
                       '2021-06-22-16-36-54/%d/policies/policy/' % (env_id))
     model = py_tf_eager_policy.SavedModelPyTFEagerPolicy(
         policy_def_dir,
-        time_step_spec=env._time_step_spec,  # pylint: disable=protected-access
+        time_step_spec=env._time_step_spec,  # pylint: disable=protected-access  # pyrefly: ignore[unbound-name]
         action_spec=env._action_spec,  # pylint: disable=protected-access
         policy_state_spec=env._observation_spec,  # pylint: disable=protected-access
         info_spec=tf.TensorSpec(shape=(None,)),
@@ -186,34 +187,34 @@ def main(_):
   else:
     if 'ddpg' in FLAGS.algo_name:
       model = ddpg.DDPG(
-          env.observation_spec(),
-          env.action_spec(),
+          env.observation_spec(),  # pyrefly: ignore[unbound-name]
+          env.action_spec(),  # pyrefly: ignore[bad-argument-type]
           cross_norm='crossnorm' in FLAGS.algo_name)
     elif 'crr' in FLAGS.algo_name:
-      model = awr.AWR(env.observation_spec(), env.action_spec(), f='bin_max')
+      model = awr.AWR(env.observation_spec(), env.action_spec(), f='bin_max')  # pyrefly: ignore[bad-argument-type, unbound-name]
     elif 'awr' in FLAGS.algo_name:
-      model = awr.AWR(env.observation_spec(), env.action_spec(), f='exp_mean')
+      model = awr.AWR(env.observation_spec(), env.action_spec(), f='exp_mean')  # pyrefly: ignore[bad-argument-type, unbound-name]
     elif 'sac_v1' in FLAGS.algo_name:
       model = sac_v1.SAC(
-          env.observation_spec(),
-          env.action_spec(),
+          env.observation_spec(),  # pyrefly: ignore[unbound-name]
+          env.action_spec(),  # pyrefly: ignore[bad-argument-type]
           target_entropy=-env.action_spec().shape[0])
     elif 'asac' in FLAGS.algo_name:
       model = asac.ASAC(
-          env.observation_spec(),
-          env.action_spec(),
+          env.observation_spec(),  # pyrefly: ignore[unbound-name]
+          env.action_spec(),  # pyrefly: ignore[bad-argument-type]
           target_entropy=-env.action_spec().shape[0])
     elif 'sac' in FLAGS.algo_name:
       model = sac.SAC(
-          env.observation_spec(),
-          env.action_spec(),
+          env.observation_spec(),  # pyrefly: ignore[unbound-name]
+          env.action_spec(),  # pyrefly: ignore[bad-argument-type]
           target_entropy=-env.action_spec().shape[0],
           cross_norm='crossnorm' in FLAGS.algo_name,
           pcl_actor_update='pc' in FLAGS.algo_name)
     elif 'pcl' in FLAGS.algo_name:
       model = pcl.PCL(
-          env.observation_spec(),
-          env.action_spec(),
+          env.observation_spec(),  # pyrefly: ignore[unbound-name]
+          env.action_spec(),  # pyrefly: ignore[bad-argument-type]
           target_entropy=-env.action_spec().shape[0])
     if 'distractor' in FLAGS.env_name:
       ckpt_path = os.path.join(
@@ -226,14 +227,14 @@ def main(_):
            'policy_weights_dmc_1M_SAC_pixel'), 'results',
           FLAGS.env_name + '__' + str(FLAGS.ckpt_timesteps))
 
-    model.load_weights(ckpt_path)
+    model.load_weights(ckpt_path)  # pyrefly: ignore[unbound-name]
   print('Loaded model weights')
 
   with summary_writer.as_default():
     env = procgen_wrappers.TFAgentsParallelProcGenEnv(
         1,
         normalize_rewards=False,
-        env_name=env_name,
+        env_name=env_name,  # pyrefly: ignore[unbound-name]
         num_levels=0,
         start_level=0)
     (avg_returns, avg_len) = evaluation.evaluate(

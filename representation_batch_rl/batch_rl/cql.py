@@ -120,8 +120,8 @@ class CQL(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
-      q1, q2 = self.critic(states, actions)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       actor_loss = tf.reduce_mean(self.alpha * log_probs - q)
 
@@ -160,14 +160,14 @@ class CQL(object):
       Dictionary with information to track.
     """
 
-    next_q1, next_q2 = self.critic_target(next_states, next_actions)
-    target_q = rewards + self.discount * discounts * tf.minimum(
+    next_q1, next_q2 = self.critic_target(next_states, next_actions)  # pyrefly: ignore[not-callable]
+    target_q = rewards + self.discount * discounts * tf.minimum(  # pyrefly: ignore[unsupported-operation]
         next_q1, next_q2)
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.critic.trainable_variables)
 
-      q1, q2 = self.critic(states, actions)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
       critic_loss = (tf.losses.mean_squared_error(target_q, q1) +
                      tf.losses.mean_squared_error(target_q, q2))
 
@@ -179,11 +179,11 @@ class CQL(object):
            actions.get_shape()[-1]], self.actor.action_spec.minimum,
           self.actor.action_spec.maximum)
 
-      n_actions, n_log_probs = self.actor(
+      n_actions, n_log_probs = self.actor(  # pyrefly: ignore[not-callable]
           n_states, sample=True, with_log_probs=True)
 
-      q1_rand, q2_rand = self.critic(n_states, n_rand_actions)
-      q1_curr_actions, q2_curr_actions = self.critic(n_states, n_actions)
+      q1_rand, q2_rand = self.critic(n_states, n_rand_actions)  # pyrefly: ignore[not-callable]
+      q1_curr_actions, q2_curr_actions = self.critic(n_states, n_actions)  # pyrefly: ignore[not-callable]
 
       log_u = -tf.reduce_mean(
           tf.repeat((tf.math.log(2.0 * self.actor.action_scale) *
@@ -237,7 +237,7 @@ class CQL(object):
     next_states = transition.observation[:, 1]
     discounts = transition.discount[:, 0]
 
-    next_actions, _ = self.actor(next_states, sample=True, with_log_probs=True)
+    next_actions, _ = self.actor(next_states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
 
     # entropy_rewards = self.discount * discounts * self.alpha * next_log_probs
     # rewards -= entropy_rewards
@@ -249,4 +249,4 @@ class CQL(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]

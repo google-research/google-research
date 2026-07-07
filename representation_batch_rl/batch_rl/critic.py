@@ -101,7 +101,7 @@ class CriticNet(tf.keras.Model):
     else:
       x = tf.concat([states, actions], -1)
 
-    return tf.squeeze(self.main(x, training), 1)
+    return tf.squeeze(self.main(x, training), 1)  # pyrefly: ignore[not-callable]
 
 
 class CriticNetDiscrete(tf.keras.Model):
@@ -168,7 +168,7 @@ class CriticNetDiscrete(tf.keras.Model):
     """
     x = states
 
-    return self.main(x, training)
+    return self.main(x, training)  # pyrefly: ignore[not-callable]
 
 
 class CriticNetDiscreteLinear(tf.keras.Model):
@@ -297,7 +297,7 @@ class SoftCriticNet(tf.keras.Model):
     Returns:
       Estimate of Q-value.
     """
-    value = self.value(states)
+    value = self.value(states)  # pyrefly: ignore[not-callable]
     advantage = self.advantage.log_probs(states, actions)
     alpha = tf.exp(self.log_alpha)
     return value + advantage * alpha
@@ -337,8 +337,8 @@ class SoftCritic(tf.keras.Model):
       Two estimates of Q-values.
     """
 
-    q1 = self.critic1(states, actions)
-    q2 = self.critic2(states, actions)
+    q1 = self.critic1(states, actions)  # pyrefly: ignore[not-callable]
+    q2 = self.critic2(states, actions)  # pyrefly: ignore[not-callable]
 
     return q1, q2
 
@@ -415,16 +415,16 @@ class Critic(tf.keras.Model):
       Two estimates of Q-values.
     """
     if self.encoder is not None:
-      features = self.encoder(states)
+      features = self.encoder(states)  # pyrefly: ignore[not-callable]
     else:
       features = states
 
     if stop_grad_features:
-      q1 = self.critic1(tf.stop_gradient(features), actions, training)
-      q2 = self.critic2(tf.stop_gradient(features), actions, training)
+      q1 = self.critic1(tf.stop_gradient(features), actions, training)  # pyrefly: ignore[not-callable]
+      q2 = self.critic2(tf.stop_gradient(features), actions, training)  # pyrefly: ignore[not-callable]
     else:
-      q1 = self.critic1(features, actions, training)
-      q2 = self.critic2(features, actions, training)
+      q1 = self.critic1(features, actions, training)  # pyrefly: ignore[not-callable]
+      q2 = self.critic2(features, actions, training)  # pyrefly: ignore[not-callable]
     if return_features:
       return q1, q2, features
     else:
@@ -489,13 +489,13 @@ class CrossNormCriticLearner(object):
       all_states = tf.concat([states, next_states], axis=0)
       all_actions = tf.concat([actions, next_actions], axis=0)
 
-      all_q1, all_q2 = self.critic(all_states, all_actions, training=True)
+      all_q1, all_q2 = self.critic(all_states, all_actions, training=True)  # pyrefly: ignore[not-callable]
 
       q1, next_q1 = tf.split(all_q1, num_or_size_splits=2, axis=0)
       q2, next_q2 = tf.split(all_q2, num_or_size_splits=2, axis=0)
 
       next_q = tf.minimum(next_q1, next_q2)
-      target_q = rewards + self.discount * discounts * tf.stop_gradient(next_q)
+      target_q = rewards + self.discount * discounts * tf.stop_gradient(next_q)  # pyrefly: ignore[unsupported-operation]
 
       critic_loss = (tf.losses.mean_squared_error(target_q, q1) +
                      tf.losses.mean_squared_error(target_q, q2))
@@ -566,14 +566,14 @@ class CriticLearner(object):
       Dictionary with information to track.
     """
 
-    next_q1, next_q2 = self.critic_target(next_states, next_actions)
-    target_q = rewards + self.discount * discounts * tf.minimum(
+    next_q1, next_q2 = self.critic_target(next_states, next_actions)  # pyrefly: ignore[not-callable]
+    target_q = rewards + self.discount * discounts * tf.minimum(  # pyrefly: ignore[unsupported-operation]
         next_q1, next_q2)
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.critic.trainable_variables)
 
-      q1, q2 = self.critic(states, actions)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
 
       critic_loss = (tf.losses.mean_squared_error(target_q, q1) +
                      tf.losses.mean_squared_error(target_q, q2))

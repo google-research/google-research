@@ -141,7 +141,7 @@ class CQL(object):
       """This function initializes all auxiliary networks (state and action encoders) with dummy input (Procgen-specific, 68x68x3, 15 actions).
       """
       dummy_state = tf.zeros((1, 68, 68, 3), dtype=tf.float32)
-      phi_s = self.critic.encoder(dummy_state)
+      phi_s = self.critic.encoder(dummy_state)  # pyrefly: ignore[not-callable]
       phi_a = tf.eye(15, dtype=tf.float32)
       if 'linear_Q' in self.rep_learn_keywords:
         _ = self.critic.critic1.state_encoder(phi_s)
@@ -209,20 +209,20 @@ class CQL(object):
     if self.num_augmentations > 1:
       target_q = 0.
       for i in range(self.num_augmentations):
-        next_q1_i, next_q2_i = self.critic_target(next_states[i], actions=None)
+        next_q1_i, next_q2_i = self.critic_target(next_states[i], actions=None)  # pyrefly: ignore[not-callable]
         target_q_i = tf.expand_dims(
             rewards, 1) + self.discount * tf.expand_dims(
                 discounts, 1) * tf.minimum(next_q1_i, next_q2_i)
         target_q += target_q_i
       target_q /= self.num_augmentations
     elif self.num_augmentations == 1:
-      next_q1, next_q2 = self.critic_target(
+      next_q1, next_q2 = self.critic_target(  # pyrefly: ignore[not-callable]
           next_states[0], actions=None, stop_grad_features=False)
       target_q = tf.expand_dims(
           rewards, 1) + self.discount * tf.expand_dims(
               discounts, 1) * tf.minimum(next_q1, next_q2)
     else:
-      next_q1, next_q2 = self.critic_target(next_states, actions=None)
+      next_q1, next_q2 = self.critic_target(next_states, actions=None)  # pyrefly: ignore[not-callable]
       target_q = tf.expand_dims(rewards, 1) + self.discount * tf.expand_dims(
           discounts, 1) * tf.minimum(next_q1, next_q2)
 
@@ -236,7 +236,7 @@ class CQL(object):
         q1 = 0.
         q2 = 0.
         for i in range(self.num_augmentations):
-          q1_i, q2_i = self.critic(states[i], actions=None)
+          q1_i, q2_i = self.critic(states[i], actions=None)  # pyrefly: ignore[not-callable]
           critic_loss_i = (
               tf.losses.mean_squared_error(
                   target_q, tf.gather_nd(q1_i, indices=action_indices)) +
@@ -249,7 +249,7 @@ class CQL(object):
         q2 /= self.num_augmentations
         critic_loss /= self.num_augmentations
       elif self.num_augmentations == 1:
-        q1, q2 = self.critic(states[0], actions=None)
+        q1, q2 = self.critic(states[0], actions=None)  # pyrefly: ignore[not-callable]
         critic_loss = (
             tf.losses.mean_squared_error(
                 target_q, tf.gather_nd(q1, indices=action_indices)) +
@@ -258,7 +258,7 @@ class CQL(object):
       else:
         # Ensure num_augmentations is non-negative
         assert self.num_augmentations == 0
-        q1, q2 = self.critic(states, actions=None)
+        q1, q2 = self.critic(states, actions=None)  # pyrefly: ignore[not-callable]
         critic_loss = (
             tf.losses.mean_squared_error(
                 target_q, tf.gather_nd(q1, indices=action_indices)) +
@@ -356,7 +356,7 @@ class CQL(object):
           tf.pad(tf.cast(states * 255., tf.int32), paddings, 'SYMMETRIC'),
           tf.float32) / 255.
 
-    q1, q2 = self.critic(states, actions=None)
+    q1, q2 = self.critic(states, actions=None)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
     actions = tf.argmax(q, -1)
     return actions

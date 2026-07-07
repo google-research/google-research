@@ -173,7 +173,7 @@ def main(_):
           '%s__%d__%d__%d.npy' %
           (FLAGS.env_name, FLAGS.ckpt_timesteps, FLAGS.max_timesteps, shard))
 
-    np_observer = tf_utils.NumpyObserver(shard_fn, env)
+    np_observer = tf_utils.NumpyObserver(shard_fn, env)  # pyrefly: ignore[unbound-name]
     dataset = np_observer.load(n_shards)
   else:
     if FLAGS.env_name.startswith('procgen'):
@@ -185,7 +185,7 @@ def main(_):
                                                           FLAGS.ckpt_timesteps,
                                                           FLAGS.max_timesteps))
         elif FLAGS.max_timesteps == 3_000_000:
-          if int(train_levels) == 1:
+          if int(train_levels) == 1:  # pyrefly: ignore[unbound-name]
             print('Using dataset with 1 level')
             dataset_path = (
                 'experiments/'
@@ -239,7 +239,7 @@ def main(_):
                           '%s__%d__%d.tfrecord'%(FLAGS.env_name,
                                                  FLAGS.ckpt_timesteps,
                                                  FLAGS.max_timesteps))
-    shards = tf.io.gfile.glob(dataset_path)
+    shards = tf.io.gfile.glob(dataset_path)  # pyrefly: ignore[unbound-name]
     shards = [s for s in shards if not s.endswith('.spec')]
     print('Found %d shards under path %s' % (len(shards), dataset_path))
     if FLAGS.n_step_returns > 1:
@@ -287,7 +287,7 @@ def main(_):
   else:
     action_dim = env.action_spec().shape[0]
   if 'cql' in FLAGS.algo_name:
-    model = cql.CQL(
+    model = cql.CQL(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         reg=FLAGS.f_reg,
@@ -296,12 +296,12 @@ def main(_):
         rep_learn_keywords=FLAGS.rep_learn_keywords,
         batch_size=FLAGS.batch_size)
   elif 'bcq' in FLAGS.algo_name:
-    model = bcq.BCQ(
+    model = bcq.BCQ(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         num_augmentations=FLAGS.num_data_augs)
   elif 'fbrac' in FLAGS.algo_name:
-    model = fisher_brac.FBRAC(
+    model = fisher_brac.FBRAC(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         target_entropy=-action_dim,
@@ -323,7 +323,7 @@ def main(_):
         batch_size=FLAGS.batch_size,
         n_quantiles=FLAGS.n_quantiles,
         temp=FLAGS.temp,
-        num_training_levels=train_levels)
+        num_training_levels=train_levels)  # pyrefly: ignore[unbound-name]
     bc_pretraining_steps = FLAGS.pretrain
     if pretrain:
       model_save_path = os.path.join(FLAGS.save_dir, 'weights', hparam_str)
@@ -352,7 +352,7 @@ def main(_):
       print('Pretraining')
       for i in tqdm.tqdm(range(bc_pretraining_steps)):
         info_dict = model.update_step(
-            dataset_iter, train_target='encoder')
+            dataset_iter, train_target='encoder')  # pyrefly: ignore[unbound-name]
         # (quantile_states, quantile_bins)
         if i % FLAGS.log_interval == 0:
           with summary_writer.as_default():
@@ -373,7 +373,7 @@ def main(_):
         env_name=FLAGS.env_name,
         batch_size=FLAGS.batch_size)
   elif 'deepmdp' in FLAGS.algo_name:
-    model = deepmdp.DeepMdpLearner(
+    model = deepmdp.DeepMdpLearner(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         embedding_dim=512,
@@ -384,7 +384,7 @@ def main(_):
         rep_learn_keywords=FLAGS.rep_learn_keywords,
         batch_size=FLAGS.batch_size)
   elif 'vpn' in FLAGS.algo_name:
-    model = vpn.ValuePredictionNetworkLearner(
+    model = vpn.ValuePredictionNetworkLearner(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         embedding_dim=512,
@@ -393,7 +393,7 @@ def main(_):
         rep_learn_keywords=FLAGS.rep_learn_keywords,
         batch_size=FLAGS.batch_size)
   elif 'cssc' in FLAGS.algo_name:
-    model = cssc.CSSC(
+    model = cssc.CSSC(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         embedding_dim=512,
@@ -403,7 +403,7 @@ def main(_):
         rep_learn_keywords=FLAGS.rep_learn_keywords,
         batch_size=FLAGS.batch_size)
   elif 'pse' in FLAGS.algo_name:
-    model = pse.PSE(
+    model = pse.PSE(  # pyrefly: ignore[unbound-name]
         env.observation_spec(),
         env.action_spec(),
         embedding_dim=512,
@@ -418,7 +418,7 @@ def main(_):
       print('Pretraining')
       for i in tqdm.tqdm(range(bc_pretraining_steps)):
         info_dict = model.update_step(
-            dataset_iter, train_target='encoder')
+            dataset_iter, train_target='encoder')  # pyrefly: ignore[unbound-name]
         if i % FLAGS.log_interval == 0:
           with summary_writer.as_default():
             for k, v in info_dict.items():
@@ -428,12 +428,13 @@ def main(_):
   if 'fbrac' in FLAGS.algo_name or FLAGS.algo_name == 'bc':
     # Either load the online policy:
     if FLAGS.load_bc and FLAGS.env_name.startswith('procgen'):
-      env_id = [i for i, name in enumerate(PROCGEN_ENVS) if name == env_name
+      env_id = [i for i, name in enumerate(PROCGEN_ENVS) if name == env_name  # pyrefly: ignore[unbound-name]
                ][0] + 1  # map env string to digit [1,16]
       if FLAGS.ckpt_timesteps == 10_000_000:
         ckpt_iter = '0000020480'
       elif FLAGS.ckpt_timesteps == 25_000_000:
         ckpt_iter = '0000051200'
+      # pyrefly: ignore[unbound-name]
       policy_weights_dir = ('ppo_darts/'
                             '2021-06-22-16-36-54/%d/policies/checkpoints/'
                             'policy_checkpoint_%s/' % (env_id, ckpt_iter))
@@ -447,7 +448,7 @@ def main(_):
           info_spec=tf.TensorSpec(shape=(None,)),
           load_specs_from_pbtxt=False)
       bc.update_from_checkpoint(policy_weights_dir)
-      model.bc.policy = tf_utils.TfAgentsPolicy(bc)
+      model.bc.policy = tf_utils.TfAgentsPolicy(bc)  # pyrefly: ignore[bad-assignment, missing-attribute, unbound-name]
     else:
       if FLAGS.algo_name == 'fbrac':
         bc_pretraining_steps = 100_000
@@ -455,12 +456,12 @@ def main(_):
         bc_pretraining_steps = 1_000_000
 
       if 'fbrac' in FLAGS.algo_name:
-        bc = model.bc
+        bc = model.bc  # pyrefly: ignore[unbound-name]
       else:
-        bc = model
-      for i in tqdm.tqdm(range(bc_pretraining_steps)):
+        bc = model  # pyrefly: ignore[unbound-name]
+      for i in tqdm.tqdm(range(bc_pretraining_steps)):  # pyrefly: ignore[unbound-name]
 
-        info_dict = bc.update_step(dataset_iter)
+        info_dict = bc.update_step(dataset_iter)  # pyrefly: ignore[missing-attribute, unbound-name]
         if i % FLAGS.log_interval == 0:
           with summary_writer.as_default():
             for k, v in info_dict.items():
@@ -473,7 +474,7 @@ def main(_):
                 env,
                 bc)  # (FLAGS.env_name.startswith('procgen'))
             average_returns_all, average_length_all = evaluation.evaluate(
-                env_all,
+                env_all,  # pyrefly: ignore[unbound-name]
                 bc)
 
             with result_writer.as_default():
@@ -515,12 +516,12 @@ def main(_):
       print('Training from scratch')
       timesteps_already_done = 0
 
-  tf_step_counter.assign(timesteps_already_done)
+  tf_step_counter.assign(timesteps_already_done)  # pyrefly: ignore[unbound-name]
 
   for i in tqdm.tqdm(range(timesteps_already_done, FLAGS.num_updates)):
     with summary_writer.as_default():
       info_dict = model.update_step(
-          dataset_iter,
+          dataset_iter,  # pyrefly: ignore[unbound-name]
           train_target='rl' if pretrain else 'both')
     if i % FLAGS.log_interval == 0:
       with summary_writer.as_default():
@@ -533,7 +534,7 @@ def main(_):
           env,
           model)
       average_returns_all, average_length_all = evaluation.evaluate(
-          env_all,
+          env_all,  # pyrefly: ignore[unbound-name]
           model)
 
       with result_writer.as_default():
@@ -545,7 +546,7 @@ def main(_):
             'evaluation/length-all', average_length_all, step=i + 1)
 
     tf_step_counter.assign(i)
-    manager.save(checkpoint_number=i)
+    manager.save(checkpoint_number=i)  # pyrefly: ignore[unbound-name]
 
 if __name__ == '__main__':
   app.run(main)

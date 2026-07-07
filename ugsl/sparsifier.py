@@ -220,7 +220,7 @@ class Bernoulli(tf.keras.layers.Layer):
       similarities = tf.sigmoid(
           tf.math.divide_no_nan(similarities, self._temperature)
       )
-      return self._enn_layer(similarities)
+      return self._enn_layer(similarities)  # pyrefly: ignore[not-callable]
     outputs = tf.floor(
         tf.random.uniform(similarities.shape, maxval=1.0, seed=self._seed)
         + similarities

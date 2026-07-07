@@ -71,7 +71,7 @@ class ConvStack(tf.keras.Model):
   @tf.function
   def call(self, obs):
     obs = tf.cast(obs, tf.float32) / 255.0
-    return self.conv_stack(obs)
+    return self.conv_stack(obs)  # pyrefly: ignore[not-callable]
 
 
 class ImageEncoder(tf.keras.Model):
@@ -114,10 +114,10 @@ class ImageEncoder(tf.keras.Model):
 
   @tf.function
   def call(self, obs):
-    hidden = self.conv_stack(obs)
+    hidden = self.conv_stack(obs)  # pyrefly: ignore[not-callable]
     if not self.bprop_conv_stack:
       hidden = tf.stop_gradient(hidden)
-    return self.fc_stack(hidden)
+    return self.fc_stack(hidden)  # pyrefly: ignore[not-callable]
 
 
 class SimpleImageEncoder(tf.keras.Model):
@@ -140,7 +140,7 @@ class SimpleImageEncoder(tf.keras.Model):
 
   @tf.function
   def call(self, obs):
-    hidden = self.conv_stack(obs)
+    hidden = self.conv_stack(obs)  # pyrefly: ignore[not-callable]
     if not self.bprop_conv_stack:
       hidden = tf.stop_gradient(hidden)
     return hidden
@@ -241,11 +241,11 @@ class ImpalaCNN(tf.keras.Model):
     out = self.conv_section[0](inputs, is_training=is_training, **kwargs)
     out = self.conv_section[1](out, is_training=is_training, **kwargs)
     out = self.conv_section[2](out, is_training=is_training, **kwargs)
-    out = tf.keras.layers.Flatten()(out)
+    out = tf.keras.layers.Flatten()(out)  # pyrefly: ignore[not-callable]
     out = tf.nn.relu(out)
-    out = self.linear1(out)
+    out = self.linear1(out)  # pyrefly: ignore[not-callable]
     out = tf.nn.relu(out)
-    out = self.linear2(out)
+    out = self.linear2(out)  # pyrefly: ignore[not-callable]
     return out
 
 

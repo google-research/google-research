@@ -103,10 +103,10 @@ flags.DEFINE_integer('total_workers', 128, 'Total number of workers')
 class FlatTimestep(trajectories.TimeStep):
 
   def __init__(self, step_type, reward, discount, observation):
-    self.observation = observation[0]
-    self.discount = discount[0]
-    self.reward = reward[0]
-    self.step_type = step_type[0]
+    self.observation = observation[0]  # pyrefly: ignore[bad-override, read-only]
+    self.discount = discount[0]  # pyrefly: ignore[bad-override, read-only]
+    self.reward = reward[0]  # pyrefly: ignore[bad-override, read-only]
+    self.step_type = step_type[0]  # pyrefly: ignore[bad-override, read-only]
 
 
 class Traj():
@@ -153,7 +153,7 @@ def main(_):
 
     data_spec = trajectory.from_transition(
         timestep_spec,
-        policy_step.PolicyStep(
+        policy_step.PolicyStep(  # pyrefly: ignore[missing-argument]
             action=env._action_spec,  # pylint: disable=protected-access
             info=specs.ArraySpec(shape=(), dtype=np.int32)), timestep_spec)
 
@@ -179,13 +179,13 @@ def main(_):
 
     if FLAGS.obs_type == 'pixels':
       data_spec = trajectory.from_transition(
-          env.time_step_spec(), policy_step.PolicyStep(env.action_spec()),
+          env.time_step_spec(), policy_step.PolicyStep(env.action_spec()),  # pyrefly: ignore[missing-argument]
           env.time_step_spec())
       ckpt_steps = FLAGS.ckpt_timesteps[0]
     else:
       data_spec = trajectory.from_transition(
           state_env.time_step_spec(),
-          policy_step.PolicyStep(state_env.action_spec()),
+          policy_step.PolicyStep(state_env.action_spec()),  # pyrefly: ignore[missing-argument]
           state_env.time_step_spec())
       n_state = state_env.observation_spec().shape[0]
       ckpt_steps = FLAGS.ckpt_timesteps[0]
@@ -197,16 +197,16 @@ def main(_):
           FLAGS.save_dir, 'datasets', FLAGS.env_name + '__%d__%d__%d.npy' %
           (int(ckpt_steps[-1]), FLAGS.max_timesteps, shard))
 
-    observer = tf_utils.NumpyObserver(shard_fn, env)
+    observer = tf_utils.NumpyObserver(shard_fn, env)  # pyrefly: ignore[unbound-name]
     observer.allocate_arrays(FLAGS.max_timesteps)
   else:
     shard_fn = os.path.join(
         FLAGS.save_dir, 'datasets',
         FLAGS.env_name + '__%d__%d.tfrecord.shard-%d-of-%d' %
-        (int(ckpt_steps[-1]), FLAGS.max_timesteps, FLAGS.worker_id,
+        (int(ckpt_steps[-1]), FLAGS.max_timesteps, FLAGS.worker_id,  # pyrefly: ignore[unbound-name]
          FLAGS.total_workers))
     observer = DummyObserver(
-        shard_fn, data_spec, py_mode=True, compress_image=True)
+        shard_fn, data_spec, py_mode=True, compress_image=True)  # pyrefly: ignore[unbound-name]
 
   def load_model(checkpoint):
     checkpoint = int(checkpoint)
@@ -222,6 +222,7 @@ def main(_):
         ckpt_iter = '0000040960'
       elif checkpoint == 25_000_000:
         ckpt_iter = '0000051200'
+      # pyrefly: ignore[unbound-name]
       policy_weights_dir = ('ppo_darts/'
                             '2021-06-22-16-36-54/%d/policies/checkpoints/'
                             'policy_checkpoint_%s/' % (env_id, ckpt_iter))
@@ -235,42 +236,42 @@ def main(_):
           info_spec=tf.TensorSpec(shape=(None,)),
           load_specs_from_pbtxt=False)
       model.update_from_checkpoint(policy_weights_dir)
-      model.actor = model.action
+      model.actor = model.action  # pyrefly: ignore[missing-attribute]
     else:
       if 'ddpg' in FLAGS.algo_name:
         model = ddpg.DDPG(
             env.observation_spec(),
-            env.action_spec(),
+            env.action_spec(),  # pyrefly: ignore[bad-argument-type]
             cross_norm='crossnorm' in FLAGS.algo_name)
       elif 'crr' in FLAGS.algo_name:
         model = awr.AWR(
             env.observation_spec(),
-            env.action_spec(), f='bin_max')
+            env.action_spec(), f='bin_max')  # pyrefly: ignore[bad-argument-type]
       elif 'awr' in FLAGS.algo_name:
         model = awr.AWR(
             env.observation_spec(),
-            env.action_spec(), f='exp_mean')
+            env.action_spec(), f='exp_mean')  # pyrefly: ignore[bad-argument-type]
       elif 'sac_v1' in FLAGS.algo_name:
         model = sac_v1.SAC(
             env.observation_spec(),
-            env.action_spec(),
+            env.action_spec(),  # pyrefly: ignore[bad-argument-type]
             target_entropy=-env.action_spec().shape[0])
       elif 'asac' in FLAGS.algo_name:
         model = asac.ASAC(
             env.observation_spec(),
-            env.action_spec(),
+            env.action_spec(),  # pyrefly: ignore[bad-argument-type]
             target_entropy=-env.action_spec().shape[0])
       elif 'sac' in FLAGS.algo_name:
         model = sac.SAC(
             env.observation_spec(),
-            env.action_spec(),
+            env.action_spec(),  # pyrefly: ignore[bad-argument-type]
             target_entropy=-env.action_spec().shape[0],
             cross_norm='crossnorm' in FLAGS.algo_name,
             pcl_actor_update='pc' in FLAGS.algo_name)
       elif 'pcl' in FLAGS.algo_name:
         model = pcl.PCL(
             env.observation_spec(),
-            env.action_spec(),
+            env.action_spec(),  # pyrefly: ignore[bad-argument-type]
             target_entropy=-env.action_spec().shape[0])
       if 'distractor' in FLAGS.env_name:
         ckpt_path = os.path.join(
@@ -283,7 +284,7 @@ def main(_):
              '20210607_2023.policy_weights_dmc_1M_SAC_pixel'), 'results',
             FLAGS.env_name + '__' + str(checkpoint))
 
-      model.load_weights(ckpt_path)
+      model.load_weights(ckpt_path)  # pyrefly: ignore[unbound-name]
     print('Loaded model weights')
     return model
 
@@ -310,7 +311,7 @@ def main(_):
     return obs
 
   k_model = 0
-  model = load_model(ckpt_steps[k_model])
+  model = load_model(ckpt_steps[k_model])  # pyrefly: ignore[unbound-name]
   reload_model = False
 
   def linear_scheduling(t):  # pylint: disable=unused-variable
@@ -320,15 +321,15 @@ def main(_):
   for i in tqdm.tqdm(range(FLAGS.max_timesteps)):
     if (i % mixture_freq) == 0 and i > 0:
       reload_model = True
-    if np.all(timestep.is_last()):
+    if np.all(timestep.is_last()):  # pyrefly: ignore[no-matching-overload]
       if FLAGS.env_name.startswith('procgen'):
         timestep = trajectories.TimeStep(
-            timestep.step_type[0], timestep.reward[0], timestep.discount[0],
-            (timestep.observation[0] * 255).astype(np.uint8))
+            timestep.step_type[0], timestep.reward[0], timestep.discount[0],  # pyrefly: ignore[bad-index]
+            (timestep.observation[0] * 255).astype(np.uint8))  # pyrefly: ignore[bad-index, missing-attribute]
 
       time_steps.append(
           ts.termination(
-              get_state_or_pixels(timestep.observation()[0], 'state')
+              get_state_or_pixels(timestep.observation()[0], 'state')  # pyrefly: ignore[not-callable]
               if FLAGS.obs_type == 'state' else timestep.observation,
               timestep.reward if timestep.reward is not None else 1.0))
       # Write the episode into the TF Record
@@ -397,8 +398,8 @@ def main(_):
         reload_model = False
     if FLAGS.env_name.startswith('procgen'):
       timestep = trajectories.TimeStep(
-          timestep.step_type[0], timestep.reward[0], timestep.discount[0],
-          (timestep.observation[0] * 255).astype(np.uint8))
+          timestep.step_type[0], timestep.reward[0], timestep.discount[0],  # pyrefly: ignore[bad-index]
+          (timestep.observation[0] * 255).astype(np.uint8))  # pyrefly: ignore[bad-index, missing-attribute]
 
     if episode_timesteps == 0:
       time_steps.append(
@@ -408,7 +409,7 @@ def main(_):
     elif not timestep.is_last():
       time_steps.append(
           ts.transition(
-              get_state_or_pixels(timestep.observation[0], 'state')
+              get_state_or_pixels(timestep.observation[0], 'state')  # pyrefly: ignore[bad-index]
               if FLAGS.obs_type == 'state' else (timestep.observation),
               timestep.reward if timestep.reward is not None else 0.0,
               timestep.discount))
@@ -433,14 +434,14 @@ def main(_):
     else:
       action = model.actor(
           tf.expand_dims(
-              get_state_or_pixels(timestep.observation[0], 'pixel')
-              if FLAGS.obs_type == 'state' else (timestep.observation[0]), 0),
+              get_state_or_pixels(timestep.observation[0], 'pixel')  # pyrefly: ignore[bad-index]
+              if FLAGS.obs_type == 'state' else (timestep.observation[0]), 0),  # pyrefly: ignore[bad-index]
           sample=True)
       next_timestep = env.step(action)
       actions.append(
           policy_step.PolicyStep(action=action.numpy()[0], state=(), info=()))
 
-    episode_return += next_timestep.reward[0]
+    episode_return += next_timestep.reward[0]  # pyrefly: ignore[bad-index, unsupported-operation]
     episode_timesteps += 1
 
     timestep = next_timestep

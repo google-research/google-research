@@ -87,7 +87,7 @@ class Attentive(EdgeScorer):
   def call(self, inputs):
     similarities = 0
     for vector in self._attention_vectors:
-      similarities += self.compute_one_head(inputs, vector)
+      similarities += self.compute_one_head(inputs, vector)  # pyrefly: ignore[unsupported-operation]
     return similarities / self._nheads
 
   def get_config(self):
@@ -115,7 +115,7 @@ class FP(EdgeScorer):
     self._node_features = node_features
 
   def build(self, input_shape=None):
-    number_of_nodes = input_shape[-2]
+    number_of_nodes = input_shape[-2]  # pyrefly: ignore[unsupported-operation]
     if self._initialization == "similarity":
       self._similarities = tf.Variable(
           initial_value=self.compute_cosine_similarities(self._node_features),

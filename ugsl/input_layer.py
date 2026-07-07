@@ -89,7 +89,7 @@ class InputLayer:
     return self._graph_data.edge_lists()
 
   def get_number_of_nodes(self):
-    return len(self._graph_data.node_features_dicts()['nodes']['feat'])
+    return len(self._graph_data.node_features_dicts()['nodes']['feat'])  # pyrefly: ignore[bad-argument-type]
 
   def get_number_of_classes(self):
     return self._graph_data.num_classes()
@@ -128,12 +128,12 @@ class InputLayer:
         .adjacency.source.shape[0]
     )
     statistics['number_of_train_nodes'] = len(
-        self._graph_data.node_split().train
+        self._graph_data.node_split().train  # pyrefly: ignore[bad-argument-type]
     )
     statistics['number_of_validation_nodes'] = len(
-        self._graph_data.node_split().validation
+        self._graph_data.node_split().validation  # pyrefly: ignore[bad-argument-type]
     )
-    statistics['number_of_test_nodes'] = len(self._graph_data.node_split().test)
+    statistics['number_of_test_nodes'] = len(self._graph_data.node_split().test)  # pyrefly: ignore[bad-argument-type]
     statistics['label_rate'] = (
         statistics['number_of_train_nodes']
     ) / statistics['number_of_nodes']

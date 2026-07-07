@@ -224,7 +224,7 @@ def main(_):
           policy_step = initial_collect_policy.action(timestep)
           action = policy_step.action
         else:
-          action = model.actor(timestep.observation, sample=True)
+          action = model.actor(timestep.observation, sample=True)  # pyrefly: ignore[not-callable, unbound-name]
 
         next_timestep = env.step(action)
 
@@ -238,7 +238,7 @@ def main(_):
 
     if i + 1 >= FLAGS.start_training_timesteps:
       with summary_writer.as_default():
-        info_dict = model.update_step(replay_buffer_iter)
+        info_dict = model.update_step(replay_buffer_iter)  # pyrefly: ignore[unbound-name]
       if (i + 1) % FLAGS.log_interval == 0:
         with summary_writer.as_default():
           for k, v in info_dict.items():

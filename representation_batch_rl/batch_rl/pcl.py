@@ -82,7 +82,7 @@ class PCL(object):
     Returns:
       Actor loss.
     """
-    _, log_probs = self.actor(states, sample=True, with_log_probs=True)
+    _, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch([self.log_alpha])
@@ -116,8 +116,8 @@ class PCL(object):
     Returns:
       Dictionary with information to track.
     """
-    next_v = self.value_target(next_states)
-    target_q = rewards + self.discount * discounts * next_v
+    next_v = self.value_target(next_states)  # pyrefly: ignore[not-callable]
+    target_q = rewards + self.discount * discounts * next_v  # pyrefly: ignore[unsupported-operation]
 
     all_vars = (
         list(self.actor.trainable_variables) +
@@ -127,7 +127,7 @@ class PCL(object):
       tape.watch(all_vars)
 
       actor_log_probs = self.actor.log_probs(states, actions)
-      q = self.value(states) + self.alpha * actor_log_probs
+      q = self.value(states) + self.alpha * actor_log_probs  # pyrefly: ignore[not-callable]
 
       adv = tf.stop_gradient(target_q - q)
       actor_loss = -tf.reduce_mean(actor_log_probs * adv)
@@ -170,7 +170,7 @@ class PCL(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
 
   def save_weights(self, path):
     pass

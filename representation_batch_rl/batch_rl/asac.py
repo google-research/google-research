@@ -86,19 +86,19 @@ class ASAC(object):
     Returns:
       Dictionary with information to track.
     """
-    next_actions = self.actor(next_states, sample=True)
+    next_actions = self.actor(next_states, sample=True)  # pyrefly: ignore[not-callable]
 
-    next_q1, next_q2 = self.critic_target(next_states, next_actions)
-    target_q = rewards + self.discount * discounts * tf.minimum(
+    next_q1, next_q2 = self.critic_target(next_states, next_actions)  # pyrefly: ignore[not-callable]
+    target_q = rewards + self.discount * discounts * tf.minimum(  # pyrefly: ignore[unsupported-operation]
         next_q1, next_q2)
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.critic.trainable_variables)
 
-      q1, q2 = self.critic(states, actions)
-      policy_actions = self.actor(states, sample=True)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
+      policy_actions = self.actor(states, sample=True)  # pyrefly: ignore[not-callable]
 
-      q_pi1, q_pi2 = self.critic(states, policy_actions)
+      q_pi1, q_pi2 = self.critic(states, policy_actions)  # pyrefly: ignore[not-callable]
 
       def discriminator_loss(real_output, fake_output):
         diff = target_q - real_output
@@ -146,8 +146,8 @@ class ASAC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
-      q1, q2 = self.critic(states, actions)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       actor_loss = tf.reduce_mean(self.alpha * log_probs - q)
 
@@ -192,7 +192,7 @@ class ASAC(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
 
   def save_weights(self, path):
     pass

@@ -150,7 +150,7 @@ def main(_):
 
   for i in tqdm.tqdm(range(FLAGS.num_updates)):
     with summary_writer.as_default():
-      info_dict = model.update_step(dataset_iter)
+      info_dict = model.update_step(dataset_iter)  # pyrefly: ignore[unbound-name]
 
     if i % FLAGS.log_interval == 0:
       with summary_writer.as_default():

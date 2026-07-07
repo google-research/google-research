@@ -302,7 +302,7 @@ class InMemoryGraphData(abc.ABC):
       if self._make_undirected and source_node_set_name == target_node_set_name:
         edge_list = tf.concat([edge_list, edge_list[::-1]], axis=-1)
       if self._add_self_loops and source_node_set_name == target_node_set_name:
-        all_nodes = tf.range(node_counts[source_node_set_name],
+        all_nodes = tf.range(node_counts[source_node_set_name],  # pyrefly: ignore[unsupported-operation]
                              dtype=edge_list.dtype)
         self_connections = tf.stack([all_nodes, all_nodes], axis=0)
         edge_list = tf.concat([edge_list, self_connections], axis=-1)
@@ -508,18 +508,18 @@ class NodeClassificationGraphData(InMemoryGraphData):
     # Edge sets.
     for (src_name, es_name, tgt_name), es_indices in self.edge_lists().items():
       key = ('e', '#', src_name, es_name, tgt_name)
-      attribute_dict[key] = es_indices.numpy()
+      attribute_dict[key] = es_indices.numpy()  # pyrefly: ignore[unsupported-operation]
 
     for ns_name, features in features_without_labels.items():
       for feature_name, feature_tensor in features.items():
-        attribute_dict[('n', ns_name, feature_name)] = feature_tensor.numpy()
+        attribute_dict[('n', ns_name, feature_name)] = feature_tensor.numpy()  # pyrefly: ignore[unsupported-operation]
 
     for node_set_name, node_count in self.node_counts().items():
       attribute_dict[('nc', node_set_name)] = node_count
 
     bytes_io = io.BytesIO()
     attribute_dict = {json.dumps(k): v for k, v in attribute_dict.items()}
-    np.savez_compressed(bytes_io, **attribute_dict)
+    np.savez_compressed(bytes_io, **attribute_dict)  # pyrefly: ignore[bad-argument-type]
     with tf.io.gfile.GFile(filename, 'wb') as f:
       f.write(bytes_io.getvalue())
 
@@ -718,7 +718,7 @@ class OgbnData(NodeClassificationGraphData):
 
     # train labels (test set to -1).
     self._train_labels = np.copy(self._node_labels)
-    self._train_labels[self._node_split.test] = -1
+    self._train_labels[self._node_split.test] = -1  # pyrefly: ignore[unsupported-operation]
 
     self._train_labels = as_tensor(self._train_labels)
     self._node_labels = as_tensor(self._node_labels)
@@ -815,7 +815,7 @@ class OgbnData(NodeClassificationGraphData):
     return self._node_split
 
   def labels(self):
-    return self._train_labels
+    return self._train_labels  # pyrefly: ignore[bad-return]
 
   def test_labels(self):
     """int numpy array of length num_nodes containing train and test labels."""

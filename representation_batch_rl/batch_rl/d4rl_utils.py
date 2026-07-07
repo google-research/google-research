@@ -44,7 +44,7 @@ def create_d4rl_env_and_dataset(
   next_states = np.array(dataset['next_observations'], dtype=np.float32)
 
   dataset = tf.data.Dataset.from_tensor_slices(
-      (states, actions, rewards, discounts, next_states)).cache().shuffle(
+      (states, actions, rewards, discounts, next_states)).cache().shuffle(  # pyrefly: ignore[bad-argument-type]
           states.shape[0], reshuffle_each_iteration=True).repeat().batch(
               batch_size,
               drop_remainder=True).prefetch(tf.data.experimental.AUTOTUNE)

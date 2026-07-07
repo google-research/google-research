@@ -128,8 +128,8 @@ class SAC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
-      q1, q2 = self.critic_learner.critic(states, actions)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       actor_loss = tf.reduce_mean(self.alpha * log_probs - q)
 
@@ -164,13 +164,13 @@ class SAC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      out = self.actor.trunk(states)
+      out = self.actor.trunk(states)  # pyrefly: ignore[not-callable]
 
       with tf.GradientTape(watch_accessed_variables=False) as tape2:
         tape2.watch(out)
-        actions, log_probs = self.actor(
+        actions, log_probs = self.actor(  # pyrefly: ignore[not-callable]
             states, out=out, sample=True, with_log_probs=True)
-        q1, q2 = self.critic_learner.critic(states, actions)
+        q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
         q = tf.minimum(q1, q2)
       out_q_grad = tape2.gradient(q, [out])[0]
 
@@ -184,7 +184,7 @@ class SAC(object):
 
       out_data_grad *= q_grad_norm / (data_grad_norm + 1e-3)
 
-      q1, q2 = self.critic_learner.critic(states, data_actions)
+      q1, q2 = self.critic_learner.critic(states, data_actions)  # pyrefly: ignore[not-callable]
       q_data = tf.minimum(q1, q2)
       adv = tf.cast(q_data > q, tf.float32)[:, tf.newaxis]
 
@@ -214,8 +214,8 @@ class SAC(object):
 
   def get_v(self, states, n_samples=4):
     states = tf.repeat(states, n_samples, axis=0)
-    actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
-    q1, q2 = self.critic_learner.critic(states, actions)
+    actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
+    q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2) / self.alpha
     q = q - log_probs - tf.math.log(tf.cast(n_samples, tf.float32))
     q = tf.reshape(q, [-1, n_samples])
@@ -232,7 +232,7 @@ class SAC(object):
     Returns:
       Actor loss.
     """
-    q1, q2 = self.critic_learner.critic(states, actions)
+    q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
 
     v = self.get_v(states)
@@ -252,7 +252,7 @@ class SAC(object):
     self.actor_optimizer.apply_gradients(
         zip(actor_grads, self.actor.trainable_variables))
 
-    _, log_probs = self.actor(states, sample=True, with_log_probs=True)
+    _, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch([self.log_alpha])
       alpha_loss = tf.reduce_mean(self.alpha *
@@ -280,7 +280,7 @@ class SAC(object):
 
     states, actions, rewards, discounts, next_states = next(replay_buffer_iter)
 
-    next_actions, next_log_probs = self.actor(
+    next_actions, next_log_probs = self.actor(  # pyrefly: ignore[not-callable]
         next_states, sample=True, with_log_probs=True)
 
     entropy_rewards = self.discount * discounts * self.alpha * next_log_probs
@@ -298,7 +298,7 @@ class SAC(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
 
   def save_weights(self, path):
     self.actor.save_weights(path+'__actor')

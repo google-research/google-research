@@ -83,18 +83,18 @@ class BRAC(object):
     Returns:
       Dictionary with information to track.
     """
-    next_actions = self.actor(next_states, sample=True)
+    next_actions = self.actor(next_states, sample=True)  # pyrefly: ignore[not-callable]
     bc_log_probs = self.bc.policy.log_probs(next_states, next_actions)
 
-    next_target_q1, next_target_q2 = self.critic_target(next_states,
+    next_target_q1, next_target_q2 = self.critic_target(next_states,  # pyrefly: ignore[not-callable]
                                                         next_actions)
-    target_q = rewards + self.discount * discounts * (tf.minimum(
+    target_q = rewards + self.discount * discounts * (tf.minimum(  # pyrefly: ignore[unsupported-operation]
         next_target_q1, next_target_q2) + self.alpha * bc_log_probs)
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.critic.trainable_variables)
 
-      q1, q2 = self.critic(states, actions)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
 
       critic_loss = (tf.losses.mean_squared_error(target_q, q1) +
                      tf.losses.mean_squared_error(target_q, q2))
@@ -123,8 +123,8 @@ class BRAC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
-      q1, q2 = self.critic(states, actions)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       bc_log_probs = self.bc.policy.log_probs(states, actions)
 
@@ -163,4 +163,4 @@ class BRAC(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]

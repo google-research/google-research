@@ -78,8 +78,8 @@ class AWR(object):
     states = tf.reshape(
         tf.repeat(states[:, tf.newaxis], repeats=num_samples, axis=1),
         [-1, state_dim])
-    actions = self.actor(states, sample=True)
-    q1, q2 = self.critic_learner.critic(states, actions)
+    actions = self.actor(states, sample=True)  # pyrefly: ignore[not-callable]
+    q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
     q = tf.reshape(q, [-1, num_samples])
     if 'max' in reduction:
@@ -105,7 +105,7 @@ class AWR(object):
       tape.watch(self.actor.trainable_variables)
       log_probs = self.actor.log_probs(states, actions)
 
-      q1, q2 = self.critic_learner.critic(states, actions)
+      q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
 
       if self.f in 'bin_max':
@@ -133,7 +133,7 @@ class AWR(object):
 
     states, actions, rewards, discounts, next_states = next(replay_buffer_iter)
 
-    next_actions = self.actor(next_states, sample=True)
+    next_actions = self.actor(next_states, sample=True)  # pyrefly: ignore[not-callable]
 
     critic_dict = self.critic_learner.fit_critic(states, actions, next_states,
                                                  next_actions, rewards,
@@ -144,7 +144,7 @@ class AWR(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
 
   def save_weights(self, path):
     pass

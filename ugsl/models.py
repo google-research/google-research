@@ -49,7 +49,7 @@ def get_gsl_model(
     gsl_layers = GSLLayer(
         input_graph=input_graph,
         layer_number=0,
-        **cfg,
+        **cfg,  # pyrefly: ignore[bad-unpacking]
     )
   elif cfg.adjacency_learning_mode == "per_layer_adjacency_matrix":
     layers = []
@@ -58,7 +58,7 @@ def get_gsl_model(
           GSLLayer(
               input_graph=input_graph,
               layer_number=i,
-              **cfg,
+              **cfg,  # pyrefly: ignore[bad-unpacking]
           )
       )
     gsl_layers = tf.keras.Sequential(layers)
@@ -69,7 +69,7 @@ def get_gsl_model(
   shape = input_graph.get_initial_node_features().shape
   inputs = tf.keras.layers.Input(shape=(shape[1],), batch_size=shape[0])
   split = tf.keras.Input((), dtype=tf.int32)
-  gsl_outputs = gsl_layers(inputs)
+  gsl_outputs = gsl_layers(inputs)  # pyrefly: ignore[not-callable]
   node_embeddings = gsl_outputs["embeddings"]
   predictions = gsl_outputs["predictions"]
   graph_tensor = gsl_outputs["graph_tensor"]
@@ -78,7 +78,7 @@ def get_gsl_model(
       inputs=(inputs, split), outputs=split_node_embeddings
   )
   model = regularizers.add_loss_regularizers(
-      model,
+      model,  # pyrefly: ignore[bad-argument-type]
       graph_tensor,
       input_graph.get_input_graph_tensor(),
       cfg.regularizer_cfg,
@@ -141,25 +141,25 @@ class GSLLayer(tf.keras.layers.Layer):
       del node_set_name
       return node_set["feat"]
 
-    edge_scorer_l = edge_scorer.get_edge_scorer(
+    edge_scorer_l = edge_scorer.get_edge_scorer(  # pyrefly: ignore[missing-argument]
         node_features=self._input_graph.get_initial_node_features(),
-        **self._edge_scorer_cfg,
+        **self._edge_scorer_cfg,  # pyrefly: ignore[bad-unpacking]
     )
-    sparsifier_l = sparsifier.get_sparsifier(
-        self._input_graph.get_number_of_nodes(), **self._sparsifier_cfg
+    sparsifier_l = sparsifier.get_sparsifier(  # pyrefly: ignore[missing-argument]
+        self._input_graph.get_number_of_nodes(), **self._sparsifier_cfg  # pyrefly: ignore[bad-unpacking]
     )
-    processor_l = processor.get_processor(**self._processor_cfg)
-    merger_l = merger.get_merger(
+    processor_l = processor.get_processor(**self._processor_cfg)  # pyrefly: ignore[bad-unpacking, missing-argument]
+    merger_l = merger.get_merger(  # pyrefly: ignore[missing-argument]
         self._input_graph.get_graph_data(),
-        **self._merger_cfg,
+        **self._merger_cfg,  # pyrefly: ignore[bad-unpacking]
     )
     map_feature_l = tfgnn.keras.layers.MapFeatures(node_sets_fn=node_sets_fn)
     anchor_graph_l = unsupervised_losses.AnchorGraphTensor(
         self._input_graph.get_graph_data(),
         **self._unsupervised_cfg.contrastive_cfg,
     )
-    encoder_l = encoder.get_encoder(
-        **self._encoder_cfg,
+    encoder_l = encoder.get_encoder(  # pyrefly: ignore[missing-argument]
+        **self._encoder_cfg,  # pyrefly: ignore[bad-unpacking]
         adjacency_learning_mode=self._adjacency_learning_mode,
         layer_number=self._layer_number,
         depth=self._depth,
@@ -167,21 +167,21 @@ class GSLLayer(tf.keras.layers.Layer):
     )
     inputs = node_embedding_l = tf.keras.Input(shape=input_shape)
     outputs = {}
-    fully_connected_l = edge_scorer_l(node_embedding_l)
-    graph_structure_l = sparsifier_l(fully_connected_l)
-    graph_structure_l = processor_l(graph_structure_l)
-    graph_tensor = merger_l(
+    fully_connected_l = edge_scorer_l(node_embedding_l)  # pyrefly: ignore[not-callable]
+    graph_structure_l = sparsifier_l(fully_connected_l)  # pyrefly: ignore[not-callable]
+    graph_structure_l = processor_l(graph_structure_l)  # pyrefly: ignore[not-callable]
+    graph_tensor = merger_l(  # pyrefly: ignore[not-callable]
         (graph_structure_l, tf.squeeze(node_embedding_l, axis=0))
     )
-    graph_tensor = map_feature_l(graph_tensor)
+    graph_tensor = map_feature_l(graph_tensor)  # pyrefly: ignore[not-callable]
     outputs["graph_tensor"] = graph_tensor
     outputs["embeddings"], outputs["predictions"] = encoder_l(graph_tensor)
 
     if self._unsupervised_cfg.contrastive_cfg.w > 0.0:
-      anchor_graph_tensor = anchor_graph_l(
+      anchor_graph_tensor = anchor_graph_l(  # pyrefly: ignore[not-callable]
           (graph_structure_l, tf.squeeze(node_embedding_l, axis=0))
       )
-      anchor_graph_tensor = map_feature_l(anchor_graph_tensor)
+      anchor_graph_tensor = map_feature_l(anchor_graph_tensor)  # pyrefly: ignore[not-callable]
       node_embedding_augmented, _ = encoder_l(anchor_graph_tensor)
       outputs["augmented_embeddings"] = node_embedding_augmented
 
@@ -190,7 +190,7 @@ class GSLLayer(tf.keras.layers.Layer):
 
   def call(self, inputs):
     inputs = tf.expand_dims(inputs, axis=0)
-    return self._gsl_layer(inputs)
+    return self._gsl_layer(inputs)  # pyrefly: ignore[not-callable]
 
   def get_config(self):
     return dict(

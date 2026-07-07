@@ -153,7 +153,7 @@ class CSSC(object):
     @tf.function
     def init_models2():
       dummy_state = tf.zeros((1, 68, 68, 3), dtype=tf.float32)
-      phi_s = self.critic.encoder(dummy_state)
+      phi_s = self.critic.encoder(dummy_state)  # pyrefly: ignore[not-callable]
       phi_a = tf.eye(15, dtype=tf.float32)
       if 'linear_Q' in self.rep_learn_keywords:
         _ = self.critic.critic1.state_encoder(phi_s)
@@ -257,14 +257,14 @@ class CSSC(object):
     if self.num_augmentations > 0:
       target_q = 0.
       for i in range(self.num_augmentations):
-        next_q1_i, next_q2_i = self.critic_target(next_states[i], actions=None)
+        next_q1_i, next_q2_i = self.critic_target(next_states[i], actions=None)  # pyrefly: ignore[not-callable]
         target_q_i = tf.expand_dims(
             rewards, 1) + self.discount * tf.expand_dims(
                 discounts, 1) * tf.minimum(next_q1_i, next_q2_i)
         target_q += target_q_i
       target_q /= self.num_augmentations
     else:
-      next_q1, next_q2 = self.critic_target(next_states, actions=None)
+      next_q1, next_q2 = self.critic_target(next_states, actions=None)  # pyrefly: ignore[not-callable]
       target_q = tf.expand_dims(rewards, 1) + self.discount * tf.expand_dims(
           discounts, 1) * tf.minimum(next_q1, next_q2)
 
@@ -278,7 +278,7 @@ class CSSC(object):
         q1 = 0.
         q2 = 0.
         for i in range(self.num_augmentations):
-          q1_i, q2_i = self.critic(states[i], actions=None)
+          q1_i, q2_i = self.critic(states[i], actions=None)  # pyrefly: ignore[not-callable]
           critic_loss_i = (
               tf.losses.mean_squared_error(
                   target_q, tf.gather_nd(q1_i, indices=action_indices)) +
@@ -291,7 +291,7 @@ class CSSC(object):
         q2 /= self.num_augmentations
         critic_loss /= self.num_augmentations
       else:
-        q1, q2 = self.critic(states, actions=None)
+        q1, q2 = self.critic(states, actions=None)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       critic_loss = (
           tf.losses.mean_squared_error(
@@ -342,7 +342,7 @@ class CSSC(object):
     ssl_variables = self.critic.trainable_variables
 
     with tf.GradientTape(watch_accessed_variables=True) as tape:
-      next_state_features = self.critic.encoder(next_states[0])
+      next_state_features = self.critic.encoder(next_states[0])  # pyrefly: ignore[not-callable]
       rep_loss = -self.infonce_by_class(
           next_state_features,
           tf.cast(tf.one_hot(actions, depth=self.action_dim), tf.float32))
@@ -407,7 +407,7 @@ class CSSC(object):
     critic_dict = self.fit_critic(states, actions, next_states, next_actions,
                                   rewards, discounts)
     ssl_dict = self.fit_embedding(states, actions, next_states, next_actions,
-                                  rewards, discounts, level_ids)
+                                  rewards, discounts, level_ids)  # pyrefly: ignore[unbound-name]
 
     return {**critic_dict, **ssl_dict}
 
@@ -434,7 +434,7 @@ class CSSC(object):
           tf.pad(tf.cast(states * 255., tf.int32), paddings, 'SYMMETRIC'),
           tf.float32) / 255.
 
-    q1, q2 = self.critic(states, actions=None)
+    q1, q2 = self.critic(states, actions=None)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
     actions = tf.argmax(q, -1)
     return actions

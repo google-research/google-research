@@ -77,8 +77,8 @@ class DDPG(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions = self.actor(states, sample=False)
-      q1, q2 = self.critic_learner.critic(states, actions)
+      actions = self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic_learner.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       actor_loss = -tf.reduce_mean(q)
 
@@ -101,7 +101,7 @@ class DDPG(object):
 
     states, actions, rewards, discounts, next_states = next(replay_buffer_iter)
 
-    next_actions = self.actor(next_states, sample=False)
+    next_actions = self.actor(next_states, sample=False)  # pyrefly: ignore[not-callable]
     critic_dict = self.critic_learner.fit_critic(states, actions, next_states,
                                                  next_actions, rewards,
                                                  discounts)
@@ -111,7 +111,7 @@ class DDPG(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
 
   def save_weights(self, path):
     pass

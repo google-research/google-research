@@ -68,8 +68,8 @@ class WeightedSum(Merger):
         axis=0,
     )
     graph_tensor = self._graph_data.as_graph_tensor_given_adjacency(
-        [noisy_sources, noisy_targets],
-        edge_weights=self._dropout_layer(noisy_weights),
+        [noisy_sources, noisy_targets],  # pyrefly: ignore[bad-argument-type]
+        edge_weights=self._dropout_layer(noisy_weights),  # pyrefly: ignore[not-callable]
         node_features=node_embeddings,
     )
     return graph_tensor
@@ -99,8 +99,8 @@ class ToGraphTensor(Merger):
     graph_structure = inputs[0]
     node_embeddings = inputs[1]
     graph_tensor = self._graph_data.as_graph_tensor_given_adjacency(
-        [graph_structure.sources, graph_structure.targets],
-        edge_weights=self._dropout_layer(graph_structure.weights),
+        [graph_structure.sources, graph_structure.targets],  # pyrefly: ignore[bad-argument-type]
+        edge_weights=self._dropout_layer(graph_structure.weights),  # pyrefly: ignore[not-callable]
         node_features=node_embeddings,
     )
     return graph_tensor
@@ -145,7 +145,7 @@ class RandomGraphTensor(Merger):
     node_embeddings = inputs[1]
     graph_tensor = self._graph_data.as_graph_tensor_given_adjacency(
         tf.stack([self._random_sources, self._random_targets], axis=0),
-        edge_weights=self._dropout_layer(self._random_weights),
+        edge_weights=self._dropout_layer(self._random_weights),  # pyrefly: ignore[not-callable]
         node_features=node_embeddings,
     )
     return graph_tensor
@@ -178,8 +178,8 @@ class InputGraphTensor(Merger):
     noisy_weights = tf.ones(noisy_sources.shape)
 
     graph_tensor = self._graph_data.as_graph_tensor_given_adjacency(
-        [noisy_sources, noisy_targets],
-        edge_weights=self._dropout_layer(noisy_weights),
+        [noisy_sources, noisy_targets],  # pyrefly: ignore[bad-argument-type]
+        edge_weights=self._dropout_layer(noisy_weights),  # pyrefly: ignore[not-callable]
         node_features=node_embeddings,
     )
     return graph_tensor

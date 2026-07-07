@@ -53,7 +53,7 @@ class GSLGraphData:
     raise NotImplementedError
 
   def splits(self):
-    return copy.copy(self._splits)
+    return copy.copy(self._splits)  # pyrefly: ignore[missing-attribute]
 
   def num_classes(self):
     raise NotImplementedError('num_classes')
@@ -109,14 +109,14 @@ class GSLGraphData:
             make_undirected,
             add_self_loops,
         ),
-        context=self.context(),
+        context=self.context(),  # pyrefly: ignore[missing-attribute]
     )
 
   def node_sets_given_features(
       self, node_features
   ):
     """Returns node sets of entire graph (dict: node set name -> NodeSet)."""
-    node_counts = self.node_counts()
+    node_counts = self.node_counts()  # pyrefly: ignore[missing-attribute]
     features_dicts = self.node_features_dicts()
     node_set_names = set(node_counts.keys()).union(features_dicts.keys())
     return {
@@ -138,7 +138,7 @@ class GSLGraphData:
       edge_list = tf.concat([edge_list, edge_list[::-1]], axis=-1)
       edge_weights = tf.concat([edge_weights, edge_weights[::-1]], axis=-1)
     if add_self_loops:
-      node_counts = self.node_counts()
+      node_counts = self.node_counts()  # pyrefly: ignore[missing-attribute]
       all_nodes = tf.range(node_counts[tfgnn.NODES], dtype=edge_list.dtype)
       self_connections = tf.stack([all_nodes, all_nodes], axis=0)
       # The following line adds self_connections to the existing edges.
@@ -175,7 +175,7 @@ class GSLGraphData:
             make_undirected=make_undirected,
             add_self_loops=add_self_loops,
         ),
-        context=self.context(),
+        context=self.context(),  # pyrefly: ignore[missing-attribute]
     )
 
   def edge_sets_noisy_adjacency(
@@ -189,7 +189,7 @@ class GSLGraphData:
     if self._cached_noisy_adjacency:
       return self._cached_noisy_adjacency
     edge_sets = {}
-    node_counts = self.node_counts()
+    node_counts = self.node_counts()  # pyrefly: ignore[missing-attribute]
     for edge_type, edge_list in self.edge_lists().items():
       (source_node_set_name, edge_set_name, target_node_set_name) = edge_type
       number_of_nodes = node_counts[source_node_set_name]

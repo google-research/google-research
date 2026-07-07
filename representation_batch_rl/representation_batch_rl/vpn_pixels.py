@@ -168,7 +168,7 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
     @tf.function
     def init_models2():
       dummy_state = tf.zeros((1, 68, 68, 3), dtype=tf.float32)
-      phi_s = self.critic.encoder(dummy_state)
+      phi_s = self.critic.encoder(dummy_state)  # pyrefly: ignore[not-callable]
       phi_a = tf.eye(15, dtype=tf.float32)
       if 'linear_Q' in self.rep_learn_keywords:
         _ = self.critic.critic1.state_encoder(phi_s)
@@ -224,8 +224,8 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
     Returns:
       Embedding.
     """
-    features = self.critic.encoder(states)
-    return self.embedder(features, stop_gradient=stop_gradient)
+    features = self.critic.encoder(states)  # pyrefly: ignore[not-callable]
+    return self.embedder(features, stop_gradient=stop_gradient)  # pyrefly: ignore[not-callable]
 
   def compute_energy(self, embeddings,
                      other_embeddings):
@@ -270,8 +270,8 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
 
       all_states = tf.reshape(states, [batch_size * self.sequence_length] +
                               self.obs_spec)
-      all_features = self.critic.encoder(all_states)
-      all_embeddings = self.embedder(all_features, stop_gradient=False)
+      all_features = self.critic.encoder(all_states)  # pyrefly: ignore[not-callable]
+      all_embeddings = self.embedder(all_features, stop_gradient=False)  # pyrefly: ignore[not-callable]
       embeddings = tf.reshape(
           all_embeddings,
           [batch_size, self.sequence_length, self.embedding_dim])[:, 0, :]
@@ -297,7 +297,7 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
           self.f_value_target(embeddings)[Ellipsis, 0]) / (1 - self.discount)
       all_true_values = []
       # for idx in range(self.sequence_length - 1, -1, -1):
-      value = self.discount * discounts * last_value + rewards  #[:, idx]
+      value = self.discount * discounts * last_value + rewards  #[:, idx]  # pyrefly: ignore[unsupported-operation]
       all_true_values.append(value)
       last_value = value
       all_true_values = all_true_values[::-1]
@@ -350,14 +350,14 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
     if self.num_augmentations > 0:
       target_q = 0.
       for i in range(self.num_augmentations):
-        next_q1_i, next_q2_i = self.critic_target(next_states[i], actions=None)
+        next_q1_i, next_q2_i = self.critic_target(next_states[i], actions=None)  # pyrefly: ignore[not-callable]
         target_q_i = tf.expand_dims(
             rewards, 1) + self.discount * tf.expand_dims(
                 discounts, 1) * tf.minimum(next_q1_i, next_q2_i)
         target_q += target_q_i
       target_q /= self.num_augmentations
     else:
-      next_q1, next_q2 = self.critic_target(next_states, actions=None)
+      next_q1, next_q2 = self.critic_target(next_states, actions=None)  # pyrefly: ignore[not-callable]
       target_q = tf.expand_dims(rewards, 1) + self.discount * tf.expand_dims(
           discounts, 1) * tf.minimum(next_q1, next_q2)
 
@@ -371,7 +371,7 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
         q1 = 0.
         q2 = 0.
         for i in range(self.num_augmentations):
-          q1_i, q2_i = self.critic(
+          q1_i, q2_i = self.critic(  # pyrefly: ignore[not-callable]
               states[i], stop_grad_features=True, actions=None)
           critic_loss_i = (
               tf.losses.mean_squared_error(
@@ -385,7 +385,7 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
         q2 /= self.num_augmentations
         critic_loss /= self.num_augmentations
       else:
-        q1, q2 = self.critic(states, stop_grad_features=True, actions=None)
+        q1, q2 = self.critic(states, stop_grad_features=True, actions=None)  # pyrefly: ignore[not-callable]
 
       critic_loss = (
           tf.losses.mean_squared_error(
@@ -451,7 +451,7 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
       critic_dict = self.fit_critic(states, actions, next_states, next_actions,
                                     rewards, discounts)
 
-    return {**ssl_dict, **critic_dict}
+    return {**ssl_dict, **critic_dict}  # pyrefly: ignore[unbound-name]
 
   def get_input_state_dim(self):
     return self.embedder.embedding_dim
@@ -470,7 +470,7 @@ class ValuePredictionNetworkLearner(tf.keras.Model):
           tf.pad(tf.cast(states * 255., tf.int32), paddings, 'SYMMETRIC'),
           tf.float32) / 255.
 
-    q1, q2 = self.critic(states, stop_grad_features=True, actions=None)
+    q1, q2 = self.critic(states, stop_grad_features=True, actions=None)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2)
     actions = tf.argmax(q, -1)
     return actions

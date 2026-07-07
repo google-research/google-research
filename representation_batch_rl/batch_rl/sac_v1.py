@@ -89,16 +89,16 @@ class SAC(object):
       Dictionary with information to track.
     """
 
-    actions, log_probs = self.actor(
+    actions, log_probs = self.actor(  # pyrefly: ignore[not-callable]
         states, sample=True, with_log_probs=True)
 
-    q1, q2 = self.critic(states, actions)
+    q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
     q = tf.minimum(q1, q2) - self.alpha * log_probs
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.value.trainable_variables)
 
-      v = self.value(states)
+      v = self.value(states)  # pyrefly: ignore[not-callable]
 
       value_loss = tf.losses.mean_squared_error(q, v)
 
@@ -131,13 +131,13 @@ class SAC(object):
       Dictionary with information to track.
     """
 
-    next_v = self.value_target(next_states)
-    target_q = rewards + self.discount * discounts * next_v
+    next_v = self.value_target(next_states)  # pyrefly: ignore[not-callable]
+    target_q = rewards + self.discount * discounts * next_v  # pyrefly: ignore[unsupported-operation]
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.critic.trainable_variables)
 
-      q1, q2 = self.critic(states, actions)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
 
       critic_loss = (tf.losses.mean_squared_error(target_q, q1) +
                      tf.losses.mean_squared_error(target_q, q2))
@@ -168,8 +168,8 @@ class SAC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
-      q1, q2 = self.critic(states, actions)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
       q = tf.minimum(q1, q2)
       actor_loss = tf.reduce_mean(self.alpha * log_probs - q)
 
@@ -214,7 +214,7 @@ class SAC(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]
 
   def save_weights(self, path):
     pass

@@ -179,7 +179,7 @@ class ClosenessRegularizer(BaseRegularizer):
     )
 
     regularizer = (
-        tf.reduce_sum(model_weight**2)
+        tf.reduce_sum(model_weight**2)  # pyrefly: ignore[unsupported-operation]
         + tf.reduce_sum(label_weight**2)
         - 2 * tf.reduce_sum(a_times_b)
     )
@@ -187,7 +187,7 @@ class ClosenessRegularizer(BaseRegularizer):
 
 
 def euclidean_distance_squared(v1, v2):
-  displacement = v1 - v2
+  displacement = v1 - v2  # pyrefly: ignore[unsupported-operation]
   return tf.reduce_sum(displacement**2, axis=-1)
 
 
@@ -229,7 +229,7 @@ class SmoothnessRegularizer(BaseRegularizer):
     distance = self._distance_fn(source_features, target_features)
     if not self._differentiable_wrt_features:
       distance = tf.stop_gradient(distance)
-    return tf.reduce_sum(edge_set[weights_feature_name] * distance)
+    return tf.reduce_sum(edge_set[weights_feature_name] * distance)  # pyrefly: ignore[unsupported-operation]
 
 
 class SparseConnectRegularizer(BaseRegularizer):
@@ -245,7 +245,7 @@ class SparseConnectRegularizer(BaseRegularizer):
   ):
     del label_graph
     edge_set = model_graph.edge_sets[edge_set_name]
-    return tf.reduce_sum(edge_set[weights_feature_name] ** 2)
+    return tf.reduce_sum(edge_set[weights_feature_name] ** 2)  # pyrefly: ignore[unsupported-operation]
 
 
 class LogBarrier(BaseRegularizer):
@@ -293,10 +293,10 @@ class InformationRegularizer(BaseRegularizer):
     if self._do_sigmoid:
       weights = tf.sigmoid(weights)
     # Checking numerical stability
-    close_to_0 = weights < 0.0000001
-    close_to_1 = weights > 0.9999999
-    pos_term = weights * tf.math.log(weights / self._r)
-    neg_term = (1 - weights) * tf.math.log((1 - weights) / (1 - self._r))
+    close_to_0 = weights < 0.0000001  # pyrefly: ignore[unsupported-operation]
+    close_to_1 = weights > 0.9999999  # pyrefly: ignore[unsupported-operation]
+    pos_term = weights * tf.math.log(weights / self._r)  # pyrefly: ignore[unsupported-operation]
+    neg_term = (1 - weights) * tf.math.log((1 - weights) / (1 - self._r))  # pyrefly: ignore[unsupported-operation]
 
     return tf.reduce_sum(
         tf.where(

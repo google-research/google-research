@@ -29,13 +29,13 @@ def get_tf_dataset(
 ):
   """Creates a dataset for the provided split."""
   features = tf.data.Dataset.from_tensors(
-      input_graph.get_initial_node_features()
+      input_graph.get_initial_node_features()  # pyrefly: ignore[bad-argument-type]
   )
   labels = input_graph.get_all_labels()
   labels = tf.gather(labels, split)
   y = tf.data.Dataset.from_tensors(labels)
-  x = (features, tf.data.Dataset.from_tensors(split))
-  return tf.data.Dataset.zip((x, y)).repeat()
+  x = (features, tf.data.Dataset.from_tensors(split))  # pyrefly: ignore[bad-argument-type]
+  return tf.data.Dataset.zip((x, y)).repeat()  # pyrefly: ignore[bad-argument-type]
 
 
 def train(cfg):

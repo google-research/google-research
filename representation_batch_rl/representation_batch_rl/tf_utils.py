@@ -131,7 +131,7 @@ def create_data_iterator(
   np.random.shuffle(record_paths)
   record_paths = np.array_split(record_paths, num_shards)
 
-  record_file_ds = tf.data.Dataset.from_tensor_slices(record_paths)
+  record_file_ds = tf.data.Dataset.from_tensor_slices(record_paths)  # pyrefly: ignore[bad-argument-type]
   record_file_ds = record_file_ds.repeat().shuffle(len(record_paths))
 
   spec_path = record_paths[0][0] + example_encoding_dataset._SPEC_FILE_EXTENSION  # pylint: disable=protected-access
@@ -331,7 +331,7 @@ class Bilinear(Layer):
     initial_w_values = stats.truncnorm.rvs(
         -2 * std, 2 * std, loc=mean, scale=std, size=(k, d, d))
     initial_v_values = stats.truncnorm.rvs(
-        -2 * std, 2 * std, loc=mean, scale=std, size=(2 * d, k))
+        -2 * std, 2 * std, loc=mean, scale=std, size=(2 * d, k))  # pyrefly: ignore[unsupported-operation]
     self.w = tf.Variable(initial_w_values, trainable=True, dtype=tf.float32)
     self.v = tf.Variable(initial_v_values, trainable=True, dtype=tf.float32)
     self.b = K.zeros((self.input_dim,))
@@ -388,7 +388,7 @@ class RNNEmbedNet(tf.keras.Model):
     assert not num_distributions or embedding_dim % num_distributions == 0
 
     inputs = tf.keras.Input(shape=input_dim)
-    outputs = tf.keras.layers.LSTM(
+    outputs = tf.keras.layers.LSTM(  # pyrefly: ignore[not-callable]
         embedding_dim, return_sequences=return_sequences)(
             inputs)
     self.embedder = tf.keras.Model(inputs=inputs, outputs=outputs)
@@ -407,9 +407,9 @@ class RNNEmbedNet(tf.keras.Model):
     """
     assert len(states.shape) == 3
     if not self.num_distributions:
-      out = self.embedder(states)
+      out = self.embedder(states)  # pyrefly: ignore[not-callable]
     else:
-      all_logits = self.embedder(states)
+      all_logits = self.embedder(states)  # pyrefly: ignore[not-callable]
       all_logits = tf.split(
           all_logits, num_or_size_splits=self.num_distributions, axis=-1)
       all_probs = [tf.nn.softmax(logits, -1) for logits in all_logits]
@@ -752,7 +752,7 @@ class JointImageObservationsWrapper(wrappers.PyEnvironmentBaseWrapper):
     o_shape = None
     o_dtype = None
     o_name = []
-    for key, obs in obs_spec.items():
+    for key, obs in obs_spec.items():  # pyrefly: ignore[missing-attribute]
       if not isinstance(obs, array_spec.ArraySpec):
         raise ValueError('Unsupported observation_spec %s' % str(obs))
       if len(obs.shape) != 3:
@@ -789,12 +789,12 @@ class JointImageObservationsWrapper(wrappers.PyEnvironmentBaseWrapper):
     return self._get_timestep(self._env.step(action))
 
   def _get_timestep(self, time_step):
-    time_step = time_step._asdict()
+    time_step = time_step._asdict()  # pyrefly: ignore[bad-assignment]
 
     obs = []
     obs_spec: array_spec.ArraySpec = self._env.observation_spec()
-    for key, _ in obs_spec.items():  # recall: obs_spec is an ordered_dict
-      img = time_step['observation'][key]
+    for key, _ in obs_spec.items():  # recall: obs_spec is an ordered_dict  # pyrefly: ignore[missing-attribute]
+      img = time_step['observation'][key]  # pyrefly: ignore[bad-index]
       if self.wh:
         img = np.asarray(Image.fromarray(img).resize(self.wh))
         assert img.shape[0:2] == self.wh
@@ -803,9 +803,9 @@ class JointImageObservationsWrapper(wrappers.PyEnvironmentBaseWrapper):
       img = img.astype(np.float32)
       obs.append(img)
 
-    time_step['observation'] = np.concatenate(obs, axis=-1)
+    time_step['observation'] = np.concatenate(obs, axis=-1)  # pyrefly: ignore[unsupported-operation]
     # assert self.observation_spec().shape == time_step['observation'].shape
-    return ts.TimeStep(**time_step)
+    return ts.TimeStep(**time_step)  # pyrefly: ignore[bad-unpacking, missing-argument]
 
   def observation_spec(self):
     return self._observation_spec

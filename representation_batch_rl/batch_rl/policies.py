@@ -110,7 +110,7 @@ class MixtureGuassianPolicy(BasePolicy):
       stddev: Standard deviation of sampling distribution.
     """
     if out is None:
-      out = self.trunk(states)
+      out = self.trunk(states)  # pyrefly: ignore[not-callable]
     logits, mu, log_std = tf.split(out, num_or_size_splits=3, axis=1)
 
     log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
@@ -162,10 +162,10 @@ class MixtureGuassianPolicy(BasePolicy):
       dist = self._get_dist_and_mode(states, out)
     else:
       dist = self._get_dist_and_mode(states, out, stddev=0.0)
-    actions = dist.sample()
+    actions = dist.sample()  # pyrefly: ignore[missing-attribute]
 
     if with_log_probs:
-      return actions, dist.log_prob(actions)
+      return actions, dist.log_prob(actions)  # pyrefly: ignore[missing-attribute]
     else:
       return actions
 
@@ -181,14 +181,14 @@ class MixtureGuassianPolicy(BasePolicy):
                                self.action_spec.maximum - self.eps)
     dist = self._get_dist_and_mode(states, out)
 
-    sampled_actions = dist.sample()
+    sampled_actions = dist.sample()  # pyrefly: ignore[missing-attribute]
     sampled_actions = tf.clip_by_value(sampled_actions,
                                        self.action_spec.minimum + self.eps,
                                        self.action_spec.maximum - self.eps)
     if with_entropy:
-      return dist.log_prob(actions), -dist.log_prob(sampled_actions)
+      return dist.log_prob(actions), -dist.log_prob(sampled_actions)  # pyrefly: ignore[missing-attribute]
     else:
-      return dist.log_prob(actions)
+      return dist.log_prob(actions)  # pyrefly: ignore[missing-attribute]
 
 
 class DiagGuassianPolicy(BasePolicy):
@@ -215,7 +215,7 @@ class DiagGuassianPolicy(BasePolicy):
       stddev: Standard deviation of sampling distribution.
     """
     if out is None:
-      out = self.trunk(states)
+      out = self.trunk(states)  # pyrefly: ignore[not-callable]
     mu, log_std = tf.split(out, num_or_size_splits=2, axis=1)
 
     log_std = tf.clip_by_value(log_std, LOG_STD_MIN, LOG_STD_MAX)
@@ -251,16 +251,16 @@ class DiagGuassianPolicy(BasePolicy):
       Sampled actions.
     """
     if self.encoder is not None:
-      states = self.encoder(states)
+      states = self.encoder(states)  # pyrefly: ignore[not-callable]
 
     if sample:
       dist = self._get_dist_and_mode(states, out)
     else:
       dist = self._get_dist_and_mode(states, out, stddev=0.0)
-    actions = dist.sample()
+    actions = dist.sample()  # pyrefly: ignore[missing-attribute]
 
     if with_log_probs:
-      return actions, dist.log_prob(actions)
+      return actions, dist.log_prob(actions)  # pyrefly: ignore[missing-attribute]
     else:
       return actions
 
@@ -273,23 +273,23 @@ class DiagGuassianPolicy(BasePolicy):
       with_entropy = False
   ):
     if self.encoder is not None:
-      states = self.encoder(states)
+      states = self.encoder(states)  # pyrefly: ignore[not-callable]
 
     actions = tf.clip_by_value(actions, self.action_spec.minimum + self.eps,
                                self.action_spec.maximum - self.eps)
     dist = self._get_dist_and_mode(states, out)
 
-    sampled_actions = dist.sample()
+    sampled_actions = dist.sample()  # pyrefly: ignore[missing-attribute]
     sampled_actions = tf.clip_by_value(sampled_actions,
                                        self.action_spec.minimum + self.eps,
                                        self.action_spec.maximum - self.eps)
     if with_entropy:
-      return dist.log_prob(actions), -dist.log_prob(sampled_actions)
+      return dist.log_prob(actions), -dist.log_prob(sampled_actions)  # pyrefly: ignore[missing-attribute]
     else:
-      return dist.log_prob(actions)
+      return dist.log_prob(actions)  # pyrefly: ignore[missing-attribute]
 
   @property
-  def trainable_variables(self):
+  def trainable_variables(self):  # pyrefly: ignore[bad-override]
     tvars = super(DiagGuassianPolicy, self).trainable_variables
     if self.encoder is None:
       return tvars
@@ -334,7 +334,7 @@ class DeterministicPolicy(BasePolicy):
     Returns:
       Mode actions, sampled actions.
     """
-    actions = tf.nn.tanh(self.trunk(states))
+    actions = tf.nn.tanh(self.trunk(states))  # pyrefly: ignore[not-callable]
     if sample:
       actions = actions + self._noise.sample(actions.shape)
       actions = tf.clip_by_value(actions, -1.0, 1.0)
