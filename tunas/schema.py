@@ -148,7 +148,7 @@ def map_oneofs_with_tuple_paths(
   """
 
   prefix = ()  # type: Tuple[Union[int, str]]  # pytype: disable=annotation-type-mismatch
-  return _map_oneofs_helper(func, structure, prefix)
+  return _map_oneofs_helper(func, structure, prefix)  # pyrefly: ignore[bad-argument-type]
 
 
 def map_oneofs_with_paths(

@@ -474,7 +474,7 @@ def _mobilenet_v3_large_base(
 
     return DepthwiseBottleneckSpec(
         kernel_size=kernel,
-        expansion_filters=choose_filters([filters]),
+        expansion_filters=choose_filters([filters]),  # pyrefly: ignore[bad-argument-type]
         use_squeeze_and_excite=se,
         strides=s,
         activation=act)
@@ -774,7 +774,7 @@ def _mobilenet_v3_large_search_base(
       se = schema.OneOf([False, True], basic_specs.OP_TAG)
     return DepthwiseBottleneckSpec(
         kernel_size=schema.OneOf([3, 5, 7], basic_specs.OP_TAG),
-        expansion_filters=choose_filters(expansion_filters),
+        expansion_filters=choose_filters(expansion_filters),  # pyrefly: ignore[bad-argument-type]
         use_squeeze_and_excite=se,
         strides=s,
         activation=act)

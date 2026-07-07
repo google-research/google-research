@@ -49,7 +49,7 @@ def masked_no_normalization(graph,
   num_edges = compute_num_edges(graph)
   edges = jnp.ones((num_edges,), dtype=jnp.float32)
   edges = zero_out_with_mask(edges, mask)
-  return edges[:, jnp.newaxis]
+  return edges[:, jnp.newaxis]  # pyrefly: ignore[bad-index]
 
 
 def masked_inverse_degree_normalization(graph,
@@ -58,11 +58,11 @@ def masked_inverse_degree_normalization(graph,
   num_nodes = compute_num_nodes(graph)
   senders = graph.senders
   sender_degree = jraph.segment_sum(  # pytype: disable=wrong-arg-types  # numpy-scalars
-      mask.astype(jnp.int32), senders, num_nodes)
+      mask.astype(jnp.int32), senders, num_nodes)  # pyrefly: ignore[bad-argument-type]
   sender_coeffs = 1 / jnp.maximum(sender_degree, 1.)
   edges = sender_coeffs[senders]
   edges = zero_out_with_mask(edges, mask)
-  return edges[:, jnp.newaxis]
+  return edges[:, jnp.newaxis]  # pyrefly: ignore[bad-index]
 
 
 def masked_inverse_sqrt_degree_normalization(graph,
@@ -72,14 +72,14 @@ def masked_inverse_sqrt_degree_normalization(graph,
   senders = graph.senders
   receivers = graph.receivers
   sender_degree = jraph.segment_sum(  # pytype: disable=wrong-arg-types  # numpy-scalars
-      mask.astype(jnp.int32), senders, num_nodes)
+      mask.astype(jnp.int32), senders, num_nodes)  # pyrefly: ignore[bad-argument-type]
   receiver_degree = jraph.segment_sum(  # pytype: disable=wrong-arg-types  # numpy-scalars
-      mask.astype(jnp.int32), receivers, num_nodes)
+      mask.astype(jnp.int32), receivers, num_nodes)  # pyrefly: ignore[bad-argument-type]
   sender_coeffs = 1 / jnp.sqrt(jnp.maximum(sender_degree, 1.))
   receiver_coeffs = 1 / jnp.sqrt(jnp.maximum(receiver_degree, 1.))
   edges = sender_coeffs[senders] * receiver_coeffs[receivers]
   edges = zero_out_with_mask(edges, mask)
-  return edges[:, jnp.newaxis]
+  return edges[:, jnp.newaxis]  # pyrefly: ignore[bad-index]
 
 
 def normalize_edges_with_mask(
@@ -97,4 +97,4 @@ def normalize_edges_with_mask(
     normalized_edges = masked_inverse_degree_normalization(graph, mask)
   if adjacency_normalization == 'inverse-sqrt-degree':
     normalized_edges = masked_inverse_sqrt_degree_normalization(graph, mask)
-  return graph._replace(edges=normalized_edges)
+  return graph._replace(edges=normalized_edges)  # pyrefly: ignore[unbound-name]

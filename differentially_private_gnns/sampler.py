@@ -34,7 +34,7 @@ def reverse_edges(edges):
   for u, u_neighbors in edges.items():
     for v in u_neighbors:
       reversed_edges[v].append(u)
-  return reversed_edges
+  return reversed_edges  # pyrefly: ignore[bad-return]
 
 
 def get_adjacency_lists(dataset):
@@ -45,7 +45,7 @@ def get_adjacency_lists(dataset):
   edges = {u: [] for u in range(dataset.num_nodes())}
   for u, v in zip(dataset.senders, dataset.receivers):
     edges[u].append(v)
-  return edges
+  return edges  # pyrefly: ignore[bad-return]
 
 
 def sample_adjacency_lists(edges, train_nodes,
@@ -65,7 +65,7 @@ def sample_adjacency_lists(edges, train_nodes,
   Returns:
     A sampled adjacency list, indexed by nodes.
   """
-  train_nodes = set(train_nodes)
+  train_nodes = set(train_nodes)  # pyrefly: ignore[bad-assignment]
   all_nodes = edges.keys()
 
   reversed_edges = reverse_edges(edges)
@@ -74,7 +74,7 @@ def sample_adjacency_lists(edges, train_nodes,
   # For every node, bound the number of incoming edges from training nodes.
   dropped_count = 0
   for u in all_nodes:
-    u_rng = jax.random.fold_in(rng, u)
+    u_rng = jax.random.fold_in(rng, u)  # pyrefly: ignore[bad-argument-type]
     incoming_edges = reversed_edges[u]
     incoming_train_edges = [v for v in incoming_edges if v in train_nodes]
     if not incoming_train_edges:
@@ -96,7 +96,7 @@ def sample_adjacency_lists(edges, train_nodes,
       dropped_count += 1
 
   print('dropped count', dropped_count)
-  sampled_edges = reverse_edges(sampled_reversed_edges)
+  sampled_edges = reverse_edges(sampled_reversed_edges)  # pyrefly: ignore[bad-argument-type]
 
   # For non-train nodes, we can sample the entire edgelist.
   for u in all_nodes:

@@ -98,7 +98,7 @@ def _get_layer_features(layer_spec):
     result = []
     for i, choice in enumerate(layer_spec.choices):
       choice_features = _get_layer_features(choice)
-      result.append(layer_spec.mask[i] * choice_features)
+      result.append(layer_spec.mask[i] * choice_features)  # pyrefly: ignore[unsupported-operation]
     return tf.concat(result, axis=0)
   else:
     raise ValueError('Unsupported object type: {}'.format(layer_spec))

@@ -197,7 +197,7 @@ class VICRegPretextTraining(PretextTrainingAlgo):
     model = self.model
 
     example_data = jax.numpy.array(dataset.get_example_features())
-    variables = freeze({'params': params, **state})
+    variables = freeze({'params': params, **state})  # pyrefly: ignore[invalid-argument]
     example_output, _ = model.apply(variables,
                                     example_data,
                                     mutable=['batch_stats'],
@@ -205,7 +205,7 @@ class VICRegPretextTraining(PretextTrainingAlgo):
                                     )
     logging.debug(str(example_output))
 
-    optimizer_state = self.optimizer.init(params=params)
+    optimizer_state = self.optimizer.init(params=params)  # pyrefly: ignore[bad-argument-type]
 
     grad_fn = self.get_grad_fn()
 
@@ -259,7 +259,7 @@ class VICRegPretextTraining(PretextTrainingAlgo):
           val_mask_key, _ = jax.random.split(val_mask_key)
         validation_loss /= float(val_seen)
 
-        self.writer.write_scalars(
+        self.writer.write_scalars(  # pyrefly: ignore[missing-attribute]
             epoch,
             {'pretext_validation_loss': validation_loss})
         if validation_loss < self.best_early_stop_loss:

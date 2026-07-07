@@ -150,7 +150,7 @@ class SupervisedTraining(TrainingAlgo):
       params = self.params
       state = self.state
 
-    optimizer_state = self.optimizer.init(params=params)
+    optimizer_state = self.optimizer.init(params=params)  # pyrefly: ignore[bad-argument-type]
 
     @functools.partial(jax.jit, static_argnums=(4,))
     def compute_accuracy(params, state, features, targets,
@@ -208,7 +208,7 @@ class SupervisedTraining(TrainingAlgo):
         validation_accuracy = validation_results['linear_accuracy']
       else:
         validation_accuracy = validation_results['finetune_accuracy']
-      self.writer.write_scalars(
+      self.writer.write_scalars(  # pyrefly: ignore[missing-attribute]
           epoch,
           {self.write_prefix + '_validation_accuracy': validation_accuracy})
       logging.info('Validation accuracy: %f', validation_accuracy)

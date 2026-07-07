@@ -25,8 +25,8 @@ import re
 from typing import Any, Dict, Text, List, TypeVar
 
 import six
-from six.moves import map
-from six.moves import range
+from six.moves import map  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 
 import tensorflow.compat.v1 as tf
 

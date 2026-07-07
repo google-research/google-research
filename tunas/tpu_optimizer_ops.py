@@ -22,7 +22,7 @@ from __future__ import print_function
 
 from typing import Callable, List, Optional, Sequence, Text, Tuple, Union
 
-from six.moves import zip
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 
@@ -177,7 +177,7 @@ def apply_adam(
         if reg_grad is not None:
           with tf.control_dependencies([var_update_op]):
             lr_cast = tf.cast(learning_rate_t, var.dtype.base_dtype)
-            var_update_op = var.assign_sub(lr_cast * reg_grad_mean)
+            var_update_op = var.assign_sub(lr_cast * reg_grad_mean)  # pyrefly: ignore[unbound-name]
         update_ops.append(var_update_op)
 
     # Update the beta1 and beta2 zero-debias accumulators.

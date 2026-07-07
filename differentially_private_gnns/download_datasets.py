@@ -84,7 +84,7 @@ def download_reddit_dataset(root):
 
   output = os.path.join(root, 'reddit')
 
-  import gdown  # pylint: disable=g-import-not-at-top
+  import gdown  # pylint: disable=g-import-not-at-top  # pyrefly: ignore[missing-import]
   gdown.download_folder(
       _REDDIT_URL, output=output, quiet=False, use_cookies=False)
 

@@ -44,7 +44,7 @@ def subsample_graph(graph, max_degree,
                     rng):
   """Subsamples the undirected input graph."""
   edges = sampler.get_adjacency_lists(graph)
-  edges = sampler.sample_adjacency_lists(edges, graph.train_nodes, max_degree,
+  edges = sampler.sample_adjacency_lists(edges, graph.train_nodes, max_degree,  # pyrefly: ignore[bad-argument-type]
                                          rng)
   senders = []
   receivers = []
@@ -53,8 +53,8 @@ def subsample_graph(graph, max_degree,
       senders.append(u)
       receivers.append(v)
 
-  graph.senders = senders
-  graph.receivers = receivers
+  graph.senders = senders  # pyrefly: ignore[bad-assignment]
+  graph.receivers = receivers  # pyrefly: ignore[bad-assignment]
   return graph
 
 
@@ -78,11 +78,11 @@ def convert_to_graphstuple(
   return jraph.GraphsTuple(  # pytype: disable=wrong-arg-types  # jax-ndarray
       nodes=np.asarray(graph.node_features),
       edges=np.ones_like(graph.senders),
-      senders=np.asarray(graph.senders),
-      receivers=np.asarray(graph.receivers),
+      senders=np.asarray(graph.senders),  # pyrefly: ignore[bad-argument-type]
+      receivers=np.asarray(graph.receivers),  # pyrefly: ignore[bad-argument-type]
       globals=np.zeros(1),
-      n_node=np.asarray([graph.num_nodes()]),
-      n_edge=np.asarray([graph.num_edges()]),
+      n_node=np.asarray([graph.num_nodes()]),  # pyrefly: ignore[bad-argument-type]
+      n_edge=np.asarray([graph.num_edges()]),  # pyrefly: ignore[bad-argument-type]
   ), np.asarray(graph.node_labels)
 
 
@@ -90,9 +90,9 @@ def add_self_loops(graph):
   """Adds self-loops to the graph."""
   num_nodes = normalizations.compute_num_nodes(graph)
   senders = np.concatenate(
-      (np.arange(num_nodes), np.asarray(graph.senders, dtype=np.int32)))
+      (np.arange(num_nodes), np.asarray(graph.senders, dtype=np.int32)))  # pyrefly: ignore[no-matching-overload]
   receivers = np.concatenate(
-      (np.arange(num_nodes), np.asarray(graph.receivers, dtype=np.int32)))
+      (np.arange(num_nodes), np.asarray(graph.receivers, dtype=np.int32)))  # pyrefly: ignore[no-matching-overload]
 
   return graph._replace(
       senders=senders,

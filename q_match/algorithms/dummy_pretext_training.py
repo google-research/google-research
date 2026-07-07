@@ -71,7 +71,7 @@ class DummyPretextTraining(TrainingAlgo):
       log_msg = str(example_output)
       logging.debug(log_msg)
 
-    optimizer_state = self.optimizer.init(params=params)
+    optimizer_state = self.optimizer.init(params=params)  # pyrefly: ignore[bad-argument-type]
 
     grad_fn = self.get_grad_fn()
 

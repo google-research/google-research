@@ -257,7 +257,7 @@ def make_pair_builder(
     filter_by_length = transforms.FilterByLength(max_len=max_len_eos)
     # NOTE(fllinares): pairing on-the-fly is memory intensive on TPU for some
     # reason not yet understood...
-    pair_sequences = pairing_cls(index_keys=index_keys)
+    pair_sequences = pairing_cls(index_keys=index_keys)  # pyrefly: ignore[unexpected-keyword]
     ds_transformations.extend([filter_by_length,
                                pair_sequences])
 
@@ -311,23 +311,23 @@ def make_pair_builder(
   transformations = [project_msa_rows]
   if has_context:
     if append_eos_context:
-      transformations.append(append_eos_to_context)
-    transformations.extend([add_alignment_context,
+      transformations.append(append_eos_to_context)  # pyrefly: ignore[bad-argument-type]
+    transformations.extend([add_alignment_context,  # pyrefly: ignore[bad-argument-type]
                             trim_alignment,
                             pop_add_alignment_context_extra_args])
   if add_random_tails:
-    transformations.append(add_random_prefix_and_suffix)
-  transformations.append(create_alignment_targets)
+    transformations.append(add_random_prefix_and_suffix)  # pyrefly: ignore[bad-argument-type]
+  transformations.append(create_alignment_targets)  # pyrefly: ignore[bad-argument-type]
 
-  transformations.extend([pid1,
+  transformations.extend([pid1,  # pyrefly: ignore[bad-argument-type]
                           pid3,
                           remove_gaps])
   if append_eos:
-    transformations.append(append_eos_to_sequence)
-  transformations.extend([pad_sequences,
+    transformations.append(append_eos_to_sequence)  # pyrefly: ignore[bad-argument-type]
+  transformations.extend([pad_sequences,  # pyrefly: ignore[bad-argument-type]
                           pad_alignment_targets])
   for key in [sequence_key] + metadata_keys:
-    transformations.extend(stack_and_pop(key))
+    transformations.extend(stack_and_pop(key))  # pyrefly: ignore[bad-argument-type]
 
   ### Sets up the `Transform`s applied *after* batching.
 
@@ -354,14 +354,14 @@ def make_pair_builder(
                              flatten_metadata_pairs,
                              create_homology_targets]
   if process_negatives:
-    batched_transformations.extend([create_alignment_weights,
+    batched_transformations.extend([create_alignment_weights,  # pyrefly: ignore[bad-argument-type]
                                     add_neg_alignment_targets_and_weights,
                                     pad_neg_pid])
   if lm_cls is not None:
     create_lm_targets = lm_cls(
         on=sequence_key,
         out=(sequence_key, 'masked_lm/targets', 'masked_lm/weights'))
-    batched_transformations.append(create_lm_targets)
+    batched_transformations.append(create_lm_targets)  # pyrefly: ignore[bad-argument-type]
 
   ### Sets up the remainder of the `DatasetBuilder` configuration.
 
@@ -377,7 +377,7 @@ def make_pair_builder(
       ds_transformations=ds_transformations,
       transformations=transformations,
       batched_transformations=batched_transformations,
-      labels=multi_task.Backbone(embeddings=embeddings, alignments=alignments),
+      labels=multi_task.Backbone(embeddings=embeddings, alignments=alignments),  # pyrefly: ignore[bad-argument-type]
       metadata=('seq_key', 'alignment/pid1', 'alignment/pid3'),
       sequence_key=sequence_key,
       **kwargs)
@@ -423,45 +423,45 @@ def make_tape_builder(root_dir,
       transforms.Reshape(on=output_sequence_key, shape=[]),
       transforms.Encode(on=output_sequence_key),
       transforms.EOS(on=output_sequence_key),
-      transforms.CropOrPad(on=output_sequence_key, size=max_len),
+      transforms.CropOrPad(on=output_sequence_key, size=max_len),  # pyrefly: ignore[bad-argument-type]
   ]
 
   if target in TAPE_MULTI_CL_TASKS:
-    transformations.append(transforms.OneHot(on=target, depth=num_outputs))
+    transformations.append(transforms.OneHot(on=target, depth=num_outputs))  # pyrefly: ignore[bad-argument-type]
   elif target in TAPE_BACKBONE_ANGLE_TASKS:
-    transformations.append(transforms.BackboneAngleTransform(on=target))
+    transformations.append(transforms.BackboneAngleTransform(on=target))  # pyrefly: ignore[bad-argument-type]
   elif target in TAPE_PROT_ENGINEERING_TASKS:
     transformations.append(transforms.Reshape(on=target, shape=[-1]))
   elif target in TAPE_CONTACT_TASKS:
     # Tertiary structure represented as 3D coordinates.
-    transformations.extend([
+    transformations.extend([  # pyrefly: ignore[bad-argument-type]
         transforms.Reshape(on=target, shape=[-1, 3]),
-        transforms.CropOrPadND(on=target, size=max_len, axis=0),
+        transforms.CropOrPadND(on=target, size=max_len, axis=0),  # pyrefly: ignore[bad-argument-type]
         transforms.ContactMatrix(on=target, threshold=8.0),
-        transforms.Reshape(on=target, shape=[max_len, max_len, 1])
+        transforms.Reshape(on=target, shape=[max_len, max_len, 1])  # pyrefly: ignore[bad-argument-type]
     ])
 
   if target in TAPE_SEQ2SEQ_TASKS:
-    transformations.extend([
+    transformations.extend([  # pyrefly: ignore[bad-argument-type]
         transforms.Reshape(on=target, shape=[-1, num_outputs]),
-        transforms.CropOrPadND(on=target, size=max_len, axis=0),
+        transforms.CropOrPadND(on=target, size=max_len, axis=0),  # pyrefly: ignore[bad-argument-type]
     ])
 
   if weights is not None:  # Note: no seq-level TAPE task has weights.
-    transformations.extend([
+    transformations.extend([  # pyrefly: ignore[bad-argument-type]
         transforms.Reshape(on=weights, shape=[-1]),
-        transforms.CropOrPadND(on=weights, size=max_len),
+        transforms.CropOrPadND(on=weights, size=max_len),  # pyrefly: ignore[bad-argument-type]
     ])
     if target in TAPE_CONTACT_TASKS:
       transformations.append(
-          transforms.ContactMask(on=weights, shape=(max_len, max_len)))
+          transforms.ContactMask(on=weights, shape=(max_len, max_len)))  # pyrefly: ignore[bad-argument-type]
 
   embeddings_labels = [target] if weights is None else [(target, weights)]
   return builder.DatasetBuilder(
       data_loader=make_tape_loader(root_dir=root_dir, task=task),
       ds_transformations=ds_transformations,
       transformations=transformations,
-      labels=multi_task.Backbone(embeddings=embeddings_labels),
+      labels=multi_task.Backbone(embeddings=embeddings_labels),  # pyrefly: ignore[bad-argument-type]
       metadata=metadata,
       sequence_key=output_sequence_key)
 
@@ -621,7 +621,7 @@ class FakePairsLoader:
 def make_fake_builder(max_len = 512):
   return builder.DatasetBuilder(
       data_loader=FakePairsLoader(max_len=max_len),
-      labels=multi_task.Backbone(alignments=[
+      labels=multi_task.Backbone(alignments=[  # pyrefly: ignore[bad-argument-type]
           ('alignment/targets', 'alignment/weights'),
           'homology/targets']),
       batched_transformations=[

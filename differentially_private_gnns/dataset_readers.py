@@ -203,8 +203,8 @@ class GraphSAINTTransductiveDataset(Dataset):
     graph_data = nx.readwrite.node_link_data(graph)
     logging.info('Graph data loaded.')
 
-    self.senders = [e[0] for e in graph.edges]
-    self.receivers = [e[1] for e in graph.edges]
+    self.senders = [e[0] for e in graph.edges]  # pyrefly: ignore[bad-assignment]
+    self.receivers = [e[1] for e in graph.edges]  # pyrefly: ignore[bad-assignment]
 
     train_nodes = []
     validation_nodes = []
@@ -268,8 +268,8 @@ class GraphSAINTDisjointDataset(GraphSAINTTransductiveDataset):
     graph_test = _get_graph_for_split(self.adj_full, test_split)
     graph = nx.union_all((graph_train, graph_validation, graph_test))
 
-    self.senders = [e[0] for e in graph.edges]
-    self.receivers = [e[1] for e in graph.edges]
+    self.senders = [e[0] for e in graph.edges]  # pyrefly: ignore[bad-assignment]
+    self.receivers = [e[1] for e in graph.edges]  # pyrefly: ignore[bad-assignment]
 
 
 def _get_graph_for_split(adj_full,

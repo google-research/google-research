@@ -105,7 +105,7 @@ class FlatCoder(Coder):
     """Turns a features dictionary into a serialized tf.Example."""
     data = {}
     for k, v in features.items():
-      curr_dtype = self._specs.get(k, None)
+      curr_dtype = self._specs.get(k, None)  # pyrefly: ignore[missing-attribute]
       if curr_dtype is None:
         continue
       if curr_dtype == tf.float32:
@@ -136,7 +136,7 @@ class SequenceCoder(Coder):
     """Returns the decoded sparse features."""
     ctx_specs = {}
     seq_specs = {}
-    for k, v in self._specs.items():
+    for k, v in self._specs.items():  # pyrefly: ignore[missing-attribute]
       target_specs = seq_specs if k in self.sequence_keys else ctx_specs
       v = tf.io.VarLenFeature(v) if isinstance(v, tf.dtypes.DType) else v
       target_specs[k] = v
@@ -150,7 +150,7 @@ class SequenceCoder(Coder):
     """Encodes a Dict of Tensors into a string."""
     example = tf.train.SequenceExample()
     for key, tensor in features.items():
-      if key not in self._specs:
+      if key not in self._specs:  # pyrefly: ignore[not-iterable]
         continue
 
       spec = self.specs.get(key, tf.io.VarLenFeature(tf.float32))

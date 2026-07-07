@@ -166,7 +166,7 @@ class AlignmentFeatureConverter(FeatureConverter):
     self.encode_by_transition_type = encode_by_transition_type
     self.include_metadata_features = include_metadata_features
     if self.include_metadata_features:
-      self.MODEL_FEATURES.update(self.METADATA_FEATURES)
+      self.MODEL_FEATURES.update(self.METADATA_FEATURES)  # pyrefly: ignore[missing-attribute]
 
     self._start = self.vocab.encode('S')[0]
     self._match = self.vocab.encode('M')[0]
@@ -240,9 +240,9 @@ class AlignmentFeatureConverter(FeatureConverter):
       padding_mask = states[1:] != self._pad_id
 
       out['align_path_x'] = tf.where(
-          padding_mask, ali_start_x - 1 + tf.cumsum(matches + gaps_in_y), 0)
+          padding_mask, ali_start_x - 1 + tf.cumsum(matches + gaps_in_y), 0)  # pyrefly: ignore[unsupported-operation]
       out['align_path_y'] = tf.where(
-          padding_mask, ali_start_y - 1 + tf.cumsum(matches + gaps_in_x), 0)
+          padding_mask, ali_start_y - 1 + tf.cumsum(matches + gaps_in_x), 0)  # pyrefly: ignore[unsupported-operation]
       out['align_path_s'] = tf.where(
           padding_mask,
           tf.gather(
@@ -315,7 +315,7 @@ class HomologyFeatureConverter(FeatureConverter):
     self.fine_grained_labels = fine_grained_labels
     self.include_metadata_features = include_metadata_features
     if self.include_metadata_features:
-      self.MODEL_FEATURES.update(self.METADATA_FEATURES)
+      self.MODEL_FEATURES.update(self.METADATA_FEATURES)  # pyrefly: ignore[missing-attribute]
 
   def _convert_features(
       self,

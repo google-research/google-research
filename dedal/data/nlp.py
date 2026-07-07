@@ -90,7 +90,7 @@ class DynamicLanguageModelMasker(transforms.Transform):
     # equal to self._masked_lm_prob
     return tf.logical_and(inputs_mask, branch1)
 
-  def call(self, inputs):
+  def call(self, inputs):  # pyrefly: ignore[bad-override]
     """Dynamically masks a batch of tokens for BERT-like pretraining.
 
     Args:
@@ -146,7 +146,7 @@ class DynamicLanguageModelShifter(transforms.Transform):
     super().__init__(**kwargs)
     self._eos_as_token = eos_as_token
 
-  def call(self, inputs):
+  def call(self, inputs):  # pyrefly: ignore[bad-override]
     """Dynamically masks a batch of tokens for BERT-like pretraining.
 
     Args:

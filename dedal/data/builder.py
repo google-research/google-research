@@ -54,7 +54,7 @@ class DatasetBuilder(abc.ABC):
                ds_transformations = (),
                transformations = (),
                batched_transformations = (),
-               labels = gin.REQUIRED,
+               labels = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                metadata = (),
                sequence_key = 'sequence',
                repeat = None,
@@ -90,7 +90,7 @@ class DatasetBuilder(abc.ABC):
 
     flat_weights = []
     for label_key, weight_key in labels:
-      w = inputs.get(weight_key, None)
+      w = inputs.get(weight_key, None)  # pyrefly: ignore[no-matching-overload]
       batch_size = tf.shape(inputs[label_key])[0]
       flat_weights.append(tf.ones(batch_size) if w is None else w)
     weights = self._labels.pack(flat_weights)
@@ -98,7 +98,7 @@ class DatasetBuilder(abc.ABC):
     metadata = {key: inputs[key] for key in self._metadata}
 
     dummy = tf.constant([])
-    return (inputs[self._sequence_key],
+    return (inputs[self._sequence_key],  # pyrefly: ignore[bad-return]
             targets.flatten(empty_value=dummy),
             weights.flatten(empty_value=dummy),
             metadata)
@@ -107,9 +107,9 @@ class DatasetBuilder(abc.ABC):
     """Loads data split and applies transforms prior to batching."""
     # If no split is given, use `self.split` as default. If several splits are
     # specified by `self.split`, default to first one.
-    split = self.split if split is None else split
-    split = split if isinstance(split, str) else split[0]
-    ds = self.data_loader.load(split)
+    split = self.split if split is None else split  # pyrefly: ignore[bad-assignment]
+    split = split if isinstance(split, str) else split[0]  # pyrefly: ignore[unsupported-operation]
+    ds = self.data_loader.load(split)  # pyrefly: ignore[missing-attribute]
     logging.info('%s dataset loaded.', split)
     ds = ds.apply(self._ds_transform)
     ds = ds.map(self._transform, num_parallel_calls=tf.data.AUTOTUNE)
@@ -213,8 +213,8 @@ class MultiDatasetBuilder:
 
   def __init__(
       self,
-      builders = gin.REQUIRED,
-      switch = gin.REQUIRED,
+      builders = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+      switch = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
       split = None):
     self.builders = builders
     self.switch = switch
@@ -266,7 +266,7 @@ class MultiDatasetBuilder:
     # configs for metrics should account for this behavior which would be less
     # modular.
     metadata = functools.reduce(lambda x, y: {**x, **y}, metadata)
-    return inputs, targets, weights, metadata
+    return inputs, targets, weights, metadata  # pyrefly: ignore[bad-return]
 
   def make(
       self,
@@ -307,7 +307,7 @@ class MultiDatasetBuilder:
     # If no split is given, use `self.split` as default. If several splits are
     # specified by `self.split`, default to first one.
     if split is None:
-      split = self.split if isinstance(self.split, str) else self.split[0]
+      split = self.split if isinstance(self.split, str) else self.split[0]  # pyrefly: ignore[unsupported-operation]
     # Ensures `split` and `batch_size` are Sequences with `n_datasets` elements.
     splits = self._maybe_broadcast(split)
     batch_sizes = self._maybe_broadcast(batch_size)
@@ -317,7 +317,7 @@ class MultiDatasetBuilder:
       ds = []
       for builder, split, batch_size in zip(self.builders, splits, batch_sizes):
         ds.append(builder.build(input_ctx, split, batch_size, for_train))
-      ds = tf.data.Dataset.zip(tuple(ds))
+      ds = tf.data.Dataset.zip(tuple(ds))  # pyrefly: ignore[bad-argument-type]
       if for_train:
         ds = ds.map(self.merge_datasets, num_parallel_calls=tf.data.AUTOTUNE)
       for i, split in enumerate(splits):

@@ -57,7 +57,7 @@ class RandomPairing(transforms.DatasetTransform):
 
       return {**tag(x, 1), **tag(y, 2)}
 
-    return tf.data.Dataset.zip((ds, ds.shuffle(1024))).map(rename)
+    return tf.data.Dataset.zip((ds, ds.shuffle(1024))).map(rename)  # pyrefly: ignore[bad-argument-type]
 
 
 def dataset_to_memory(ds):
@@ -262,7 +262,7 @@ class ProjectMSARows(transforms.Transform):
     super().__init__(**kwargs)
     self._token = token
 
-  def call(
+  def call(  # pyrefly: ignore[bad-override]
       self,
       seq1,
       seq2,
@@ -294,7 +294,7 @@ class PID(transforms.Transform):
     self._definition = definition
     self._token = token
 
-  def call(self, seq1, seq2):
+  def call(self, seq1, seq2):  # pyrefly: ignore[bad-override]
     masks = [self._vocab.compute_mask(seq, self._token) for seq in (seq1, seq2)]
 
     keep_indices = tf.reshape(tf.where(tf.reduce_all(masks, 0)), [-1])
@@ -351,7 +351,7 @@ class CreateAlignmentTargets(transforms.Transform):
     self._trans_encoder = tf.cast(self._trans_encoder, tf.int32)
     self._init_trans = tf.convert_to_tensor([self._INIT_TRANS], dtype=tf.int32)
 
-  def call(self, seq1, seq2):
+  def call(self, seq1, seq2):  # pyrefly: ignore[bad-override]
     """Creates targets for pairwise sequence alignment task from proj. MSA rows.
 
     Given a pair of projected rows from an MSA (i.e., with positions at which
@@ -455,7 +455,7 @@ class CreateHomologyTargets(transforms.Transform):
     super().__init__(**kwargs)
     self._process_negatives = process_negatives
 
-  def call(self, values):
+  def call(self, values):  # pyrefly: ignore[bad-override]
     def get_vals(indices):
       vals = tf.gather(values, indices)
       return tf.cast(vals[:, 0] == vals[:, 1], tf.int32)
@@ -552,10 +552,10 @@ class AddRandomTails(transforms.Transform):
       suffix_len,
       dtype,
   ):
-    pad_seq = tf.cast(self._sampler.sample([prefix_len + suffix_len]), dtype)
+    pad_seq = tf.cast(self._sampler.sample([prefix_len + suffix_len]), dtype)  # pyrefly: ignore[unsupported-operation]
     return pad_seq[:prefix_len], pad_seq[prefix_len:]
 
-  def call(
+  def call(  # pyrefly: ignore[bad-override]
       self,
       sequence_1,
       sequence_2,
@@ -624,11 +624,11 @@ class AddAlignmentContext(transforms.Transform):
   ):
     # Computes length of Pfam-A seed `sequence` (excluding padding and gaps) and
     # UniprotKB context `full_sequence`.
-    seq_len = end - start + 1
+    seq_len = end - start + 1  # pyrefly: ignore[unsupported-operation]
     full_seq_len = tf.cast(tf.shape(full_sequence)[0], tf.int64)
     # Computes length of prefix and suffix such that
     #   `concat([prefix, sequence, suffix]) == full_sequence`.
-    full_prefix_len = start - 1  # `start` uses one-based indexing.
+    full_prefix_len = start - 1  # `start` uses one-based indexing.  # pyrefly: ignore[unsupported-operation]
     full_suffix_len = full_seq_len - seq_len - full_prefix_len
     # Computes maximum amount of context that could be added, accounting for
     # encoder's maximum length restriction.
@@ -645,7 +645,7 @@ class AddAlignmentContext(transforms.Transform):
     suffix_len = ctx_len - prefix_len
     return prefix_len, suffix_len
 
-  def call(
+  def call(  # pyrefly: ignore[bad-override]
       self,
       sequence_1,
       sequence_2,
@@ -663,10 +663,10 @@ class AddAlignmentContext(transforms.Transform):
     prefix_len_2, suffix_len_2 = self.sample_prefix_and_suffix_len(
         sequence_2, full_sequence_2, start_2, end_2)
     # Fetches the prefix and suffix from UniprotKB context sequences.
-    prefix_1 = full_sequence_1[start_1 - 1 - prefix_len_1:start_1 - 1]
-    prefix_2 = full_sequence_2[start_2 - 1 - prefix_len_2:start_2 - 1]
-    suffix_1 = full_sequence_1[end_1:end_1 + suffix_len_1]
-    suffix_2 = full_sequence_2[end_2:end_2 + suffix_len_2]
+    prefix_1 = full_sequence_1[start_1 - 1 - prefix_len_1:start_1 - 1]  # pyrefly: ignore[unsupported-operation]
+    prefix_2 = full_sequence_2[start_2 - 1 - prefix_len_2:start_2 - 1]  # pyrefly: ignore[unsupported-operation]
+    suffix_1 = full_sequence_1[end_1:end_1 + suffix_len_1]  # pyrefly: ignore[unsupported-operation]
+    suffix_2 = full_sequence_2[end_2:end_2 + suffix_len_2]  # pyrefly: ignore[unsupported-operation]
     # Pads prefixes and suffixes to indicate they are unaligned.
     gap_code_1 = tf.cast(self._gap_code, full_sequence_1.dtype)
     prefix_1 = tf.concat([prefix_1, tf.fill([prefix_len_2], gap_code_1)], 0)
@@ -719,7 +719,7 @@ class TrimAlignment(transforms.Transform):
                           first,
                           last):
     msa_len = tf.cast(tf.shape(sequence)[0], tf.int64)
-    alignment_len = last - first + 1
+    alignment_len = last - first + 1  # pyrefly: ignore[unsupported-operation]
     alignment_len = tf.cast(alignment_len, self._max_trim_ratio.dtype)
 
     # Trims MSA with probability `self._p_trim`. If MSA is to be trimmed, the
@@ -747,7 +747,7 @@ class TrimAlignment(transforms.Transform):
     mask = tf.logical_and(indices >= erase_until, indices <= erase_from)
     return tf.where(mask, sequence, tf.cast(self._gap_code, sequence.dtype))
 
-  def call(
+  def call(  # pyrefly: ignore[bad-override]
       self,
       sequence_1,
       sequence_2,

@@ -41,10 +41,10 @@ def register_task(task):
 
 @gin.configurable
 def get_masked_lm_pretraining_task(
-    task_name = gin.REQUIRED,
-    source_fn = gin.REQUIRED,
-    main_vocab_path = gin.REQUIRED,
-    token_replace_vocab_path = gin.REQUIRED,
+    task_name = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+    source_fn = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+    main_vocab_path = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+    token_replace_vocab_path = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
     num_reserved_tokens = 5,
     extra_ids = 95,
     noise_density = 0.15,
@@ -111,9 +111,9 @@ def get_masked_lm_pretraining_task(
 @gin.configurable
 def get_dedal_alignment_task(
     task_name,
-    source_fn = gin.REQUIRED,
-    main_vocab_path = gin.REQUIRED,
-    align_path_vocab_path = gin.REQUIRED,
+    source_fn = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+    main_vocab_path = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+    align_path_vocab_path = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
 ):
   """Returns DEDAL's pairwise sequence alignment task as a `seqio.Task`."""
   main_vocabulary = seqio.SentencePieceVocabulary(main_vocab_path)
@@ -181,8 +181,8 @@ def get_dedal_alignment_task(
 
 def get_dedal_homology_task(
     task_name,
-    source_fn = gin.REQUIRED,
-    main_vocab_path = gin.REQUIRED,
+    source_fn = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+    main_vocab_path = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
 ):
   """Returns DEDAL's pairwise homology detection task as a `seqio.Task`."""
   main_vocabulary = seqio.SentencePieceVocabulary(main_vocab_path)

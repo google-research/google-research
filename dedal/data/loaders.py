@@ -87,7 +87,7 @@ class TFRecordsLoader:
 class TFDSLoader:
   """A wrapper around tfds.load to make it a loader."""
 
-  def __init__(self, name = gin.REQUIRED, data_dir = None):
+  def __init__(self, name = gin.REQUIRED, data_dir = None):  # pyrefly: ignore[bad-function-definition]
     self._name = name
     self._data_dir = data_dir
 
@@ -134,7 +134,7 @@ class TSVLoader:
   def load(self, split):
     """Creates CSVDataset for split."""
     files = self._list_files(split)
-    files_ds = tf.data.Dataset.from_tensor_slices(np.array(files, dtype=str))
+    files_ds = tf.data.Dataset.from_tensor_slices(np.array(files, dtype=str))  # pyrefly: ignore[bad-argument-type]
     ds = files_ds.interleave(
         self._csv_dataset_fn,
         cycle_length=16,
@@ -162,7 +162,7 @@ class DedalLoaderDataSource(seqio.FunctionDataSource):
 
   def __init__(
       self,
-      loader_cls = gin.REQUIRED,
+      loader_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
       splits = ('train', 'validation', 'test'),
   ):
 
@@ -188,9 +188,9 @@ class SeqIOLoader:
 
   def __init__(
       self,
-      mixture_or_task_name = gin.REQUIRED,
-      task_feature_lengths = gin.REQUIRED,
-      feature_converter_factory = gin.REQUIRED,
+      mixture_or_task_name = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+      task_feature_lengths = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+      feature_converter_factory = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
       seed = None,
       train_key = 'train',
   ):

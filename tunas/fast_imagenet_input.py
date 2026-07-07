@@ -207,7 +207,7 @@ def make_dataset(
         features, mask = features
       features = tf.transpose(features, [1, 2, 3, 0])
       if final_batch_mode == FinalBatchMode.PAD:
-        features = (features, mask)
+        features = (features, mask)  # pyrefly: ignore[unbound-name]
       return (features, labels)
 
     if transpose_input:

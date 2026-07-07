@@ -101,7 +101,7 @@ def dp_aggregate(
     return (noisy_updates,
             optax.DifferentiallyPrivateAggregateState(rng_key=new_key))
 
-  return optax.GradientTransformation(init_fn, update_fn)
+  return optax.GradientTransformation(init_fn, update_fn)  # pyrefly: ignore[bad-argument-type]
 
 
 def dpsgd(learning_rate, l2_norms_threshold,

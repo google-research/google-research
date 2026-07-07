@@ -61,7 +61,7 @@ class GraphMultiLayerPerceptron(nn.Module):
         self.activation,
         skip_connections=False,
         activate_final=False)
-    return graph._replace(nodes=mlp(graph.nodes))
+    return graph._replace(nodes=mlp(graph.nodes))  # pyrefly: ignore[bad-argument-type]
 
 
 class OneHopGraphConvolution(nn.Module):
@@ -84,15 +84,15 @@ class OneHopGraphConvolution(nn.Module):
     # This saves a significant amount of memory.
     num_partitions = min(num_edges, self.num_partitions)
     partition_size = num_edges // num_partitions
-    convolved_nodes = jnp.zeros_like(graph.nodes)
+    convolved_nodes = jnp.zeros_like(graph.nodes)  # pyrefly: ignore[bad-argument-type]
     for step in range(num_edges // partition_size + 1):
       partition_start = partition_size * step
       partition_end = partition_size * (step + 1)
       partition_end = min(partition_end, num_edges)
-      partition_edges = graph.edges[partition_start:partition_end]
+      partition_edges = graph.edges[partition_start:partition_end]  # pyrefly: ignore[bad-index, unsupported-operation]
       partition_senders = senders[partition_start:partition_end]
-      partition_receivers = receivers[partition_start: partition_end]
-      weighted_edges = partition_edges * graph.nodes[partition_senders]
+      partition_receivers = receivers[partition_start: partition_end]  # pyrefly: ignore[unsupported-operation]
+      weighted_edges = partition_edges * graph.nodes[partition_senders]  # pyrefly: ignore[bad-index, unsupported-operation]
       convolved_nodes += jraph.segment_sum(
           weighted_edges,
           partition_receivers,
@@ -123,7 +123,7 @@ class GraphConvolutionalNetwork(nn.Module):
         skip_connections=False,
         activate_final=True,
         name='encoder')
-    graph = jraph.GraphMapFeatures(embed_node_fn=encoder)(graph)
+    graph = jraph.GraphMapFeatures(embed_node_fn=encoder)(graph)  # pyrefly: ignore[bad-argument-type]
 
     # Core.
     for hop in range(self.num_message_passing_steps):
@@ -142,5 +142,5 @@ class GraphConvolutionalNetwork(nn.Module):
         skip_connections=False,
         activate_final=False,
         name='decoder')
-    graph = jraph.GraphMapFeatures(embed_node_fn=decoder)(graph)
+    graph = jraph.GraphMapFeatures(embed_node_fn=decoder)(graph)  # pyrefly: ignore[bad-argument-type]
     return graph

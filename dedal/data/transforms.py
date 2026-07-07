@@ -189,7 +189,7 @@ class CropOrPad(Transform):
   """Crops or left/right pads a sequence with the same token."""
 
   def __init__(self,
-               size = gin.REQUIRED,
+               size = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                random = True,
                right = True,
                token = None,
@@ -199,7 +199,7 @@ class CropOrPad(Transform):
     self._size = size
     self._random = random
     self._right = right
-    self._token = self._vocab.get(token, self._vocab.padding_code)
+    self._token = self._vocab.get(token, self._vocab.padding_code)  # pyrefly: ignore[bad-argument-type]
     self._seed = seed
 
   def single_call(self, arg):
@@ -222,7 +222,7 @@ class AppendToken(Transform):
 
   def __init__(self, right = True, token = None, **kwargs):
     super().__init__(**kwargs)
-    self._token = self._vocab.get(token, self._vocab.padding_code)
+    self._token = self._vocab.get(token, self._vocab.padding_code)  # pyrefly: ignore[bad-argument-type]
     self._right = right
 
   def single_call(self, arg):
@@ -393,7 +393,7 @@ class FilterByLength(DatasetTransform):
   def _filter_fn(self, ex):
     cond = tf.convert_to_tensor(True, tf.bool)
     for key in self._on:
-      cond = tf.math.logical_and(cond, self._get_len(ex[key]) <= self._max_len)
+      cond = tf.math.logical_and(cond, self._get_len(ex[key]) <= self._max_len)  # pyrefly: ignore[unsupported-operation]
     return cond
 
   def call(self, ds):

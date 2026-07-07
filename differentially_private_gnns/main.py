@@ -58,7 +58,7 @@ def main(argv):
   platform.work_unit().create_artifact(platform.ArtifactType.DIRECTORY,
                                        _WORKDIR.value, 'workdir')
 
-  train.train_and_evaluate(_CONFIG.value, _WORKDIR.value)
+  train.train_and_evaluate(_CONFIG.value, _WORKDIR.value)  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == '__main__':

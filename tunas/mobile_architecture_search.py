@@ -25,8 +25,8 @@ import os
 from typing import Any, Dict, Iterable, Text, Tuple
 
 from absl import flags
-from six.moves import range
-from six.moves import zip
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2  # pylint:disable=g-bad-import-order
@@ -320,7 +320,7 @@ def model_fn(
     rl_stats = search_space_utils.reward_for_single_cost_model(
         validation_accuracy,
         rl_reward_function=params['rl_reward_function'],
-        estimated_cost=estimated_cost,
+        estimated_cost=estimated_cost,  # pyrefly: ignore[unbound-name]
         rl_cost_model_target=params['rl_cost_model_target'],
         rl_cost_model_exponent=params['rl_cost_model_exponent'])
     rl_cost_ratio = rl_stats['rl_cost_ratio']
@@ -394,7 +394,7 @@ def model_fn(
         beta1=0.0,
         beta2=0.999,
         epsilon=1e-8,
-        transform_grads_fn=transform_grads_fn)
+        transform_grads_fn=transform_grads_fn)  # pyrefly: ignore[bad-argument-type]
 
   # TensorBoard logging
   tensorboard_scalars = collections.OrderedDict([
@@ -414,8 +414,8 @@ def model_fn(
 
   if params['enable_cost_model']:
     tensorboard_scalars['rlcontroller/estimated_cost'] = estimated_cost
-    tensorboard_scalars['rlcontroller/cost_ratio'] = rl_cost_ratio
-    tensorboard_scalars['rlcontroller/cost_adjustment'] = rl_cost_adjustment
+    tensorboard_scalars['rlcontroller/cost_ratio'] = rl_cost_ratio  # pyrefly: ignore[unbound-name]
+    tensorboard_scalars['rlcontroller/cost_adjustment'] = rl_cost_adjustment  # pyrefly: ignore[unbound-name]
     tensorboard_scalars['rlcontroller/learning_rate'] = rl_learning_rate
 
   tensorboard_scalars['rlcontroller/increase_ops_prob'] = increase_ops_prob

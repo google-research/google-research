@@ -66,7 +66,7 @@ def get_subgraphs(graph,
   """Creates an array of padded subgraphs."""
   num_nodes = jax.tree.leaves(graph.nodes)[0].shape[0]
   outgoing_edges = {u: [] for u in range(num_nodes)}
-  for sender, receiver in zip(graph.senders, graph.receivers):
+  for sender, receiver in zip(graph.senders, graph.receivers):  # pyrefly: ignore[bad-argument-type]
     if sender != receiver:
       outgoing_edges[sender].append(receiver)
 
@@ -96,11 +96,11 @@ def make_subgraph_from_indices(
   valid_mask = (subgraph_indices != _SUBGRAPH_PADDING_VALUE)
 
   # Node features.
-  subgraph_nodes = graph.nodes[subgraph_indices]
-  subgraph_nodes = jnp.where(valid_mask[:, jnp.newaxis], subgraph_nodes, 0.)
+  subgraph_nodes = graph.nodes[subgraph_indices]  # pyrefly: ignore[bad-index, unsupported-operation]
+  subgraph_nodes = jnp.where(valid_mask[:, jnp.newaxis], subgraph_nodes, 0.)  # pyrefly: ignore[bad-argument-type]
 
   # Add a dummy padding node.
-  padding_node = len(subgraph_indices)
+  padding_node = len(subgraph_indices)  # pyrefly: ignore[bad-argument-type]
   subgraph_nodes = jnp.concatenate(
       (subgraph_nodes, jnp.zeros((1, subgraph_nodes.shape[1]))))
   subgraph_indices = jnp.where(valid_mask, subgraph_indices, padding_node)
@@ -146,7 +146,7 @@ def compute_updates(state, graph,
     curr_state = state.replace(params=params)
     logits = compute_logits(curr_state, graph)
     logits = logits[node_indices]
-    labels = labels[node_indices]
+    labels = labels[node_indices]  # pyrefly: ignore[bad-index]
     return compute_loss(logits, labels)
   return jax.grad(loss_fn)(state.params, graph, labels, node_indices)
 
@@ -186,8 +186,8 @@ def compute_updates_for_dp(state,
     return compute_loss(node_preds, node_labels)
 
   # Reshape leading axes for multiple devices.
-  node_labels = reshape_before_pmap(labels[node_indices])
-  subgraph_indices = reshape_before_pmap(subgraphs[node_indices])
+  node_labels = reshape_before_pmap(labels[node_indices])  # pyrefly: ignore[bad-index]
+  subgraph_indices = reshape_before_pmap(subgraphs[node_indices])  # pyrefly: ignore[bad-index]
 
   # Compute per-example gradients.
   per_example_gradient_fn = jax.vmap(
@@ -345,7 +345,7 @@ def create_optimizer(
         'nesterov': config.nesterov,
     }
     if config.differentially_private_training:
-      return optimizers.dpsgd(**opt_params, **privacy_params)
+      return optimizers.dpsgd(**opt_params, **privacy_params)  # pyrefly: ignore[unbound-name]
     return optax.sgd(**opt_params)
 
   if config.optimizer == 'adam':
@@ -353,7 +353,7 @@ def create_optimizer(
         'learning_rate': config.learning_rate,
     }
     if config.differentially_private_training:
-      return optimizers.dpadam(**opt_params, **privacy_params)
+      return optimizers.dpadam(**opt_params, **privacy_params)  # pyrefly: ignore[unbound-name]
     return optax.adam(**opt_params)
 
   raise ValueError(f'Unsupported optimizer: {config.optimizer}')
@@ -428,7 +428,7 @@ def get_estimation_indices(
     config):
   """Returns node indices for estimating clipping thresholds."""
   if config.differentially_private_training:
-    return train_indices[:config.num_estimation_samples]
+    return train_indices[:config.num_estimation_samples]  # pyrefly: ignore[bad-index]
   return None
 
 
@@ -468,7 +468,7 @@ def train_and_evaluate(config,
     graph = jax.tree.map(jnp.asarray, graph)
 
     # We only need the subgraphs for training nodes.
-    train_subgraphs = subgraphs[train_indices]
+    train_subgraphs = subgraphs[train_indices]  # pyrefly: ignore[bad-index]
     del subgraphs
   else:
     train_subgraphs = None
@@ -481,7 +481,7 @@ def train_and_evaluate(config,
   rng, init_rng = jax.random.split(rng)
   estimation_indices = get_estimation_indices(train_indices, config)
   state = create_train_state(init_rng, config, graph, train_labels,
-                             train_subgraphs, estimation_indices)
+                             train_subgraphs, estimation_indices)  # pyrefly: ignore[bad-argument-type]
 
   # Set up checkpointing of the model.
   checkpoint_dir = os.path.join(workdir, 'checkpoints')

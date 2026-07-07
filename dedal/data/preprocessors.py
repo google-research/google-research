@@ -273,9 +273,9 @@ def bert_denoising(
     # functions in `t5_preprocessors`.
     noise_mask = noise_mask_fn(tf.size(tokens), noise_density, seeds=seeds[:2])
     if exclude_reserved_tokens:
-      noise_mask = tf.logical_and(noise_mask, tokens >= num_reserved_tokens)
+      noise_mask = tf.logical_and(noise_mask, tokens >= num_reserved_tokens)  # pyrefly: ignore[unsupported-operation]
     if exclude_extra_ids:
-      noise_mask = tf.logical_and(noise_mask, tokens < effective_vocab_size)
+      noise_mask = tf.logical_and(noise_mask, tokens < effective_vocab_size)  # pyrefly: ignore[unsupported-operation]
 
     # BERT-style [MASK] tokens.
     sentinel_tokens = tf.fill(

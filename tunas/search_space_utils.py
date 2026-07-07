@@ -54,7 +54,7 @@ def normalize_strides(
     ValueError: Input strides is neither an integer nor a pair of integers.
   """
   if isinstance(strides, (list, tuple)) and len(strides) == 2:
-    return tuple(strides)
+    return tuple(strides)  # pyrefly: ignore[bad-return]
   elif isinstance(strides, int):
     return (strides, strides)
   else:
@@ -227,11 +227,11 @@ def prune_model_spec(model_spec,
       return oneof
 
     if genotype_is_dict:
-      selection = genotype[oneof.tag].pop(0)
+      selection = genotype[oneof.tag].pop(0)  # pyrefly: ignore[missing-attribute]
       if oneof.tag == basic_specs.FILTERS_TAG and prune_filters_by_value:
         selection = oneof.choices.index(selection)
     else:
-      selection = genotype.pop(0)
+      selection = genotype.pop(0)  # pyrefly: ignore[bad-argument-type]
 
     # If an operation is skippable (i.e., it can be replaced with a ZeroSpec)
     # then we optionally apply path dropout during stand-alone training.

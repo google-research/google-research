@@ -60,7 +60,7 @@ def multiterm_dpsgd_privacy_accountant(num_training_steps,
   # Compute unamplified RDPs (that is, with sampling probability = 1).
   orders = np.arange(1, 10, 0.1)[1:]
 
-  accountant = dp_accounting.rdp.RdpAccountant(orders)
+  accountant = dp_accounting.rdp.RdpAccountant(orders)  # pyrefly: ignore[bad-argument-type]
   accountant.compose(dp_accounting.GaussianDpEvent(noise_multiplier))
   unamplified_rdps = accountant._rdp  # pylint: disable=protected-access
 
@@ -84,7 +84,7 @@ def multiterm_dpsgd_privacy_accountant(num_training_steps,
   amplified_rdps_total = amplified_rdps * num_training_steps
 
   # Convert to epsilon-delta DP.
-  return dp_accounting.rdp.compute_epsilon(orders, amplified_rdps_total,
+  return dp_accounting.rdp.compute_epsilon(orders, amplified_rdps_total,  # pyrefly: ignore[bad-argument-type]
                                            target_delta)[0]
 
 
@@ -113,7 +113,7 @@ def dpsgd_privacy_accountant(num_training_steps, noise_multiplier,
   orders = np.arange(1, 200, 0.1)[1:]
   event = dp_accounting.PoissonSampledDpEvent(
       sampling_probability, dp_accounting.GaussianDpEvent(noise_multiplier))
-  accountant = dp_accounting.rdp.RdpAccountant(orders)
+  accountant = dp_accounting.rdp.RdpAccountant(orders)  # pyrefly: ignore[bad-argument-type]
   accountant.compose(event, num_training_steps)
   return accountant.get_epsilon(target_delta)
 

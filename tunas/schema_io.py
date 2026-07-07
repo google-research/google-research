@@ -25,8 +25,8 @@ import json
 from typing import Any, ByteString, Callable, Dict, Iterable, Optional, Sequence, Text, Tuple, Type, TypeVar, Union
 
 import six
-from six.moves import map
-from six.moves import zip
+from six.moves import map  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 
 from tunas import schema
 
@@ -134,8 +134,8 @@ def _to_json(structure):
     return structure
   elif isinstance(structure, schema.OneOf):
     result = ['oneof']
-    result.append(['choices', _to_json(structure.choices)])
-    result.append(['tag', _to_json(structure.tag)])
+    result.append(['choices', _to_json(structure.choices)])  # pyrefly: ignore[bad-argument-type]
+    result.append(['tag', _to_json(structure.tag)])  # pyrefly: ignore[bad-argument-type]
     return result
   elif isinstance(structure, list):
     result = ['list']
@@ -143,7 +143,7 @@ def _to_json(structure):
     return result
   elif isinstance(structure, tuple) and hasattr(structure, '_fields'):
     result = ['namedtuple:' + namedtuple_class_to_name(structure.__class__)]
-    result.extend(zip(structure._fields, map(_to_json, structure)))
+    result.extend(zip(structure._fields, map(_to_json, structure)))  # pyrefly: ignore[bad-argument-type]
     return result
   elif isinstance(structure, tuple):
     result = ['tuple']
@@ -152,7 +152,7 @@ def _to_json(structure):
   elif isinstance(structure, dict):
     result = ['dict']
     for k in sorted(structure):
-      result.append((_to_json(k), _to_json(structure[k])))
+      result.append((_to_json(k), _to_json(structure[k])))  # pyrefly: ignore[bad-argument-type]
     return result
   else:
     raise ValueError('Unrecognized type: {}'.format(type(structure)))
@@ -237,4 +237,4 @@ def deserialize(serialized):
   Returns:
     A (possibly nested) data structure.
   """
-  return _from_json(json.loads(serialized))
+  return _from_json(json.loads(serialized))  # pyrefly: ignore[bad-argument-type]

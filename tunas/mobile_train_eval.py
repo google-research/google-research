@@ -25,7 +25,7 @@ import os
 from typing import Any, Dict, Optional, Text, Tuple, Union
 
 from absl import flags
-from six.moves import zip
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf  # tf
 from tensorflow.compat.v1 import estimator as tf_estimator
 import tensorflow.compat.v2 as tf2  # pylint:disable=g-bad-import-order
@@ -230,7 +230,7 @@ def model_fn(features,
       predictions = tf.argmax(logits, axis=1)
       accuracy = tf.metrics.accuracy(label_values, predictions, weights=mask)
       return {'accuracy': accuracy}
-    eval_metrics = (metric_fn, [labels, logits, mask])
+    eval_metrics = (metric_fn, [labels, logits, mask])  # pyrefly: ignore[unbound-name]
   else:
     eval_metrics = None
 
@@ -245,7 +245,7 @@ def model_fn(features,
     tensorboard_scalars['model/loss'] = loss
     tensorboard_scalars['model/empirical_loss'] = empirical_loss
     tensorboard_scalars['model/regularization_loss'] = regularization_loss
-    tensorboard_scalars['model/learning_rate'] = learning_rate
+    tensorboard_scalars['model/learning_rate'] = learning_rate  # pyrefly: ignore[unbound-name]
 
     def host_call_fn(step, scalar_values):
       values = tf.unstack(scalar_values)
