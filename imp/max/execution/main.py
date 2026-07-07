@@ -172,7 +172,7 @@ def run(config_name,
     configs_iterator = exec_config.ExperimentParser(
         config=config,
         study_name=vizier_study,
-        group=vizier_tuner_group)
+        group=vizier_tuner_group)  # pyrefly: ignore[bad-argument-type]
 
     for concrete_config, feedback in configs_iterator:
       logging.info('Start working on trial %d (group=%r)...', feedback.id,

@@ -302,7 +302,7 @@ class FormatForPublisherTest(absltest.TestCase):
 
   def test_non_numeric_results_excluded(self):
     result = metrics.format_for_publisher(
-        eval_results={
+        eval_results={  # pyrefly: ignore[bad-argument-type]
             "eval_map": 0.5,
             "eval_note": "some string",
         },

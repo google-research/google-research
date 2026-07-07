@@ -92,7 +92,7 @@ class TrainerTest(absltest.TestCase):
     }
 
     loss = custom_trainer.compute_loss(model, inputs)
-    self.assertEqual(loss.item(), 1.0)
+    self.assertEqual(loss.item(), 1.0)  # pyrefly: ignore[missing-attribute]
     self.assertIn("labels", inputs)
     self.assertLen(custom_trainer._loss_components_buffer, 1)
 

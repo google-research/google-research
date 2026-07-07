@@ -131,7 +131,7 @@ def main():
                       dataset["test"],
                       method,
                       seed=seed,
-                      **{sweep_flag[args.sweep]: sweep_value},
+                      **{sweep_flag[args.sweep]: sweep_value},  # pyrefly: ignore[bad-argument-type]
                   )
                   for seed in range(500)
               ],

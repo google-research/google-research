@@ -83,7 +83,7 @@ class AbstractGraphProperty(abc.ABC):
       return cls._infer_concrete(
           model=model,
           input_values=input_values,
-          state=state,
+          state=state,  # pyrefly: ignore[bad-argument-type]
           intermediates=intermediates,
           input_intermediate_values=input_intermediate_values,
           **kwargs)

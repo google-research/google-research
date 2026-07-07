@@ -85,7 +85,7 @@ def stateless_dropout(x: tf.Tensor,
       tensor. `rate=1` is disallowed, because the output would be all zeros,
       which is likely not what was intended.
   """
-  with tf.name_scope(name or 'stateless_dropout') as name:
+  with tf.name_scope(name or 'stateless_dropout') as name:  # pyrefly: ignore[bad-instantiation]
     x = tf.convert_to_tensor(x, name='x')
     if not x.dtype.is_floating:
       raise ValueError('x has to be a floating point tensor since it\'s going '

@@ -131,7 +131,7 @@ def main():
         # Write to table.
         path = output_dir / f"{dataset_name}_tau_{tau}.txt"
         logging.info("Writing results to %s", path)
-        utils.write_table(path, results, "%.6f")
+        utils.write_table(path, results, "%.6f")  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == "__main__":

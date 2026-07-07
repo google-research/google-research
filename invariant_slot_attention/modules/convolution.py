@@ -63,7 +63,7 @@ class SimpleCNN(nn.Module):
         kernel_size=self.kernel_size[0],
         strides=self.strides[0],
         use_bias=False if self.use_batch_norm else True,
-        padding=self.padding)(inputs)
+        padding=self.padding)(inputs)  # pyrefly: ignore[bad-argument-type]
 
     for i in range(1, num_layers):
       if self.use_batch_norm:
@@ -79,7 +79,7 @@ class SimpleCNN(nn.Module):
           strides=self.strides[i],
           use_bias=False if (
               self.use_batch_norm and i < (num_layers-1)) else True,
-          padding=self.padding)(x)
+          padding=self.padding)(x)  # pyrefly: ignore[bad-argument-type]
 
     if self.resize_output:
       x = jax.image.resize(
@@ -148,7 +148,7 @@ class CNN(nn.Module):
               num_groups=self.features[i],
               name=f"{self.norm_type}_norm_{i}")(x)
         else:
-          norm_module(name=f"{self.norm_type}_norm_{i}")(x)
+          norm_module(name=f"{self.norm_type}_norm_{i}")(x)  # pyrefly: ignore[unbound-name]
 
       # Activation layer.
       x = self.activation_fn(x)

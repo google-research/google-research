@@ -102,7 +102,7 @@ class LossesTest(absltest.TestCase):
     # card_pred should be 1
     # (only Query 0 has max foreground prob > 0.5)
     loss_dict = criterion.loss_cardinality(
-        outputs, targets, [], torch.tensor([1.0])
+        outputs, targets, [], torch.tensor([1.0])  # pyrefly: ignore[bad-argument-type]
     )
     # tgt_length is 1. card_pred should be 1. cardinality_error = |1 - 1| = 0.
     self.assertEqual(loss_dict["cardinality_error"].item(), 0.0)
@@ -128,7 +128,7 @@ class LossesTest(absltest.TestCase):
 
     # Check if it computes without crash.
     loss_dict = criterion.sigmoid_focal_loss_labels(
-        outputs, targets, indices, num_boxes
+        outputs, targets, indices, num_boxes  # pyrefly: ignore[bad-argument-type]
     )
     self.assertIn("loss_sigmoid_focal", loss_dict)
 
@@ -164,10 +164,10 @@ class LossesTest(absltest.TestCase):
     num_boxes = torch.tensor([1.0])
 
     loss_1 = criterion_1.sigmoid_focal_loss_labels(
-        outputs, targets, indices, num_boxes
+        outputs, targets, indices, num_boxes  # pyrefly: ignore[bad-argument-type]
     )["loss_sigmoid_focal"]
     loss_05 = criterion_05.sigmoid_focal_loss_labels(
-        outputs, targets, indices, num_boxes
+        outputs, targets, indices, num_boxes  # pyrefly: ignore[bad-argument-type]
     )["loss_sigmoid_focal"]
 
     # loss_05 should be smaller than loss_1 because the background dimension
@@ -221,7 +221,7 @@ class LossesTest(absltest.TestCase):
     num_boxes = torch.tensor([2.0])
 
     loss_dict = criterion.sigmoid_focal_loss_labels(
-        outputs, targets, indices, num_boxes
+        outputs, targets, indices, num_boxes  # pyrefly: ignore[bad-argument-type]
     )
     self.assertIn("loss_sigmoid_focal", loss_dict)
 
@@ -248,7 +248,7 @@ class LossesTest(absltest.TestCase):
     targets = [{"class_labels": torch.tensor([2])}]
 
     loss_dict = criterion.loss_cardinality(
-        outputs, targets, [], torch.tensor([1.0])
+        outputs, targets, [], torch.tensor([1.0])  # pyrefly: ignore[bad-argument-type]
     )
     # Query 0 is predicted as class 2. Query 1 is predicted as background.
     # card_pred should be 1. tgt_length is 1.

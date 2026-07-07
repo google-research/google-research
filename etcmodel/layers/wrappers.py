@@ -155,14 +155,14 @@ class ResidualBlock(tf.keras.layers.Layer):
     if self.use_pre_activation_order:
       tensors = _zip_layer_sequence(
           self.normalization_layers, inputs, training=training)
-      tensors = self.inner_layer(*tensors, training=training, **kwargs)
+      tensors = self.inner_layer(*tensors, training=training, **kwargs)  # pyrefly: ignore[not-callable]
       if not isinstance(tensors, Sequence):
         tensors = [tensors]
       tensors = _zip_layer_sequence(
           self.dropout_layers, tensors, training=training)
       outputs = [x + y for x, y in zip(inputs, tensors)]
     else:
-      tensors = self.inner_layer(*inputs, training=training, **kwargs)
+      tensors = self.inner_layer(*inputs, training=training, **kwargs)  # pyrefly: ignore[not-callable]
       if not isinstance(tensors, Sequence):
         tensors = [tensors]
       tensors = _zip_layer_sequence(
@@ -180,4 +180,4 @@ class ResidualBlock(tf.keras.layers.Layer):
 def _zip_layer_sequence(layers: Sequence[tf.keras.layers.Layer],
                         tensors: Sequence[tf.Tensor], **kwargs):
   """Applies a sequence of layers to a sequence of tensors of the same size."""
-  return [layer(tensor, **kwargs) for layer, tensor in zip(layers, tensors)]
+  return [layer(tensor, **kwargs) for layer, tensor in zip(layers, tensors)]  # pyrefly: ignore[not-callable]

@@ -100,15 +100,15 @@ class IntervenedDataset:
            f' (={self.ctoy_model.layers[0].weights[0].shape[0]})'))
 
     if policy is enum_utils.InterventionPolicy.GLOBAL_RANDOM:
-      self.policy = self.global_random_policy(**policy_kwargs)
+      self.policy = self.global_random_policy(**policy_kwargs)  # pyrefly: ignore[bad-argument-type]
     elif policy is enum_utils.InterventionPolicy.INSTANCE_RANDOM:
-      self.policy = self.instance_random_policy(**policy_kwargs)
+      self.policy = self.instance_random_policy(**policy_kwargs)  # pyrefly: ignore[bad-argument-type]
     elif policy is enum_utils.InterventionPolicy.GLOBAL_GREEDY:
-      self.policy = self.global_greedy_policy(**policy_kwargs)
+      self.policy = self.global_greedy_policy(**policy_kwargs)  # pyrefly: ignore[bad-argument-type]
     elif policy is enum_utils.InterventionPolicy.INSTANCE_GREEDY:
-      self.policy = self.instance_greedy_policy(**policy_kwargs)
+      self.policy = self.instance_greedy_policy(**policy_kwargs)  # pyrefly: ignore[bad-argument-type]
     elif policy is enum_utils.InterventionPolicy.COOP:
-      self.policy = self.coop_policy(**policy_kwargs)
+      self.policy = self.coop_policy(**policy_kwargs)  # pyrefly: ignore[bad-argument-type]
     else:
       raise ValueError(f'Policy: {policy} not recognized')
 
@@ -228,29 +228,29 @@ class IntervenedDataset:
                                                       self.concept_uncertainty,
                                                       self.pred_concepts,
                                                       mask_temp)
-        pred_labels = self.ctoy_model(intervened_concepts, training=False)[0]
+        pred_labels = self.ctoy_model(intervened_concepts, training=False)[0]  # pyrefly: ignore[not-callable]
 
         curr_primary_metric = primary_metric_fn(self.true_labels, pred_labels)
         if secondary_mode is not None:
-          curr_secondary_metric = secondary_metric_fn(self.true_labels,
+          curr_secondary_metric = secondary_metric_fn(self.true_labels,  # pyrefly: ignore[unbound-name]
                                                       pred_labels)
 
         if policy_metrics.new_best_metric(
-            curr_primary_metric, best_primary_metric, mode=primary_mode):
+            curr_primary_metric, best_primary_metric, mode=primary_mode):  # pyrefly: ignore[bad-argument-type]
           best_primary_metric = curr_primary_metric
           if secondary_mode is not None:
-            best_secondary_metric = curr_secondary_metric
+            best_secondary_metric = curr_secondary_metric  # pyrefly: ignore[unbound-name]
           next_best_concept = concept_group_name
         elif (secondary_mode is not None and
               curr_primary_metric == best_primary_metric and
               policy_metrics.new_best_metric(
-                  curr_secondary_metric,
-                  best_secondary_metric,
+                  curr_secondary_metric,  # pyrefly: ignore[unbound-name]
+                  best_secondary_metric,  # pyrefly: ignore[bad-argument-type, unbound-name]
                   mode=secondary_mode)):
           best_secondary_metric = curr_secondary_metric
           next_best_concept = concept_group_name
 
-      intervention_mask[self.concept_groups[next_best_concept]] = True
+      intervention_mask[self.concept_groups[next_best_concept]] = True  # pyrefly: ignore[unbound-name]
       yield intervention_mask, next_best_concept
 
   def instance_greedy_policy(
@@ -315,27 +315,27 @@ class IntervenedDataset:
                                                       self.pred_concepts,
                                                       mask_temp)
 
-        pred_labels = self.ctoy_model(intervened_concepts, training=False)[0]
+        pred_labels = self.ctoy_model(intervened_concepts, training=False)[0]  # pyrefly: ignore[not-callable]
         curr_primary_metric = primary_metric_fn(self.true_labels, pred_labels)
 
         update_mask = policy_metrics.new_best_metric(
-            curr_primary_metric, best_primary_metric, mode=primary_mode)
+            curr_primary_metric, best_primary_metric, mode=primary_mode)  # pyrefly: ignore[bad-argument-type]
 
         if secondary_mode is not None:
-          curr_secondary_metric = secondary_metric_fn(self.true_labels,
+          curr_secondary_metric = secondary_metric_fn(self.true_labels,  # pyrefly: ignore[unbound-name]
                                                       pred_labels)
           tie_mask = curr_primary_metric == best_primary_metric
           update_mask = update_mask | (
               tie_mask & policy_metrics.new_best_metric(
                   curr_secondary_metric,
-                  best_secondary_metric,
+                  best_secondary_metric,  # pyrefly: ignore[bad-argument-type, unbound-name]
                   mode=secondary_mode))
         update_mask = update_mask & (~already_revealed)
 
         best_primary_metric[update_mask] = curr_primary_metric[update_mask]
         next_best_concept[update_mask] = concept_group_name
         if secondary_mode is not None:
-          best_secondary_metric[update_mask] = curr_secondary_metric[
+          best_secondary_metric[update_mask] = curr_secondary_metric[  # pyrefly: ignore[unbound-name]
               update_mask]
 
       for i in range(self.n_test):
@@ -467,7 +467,7 @@ class IntervenedDataset:
                  + label_metric_weight * label_metric_value
                  - cost_weight * concept_costs[concept_group_name])
         update_mask = (~already_revealed) & policy_metrics.new_best_metric(
-            score, best_score, mode='max')
+            score, best_score, mode='max')  # pyrefly: ignore[bad-argument-type]
         best_score[update_mask] = score[update_mask]
         next_best_concept[update_mask] = concept_group_name
 
@@ -503,7 +503,7 @@ class IntervenedDataset:
       assert (intervention_mask.ndim == 2) and (intervention_mask.shape[0]
                                                 == self.n_test)
 
-    mask_ds = tf.data.Dataset.from_tensor_slices(intervention_mask).batch(
+    mask_ds = tf.data.Dataset.from_tensor_slices(intervention_mask).batch(  # pyrefly: ignore[bad-argument-type]
         batch_size)
 
     def _generator():
@@ -516,5 +516,5 @@ class IntervenedDataset:
         yield true_batch[0], intervened_concepts, true_batch[2]
 
     intervened_data = tf.data.Dataset.from_generator(
-        _generator, output_signature=output_signature)
+        _generator, output_signature=output_signature)  # pyrefly: ignore[bad-argument-type]
     return intervened_data

@@ -98,7 +98,7 @@ class CuBertTokenizer(abc.ABC):
         `unified_tokenizer.TokenKind`. Note that some of those constants are
         actually defined in the `tokenize` module.
     """
-    self.types_to_skip = types_to_skip
+    self.types_to_skip = types_to_skip  # pyrefly: ignore[bad-assignment]
 
   def replace_reserved_keywords(self, reserved):
     """Replaces the reserved keywords with the supplied list of strings.

@@ -285,7 +285,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  policy_kwargs = json.loads(_POLICY_KWARGS.value)
+  policy_kwargs = json.loads(_POLICY_KWARGS.value)  # pyrefly: ignore[bad-argument-type]
   policy_dir = os.path.join('{}', _DATASET.value, 'intervention_{}')
   if _POLICY.value in [enum_utils.InterventionPolicy.GLOBAL_RANDOM,
                        enum_utils.InterventionPolicy.INSTANCE_RANDOM]:

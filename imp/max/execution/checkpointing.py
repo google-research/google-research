@@ -335,14 +335,14 @@ def get_param_info(name,
         local_chunk_info=None,
         )
 
-  local_chunk_info = partitioner.get_local_chunk_info(global_shape, pspec)
+  local_chunk_info = partitioner.get_local_chunk_info(global_shape, pspec)  # pyrefly: ignore[bad-argument-type]
   write_shape = np.array([
       si if sl == slice(None) else sl.stop - sl.start
       for si, sl in zip(global_shape, local_chunk_info.slice)
   ])
 
   chunk_shape = choose_chunk_shape(
-      write_shape,
+      write_shape,  # pyrefly: ignore[bad-argument-type]
       target_elements=_DESIRED_CHUNK_SIZE_BYTES / array.dtype.itemsize)
 
   dtype = np.dtype(array.dtype).str.replace('<V2', 'bfloat16')
@@ -493,7 +493,7 @@ def get_array_or_store_ts(
       await t[param_info.local_chunk_info.slice].write(arr)
 
       if lazy:
-        await bytes_cv.return_bytes(n_bytes)  # pylint: disable=undefined-variable
+        await bytes_cv.return_bytes(n_bytes)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
 
     return param_info.ts_spec
 
@@ -582,7 +582,7 @@ def get_array_or_restore_ts(
     def _lazy_restore_fn(array_or_tspec, param_info):
       return LazyAwaitableArray.from_tensor_store_spec_or_array(
           maybe_ts_spec=array_or_tspec,
-          get_fn=functools.partial(_get_array_or_restore_ts,
+          get_fn=functools.partial(_get_array_or_restore_ts,  # pyrefly: ignore[bad-argument-type]
                                    array_or_tspec=array_or_tspec,
                                    param_info=param_info),
           )
@@ -669,7 +669,7 @@ class CheckpointManager(object):
     asyncio.set_event_loop(asyncio.new_event_loop())
 
   def _get_ts_specs(self):
-    return get_ts_spec(self.state, self.partitioner)
+    return get_ts_spec(self.state, self.partitioner)  # pyrefly: ignore[bad-argument-type]
 
   def save(self,
            state,

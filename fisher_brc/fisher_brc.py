@@ -83,9 +83,9 @@ class FBRC(object):
 
   def dist_critic(self, states, actions, target=False, stop_gradient=False):
     if target:
-      q1, q2 = self.critic_target(states, actions)
+      q1, q2 = self.critic_target(states, actions)  # pyrefly: ignore[not-callable]
     else:
-      q1, q2 = self.critic(states, actions)
+      q1, q2 = self.critic(states, actions)  # pyrefly: ignore[not-callable]
     log_probs = self.bc.policy.log_probs(states, actions)
     if stop_gradient:
       log_probs = tf.stop_gradient(log_probs)
@@ -106,12 +106,12 @@ class FBRC(object):
     Returns:
       Dictionary with information to track.
     """
-    next_actions = self.actor(next_states, sample=True)
-    policy_actions = self.actor(states, sample=True)
+    next_actions = self.actor(next_states, sample=True)  # pyrefly: ignore[not-callable]
+    policy_actions = self.actor(states, sample=True)  # pyrefly: ignore[not-callable]
 
     next_target_q1, next_target_q2 = self.dist_critic(
         next_states, next_actions, target=True)
-    target_q = rewards + self.discount * discounts * tf.minimum(
+    target_q = rewards + self.discount * discounts * tf.minimum(  # pyrefly: ignore[unsupported-operation]
         next_target_q1, next_target_q2)
 
     critic_variables = self.critic.trainable_variables
@@ -123,7 +123,7 @@ class FBRC(object):
           watch_accessed_variables=False, persistent=True) as tape2:
         tape2.watch([policy_actions])
 
-        q1_reg, q2_reg = self.critic(states, policy_actions)
+        q1_reg, q2_reg = self.critic(states, policy_actions)  # pyrefly: ignore[not-callable]
 
       q1_grads = tape2.gradient(q1_reg, policy_actions)
       q2_grads = tape2.gradient(q2_reg, policy_actions)
@@ -167,7 +167,7 @@ class FBRC(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.actor.trainable_variables)
-      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)
+      actions, log_probs = self.actor(states, sample=True, with_log_probs=True)  # pyrefly: ignore[not-callable]
       q1, q2 = self.dist_critic(states, actions)
       q = tf.minimum(q1, q2)
       actor_loss = tf.reduce_mean(self.alpha * log_probs - q)
@@ -213,4 +213,4 @@ class FBRC(object):
 
   @tf.function
   def act(self, states):
-    return self.actor(states, sample=False)
+    return self.actor(states, sample=False)  # pyrefly: ignore[not-callable]

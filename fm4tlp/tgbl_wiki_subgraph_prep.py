@@ -246,8 +246,8 @@ def main(_):
   train_val_dataset_name = 'cc-subgraph'
 
   train_val_edgelist = tgbl_wiki_edgelist[
-      tgbl_wiki_edgelist['source'].isin(train_val_subgraph)
-      & tgbl_wiki_edgelist['target'].isin(train_val_subgraph)
+      tgbl_wiki_edgelist['source'].isin(train_val_subgraph)  # pyrefly: ignore[missing-attribute]
+      & tgbl_wiki_edgelist['target'].isin(train_val_subgraph)  # pyrefly: ignore[missing-attribute]
   ]
 
   train_val_edgelist = train_val_edgelist.sort_values('ts')
@@ -318,8 +318,8 @@ def main(_):
   test_dataset_name = 'cc-subgraph'
 
   test_edgelist = tgbl_wiki_edgelist[
-      tgbl_wiki_edgelist['source'].isin(test_subgraph)
-      & tgbl_wiki_edgelist['target'].isin(test_subgraph)
+      tgbl_wiki_edgelist['source'].isin(test_subgraph)  # pyrefly: ignore[missing-attribute]
+      & tgbl_wiki_edgelist['target'].isin(test_subgraph)  # pyrefly: ignore[missing-attribute]
   ]
 
   filename = 'tgbl_wiki_' + test_dataset_name + '_test_edgelist.csv'

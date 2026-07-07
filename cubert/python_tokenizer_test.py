@@ -222,7 +222,7 @@ class A():
     if types_to_skip is not None:
       tokenizer.update_types_to_skip(types_to_skip)
     actual = tokenizer.tokenize(source)
-    self.assertListEqual(expected, actual)
+    self.assertListEqual(expected, actual)  # pyrefly: ignore[bad-argument-type]
 
   @parameterized.named_parameters(
       ('incomplete_multiline_token', '"""ABC'),
@@ -237,7 +237,7 @@ class A(object):
     tokenizer = python_tokenizer.PythonTokenizer()
     tokenizer.replace_reserved_keywords(('___ERROR___',))
     actual = tokenizer.tokenize(bad_code)
-    self.assertListEqual([_ERROR_NAME, _EOS_NAME], actual)
+    self.assertListEqual([_ERROR_NAME, _EOS_NAME], actual)  # pyrefly: ignore[bad-argument-type]
 
   @parameterized.named_parameters(
       (
@@ -263,7 +263,7 @@ class A(object):
     tokenizer = python_tokenizer.PythonTokenizer()
     tokenizer.replace_reserved_keywords(reserved)
     actual = tokenizer.tokenize(source)
-    self.assertListEqual(expected, actual)
+    self.assertListEqual(expected, actual)  # pyrefly: ignore[bad-argument-type]
 
   @parameterized.named_parameters(
       (
@@ -308,7 +308,7 @@ class A(object):
     tokenizer = python_tokenizer.PythonTokenizer()
     tokenizer.update_mappings(mappings)
     actual = tokenizer.tokenize(source)
-    self.assertListEqual(expected, actual)
+    self.assertListEqual(expected, actual)  # pyrefly: ignore[bad-argument-type]
 
   @parameterized.named_parameters(
       (

@@ -96,4 +96,4 @@ class BehavioralCloning(object):
 
   @tf.function
   def act(self, states):
-    return self.policy(states, sample=False)
+    return self.policy(states, sample=False)  # pyrefly: ignore[not-callable]

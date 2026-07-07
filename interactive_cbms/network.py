@@ -69,7 +69,7 @@ class InteractiveBottleneckModel(tfk.Model):
       else:
         self.ctoy_module = tfk.layers.Dense(n_classes, activation=None)
 
-  def compile(self,
+  def compile(self,  # pyrefly: ignore[bad-override]
               optimizer = None,
               loss_weights = None):
     """Sets up losses and metrics depending on the arch selected.
@@ -150,7 +150,7 @@ class InteractiveBottleneckModel(tfk.Model):
     """
     losses = []
     for loss_fns_i, loss_weight_i, metric_fns_i, y_i, y_pred_i in zip(
-        self.custom_losses, self.loss_weights, self.custom_loss_metrics, y,
+        self.custom_losses, self.loss_weights, self.custom_loss_metrics, y,  # pyrefly: ignore[bad-argument-type]
         y_pred):
       for loss_fn, loss_weight, metric_fn in zip(loss_fns_i, loss_weight_i,
                                                  metric_fns_i):
@@ -175,7 +175,7 @@ class InteractiveBottleneckModel(tfk.Model):
         metric_fn.update_state(y_i, y_pred_i)
 
   @property
-  def metrics(self):
+  def metrics(self):  # pyrefly: ignore[bad-override]
     """Returns a list of all metrics in use."""
     metrics = []
     for metrics_i in self.custom_loss_metrics + self.custom_alt_metrics:
@@ -201,29 +201,29 @@ class InteractiveBottleneckModel(tfk.Model):
       (<class_preds>).
     """
     if self.arch is enum_utils.Arch.X_TO_C:
-      return (self.linear(
+      return (self.linear(  # pyrefly: ignore[not-callable]
           self.gap(
               self.base_model(inputs, training=training), training=training),
           training=training),)
     elif self.arch is enum_utils.Arch.C_TO_Y:
-      return (self.ctoy_module(inputs, training=training),)
+      return (self.ctoy_module(inputs, training=training),)  # pyrefly: ignore[not-callable]
     elif self.arch is enum_utils.Arch.X_TO_C_TO_Y:
-      concept_logits = self.linear(
+      concept_logits = self.linear(  # pyrefly: ignore[not-callable]
           self.gap(
               self.base_model(inputs, training=training), training=training),
           training=training)
       if self.use_sigmoid:
-        class_logits = self.ctoy_module(
+        class_logits = self.ctoy_module(  # pyrefly: ignore[not-callable]
             tf.sigmoid(concept_logits), training=training)
       else:
-        class_logits = self.ctoy_module(concept_logits, training=training)
+        class_logits = self.ctoy_module(concept_logits, training=training)  # pyrefly: ignore[not-callable]
       return (concept_logits, class_logits)
     else:  # When self.arch is enum_utils.Arch.X_TO_Y
-      linear_out = self.linear(
+      linear_out = self.linear(  # pyrefly: ignore[not-callable]
           self.gap(
               self.base_model(inputs, training=training), training=training),
           training=training)
-      class_logits = self.ctoy_module(linear_out, training=training)
+      class_logits = self.ctoy_module(linear_out, training=training)  # pyrefly: ignore[not-callable]
       return (class_logits,)
 
   def get_x_y_from_data(
@@ -251,7 +251,7 @@ class InteractiveBottleneckModel(tfk.Model):
     elif self.arch is enum_utils.Arch.X_TO_Y:
       x = image
       y = (class_label,)
-    return x, y
+    return x, y  # pyrefly: ignore[unbound-name]
 
   def train_step(self, data):
     """Implements the logic for one (custom) training step.
@@ -268,7 +268,7 @@ class InteractiveBottleneckModel(tfk.Model):
     """
     x, y = self.get_x_y_from_data(data)
     with tf.GradientTape() as tape:
-      y_pred = self(x, training=True)
+      y_pred = self(x, training=True)  # pyrefly: ignore[not-callable]
       loss = self.compute_loss(y, y_pred)
 
     gradients = tape.gradient(loss, self.trainable_variables)
@@ -292,7 +292,7 @@ class InteractiveBottleneckModel(tfk.Model):
       the metrics.
     """
     x, y = self.get_x_y_from_data(data)
-    y_pred = self(x, training=False)
+    y_pred = self(x, training=False)  # pyrefly: ignore[not-callable]
     self.compute_loss(y, y_pred)
     self.update_metrics(y, y_pred)
 
@@ -313,4 +313,4 @@ class InteractiveBottleneckModel(tfk.Model):
       (<class_preds>).
     """
     x, _ = self.get_x_y_from_data(data)
-    return self(x, training=False)
+    return self(x, training=False)  # pyrefly: ignore[not-callable]

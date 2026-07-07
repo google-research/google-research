@@ -53,7 +53,7 @@ from imp.max.utils import typing
 
 
 ExperimentT = exec_config.ExperimentT
-ExecutorT = Type[TypeVar('_ExecutorT', bound='BaseExecutor')]
+ExecutorT = Type[TypeVar('_ExecutorT', bound='BaseExecutor')]  # pyrefly: ignore[not-a-type]
 Mode = constants.Mode
 DenyList = scope.DenyList
 
@@ -1065,8 +1065,8 @@ class BaseExecutor:
             batch_aggregate_fn=np.concatenate,
             batch_axis=0,
         )
-        all_data[ds_name][ds_subset] = aggregate_fn(data_slices)
-        all_probes[ds_name][ds_subset] = aggregate_fn(probes_slices)
+        all_data[ds_name][ds_subset] = aggregate_fn(data_slices)  # pyrefly: ignore[unsupported-operation]
+        all_probes[ds_name][ds_subset] = aggregate_fn(probes_slices)  # pyrefly: ignore[unsupported-operation]
 
     return all_data, all_probes
 

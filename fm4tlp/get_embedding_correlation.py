@@ -171,7 +171,7 @@ def main(_):
   )(
       model_config=model_config,
       total_num_nodes=total_nodes,
-      raw_message_size=train_data.msg.size(-1),
+      raw_message_size=train_data.msg.size(-1),  # pyrefly: ignore[missing-attribute]
       device=device,
       learning_rate=0,
   )

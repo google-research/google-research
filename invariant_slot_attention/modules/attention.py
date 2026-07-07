@@ -88,7 +88,7 @@ class SlotAttention(nn.Module):
 
       # Feedforward block with pre-normalization.
       if self.mlp_size is not None:
-        slots = mlp(slots)
+        slots = mlp(slots)  # pyrefly: ignore[unbound-name]
 
     return slots
 

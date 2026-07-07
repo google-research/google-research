@@ -183,18 +183,18 @@ class SlotAttentionExplicitStats(nn.Module):
 
       # Feedforward block with pre-normalization.
       if self.mlp_size is not None:
-        slots = mlp(slots)
+        slots = mlp(slots)  # pyrefly: ignore[unbound-name]
 
     if self.return_slot_positions:
       # Compute the center of mass of each slot attention mask.
-      positions = jnp.einsum("...qk,...kd->...qd", attn, grid)
+      positions = jnp.einsum("...qk,...kd->...qd", attn, grid)  # pyrefly: ignore[unbound-name]
       slots = jnp.concatenate([slots, positions], axis=-1)
 
     if self.return_slot_scales:
       # Compute slot scales. Take the square root to make the operation
       # analogous to normalizing data drawn from a Gaussian.
       spread = jnp.square(
-          jnp.expand_dims(grid, axis=-3) - jnp.expand_dims(positions, axis=-2))
+          jnp.expand_dims(grid, axis=-3) - jnp.expand_dims(positions, axis=-2))  # pyrefly: ignore[unbound-name]
       scales = jnp.sqrt(
           jnp.einsum("...qk,...qkd->...qd", attn + self.epsilon, spread))
       scales = jnp.clip(scales, self.min_scale, self.max_scale)
@@ -277,7 +277,7 @@ class SlotAttentionPosKeysValues(nn.Module):
 
       # Feedforward block with pre-normalization.
       if self.mlp_size is not None:
-        slots = mlp(slots)
+        slots = mlp(slots)  # pyrefly: ignore[unbound-name]
 
     return slots
 
@@ -392,7 +392,7 @@ class SlotAttentionTranslEquiv(nn.Module):
       updates, attn = inverted_attention(
           query=q,
           key=k_rel_pos,
-          value=v_rel_pos if self.add_rel_pos_to_values else v,
+          value=v_rel_pos if self.add_rel_pos_to_values else v,  # pyrefly: ignore[unbound-name]
           train=train)
 
       # Compute the center of mass of each slot attention mask.
@@ -407,14 +407,14 @@ class SlotAttentionTranslEquiv(nn.Module):
         if self.append_statistics:
           # Projects and add 2D slot positions into slot latents.
           tmp = jnp.concatenate([slots, positions], axis=-1)
-          slots = embed_statistics(tmp)
+          slots = embed_statistics(tmp)  # pyrefly: ignore[unbound-name]
 
         # Recurrent update.
         slots = gru(slots, updates)
 
         # Feedforward block with pre-normalization.
         if self.mlp_size is not None:
-          slots = mlp(slots)
+          slots = mlp(slots)  # pyrefly: ignore[unbound-name]
 
     # Concatenate position information to slots.
     output = jnp.concatenate([slots, positions], axis=-1)
@@ -551,7 +551,7 @@ class SlotAttentionTranslScaleEquiv(nn.Module):
       updates, attn = inverted_attention(
           query=q,
           key=k_rel_pos,
-          value=v_rel_pos if self.add_rel_pos_to_values else v,
+          value=v_rel_pos if self.add_rel_pos_to_values else v,  # pyrefly: ignore[unbound-name]
           train=train)
 
       # Compute the center of mass of each slot attention mask.
@@ -576,14 +576,14 @@ class SlotAttentionTranslScaleEquiv(nn.Module):
         if self.append_statistics:
           # Project and add 2D slot positions and scales into slot latents.
           tmp = jnp.concatenate([slots, positions, scales], axis=-1)
-          slots = embed_statistics(tmp)
+          slots = embed_statistics(tmp)  # pyrefly: ignore[unbound-name]
 
         # Recurrent update.
         slots = gru(slots, updates)
 
         # Feedforward block with pre-normalization.
         if self.mlp_size is not None:
-          slots = mlp(slots)
+          slots = mlp(slots)  # pyrefly: ignore[unbound-name]
 
     # Concatenate position and scale information to slots.
     output = jnp.concatenate([slots, positions, scales], axis=-1)
@@ -730,7 +730,7 @@ class SlotAttentionTranslRotScaleEquiv(nn.Module):
       updates, attn = inverted_attention(
           query=q,
           key=k_rel_pos,
-          value=v_rel_pos if self.add_rel_pos_to_values else v,
+          value=v_rel_pos if self.add_rel_pos_to_values else v,  # pyrefly: ignore[unbound-name]
           train=train)
 
       # Compute the center of mass of each slot attention mask.
@@ -772,14 +772,14 @@ class SlotAttentionTranslRotScaleEquiv(nn.Module):
                rotm.reshape(*rotm.shape[:-2], 4),
                jnp.arctan2(rotm[Ellipsis, 0, 0], rotm[Ellipsis, 1, 0])[Ellipsis, None]],
               axis=-1)
-          slots = embed_statistics(tmp)
+          slots = embed_statistics(tmp)  # pyrefly: ignore[unbound-name]
 
         # Recurrent update.
         slots = gru(slots, updates)
 
         # Feedforward block with pre-normalization.
         if self.mlp_size is not None:
-          slots = mlp(slots)
+          slots = mlp(slots)  # pyrefly: ignore[unbound-name]
 
     # Concatenate position and scale information to slots.
     output = jnp.concatenate(

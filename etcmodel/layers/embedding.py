@@ -112,14 +112,14 @@ class EmbeddingLookup(tf.keras.layers.Layer):
     """
     if input_mask is not None:
       # Make all masked ids 0 since their embeddings will be set to 0 later.
-      input_ids *= input_mask
+      input_ids *= input_mask  # pyrefly: ignore[unsupported-operation]
 
     output = (
         tensor_utils.gather_by_one_hot(self.embedding_table, input_ids) if
         self.use_one_hot_lookup else tf.gather(self.embedding_table, input_ids))
 
     if self.projection_size > 0 and self.embedding_size != self.projection_size:
-      output = self.embedding_projection(output)
+      output = self.embedding_projection(output)  # pyrefly: ignore[not-callable]
 
     # Zero out embeddings for masked ids if any. Generally, should be
     # the last step as some of the previous ops (e.g. projection that ends up

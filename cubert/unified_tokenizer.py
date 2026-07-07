@@ -562,7 +562,7 @@ def _subtokenize_identifiers_heuristically(
     if multi_token.kind is TokenKind.IDENTIFIER:
       subtokenized = dataclasses.replace(  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
           multi_token,
-          spellings=subtokenize_identifier(multi_token.spellings[0]))
+          spellings=subtokenize_identifier(multi_token.spellings[0]))  # pyrefly: ignore[bad-argument-type]
       with_split_identifiers.append(subtokenized)
     else:
       with_split_identifiers.append(multi_token)
@@ -589,7 +589,7 @@ def _subtokenize_strings_heuristically(
           'Expected %r to be a singleton, but it is not.' % multi_token)
       subtokenized = dataclasses.replace(  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
           multi_token,
-          spellings=code_to_tokens_simple_lossless(multi_token.spellings[0]))
+          spellings=code_to_tokens_simple_lossless(multi_token.spellings[0]))  # pyrefly: ignore[bad-argument-type]
       with_heuristically_split_text.append(subtokenized)
     else:
       with_heuristically_split_text.append(multi_token)
@@ -624,7 +624,7 @@ def _shorten_subtokens(
             split_long_token(spelling, max_output_token_length))
       shortened_subtokens.append(
           dataclasses.replace(
-              multi_token, spellings=tuple(shortened_spelling_list)))
+              multi_token, spellings=tuple(shortened_spelling_list)))  # pyrefly: ignore[bad-argument-type]
     else:
       shortened_subtokens.append(multi_token)
   return shortened_subtokens

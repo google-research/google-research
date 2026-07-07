@@ -74,7 +74,7 @@ class GraphShapes(base.AbstractGraphProperty):
     self.output_shapes = output_shapes
 
   @classmethod
-  def _infer_abstract(cls,
+  def _infer_abstract(cls,  # pyrefly: ignore[bad-override]
                       model,
                       input_values,
                       state = None,
@@ -120,7 +120,7 @@ class GraphShapes(base.AbstractGraphProperty):
         raise RuntimeError(f"Malformed graph ({type(e).__name__}: {e}).") from e
 
     if intermediates:
-      model.graph.output_names = old_output_names
+      model.graph.output_names = old_output_names  # pyrefly: ignore[unbound-name]
       for output_name in old_output_names:
         if ":" not in output_name:
           output_shapes[f"{output_name}"] = output_shapes[f"{output_name}:0"]
@@ -130,7 +130,7 @@ class GraphShapes(base.AbstractGraphProperty):
     return GraphShapes(input_shapes, output_shapes)
 
   @classmethod
-  def _infer_concrete(cls,
+  def _infer_concrete(cls,  # pyrefly: ignore[bad-override]
                       model,
                       input_values,
                       state,
@@ -143,7 +143,7 @@ class GraphShapes(base.AbstractGraphProperty):
                                        max_size)
 
   @classmethod
-  def infer(
+  def infer(  # pyrefly: ignore[bad-override]
       cls,
       model,
       input_values,
@@ -230,7 +230,7 @@ class ShapeProperty(base.AbstractProperty):
         max_size=max_size)
     return output_shapes.output_shapes
 
-  def infer(self,
+  def infer(self,  # pyrefly: ignore[bad-override]
             subgraph_model,
             max_size = 0,
             intermediates = False,

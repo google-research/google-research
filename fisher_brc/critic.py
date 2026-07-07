@@ -73,7 +73,7 @@ class CriticNet(tf.keras.Model):
       Two estimates of Q-values.
     """
     x = tf.concat([states, actions], -1)
-    return tf.squeeze(self.main(x), 1)
+    return tf.squeeze(self.main(x), 1)  # pyrefly: ignore[not-callable]
 
 
 class Critic(tf.keras.Model):
@@ -108,7 +108,7 @@ class Critic(tf.keras.Model):
     Returns:
       Two estimates of Q-values.
     """
-    q1 = self.critic1(states, actions)
-    q2 = self.critic2(states, actions)
+    q1 = self.critic1(states, actions)  # pyrefly: ignore[not-callable]
+    q2 = self.critic2(states, actions)  # pyrefly: ignore[not-callable]
 
     return q1, q2

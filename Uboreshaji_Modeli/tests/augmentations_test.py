@@ -60,7 +60,7 @@ class AugmentationTest(absltest.TestCase):
     cats = [0]
     aug_flip = v2.Compose([v2.RandomHorizontalFlip(p=1.0)])
     out_img, out_boxes, out_cats = augmentations.apply_augmentation(
-        aug_flip, image, bboxes, cats
+        aug_flip, image, bboxes, cats  # pyrefly: ignore[bad-argument-type]
     )
     self.assertLen(out_cats, 1)
     self.assertEqual(out_img.shape, (500, 800, 3))
@@ -79,7 +79,7 @@ class AugmentationTest(absltest.TestCase):
         v2.ColorJitter(brightness=0.2, contrast=0.25, saturation=0.25, hue=0.05)
     ])
     out_img, out_boxes, out_cats = augmentations.apply_augmentation(
-        aug, image, bboxes, cats
+        aug, image, bboxes, cats  # pyrefly: ignore[bad-argument-type]
     )
     self.assertEqual(out_img.shape, (500, 800, 3))
     self.assertLen(out_boxes, 2)
@@ -98,7 +98,7 @@ class AugmentationTest(absltest.TestCase):
     total = 0
     for _ in range(50):
       _, out_boxes, _ = augmentations.apply_augmentation(
-          aug, image, bboxes, cats
+          aug, image, bboxes, cats  # pyrefly: ignore[bad-argument-type]
       )
       kept += len(out_boxes)
       total += len(bboxes)
@@ -112,7 +112,7 @@ class AugmentationTest(absltest.TestCase):
     bboxes = [[10, 20, 100, 50]]
     cats = [0]
     out_img, out_boxes, out_cats = augmentations.apply_augmentation(
-        aug, image, bboxes, cats
+        aug, image, bboxes, cats  # pyrefly: ignore[bad-argument-type]
     )
     self.assertIsInstance(out_img, np.ndarray)
     self.assertEqual(out_img.shape, (800, 800, 3))

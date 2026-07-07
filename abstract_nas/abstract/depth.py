@@ -116,7 +116,7 @@ class DepthProperty(base.AbstractProperty):
       op_is_nonlinear = is_nonlinear(op)
 
       # if single op output is a graph output, the depth is 0
-      if op.num_outputs == 1 and op.name in subgraph_model.output_names:
+      if op.num_outputs == 1 and op.name in subgraph_model.output_names:  # pyrefly: ignore[not-iterable]
         depth[op.name] = 0
       else:
         # We want the max depth of the op to each graph output, so we need to
@@ -124,7 +124,7 @@ class DepthProperty(base.AbstractProperty):
         for i in range(op.num_outputs):
           output_name = f"{op.name}:{i}"
           # if any op output is a graph output, the depth is 0
-          if output_name in subgraph_model.output_names:
+          if output_name in subgraph_model.output_names:  # pyrefly: ignore[not-iterable]
             depth[output_name] = 0
             continue
 
@@ -159,7 +159,7 @@ class DepthProperty(base.AbstractProperty):
         input_to_depth[input_name] = output_to_depth
 
     filtered = {}
-    for input_name in subgraph_model.input_names:
+    for input_name in subgraph_model.input_names:  # pyrefly: ignore[not-iterable]
       op_name = input_name.split(":")[0]
       if op_name in depth_map:
         filtered[input_name] = depth_map[op_name]
@@ -204,7 +204,7 @@ class DepthProperty(base.AbstractProperty):
     if self.depth_map is None:
       raise ValueError("self.depth_map not set.")
     new_prop = copy.deepcopy(self)
-    for _, output_to_depth in new_prop.depth_map.items():
+    for _, output_to_depth in new_prop.depth_map.items():  # pyrefly: ignore[missing-attribute]
       for output_name, depth in output_to_depth.items():
         delta = 0
         while delta < self.delta_max:
@@ -237,12 +237,12 @@ class DepthProperty(base.AbstractProperty):
     dist = 0
     for input_name, output_to_depth in self.depth_map.items():
       for output_name, depth in output_to_depth.items():
-        if (input_name not in other.depth_map or
-            output_name not in other.depth_map[input_name]):
+        if (input_name not in other.depth_map or  # pyrefly: ignore[not-iterable]
+            output_name not in other.depth_map[input_name]):  # pyrefly: ignore[unsupported-operation]
           dist += 1
         else:
           dist += max(
-              0, depth - other.depth_map[input_name][output_name]
+              0, depth - other.depth_map[input_name][output_name]  # pyrefly: ignore[unsupported-operation]
           ) / (depth if depth else 1)
         count += 1
     return dist / (count if count else 1)

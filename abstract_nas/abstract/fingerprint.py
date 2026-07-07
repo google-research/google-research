@@ -185,4 +185,4 @@ def fingerprint_graph(graph,
   graph.output_names = output_names
 
   # Return hash of outputs.
-  return hash(frozenset(fingerprints.items()))
+  return hash(frozenset(fingerprints.items()))  # pyrefly: ignore[missing-attribute]

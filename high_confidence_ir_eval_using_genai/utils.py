@@ -237,7 +237,7 @@ def write_table(
 
   # Compute the character width of each column in the output table. We use this
   # to right-adjust the text in the table.
-  sizes = {key: max(max(map(len, results[key])), len(key)) for key in keys}
+  sizes = {key: max(max(map(len, results[key])), len(key)) for key in keys}  # pyrefly: ignore[bad-argument-type]
 
   # Write table with right-adjusted strings.
   with open(path, "wt") as f:

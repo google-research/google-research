@@ -48,7 +48,7 @@ os.makedirs(_WRITE_DIR)
 
 def load_pretrained_model():
   """Loads the pretrained model for feature extraction."""
-  model = network.InteractiveBottleneckModel(arch='XtoCtoY')
+  model = network.InteractiveBottleneckModel(arch='XtoCtoY')  # pyrefly: ignore[bad-argument-type]
   model.compile(optimizer='sgd')
   model.build([None, 299, 299, 3])
   model.load_weights(_PRETRAINED_MODEL_PATH)

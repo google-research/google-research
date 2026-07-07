@@ -59,7 +59,7 @@ def cat_auc(y_true, y_pred):
   Returns:
     The one vs. rest categorical AUC score.
   """
-  y_pred_exp = np.exp(y_pred)
+  y_pred_exp = np.exp(y_pred)  # pyrefly: ignore[no-matching-overload]
   y_probs = y_pred_exp/y_pred_exp.sum(axis=1, keepdims=True)
   return sklearn.metrics.roc_auc_score(y_true, y_probs, multi_class='ovr')
 
@@ -242,10 +242,10 @@ def label_entropy_change(
   change_1 = entropy - entropy_1
 
   if signed:
-    metric = concept_probs * change_1 + (1 - concept_probs) * change_0
+    metric = concept_probs * change_1 + (1 - concept_probs) * change_0  # pyrefly: ignore[unsupported-operation]
   else:
     metric = concept_probs * tf.abs(change_1) + (
-        1 - concept_probs) * tf.abs(change_0)
+        1 - concept_probs) * tf.abs(change_0)  # pyrefly: ignore[unsupported-operation]
 
   return metric
 
@@ -284,11 +284,11 @@ def label_entropy_changev2(
 
   if signed:
     metric = tf.reduce_sum(
-        concept_probs * changes_1 + (1 - concept_probs) * changes_0, axis=1)
+        concept_probs * changes_1 + (1 - concept_probs) * changes_0, axis=1)  # pyrefly: ignore[unsupported-operation]
   else:
     metric = tf.reduce_sum(
         (concept_probs * tf.abs(changes_1) +
-         (1 - concept_probs) * tf.abs(changes_0)),
+         (1 - concept_probs) * tf.abs(changes_0)),  # pyrefly: ignore[unsupported-operation]
         axis=1)
 
   return metric
@@ -324,10 +324,10 @@ def label_confidence_change(
   change_1 = pred_class_prob_1 - pred_class_prob
 
   if signed:
-    metric = concept_probs * change_1 + (1 - concept_probs) * change_0
+    metric = concept_probs * change_1 + (1 - concept_probs) * change_0  # pyrefly: ignore[unsupported-operation]
   else:
     metric = (concept_probs * tf.abs(change_1)
-              + (1 - concept_probs) * tf.abs(change_0))
+              + (1 - concept_probs) * tf.abs(change_0))  # pyrefly: ignore[unsupported-operation]
 
   return metric
 
@@ -370,11 +370,11 @@ def label_confidence_changev2(
 
   if signed:
     metric = tf.reduce_sum(
-        concept_probs * changes_1 + (1 - concept_probs) * changes_0, axis=1)
+        concept_probs * changes_1 + (1 - concept_probs) * changes_0, axis=1)  # pyrefly: ignore[unsupported-operation]
   else:
     metric = tf.reduce_sum(
         (concept_probs * tf.abs(changes_1) +
-         (1 - concept_probs) * tf.abs(changes_0)),
+         (1 - concept_probs) * tf.abs(changes_0)),  # pyrefly: ignore[unsupported-operation]
         axis=1)
   return metric
 
@@ -399,7 +399,7 @@ def label_kld(
   kld_0 = tfd.kl_divergence(dist_0, dist) + tfd.kl_divergence(dist, dist_0)
   kld_1 = tfd.kl_divergence(dist_1, dist) + tfd.kl_divergence(dist, dist_1)
 
-  return concept_probs * kld_1 + (1 - concept_probs) * kld_0
+  return concept_probs * kld_1 + (1 - concept_probs) * kld_0  # pyrefly: ignore[unsupported-operation]
 
 
 def concept_confidence(
@@ -501,7 +501,7 @@ def get_metric_fn(
     raise ValueError(f'Metric: {metric} not recognized.')
 
   if reduce_mean:
-    return lambda *args, **kwargs: tf.reduce_mean(metric_fn(*args, **kwargs))
+    return lambda *args, **kwargs: tf.reduce_mean(metric_fn(*args, **kwargs))  # pyrefly: ignore[not-callable]
   else:
     return metric_fn
 
@@ -524,8 +524,8 @@ def new_best_metric(curr_metric, best_metric,
     ValueError when "mode" is not recognized.
   """
   if mode == 'min':
-    return curr_metric < best_metric
+    return curr_metric < best_metric  # pyrefly: ignore[unsupported-operation]
   elif mode == 'max':
-    return curr_metric > best_metric
+    return curr_metric > best_metric  # pyrefly: ignore[unsupported-operation]
   else:
     raise ValueError('"mode" not recognized.')

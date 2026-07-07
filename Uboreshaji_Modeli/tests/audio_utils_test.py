@@ -43,18 +43,18 @@ class AudioUtilsTest(parameterized.TestCase):
   def test_get_audio_array_from_dict_array(self):
     audio_input = {"array": self.dummy_audio}
     result = audio_utils.get_audio_array(audio_input)
-    np.testing.assert_array_almost_equal(result, self.dummy_audio)
+    np.testing.assert_array_almost_equal(result, self.dummy_audio)  # pyrefly: ignore[bad-argument-type]
 
   def test_get_audio_array_from_dict_bytes(self):
     audio_input = {"bytes": self.audio_bytes}
     result = audio_utils.get_audio_array(audio_input)
     # The decoder might modify the values slightly due to compression/precision,
     # so assert close rather than exact equality.
-    np.testing.assert_array_almost_equal(result, self.dummy_audio, decimal=4)
+    np.testing.assert_array_almost_equal(result, self.dummy_audio, decimal=4)  # pyrefly: ignore[bad-argument-type]
 
   def test_get_audio_array_from_raw_bytes(self):
     result = audio_utils.get_audio_array(self.audio_bytes)
-    np.testing.assert_array_almost_equal(result, self.dummy_audio, decimal=4)
+    np.testing.assert_array_almost_equal(result, self.dummy_audio, decimal=4)  # pyrefly: ignore[bad-argument-type]
 
   def test_get_audio_array_stereo_to_mono(self):
     stereo_audio = np.array(
@@ -72,7 +72,7 @@ class AudioUtilsTest(parameterized.TestCase):
     result = audio_utils.get_audio_array(stereo_bytes)
     # Expected is mean across axis 1
     expected = np.mean(stereo_audio, axis=1)
-    np.testing.assert_array_almost_equal(result, expected, decimal=4)
+    np.testing.assert_array_almost_equal(result, expected, decimal=4)  # pyrefly: ignore[bad-argument-type]
 
   def test_get_audio_array_invalid_type(self):
     with self.assertRaisesRegex(ValueError, "Unexpected audio input type"):

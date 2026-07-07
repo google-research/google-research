@@ -217,7 +217,7 @@ class InputFeatures(object):
     self.is_real_example = is_real_example
     self.guid = guid
 
-  def __eq__(self, other):
+  def __eq__(self, other):  # pyrefly: ignore[bad-override]
     return (self.input_ids == other.input_ids and
             self.input_mask == other.input_mask and
             self.segment_ids == other.segment_ids and
@@ -914,7 +914,7 @@ def main(_):
                                             FLAGS.max_seq_length, tokenizer,
                                             train_file)
     tf.logging.info("***** Running training *****")
-    tf.logging.info("  Num examples = %d", len(train_examples))
+    tf.logging.info("  Num examples = %d", len(train_examples))  # pyrefly: ignore[bad-argument-type]
     tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
     tf.logging.info("  Num steps = %d", num_train_steps)
     train_input_fn = file_based_input_fn_builder(

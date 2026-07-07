@@ -80,7 +80,7 @@ class SpatialBroadcastDecoder(nn.Module):
       # Combine backbone features by alpha masks.
       bb_features = jnp.sum(bb_features * alphas, axis=1)
 
-    targets_dict = self.target_readout()(bb_features, train)  # pylint: disable=not-callable
+    targets_dict = self.target_readout()(bb_features, train)  # pylint: disable=not-callable  # pyrefly: ignore[not-callable]
 
     preds_dict = dict()
     for target_key, channels in targets_dict.items():
@@ -103,7 +103,7 @@ class SpatialBroadcastDecoder(nn.Module):
       # Define intermediates for logging / visualization.
         self.sow("intermediates", f"{target_key}_slots", channels)
         if not self.early_fusion:
-          self.sow("intermediates", f"{target_key}_masked", masked_channels)
+          self.sow("intermediates", f"{target_key}_masked", masked_channels)  # pyrefly: ignore[unbound-name]
         self.sow("intermediates", f"{target_key}_combined", decoded_target)
 
     preds_dict["segmentations"] = jnp.argmax(alpha_logits, axis=1)
@@ -197,13 +197,13 @@ class SiameseSpatialBroadcastDecoder(nn.Module):
     x = utils.spatial_broadcast(x, self.resolution)
 
     if self.relative_positions:
-      x = self.pos_emb()(inputs=x, slot_positions=positions)
+      x = self.pos_emb()(inputs=x, slot_positions=positions)  # pyrefly: ignore[unbound-name]
     elif self.relative_positions_and_scales:
-      x = self.pos_emb()(inputs=x, slot_positions=positions, slot_scales=scales)
+      x = self.pos_emb()(inputs=x, slot_positions=positions, slot_scales=scales)  # pyrefly: ignore[unbound-name]
     elif self.relative_positions_rotations_and_scales:
       x = self.pos_emb()(
-          inputs=x, slot_positions=positions, slot_scales=scales,
-          slot_rotm=rotm)
+          inputs=x, slot_positions=positions, slot_scales=scales,  # pyrefly: ignore[unbound-name]
+          slot_rotm=rotm)  # pyrefly: ignore[unbound-name]
     else:
       x = self.pos_emb()(x)
 

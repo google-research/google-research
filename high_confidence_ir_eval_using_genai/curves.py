@@ -110,7 +110,7 @@ def main():
   y = [list(d / np.sum(d)) for d in y]
   path = output_dir / "distributions.txt"
   logging.info("Writing results to %s", path)
-  utils.write_table(path, {"x": x, "y1": y[0], "y2": y[1], "y3": y[2]}, "%.6f")
+  utils.write_table(path, {"x": x, "y1": y[0], "y2": y[1], "y3": y[2]}, "%.6f")  # pyrefly: ignore[bad-argument-type]
 
   # Compute curves.
   x = np.linspace(-1, 1, num=300)
@@ -118,7 +118,7 @@ def main():
   y = np.stack([get_moved_mean(y_stack, i) for i in x], axis=-1)
   path = output_dir / "curves.txt"
   logging.info("Writing results to %s", path)
-  utils.write_table(path, {"x": x, "y1": y[0], "y2": y[1], "y3": y[2]}, "%.6f")
+  utils.write_table(path, {"x": x, "y1": y[0], "y2": y[1], "y3": y[2]}, "%.6f")  # pyrefly: ignore[bad-argument-type]
 
 
 if __name__ == "__main__":

@@ -310,7 +310,7 @@ class OpPairings():
     model = Model(graph)
     state = model.init(jax.random.PRNGKey(0), input_values)
     pairings = GraphPairings.infer(
-        model, input_values, state, abstract=False).pairings
+        model, input_values, state, abstract=False).pairings  # pyrefly: ignore[bad-argument-type]
 
     new_pairings = {}
     for output_idx, output_name in enumerate(output_names):
@@ -438,7 +438,7 @@ class _PairingModel(Model):
       for input_idx, input_value in enumerate(input_values):
         for input_name, input_pairing in input_value.items():
           pairing = pairings.get(input_name,
-                                 Pairing(pairing.in_dims, len(output_shape)))
+                                 Pairing(pairing.in_dims, len(output_shape)))  # pyrefly: ignore[unbound-name]
           op_pairing = op_pairings[output_idx][input_idx]
           new_pairing = self._exec_pairing(input_pairing, op_pairing)
           pairing = pairing.join(new_pairing)
@@ -490,7 +490,7 @@ class PairingModel():
           shape_context[f"{k}:0"] = v
         else:
           shape_context[k] = v
-    return self.pairing_model.apply({}, input_values, shapes=shape_context)
+    return self.pairing_model.apply({}, input_values, shapes=shape_context)  # pyrefly: ignore[bad-return]
 
 
 class GraphPairings(base.AbstractGraphProperty):
@@ -550,7 +550,7 @@ class GraphPairings(base.AbstractGraphProperty):
     self.pairings: Dict[str, Dict[str, Pairing]] = pairings if pairings else {}
 
   @classmethod
-  def _infer_concrete(cls,
+  def _infer_concrete(cls,  # pyrefly: ignore[bad-override]
                       model,
                       input_values,
                       state,
@@ -580,7 +580,7 @@ class GraphPairings(base.AbstractGraphProperty):
       idxs = tuple([dim // 2 for dim in output_shape])
       slice_sizes = [1] * len(output_shape)
       slice_sizes[dim] = output_shape[dim]
-      sliced = jax.lax.dynamic_slice(output_tensor, idxs, tuple(slice_sizes))
+      sliced = jax.lax.dynamic_slice(output_tensor, idxs, tuple(slice_sizes))  # pyrefly: ignore[bad-argument-type]
       return jnp.squeeze(sliced)
 
     grad_along_dim = jax.jacobian(slice_along_dim)
@@ -589,7 +589,7 @@ class GraphPairings(base.AbstractGraphProperty):
       outputs = model.apply(state, inputs, training=False, deterministic=True)
       output_tensor = outputs[output_name]
       dims = tuple([dim // 2 for dim in output_tensor.shape])
-      return output_tensor[dims]
+      return output_tensor[dims]  # pyrefly: ignore[bad-index]
 
     grad_center = jax.grad(center_element)
 
@@ -643,7 +643,7 @@ class GraphPairings(base.AbstractGraphProperty):
     return GraphPairings(pairings)
 
   @classmethod
-  def _infer_abstract(cls,
+  def _infer_abstract(cls,  # pyrefly: ignore[bad-override]
                       model,
                       input_values,
                       state = None,
@@ -661,7 +661,7 @@ class GraphPairings(base.AbstractGraphProperty):
     output_pairings = pairing_model.apply(input_values, state)
 
     if intermediates:
-      model.graph.output_names = old_output_names
+      model.graph.output_names = old_output_names  # pyrefly: ignore[unbound-name]
       for output_name in output_pairings:
         if ":" not in output_name:
           output_pairings[f"{output_name}"] = output_pairings[
@@ -709,7 +709,7 @@ class LinopProperty(shape.ShapeProperty):
         inputs = subgraph_model.inputs
         input_intermediate_values = subgraph_model.get_subg_inputs(
             subgraph_model.inputs, intermediates=True)
-      input_intermediate_values.update(subgraph_model.inputs)
+      input_intermediate_values.update(subgraph_model.inputs)  # pyrefly: ignore[unbound-name]
     else:
       inputs = self.input_values
       input_intermediate_values = None
@@ -746,7 +746,7 @@ class LinopProperty(shape.ShapeProperty):
           del pairings[output_name][input_name]
     return new_prop
 
-  def distance_from(self, other):
+  def distance_from(self, other):  # pyrefly: ignore[bad-override]
     """Returns the distance to self from the other LinopProperty.
 
     The distance is defined as the sum over the number of pairwise unsatisfied
@@ -769,7 +769,7 @@ class LinopProperty(shape.ShapeProperty):
       for input_name in pairings[output_name].keys():
         mapping = pairings[output_name][input_name].mappings
         if output_name not in others or input_name not in others[output_name]:
-          other = 0
+          other = 0  # pyrefly: ignore[bad-assignment]
         else:
           other = others[output_name][input_name].mappings
         norm = np.sum(mapping > 0)

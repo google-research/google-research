@@ -196,16 +196,16 @@ class RelativeAttention(tf.keras.layers.Layer):
 
     # [batch_size, from_seq_len, num_heads, query_size_per_head]
     # Note: query_size_per_head = key_size_per_head by definition.
-    queries = self.query_projection(from_seq, training=training)
+    queries = self.query_projection(from_seq, training=training)  # pyrefly: ignore[not-callable]
 
     # [batch_size, to_seq_len, num_heads, key_size_per_head]
-    keys = self.key_projection(to_seq, training=training)
+    keys = self.key_projection(to_seq, training=training)  # pyrefly: ignore[not-callable]
 
     # [batch_size, to_seq_len, num_heads, value_size_per_head]
-    values = self.value_projection(to_seq, training=training)
+    values = self.value_projection(to_seq, training=training)  # pyrefly: ignore[not-callable]
 
     # [batch_size, from_seq_len, num_heads, value_size_per_head]
-    att_output = self.qkv_relative_attention(
+    att_output = self.qkv_relative_attention(  # pyrefly: ignore[not-callable]
         queries=queries,
         keys=keys,
         values=values,
@@ -217,7 +217,7 @@ class RelativeAttention(tf.keras.layers.Layer):
     flat_att_output = tensor_utils.flatten_dims(att_output, first_dim=-2)
 
     # [batch_size, from_seq_len, hidden_size]
-    return self.output_projection(flat_att_output, training=training)
+    return self.output_projection(flat_att_output, training=training)  # pyrefly: ignore[not-callable]
 
 
 class FusedGlobalLocalAttention(tf.keras.layers.Layer):
@@ -498,7 +498,7 @@ class FusedGlobalLocalAttention(tf.keras.layers.Layer):
     l2g_values = self.l2g_value_projection(global_input, training=training)
 
     # [batch_size, long_seq_len, num_heads, long_hidden_size // num_heads]
-    long_att_output = self.long_qkv_attention(
+    long_att_output = self.long_qkv_attention(  # pyrefly: ignore[not-callable]
         queries=long_queries,
         keys=l2l_keys,
         values=l2l_values,
@@ -545,7 +545,7 @@ class FusedGlobalLocalAttention(tf.keras.layers.Layer):
           [g2g_relative_att_ids, g2l_relative_att_ids], axis=-1)
 
     # [batch_size, global_seq_len, num_heads, global_hidden_size // num_heads]
-    global_att_output = self.global_qkv_attention(
+    global_att_output = self.global_qkv_attention(  # pyrefly: ignore[not-callable]
         queries=global_queries,
         keys=concat_keys,
         values=concat_values,
@@ -641,7 +641,7 @@ class ProjectAttentionHeads(tf.keras.layers.Layer):
       <float32>[batch_size, ..., num_heads, size_per_head].
     """
     # [batch_size, ..., num_heads * size_per_head]
-    x = self.linear(inputs)
+    x = self.linear(inputs)  # pyrefly: ignore[not-callable]
 
     output_shape = tf.concat(
         [tf.shape(inputs)[:-1], [self.num_heads, self.size_per_head]], 0)
@@ -819,7 +819,7 @@ class QkvRelativeAttention(tf.keras.layers.Layer):
     if self.att_dropout_prob != 0.0:
       # Transpose `att_probs` for a memory layout with no padding on TPUs.
       # [batch_size, num_heads, query_len, key_len]
-      att_probs = self.att_dropout(
+      att_probs = self.att_dropout(  # pyrefly: ignore[not-callable]
           tf.transpose(att_probs, [0, 3, 1, 2]), training=training)
       return tf.einsum('bhqk,bkhd->bqhd', att_probs, values)
 
@@ -1032,7 +1032,7 @@ class QkvRelativeLocalAttention(tf.keras.layers.Layer):
           blocked_relative_att_ids  #
       ) = self._concat_side_inputs(blocked_keys, blocked_values,
                                    blocked_att_mask, blocked_relative_att_ids,
-                                   side_keys, side_values, side_att_mask,
+                                   side_keys, side_values, side_att_mask,  # pyrefly: ignore[bad-argument-type]
                                    side_relative_att_ids)
 
     # [batch_size * num_blocks, block_len, num_heads, key_size_per_head]
@@ -1057,7 +1057,7 @@ class QkvRelativeLocalAttention(tf.keras.layers.Layer):
                                          blocked_relative_att_ids, last_dim=1))
 
     # [batch_size * num_blocks, block_len, num_heads, value_size_per_head]
-    flat_blocked_att_result = self.qkv_relative_attention(
+    flat_blocked_att_result = self.qkv_relative_attention(  # pyrefly: ignore[not-callable]
         queries=flat_blocked_queries,
         keys=flat_blocked_keys,
         values=flat_blocked_values,
@@ -1208,7 +1208,7 @@ class QkvRelativeLocalAttention(tf.keras.layers.Layer):
             [concat_relative_att_ids, side_relative_att_ids], axis=-1)
 
     # [batch_size, long_len, num_heads, value_size_per_head]
-    return self.qkv_relative_attention(
+    return self.qkv_relative_attention(  # pyrefly: ignore[not-callable]
         queries=queries,
         keys=concat_keys,
         values=concat_values,

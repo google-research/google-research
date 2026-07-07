@@ -134,8 +134,8 @@ class SegmentedRankingDataset:
 
   def _per_query_dcg(self, labels):
     label_fn = lambda x: (2.0**x) - 1.0
-    weighted_ranks = 1.0 / np.log2(self.ranks + 1)
-    weighted_ranks = np.where(self.ranks <= self.topn, weighted_ranks, 0.0)
+    weighted_ranks = 1.0 / np.log2(self.ranks + 1)  # pyrefly: ignore[unsupported-operation]
+    weighted_ranks = np.where(self.ranks <= self.topn, weighted_ranks, 0.0)  # pyrefly: ignore[unsupported-operation]
     weighted_labels = label_fn(labels)
     per_query_result = np.zeros(self.num_queries)
     np.add.at(
@@ -201,9 +201,9 @@ class SegmentedRankingDataset:
         true_label_dist=self.true_label_dist[mask, :],
         pred_label_dist=self.pred_label_dist[mask, :],
         query_segments=new_query_segments,
-        seed=self.rng.integers(np.iinfo(np.int32).max),
+        seed=self.rng.integers(np.iinfo(np.int32).max),  # pyrefly: ignore[bad-argument-type]
         topn=self.topn,
-        ranks=self.ranks[mask],
+        ranks=self.ranks[mask],  # pyrefly: ignore[unsupported-operation]
     )
 
   def split(
@@ -233,18 +233,18 @@ class SegmentedRankingDataset:
             true_label_dist=self.true_label_dist[mask_left, :],
             pred_label_dist=self.pred_label_dist[mask_left, :],
             query_segments=new_query_segments_left,
-            seed=self.rng.integers(np.iinfo(np.int32).max),
+            seed=self.rng.integers(np.iinfo(np.int32).max),  # pyrefly: ignore[bad-argument-type]
             topn=self.topn,
-            ranks=self.ranks[mask_left],
+            ranks=self.ranks[mask_left],  # pyrefly: ignore[unsupported-operation]
         ),
         SegmentedRankingDataset(
             scores=self.scores[mask_right],
             true_label_dist=self.true_label_dist[mask_right, :],
             pred_label_dist=self.pred_label_dist[mask_right, :],
             query_segments=new_query_segments_right,
-            seed=self.rng.integers(np.iinfo(np.int32).max),
+            seed=self.rng.integers(np.iinfo(np.int32).max),  # pyrefly: ignore[bad-argument-type]
             topn=self.topn,
-            ranks=self.ranks[mask_right],
+            ranks=self.ranks[mask_right],  # pyrefly: ignore[unsupported-operation]
         ),
     )
 
@@ -271,9 +271,9 @@ class SegmentedRankingDataset:
             (self.query_segments, other.query_segments + self.num_queries),
             axis=0,
         ),
-        seed=self.rng.integers(np.iinfo(np.int32).max),
+        seed=self.rng.integers(np.iinfo(np.int32).max),  # pyrefly: ignore[bad-argument-type]
         topn=self.topn,
-        ranks=np.concatenate((self.ranks, other.ranks), axis=0),
+        ranks=np.concatenate((self.ranks, other.ranks), axis=0),  # pyrefly: ignore[no-matching-overload]
     )
 
   def with_seed(self, seed):
@@ -304,7 +304,7 @@ class SegmentedRankingDataset:
         true_label_dist=self.true_label_dist,
         pred_label_dist=new_dist,
         query_segments=self.query_segments,
-        seed=self.rng.integers(np.iinfo(np.int32).max),
+        seed=self.rng.integers(np.iinfo(np.int32).max),  # pyrefly: ignore[bad-argument-type]
         topn=self.topn,
         ranks=self.ranks,
     )
@@ -319,7 +319,7 @@ class SegmentedRankingDataset:
         true_label_dist=self.true_label_dist,
         pred_label_dist=new_dist,
         query_segments=self.query_segments,
-        seed=self.rng.integers(np.iinfo(np.int32).max),
+        seed=self.rng.integers(np.iinfo(np.int32).max),  # pyrefly: ignore[bad-argument-type]
         topn=self.topn,
         ranks=self.ranks,
     )

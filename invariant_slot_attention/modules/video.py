@@ -53,7 +53,7 @@ class Processor(nn.Module):
   corrector: Callable[[ProcessorState, Array], ProcessorState]
   predictor: Callable[[ProcessorState], ProcessorState]
 
-  @functools.partial(
+  @functools.partial(  # pyrefly: ignore[bad-specialization]
       nn.scan,  # Scan (recurrently apply) over time axis.
       in_axes=(1, 1, nn.broadcast),  # (inputs, padding_mask, train).
       out_axes=1,

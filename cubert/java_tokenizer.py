@@ -137,8 +137,8 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
               'while tokenizing \n%s\n' % (token_type, source_code))
 
         # JavaTokenizer counts lines and columns from 1.
-        start_line = token.position.line - 1
-        start_column = token.position.column - 1
+        start_line = token.position.line - 1  # pyrefly: ignore[missing-attribute]
+        start_column = token.position.column - 1  # pyrefly: ignore[missing-attribute]
 
         # The tokenizer seems to take some liberties with Unicode, returning
         # invalid characters. This cleans spellings up.
@@ -180,7 +180,7 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
           token,
           metadata=dataclasses.replace(token.metadata, end=later_token_start))
       filled_agnostic_tokens.append(filled_token)
-      later_token_start = token.metadata.start
+      later_token_start = token.metadata.start  # pyrefly: ignore[bad-assignment]
 
     # Now we have the tokens, including end position, but they're reversed.
     # The final step is to break down whitespace tokens into primitive
@@ -193,7 +193,7 @@ class JavaTokenizer(cubert_tokenizer.CuBertTokenizer):
         # This is whitespace. Replace it with primitive tokens.
         with_broken_whitespace.extend(
             unified_tokenizer.fill_range_with_whitespace(
-                token.metadata.start, token.metadata.end))
+                token.metadata.start, token.metadata.end))  # pyrefly: ignore[bad-argument-type]
 
     return with_broken_whitespace
 

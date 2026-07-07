@@ -228,7 +228,7 @@ class ExperimentParser:
     # only the relevant search space parameters and save it here.
     search_config = self.config.with_search_space()
     params = search_config.as_flat_dict(sep='.')
-    search_space = pg.Dict({
+    search_space = pg.Dict({  # pyrefly: ignore[bad-argument-type]
         k: v for k, v in params.items()
         if isinstance(v, pg.hyper.HyperPrimitive)
     })
@@ -237,7 +237,7 @@ class ExperimentParser:
       raise ValueError('Search space is empty!')
 
     logging.info('Search space: %s', search_space)
-    search_space_debug_file = os.path.join(base_path, 'search_space.txt')
+    search_space_debug_file = os.path.join(base_path, 'search_space.txt')  # pyrefly: ignore[no-matching-overload]
     utils.safe_write(search_space_debug_file, str(search_space))
 
     # The algorithm will be supplied by Vizier
@@ -258,7 +258,7 @@ class ExperimentParser:
       overrides = flax.traverse_util.unflatten_dict(
           {tuple(k.split('.')): v for k, v in example.items()})
       concrete_config = self.config.copy_and_override(overrides)
-      concrete_config.path = os.path.join(base_path, str(feedback.id))
+      concrete_config.path = os.path.join(base_path, str(feedback.id))  # pyrefly: ignore[missing-attribute]
 
       logging.info('Using overrides, %s', pprint.pformat(overrides))
 
