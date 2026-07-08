@@ -56,13 +56,30 @@ def run_training(
   """
   logging.info("Starting orchestrator for model flavor: %s", cfg.model_flavor)
 
-
-  if torch.cuda.is_available():
-    device = torch.device("cuda")
-    logging.info("CUDA device detected: %s", torch.cuda.get_device_name(0))
-  else:
+  target_device = cfg.training.get("device", "cuda")
+  if target_device == "cpu":
     device = torch.device("cpu")
-    logging.info("No CUDA device detected. Falling back to CPU.")
+    logging.info("Explicitly using CPU as requested in Config.")
+  elif not torch.accelerator.is_available():
+    device = torch.device("cpu")
+    logging.info("No accelerator found, defaulting to CPU fallback.")
+  else:
+    try:
+      device = torch.accelerator.current_accelerator()
+      if device is None:
+        raise RuntimeError("No dynamic accelerator detected.")
+      logging.info("Dynamic accelerator detected: %s", device)
+    except (RuntimeError, ValueError) as e:
+      # Catch specific PyTorch backend errors or ValueError.
+      if target_device in ["tpu", "xla"]:
+        device = torch.device("xla")
+        logging.info(
+            "Fallback to standard XLA convention for TPU due to: %s", e
+        )
+      else:
+        # If it failed on a GPU or other device, let it fail fast.
+        raise
+
 
   engine = engine_factory(cfg.model_flavor)
 

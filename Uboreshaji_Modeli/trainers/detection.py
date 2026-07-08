@@ -119,7 +119,7 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
         weight_decay=cfg.training.weight_decay,
         remove_unused_columns=False,
         push_to_hub=False,
-        dataloader_pin_memory=True,
+        dataloader_pin_memory=(device.type != "tpu"),
         gradient_accumulation_steps=cfg.training.gradient_accumulation_steps,
         report_to="tensorboard",
         logging_dir=str(resolved_output_path),
