@@ -262,8 +262,8 @@ class AutoEncoder(tf.keras.Model):
       A scalar for the reconstruction loss.
     """
     input_embeddings = tf.concat([pose_embeddings, view_embeddings], axis=-1)
-    outputs, _ = self.decoder(input_embeddings, training=True)
-    return self._mse(targets, outputs)
+    outputs, _ = self.decoder(input_embeddings, training=True)  # pyrefly: ignore[not-callable]
+    return self._mse(targets, outputs)  # pyrefly: ignore[not-callable]
 
   def train(self, inputs, encoder_optimizer):
     """Trains the model for one step.
@@ -284,10 +284,10 @@ class AutoEncoder(tf.keras.Model):
     positive_keypoints_2d = tf.squeeze(positive_keypoints_2d, axis=1)
 
     with tf.GradientTape() as tape:
-      anchor_pose_embeddings, anchor_view_embeddings = self(
+      anchor_pose_embeddings, anchor_view_embeddings = self(  # pyrefly: ignore[not-callable]
           anchor_keypoints_2d, training=True)
       anchor_regularization_loss = sum(self.encoder.losses)
-      positive_pose_embeddings, positive_view_embeddings = self(
+      positive_pose_embeddings, positive_view_embeddings = self(  # pyrefly: ignore[not-callable]
           positive_keypoints_2d, training=True)
       positive_regularization_loss = sum(self.encoder.losses)
 
@@ -387,7 +387,7 @@ class InfoMix(tf.keras.Model):
       representation_loss: A scalar for the representation loss.
       regularization_loss: A scalar for the regularization loss.
     """
-    output_embeddings, subencoder_output_embeddings = self(
+    output_embeddings, subencoder_output_embeddings = self(  # pyrefly: ignore[not-callable]
         inputs, training=True)
     representation_loss = losses.compute_fenchel_dual_loss(
         subencoder_output_embeddings, output_embeddings,
@@ -565,7 +565,7 @@ class InfoDisentangle(tf.keras.Model):
       representation_loss: A scalar for the representation loss.
       regularization_loss: A scalar for the regularization loss.
     """
-    output_embeddings, subencoder_output_embeddings = self(
+    output_embeddings, subencoder_output_embeddings = self(  # pyrefly: ignore[not-callable]
         inputs, training=True)
 
     if self.fusion_op_type == TYPE_FUSION_OP_CAT:
@@ -942,14 +942,14 @@ class InfoMax(tf.keras.Model):
 
     with tf.GradientTape() as encoder_tape:
       (anchor_pose_embeddings, anchor_view_embeddings,
-       anchor_subencoder_embeddings) = self(
+       anchor_subencoder_embeddings) = self(  # pyrefly: ignore[not-callable]
            anchor_keypoints_2d, training=True)
       anchor_regularization_loss = sum(self.encoder.losses)
       anchor_representation_loss = self.compute_representation_loss(
           anchor_pose_embeddings, anchor_view_embeddings,
           anchor_subencoder_embeddings, anchor_indicator_matrix)
       (positive_pose_embeddings, positive_view_embeddings,
-       positive_subencoder_embeddings) = self(
+       positive_subencoder_embeddings) = self(  # pyrefly: ignore[not-callable]
            positive_keypoints_2d, training=True)
       positive_regularization_loss = sum(self.encoder.losses)
       positive_representation_loss = self.compute_representation_loss(

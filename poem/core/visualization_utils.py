@@ -247,7 +247,7 @@ def draw_poses_2d(keypoints_2d,
     draw_pose_2d(ax, keypoints, keypoint_profile_2d, **kwargs)
 
   fig.canvas.draw()
-  canvas = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8)
+  canvas = np.fromstring(fig.canvas.tostring_rgb(), dtype=np.uint8)  # pyrefly: ignore[no-matching-overload]
   canvas = canvas.reshape(fig.canvas.get_width_height()[::-1] + (3,))
   plt.close(fig)
   return np.expand_dims(canvas, axis=0).astype(np.float32)

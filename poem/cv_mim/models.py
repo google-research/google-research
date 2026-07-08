@@ -198,7 +198,7 @@ class GaussianEmbedder(layers.Layer):
     if training:
       # TODO(longzh,liuti): Refactor the scale parameter out as an argument.
       z_logvar = tf.nn.tanh(self.embedder_logvar(inputs)) * 10.0
-      z = self.sampling((z_mean, z_logvar))
+      z = self.sampling((z_mean, z_logvar))  # pyrefly: ignore[not-callable]
 
       # Add KL-divergence regularization loss.
       kl_loss = -0.5 * tf.reduce_sum(
@@ -292,7 +292,7 @@ class SimpleModel(tf.keras.Model):
         build_linear_layers(hidden_dim, 1, name='fc0', **kwargs))
     for i in range(num_residual_linear_blocks):
       self.blocks.append(
-          ResLinearBlock(
+          ResLinearBlock(  # pyrefly: ignore[bad-argument-type]
               hidden_dim,
               num_layers_per_block,
               name='res_fcs' + str(i + 1),
@@ -303,10 +303,10 @@ class SimpleModel(tf.keras.Model):
 
     if embedder == TYPE_EMBEDDER_POINT:
       self.blocks.append(
-          PointEmbedder(build_linear(output_dim, **kwargs), name='embedder'))
+          PointEmbedder(build_linear(output_dim, **kwargs), name='embedder'))  # pyrefly: ignore[bad-argument-type]
     elif embedder == TYPE_EMBEDDER_GAUSSIAN:
       self.blocks.append(
-          GaussianEmbedder(
+          GaussianEmbedder(  # pyrefly: ignore[bad-argument-type]
               build_linear(output_dim, **kwargs),
               build_linear(output_dim, **kwargs),
               name='embedder'))
@@ -327,7 +327,7 @@ class SimpleModel(tf.keras.Model):
     x = inputs
 
     for block in self.blocks:
-      x = block(x, training=training)
+      x = block(x, training=training)  # pyrefly: ignore[not-callable]
       activations[block.name] = x
 
     output = activations['embedder']

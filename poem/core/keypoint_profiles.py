@@ -104,7 +104,7 @@ def infer_segment_left_right_type(left_right_types, start_indices, end_indices):
   return lhs_type if lhs_type == rhs_type else LeftRightType.CENTRAL
 
 
-class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):
+class KeypointProfile(six.with_metaclass(abc.ABCMeta, object)):  # pyrefly: ignore[invalid-inheritance]
   """Keypoint profile base class."""
 
   def __init__(self,

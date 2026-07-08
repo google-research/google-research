@@ -234,7 +234,7 @@ def process_decoded_keypoints_3d(decoded_tensors,
           common_module.TFE_KEY_PREFIX_KEYPOINT_3D + name +
           common_module.TFE_KEY_SUFFIX_KEYPOINT_SCORE)
       keypoint_scores_3d.append(decoded_tensors[key])
-    outputs[common_module.KEY_KEYPOINT_SCORES_3D] = tf.stack(
+    outputs[common_module.KEY_KEYPOINT_SCORES_3D] = tf.stack(  # pyrefly: ignore[missing-attribute]
         keypoint_scores_3d, axis=-1)
 
   return outputs

@@ -63,7 +63,7 @@ def create_sample_distance_fn(
           distance_utils.compute_corresponding_pair_l2_distances)
 
     if distance_kernel == common.DISTANCE_KERNEL_SQUARED_L2:
-      return functools.partial(l2_distance_computer, squared=True)
+      return functools.partial(l2_distance_computer, squared=True)  # pyrefly: ignore[unbound-name]
 
     if distance_kernel == common.DISTANCE_KERNEL_L2_SIGMOID_MATCHING_PROB:
 

@@ -135,13 +135,13 @@ def preprocess_keypoints_2d(keypoints_2d,
       raise ValueError('3D keypoints are not specified for random projection.')
 
     if not normalized_camera_depth_range:
-      normalized_camera_depth_range = (1.0 / keypoint_profile_2d.scale_unit,
-                                       1.0 / keypoint_profile_2d.scale_unit)
+      normalized_camera_depth_range = (1.0 / keypoint_profile_2d.scale_unit,  # pyrefly: ignore[missing-attribute]
+                                       1.0 / keypoint_profile_2d.scale_unit)  # pyrefly: ignore[missing-attribute]
     keypoints_2d, _ = keypoint_utils.randomly_project_and_select_keypoints(
         keypoints_3d,
         keypoint_profile_3d=keypoint_profile_3d,
         output_keypoint_names=(
-            keypoint_profile_2d.compatible_keypoint_name_dict[
+            keypoint_profile_2d.compatible_keypoint_name_dict[  # pyrefly: ignore[missing-attribute]
                 keypoint_profile_3d.name]),
         azimuth_range=azimuth_range,
         elevation_range=elevation_range,
@@ -157,14 +157,14 @@ def preprocess_keypoints_2d(keypoints_2d,
       raise ValueError('3D keypoints are not specified for random projection.')
 
     if not normalized_camera_depth_range:
-      normalized_camera_depth_range = (1.0 / keypoint_profile_2d.scale_unit,
-                                       1.0 / keypoint_profile_2d.scale_unit)
+      normalized_camera_depth_range = (1.0 / keypoint_profile_2d.scale_unit,  # pyrefly: ignore[missing-attribute]
+                                       1.0 / keypoint_profile_2d.scale_unit)  # pyrefly: ignore[missing-attribute]
     projected_keypoints_2d, _ = (
         keypoint_utils.randomly_project_and_select_keypoints(
             keypoints_3d,
             keypoint_profile_3d=keypoint_profile_3d,
             output_keypoint_names=(
-                keypoint_profile_2d.compatible_keypoint_name_dict[
+                keypoint_profile_2d.compatible_keypoint_name_dict[  # pyrefly: ignore[missing-attribute]
                     keypoint_profile_3d.name]),
             azimuth_range=azimuth_range,
             elevation_range=elevation_range,

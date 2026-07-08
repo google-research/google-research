@@ -75,14 +75,14 @@ def build_residual_block(input_layer,
       strides=stride,
       **layer_kwargs)(input_layer)
   conv_x = layers.BatchNormalization()(conv_x)
-  conv_x = layers.Activation(activation)(conv_x)
-  conv_x = layers.Dropout(dropout_rate)(conv_x)
+  conv_x = layers.Activation(activation)(conv_x)  # pyrefly: ignore[not-callable]
+  conv_x = layers.Dropout(dropout_rate)(conv_x)  # pyrefly: ignore[not-callable]
 
   conv_y = layers.Conv1D(
       filters=feature_dim, kernel_size=5, **layer_kwargs)(conv_x)
   conv_y = layers.BatchNormalization()(conv_y)
-  conv_y = layers.Activation(activation)(conv_y)
-  conv_y = layers.Dropout(dropout_rate)(conv_y)
+  conv_y = layers.Activation(activation)(conv_y)  # pyrefly: ignore[not-callable]
+  conv_y = layers.Dropout(dropout_rate)(conv_y)  # pyrefly: ignore[not-callable]
 
   conv_z = layers.Conv1D(
       filters=feature_dim, kernel_size=3, **layer_kwargs)(conv_y)
@@ -96,7 +96,7 @@ def build_residual_block(input_layer,
   shortcut_y = layers.BatchNormalization()(shortcut_y)
 
   output_layer = layers.add([shortcut_y, conv_z])
-  output_layer = layers.Activation(activation)(output_layer)
+  output_layer = layers.Activation(activation)(output_layer)  # pyrefly: ignore[not-callable]
   return output_layer
 
 
@@ -131,7 +131,7 @@ def build_residual_temporal_model(input_shape,
       filters=channel_depths[0], kernel_size=7, padding='same', **layer_kwargs)(
           input_layer)
   output_layer = layers.BatchNormalization()(output_layer)
-  output_layer = layers.Activation(activation)(output_layer)
+  output_layer = layers.Activation(activation)(output_layer)  # pyrefly: ignore[not-callable]
 
   stride_layout = [temporal_stride] * (len(channel_depths) - 1) + [1]
   for feature_dim, stride in zip(channel_depths, stride_layout):
@@ -144,7 +144,7 @@ def build_residual_temporal_model(input_shape,
         **layer_kwargs)
 
   output_layer = layers.GlobalAveragePooling1D()(output_layer)
-  output_layer = layers.Dense(num_classes, **layer_kwargs)(output_layer)
+  output_layer = layers.Dense(num_classes, **layer_kwargs)(output_layer)  # pyrefly: ignore[not-callable]
   return tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
 
 
@@ -182,11 +182,11 @@ def build_simple_temporal_model(input_shape,
         padding='same',
         **layer_kwargs)(output_layer)
     output_layer = layers.BatchNormalization()(output_layer)
-    output_layer = layers.Activation(activation)(output_layer)
-    output_layer = layers.Dropout(dropout_rate)(output_layer)
+    output_layer = layers.Activation(activation)(output_layer)  # pyrefly: ignore[not-callable]
+    output_layer = layers.Dropout(dropout_rate)(output_layer)  # pyrefly: ignore[not-callable]
 
   output_layer = layers.GlobalAveragePooling1D()(output_layer)
-  output_layer = layers.Dense(num_classes, **layer_kwargs)(output_layer)
+  output_layer = layers.Dense(num_classes, **layer_kwargs)(output_layer)  # pyrefly: ignore[not-callable]
   return tf.keras.models.Model(inputs=input_layer, outputs=output_layer)
 
 
@@ -238,8 +238,8 @@ def build_residual_temporal_convolutional_model(
   for depth in range(len(config)):
     for stride, kernel_size, feature_dim in config[depth]:
       bn = layers.BatchNormalization(axis=channel_axis)(model)
-      relu = layers.Activation(activation)(bn)
-      dr = layers.Dropout(dropout_rate)(relu)
+      relu = layers.Activation(activation)(bn)  # pyrefly: ignore[not-callable]
+      dr = layers.Dropout(dropout_rate)(relu)  # pyrefly: ignore[not-callable]
       res = layers.Conv1D(
           feature_dim,
           kernel_size=kernel_size,
@@ -263,15 +263,15 @@ def build_residual_temporal_convolutional_model(
       model = layers.add([model, res])
 
   bn = layers.BatchNormalization(axis=channel_axis)(model)
-  model = layers.Activation(activation)(bn)
+  model = layers.Activation(activation)(bn)  # pyrefly: ignore[not-callable]
 
   if pooling:
     pool_window_shape = tf.keras.backend.int_shape(model)
     gap = layers.AveragePooling1D(pool_window_shape[row_axis], strides=1)(model)
-    flatten = layers.Flatten()(gap)
+    flatten = layers.Flatten()(gap)  # pyrefly: ignore[not-callable]
   else:
-    flatten = layers.Flatten()(model)
-  dense = layers.Dense(
+    flatten = layers.Flatten()(model)  # pyrefly: ignore[not-callable]
+  dense = layers.Dense(  # pyrefly: ignore[not-callable]
       units=num_classes, activation='softmax', kernel_initializer='he_normal')(
           flatten)
 

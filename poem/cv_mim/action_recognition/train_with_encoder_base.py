@@ -203,7 +203,7 @@ def run(input_dataset_class, common_module, keypoint_profiles_module,
     with tf.GradientTape() as tape:
       outputs = classifier(features, training=True)
       regularization_loss = sum(classifier.losses)
-      crossentropy_loss = loss_object(labels, outputs)
+      crossentropy_loss = loss_object(labels, outputs)  # pyrefly: ignore[not-callable]
       total_loss = crossentropy_loss + regularization_loss
 
     trainable_variables = classifier.trainable_variables
