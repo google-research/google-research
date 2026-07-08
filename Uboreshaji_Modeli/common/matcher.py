@@ -160,6 +160,7 @@ class Matcher(nn.Module):
         contains the indices of the target boxes that they are matched to.
     """
     bs, num_queries = outputs["logits"].shape[:2]
+    device = outputs["logits"].device
 
     out_prob = (
         outputs["logits"].flatten(0, 1).sigmoid()
@@ -176,8 +177,8 @@ class Matcher(nn.Module):
     if num_labels == 0:
       return [
           (
-              torch.as_tensor([], dtype=torch.int64),
-              torch.as_tensor([], dtype=torch.int64),
+              torch.as_tensor([], dtype=torch.int64, device=device),
+              torch.as_tensor([], dtype=torch.int64, device=device),
           )
           for _ in range(bs)
       ]
@@ -185,7 +186,6 @@ class Matcher(nn.Module):
     first_target = next(
         (v for v in targets if v["class_labels"].numel() > 0), targets[0]
     )
-    device = first_target["class_labels"].device
     dtype = first_target["class_labels"].dtype
 
     tgt_ids = torch.empty(num_labels, dtype=dtype, device=device)
@@ -219,8 +219,8 @@ class Matcher(nn.Module):
     if num_queries == 0:
       return [
           (
-              torch.as_tensor([], dtype=torch.int64),
-              torch.as_tensor([], dtype=torch.int64),
+              torch.as_tensor([], dtype=torch.int64, device=device),
+              torch.as_tensor([], dtype=torch.int64, device=device),
           )
           for _ in range(bs)
       ]
@@ -245,8 +245,8 @@ class Matcher(nn.Module):
 
     return [
         (
-            torch.as_tensor(i, dtype=torch.int64),
-            torch.as_tensor(j, dtype=torch.int64),
+            torch.as_tensor(i, dtype=torch.int64, device=device),
+            torch.as_tensor(j, dtype=torch.int64, device=device),
         )
         for i, j in indices
     ]
