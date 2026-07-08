@@ -68,6 +68,8 @@ def get_base_config():
   config.training.gradient_checkpointing = True
   config.training.weight_decay = 1e-4
   config.training.precision = Precision.BF16
+  config.training.device = "cuda"  # Options: "cuda", "tpu", "cpu"
+  config.training.tpu_num_devices = None  # Auto-detected if None
   config.training.logging_steps = 100
   config.training.eval_steps = 200
   config.training.save_steps = 200
