@@ -28,6 +28,7 @@ from ravens.tasks.packing_boxes import PackingBoxes
 from ravens.tasks.palletizing_boxes import PalletizingBoxes
 from ravens.tasks.place_red_in_green import PlaceRedInGreen
 from ravens.tasks.stack_block_pyramid import StackBlockPyramid
+from ravens.tasks.stack_block_tower import StackBlockTower
 from ravens.tasks.sweeping_piles import SweepingPiles
 from ravens.tasks.task import Task
 from ravens.tasks.towers_of_hanoi import TowersOfHanoi
@@ -46,6 +47,7 @@ names = {
     'palletizing-boxes': PalletizingBoxes,
     'place-red-in-green': PlaceRedInGreen,
     'stack-block-pyramid': StackBlockPyramid,
+    'stack-block-tower': StackBlockTower,
     'sweeping-piles': SweepingPiles,
     'towers-of-hanoi': TowersOfHanoi
 }
