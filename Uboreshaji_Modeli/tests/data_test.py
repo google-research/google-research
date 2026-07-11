@@ -159,6 +159,17 @@ class GetDatasetTest(absltest.TestCase):
     result = data.get_dataset(cfg)
     self.assertEqual(list(result), list(fake_dataset))
 
+  def test_returns_loaded_dataset_with_trailing_slash(self):
+    temp_dir = self.create_tempdir().full_path
+    fake_dataset_dict = {"col1": [1, 2], "col2": ["a", "b"]}
+    fake_dataset = datasets.Dataset.from_dict(fake_dataset_dict)
+    fake_dataset.save_to_disk(temp_dir)
+    cfg = ml_collections.ConfigDict()
+    cfg.dataset = ml_collections.ConfigDict()
+    cfg.dataset.dataset_path = temp_dir + "/"
+    result = data.get_dataset(cfg)
+    self.assertEqual(list(result), list(fake_dataset))
+
   def test_propagates_error(self):
     temp_dir = self.create_tempdir().full_path
     cfg = ml_collections.ConfigDict()
