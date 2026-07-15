@@ -29,7 +29,7 @@ from typing import Dict
 
 import numpy as np
 import six
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 
 
 class Score(
