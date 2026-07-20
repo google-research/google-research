@@ -55,6 +55,7 @@ flags.DEFINE_bool(
     "norun_validations", False, "Internal validation bypass flag."
 )
 
+
 flags.mark_flags_as_mutual_exclusive([_CONFIG, _CONFIG_JSON], required=True)
 
 
