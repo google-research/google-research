@@ -66,41 +66,25 @@ using a fixed baseline configuration: **batch size = 16, learning rate = 0.01,
 training duration = 50 epochs, image size = 640 px**, and a standard evaluation
 **confidence threshold of 0.25**.
 
-| Ablation Dimension   | Parameter      | Aggregate AP@50 | Notes              |
-:                      : Configuration  :                 :                    :
-| :------------------- | :------------- | :-------------- | :----------------- |
-| **Image              | 640 px         | **0.12**        | Baseline           |
-: Resolution**<br>*(at :                :                 : configuration.     :
-: 0.25 threshold)*     :                :                 :                    :
-|                      | 960 px         | **0.16**        | Identified as the  |
-:                      :                :                 : optimal resolution :
-:                      :                :                 : sweet spot.        :
-|                      | 1280 px        | **0.16**        | Performance        |
-:                      :                :                 : plateaued; no      :
-:                      :                :                 : additional gains   :
-:                      :                :                 : observed.          :
-| **Epoch              | 50 Epochs      | **0.12**        | Baseline training  |
-: Duration**<br>*(at   :                :                 : length.            :
-: 640 px, 0.25         :                :                 :                    :
-: threshold)*          :                :                 :                    :
-|                      | 75 Epochs      | **0.14**        | Steady             |
-:                      :                :                 : improvement.       :
-|                      | 100 Epochs     | **0.15**        | Gains are          |
-:                      :                :                 : independent of     :
-:                      :                :                 : image resolution   :
-:                      :                :                 : scaling.           :
-| **Learning Rate**    | 0.01 vs. 0.005 | **~0.12**       | Practically        |
-:                      : vs. 0.001      :                 : identical metrics; :
-:                      :                :                 : LR was not a       :
-:                      :                :                 : limiting factor.   :
-| **Batch Size &       | Batch Size 16  | **0.21**        | Decreasing         |
-: Threshold**<br>*(at  : (0.01          :                 : threshold reveals  :
-: 640 px)*             : threshold)     :                 : extreme            :
-:                      :                :                 : sensitivity.       :
-|                      | Batch Size 32  | **0.22**        | Peak absolute      |
-:                      : (0.01          :                 : performance        :
-:                      : threshold)     :                 : achieved in        :
-:                      :                :                 : YOLO26.            :
+*   **Image Resolution Ablation** (at 0.25 threshold):
+    *   *640 px (Baseline):* AP@50 = **0.12** — Standard configuration.
+    *   *960 px:* AP@50 = **0.16** — Identified as the optimal resolution sweet
+        spot.
+    *   *1280 px:* AP@50 = **0.16** — Performance plateaued; no additional gains
+        observed.
+*   **Epoch Duration Ablation** (at 640 px, 0.25 threshold):
+    *   *50 Epochs (Baseline):* AP@50 = **0.12** — Standard training length.
+    *   *75 Epochs:* AP@50 = **0.14** — Steady improvement.
+    *   *100 Epochs:* AP@50 = **0.15** — Gains are independent of image
+        resolution scaling.
+*   **Learning Rate Ablation**:
+    *   *0.01 vs. 0.005 vs. 0.001:* AP@50 = **~0.12** — Practically identical
+        metrics; LR was not a limiting factor.
+*   **Batch Size & Threshold Ablation** (at 640 px):
+    *   *Batch Size 16 (0.01 threshold):* AP@50 = **0.21** — Decreasing
+        threshold reveals extreme sensitivity.
+    *   *Batch Size 32 (0.01 threshold):* AP@50 = **0.22** — Peak absolute
+        performance achieved in YOLO26.
 
 ### B. Zero-Shot Segmentation (SAM 3)
 
