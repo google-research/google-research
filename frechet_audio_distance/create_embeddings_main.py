@@ -42,7 +42,7 @@ flags.DEFINE_string('model_ckpt', 'data/vggish_model.ckpt',
 flags.DEFINE_integer('model_embedding_dim', 128,
                      'The model dimension of the models emedding layer.')
 flags.DEFINE_integer('model_step_size', 8000,
-                     'Number of samples between each extraced windown.')
+                     'Number of samples between each extracted windown.')
 
 flags.mark_flags_as_mutual_exclusive(['input_files', 'tfrecord_input'],
                                      required=True)
