@@ -272,7 +272,7 @@ def comparison(methods, error_func, fixed_data, distribution, num_samples,
       sampled_data = base.gen_gaussian(num_samples, 0, 5)
     elif distribution == "uniform":
       sampled_data = base.gen_uniform(num_samples, -5, 5)
-    true_quantiles = base.quantiles(sampled_data, qs)
+    true_quantiles = base.quantiles(sampled_data, qs)  # pyrefly: ignore[unbound-name]
 
     for method_num in range(num_methods):
       quant_func = quant_funcs[method_num]

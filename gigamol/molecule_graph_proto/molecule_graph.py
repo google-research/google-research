@@ -27,7 +27,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem import ChemicalFeatures
 from scipy.spatial import distance
 import six
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 
 from gigamol.molecule_graph_proto import molecule_graph_pb2 as mgpb
 
@@ -299,7 +299,7 @@ class MoleculeGraph(object):
         elif family == 'donor':
           hb[idx] = hb[idx]._replace(donor=True)
           # pylint:enable=protected-access
-    return hb
+    return hb  # pyrefly: ignore[bad-return]
 
   def get_atom_type(self, atom):
     """Gets atom type.
@@ -573,7 +573,7 @@ class MoleculeGraph(object):
           b_pos = conformer.GetAtomPosition(b_idx)
           if calc_pair_spatial_distances:
             atom_pair_pb.spatial_distance = distance.euclidean(
-                (a_pos.x, a_pos.y, a_pos.z),
+                (a_pos.x, a_pos.y, a_pos.z),  # pyrefly: ignore[unbound-name]
                 (b_pos.x, b_pos.y, b_pos.z))
             if atom_pair_pb.spatial_distance < 1.0e-6:
               raise MoleculeGraphProtoError(

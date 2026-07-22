@@ -212,8 +212,8 @@ def get_coupling_estimates(experiments,
     logits_1, logits_2 = experiments[0].logit_pair_distribution_fn(
         logits_key, **(logit_kwargs or {}))
 
-  logits_1 -= jax.scipy.special.logsumexp(logits_1)
-  logits_2 -= jax.scipy.special.logsumexp(logits_2)
+  logits_1 -= jax.scipy.special.logsumexp(logits_1)  # pyrefly: ignore[no-matching-overload]
+  logits_2 -= jax.scipy.special.logsumexp(logits_2)  # pyrefly: ignore[no-matching-overload]
 
   probs_1 = jnp.exp(logits_1)
   probs_2 = jnp.exp(logits_2)

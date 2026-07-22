@@ -203,7 +203,7 @@ class TargetDensity(
     else:
       expectations_ord = collections.OrderedDict(
           sorted(expectations.items()))
-    return TargetDensity(
+    return TargetDensity(  # pyrefly: ignore[bad-return]
         distribution.log_prob,
         distribution.event_shape,
         distribution.dtype,

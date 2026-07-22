@@ -187,7 +187,7 @@ class FuseTest(PermutationTest):
     self.number_kernels = sum([len(ks) for ks in self.kernels.values()])
 
     self.number_statistics = (
-        self.number_bandwidths * self.number_kernels * num_hyperparams
+        self.number_bandwidths * self.number_kernels * num_hyperparams  # pyrefly: ignore[unsupported-operation]
     )
     self.lambda_fuse_multiplier = lambda_fuse_multiplier
 

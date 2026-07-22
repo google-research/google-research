@@ -209,7 +209,7 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
           eval_dataset=transformed_eval_dataset,
           compute_metrics=compute_metrics_fn,
           processing_class=processor,
-          criterion=criterion,
+          criterion=criterion,  # pyrefly: ignore[bad-argument-type]
           weight_dict=weight_dict,
           callbacks=callbacks,
       )

@@ -49,66 +49,66 @@ def get_config():
   # Determines which model to use.
   # Specific mixing sublayers may be replaced with attention using
   # config.attention_layout and config.num_attention_layers.
-  config.model_arch: ModelArchitecture = ModelArchitecture.F_NET
+  config.model_arch: ModelArchitecture = ModelArchitecture.F_NET  # pyrefly: ignore[bad-assignment]
 
   # How often to save the model checkpoint.
-  config.save_checkpoints_steps: int = 1000
+  config.save_checkpoints_steps: int = 1000  # pyrefly: ignore[bad-assignment]
   # Frequency fo eval during training, e.g. every 1000 steps.
-  config.eval_frequency: int = 1000
+  config.eval_frequency: int = 1000  # pyrefly: ignore[bad-assignment]
 
   # Total batch size for training.
-  config.train_batch_size: int = 32
+  config.train_batch_size: int = 32  # pyrefly: ignore[bad-assignment]
   # Total batch size for eval.
-  config.eval_batch_size: int = 8
+  config.eval_batch_size: int = 8  # pyrefly: ignore[bad-assignment]
 
   # The base learning rate for Adam.
-  config.learning_rate: float = 1e-4
+  config.learning_rate: float = 1e-4  # pyrefly: ignore[bad-assignment]
 
   # Initial checkpoint directory or filepath (usually from a pre-trained model).
-  config.init_checkpoint_dir: str = ''
+  config.init_checkpoint_dir: str = ''  # pyrefly: ignore[bad-assignment]
 
   # Whether to lower case the input text. Should be True for uncased models and
   # False for cased models.
-  config.do_lower_case: bool = True
+  config.do_lower_case: bool = True  # pyrefly: ignore[bad-assignment]
 
   # Model parameters.
 
   # For pre-training, we only need 2 segment types (for NSP), but we allow up to
   # 4 for GLUE/SuperGLUE fine-tuning.
-  config.type_vocab_size: int = 4
+  config.type_vocab_size: int = 4  # pyrefly: ignore[bad-assignment]
   # Embedding dimension for each token.
-  config.d_emb: int = 768
+  config.d_emb: int = 768  # pyrefly: ignore[bad-assignment]
   # Hidden dimension of model.
-  config.d_model: int = 768
+  config.d_model: int = 768  # pyrefly: ignore[bad-assignment]
   # Hidden dimension for feed-forward layer.
-  config.d_ff: int = 3072
+  config.d_ff: int = 3072  # pyrefly: ignore[bad-assignment]
   # The maximum total input sequence length after tokenization. Sequences longer
   # than this will be truncated, and sequences shorter than this will be padded.
-  config.max_seq_length: int = 512
+  config.max_seq_length: int = 512  # pyrefly: ignore[bad-assignment]
   # Number of self-attention heads. Only used for BERT models.
-  config.num_heads: int = 12
+  config.num_heads: int = 12  # pyrefly: ignore[bad-assignment]
   # Number of model blocks / layers.
-  config.num_layers: int = 12
+  config.num_layers: int = 12  # pyrefly: ignore[bad-assignment]
   # Regular dropout rate, applied throughout model.
-  config.dropout_rate: float = 0.1
+  config.dropout_rate: float = 0.1  # pyrefly: ignore[bad-assignment]
   # Dropout rate used in mixing module, e.g. self-attention sublayer.
-  config.mixing_dropout_rate: float = 0.1
+  config.mixing_dropout_rate: float = 0.1  # pyrefly: ignore[bad-assignment]
 
   # Determines whether or not the FFT is used in lieu of matrix multiplications.
   # Only relevant for FNet: If true, favor FFT over matrix multiplications to
   # compute the DFT.
-  config.use_fft: bool = True
+  config.use_fft: bool = True  # pyrefly: ignore[bad-assignment]
 
   # For hybrid models, attention layers replace a subset of the mixing
   # sublayers.
-  config.attention_layout: HybridAttentionLayout = HybridAttentionLayout.TOP
-  config.num_attention_layers: int = 0
+  config.attention_layout: HybridAttentionLayout = HybridAttentionLayout.TOP  # pyrefly: ignore[bad-assignment]
+  config.num_attention_layers: int = 0  # pyrefly: ignore[bad-assignment]
 
   # Random number generator seed.
-  config.seed: int = 0
+  config.seed: int = 0  # pyrefly: ignore[bad-assignment]
 
   # Dummy parameter for repeated runs.
-  config.trial: int = 0
+  config.trial: int = 0  # pyrefly: ignore[bad-assignment]
 
   return config
 

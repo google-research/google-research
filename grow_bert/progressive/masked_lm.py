@@ -285,7 +285,7 @@ class ProgressiveMaskedLM(policies.ProgressivePolicy, masked_lm.MaskedLMTask):
         masked_input_ids=tf.zeros((1, predict_length), dtype=tf.int32),
         masked_segment_ids=tf.zeros((1, predict_length), dtype=tf.int32),
         masked_lm_weights=tf.zeros((1, predict_length), dtype=tf.float32))
-    _ = encoder_network(dummy_inputs)
+    _ = encoder_network(dummy_inputs)  # pyrefly: ignore[not-callable]
 
     if 'cls_heads' in model_cfg:
       classification_heads = [
@@ -300,7 +300,7 @@ class ProgressiveMaskedLM(policies.ProgressivePolicy, masked_lm.MaskedLMTask):
             encoder_cfg['hidden_activation']),
         encoder_network=encoder_network,
         classification_heads=classification_heads)
-    _ = model(dummy_inputs)
+    _ = model(dummy_inputs)  # pyrefly: ignore[not-callable]
     return model
 
   @staticmethod

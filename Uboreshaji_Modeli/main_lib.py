@@ -98,7 +98,7 @@ def run_training(
   logging.info("Launching strategy training loop...")
   strategy.train(
       engine,
-      dataset,
+      dataset,  # pyrefly: ignore[bad-argument-type]
       cfg,
       model=model,
       processor=processor,

@@ -220,7 +220,7 @@ class PopulationManager:
       return None
 
     # Trim the weights.
-    weights = list(zip(idxs, weights))
+    weights = list(zip(idxs, weights))  # pyrefly: ignore[bad-assignment]
     if self.top_n_to_select:
       top_n = self.top_n_to_select
     else:
@@ -309,17 +309,17 @@ class PopulationManager:
           if self.dataset == "imagenet2012":
             fitnesses = list(zip(accuracies, im_sec_core_train))
             if targeted_evol:
-              base_point = (base_acc, base_im_sec_core_train)
+              base_point = (base_acc, base_im_sec_core_train)  # pyrefly: ignore[unbound-name]
             second_high = True
           else:
             fitnesses = list(zip(accuracies, num_params))
             if targeted_evol:
-              base_point = (base_acc, base_num_params)
+              base_point = (base_acc, base_num_params)  # pyrefly: ignore[unbound-name]
             second_high = False
         else:
           fitnesses = list(zip(accuracies, flops))
           if targeted_evol:
-            base_point = (base_acc, base_flops)
+            base_point = (base_acc, base_flops)  # pyrefly: ignore[unbound-name]
           second_high = False
 
         if base_point:
@@ -338,12 +338,12 @@ class PopulationManager:
                                     normalize=self.use_pareto_normalized,
                                     anchor=anchor)
 
-      selected_idx = self.sample_parent(weights, current_idxs)
-      selected.append(population_idxs.pop(selected_idx))
-      del accuracies[selected_idx]
-      del im_sec_core_train[selected_idx]
-      del flops[selected_idx]
-      del num_params[selected_idx]
+      selected_idx = self.sample_parent(weights, current_idxs)  # pyrefly: ignore[bad-argument-type]
+      selected.append(population_idxs.pop(selected_idx))  # pyrefly: ignore[bad-argument-type]
+      del accuracies[selected_idx]  # pyrefly: ignore[unsupported-operation]
+      del im_sec_core_train[selected_idx]  # pyrefly: ignore[unsupported-operation]
+      del flops[selected_idx]  # pyrefly: ignore[unsupported-operation]
+      del num_params[selected_idx]  # pyrefly: ignore[unsupported-operation]
     return selected
 
 
@@ -371,7 +371,7 @@ class ModelMutator:
       if config.mutator_name == "random_subgraph":
         ctr = functools.partial(synthesizer, generation=child_id,
                                 **config.synthesis)
-        synthesizer = GraphSynthesizer(subg_and_props, sequential_ctr=ctr,
+        synthesizer = GraphSynthesizer(subg_and_props, sequential_ctr=ctr,  # pyrefly: ignore[bad-argument-type]
                                        generation=child_id,
                                        **config.synthesis_graph)
       else:

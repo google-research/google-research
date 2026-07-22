@@ -234,7 +234,7 @@ class LM(object):
           zeros = np.zeros(init_shape, dtype=np.float32)
           batch_reset = tf.assign(batch_prev_s, zeros)
 
-    self.num_params = sum([np.prod(v.shape) for v in tf.trainable_variables()
+    self.num_params = sum([np.prod(v.shape) for v in tf.trainable_variables()  # pyrefly: ignore[missing-attribute]
                            if v.name.startswith(self.name)]).value
     print('All children have {0} params'.format(self.num_params))
 
@@ -352,12 +352,12 @@ class LM(object):
                                                         self.params.grad_bound)
 
     optimizer = tf.train.GradientDescentOptimizer(learning_rate)
-    train_op = optimizer.apply_gradients(zip(clipped_grads, tf_vars),
+    train_op = optimizer.apply_gradients(zip(clipped_grads, tf_vars),  # pyrefly: ignore[unbound-name]
                                          global_step=global_step)
 
     self.train_loss = loss
     self.train_op = train_op
-    self.grad_norm = grad_norm
+    self.grad_norm = grad_norm  # pyrefly: ignore[unbound-name]
     self.learning_rate = learning_rate
 
   def _build_valid(self):

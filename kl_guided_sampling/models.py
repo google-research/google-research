@@ -95,7 +95,7 @@ class ContextualEncoderDecoderModel(models.EncoderDecoderModel):
     # [el0, el1, el2] --> beamsize=2 --> [el0,el0,el1,el1,el2,el2]
     # [batch * num_decodes, input_len, emb_dim]
     encoded_inputs = decoding.flat_batch_beam_expand(
-        self.module.apply(
+        self.module.apply(  # pyrefly: ignore[bad-argument-type]
             {'params': params},
             encoder_input_tokens,
             enable_dropout=False,
@@ -104,7 +104,7 @@ class ContextualEncoderDecoderModel(models.EncoderDecoderModel):
         num_decodes,
     )
     encoded_inputs_wo = decoding.flat_batch_beam_expand(
-        self.module.apply(
+        self.module.apply(  # pyrefly: ignore[bad-argument-type]
             {'params': params},
             encoder_input_tokens_wo,
             enable_dropout=False,
@@ -189,7 +189,7 @@ class ContextualEncoderDecoderModel(models.EncoderDecoderModel):
 
     if 'eos_id' not in decoder_params:
       decoder_params['eos_id'] = self.output_vocabulary.eos_id
-    decodes, scores = self._decode_fn(
+    decodes, scores = self._decode_fn(  # pyrefly: ignore[not-callable]
         inputs=decoder_prompt_inputs,
         inputs_wo=decoder_prompt_inputs,
         cache=cache,
@@ -304,7 +304,7 @@ class ContextualDecoderOnlyModel(models.DecoderOnlyModel):
 
     if 'eos_id' not in decoder_params:
       decoder_params['eos_id'] = self.output_vocabulary.eos_id
-    decoded_sequences, scores = self._decode_fn(
+    decoded_sequences, scores = self._decode_fn(  # pyrefly: ignore[not-callable]
         inputs=inputs,
         inputs_wo=inputs_wo,
         cache=prefilled_cache,

@@ -129,9 +129,9 @@ class NDP(nn.Module):
   beta: float = 2.5
 
   # Integrator
-  ode_solver: diffrax.AbstractSolver = diffrax.Tsit5()
+  ode_solver: diffrax.AbstractSolver = diffrax.Tsit5()  # pyrefly: ignore[bad-assignment]
   ode_solver_dt: float = 1e-2
-  adjoint: diffrax.AbstractAdjoint = diffrax.RecursiveCheckpointAdjoint()
+  adjoint: diffrax.AbstractAdjoint = diffrax.RecursiveCheckpointAdjoint()  # pyrefly: ignore[bad-assignment]
 
   def setup(self):
     # Setup low-frequency encoder
@@ -224,8 +224,8 @@ class NDP(nn.Module):
           self.ode_solver_dt, y0=init_state,
           args=(weights, goal, u0),
           adjoint=self.adjoint,
-          saveat=saveat)
-      return sol.ys[:, :self.action_dim]
+          saveat=saveat)  # pyrefly: ignore[bad-argument-type]
+      return sol.ys[:, :self.action_dim]  # pyrefly: ignore[unsupported-operation]
 
     return jax.vmap(flow_one)(init_ndp_states, rbf_weights, goals, u0s)
 
@@ -263,8 +263,8 @@ class NDP(nn.Module):
           self.ode_solver_dt, y0=aug_state_0,
           args=args,
           adjoint=self.adjoint,
-          saveat=saveat)
-      return sol.ys[0][:, :self.action_dim], sol.ys[1][-1]
+          saveat=saveat)  # pyrefly: ignore[bad-argument-type]
+      return sol.ys[0][:, :self.action_dim], sol.ys[1][-1]  # pyrefly: ignore[unsupported-operation]
 
     return jax.vmap(flow_one)(init_ndp_states, u_true, rbf_weights, goals, u0s)
 
@@ -287,7 +287,7 @@ class NDP(nn.Module):
         term, self.ode_solver, tau, tau + self.step_delta,
         self.ode_solver_dt, y0=ndp_state,
         args=ndp_args)
-    return sol.ys[0], tau + self.step_delta
+    return sol.ys[0], tau + self.step_delta  # pyrefly: ignore[unsupported-operation]
 
   @nn.nowrap
   def _aug_ode(self, tau, aug_state, args):
@@ -346,7 +346,7 @@ class NDP(nn.Module):
         ndp_state: ndp_state at (tau + step_delta).
         tau': tau + step_delta.
       """
-      return self.apply(model_params, ndp_state, tau, ndp_args,
+      return self.apply(model_params, ndp_state, tau, ndp_args,  # pyrefly: ignore[bad-return]
                         method=self._step_ndp)
 
     return re_init, step_fwd

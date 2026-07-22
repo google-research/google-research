@@ -132,7 +132,7 @@ def get_kernel_matrix(
     kernel: kernel to use for the kernel test.
     bandwidth: bandwidth for the kernel.
   """
-  bandwidth = jnp.array(bandwidth, dtype=jnp.float32)
+  bandwidth = jnp.array(bandwidth, dtype=jnp.float32)  # pyrefly: ignore[bad-assignment]
 
   d = pairwise_distance_matrix / bandwidth
   if kernel.kernel_type == "gaussian":

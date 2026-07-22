@@ -440,12 +440,12 @@ class DyRepMemory(nn.Module):
 
     # Compute messages (src -> dst).
     msg_s, t_s, src_s, unused_dst_s = self._compute_msg(
-        n_id, self.msg_s_store, self.msg_s_module, embeddings, assoc
+        n_id, self.msg_s_store, self.msg_s_module, embeddings, assoc  # pyrefly: ignore[bad-argument-type]
     )
 
     # Compute messages (dst -> src).
     msg_d, t_d, src_d, unused_dst_d = self._compute_msg(
-        n_id, self.msg_d_store, self.msg_d_module, embeddings, assoc
+        n_id, self.msg_d_store, self.msg_d_module, embeddings, assoc  # pyrefly: ignore[bad-argument-type]
     )
 
     # Aggregate messages.

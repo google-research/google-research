@@ -104,9 +104,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
           tf.constant(d, dtype=tf.float32)
       )
     if attention_mask is not None:
-      scaled_attention_logits += tf.scalar_mul(-1.0e9, 1 - attention_mask)
+      scaled_attention_logits += tf.scalar_mul(-1.0e9, 1 - attention_mask)  # pyrefly: ignore[unsupported-operation]
     attention_weights = tf.nn.softmax(scaled_attention_logits, axis=-1)
-    attention_weights = self.atten_dropout(attention_weights, training)
+    attention_weights = self.atten_dropout(attention_weights, training)  # pyrefly: ignore[not-callable]
     output = tf.einsum('BNTS,BNSH->BNTH', attention_weights, value)
     return output, attention_weights
 
@@ -136,14 +136,14 @@ class MultiHeadAttention(tf.keras.layers.Layer):
       attention_weights: [B, H, S, S]
     """
 
-    attention_mask = self._compute_attention_mask(attention_mask, paddings)
+    attention_mask = self._compute_attention_mask(attention_mask, paddings)  # pyrefly: ignore[bad-argument-type]
 
-    query = self._split_heads(self.wq(query))
-    key = self._split_heads(self.wk(key))
-    value = self._split_heads(self.wv(value))
+    query = self._split_heads(self.wq(query))  # pyrefly: ignore[not-callable]
+    key = self._split_heads(self.wk(key))  # pyrefly: ignore[not-callable]
+    value = self._split_heads(self.wv(value))  # pyrefly: ignore[not-callable]
 
     scaled_attention, attention_weights = self._compute_attention(
-        query, key, value, attention_bias, attention_mask, training
+        query, key, value, attention_bias, attention_mask, training  # pyrefly: ignore[bad-argument-type]
     )
 
     concat_attention = tf.transpose(scaled_attention, [0, 2, 1, 3])
@@ -151,7 +151,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         concat_attention, [-1, self.num_nodes, self.input_dim]
     )
 
-    output = self.dense(concat_attention)
+    output = self.dense(concat_attention)  # pyrefly: ignore[not-callable]
     return output, attention_weights
 
 
@@ -202,11 +202,11 @@ class TransformerFeedForwardLayer(tf.keras.layers.Layer):
       tf.Tensor of shape [B, S, D].
     """
 
-    inputs_normalized = self.layer_norm(x)
-    projected_inputs = self.ffn_layer1(inputs_normalized)
-    projected_inputs = self.relu_dropout(projected_inputs, training)
-    projected_inputs = self.ffn_layer2(projected_inputs)
-    residual = self.residual_dropout(projected_inputs, training)
+    inputs_normalized = self.layer_norm(x)  # pyrefly: ignore[not-callable]
+    projected_inputs = self.ffn_layer1(inputs_normalized)  # pyrefly: ignore[not-callable]
+    projected_inputs = self.relu_dropout(projected_inputs, training)  # pyrefly: ignore[not-callable]
+    projected_inputs = self.ffn_layer2(projected_inputs)  # pyrefly: ignore[not-callable]
+    residual = self.residual_dropout(projected_inputs, training)  # pyrefly: ignore[not-callable]
     out = x + residual
     if paddings is not None:
       out *= 1.0 - tf.expand_dims(paddings, axis=-1)
@@ -266,10 +266,10 @@ class TransformerLayer(tf.keras.layers.Layer):
       training,
   ):
     # Layer normalize input
-    inputs_normalized = self.atten_ln(inputs)
+    inputs_normalized = self.atten_ln(inputs)  # pyrefly: ignore[not-callable]
 
     # Compute self-attention, query/key/value vectors are the input itself
-    atten_output, _ = self.self_attention(
+    atten_output, _ = self.self_attention(  # pyrefly: ignore[not-callable]
         inputs_normalized,
         inputs_normalized,
         inputs_normalized,
@@ -279,11 +279,11 @@ class TransformerLayer(tf.keras.layers.Layer):
     )
 
     # Residual dropout and connection
-    atten_output = self.residual_dropout(atten_output, training)
+    atten_output = self.residual_dropout(atten_output, training)  # pyrefly: ignore[not-callable]
     atten_output += inputs
 
     # Apply FFN layer
-    output = self.ffn_layer(atten_output, paddings=paddings, training=training)
+    output = self.ffn_layer(atten_output, paddings=paddings, training=training)  # pyrefly: ignore[not-callable]
     return output
 
 
@@ -350,7 +350,7 @@ class MultiplexNodeFeatureEncoder(tf.keras.layers.Layer):
     )
 
     # [B, S, feature_dim] -> [B, S, model_dim * num_node_types]
-    node_feature_embedding = self.node_feature_embedding_layer(
+    node_feature_embedding = self.node_feature_embedding_layer(  # pyrefly: ignore[not-callable]
         node_feature_tensor
     )
 
@@ -467,18 +467,18 @@ class GraphTransformerEncoder(tf.keras.layers.Layer):
       encoder_out: [B, S, model_dim]
     """
 
-    node_feature_embedding = self.node_feature_embedding_layer(
+    node_feature_embedding = self.node_feature_embedding_layer(  # pyrefly: ignore[not-callable]
         node_feature
     )  # [b, s, d]
 
     x = node_feature_embedding
-    x = self.embedding_dropout(x)
+    x = self.embedding_dropout(x)  # pyrefly: ignore[not-callable]
 
     # attention_mask = 1 - paddings  # [B, S]
     attention_mask = causal_mask
 
     # Attention bias
-    spatial_embedding = self.spatial_pos_encoder(
+    spatial_embedding = self.spatial_pos_encoder(  # pyrefly: ignore[not-callable]
         spatial_encoding
     )  # [b, s, s, h]
 
@@ -495,7 +495,7 @@ class GraphTransformerEncoder(tf.keras.layers.Layer):
       )
 
     # Final layer norm
-    x = self.encoder_ln(x)
+    x = self.encoder_ln(x)  # pyrefly: ignore[not-callable]
 
     return x
 
@@ -588,7 +588,7 @@ class Predictor(tf.keras.Model):
     ancestor_causal_mask = inputs['ancestor_causal_mask']
 
     if self.mask_type == 'parent_causal_mask':
-      encoder_out = self.encoder(
+      encoder_out = self.encoder(  # pyrefly: ignore[not-callable]
           node_feature,
           parent_causal_mask,
           spatial_encoding,
@@ -596,7 +596,7 @@ class Predictor(tf.keras.Model):
           training,
       )
     elif self.mask_type == 'ancestor_causal_mask':
-      encoder_out = self.encoder(
+      encoder_out = self.encoder(  # pyrefly: ignore[not-callable]
           node_feature,
           ancestor_causal_mask,
           spatial_encoding,
@@ -609,7 +609,7 @@ class Predictor(tf.keras.Model):
     # Readout [VNODE] as the graph embedding [B, S, D] -> [B, D]
     v_node_embedding = tf.gather(encoder_out, indices=0, axis=1)
 
-    v_node_embedding = self.output_ln(v_node_embedding)
+    v_node_embedding = self.output_ln(v_node_embedding)  # pyrefly: ignore[not-callable]
     y = self.output_mlp(v_node_embedding)
 
     return y

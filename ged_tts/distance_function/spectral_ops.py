@@ -149,7 +149,7 @@ def calc_spectrograms(waves, window_lengths, spectral_diffs=(0, 1),
         ffts = [matmul_real_with_complex(f, mat) for f in frames]
 
       sq_mag = lambda x: tf.square(tf.math.real(x)) + tf.square(tf.math.imag(x))
-      specs_sq = [sq_mag(f) for f in ffts]
+      specs_sq = [sq_mag(f) for f in ffts]  # pyrefly: ignore[unbound-name]
 
       if use_mel_scale and proj_method == 'fft':
         sample_rate = 24000

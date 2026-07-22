@@ -71,7 +71,7 @@ def parse_feature_smiles_rdkit_properties(
       dataframe.
   """
   del args, kwargs  # Unused.
-  descriptors = [name for name, _ in Chem.Descriptors.descList]
+  descriptors = [name for name, _ in Chem.Descriptors.descList]  # pyrefly: ignore[missing-attribute]
   calculator = MoleculeDescriptors.MolecularDescriptorCalculator(descriptors)
 
   return np.array([

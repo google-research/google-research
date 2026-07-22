@@ -144,10 +144,10 @@ def prepare_eval_ds_from_tokens(config,
         [np.zeros(config.context_length, dtype=tokens.dtype), tokens])
     tokens_context = tokens_padded[context_idcs]
     ds = tf.data.Dataset.from_tensor_slices(
-        {'inputs': tokens_inputs, 'context': tokens_context})
+        {'inputs': tokens_inputs, 'context': tokens_context})  # pyrefly: ignore[bad-argument-type]
   else:
     ds = tf.data.Dataset.from_tensor_slices(
-        {'inputs': tokens_inputs})
+        {'inputs': tokens_inputs})  # pyrefly: ignore[bad-argument-type]
 
   ds = ds.batch(config.test_batch_size, drop_remainder=False)
   ds = ds.prefetch(AUTOTUNE)
@@ -180,7 +180,7 @@ def get_datasets(config,
   test_data = raw[95000000:]
 
   if config.dataset_name == 'text8':
-    tokenizer = CharLevelTokenizer(train_data)
+    tokenizer = CharLevelTokenizer(train_data)  # pyrefly: ignore[bad-argument-type]
   elif config.dataset_name == 'enwik8':
     tokenizer = ByteTokenizer()
   else:

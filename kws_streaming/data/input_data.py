@@ -21,8 +21,8 @@ import sys
 import tarfile
 from absl import logging
 import numpy as np
-from six.moves import urllib
-from six.moves import xrange  # pylint: disable=redefined-builtin
+from six.moves import urllib  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import xrange  # pylint: disable=redefined-builtin  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 import kws_streaming.data.input_data_utils as du
 from kws_streaming.layers import modes
@@ -337,7 +337,7 @@ class AudioProcessor(object):
 
     # Prepare the rest of the result data structure.
     self.word_to_index = {}
-    for word in all_words:
+    for word in all_words:  # pyrefly: ignore[unbound-name]
       if word in wanted_words_index:
         self.word_to_index[word] = wanted_words_index[word]
       else:

@@ -45,7 +45,7 @@ def get_gridwalk_policy(grid_env,
   def _policy_fn(state):
     """Gets optimal action distribution mixed with uniform exploration."""
     if not tabular_obs:
-      state = grid_env.get_tabular_obs(state)
+      state = grid_env.get_tabular_obs(state)  # pyrefly: ignore[bad-argument-type]
 
     # Optimal policy takes shortest path to (max_x, max_y) point in grid.
     xy = grid_env.get_xy_obs(state)

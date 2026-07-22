@@ -28,7 +28,7 @@ class CausalConv(nn.Conv):
   def __call__(self, inputs):
     """Apply (causal) covolution to inputs."""
 
-    kernel_size = tuple(self.kernel_size)
+    kernel_size = tuple(self.kernel_size)  # pyrefly: ignore[bad-argument-type]
     def maybe_broadcast(x):  # Copied from Flax.
       if x is None:
         # Backward compatibility with using None as sentinel for

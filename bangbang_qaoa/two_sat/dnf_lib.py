@@ -135,7 +135,7 @@ def dnf_from_string(dnf_string):
                     r'DNF: ?((%s && )*%s)?' % ((_CLAUSE_REGEX,) * 2))
   if re.match(r'%s\Z' % expected_regex, dnf_string) is None:
     raise ValueError('Not the output of a dnf string')
-  num_literals = int(re.match(r'Number of Literals: \d+',
+  num_literals = int(re.match(r'Number of Literals: \d+',  # pyrefly: ignore[missing-attribute]
                               dnf_string).group(0)[20:])  # type: ignore
   clauses = [clause_from_string(clause_match.group(0))
              for clause_match in re.finditer(_CLAUSE_REGEX, dnf_string)]

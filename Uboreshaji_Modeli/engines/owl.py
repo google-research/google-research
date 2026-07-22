@@ -158,7 +158,7 @@ class Owlv2Preprocessor(base.DataPreprocessor):
           "attention_mask": attention_masks,
       }
 
-    return transform_fn
+    return transform_fn  # pyrefly: ignore[bad-return]
 
   def get_collate_fn(
       self,

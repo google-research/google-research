@@ -61,7 +61,7 @@ def main(_):
 
 
   output_dir = '{}_xid{}/{}'.format(FLAGS.output_dir, xid,
-                                    wid) if xid > -1 else FLAGS.output_dir
+                                    wid) if xid > -1 else FLAGS.output_dir  # pyrefly: ignore[unbound-name]
   output_dir = pathlib.Path(output_dir)
   gfile.makedirs(output_dir)
 
@@ -135,7 +135,7 @@ def main(_):
   run_time = time.time() - start
 
   losses = losses.numpy()
-  posterior_samples = surrogate_dist.sample(100)
+  posterior_samples = surrogate_dist.sample(100)  # pyrefly: ignore[unbound-name]
 
   samples = surrogate_dist.sample(1000)
 

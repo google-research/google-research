@@ -118,12 +118,12 @@ def prepare_examples(
     examples.append(
         create_example_feature(
             key,
-            question,
-            answer,
-            algorithm,
+            question,  # pyrefly: ignore[bad-argument-type]
+            answer,  # pyrefly: ignore[bad-argument-type]
+            algorithm,  # pyrefly: ignore[bad-argument-type]
             encoding_method,
-            nnodes,
-            nedges,
+            nnodes,  # pyrefly: ignore[bad-argument-type]
+            nedges,  # pyrefly: ignore[bad-argument-type]
         )
     )
   return examples
@@ -144,7 +144,7 @@ def create_zero_shot_task(
     )
     if cot:
       for key in examples_dict.keys():
-        examples_dict[key]['question'] += "Let's think step by step. "
+        examples_dict[key]['question'] += "Let's think step by step. "  # pyrefly: ignore[unsupported-operation]
     examples += prepare_examples(examples_dict, encoding_method)
   return examples
 
@@ -217,10 +217,10 @@ def create_few_shot_task(
           encoding_method,
       )
       examples_dict[key]['question'] = (
-          few_shots_examples + 'Example: ' + examples_dict[key]['question']
+          few_shots_examples + 'Example: ' + examples_dict[key]['question']  # pyrefly: ignore[unsupported-operation]
       )
       if bag:
-        examples_dict[key]['question'] = examples_dict[key]['question'].replace(
+        examples_dict[key]['question'] = examples_dict[key]['question'].replace(  # pyrefly: ignore[missing-attribute]
             '\nQ: ',
             "\nLet's construct the graph with the nodes and edges first.\nQ: ",
         )  # pytype: disable=attribute-error

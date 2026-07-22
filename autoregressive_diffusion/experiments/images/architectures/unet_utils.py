@@ -460,13 +460,13 @@ def dot_product_attention(query,
   depth = query.shape[-1]
   n = key.ndim
   # batch_dims is  <bs, <non-attention dims>, num_heads>
-  batch_dims = tuple(onp.delete(range(n), axis + (n - 1,)))
+  batch_dims = tuple(onp.delete(range(n), axis + (n - 1,)))  # pyrefly: ignore[unsupported-operation]
   # q & k -> (bs, <non-attention dims>, num_heads, <attention dims>, channels)
-  qk_perm = batch_dims + axis + (n - 1,)
+  qk_perm = batch_dims + axis + (n - 1,)  # pyrefly: ignore[unsupported-operation]
   key = key.transpose(qk_perm)
   query = query.transpose(qk_perm)
   # v -> (bs, <non-attention dims>, num_heads, channels, <attention dims>)
-  v_perm = batch_dims + (n - 1,) + axis
+  v_perm = batch_dims + (n - 1,) + axis  # pyrefly: ignore[unsupported-operation]
   value = value.transpose(v_perm)
 
   query = query / onp.sqrt(depth).astype(dtype)
@@ -481,7 +481,7 @@ def dot_product_attention(query,
     attn_weights = attn_weights + bias
 
   # normalize the attention weights
-  norm_dims = tuple(range(attn_weights.ndim - len(axis), attn_weights.ndim))
+  norm_dims = tuple(range(attn_weights.ndim - len(axis), attn_weights.ndim))  # pyrefly: ignore[bad-argument-type]
   attn_weights = jax.nn.softmax(attn_weights, axis=norm_dims)
   attn_weights = attn_weights.astype(dtype)
 
@@ -502,7 +502,7 @@ def dot_product_attention(query,
   #   attn_weights = attn_weights * multiplier
 
   # compute the new values given the attention weights
-  wv_contracting_dims = (norm_dims, range(value.ndim - len(axis), value.ndim))
+  wv_contracting_dims = (norm_dims, range(value.ndim - len(axis), value.ndim))  # pyrefly: ignore[bad-argument-type]
   y = jax.lax.dot_general(
       attn_weights,
       value, (wv_contracting_dims, (batch_dims_t, batch_dims_t)),

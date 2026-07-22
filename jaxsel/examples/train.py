@@ -252,7 +252,7 @@ def training_loop(
                                                        graph_classifier_config)
 
   eval_config = pipeline.ClassificationPipelineConfig(
-      extractor_config, graph_classifier_config.replace(deterministic=True))
+      extractor_config, graph_classifier_config.replace(deterministic=True))  # pyrefly: ignore[missing-attribute]
 
   # Define loss over the full model.
   def forward(params, graphs, start_node_ids, labels, config, rng=None):
@@ -353,7 +353,7 @@ def training_loop(
           graph_model_grad_norm = tree_utils.global_norm(
               model_grad['params']['graph_classifier'])
 
-          with tf_logger_train.as_default():
+          with tf_logger_train.as_default():  # pyrefly: ignore[unbound-name]
             tf.summary.scalar('loss', loss, step=step)
             tf.summary.scalar('accuracy', batch_accuracy, step=step)
             tf.summary.scalar(
@@ -384,7 +384,7 @@ def training_loop(
                 'Class representatives',
                 train_utils.plot_to_image(
                     train_utils.plot_subgraph_classes(
-                        test_rep_images,
+                        test_rep_images,  # pyrefly: ignore[bad-argument-type]
                         q_rep,
                         preds_rep,
                         # transpose because of weird flax behavior
@@ -423,7 +423,7 @@ def training_loop(
       if test_accuracy_value > best_test_accuracy:
         best_test_accuracy = test_accuracy_value
       if tensorboard_logdir is not None:
-        with tf_logger_test.as_default():
+        with tf_logger_test.as_default():  # pyrefly: ignore[unbound-name]
           tf.summary.scalar('accuracy', test_accuracy_value, step=epoch)
           tf.summary.scalar('loss', loss_test, step=epoch)
       # Reset metric for next epoch.

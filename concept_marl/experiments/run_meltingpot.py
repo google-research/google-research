@@ -85,8 +85,8 @@ def get_env(env_name, seed, episode_length):
     env = wrapper_utils.make_and_wrap_cooking_environment(**env_config)
   elif 'clean' in env_name:
     env_config['dense_rewards'] = True
-    env_config['clean_reward'] = _CLEAN_REWARD.value
-    env_config['eat_reward'] = _EAT_REWARD.value
+    env_config['clean_reward'] = _CLEAN_REWARD.value  # pyrefly: ignore[bad-assignment]
+    env_config['eat_reward'] = _EAT_REWARD.value  # pyrefly: ignore[bad-assignment]
     env = wrapper_utils.make_and_wrap_cleanup_environment(**env_config)
   elif 'capture' in env_name:
     env = wrapper_utils.make_and_wrap_capture_environment(**env_config)
@@ -96,7 +96,7 @@ def get_env(env_name, seed, episode_length):
   # envlogger book-keeping
   env_config['env_name_for_get_env'] = env_name
   env_config['num_steps'] = episode_length
-  env.n_agents = env.num_agents
+  env.n_agents = env.num_agents  # pyrefly: ignore[missing-attribute]
   return env, env_config
 
 
@@ -172,7 +172,7 @@ def build_experiment_config():
   return experiments.ExperimentConfig(
       builder=builder,
       environment_factory=environment_factory,
-      network_factory=_make_network_factory(agent_types=agent_types),
+      network_factory=_make_network_factory(agent_types=agent_types),  # pyrefly: ignore[bad-argument-type]
       seed=_SEED.value,
       max_num_actor_steps=_NUM_STEPS.value)
 

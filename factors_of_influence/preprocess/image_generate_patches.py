@@ -33,7 +33,7 @@ def _load_image(image_file, load_cv2 = False):
 
   # Load images via cv2:
   with tf.io.gfile.GFile(image_file, 'rb') as f:
-    img_bgr = cv2.imdecode(np.fromstring(f.read(), dtype=np.uint8),
+    img_bgr = cv2.imdecode(np.fromstring(f.read(), dtype=np.uint8),  # pyrefly: ignore[no-matching-overload]
                            cv2.IMREAD_COLOR)  # OpenCV reads in BGR format
 
   return cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)  # Return RGB converted image

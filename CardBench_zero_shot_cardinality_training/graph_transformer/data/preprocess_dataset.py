@@ -298,7 +298,7 @@ def convert_graph_to_dense_tensor(
   """
   # One hot encoder for node types
   node_type_onehot_encoder = sklearn.preprocessing.OneHotEncoder(  # pytype: disable=wrong-keyword-args  # sklearn-update
-      categories=[constants.NODE_TYPES], sparse=False, dtype=np.int64
+      categories=[constants.NODE_TYPES], sparse=False, dtype=np.int64  # pyrefly: ignore[unexpected-keyword]
   )
   node_type_onehot_encoder.fit(np.array(constants.NODE_TYPES).reshape(-1, 1))
 
@@ -623,7 +623,7 @@ def prepare_dataset(
         feature_unique_value,
     ) in features_dict.items():
       onehot_encoder = sklearn.preprocessing.OneHotEncoder(  # pytype: disable=wrong-keyword-args  # sklearn-update
-          categories=[feature_unique_value], sparse=False, dtype=np.int64
+          categories=[feature_unique_value], sparse=False, dtype=np.int64  # pyrefly: ignore[unexpected-keyword]
       )
       onehot_encoder.fit(np.array(feature_unique_value).reshape(-1, 1))
       onehot_encoders[node_name][feature_name] = onehot_encoder

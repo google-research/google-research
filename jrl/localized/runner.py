@@ -164,7 +164,7 @@ def main(_):
         sub_key,
         networks,
         dataset=iter(()),  # dummy iterator
-        logger_fn=lambda label, steps_key=None, task_instance=None:  # pylint:disable=g-long-lambda
+        logger_fn=lambda label, steps_key=None, task_instance=None:  # pylint:disable=g-long-lambda  # pyrefly: ignore[bad-argument-type]
         train_logger_factory(),
         environment_spec=spec,
         counter=learner_counter)

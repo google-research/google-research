@@ -126,7 +126,7 @@ class EvaluatorStandard(Evaluator):
     counts = self._counter.increment(steps=1)
     current_steps = counts.get(self._progress_counter_name, 0)
     self._eval_actor.update(wait=True)
-    self._eval_sync(current_steps)
+    self._eval_sync(current_steps)  # pyrefly: ignore[bad-argument-type]
     results = []
     for _ in range(self._num_episodes):
       if self._pending_tear_down:
@@ -147,7 +147,7 @@ class EvaluatorStandard(Evaluator):
   def tear_down(self):
     if self._env is not None:
       self._env.close()
-      self._env = None
+      self._env = None  # pyrefly: ignore[bad-assignment]
 
 
 class EvaluatorStandardWithFinalRewardLogging(EvaluatorStandard):
@@ -168,7 +168,7 @@ class EvaluatorStandardWithFinalRewardLogging(EvaluatorStandard):
     counts = self._counter.increment(steps=1)
     current_steps = counts.get(self._progress_counter_name, 0)
     self._eval_actor.update(wait=True)
-    self._eval_sync(current_steps)
+    self._eval_sync(current_steps)  # pyrefly: ignore[bad-argument-type]
     results = []
     for _ in range(self._num_episodes):
       if self._pending_tear_down:
@@ -176,7 +176,7 @@ class EvaluatorStandardWithFinalRewardLogging(EvaluatorStandard):
         sys.exit()
       cur_result = self._environment_loop.run_episode()
       if hasattr(self._environment_loop._environment, '_compute_reward'):
-        cur_result['final_reward'] = self._environment_loop._environment._compute_reward()
+        cur_result['final_reward'] = self._environment_loop._environment._compute_reward()  # pyrefly: ignore[unsupported-operation]
       results.append(cur_result)
 
     episode_returns = []

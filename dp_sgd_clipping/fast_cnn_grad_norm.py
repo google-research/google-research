@@ -420,7 +420,7 @@ def naive_ghost_norm(
   # computation of gg^T
   partial_matrix = partial_gradient.T @ partial_gradient
 
-  norm_grad = np.tensordot(v, partial_matrix, axes=[[0, 1], [0, 1]])
+  norm_grad = np.tensordot(v, partial_matrix, axes=[[0, 1], [0, 1]])  # pyrefly: ignore[no-matching-overload]
   return norm_grad
 
 

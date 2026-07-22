@@ -87,21 +87,21 @@ class SpeechCommands09(tfds.core.GeneratorBasedBuilder):
 
     return [
         tfds.core.SplitGenerator(
-            name=tfds.Split.TRAIN,
+            name=tfds.Split.TRAIN,  # pyrefly: ignore[missing-attribute]
             gen_kwargs={
                 'archive': dl_manager.iter_archive(dl_path),
                 'file_list': train_paths
             },
         ),
         tfds.core.SplitGenerator(
-            name=tfds.Split.VALIDATION,
+            name=tfds.Split.VALIDATION,  # pyrefly: ignore[missing-attribute]
             gen_kwargs={
                 'archive': dl_manager.iter_archive(dl_path),
                 'file_list': validation_paths
             },
         ),
         tfds.core.SplitGenerator(
-            name=tfds.Split.TEST,
+            name=tfds.Split.TEST,  # pyrefly: ignore[missing-attribute]
             gen_kwargs={
                 'archive': dl_manager.iter_archive(dl_path),
                 'file_list': test_paths,
@@ -155,6 +155,6 @@ class SpeechCommands09(tfds.core.GeneratorBasedBuilder):
 
     # The paths for the train set is just whichever paths that do not exist in
     # either the test or validation splits.
-    train_paths = (set(train_paths) - set(validation_paths) - set(test_paths))
+    train_paths = (set(train_paths) - set(validation_paths) - set(test_paths))  # pyrefly: ignore[unbound-name]
 
     return train_paths, validation_paths, test_paths

@@ -142,7 +142,7 @@ def restore_from_path(
     return target, step
 
   logging.info('Restoring checkpoint: %s', ckpt_destination_path)
-  save_state = SaveState(target, step)
+  save_state = SaveState(target, step)  # pyrefly: ignore[bad-argument-type]
   with gfile.GFile(ckpt_destination_path, 'rb') as fp:
     save_state = serialization.from_bytes(save_state, fp.read())
     return save_state.train_state, save_state.step

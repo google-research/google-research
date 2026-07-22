@@ -297,7 +297,7 @@ def table_datapoints_precision_recall_per_point(
     per_point_scores["precision"].append(p)
     per_point_scores["recall"].append(r)
     per_point_scores["f1"].append(f)
-  return per_point_scores
+  return per_point_scores  # pyrefly: ignore[bad-return]
 
 
 def table_datapoints_precision_recall(

@@ -178,7 +178,7 @@ class AddPositionEmbs(nn.Module):
         _, _, df = pos_embedding.shape
         pe = lax.dynamic_slice(pos_embedding,
                                jnp.array((0, i, 0)),
-                               jnp.array((1, 1, df)))
+                               jnp.array((1, 1, df)))  # pyrefly: ignore[bad-argument-type]
     return (flat_inputs + pe).reshape(inputs.shape)
 
 
@@ -543,11 +543,11 @@ class TransformerIOEncoder(nn.Module):
     # Embed outputs.
     y = embed(y)
     if not cfg.use_relative_attention:
-      y = pos_emb(y)
+      y = pos_emb(y)  # pyrefly: ignore[unbound-name]
     y = nn.Dropout(rate=cfg.dropout_rate)(
         y, deterministic=cfg.deterministic)
 
-    encode_decoder_cfg = cfg.replace(decode=False)
+    encode_decoder_cfg = cfg.replace(decode=False)  # pyrefly: ignore[missing-attribute]
     for lyr in range(cfg.num_layers):
       y = EncoderDecoderBlock(   # Double attend to inputs and outputs.
           config=encode_decoder_cfg,

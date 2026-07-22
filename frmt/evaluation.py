@@ -214,7 +214,7 @@ class MetricType(enum.Enum):
 
     if self is MetricType.BLEU:
       return self._compute_bleu(
-          predictions=predictions, references=references, language=language
+          predictions=predictions, references=references, language=language  # pyrefly: ignore[bad-argument-type]
       )
     elif self is MetricType.CHRF:
       return self._compute_chrf(predictions=predictions, references=references)
@@ -222,25 +222,25 @@ class MetricType(enum.Enum):
       return self._compute_bleurt(
           predictions=predictions,
           references=references,
-          bleurt_scorer=bleurt_scorer_cache['BLEURT-20'],
+          bleurt_scorer=bleurt_scorer_cache['BLEURT-20'],  # pyrefly: ignore[unsupported-operation]
       )
     elif self is MetricType.BLEURT_D12:
       return self._compute_bleurt(
           predictions=predictions,
           references=references,
-          bleurt_scorer=bleurt_scorer_cache['BLEURT-20-D12'],
+          bleurt_scorer=bleurt_scorer_cache['BLEURT-20-D12'],  # pyrefly: ignore[unsupported-operation]
       )
     elif self is MetricType.BLEURT_D6:
       return self._compute_bleurt(
           predictions=predictions,
           references=references,
-          bleurt_scorer=bleurt_scorer_cache['BLEURT-20-D6'],
+          bleurt_scorer=bleurt_scorer_cache['BLEURT-20-D6'],  # pyrefly: ignore[unsupported-operation]
       )
     elif self is MetricType.BLEURT_D3:
       return self._compute_bleurt(
           predictions=predictions,
           references=references,
-          bleurt_scorer=bleurt_scorer_cache['BLEURT-20-D3'],
+          bleurt_scorer=bleurt_scorer_cache['BLEURT-20-D3'],  # pyrefly: ignore[unsupported-operation]
       )
     else:
       raise ValueError(f'Cannot compute {self} metric.')

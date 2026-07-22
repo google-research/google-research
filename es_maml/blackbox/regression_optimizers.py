@@ -94,7 +94,7 @@ def vector_decoding_function(A, b, optimization_parameters, loss_function):
   result = x.value
   res_list = []
   for i in range(n):
-    res_list.append(result[i])
+    res_list.append(result[i])  # pyrefly: ignore[unsupported-operation]
   return np.array(res_list)
 
 
@@ -136,7 +136,7 @@ def general_jacobian_decoder(atranspose, yprime, optimization_parameters,
     list_res = []
     for j in range(n):
       list_res.append(res[j])
-    final_solutions.append(np.float32(list_res))
+    final_solutions.append(np.float32(list_res))  # pyrefly: ignore[bad-argument-type]
   return np.array(final_solutions)
 
 

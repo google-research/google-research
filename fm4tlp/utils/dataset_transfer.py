@@ -64,16 +64,16 @@ class LinkPropPredDataset(object):
     self.meta_dict = meta_dict
 
     if "fname" not in self.meta_dict:
-      self.meta_dict["fname"] = self.root + "/" + self.data + "_edgelist.csv"
+      self.meta_dict["fname"] = self.root + "/" + self.data + "_edgelist.csv"  # pyrefly: ignore[unsupported-operation]
       self.meta_dict["nodefile"] = None
 
     if mode == "val":
       self.meta_dict["val_ns"] = (
-          self.root + "/" + self.name + "_" + group + "_val_ns.pkl"
+          self.root + "/" + self.name + "_" + group + "_val_ns.pkl"  # pyrefly: ignore[unsupported-operation]
       )
     elif mode == "test":
       self.meta_dict["test_ns"] = (
-          self.root + "/" + self.name + "_" + group + "_test_ns.pkl"
+          self.root + "/" + self.name + "_" + group + "_test_ns.pkl"  # pyrefly: ignore[unsupported-operation]
       )
 
     # initialize
@@ -124,7 +124,7 @@ class LinkPropPredDataset(object):
           self.meta_dict["nodefile"], node_ids
       )
 
-    return df, edge_feat, node_feat, node_ids
+    return df, edge_feat, node_feat, node_ids  # pyrefly: ignore[bad-return]
 
   def pre_process(self):
     """Pre-process the dataset, must be run before accessing dataset properties."""

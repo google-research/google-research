@@ -144,7 +144,7 @@ def _sample_random_forest(vertices, m, F):
   ]
   tree_0_size = np.random.choice(
       np.arange(1, d - m + 2),
-      p=weights_for_picking_tree_0_size / sum(weights_for_picking_tree_0_size),
+      p=weights_for_picking_tree_0_size / sum(weights_for_picking_tree_0_size),  # pyrefly: ignore[unsupported-operation]
   )
   tree_0 = None
   remaining_vertices = None

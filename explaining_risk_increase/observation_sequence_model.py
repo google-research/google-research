@@ -985,7 +985,7 @@ class ObservationSequenceModel(object):
                 lambda l, p: tf.metrics.accuracy(l, p[class_k]),
         }
         for (k, f) in metric_fn_dict.items():
-          eval_metric_ops[k] = f(label_tensor, predictions)
+          eval_metric_ops[k] = f(label_tensor, predictions)  # pyrefly: ignore[unbound-name]
       # Define the output for serving.
       export_outputs = {}
       if mode == tf_estimator.ModeKeys.PREDICT:

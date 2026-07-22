@@ -79,7 +79,7 @@ def round_filters(filters,
   if not width_coefficient:
     return filters
 
-  filters *= width_coefficient
+  filters *= width_coefficient  # pyrefly: ignore[bad-assignment]
   min_depth = min_depth or divisor
   new_filters = max(min_depth, int(filters + divisor / 2) // divisor * divisor)
   # Make sure that round down does not go down by more than 10%.

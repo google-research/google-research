@@ -152,7 +152,7 @@ class DecentralizedMultiAgentBuilder(
 
     for i_dataset, (agent_id, builder) in enumerate(self._builders.items()):
       counter = counting.Counter(parent_counter, prefix=f'{agent_id}')
-      single_agent_spec = ma_utils.get_agent_spec(environment_spec, agent_id)
+      single_agent_spec = ma_utils.get_agent_spec(environment_spec, agent_id)  # pyrefly: ignore[bad-argument-type]
       random_key, learner_key = jax.random.split(random_key)
       sub_learners[agent_id] = builder.make_learner(
           learner_key,
@@ -199,7 +199,7 @@ class DecentralizedMultiAgentBuilder(
       adder: how data is recorded (e.g., added to replay) for each actor.
     """
     if adder is None:
-      adder = {agent_id: None for agent_id in policy.keys()}
+      adder = {agent_id: None for agent_id in policy.keys()}  # pyrefly: ignore[bad-assignment]
 
     sub_actors = {}
     for agent_id, builder in self._builders.items():
@@ -208,11 +208,11 @@ class DecentralizedMultiAgentBuilder(
       # Adds a prefix to each sub-actor's variable names to ensure the correct
       # sub-learner is queried for variables.
       sub_variable_source = PrefixedVariableSource(
-          variable_source, f'{agent_id}{VARIABLE_SEPARATOR}')
+          variable_source, f'{agent_id}{VARIABLE_SEPARATOR}')  # pyrefly: ignore[bad-argument-type]
       sub_actors[agent_id] = builder.make_actor(actor_key, policy[agent_id],
                                                 single_agent_spec,
                                                 sub_variable_source,
-                                                adder[agent_id])
+                                                adder[agent_id])  # pyrefly: ignore[unsupported-operation]
     return actor.SimultaneousActingMultiAgentActor(sub_actors)
 
   def make_policy(

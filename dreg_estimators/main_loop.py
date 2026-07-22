@@ -21,8 +21,8 @@ from __future__ import print_function
 import os
 import random
 import numpy as np
-from six.moves import range
-from six.moves import zip
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 
@@ -104,7 +104,7 @@ def main(unused_argv):
       train_xs, valid_xs, test_xs = utils.load_omniglot()
 
     # Compute bias initializer on the training set
-    mean_xs = np.mean(train_xs, axis=0)
+    mean_xs = np.mean(train_xs, axis=0)  # pyrefly: ignore[unbound-name]
     clipped_mean_xs = np.clip(mean_xs, 1e-3, 1 - 1e-3)
     bias_init = np.log(clipped_mean_xs / (1 - clipped_mean_xs))
 
@@ -285,7 +285,7 @@ def main(unused_argv):
           eval_dataset = test_xs
 
         log_p_hat_vals = []
-        for i in range(0, eval_dataset.shape[0], eval_batch_size):
+        for i in range(0, eval_dataset.shape[0], eval_batch_size):  # pyrefly: ignore[unbound-name]
           batch_xs = utils.binarize_batch_xs(
               eval_dataset[i:(i + eval_batch_size)])
           log_p_hat_vals.append(

@@ -70,7 +70,7 @@ def create_d4rl_data_iter(
     tensors = Inputs(data=(states, actions, rewards, discounts, next_states, next_actions))
 
   dataset = tf_data.Dataset.from_tensor_slices(
-            tensors
+            tensors  # pyrefly: ignore[bad-argument-type]
       ).cache().shuffle(
           states.shape[0], reshuffle_each_iteration=True
           ).repeat().batch(

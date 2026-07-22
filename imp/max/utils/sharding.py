@@ -237,7 +237,7 @@ def modulate_param_init(
   def wrapper(*args, **kwargs):
     value = param_init_fn(*args, **kwargs)
     value = shard_array(value, shardings, enforce=True, match_ranks=True)
-    names = _fetch_names(shardings)
+    names = _fetch_names(shardings)  # pyrefly: ignore[bad-argument-type]
     return meta.Partitioned(value=value, names=names, mesh=mesh)
 
   return wrapper

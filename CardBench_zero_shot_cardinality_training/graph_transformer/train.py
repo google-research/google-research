@@ -187,7 +187,7 @@ def read_data(
   train_size = int(train_ratio * train_val_size)
 
   for train_val_dataset_path in train_val_dataset_paths:
-    ds = tf.data.TFRecordDataset(train_val_dataset_path).map(
+    ds = tf.data.TFRecordDataset(train_val_dataset_path).map(  # pyrefly: ignore[bad-instantiation]
         lambda x: parse_example(x, label_name),
         num_parallel_calls=8,
         deterministic=True,
@@ -215,7 +215,7 @@ def read_data(
   # If test dataset path is not the same as train/val dataset path, we read the
   # test dataset separately.
   if test_dataset_path not in train_val_dataset_paths:
-    test_ds = tf.data.TFRecordDataset(test_dataset_path).map(
+    test_ds = tf.data.TFRecordDataset(test_dataset_path).map(  # pyrefly: ignore[bad-instantiation]
         lambda x: parse_example(x, label_name),
         num_parallel_calls=8,
         deterministic=True,
@@ -359,12 +359,12 @@ class TestModelCallback(tf.keras.callbacks.Callback):
       p95_q_error.update_state(y, y_pred)
       p99_q_error.update_state(y, y_pred)
 
-    logs['test_mean_q_error'] = mean_q_error.result()
-    logs['test_p50_q_error'] = p50_q_error.result()
-    logs['test_p75_q_error'] = p75_q_error.result()
-    logs['test_p90_q_error'] = p90_q_error.result()
-    logs['test_p95_q_error'] = p95_q_error.result()
-    logs['test_p99_q_error'] = p99_q_error.result()
+    logs['test_mean_q_error'] = mean_q_error.result()  # pyrefly: ignore[unsupported-operation]
+    logs['test_p50_q_error'] = p50_q_error.result()  # pyrefly: ignore[unsupported-operation]
+    logs['test_p75_q_error'] = p75_q_error.result()  # pyrefly: ignore[unsupported-operation]
+    logs['test_p90_q_error'] = p90_q_error.result()  # pyrefly: ignore[unsupported-operation]
+    logs['test_p95_q_error'] = p95_q_error.result()  # pyrefly: ignore[unsupported-operation]
+    logs['test_p99_q_error'] = p99_q_error.result()  # pyrefly: ignore[unsupported-operation]
 
 
 def main(argv):
@@ -396,7 +396,7 @@ def main(argv):
 
   # Load scaling strategy
   with open(
-      os.path.join(
+      os.path.join(  # pyrefly: ignore[no-matching-overload]
           _INPUT_DATASET_PATH.value,
           _DATASET_TYPE.value,
           _SCALING_STRATEGY_FILENAME.value,
