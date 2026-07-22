@@ -106,7 +106,7 @@ class AddScaleEmbs(nn.Module):
     scale_emb = self.param("scale_embedding", scale_emb_shape, scale_emb_init)
 
     # Fetches embedding according to hashed position indices:
-    return inputs + jnp.take(scale_emb[0], inputs_positions, axis=0)
+    return inputs + jnp.take(scale_emb[0], inputs_positions, axis=0)  # pyrefly: ignore[bad-argument-type]
 
 
 class MlpBlock(nn.Module):

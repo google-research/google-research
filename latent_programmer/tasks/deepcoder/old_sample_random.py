@@ -136,7 +136,7 @@ def is_valid_operation(operation,
     start_idx = 1
   else:
     raise dsl.DeepCoderError(f'Unhandled operation type: {type(operation)}')
-  return all(var_dict[t] for t in operation.inputs_type[start_idx:])
+  return all(var_dict[t] for t in operation.inputs_type[start_idx:])  # pyrefly: ignore[bad-index]
 
 
 def random_statement(program_state,
@@ -300,10 +300,10 @@ def _sample_program(
     if experiment == exp_module.Experiment.SWITCH_CONCEPT_ORDER:
       assert num_statements >= 2
       if is_train:
-        operations = (dsl.HIGHER_ORDER_OPERATIONS if i < num_statements // 2
+        operations = (dsl.HIGHER_ORDER_OPERATIONS if i < num_statements // 2  # pyrefly: ignore[bad-assignment]
                       else dsl.FIRST_ORDER_OPERATIONS)
       else:
-        operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2
+        operations = (dsl.FIRST_ORDER_OPERATIONS if i < num_statements // 2  # pyrefly: ignore[bad-assignment]
                       else dsl.HIGHER_ORDER_OPERATIONS)
 
     # Sample a statement that executes successfully for all examples.
@@ -313,15 +313,15 @@ def _sample_program(
         return None  # Reject the entire program.
       num_statement_attempts += 1
       statement = random_statement(
-          states[0], unused_variables, is_train, canonical_variable_order,
-          experiment=experiment,
+          states[0], unused_variables, is_train, canonical_variable_order,  # pyrefly: ignore[bad-argument-type]
+          experiment=experiment,  # pyrefly: ignore[bad-argument-type]
           operations=operations,
           lambdas=lambdas,
           last_statement=len(statements) + 1 == num_statements)
-      next_states = [statement.run(state) for state in states]
+      next_states = [statement.run(state) for state in states]  # pyrefly: ignore[bad-argument-type]
       if not all(next_states):
         continue  # The statement failed to run for at least 1 example.
-      if reject_redundant_code and is_redundant(next_states):
+      if reject_redundant_code and is_redundant(next_states):  # pyrefly: ignore[bad-argument-type]
         continue
       break
     statements.append(statement)
@@ -352,7 +352,7 @@ def random_task(
     reject_constant_output = True):
   """Randomly sample a new program."""
   if operations is None:
-    operations = dsl.OPERATIONS.copy()
+    operations = dsl.OPERATIONS.copy()  # pyrefly: ignore[bad-assignment]
   if lambdas is None:
     lambdas = dsl.LAMBDAS.copy()
 
@@ -375,7 +375,7 @@ def random_task(
         is_train=is_train,
         canonical_variable_order=canonical_variable_order,
         experiment=experiment,
-        operations=operations,
+        operations=operations,  # pyrefly: ignore[bad-argument-type]
         lambdas=lambdas,
         reject_redundant_code=reject_redundant_code,
         input_variables=input_variables,

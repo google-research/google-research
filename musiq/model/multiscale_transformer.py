@@ -125,5 +125,5 @@ class Model(nn.Module):
     x = nn.Dense(x, num_classes, name="head", kernel_init=nn.initializers.zeros)
     if multi_crops_input:
       _, channel = x.shape
-      x = jnp.reshape(x, [batch_size, num_crops, channel])
+      x = jnp.reshape(x, [batch_size, num_crops, channel])  # pyrefly: ignore[unbound-name]
     return x

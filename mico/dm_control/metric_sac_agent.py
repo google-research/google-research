@@ -211,12 +211,12 @@ def train(network_def,
   network_gradient, log_alpha_gradient = gradients
 
   # Apply gradients to all the optimizers.
-  updates, optimizer_state = optim.update(network_gradient, optimizer_state,
+  updates, optimizer_state = optim.update(network_gradient, optimizer_state,  # pyrefly: ignore[bad-assignment]
                                           params=params)
-  params = optax.apply_updates(params, updates)
-  alpha_updates, alpha_optimizer_state = alpha_optim.update(
+  params = optax.apply_updates(params, updates)  # pyrefly: ignore[bad-assignment]
+  alpha_updates, alpha_optimizer_state = alpha_optim.update(  # pyrefly: ignore[bad-assignment]
       log_alpha_gradient, alpha_optimizer_state, params=log_alpha)
-  log_alpha = optax.apply_updates(log_alpha, alpha_updates)
+  log_alpha = optax.apply_updates(log_alpha, alpha_updates)  # pyrefly: ignore[bad-assignment]
 
   # Compile everything in a dict.
   returns = {

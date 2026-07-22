@@ -215,8 +215,8 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  read_path = _READ_PATH.value
-  write_path = _WRITE_PATH.value
+  read_path = _READ_PATH.value  # pyrefly: ignore[missing-attribute]
+  write_path = _WRITE_PATH.value  # pyrefly: ignore[missing-attribute]
 
   make_datasets(read_path, write_path)
 

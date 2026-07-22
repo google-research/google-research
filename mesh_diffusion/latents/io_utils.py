@@ -43,7 +43,7 @@ def load_masked_ply(file_name):
 
   mask = np.asarray(mesh['face']['quality'], dtype=np.int_)
 
-  return vertices, np.transpose(faces, (1, 0)), mask
+  return vertices, np.transpose(faces, (1, 0)), mask  # pyrefly: ignore[no-matching-overload]
 
 
 def load_npz(file_name, pickle=True):

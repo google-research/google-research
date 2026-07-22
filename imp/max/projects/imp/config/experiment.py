@@ -100,7 +100,7 @@ def perception_model(config,
                      **kwargs):
   """Apply arguments for a perception model."""
   # Use functools to allow overrides of these default args.
-  config = functools.partial(
+  config = functools.partial(  # pyrefly: ignore[bad-assignment]
       config,
       input_batch_size=DUMMY_BATCH_SIZE,
       vision_input_size=MAX_VIDEO_INPUT_SIZE,
@@ -122,7 +122,7 @@ def perception_generation_model(config,
                                 **kwargs):
   """Apply arguments for a generation model."""
   # Use functools to allow overrides of these default args.
-  config = functools.partial(
+  config = functools.partial(  # pyrefly: ignore[bad-assignment]
       config,
       input_batch_size=DUMMY_BATCH_SIZE,
       vision_input_size=MAX_VIDEO_INPUT_SIZE,
@@ -988,9 +988,9 @@ class SearchImpBaseImgV1TrainExperiment(ImpBaseImgTrainExperiment):
 
   def with_search_space(self):
     config = self.copy_and_override({})
-    config.optimization.optimizer.learning_rate.peak_value = pg.oneof(  # pylint: disable=attribute-error
+    config.optimization.optimizer.learning_rate.peak_value = pg.oneof(  # pylint: disable=attribute-error  # pyrefly: ignore[missing-attribute]
         (8e-5, 1e-4, 2e-4, 4e-4, 6e-4, 8e-4, 1e-3, 2e-3), name='learning_rate')
-    return config
+    return config  # pyrefly: ignore[bad-return]
 
 
 @register_with_class(executors.Executor)
@@ -1005,9 +1005,9 @@ class SearchImpBaseImgV1EvalExperiment(ImpBaseImgEvalExperiment):
 
   def with_search_space(self):
     config = self.copy_and_override({})
-    config.optimization.optimizer.learning_rate.peak_value = pg.oneof(  # pylint: disable=attribute-error
+    config.optimization.optimizer.learning_rate.peak_value = pg.oneof(  # pylint: disable=attribute-error  # pyrefly: ignore[missing-attribute]
         (8e-5, 1e-4, 2e-4, 4e-4, 6e-4, 8e-4, 1e-3, 2e-3), name='learning_rate')
-    return config
+    return config  # pyrefly: ignore[bad-return]
 
 
 # -------------------------------

@@ -122,7 +122,7 @@ def AnchorPointInitialization(
   """
   dist_threshold_vec = np.array(dist_threshold_vec)
 
-  anchor_points = AnchorPoints(dataset, k, dist_threshold_vec * coeff_anchor)
+  anchor_points = AnchorPoints(dataset, k, dist_threshold_vec * coeff_anchor)  # pyrefly: ignore[bad-argument-type]
   if anchor_points is None:
     raise RuntimeError("infeasible solution")
   assert anchor_points is not None
@@ -189,7 +189,7 @@ def LocalSearchPlusPlus(
       if not IsValidCenterSwap(
           dataset,
           anchor_points,
-          centers,
+          centers,  # pyrefly: ignore[bad-argument-type]
           coeff_search * dist_threshold_vec,
           proposed_to_remove,
           proposed_new_center,
@@ -301,7 +301,7 @@ def LocalSearchICML2020(
         if IsValidCenterSwap(
             dataset,
             anchor_points,
-            centers,
+            centers,  # pyrefly: ignore[bad-argument-type]
             coeff_search * dist_threshold_vec,
             proposed_to_remove,
             proposed_new_center,

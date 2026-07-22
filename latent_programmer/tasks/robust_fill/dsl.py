@@ -268,10 +268,10 @@ class GetSpan(Substring):
 
   def __init__(self, regex1, index1, bound1,
                regex2, index2, bound2):
-    self.regex1 = regex1
+    self.regex1 = regex1  # pyrefly: ignore[invalid-type-var]
     self.index1 = index1
     self.bound1 = bound1
-    self.regex2 = regex2
+    self.regex2 = regex2  # pyrefly: ignore[invalid-type-var]
     self.index2 = index2
     self.bound2 = bound2
 
@@ -434,7 +434,7 @@ class GetUpto(Substring):
   """Get substring up to regex match."""
 
   def __init__(self, regex):
-    self.regex = regex
+    self.regex = regex  # pyrefly: ignore[invalid-type-var]
 
   def __call__(self, value):
     matches = match_regex_span(self.regex, value)
@@ -459,7 +459,7 @@ class GetFrom(Substring):
   """Get substring from regex match."""
 
   def __init__(self, regex):
-    self.regex = regex
+    self.regex = regex  # pyrefly: ignore[invalid-type-var]
 
   def __call__(self, value):
     matches = match_regex_span(self.regex, value)

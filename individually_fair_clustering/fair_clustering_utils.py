@@ -59,7 +59,7 @@ def DistanceToCenters(
     cost_p = np.linalg.norm(x - c) ** p
     if cost_p < min_cost:
       min_cost = cost_p
-  return min_cost
+  return min_cost  # pyrefly: ignore[bad-return]
 
 
 def FurthestPointPosition(
@@ -467,7 +467,7 @@ class TopTwoClosestToCenters:
             self.point_to_second_dist_center_and_distance[point_pos][1],
         )
       total_cost += cost_point
-    return total_cost
+    return total_cost  # pyrefly: ignore[bad-return]
 
   def SwapCenters(
       self, pos_center_to_remove, pos_center_to_add

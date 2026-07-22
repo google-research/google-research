@@ -93,7 +93,7 @@ def load_concept_costs(concept_groups,
       concept_group_name: random_state.integers(low=1, high=7)
       for concept_group_name in concept_groups
   }
-  return concept_costs
+  return concept_costs  # pyrefly: ignore[bad-return]
 
 
 def process_tfexample(
@@ -148,7 +148,7 @@ def process_tfexample(
   onehot_concept_labels = tf.reshape(onehot_concept_labels, [-1])
   onehot_concept_labels = tf.cast(onehot_concept_labels, tf.float32)
 
-  class_label = tf.clip_by_value(class_label-1, 0, 3)
+  class_label = tf.clip_by_value(class_label-1, 0, 3)  # pyrefly: ignore[unsupported-operation]
   concept_uncertainty = tf.zeros_like(onehot_concept_labels)
 
   return image, onehot_concept_labels, class_label, concept_uncertainty

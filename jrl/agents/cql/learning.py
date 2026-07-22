@@ -302,7 +302,7 @@ class CQLLearner(acme.Learner):
           sn = 0.
           new_snr_state = snr_state
 
-      return jnp.mean(actor_loss), (min_q, jnp.mean(log_prob), sn, new_snr_state)
+      return jnp.mean(actor_loss), (min_q, jnp.mean(log_prob), sn, new_snr_state)  # pyrefly: ignore[bad-return]
 
     actor_grad = jax.value_and_grad(actor_loss, has_aux=True)
 
@@ -366,7 +366,7 @@ class CQLLearner(acme.Learner):
 
       key, key_alpha, key_critic, key_actor = jax.random.split(state.key, 4)
       if adaptive_entropy_coefficient:
-        alpha = jnp.exp(state.alpha_params)
+        alpha = jnp.exp(state.alpha_params)  # pyrefly: ignore[bad-argument-type]
       else:
         alpha = entropy_coefficient
 
@@ -433,16 +433,16 @@ class CQLLearner(acme.Learner):
         alpha_loss, alpha_grads = alpha_grad(state.alpha_params,
                                              avg_log_prob)
         alpha_update, alpha_optimizer_state = alpha_optimizer.update(
-            alpha_grads, state.alpha_optimizer_state)
-        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)
+            alpha_grads, state.alpha_optimizer_state)  # pyrefly: ignore[bad-argument-type]
+        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)  # pyrefly: ignore[bad-argument-type]
         metrics['alpha_loss'] = alpha_loss
-        metrics['alpha'] = jnp.exp(alpha_params)
+        metrics['alpha'] = jnp.exp(alpha_params)  # pyrefly: ignore[bad-argument-type]
         new_state = new_state._replace(
             alpha_optimizer_state=alpha_optimizer_state,
             alpha_params=alpha_params)
       else:
         metrics['alpha_loss'] = 0.
-        metrics['alpha'] = jnp.exp(state.alpha_params)
+        metrics['alpha'] = jnp.exp(state.alpha_params)  # pyrefly: ignore[bad-argument-type]
         new_state = new_state._replace(
             alpha_optimizer_state=state.alpha_optimizer_state,
             alpha_params=state.alpha_params)
@@ -469,7 +469,7 @@ class CQLLearner(acme.Learner):
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()
     self._logger = logger or loggers.make_default_logger(
-        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)
+        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)  # pyrefly: ignore[bad-argument-type]
 
     # Iterator on demonstration transitions.
     self._iterator = iterator
@@ -565,7 +565,7 @@ class CQLLearner(acme.Learner):
     # Attempts to write the logs.
     self._logger.write({**metrics, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = {
         'policy': jax.tree.map(lambda x: x[0], self._state.policy_params),
         'q': jax.tree.map(lambda x: x[0], self._state.q_params),

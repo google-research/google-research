@@ -541,7 +541,7 @@ class BaseIntegratedMultimodalModel(mnn.Model):
          token_embeds=all_token_embeds,
          token_masks=all_token_masks,
          concatenated_token_embed_shardings=self.tokens_shardings,
-         contrarenated_token_mask_shardings=self.tokens_shardings[:-1],
+         contrarenated_token_mask_shardings=self.tokens_shardings[:-1],  # pyrefly: ignore[unsupported-operation]
      )
 
     return (
@@ -599,7 +599,7 @@ class BaseIntegratedMultimodalModel(mnn.Model):
           concatenated_token_features=concatenated_token_mask,
           seq_lengths=seq_lengths,
           concatenation_order=concatenation_order,
-          split_token_features_shardings=self.tokens_shardings[:-1],
+          split_token_features_shardings=self.tokens_shardings[:-1],  # pyrefly: ignore[unsupported-operation]
           dot_general=lax.dot_general,
       )
     for modality in outputflow:
@@ -904,36 +904,36 @@ class IMP(BaseIntegratedMultimodalModel):
 
     vision_token_id = jax.random.randint(
         jax.random.key(0),
-        (self.input_batch_size, 1, num_vision_tokens),
+        (self.input_batch_size, 1, num_vision_tokens),  # pyrefly: ignore[bad-argument-type]
         minval=0, maxval=self.vision_vocab_size)
     vision_token_raw = jax.random.uniform(
         jax.random.key(1),
-        (self.input_batch_size, 1, num_vision_tokens, num_vision_pixels))
+        (self.input_batch_size, 1, num_vision_tokens, num_vision_pixels))  # pyrefly: ignore[bad-argument-type]
     vision_token_embed = jax.random.uniform(
         jax.random.key(2),
-        (self.input_batch_size, 1, num_vision_tokens, self.vision_embed_size))
+        (self.input_batch_size, 1, num_vision_tokens, self.vision_embed_size))  # pyrefly: ignore[bad-argument-type]
     waveform_token_id = jax.random.randint(
         jax.random.key(3),
-        (self.input_batch_size, 1, num_waveform_tokens),
+        (self.input_batch_size, 1, num_waveform_tokens),  # pyrefly: ignore[bad-argument-type]
         minval=0, maxval=self.waveform_vocab_size)
     waveform_token_raw = jax.random.uniform(
         jax.random.key(4),
-        (self.input_batch_size, 1, num_waveform_tokens, num_waveform_samples))
+        (self.input_batch_size, 1, num_waveform_tokens, num_waveform_samples))  # pyrefly: ignore[bad-argument-type]
     waveform_token_embed = jax.random.uniform(
         jax.random.key(5),
-        (self.input_batch_size, 1,
+        (self.input_batch_size, 1,  # pyrefly: ignore[bad-argument-type]
          num_waveform_tokens, self.waveform_embed_size))
     spectrogram_token_id = jax.random.randint(
         jax.random.key(6),
-        (self.input_batch_size, 1, num_spectrogram_tokens),
+        (self.input_batch_size, 1, num_spectrogram_tokens),  # pyrefly: ignore[bad-argument-type]
         minval=0, maxval=self.spectrogram_vocab_size)
     spectrogram_token_raw = jax.random.uniform(
         jax.random.key(7),
-        (self.input_batch_size, 1,
+        (self.input_batch_size, 1,  # pyrefly: ignore[bad-argument-type]
          num_spectrogram_tokens, num_spectrogram_samples))
     spectrogram_token_embed = jax.random.uniform(
         jax.random.key(8),
-        (self.input_batch_size, 1,
+        (self.input_batch_size, 1,  # pyrefly: ignore[bad-argument-type]
          num_spectrogram_tokens, self.spectrogram_embed_size))
     text_token_id = jax.random.randint(
         jax.random.key(9),
@@ -948,11 +948,11 @@ class IMP(BaseIntegratedMultimodalModel):
         minval=0, maxval=2)
 
     vision_token_coordinate = jnp.tile(utils.construct_3d_positions(
-        *vision_patched_shape), (self.input_batch_size, 1, 1, 1))
+        *vision_patched_shape), (self.input_batch_size, 1, 1, 1))  # pyrefly: ignore[bad-argument-type]
     waveform_token_coordinate = jnp.tile(utils.construct_1d_positions(
-        *waveform_patched_shape), (self.input_batch_size, 1, 1))
+        *waveform_patched_shape), (self.input_batch_size, 1, 1))  # pyrefly: ignore[bad-argument-type]
     spectrogram_token_coordinate = jnp.tile(utils.construct_2d_positions(
-        *spectrogram_patched_shape), (self.input_batch_size, 1, 1, 1))
+        *spectrogram_patched_shape), (self.input_batch_size, 1, 1, 1))  # pyrefly: ignore[bad-argument-type]
     text_token_coordinate = jnp.tile(utils.construct_1d_positions(
         num_text_tokens), (self.input_batch_size, 1, 1))
 
@@ -1376,36 +1376,36 @@ class IMPeGe(BaseIntegratedMultimodalModel):
 
     vision_target_token_id = jax.random.randint(
         jax.random.key(0),
-        (self.input_batch_size, 1, num_vision_tokens),
+        (self.input_batch_size, 1, num_vision_tokens),  # pyrefly: ignore[bad-argument-type]
         minval=0, maxval=self.vision_vocab_size)
     vision_target_token_raw = jax.random.uniform(
         jax.random.key(1),
-        (self.input_batch_size, 1, num_vision_tokens, num_vision_pixels))
+        (self.input_batch_size, 1, num_vision_tokens, num_vision_pixels))  # pyrefly: ignore[bad-argument-type]
     vision_target_token_embed = jax.random.uniform(
         jax.random.key(2),
-        (self.input_batch_size, 1, num_vision_tokens, self.vision_embed_size))
+        (self.input_batch_size, 1, num_vision_tokens, self.vision_embed_size))  # pyrefly: ignore[bad-argument-type]
     waveform_target_token_id = jax.random.randint(
         jax.random.key(3),
-        (self.input_batch_size, 1, num_waveform_tokens),
+        (self.input_batch_size, 1, num_waveform_tokens),  # pyrefly: ignore[bad-argument-type]
         minval=0, maxval=self.waveform_vocab_size)
     waveform_target_token_raw = jax.random.uniform(
         jax.random.key(4),
-        (self.input_batch_size, 1, num_waveform_tokens, num_waveform_samples))
+        (self.input_batch_size, 1, num_waveform_tokens, num_waveform_samples))  # pyrefly: ignore[bad-argument-type]
     waveform_target_token_embed = jax.random.uniform(
         jax.random.key(5),
-        (self.input_batch_size, 1,
+        (self.input_batch_size, 1,  # pyrefly: ignore[bad-argument-type]
          num_waveform_tokens, self.waveform_embed_size))
     spectrogram_target_token_id = jax.random.randint(
         jax.random.key(6),
-        (self.input_batch_size, 1, num_spectrogram_tokens),
+        (self.input_batch_size, 1, num_spectrogram_tokens),  # pyrefly: ignore[bad-argument-type]
         minval=0, maxval=self.spectrogram_vocab_size)
     spectrogram_target_token_raw = jax.random.uniform(
         jax.random.key(7),
-        (self.input_batch_size, 1,
+        (self.input_batch_size, 1,  # pyrefly: ignore[bad-argument-type]
          num_spectrogram_tokens, num_spectrogram_samples))
     spectrogram_target_token_embed = jax.random.uniform(
         jax.random.key(8),
-        (self.input_batch_size, 1,
+        (self.input_batch_size, 1,  # pyrefly: ignore[bad-argument-type]
          num_spectrogram_tokens, self.spectrogram_embed_size))
     text_input_token_id = jax.random.randint(
         jax.random.key(9),
@@ -1431,11 +1431,11 @@ class IMPeGe(BaseIntegratedMultimodalModel):
         minval=0, maxval=2)
 
     vision_target_coordinate = jnp.tile(utils.construct_3d_positions(
-        *vision_patched_shape), (self.input_batch_size, 1, 1, 1))
+        *vision_patched_shape), (self.input_batch_size, 1, 1, 1))  # pyrefly: ignore[bad-argument-type]
     waveform_target_coordinate = jnp.tile(utils.construct_1d_positions(
-        *waveform_patched_shape), (self.input_batch_size, 1, 1))
+        *waveform_patched_shape), (self.input_batch_size, 1, 1))  # pyrefly: ignore[bad-argument-type]
     spectrogram_target_coordinate = jnp.tile(utils.construct_2d_positions(
-        *spectrogram_patched_shape), (self.input_batch_size, 1, 1, 1))
+        *spectrogram_patched_shape), (self.input_batch_size, 1, 1, 1))  # pyrefly: ignore[bad-argument-type]
     text_coordinate = jnp.tile(utils.construct_1d_positions(
         num_text_tokens), (self.input_batch_size, 1, 1))
 
@@ -1865,7 +1865,7 @@ class IMPeGe(BaseIntegratedMultimodalModel):
          token_embeds=all_token_embeds,
          token_masks=all_token_masks,
          concatenated_token_embed_shardings=self.tokens_shardings,
-         contrarenated_token_mask_shardings=self.tokens_shardings[:-1],
+         contrarenated_token_mask_shardings=self.tokens_shardings[:-1],  # pyrefly: ignore[unsupported-operation]
      )
 
     return (
@@ -1923,7 +1923,7 @@ class IMPeGe(BaseIntegratedMultimodalModel):
           concatenated_token_features=concatenated_token_mask,
           seq_lengths=seq_lengths,
           concatenation_order=concatenation_order,
-          split_token_features_shardings=self.tokens_shardings[:-1],
+          split_token_features_shardings=self.tokens_shardings[:-1],  # pyrefly: ignore[unsupported-operation]
           dot_general=lax.dot_general,
       )
     for modality in outputflow:
@@ -2241,7 +2241,7 @@ class IMPeGe(BaseIntegratedMultimodalModel):
       if decoding_performed:
         # Call the heads
         decoder_heads_outputdata = self._decoder_heads_call(
-            decoder_outputdata=decoder_outputdata,  # pylint: disable=undefined-variable
+            decoder_outputdata=decoder_outputdata,  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
             outputflow=outputflow,
             deterministic=deterministic,
         )
@@ -2252,7 +2252,7 @@ class IMPeGe(BaseIntegratedMultimodalModel):
         outputdata = utils.deep_update_data(
             outputdata, decoder_heads_outputdata)
 
-    if encoding_performed:  # pylint: disable=undefined-variable
+    if encoding_performed:  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
       hyperparams = ({
           DataFeatureRoute.ENCODER: {
               DataFeatureName.TEMPERATURE: self.temperature(),

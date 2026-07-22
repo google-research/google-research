@@ -96,7 +96,7 @@ class ViT(mnn.Model):
     self.raw_to_embeddings = mnn.TokenRawToEmbed(
         modality=VISION,
         d_model=self.d_model,
-        pos_buckets=(np.prod(self.pos_buckets) if self.positional_embedding
+        pos_buckets=(np.prod(self.pos_buckets) if self.positional_embedding  # pyrefly: ignore[bad-argument-type]
                      == 'learned_1d' else self.pos_buckets),
         dropout_rate=self.dropout_rate,
         freeze_embeddings=False,
@@ -182,7 +182,7 @@ class ViT(mnn.Model):
     num_tokens = np.prod(
         utils.get_patched_shape(self.image_size[:-1], self.patch_size))
     token_raw = jax.random.uniform(
-        jax.random.key(0), (self.batch_size, 1, num_tokens, num_pixels))
+        jax.random.key(0), (self.batch_size, 1, num_tokens, num_pixels))  # pyrefly: ignore[bad-argument-type]
     data = {
         INPUTS: {
             ENCODER: {

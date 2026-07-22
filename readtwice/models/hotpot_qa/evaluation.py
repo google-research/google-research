@@ -118,7 +118,7 @@ def eval_hotpot_qa(groud_truth, predictions, only_span_answer):
     update_answer(metrics, prediction, reference)
 
   for k in metrics:
-    metrics[k] /= common
+    metrics[k] /= common  # pyrefly: ignore[bad-assignment]
   metrics['common'] = common
   metrics['ignored_questions'] = ignored_questions
   return metrics

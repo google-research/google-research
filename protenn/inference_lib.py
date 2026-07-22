@@ -382,7 +382,7 @@ def mean_sparse_acts(
       for act in acts
   ]
 
-  mean_acts = scipy.sparse.coo_matrix.mean(np.array(coo_all_ens_els), axis=0)
+  mean_acts = scipy.sparse.coo_matrix.mean(np.array(coo_all_ens_els), axis=0)  # pyrefly: ignore[bad-argument-type]
   mean_acts_rounded = np.around(mean_acts, 4).tocoo()
   mean_acts_rounded.eliminate_zeros()
   if mean_acts_rounded.nnz == 0:
@@ -523,7 +523,7 @@ def get_preds_at_or_above_threshold(
 
   num_output_classes = len(vocab)
   meaned_sparse_acts = [
-      mean_sparse_acts(len(sequence), acts, num_output_classes)
+      mean_sparse_acts(len(sequence), acts, num_output_classes)  # pyrefly: ignore[bad-argument-type]
       for sequence, acts in zip(input_df.sequence, sparse_calls_by_sequence)
   ]
 

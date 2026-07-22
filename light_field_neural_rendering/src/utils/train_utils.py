@@ -35,17 +35,17 @@ class Stats:
 @flax.struct.dataclass
 class TrainMetrics(metrics.Collection):
 
-  total_loss: metrics.Average.from_output("total_loss")
-  train_loss: metrics.Average.from_output("loss")
-  train_loss_std: metrics.Std.from_output("loss")
-  train_loss_c: metrics.Average.from_output("loss_c")
-  train_loss_c_std: metrics.Std.from_output("loss_c")
+  total_loss: metrics.Average.from_output("total_loss")  # pyrefly: ignore[invalid-annotation]
+  train_loss: metrics.Average.from_output("loss")  # pyrefly: ignore[invalid-annotation]
+  train_loss_std: metrics.Std.from_output("loss")  # pyrefly: ignore[invalid-annotation]
+  train_loss_c: metrics.Average.from_output("loss_c")  # pyrefly: ignore[invalid-annotation]
+  train_loss_c_std: metrics.Std.from_output("loss_c")  # pyrefly: ignore[invalid-annotation]
 
-  learining_rate: metrics.LastValue.from_output("learning_rate")
+  learining_rate: metrics.LastValue.from_output("learning_rate")  # pyrefly: ignore[invalid-annotation]
 
-  train_psnr: metrics.Average.from_output("psnr")
-  train_psnr_c: metrics.Average.from_output("psnr_c")
-  weight_l2: metrics.Average.from_output("weight_l2")
+  train_psnr: metrics.Average.from_output("psnr")  # pyrefly: ignore[invalid-annotation]
+  train_psnr_c: metrics.Average.from_output("psnr_c")  # pyrefly: ignore[invalid-annotation]
+  weight_l2: metrics.Average.from_output("weight_l2")  # pyrefly: ignore[invalid-annotation]
 
 
 def create_learning_rate_fn(config,):

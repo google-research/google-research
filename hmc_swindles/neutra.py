@@ -32,7 +32,7 @@ from tensorflow.python.util import nest  # pylint: disable=g-direct-tensorflow-i
 USE_LOCAL_FUN_MC = True
 
 if USE_LOCAL_FUN_MC:
-  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported
+  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported  # pyrefly: ignore[missing-import]
 
 tfd = tfp.distributions
 tfb = tfp.bijectors
@@ -304,16 +304,16 @@ class MCMCOutputs(NamedTuple):
 
 def GetIntegrator(integrator, step_size, num_steps, target_log_prob_fn):
   integrators = {
-      "leapfrog": (fun_mc.leapfrog_step, 1),
-      "ruth4": (fun_mc.ruth4_step, 3),
-      "blanes_3_stage": (fun_mc.blanes_3_stage_step, 3),
-      "blanes_4_stage": (fun_mc.blanes_4_stage_step, 5),
+      "leapfrog": (fun_mc.leapfrog_step, 1),  # pyrefly: ignore[missing-attribute]
+      "ruth4": (fun_mc.ruth4_step, 3),  # pyrefly: ignore[missing-attribute]
+      "blanes_3_stage": (fun_mc.blanes_3_stage_step, 3),  # pyrefly: ignore[missing-attribute]
+      "blanes_4_stage": (fun_mc.blanes_4_stage_step, 5),  # pyrefly: ignore[missing-attribute]
   }
   integrator_step_fn, leapfrog_multiplier = integrators[integrator]
 
-  kinetic_energy_fn = fun_mc.make_gaussian_kinetic_energy_fn(1)
+  kinetic_energy_fn = fun_mc.make_gaussian_kinetic_energy_fn(1)  # pyrefly: ignore[missing-attribute]
 
-  integrator_fn = lambda state: fun_mc.hamiltonian_integrator(  # pylint: disable=g-long-lambda
+  integrator_fn = lambda state: fun_mc.hamiltonian_integrator(  # pylint: disable=g-long-lambda  # pyrefly: ignore[missing-attribute]
       state,
       num_steps=num_steps,
       integrator_step_fn=lambda state: integrator_step_fn(  # pylint: disable=g-long-lambda
@@ -339,7 +339,7 @@ def MakeCVANeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
@@ -363,7 +363,7 @@ def MakeCVANeuTra(target,
     momentum = tf.concat([momentum, -momentum, momentum], axis=0)
     log_uniform = tf.concat([log_uniform] * 3, axis=0)
 
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         momentum=momentum,
@@ -376,8 +376,8 @@ def MakeCVANeuTra(target,
     return (x_xcv, zcva, extra.log_accept_ratio, extra.is_accepted)
 
   (_, (x_xcv_chain, zcva_chain, log_accept_ratio,
-       is_accepted)) = fun_mc.trace(
-           state=fun_mc.hamiltonian_monte_carlo_init(
+       is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+           state=fun_mc.hamiltonian_monte_carlo_init(  # pyrefly: ignore[missing-attribute]
                tf.concat([z_init, -z_init, z_init], axis=0), joint_log_prob_fn),
            fn=transition_operator,
            num_steps=num_steps,
@@ -427,7 +427,7 @@ def MakeANeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   integrator, leapfrog_multiplier = GetIntegrator(integrator, step_size,
@@ -441,7 +441,7 @@ def MakeANeuTra(target,
     momentum = tf.concat([momentum, -momentum], axis=0)
     log_uniform = tf.concat([log_uniform] * 2, axis=0)
 
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=transformed_log_prob_fn,
         momentum=momentum,
@@ -452,8 +452,8 @@ def MakeANeuTra(target,
     x_xa = state.state_extra[0]
     return (x_xa, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.hamiltonian_monte_carlo_init(
+  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.hamiltonian_monte_carlo_init(  # pyrefly: ignore[missing-attribute]
           tf.concat([z_init, -z_init], axis=0), transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -491,7 +491,7 @@ def MakeCVNeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
@@ -515,7 +515,7 @@ def MakeCVNeuTra(target,
     momentum = tf.concat([momentum, momentum_cv], axis=0)
     log_uniform = tf.concat([log_uniform] * 2, axis=0)
 
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         momentum=momentum,
@@ -526,8 +526,8 @@ def MakeCVNeuTra(target,
     x, xcv = tf.split(state.state_extra, 2, axis=0)
     return (x, xcv, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.hamiltonian_monte_carlo_init(
+  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.hamiltonian_monte_carlo_init(  # pyrefly: ignore[missing-attribute]
           tf.concat([z_init] * 2, axis=0), joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -567,7 +567,7 @@ def MakeNeuTra(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   integrator, leapfrog_multiplier = GetIntegrator(integrator, step_size,
@@ -575,7 +575,7 @@ def MakeNeuTra(target,
                                                   transformed_log_prob_fn)
 
   def transition_operator(hmc_state):
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=transformed_log_prob_fn,
         integrator_fn=integrator)
@@ -583,8 +583,8 @@ def MakeNeuTra(target,
   def trace_fn(state, extra):
     return (state.state_extra[0], extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.hamiltonian_monte_carlo_init(z_init,
+  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.hamiltonian_monte_carlo_init(z_init,  # pyrefly: ignore[missing-attribute]
                                                 transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -614,14 +614,14 @@ def MakeNeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   def proposal_fn(x, seed):
     return x + step_size * tf.random.normal(x.shape, seed=seed), ((), 0.)
 
   def transition_operator(rwm_state):
-    return fun_mc.random_walk_metropolis_step(
+    return fun_mc.random_walk_metropolis_step(  # pyrefly: ignore[missing-attribute]
         rwm_state,
         target_log_prob_fn=transformed_log_prob_fn,
         proposal_fn=proposal_fn)
@@ -629,8 +629,8 @@ def MakeNeuTraRWM(target,
   def trace_fn(state, extra):
     return (state.state_extra[0], extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.random_walk_metropolis_init(z_init,
+  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.random_walk_metropolis_init(z_init,  # pyrefly: ignore[missing-attribute]
                                                transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -660,7 +660,7 @@ def MakeCVNeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
@@ -681,7 +681,7 @@ def MakeCVNeuTraRWM(target,
       proposal = tf.concat([proposal] * 2, axis=0)
       return x + step_size * proposal, ((), 0.)
 
-    return fun_mc.random_walk_metropolis_step(
+    return fun_mc.random_walk_metropolis_step(  # pyrefly: ignore[missing-attribute]
         rwm_state,
         target_log_prob_fn=joint_log_prob_fn,
         proposal_fn=proposal_fn,
@@ -691,8 +691,8 @@ def MakeCVNeuTraRWM(target,
     x, xcv = tf.split(state.state_extra, 2, axis=0)
     return (x, xcv, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.random_walk_metropolis_init(
+  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.random_walk_metropolis_init(  # pyrefly: ignore[missing-attribute]
           tf.concat([z_init] * 2, axis=0), joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -731,7 +731,7 @@ def MakeANeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   def transition_operator(rwm_state):
@@ -744,7 +744,7 @@ def MakeANeuTraRWM(target,
       proposal = tf.concat([proposal, -proposal], axis=0)
       return x + step_size * proposal, ((), 0.)
 
-    return fun_mc.random_walk_metropolis_step(
+    return fun_mc.random_walk_metropolis_step(  # pyrefly: ignore[missing-attribute]
         rwm_state,
         target_log_prob_fn=transformed_log_prob_fn,
         proposal_fn=proposal_fn,
@@ -755,8 +755,8 @@ def MakeANeuTraRWM(target,
     x_xa = state.state_extra[0]
     return (x_xa, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.random_walk_metropolis_init(
+  (_, (x_xa_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.random_walk_metropolis_init(  # pyrefly: ignore[missing-attribute]
           tf.concat([z_init, -z_init], axis=0), transformed_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -792,7 +792,7 @@ def MakeCVANeuTraRWM(target,
     x_init = q.sample(batch_size)
 
   (transformed_log_prob_fn,
-   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),
+   z_init) = fun_mc.transform_log_prob_fn(lambda x: (target.log_prob(x), ()),  # pyrefly: ignore[missing-attribute]
                                           q.bijector, x_init)
 
   def joint_log_prob_fn(z_zcv):
@@ -815,7 +815,7 @@ def MakeCVANeuTraRWM(target,
       proposal = tf.concat([proposal, -proposal, proposal], axis=0)
       return x + step_size * proposal, ((), 0.)
 
-    return fun_mc.random_walk_metropolis_step(
+    return fun_mc.random_walk_metropolis_step(  # pyrefly: ignore[missing-attribute]
         rwm_state,
         target_log_prob_fn=joint_log_prob_fn,
         proposal_fn=proposal_fn,
@@ -827,8 +827,8 @@ def MakeCVANeuTraRWM(target,
     return (x_xcv, zcva, extra.log_accept_ratio, extra.is_accepted)
 
   (_, (x_xcv_chain, zcva_chain, log_accept_ratio,
-       is_accepted)) = fun_mc.trace(
-           state=fun_mc.random_walk_metropolis_init(
+       is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+           state=fun_mc.random_walk_metropolis_init(  # pyrefly: ignore[missing-attribute]
                tf.concat([z_init, -z_init, z_init], axis=0), joint_log_prob_fn),
            fn=transition_operator,
            num_steps=num_steps,
@@ -894,7 +894,7 @@ def MakeCVHMC(target,
     momentum = tf.concat([momentum] * 2, axis=0)
     log_uniform = tf.concat([log_uniform] * 2, axis=0)
 
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         momentum=momentum,
@@ -905,8 +905,8 @@ def MakeCVHMC(target,
     x, xcv = tf.split(state.state, 2, axis=0)
     return (x, xcv, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.hamiltonian_monte_carlo_init(
+  (_, (x_chain, xcv_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.hamiltonian_monte_carlo_init(  # pyrefly: ignore[missing-attribute]
           tf.concat([x_init] * 2, axis=0), joint_log_prob_fn),
       fn=transition_operator,
       num_steps=num_steps,
@@ -953,7 +953,7 @@ def MakeHMC(target,
                                                   joint_log_prob_fn)
 
   def transition_operator(hmc_state):
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=joint_log_prob_fn,
         integrator_fn=integrator)
@@ -961,8 +961,8 @@ def MakeHMC(target,
   def trace_fn(state, extra):
     return (state.state, extra.log_accept_ratio, extra.is_accepted)
 
-  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(
-      state=fun_mc.hamiltonian_monte_carlo_init(x_init, joint_log_prob_fn),
+  (_, (x_chain, log_accept_ratio, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.hamiltonian_monte_carlo_init(x_init, joint_log_prob_fn),  # pyrefly: ignore[missing-attribute]
       fn=transition_operator,
       num_steps=num_steps,
       trace_fn=trace_fn)
@@ -1007,13 +1007,13 @@ def ChainLoss(chain_loss_state,
     chain_loss_state = ChainLossState(
         z_state=z_init, step_size=tf.convert_to_tensor(step_size, tf.float32))
 
-  transformed_log_prob_fn = fun_mc.transform_log_prob_fn(
+  transformed_log_prob_fn = fun_mc.transform_log_prob_fn(  # pyrefly: ignore[missing-attribute]
       lambda x: (target.log_prob(x), ()), q.bijector)
 
   def transition_operator(hmc_state):
     num_leapfrog_steps = tf.cast(
         tf.math.ceil(trajectory_length / chain_loss_state.step_size), tf.int32)
-    return fun_mc.hamiltonian_monte_carlo_step(
+    return fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
         hmc_state,
         target_log_prob_fn=transformed_log_prob_fn,
         step_size=chain_loss_state.step_size,
@@ -1022,8 +1022,8 @@ def ChainLoss(chain_loss_state,
   def trace_fn(_state, extra):
     return (extra.log_accept_ratio, extra.is_accepted)
 
-  (final_state, (_, is_accepted)) = fun_mc.trace(
-      state=fun_mc.HamiltonianMonteCarloState(
+  (final_state, (_, is_accepted)) = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+      state=fun_mc.HamiltonianMonteCarloState(  # pyrefly: ignore[missing-attribute]
           state=chain_loss_state.z_state,
           state_grads=None,
           target_log_prob=None,
@@ -1035,7 +1035,7 @@ def ChainLoss(chain_loss_state,
 
   p_accept = tf.reduce_mean(tf.cast(is_accepted, tf.float32))
 
-  step_size = fun_mc.sign_adaptation(
+  step_size = fun_mc.sign_adaptation(  # pyrefly: ignore[missing-attribute]
       control=chain_loss_state.step_size,
       output=p_accept,
       set_point=target_accept_prob,
@@ -1131,16 +1131,16 @@ def ComputeChainStats(chain,
   per_chain_variance = tf.math.reduce_variance(tf.reduce_mean(half_chain, 0), 0)
 
   return ChainStats(
-      bias=bias if compute_stats_over_time else (),
-      variance=variance if compute_stats_over_time else (),
+      bias=bias if compute_stats_over_time else (),  # pyrefly: ignore[unbound-name]
+      variance=variance if compute_stats_over_time else (),  # pyrefly: ignore[unbound-name]
       error_sq=error_sq,
-      inst_bias=inst_bias if compute_stats_over_time else (),
-      inst_variance=inst_variance if compute_stats_over_time else (),
+      inst_bias=inst_bias if compute_stats_over_time else (),  # pyrefly: ignore[unbound-name]
+      inst_variance=inst_variance if compute_stats_over_time else (),  # pyrefly: ignore[unbound-name]
       ess=ess,
       ess_per_grad=ess_per_grad,
       rhat=rhat,
-      warmupped_bias=warmupped_bias if compute_stats_over_time else (),
-      warmupped_variance=warmupped_variance if compute_stats_over_time else (),
+      warmupped_bias=warmupped_bias if compute_stats_over_time else (),  # pyrefly: ignore[unbound-name]
+      warmupped_variance=warmupped_variance if compute_stats_over_time else (),  # pyrefly: ignore[unbound-name]
       autocorr=autocorr,
       overall_variance=overall_variance,
       per_chain_variance=per_chain_variance,
@@ -1452,7 +1452,7 @@ class NeuTraExperiment(tf.Module):
       mcmc_fn = MakeCVNeuTraRWM
     elif self.mcmc_type == "cva_neutra_rwm":
       mcmc_fn = MakeCVANeuTraRWM
-    return mcmc_fn(
+    return mcmc_fn(  # pyrefly: ignore[unbound-name]
         target=self.target,
         q=self.Q(),
         batch_size=batch_size,
@@ -1745,7 +1745,7 @@ class NeuTraExperiment(tf.Module):
       tf.summary.scalar("xent", loss, step=step)
       tf.summary.scalar("step_size", state.step_size, step=step)
       tf.summary.scalar("p_accept", out.p_accept, step=step)
-    return loss, state
+    return loss, state  # pyrefly: ignore[unbound-name]
 
   @gin.configurable("train")
   def Train(self,

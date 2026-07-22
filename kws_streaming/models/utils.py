@@ -237,7 +237,7 @@ def convert_to_inference_model(model, input_tensors, mode):
 
   # scope is introduced for simplifiyng access to weights by names
   scope_name = 'streaming'
-  with tf.name_scope(scope_name):
+  with tf.name_scope(scope_name):  # pyrefly: ignore[bad-instantiation]
     if not isinstance(model, tf.keras.Model):
       raise ValueError(
           'Expected `model` argument to be a `Model` instance, got ', model)

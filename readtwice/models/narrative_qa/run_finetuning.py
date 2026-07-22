@@ -452,9 +452,9 @@ def model_fn_builder(
       host_inputs["train_metrics/qa_loss"] = tf.expand_dims(qa_loss, 0)
 
       if language_model_loss is not None:
-        total_loss = (1.0 / (1.0 + summary_loss_weight) * qa_loss +
-                      summary_loss_weight /
-                      (1.0 + summary_loss_weight) * language_model_loss)
+        total_loss = (1.0 / (1.0 + summary_loss_weight) * qa_loss +  # pyrefly: ignore[unsupported-operation]
+                      summary_loss_weight /  # pyrefly: ignore[unsupported-operation]
+                      (1.0 + summary_loss_weight) * language_model_loss)  # pyrefly: ignore[unsupported-operation]
         host_inputs["train_metrics/summary_lm_loss"] = tf.expand_dims(
             language_model_loss, 0)
       else:
@@ -744,7 +744,7 @@ def main(_):
           continue
         question_id = datum["document_id"] + ": " + datum["question"]
         ground_truth[question_id] = [datum["answer1"], datum["answer2"]]
-        question_ids.append(question_id)
+        question_ids.append(question_id)  # pyrefly: ignore[bad-argument-type]
 
     logging.info("Loaded %d questions for evaluation from %s for set %s",
                  len(ground_truth), FLAGS.input_qaps, FLAGS.eval_data_split)

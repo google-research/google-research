@@ -58,15 +58,15 @@ class CoverTypeDataset(Dataset):
   """
 
   def __init__(self, dataset_path, batch_size=32, num_parallel_calls=60):
-    self.train_ds = tf.data.TFRecordDataset(
+    self.train_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype',
                      'trainval.tfrecord')).map(decode_fn)
 
-    self.validation_ds = tf.data.TFRecordDataset(
+    self.validation_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype',
                      'val.tfrecord')).map(decode_fn)
 
-    self.test_ds = tf.data.TFRecordDataset(
+    self.test_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype',
                      'test.tfrecord')).map(decode_fn)
 
@@ -136,23 +136,23 @@ class CoverTypeImixDataset(CoverTypeDataset):
     super(CoverTypeImixDataset, self).__init__(dataset_path)
     folder = 'covtype15k'
 
-    self.train_ds = tf.data.TFRecordDataset(
+    self.train_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, folder,
                      'trainval.tfrecord')).map(decode_fn)
 
-    self.validation_ds = tf.data.TFRecordDataset(
+    self.validation_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, folder,
                      'val.tfrecord')).map(decode_fn)
 
-    self.pretext_validation_ds = tf.data.TFRecordDataset(
+    self.pretext_validation_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, folder,
                      'val.tfrecord')).map(decode_fn)
 
-    self.trainval_ds = tf.data.TFRecordDataset(
+    self.trainval_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, folder,
                      'trainval.tfrecord')).map(decode_fn)
 
-    self.test_ds = tf.data.TFRecordDataset(
+    self.test_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, folder,
                      'test.tfrecord')).map(decode_fn)
 
@@ -171,23 +171,23 @@ class CoverTypeNew1PDataset(CoverTypeDataset):
   def __init__(self, dataset_path, batch_size=32, num_parallel_calls=60):
     super(CoverTypeNew1PDataset, self).__init__(dataset_path)
 
-    self.pretext_ds = tf.data.TFRecordDataset(
+    self.pretext_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_new_1p',
                      'pretext.tfrecord')).map(decode_fn)
 
-    self.train_ds = tf.data.TFRecordDataset(
+    self.train_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_new_1p',
                      'train.tfrecord')).map(decode_fn)
 
-    self.validation_ds = tf.data.TFRecordDataset(
+    self.validation_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_new_1p',
                      'val.tfrecord')).map(decode_fn)
 
-    self.test_ds = tf.data.TFRecordDataset(
+    self.test_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_new_1p',
                      'test.tfrecord')).map(decode_fn)
 
-    self.pretext_validation_ds = tf.data.TFRecordDataset(
+    self.pretext_validation_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_new_1p',
                      'val.tfrecord')).map(decode_fn)
 
@@ -216,19 +216,19 @@ class CoverType10PDataset(CoverTypeDataset):
   def __init__(self, dataset_path, batch_size=32, num_parallel_calls=60):
     super(CoverType10PDataset, self).__init__(dataset_path)
 
-    self.pretext_ds = tf.data.TFRecordDataset(
+    self.pretext_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_10p',
                      'pretext.tfrecord')).map(decode_fn)
 
-    self.train_ds = tf.data.TFRecordDataset(
+    self.train_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_10p',
                      'train.tfrecord')).map(decode_fn)
 
-    self.validation_ds = tf.data.TFRecordDataset(
+    self.validation_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_10p',
                      'val.tfrecord')).map(decode_fn)
 
-    self.test_ds = tf.data.TFRecordDataset(
+    self.test_ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(dataset_path, 'covtype_10p',
                      'test.tfrecord')).map(decode_fn)
 

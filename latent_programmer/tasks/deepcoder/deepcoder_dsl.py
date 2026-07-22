@@ -278,7 +278,7 @@ class ProgramState(object):
       if variable in variables:
         raise ParseError(f'Found duplicate variable: {variable}')
       result = str_to_result(rhs)
-      result_is_valid = validate_result(result)
+      result_is_valid = validate_result(result)  # pyrefly: ignore[bad-argument-type]
       if not result_is_valid:
         raise ParseError(f'Found invalid result `{result}` from RHS {rhs!r}')
       state.append(result)

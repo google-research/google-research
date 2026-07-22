@@ -264,7 +264,7 @@ class MakeExamples(beam.DoFn):
 
     if self.generate_answers:
       oracle_answers = []
-      answer_set = question_answer_evidence.answer.make_answer_set(
+      answer_set = question_answer_evidence.answer.make_answer_set(  # pyrefly: ignore[missing-attribute]
           oracle_answers)
       normalized_answer_set = {
           evaluation.normalize_answer(answer) for answer in answer_set
@@ -284,11 +284,11 @@ class MakeExamples(beam.DoFn):
     num_entity_annotations_tokenized = 0
 
     no_answer, yes_answer, yes_no_answer = False, False, False
-    if question_answer_evidence.answer.values[0] == 'yes':
+    if question_answer_evidence.answer.values[0] == 'yes':  # pyrefly: ignore[missing-attribute]
       metrics.Metrics.counter(METRICS_NAMESPACE, 'num_answer_type.yes').inc()
       yes_no_answer = True
       yes_answer = True
-    if question_answer_evidence.answer.values[0] == 'no':
+    if question_answer_evidence.answer.values[0] == 'no':  # pyrefly: ignore[missing-attribute]
       metrics.Metrics.counter(METRICS_NAMESPACE, 'num_answer_type.no').inc()
       yes_no_answer = True
       no_answer = True
@@ -304,7 +304,7 @@ class MakeExamples(beam.DoFn):
           sentence_obj.num_annotations(1))
 
       if self.generate_answers and not yes_no_answer:
-        annotations = find_answer_annotations(sentence_obj.text, answer_set)
+        annotations = find_answer_annotations(sentence_obj.text, answer_set)  # pyrefly: ignore[unbound-name]
         sentence_obj.annotations.extend(annotations)
 
       document = data_utils.BertDocument(
@@ -325,14 +325,14 @@ class MakeExamples(beam.DoFn):
         assert len(tokenized_document.sentences) == 1
         (should_update, annotations,
          current_filtered_annotations) = self._verify_annotations(
-             tokenized_document.sentences[0].annotations, normalized_answer_set)
+             tokenized_document.sentences[0].annotations, normalized_answer_set)  # pyrefly: ignore[unbound-name]
         if should_update:
           tokenized_document.sentences[0].annotations = annotations
           # pylint: disable=g-complex-comprehension
           filtered_annotations.extend([
               FilteredAnnotation(
                   question=question_answer_evidence.question,
-                  answer=question_answer_evidence.answer,
+                  answer=question_answer_evidence.answer,  # pyrefly: ignore[bad-argument-type]
                   annotation=annotation,
                   sentence=''.join(tokenized_document.sentences[0].tokens))
               for annotation in current_filtered_annotations

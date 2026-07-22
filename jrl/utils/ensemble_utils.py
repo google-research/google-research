@@ -173,7 +173,7 @@ def build_different_batch_ensemble_apply_fn(ensemble_member_apply_fn, num_args):
   return pvmapped_apply
 
 
-class RandomSign(hk.initializers.Initializer):
+class RandomSign(hk.initializers.Initializer):  # pyrefly: ignore[invalid-inheritance]
   """Initializes to +/-1 each element sampled from bernoulli with given prob."""
 
   def __init__(self, random_sign_prob = 0.5):

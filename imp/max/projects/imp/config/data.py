@@ -419,7 +419,7 @@ IMAGE_PERCEPTION_PRETRAIN_LOADERS = (
         microbatch_splits=1,
         prefetch=4,
         metadata=get_contrastive_metadata((VISION, TEXT)),
-        dataset=datasets_config.EXAMPLE_2_IMAGE_TEXT_THIRDPARTY.copy_and_override({
+        dataset=datasets_config.EXAMPLE_2_IMAGE_TEXT_THIRDPARTY.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'vision': {
                     **_vision_override(BASE_IMAGE_INPUT_SIZE),
@@ -440,7 +440,7 @@ IMAGE_PERCEPTION_PRETRAIN_LOADERS = (
         microbatch_splits=1,
         prefetch=4,
         metadata=get_classification_metadata(VISION, f'{LOGITS}_example_3'),
-        dataset=datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'name': f'{datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.name}/cls',
             'modalities': {
                 'vision': {
@@ -463,7 +463,7 @@ VIDEO_PERCEPTION_PRETRAIN_LOADERS = (
         microbatch_splits=1,
         use_data_service=True,
         metadata=get_contrastive_metadata((VISION, TEXT)),
-        dataset=datasets_config.EXAMPLE_4_VIDEO_AUDIO_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_4_VIDEO_AUDIO_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'audio': None,
                 'vision': {
@@ -486,7 +486,7 @@ VIDEO_PERCEPTION_PRETRAIN_LOADERS = (
         microbatch_splits=1,
         use_data_service=True,
         metadata=get_classification_metadata(VISION, f'{LOGITS}_example_7'),
-        dataset=datasets_config.EXAMPLE_7_VIDEO_CLASSIFICATION_WITH_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_7_VIDEO_CLASSIFICATION_WITH_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'name': f'{datasets_config.EXAMPLE_7_VIDEO_CLASSIFICATION_WITH_TEXT.name}/cls',
             'modalities': {
                 'audio': None,
@@ -509,7 +509,7 @@ AUDIO_PERCEPTION_PRETRAIN_LOADERS = (
         microbatch_splits=1,
         use_data_service=True,
         metadata=get_contrastive_metadata((VISION, SPECTROGRAM, TEXT)),
-        dataset=datasets_config.EXAMPLE_4_VIDEO_AUDIO_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_4_VIDEO_AUDIO_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'audio': {
                     **_audio_override(BASE_WAVEFORM_SAMPLES),
@@ -536,7 +536,7 @@ AUDIO_PERCEPTION_PRETRAIN_LOADERS = (
         metadata=get_classification_metadata(
             SPECTROGRAM, f'{LOGITS}_example_5',
         ),
-        dataset=datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'name': f'{datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.name}/cls',
             'modalities': {
                 'audio': {
@@ -573,7 +573,7 @@ IMAGE_GENERATION_PRETRAIN_LOADERS = (
         prefetch=1,
         tuning=DataTuning.EFFICIENT,
         metadata=get_mae_metadata((VISION,), TOKEN_RAW),
-        dataset=datasets_config.EXAMPLE_2_IMAGE_TEXT_THIRDPARTY.copy_and_override({
+        dataset=datasets_config.EXAMPLE_2_IMAGE_TEXT_THIRDPARTY.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'vision': {
                     'token_drop_rate': 0.75,
@@ -607,7 +607,7 @@ BULK_EVAL_LOADERS = (
         prefetch=1,
         tuning=DataTuning.EFFICIENT,
         metadata=get_contrastive_metadata((SPECTROGRAM, TEXT)),
-        dataset=datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.copy_and_override(
+        dataset=datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.copy_and_override(  # pyrefly: ignore[bad-argument-type]
             {'modalities': {
                 'audio': {
                     **_audio_override(BASE_WAVEFORM_SAMPLES),
@@ -623,7 +623,7 @@ BULK_EVAL_LOADERS = (
         prefetch=1,
         tuning=DataTuning.EFFICIENT,
         metadata=get_contrastive_metadata((SPECTROGRAM, TEXT)),
-        dataset=datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_5_AUDIO_CLASSIFICATION_WITH_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'audio': {
                     **_audio_override(BASE_WAVEFORM_SAMPLES),
@@ -649,7 +649,7 @@ BULK_EVAL_LOADERS = (
         prefetch=1,
         tuning=DataTuning.EFFICIENT,
         metadata=get_contrastive_metadata((VISION, TEXT)),
-        dataset=datasets_config.EXAMPLE_4_VIDEO_AUDIO_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_4_VIDEO_AUDIO_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'vision': {
                     'num_test_clips': NUM_TEST_CLIPS,
@@ -672,7 +672,7 @@ IMAGENET_ONLINE_EVAL_LOADERS = (
         batch_size=LARGE_EVAL_BATCH_SIZE,
         microbatch_splits=1,
         metadata=get_plain_encoder_features_metadata((VISION,)),
-        dataset=datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'modalities': {
                 'vision': {
                     **_vision_override(BASE_IMAGE_INPUT_SIZE),
@@ -687,7 +687,7 @@ IMAGENET_ONLINE_EVAL_LOADERS = (
         batch_size=LARGE_EVAL_BATCH_SIZE,
         microbatch_splits=1,
         metadata=get_plain_encoder_features_metadata((VISION,)),
-        dataset=datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.copy_and_override({
+        dataset=datasets_config.EXAMPLE_3_IMAGE_CLASSIFICATION_WITH_TEXT.copy_and_override({  # pyrefly: ignore[bad-argument-type]
             'data': {
                 'table': 'test'
             },

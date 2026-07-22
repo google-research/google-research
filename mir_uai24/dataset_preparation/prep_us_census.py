@@ -108,7 +108,7 @@ def create_geographic_bags(
       geographic_bags[bag_key] = random_state.choice(
           geographic_bags[bag_key], size=sample_size, replace=False
       )
-  return geographic_bags, n_train_bags_per_key_map, n_non_train_instances_map
+  return geographic_bags, n_train_bags_per_key_map, n_non_train_instances_map  # pyrefly: ignore[bad-return]
 
 
 def create_splits(
@@ -186,15 +186,15 @@ def create_dataframes(
   train_df = []
   for prime_id in prime_bag_map:
     row = {'bag_id': instance_id_map[prime_id]}
-    row['instance_id'] = np.array(
+    row['instance_id'] = np.array(  # pyrefly: ignore[bad-assignment]
         list(map(lambda x: instance_id_map[x], prime_bag_map[prime_id])))
-    row['bag_id_X_instance_id'] = np.arange(
+    row['bag_id_X_instance_id'] = np.arange(  # pyrefly: ignore[bad-assignment]
         instance_id_map[prime_id]*_BAG_SIZE.value,
         (instance_id_map[prime_id]+1)*_BAG_SIZE.value
     )
     row_data = data_arr[prime_bag_map[prime_id]]
     for i, feature in enumerate(data.columns):
-      row[feature] = row_data[:, i]
+      row[feature] = row_data[:, i]  # pyrefly: ignore[bad-assignment]
     train_df.append(row)
   train_df = pd.DataFrame(train_df)
 

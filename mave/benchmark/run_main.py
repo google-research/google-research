@@ -99,7 +99,7 @@ def create_dataset(
           tf.io.gfile.glob(fp) for fp in tf_examples_filespec.split(',')))
   random.Random(config.train.data_random_seed).shuffle(filenames)
 
-  dataset = tf.data.Dataset.from_tensor_slices(filenames)
+  dataset = tf.data.Dataset.from_tensor_slices(filenames)  # pyrefly: ignore[bad-argument-type]
   dataset = dataset.interleave(
       tf.data.TFRecordDataset,
       num_parallel_calls=tf.data.experimental.AUTOTUNE,
@@ -400,8 +400,8 @@ def main(_):
     strategy = tf.distribute.TPUStrategy(resolver)
   else:
     devices = _get_gpu_or_cpu_devices(master=master)
-    if len(devices) == 1:
-      strategy = tf.distribute.OneDeviceStrategy(devices[0])
+    if len(devices) == 1:  # pyrefly: ignore[bad-argument-type]
+      strategy = tf.distribute.OneDeviceStrategy(devices[0])  # pyrefly: ignore[unsupported-operation]
     else:
       strategy = tf.distribute.MirroredStrategy(devices)
 

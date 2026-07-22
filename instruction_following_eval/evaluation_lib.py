@@ -85,10 +85,10 @@ def test_instruction_following_strict(
     instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
     instruction = instruction_cls(instruction_id)
 
-    instruction.build_description(**inp.kwargs[index])
+    instruction.build_description(**inp.kwargs[index])  # pyrefly: ignore[bad-argument-type]
     args = instruction.get_instruction_args()
     if args and "prompt" in args:
-      instruction.build_description(prompt=inp.prompt)
+      instruction.build_description(prompt=inp.prompt)  # pyrefly: ignore[unexpected-keyword]
 
     if response.strip() and instruction.check_following(response):
       is_following_list.append(True)
@@ -135,10 +135,10 @@ def test_instruction_following_loose(
     instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
     instruction = instruction_cls(instruction_id)
 
-    instruction.build_description(**inp.kwargs[index])
+    instruction.build_description(**inp.kwargs[index])  # pyrefly: ignore[bad-argument-type]
     args = instruction.get_instruction_args()
     if args and "prompt" in args:
-      instruction.build_description(prompt=inp.prompt)
+      instruction.build_description(prompt=inp.prompt)  # pyrefly: ignore[unexpected-keyword]
 
     is_following = False
     for r in all_responses:

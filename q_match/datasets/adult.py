@@ -121,7 +121,7 @@ class AdultDatasetBase(Dataset):
     """The dataset name."""
 
   def read_ds(self, ds_name, filename):
-    return tf.data.TFRecordDataset(
+    return tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(self.dataset_path, ds_name, filename)).map(decode_fn)
 
   def _format_data(self, original_data):

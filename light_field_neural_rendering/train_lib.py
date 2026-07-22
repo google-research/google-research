@@ -71,7 +71,7 @@ def train_step(
   logging.info("train_step(batch=%s)", batch)
 
   step = state.step + 1
-  lr = learning_rate_fn(step)
+  lr = learning_rate_fn(step)  # pyrefly: ignore[bad-argument-type]
   rng, key_0, key_1 = jax.random.split(rng, 3)
 
   def loss_fn(params):
@@ -113,7 +113,7 @@ def train_step(
     # Compute total loss and wrap the stats
     total_loss = loss + loss_c + weight_penalty
     stats = train_utils.Stats(  # pytype: disable=wrong-arg-types  # jax-types
-        loss=loss, psnr=psnr, loss_c=loss_c, psnr_c=psnr_c, weight_l2=weight_l2)
+        loss=loss, psnr=psnr, loss_c=loss_c, psnr_c=psnr_c, weight_l2=weight_l2)  # pyrefly: ignore[bad-argument-type]
     return total_loss, stats
 
   #------------------------------------------------------------------------

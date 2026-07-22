@@ -34,7 +34,7 @@ def construct_metrics_dictionary_from_metrics_stack(
 
   metrics = {}
   for metric_fn in metrics_stack:
-    for key, value in metric_fn(prediction, target, mask).items():
+    for key, value in metric_fn(prediction, target, mask).items():  # pyrefly: ignore[bad-argument-count]
       metrics[key] = value
 
   return metrics
@@ -49,7 +49,7 @@ class BaseMetric(object):
     self.using_jax_mode = False
 
   def enable_jax_mode(self):
-    self.np = jnp
+    self.np = jnp  # pyrefly: ignore[bad-assignment]
     self.using_jax_mode = True
     return self
 
@@ -130,7 +130,7 @@ class Accuracy(BaseMetric):
     max_top = max(self.top)
     if self.using_jax_mode:
       # argsort is inefficient during training, so we use a custom util.
-      pred = utils.top_k(pred, k=max_top)
+      pred = utils.top_k(pred, k=max_top)  # pyrefly: ignore[bad-argument-type]
     else:
       # Negate preds to sort descending
       pred = self.np.argsort(-pred, axis=-1)[Ellipsis, :max_top]
@@ -167,7 +167,7 @@ class RetrievalRecall(BaseMetric):
     super().__init__(name=name)
     self.at = at
     if isinstance(self.at, int):
-      self.at = tuple(self.at)
+      self.at = tuple(self.at)  # pyrefly: ignore[bad-argument-type]
     self.return_median_rank = return_median_rank
     self.instance_selection_method = instance_selection_method
 
@@ -299,7 +299,7 @@ class RetrievalRecall(BaseMetric):
     metrics_m1_to_m2 = {}
     metrics_m2_to_m1 = {}
     # calculate R at different levels
-    for at in self.at:
+    for at in self.at:  # pyrefly: ignore[not-iterable]
       metrics_m1_to_m2[f'R{at}'] = self.np.mean(matched_ranks_m1_to_m2 < at)
       metrics_m2_to_m1[f'R{at}'] = self.np.mean(matched_ranks_m2_to_m1 < at)
 

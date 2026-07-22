@@ -44,23 +44,23 @@ def build_token_tables():
 
   # Primitive types
   for character in list(dsl.CHARACTER):   # Includes delimiter.
-    tokens.append(character)
+    tokens.append(character)  # pyrefly: ignore[bad-argument-type]
 
   for t in dsl.Type:
-    tokens.append(t)
+    tokens.append(t)  # pyrefly: ignore[bad-argument-type]
 
   for case in dsl.Case:
-    tokens.append(case)
+    tokens.append(case)  # pyrefly: ignore[bad-argument-type]
 
   for boundary in dsl.Boundary:
-    tokens.append(boundary)
+    tokens.append(boundary)  # pyrefly: ignore[bad-argument-type]
 
   for k in range(dsl.POSITION[0], dsl.POSITION[1] + 1):  # Includes index.
-    tokens.append(k)
+    tokens.append(k)  # pyrefly: ignore[bad-argument-type]
 
   # Build dictiontaries. Reserve 0, 1, 2 for padding, bos, eos.
   id_token_table = {id+3: token for id, token in enumerate(tokens)}
-  id_token_table[1] = dsl.BOS
-  id_token_table[2] = dsl.EOS
+  id_token_table[1] = dsl.BOS  # pyrefly: ignore[unsupported-operation]
+  id_token_table[2] = dsl.EOS  # pyrefly: ignore[unsupported-operation]
   token_id_table = {token: id for id, token in id_token_table.items()}
   return (id_token_table, token_id_table)

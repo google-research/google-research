@@ -406,7 +406,7 @@ class BaseLinearClassifier:
       if not state_initialized:
         state, rng = self.init_state(step_inputs, step_labels)
         state_initialized = True
-      rng, current_rng = jax.random.split(rng)  # pylint: disable=undefined-variable
+      rng, current_rng = jax.random.split(rng)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
       if self.host_local_data:
         step_inputs = multihost_utils.host_local_array_to_global_array(
             local_inputs=step_inputs,
@@ -420,7 +420,7 @@ class BaseLinearClassifier:
         )
       with self.partitioner.mesh:
         state, step_metrics = train_step(
-            state, step_inputs, step_labels, current_rng)  # pylint: disable=undefined-variable
+            state, step_inputs, step_labels, current_rng)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
 
       if self.verbose == 1 and (current_step % 50 == 0):
         step_metrics = mtu.tree_convert_jax_float_to_float(step_metrics)
@@ -682,7 +682,7 @@ class OfflineLinearClassifier(BaseLinearClassifier):
     # Fetch the total number of steps
     num_train_samples = train_features.shape[0]
     self.total_steps = _get_num_steps(
-        num_train_samples, self.batch_size, self.total_epochs)
+        num_train_samples, self.batch_size, self.total_epochs)  # pyrefly: ignore[bad-argument-type]
 
     # train classifier
     train_iterator = self.create_data_generator(
@@ -690,7 +690,7 @@ class OfflineLinearClassifier(BaseLinearClassifier):
         batch_size=self.batch_size,
         num_epochs=-1,
         is_training=True)
-    self.fit(train_iterator)
+    self.fit(train_iterator)  # pyrefly: ignore[bad-argument-type]
 
     # Predict train logits.
     train_evaluation_iterator = self.create_data_generator(
@@ -698,7 +698,7 @@ class OfflineLinearClassifier(BaseLinearClassifier):
         batch_size=self.batch_size,
         num_epochs=1,
         is_training=False)
-    train_metrics = self.evaluate(train_evaluation_iterator, metrics_stack)
+    train_metrics = self.evaluate(train_evaluation_iterator, metrics_stack)  # pyrefly: ignore[bad-argument-type]
 
     # Predict test logits.
     test_evaluation_iterator = self.create_data_generator(
@@ -706,7 +706,7 @@ class OfflineLinearClassifier(BaseLinearClassifier):
         batch_size=self.batch_size,
         num_epochs=1,
         is_training=False)
-    test_metrics = self.evaluate(test_evaluation_iterator, metrics_stack)
+    test_metrics = self.evaluate(test_evaluation_iterator, metrics_stack)  # pyrefly: ignore[bad-argument-type]
 
     return train_metrics, test_metrics
 
@@ -746,7 +746,7 @@ class ZeroShotClassifier(object):
       array[idx] = value
       return array
     elif self.np is jnp:
-      return array.at[idx].set(value)
+      return array.at[idx].set(value)  # pyrefly: ignore[missing-attribute]
     else:
       raise ValueError('Backend not supported!')
 
@@ -803,7 +803,7 @@ class ZeroShotClassifier(object):
       raise ValueError('Keys are not initialized!')
 
     inputs = self.l2_normalize(inputs)
-    logits = self.np.einsum('bd,cd->bc', inputs, self.keys)
+    logits = self.np.einsum('bd,cd->bc', inputs, self.keys)  # pyrefly: ignore[no-matching-overload]
     return logits
 
   def bulk_probing(
@@ -913,7 +913,7 @@ class OnlineMAPClassifier(OnlineLinearClassifier):
     # The parameter shapes don't depend on these dims, so we set them to 1.
     batch_size, num_instances, seq_len = 1, 1, 1
     placeholder_input = jnp.zeros((batch_size, num_instances, seq_len, dim))
-    return self.map_head.init(
+    return self.map_head.init(  # pyrefly: ignore[bad-return]
         rng, placeholder_input, patched_shape=None, deterministic=True)
 
   def create_predict_fn(self):
@@ -962,7 +962,7 @@ def bulk_test_predict_classification(
     modality = _get_modality_with_label(test_targets, dataset_name=dataset_name)
 
     for metric_fn in metrics_stack:
-      cls_metrics = metric_fn(
+      cls_metrics = metric_fn(  # pyrefly: ignore[bad-argument-count]
           test_outputs[modality][TOKEN_RAW][LOGITS],
           test_targets[modality][LABEL])
       for key, value in cls_metrics.items():
@@ -1225,7 +1225,7 @@ def bulk_zero_shot_retrieval(
                      modality_2.shape)
 
         for metric_fn in metrics_stack:
-          ret_metrics = metric_fn(modality_1, modality_2)
+          ret_metrics = metric_fn(modality_1, modality_2)  # pyrefly: ignore[bad-argument-count]
           for key, value in ret_metrics['m1_vs_m2'].items():
             all_metrics[f'{dataset_name}/{embeddings[0][1]}/{key}'] = value
 

@@ -39,7 +39,7 @@ import yaml
 USE_LOCAL_FUN_MC = True
 
 if USE_LOCAL_FUN_MC:
-  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported
+  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported  # pyrefly: ignore[missing-import]
 
 tfd = tfp.distributions
 tfb = tfp.bijectors
@@ -109,14 +109,14 @@ class Template(tf.Module):
 
     def _Creator(next_creator, **kwargs):
       if self._built:
-        ret = self._var_cache[_Creator.counter]
+        ret = self._var_cache[_Creator.counter]  # pyrefly: ignore[missing-attribute]
       else:
         ret = next_creator(**kwargs)
         self._var_cache.append(ret)
-      _Creator.counter += 1
+      _Creator.counter += 1  # pyrefly: ignore[missing-attribute]
       return ret
 
-    _Creator.counter = 0
+    _Creator.counter = 0  # pyrefly: ignore[missing-attribute]
 
     with tf.variable_creator_scope(_Creator):
       ret = self._fn(*args, **kwargs)
@@ -240,15 +240,15 @@ def SanitizedAutoCorrelationMean(x, axis, reduce_axis, max_lags=None, **kwargs):
   mean_shape = shape_arr[axes]
   if max_lags is not None:
     mean_shape[axis] = max_lags + 1
-  mean_state = fun_mc.running_mean_init(mean_shape, x.dtype)
+  mean_state = fun_mc.running_mean_init(mean_shape, x.dtype)  # pyrefly: ignore[missing-attribute]
   new_order = list(range(len(shape_arr)))
   new_order[0] = new_order[reduce_axis]
   new_order[reduce_axis] = 0
   x = tf.transpose(x, new_order)
   x_arr = tf.TensorArray(x.dtype, x.shape[0]).unstack(x)
-  mean_state, _ = fun_mc.trace(
+  mean_state, _ = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
       state=mean_state,
-      fn=lambda state: fun_mc.running_mean_step(  # pylint: disable=g-long-lambda
+      fn=lambda state: fun_mc.running_mean_step(  # pylint: disable=g-long-lambda  # pyrefly: ignore[missing-attribute]
           state,
           SanitizedAutoCorrelation(
               x_arr.read(state.num_points), axis, max_lags=max_lags, **kwargs)),
@@ -772,7 +772,7 @@ def decode_tree(tree):
     if tree.get("__type__") == "ndarray":
       return np.array(tree["data"]).astype(np.dtype(tree["dtype"]))
     if tree.get("__type__") in _NAMEDTUPLE_REGISTRY:
-      tree = tree.copy()
+      tree = tree.copy()  # pyrefly: ignore[missing-attribute]
       name = tree.pop("__type__")
       tree = {k: decode_tree(v) for k, v in tree.items()}
       return _NAMEDTUPLE_REGISTRY[name](**tree)

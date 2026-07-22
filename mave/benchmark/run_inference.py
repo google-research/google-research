@@ -176,7 +176,7 @@ def _get_span_indexes(span_mask):
 
 def _detokenize(tokens):
   tokens = [six.ensure_str(t) for t in tokens]
-  text = ' '.join(tokens)
+  text = ' '.join(tokens)  # pyrefly: ignore[no-matching-overload]
   text = text.replace(' ##', '').replace('##', '')
   return text
 
@@ -214,11 +214,11 @@ def get_measure_str(true_evidences,
   """Returns a string representing the eval result."""
   normalized_true_evidences = set()
   for evidence in true_evidences:
-    normalized_evidence = _normalize_text_squad(evidence['value'])
+    normalized_evidence = _normalize_text_squad(evidence['value'])  # pyrefly: ignore[bad-argument-type]
     if normalized_evidence:
       normalized_true_evidences.add(normalized_evidence)
 
-  normalized_top_prediction = _normalize_text_squad(top_prediction)
+  normalized_top_prediction = _normalize_text_squad(top_prediction)  # pyrefly: ignore[bad-argument-type]
 
   if not normalized_true_evidences and not normalized_top_prediction:
     return _N_N
@@ -434,7 +434,7 @@ class RunInferenceFn(beam.DoFn):
     output, measure_str = (
         self._create_inference_output(json_example, tf_example))
     if self._bucket_measure:
-      bucket_str = self._bucket_fn(json_example)
+      bucket_str = self._bucket_fn(json_example)  # pyrefly: ignore[not-callable]
       yield beam.pvalue.TaggedOutput(f'{bucket_str}_{measure_str}', output)
     else:
       yield beam.pvalue.TaggedOutput(f'_{measure_str}', output)

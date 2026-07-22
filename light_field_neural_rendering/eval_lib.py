@@ -116,7 +116,7 @@ def evaluate(config, workdir):
 
       #-----------------------------------------------------------
       # Get showcase example for logging
-      if not config.eval.eval_once and idx == showcase_index:
+      if not config.eval.eval_once and idx == showcase_index:  # pyrefly: ignore[unbound-name]
         showcase_color = pred_color
         showcase_disp = pred_disp
         showcase_acc = pred_acc
@@ -147,17 +147,17 @@ def evaluate(config, workdir):
               os.path.join(out_dir, "disp_{:03d}.png".format(idx)))
     #-----------------------------------------------------------
     if (not config.eval.eval_once) and (jax.process_index() == 0):
-      summary_writer.image("pred_color", showcase_color, step)
-      if showcase_disp is not None:
+      summary_writer.image("pred_color", showcase_color, step)  # pyrefly: ignore[unbound-name]
+      if showcase_disp is not None:  # pyrefly: ignore[unbound-name]
         summary_writer.image("pred_disp", showcase_disp, step)
-      if showcase_acc is not None:
+      if showcase_acc is not None:  # pyrefly: ignore[unbound-name]
         summary_writer.image("pred_acc", showcase_acc, step)
       if not config.dataset.render_path:
         summary_writer.scalar("eval_metric/psnr",
                               np.mean(np.array(psnr_values)), step)
         summary_writer.scalar("eval_metric/ssim",
                               np.mean(np.array(ssim_values)), step)
-        summary_writer.image("target", showcase_gt, step)
+        summary_writer.image("target", showcase_gt, step)  # pyrefly: ignore[unbound-name]
 
     #-----------------------------------------------------------
     # Save the metric to file

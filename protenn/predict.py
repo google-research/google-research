@@ -326,7 +326,7 @@ def format_df_for_output(
 
   if label_to_description is None:
     with tf.io.gfile.GFile(
-        os.path.join(model_cache_path, 'accession_to_description_pfam_35.json')
+        os.path.join(model_cache_path, 'accession_to_description_pfam_35.json')  # pyrefly: ignore[no-matching-overload]
     ) as f:
       label_to_description = json.loads(f.read())
 
@@ -437,7 +437,7 @@ def main(_):
   tf.get_logger().setLevel(tf.logging.ERROR)
 
   load_assets_and_run(
-      input_fasta_path=_INPUT_FASTA_FILE_PATH_FLAG.value,
+      input_fasta_path=_INPUT_FASTA_FILE_PATH_FLAG.value,  # pyrefly: ignore[bad-argument-type]
       output_path=_OUTPUT_WRITE_PATH_FLAG.value,
       num_ensemble_elements=_NUM_ENSEMBLE_ELEMENTS_FLAG.value,
       model_cache_path=_MODEL_CACHE_PATH_FLAG.value,

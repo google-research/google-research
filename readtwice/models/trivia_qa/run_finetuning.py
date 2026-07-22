@@ -653,7 +653,7 @@ def main(_):
 
     if do_eval:
       logging.info("Loaded %d questions for evaluation from %s",
-                   len(ground_truth), FLAGS.eval_json_path)
+                   len(ground_truth), FLAGS.eval_json_path)  # pyrefly: ignore[unbound-name]
 
     tokenizer = tokenization.FullTokenizer(FLAGS.spm_model_path)
     logging.info("Loaded SentencePiece model from %s", FLAGS.spm_model_path)

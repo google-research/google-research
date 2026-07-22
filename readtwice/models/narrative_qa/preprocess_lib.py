@@ -460,7 +460,7 @@ class MakeExamples(beam.DoFn):
 
     if self.generate_answers:
       oracle_answers = []
-      for answer in question_answer_evidence.answer.values:
+      for answer in question_answer_evidence.answer.values:  # pyrefly: ignore[missing-attribute]
         oracle_answers.extend(
             self.extractive_oracle.find_approximate_answers(
                 question_answer_evidence.evidence.text,
@@ -469,7 +469,7 @@ class MakeExamples(beam.DoFn):
       metrics.Metrics.distribution(METRICS_NAMESPACE,
                                    'oracle_answers_per_question').update(
                                        len(oracle_answers))
-      answer_set = question_answer_evidence.answer.make_answer_set(
+      answer_set = question_answer_evidence.answer.make_answer_set(  # pyrefly: ignore[missing-attribute]
           oracle_answers)
       normalized_answer_set = {
           normalize_answer(answer) for answer in answer_set
@@ -482,7 +482,7 @@ class MakeExamples(beam.DoFn):
       metrics.Metrics.counter(METRICS_NAMESPACE, 'nltk_entities').inc(
           sentence_obj.num_annotations(1))
       if self.generate_answers:
-        annotations = find_answer_annotations(sentence_obj.text, answer_set)
+        annotations = find_answer_annotations(sentence_obj.text, answer_set)  # pyrefly: ignore[unbound-name]
         sentence_obj.annotations.extend(annotations)
 
       sentences.append(sentence_obj)
@@ -526,7 +526,7 @@ class MakeExamples(beam.DoFn):
     if self.generate_answers:
       for i, sentence in enumerate(tokenized_big_document.sentences):
         should_update, annotations, current_filtered_annotations = self._verify_annotations(
-            sentence.annotations, normalized_answer_set)
+            sentence.annotations, normalized_answer_set)  # pyrefly: ignore[unbound-name]
         if should_update:
           tokenized_big_document.sentences[i].annotations = annotations
 
@@ -534,7 +534,7 @@ class MakeExamples(beam.DoFn):
           filtered_annotations.extend([
               FilteredAnnotation(
                   question=question_answer_evidence.question,
-                  answer=question_answer_evidence.answer,
+                  answer=question_answer_evidence.answer,  # pyrefly: ignore[bad-argument-type]
                   annotation=annotation,
                   sentence=''.join(sentence.tokens))
               for annotation in current_filtered_annotations
@@ -594,7 +594,7 @@ class MakeExamples(beam.DoFn):
 
     if self.generate_summaries:
       tokenized_summary = self._tokenize_text(
-          question_answer_evidence.evidence.summary)
+          question_answer_evidence.evidence.summary)  # pyrefly: ignore[bad-argument-type]
       if len(tokenized_summary) < self.block_length:
         tokenized_summary.extend([self.padding_token_id] *
                                  (self.block_length - len(tokenized_summary)))
@@ -616,7 +616,7 @@ class MakeExamples(beam.DoFn):
         num_blocks = len(
             tf_example.features.feature['block_ids'].int64_list.value)
         tf_example.features.feature[
-            'summary_token_ids'].int64_list.value.extend(tokenized_summary *
+            'summary_token_ids'].int64_list.value.extend(tokenized_summary *  # pyrefly: ignore[unbound-name]
                                                          num_blocks)
       yield tf_example
 

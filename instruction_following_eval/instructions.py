@@ -113,7 +113,7 @@ class Instruction:
 class ResponseLanguageChecker(Instruction):
   """Check the language of the entire response."""
 
-  def build_description(self, *, language = None):
+  def build_description(self, *, language = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -137,7 +137,7 @@ class ResponseLanguageChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"language": self._language}
+    return {"language": self._language}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -167,7 +167,7 @@ class ResponseLanguageChecker(Instruction):
 class NumberOfSentences(Instruction):
   """Check the number of sentences."""
 
-  def build_description(self, *, num_sentences = None,
+  def build_description(self, *, num_sentences = None,  # pyrefly: ignore[bad-override]
                         relation = None):
     """Build the instruction description.
 
@@ -205,14 +205,14 @@ class NumberOfSentences(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_sentences": self._num_sentences_threshold,
+    return {"num_sentences": self._num_sentences_threshold,  # pyrefly: ignore[bad-return]
             "relation": self._comparison_relation}
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
     return ["num_sentences", "relation"]
 
-  def check_following(self, value):
+  def check_following(self, value):  # pyrefly: ignore[bad-return]
     """Check if the number of sentences follows the instruction.
 
     Args:
@@ -227,7 +227,7 @@ class NumberOfSentences(Instruction):
     """
     num_sentences = instructions_util.count_sentences(value)
     if self._comparison_relation == _COMPARISON_RELATION[0]:
-      return num_sentences < self._num_sentences_threshold
+      return num_sentences < self._num_sentences_threshold  # pyrefly: ignore[unsupported-operation]
     elif self._comparison_relation == _COMPARISON_RELATION[1]:
       return num_sentences >= self._num_sentences_threshold  # pytype: disable=bad-return-type
 
@@ -235,7 +235,7 @@ class NumberOfSentences(Instruction):
 class PlaceholderChecker(Instruction):
   """Check the placeholders in template writing."""
 
-  def build_description(self, *, num_placeholders = None):
+  def build_description(self, *, num_placeholders = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -256,7 +256,7 @@ class PlaceholderChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_placeholders": self._num_placeholders}
+    return {"num_placeholders": self._num_placeholders}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -274,13 +274,13 @@ class PlaceholderChecker(Instruction):
     """
     placeholders = re.findall(r"\[.*?\]", value)
     num_placeholders = len(placeholders)
-    return num_placeholders >= self._num_placeholders
+    return num_placeholders >= self._num_placeholders  # pyrefly: ignore[unsupported-operation]
 
 
 class BulletListChecker(Instruction):
   """Checks the bullet list in the prompt."""
 
-  def build_description(self, *, num_bullets = None):
+  def build_description(self, *, num_bullets = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -303,7 +303,7 @@ class BulletListChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_bullets": self._num_bullets}
+    return {"num_bullets": self._num_bullets}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -329,7 +329,7 @@ class BulletListChecker(Instruction):
 class ConstrainedResponseChecker(Instruction):
   """Checks the constrained response."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     # A sequence of string(s) representing the options of the expected response.
     self._constrained_responses = _CONSTRAINED_RESPONSE_OPTIONS
@@ -366,7 +366,7 @@ class ConstrainedResponseChecker(Instruction):
 class ConstrainedStartChecker(Instruction):
   """Checks the response start."""
 
-  def build_description(self, *, starter = None):
+  def build_description(self, *, starter = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -386,7 +386,7 @@ class ConstrainedStartChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"starter": self._starter}
+    return {"starter": self._starter}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -402,7 +402,7 @@ class ConstrainedStartChecker(Instruction):
       True if the response starts with the given phrase or keyword that is
       contained in `instruction_args`; otherwise, False.
     """
-    response_pattern = r"^\s*" + self._starter + r".*$"
+    response_pattern = r"^\s*" + self._starter + r".*$"  # pyrefly: ignore[unsupported-operation]
     response_with_constrained_start = re.search(response_pattern, value,
                                                 flags=re.MULTILINE)
     return True if response_with_constrained_start else False
@@ -411,7 +411,7 @@ class ConstrainedStartChecker(Instruction):
 class HighlightSectionChecker(Instruction):
   """Checks the highlighted section."""
 
-  def build_description(self, *, num_highlights = None):
+  def build_description(self, *, num_highlights = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -433,7 +433,7 @@ class HighlightSectionChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_highlights": self._num_highlights}
+    return {"num_highlights": self._num_highlights}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -460,13 +460,13 @@ class HighlightSectionChecker(Instruction):
       if highlight.removeprefix("**").removesuffix("**").strip():
         num_highlights += 1
 
-    return num_highlights >= self._num_highlights
+    return num_highlights >= self._num_highlights  # pyrefly: ignore[unsupported-operation]
 
 
 class SectionChecker(Instruction):
   """Checks the sections."""
 
-  def build_description(self, *, section_spliter = None,
+  def build_description(self, *, section_spliter = None,  # pyrefly: ignore[bad-override]
                         num_sections = None):
     """Build the instruction description.
 
@@ -501,7 +501,7 @@ class SectionChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"section_spliter": self._section_spliter,
+    return {"section_spliter": self._section_spliter,  # pyrefly: ignore[bad-return]
             "num_sections": self._num_sections}
 
   def get_instruction_args_keys(self):
@@ -521,16 +521,16 @@ class SectionChecker(Instruction):
       True if the number of sections in the response is greater than or equal to
       the minimum number of sections; otherwise, False.
     """
-    section_splitter_patten = r"\s?" + self._section_spliter  + r"\s?\d+\s?"
+    section_splitter_patten = r"\s?" + self._section_spliter  + r"\s?\d+\s?"  # pyrefly: ignore[unsupported-operation]
     sections = re.split(section_splitter_patten, value)
     num_sections = len(sections) - 1
-    return num_sections >= self._num_sections
+    return num_sections >= self._num_sections  # pyrefly: ignore[unsupported-operation]
 
 
 class ParagraphChecker(Instruction):
   """Checks the paragraphs."""
 
-  def build_description(self, *, num_paragraphs = None):
+  def build_description(self, *, num_paragraphs = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -551,7 +551,7 @@ class ParagraphChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_paragraphs": self._num_paragraphs}
+    return {"num_paragraphs": self._num_paragraphs}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -584,7 +584,7 @@ class ParagraphChecker(Instruction):
 class PostscriptChecker(Instruction):
   """Checks the postscript."""
 
-  def build_description(self, *, postscript_marker = None
+  def build_description(self, *, postscript_marker = None  # pyrefly: ignore[bad-override]
                         ):
     """Build the instruction description.
 
@@ -608,7 +608,7 @@ class PostscriptChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"postscript_marker": self._postscript_marker}
+    return {"postscript_marker": self._postscript_marker}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -631,7 +631,7 @@ class PostscriptChecker(Instruction):
     elif self._postscript_marker == "P.S.":
       postscript_pattern = r"\s*p\.\s?s\..*$"
     else:
-      postscript_pattern = r"\s*" + self._postscript_marker.lower() + r".*$"
+      postscript_pattern = r"\s*" + self._postscript_marker.lower() + r".*$"  # pyrefly: ignore[missing-attribute]
     postscript = re.findall(postscript_pattern, value, flags=re.MULTILINE)
     return True if postscript else False
 
@@ -639,7 +639,7 @@ class PostscriptChecker(Instruction):
 class RephraseChecker(Instruction):
   """Checks the repharse."""
 
-  def build_description(self, *, original_message):
+  def build_description(self, *, original_message):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -703,7 +703,7 @@ class RephraseChecker(Instruction):
 class KeywordChecker(Instruction):
   """Check the exisitence of certain keywords."""
 
-  def build_description(self, *, keywords = None
+  def build_description(self, *, keywords = None  # pyrefly: ignore[bad-override]
                         ):
     """Build the instruction description.
 
@@ -745,7 +745,7 @@ class KeywordChecker(Instruction):
 class KeywordFrequencyChecker(Instruction):
   """Check the keyword frequency."""
 
-  def build_description(self, *, keyword = None,
+  def build_description(self, *, keyword = None,  # pyrefly: ignore[bad-override]
                         frequency = None,
                         relation = None):
     """Build the instruction description.
@@ -791,7 +791,7 @@ class KeywordFrequencyChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"keyword": self._keyword,
+    return {"keyword": self._keyword,  # pyrefly: ignore[bad-return]
             "frequency": self._frequency,
             "relation": self._comparison_relation}
 
@@ -799,13 +799,13 @@ class KeywordFrequencyChecker(Instruction):
     """Returns the args keys of `build_description`."""
     return ["keyword", "frequency", "relation"]
 
-  def check_following(self, value):
+  def check_following(self, value):  # pyrefly: ignore[bad-return]
     """Checks if the response contain the keyword with required frequency."""
     actual_occurrences = len(re.findall(
         self._keyword, value, flags=re.IGNORECASE))
 
     if self._comparison_relation == _COMPARISON_RELATION[0]:
-      return actual_occurrences < self._frequency
+      return actual_occurrences < self._frequency  # pyrefly: ignore[unsupported-operation]
     elif self._comparison_relation == _COMPARISON_RELATION[1]:
       return actual_occurrences >= self._frequency  # pytype: disable=bad-return-type
 
@@ -813,7 +813,7 @@ class KeywordFrequencyChecker(Instruction):
 class NumberOfWords(Instruction):
   """Checks the number of words."""
 
-  def build_description(self, *, num_words = None,
+  def build_description(self, *, num_words = None,  # pyrefly: ignore[bad-override]
                         relation = None):
     """Build the instruction description.
 
@@ -853,19 +853,19 @@ class NumberOfWords(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_words": self._num_words,
+    return {"num_words": self._num_words,  # pyrefly: ignore[bad-return]
             "relation": self._comparison_relation}
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
     return ["num_words", "relation"]
 
-  def check_following(self, value):
+  def check_following(self, value):  # pyrefly: ignore[bad-return]
     """Checks if the response contains the expected number of words."""
     num_words = instructions_util.count_words(value)
 
     if self._comparison_relation == _COMPARISON_RELATION[0]:
-      return num_words < self._num_words
+      return num_words < self._num_words  # pyrefly: ignore[unsupported-operation]
     elif self._comparison_relation == _COMPARISON_RELATION[1]:
       return num_words >= self._num_words  # pytype: disable=bad-return-type
 
@@ -873,7 +873,7 @@ class NumberOfWords(Instruction):
 class JsonFormat(Instruction):
   """Check the Json format."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     self._description_pattern = (
         "Entire output should be wrapped in JSON format. You can use markdown"
         " ticks such as ```."
@@ -908,7 +908,7 @@ class JsonFormat(Instruction):
 class ParagraphFirstWordCheck(Instruction):
   """Check the paragraph and the first word of the nth paragraph."""
 
-  def build_description(self, num_paragraphs = None,
+  def build_description(self, num_paragraphs = None,  # pyrefly: ignore[bad-override]
                         nth_paragraph = None,
                         first_word = None):
     r"""Build the instruction description.
@@ -954,7 +954,7 @@ class ParagraphFirstWordCheck(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyward args of `build_description`."""
-    return {"num_paragraphs": self._num_paragraphs,
+    return {"num_paragraphs": self._num_paragraphs,  # pyrefly: ignore[bad-return]
             "nth_paragraph": self._nth_paragraph,
             "first_word": self._first_word}
 
@@ -983,8 +983,8 @@ class ParagraphFirstWordCheck(Instruction):
         num_paragraphs -= 1
 
     # check that index doesn't go out of bounds
-    if self._nth_paragraph <= num_paragraphs:
-      paragraph = paragraphs[self._nth_paragraph - 1].strip()
+    if self._nth_paragraph <= num_paragraphs:  # pyrefly: ignore[unsupported-operation]
+      paragraph = paragraphs[self._nth_paragraph - 1].strip()  # pyrefly: ignore[unsupported-operation]
       if not paragraph:
         return False
     else:
@@ -1014,7 +1014,7 @@ class ParagraphFirstWordCheck(Instruction):
 class KeySentenceChecker(Instruction):
   """Check the existence of certain key sentences."""
 
-  def build_description(self, key_sentences = None,
+  def build_description(self, key_sentences = None,  # pyrefly: ignore[bad-override]
                         num_sentences = None):
     """Build the instruction description.
 
@@ -1070,7 +1070,7 @@ class KeySentenceChecker(Instruction):
 class ForbiddenWords(Instruction):
   """Checks that specified words are not used in response."""
 
-  def build_description(self, forbidden_words = None
+  def build_description(self, forbidden_words = None  # pyrefly: ignore[bad-override]
                         ):
     """Build the instruction description.
 
@@ -1115,7 +1115,7 @@ class ForbiddenWords(Instruction):
 class RephraseParagraph(Instruction):
   """Checks that the paragraph is rephrased."""
 
-  def build_description(self, *, original_paragraph, low, high
+  def build_description(self, *, original_paragraph, low, high  # pyrefly: ignore[bad-override]
                         ):
     """Builds the instruction description.
 
@@ -1171,7 +1171,7 @@ class RephraseParagraph(Instruction):
 class TwoResponsesChecker(Instruction):
   """Check that two responses were given."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     self._description_pattern = (
         "Give two different responses. Responses and only responses should"
@@ -1213,7 +1213,7 @@ class TwoResponsesChecker(Instruction):
 class RepeatPromptThenAnswer(Instruction):
   """Checks that Prompt is first repeated then answered."""
 
-  def build_description(self, *, prompt_to_repeat = None):
+  def build_description(self, *, prompt_to_repeat = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -1250,7 +1250,7 @@ class RepeatPromptThenAnswer(Instruction):
 class EndChecker(Instruction):
   """Checks that the prompt ends with a given phrase."""
 
-  def build_description(self, *, end_phrase = None):
+  def build_description(self, *, end_phrase = None):  # pyrefly: ignore[bad-override]
     """Build the instruction description.
 
     Args:
@@ -1270,7 +1270,7 @@ class EndChecker(Instruction):
     return self._description_pattern.format(ender=self._end_phrase)
 
   def get_instruction_args(self):
-    return {"end_phrase": self._end_phrase}
+    return {"end_phrase": self._end_phrase}  # pyrefly: ignore[bad-return]
 
   def get_instruction_args_keys(self):
     """Returns the args keys of `build_description`."""
@@ -1279,14 +1279,14 @@ class EndChecker(Instruction):
   def check_following(self, value):
     """Checks if the response ends with the expected phrase."""
     value = value.strip().strip("\"").lower()
-    self._end_phrase = self._end_phrase.strip().lower()
+    self._end_phrase = self._end_phrase.strip().lower()  # pyrefly: ignore[missing-attribute]
     return value.endswith(self._end_phrase)
 
 
 class TitleChecker(Instruction):
   """Checks the response for a title."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     self._description_pattern = (
         "Your answer must contain a title, wrapped in double angular brackets,"
@@ -1316,7 +1316,7 @@ class TitleChecker(Instruction):
 class LetterFrequencyChecker(Instruction):
   """Checks letter frequency."""
 
-  def build_description(self, *, letter = None,
+  def build_description(self, *, letter = None,  # pyrefly: ignore[bad-override]
                         let_frequency = None,
                         let_relation = None):
     """Build the instruction description.
@@ -1372,7 +1372,7 @@ class LetterFrequencyChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyword args of build description."""
-    return {"letter": self._letter,
+    return {"letter": self._letter,  # pyrefly: ignore[bad-return]
             "let_frequency": self._frequency,
             "let_relation": self._comparison_relation}
 
@@ -1386,15 +1386,15 @@ class LetterFrequencyChecker(Instruction):
     letters = collections.Counter(value)
 
     if self._comparison_relation == _COMPARISON_RELATION[0]:
-      return letters[self._letter] < self._frequency
+      return letters[self._letter] < self._frequency  # pyrefly: ignore[unsupported-operation]
     else:
-      return letters[self._letter] >= self._frequency
+      return letters[self._letter] >= self._frequency  # pyrefly: ignore[unsupported-operation]
 
 
 class CapitalLettersEnglishChecker(Instruction):
   """Checks that the response is in english and is in all capital letters."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     self._description_pattern = (
         "Your entire response should be in English, and in all capital letters."
@@ -1425,7 +1425,7 @@ class CapitalLettersEnglishChecker(Instruction):
 class LowercaseLettersEnglishChecker(Instruction):
   """Checks that the response is in english and is in all lowercase letters."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     self._description_pattern = (
         "Your entire response should be in English, and in all lowercase"
@@ -1457,7 +1457,7 @@ class LowercaseLettersEnglishChecker(Instruction):
 class CommaChecker(Instruction):
   """Checks the response for no commas."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     self._description_pattern = (
         "In your entire response, refrain from the use of any commas."
@@ -1479,7 +1479,7 @@ class CommaChecker(Instruction):
 class CapitalWordFrequencyChecker(Instruction):
   """Checks frequency of words with all capital letters."""
 
-  def build_description(
+  def build_description(  # pyrefly: ignore[bad-override]
       self,
       capital_frequency = None,
       capital_relation = None,
@@ -1519,7 +1519,7 @@ class CapitalWordFrequencyChecker(Instruction):
 
   def get_instruction_args(self):
     """Returns the keyword args of build description."""
-    return {
+    return {  # pyrefly: ignore[bad-return]
         "capital_frequency": self._frequency,
         "capital_relation": self._comparison_relation,
     }
@@ -1537,15 +1537,15 @@ class CapitalWordFrequencyChecker(Instruction):
     capital_words = len(capital_words)
 
     if self._comparison_relation == _COMPARISON_RELATION[0]:
-      return capital_words < self._frequency
+      return capital_words < self._frequency  # pyrefly: ignore[unsupported-operation]
     else:
-      return capital_words >= self._frequency
+      return capital_words >= self._frequency  # pyrefly: ignore[unsupported-operation]
 
 
 class QuotationChecker(Instruction):
   """Checks response is wrapped with double quotation marks."""
 
-  def build_description(self):
+  def build_description(self):  # pyrefly: ignore[bad-override]
     """Build the instruction description."""
     self._description_pattern = (
         "Wrap your entire response with double quotation marks."

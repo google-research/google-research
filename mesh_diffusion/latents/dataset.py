@@ -100,7 +100,7 @@ def encode_shape_example(geom):
 
 def load_tfr_dataset(files, ordered=True):  # pylint: disable=unused-argument
   """Load TFRecords dataset."""
-  dataset = tf.data.TFRecordDataset(files, num_parallel_reads=tf.data.AUTOTUNE)
+  dataset = tf.data.TFRecordDataset(files, num_parallel_reads=tf.data.AUTOTUNE)  # pyrefly: ignore[bad-instantiation]
   return dataset
 
 

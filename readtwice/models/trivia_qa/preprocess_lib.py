@@ -257,7 +257,7 @@ class MakeExamples(beam.DoFn):
     metrics.Metrics.counter(METRICS_NAMESPACE, 'num_questions').inc()
 
     if self.generate_answers:
-      answer_set = question_answer_evidence.answer.make_answer_set()
+      answer_set = question_answer_evidence.answer.make_answer_set()  # pyrefly: ignore[missing-attribute]
 
     sentences = []
     for sentence in self._split_into_sentences(
@@ -266,7 +266,7 @@ class MakeExamples(beam.DoFn):
       metrics.Metrics.counter(METRICS_NAMESPACE, 'nltk_entities').inc(
           sentence_obj.num_annotations(1))
       if self.generate_answers:
-        annotations = find_answer_annotations(sentence_obj.text, answer_set)
+        annotations = find_answer_annotations(sentence_obj.text, answer_set)  # pyrefly: ignore[unbound-name]
         sentence_obj.annotations.extend(annotations)
 
       sentences.append(sentence_obj)
@@ -308,7 +308,7 @@ class MakeExamples(beam.DoFn):
       for i, sentence in enumerate(tokenized_big_document.sentences):
         (should_update, annotations,
          current_filtered_annotations) = self._verify_annotations(
-             sentence.annotations, answer_set)
+             sentence.annotations, answer_set)  # pyrefly: ignore[unbound-name]
         if should_update:
           tokenized_big_document.sentences[i].annotations = annotations
 
@@ -316,7 +316,7 @@ class MakeExamples(beam.DoFn):
           filtered_annotations.extend([
               FilteredAnnotation(
                   question=question_answer_evidence.question,
-                  answer=question_answer_evidence.answer,
+                  answer=question_answer_evidence.answer,  # pyrefly: ignore[bad-argument-type]
                   annotation=annotation,
                   sentence=''.join(sentence.tokens))
               for annotation in current_filtered_annotations

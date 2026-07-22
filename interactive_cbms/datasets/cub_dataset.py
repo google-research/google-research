@@ -94,7 +94,7 @@ def load_concept_costs(concept_groups,
       concept_group_name: random_state.integers(low=1, high=7)
       for concept_group_name in concept_groups
   }
-  return concept_costs
+  return concept_costs  # pyrefly: ignore[bad-return]
 
 
 def process_tfexample(
@@ -172,17 +172,17 @@ def load_dataset(
   """
 
   if merge_train_and_val:
-    ds_train = tf.data.TFRecordDataset(
+    ds_train = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(Config.data_dir, 'train_and_val.tfrecord'))
-    ds_val = tf.data.TFRecordDataset(
+    ds_val = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(Config.data_dir, 'test.tfrecord'))
     ds_test = None
   else:
-    ds_train = tf.data.TFRecordDataset(
+    ds_train = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(Config.data_dir, 'train.tfrecord'))
-    ds_val = tf.data.TFRecordDataset(
+    ds_val = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(Config.data_dir, 'val.tfrecord'))
-    ds_test = tf.data.TFRecordDataset(
+    ds_test = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         os.path.join(Config.data_dir, 'test.tfrecord'))
     ds_test = ds_test.map(functools.partial(process_tfexample, train=False))
     ds_test = ds_test.batch(batch_size)

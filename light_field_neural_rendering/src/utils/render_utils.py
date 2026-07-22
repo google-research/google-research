@@ -163,4 +163,4 @@ def render_image(render_fn, batch, rng, normalize_disp, chunk=8192):
     rgb = [jnp.concatenate(r, axis=0) for r in zip(*results)][0]
     ret = (rgb.reshape((height, width, -1)), None, None)
 
-  return ret
+  return ret  # pyrefly: ignore[unbound-name]

@@ -188,7 +188,7 @@ def get_overlap_candidates(df):
   train_x_candidates = pd.concat(
       [df[: int(N_BAGS * 0.8)].copy(), df[N_BAGS:].copy()])
   train_x_candidates = train_x_candidates.explode(
-      column=[str(feature_i) for feature_i in range(N_FEATURES)]
+      column=[str(feature_i) for feature_i in range(N_FEATURES)]  # pyrefly: ignore[unexpected-keyword]
       + ['instance_id', 'bag_id_X_instance_id', 'y']
   )
   train_y_candidates = train_x_candidates['y'].to_numpy()

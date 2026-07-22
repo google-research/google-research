@@ -206,10 +206,10 @@ def train(encoder_network_def,
   rng1, rng2, rng3, rng4 = jax.random.split(key, num=4)
 
   def encoder_online_actor(state):
-    return encoder_network_def.apply(encoder_params, state).actor_z
+    return encoder_network_def.apply(encoder_params, state).actor_z  # pyrefly: ignore[missing-attribute]
 
   def encoder_target_actor(state):
-    return encoder_network_def.apply(encoder_target_params, state).actor_z
+    return encoder_network_def.apply(encoder_target_params, state).actor_z  # pyrefly: ignore[missing-attribute]
 
   # Encode states for other losses.
   fixed_encoded_states = jax.vmap(encoder_online_actor)(states)
@@ -219,7 +219,7 @@ def train(encoder_network_def,
       encoder_params,
       dynamics_params):
     def encoder_online_critic(state):
-      return encoder_network_def.apply(encoder_params, state).critic_z
+      return encoder_network_def.apply(encoder_params, state).critic_z  # pyrefly: ignore[missing-attribute]
 
     def dynamics_online(z, a, rng):
       return dynamics_model_def.apply(dynamics_params, z, a, rng)
@@ -364,21 +364,21 @@ def train(encoder_network_def,
   network_gradient, alpha_gradient = sac_gradients
 
   # Apply gradients to all the optimizers.
-  encoder_updates, encoder_optim_state = encoder_optim.update(
+  encoder_updates, encoder_optim_state = encoder_optim.update(  # pyrefly: ignore[bad-assignment]
       bisim_gradient, encoder_optim_state, params=encoder_params)
-  encoder_params = optax.apply_updates(encoder_params, encoder_updates)
-  reward_updates, reward_optim_state = reward_optim.update(
+  encoder_params = optax.apply_updates(encoder_params, encoder_updates)  # pyrefly: ignore[bad-assignment]
+  reward_updates, reward_optim_state = reward_optim.update(  # pyrefly: ignore[bad-assignment]
       reward_gradient, reward_optim_state, params=reward_params)
-  reward_params = optax.apply_updates(reward_params, reward_updates)
-  dynamics_updates, dynamics_optim_state = dynamics_optim.update(
+  reward_params = optax.apply_updates(reward_params, reward_updates)  # pyrefly: ignore[bad-assignment]
+  dynamics_updates, dynamics_optim_state = dynamics_optim.update(  # pyrefly: ignore[bad-assignment]
       dynamics_gradient, dynamics_optim_state, params=dynamics_params)
-  dynamics_params = optax.apply_updates(dynamics_params, dynamics_updates)
-  updates, optim_state = optim.update(network_gradient, optim_state,
+  dynamics_params = optax.apply_updates(dynamics_params, dynamics_updates)  # pyrefly: ignore[bad-assignment]
+  updates, optim_state = optim.update(network_gradient, optim_state,  # pyrefly: ignore[bad-assignment]
                                       params=params)
-  params = optax.apply_updates(params, updates)
-  alpha_updates, alpha_optim_state = alpha_optim.update(
+  params = optax.apply_updates(params, updates)  # pyrefly: ignore[bad-assignment]
+  alpha_updates, alpha_optim_state = alpha_optim.update(  # pyrefly: ignore[bad-assignment]
       alpha_gradient, alpha_optim_state, params=log_alpha)
-  log_alpha = optax.apply_updates(log_alpha, alpha_updates)
+  log_alpha = optax.apply_updates(log_alpha, alpha_updates)  # pyrefly: ignore[bad-assignment]
 
   # Compile everything in a dict.
   returns = {
@@ -459,7 +459,7 @@ class DBCAgent(sac_agent.SACAgent):
 
     # Create a sample latent state for initializing the SAC network.
     sample_z = jnp.zeros_like(
-        self.encoder_network_def.apply(
+        self.encoder_network_def.apply(  # pyrefly: ignore[missing-attribute]
             self.encoder_params, self.state).critic_z)
     # since it is only used for shape inference during initialization.
     self.network_params = self.network_def.init(network_key, sample_z,

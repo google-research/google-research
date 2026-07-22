@@ -99,84 +99,84 @@ class Params(object):
 def att_mh_rnn_params():
   """Parameters for toy multihead attention model."""
   params = Params()
-  params.model_name = 'att_rnn'
-  params.cnn_filters = '3,1'
-  params.cnn_kernel_size = '(3,1),(3,1)'
-  params.cnn_act = "'relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1)'
-  params.cnn_strides = '(1,1),(1,1)'
-  params.rnn_layers = 2
-  params.rnn_type = 'gru'
-  params.rnn_units = 2
-  params.heads = 4
-  params.dropout1 = 0.1
-  params.units2 = '2,2'
-  params.act2 = "'relu','linear'"
+  params.model_name = 'att_rnn'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '3,1'  # pyrefly: ignore[missing-attribute]
+  params.cnn_kernel_size = '(3,1),(3,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.cnn_dilation_rate = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_strides = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.rnn_layers = 2  # pyrefly: ignore[missing-attribute]
+  params.rnn_type = 'gru'  # pyrefly: ignore[missing-attribute]
+  params.rnn_units = 2  # pyrefly: ignore[missing-attribute]
+  params.heads = 4  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.1  # pyrefly: ignore[missing-attribute]
+  params.units2 = '2,2'  # pyrefly: ignore[missing-attribute]
+  params.act2 = "'relu','linear'"  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def att_rnn_params():
   """Parameters for toy attention model."""
   params = Params()
-  params.model_name = 'att_rnn'
-  params.cnn_filters = '3,1'
-  params.cnn_kernel_size = '(3,1),(3,1)'
-  params.cnn_act = "'relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1)'
-  params.cnn_strides = '(1,1),(1,1)'
-  params.rnn_layers = 2
-  params.rnn_type = 'gru'
-  params.rnn_units = 2
-  params.dropout1 = 0.1
-  params.units2 = '2,2'
-  params.act2 = "'relu','linear'"
+  params.model_name = 'att_rnn'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '3,1'  # pyrefly: ignore[missing-attribute]
+  params.cnn_kernel_size = '(3,1),(3,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.cnn_dilation_rate = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_strides = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.rnn_layers = 2  # pyrefly: ignore[missing-attribute]
+  params.rnn_type = 'gru'  # pyrefly: ignore[missing-attribute]
+  params.rnn_units = 2  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.1  # pyrefly: ignore[missing-attribute]
+  params.units2 = '2,2'  # pyrefly: ignore[missing-attribute]
+  params.act2 = "'relu','linear'"  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def dnn_params():
   """Parameters for toy dnn model."""
   params = Params()
-  params.model_name = 'dnn'
-  params.units1 = '4,4'
-  params.act1 = "'relu','relu'"
-  params.pool_size = 2
-  params.strides = 2
-  params.dropout1 = 0.1
-  params.units2 = '4,4'
-  params.act2 = "'linear','relu'"
+  params.model_name = 'dnn'  # pyrefly: ignore[missing-attribute]
+  params.units1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act1 = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.pool_size = 2  # pyrefly: ignore[missing-attribute]
+  params.strides = 2  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.1  # pyrefly: ignore[missing-attribute]
+  params.units2 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act2 = "'linear','relu'"  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def crnn_params():
   """Parameters for toy conv rnn model."""
   params = Params()
-  params.model_name = 'crnn'
-  params.cnn_filters = '4,4'
-  params.cnn_kernel_size = '(3,3),(1,1)'
-  params.cnn_act = "'relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1)'
-  params.cnn_strides = '(1,1),(1,1)'
-  params.gru_units = '4'
-  params.return_sequences = '0'
-  params.dropout1 = 0.1
-  params.units1 = '4,4'
-  params.act1 = "'linear','relu'"
-  params.stateful = 0
+  params.model_name = 'crnn'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn_kernel_size = '(3,3),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.cnn_dilation_rate = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_strides = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.gru_units = '4'  # pyrefly: ignore[missing-attribute]
+  params.return_sequences = '0'  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.1  # pyrefly: ignore[missing-attribute]
+  params.units1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act1 = "'linear','relu'"  # pyrefly: ignore[missing-attribute]
+  params.stateful = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def cnn_stride_params():
   """Parameters for toy conv striding model."""
   params = Params()
-  params.model_name = 'cnn'
-  params.cnn_filters = '4,4'
-  params.cnn_kernel_size = '(3,3),(3,1)'
-  params.cnn_act = "'relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1)'
-  params.cnn_strides = '(2,1),(1,1)'
-  params.dropout1 = 0.5
-  params.units2 = '4,4'
-  params.act2 = "'linear','relu'"
+  params.model_name = 'cnn'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn_kernel_size = '(3,3),(3,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.cnn_dilation_rate = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_strides = '(2,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.5  # pyrefly: ignore[missing-attribute]
+  params.units2 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act2 = "'linear','relu'"  # pyrefly: ignore[missing-attribute]
   params.data_stride = 2
   return params
 
@@ -184,96 +184,96 @@ def cnn_stride_params():
 def cnn_params():
   """Parameters for toy conv model."""
   params = Params()
-  params.model_name = 'cnn'
-  params.cnn_filters = '4,4'
-  params.cnn_kernel_size = '(3,3),(1,1)'
-  params.cnn_act = "'relu','relu'"
-  params.cnn_dilation_rate = '(1,1),(1,1)'
-  params.cnn_strides = '(1,1),(1,1)'
-  params.dropout1 = 0.5
-  params.units2 = '4,4'
-  params.act2 = "'linear','relu'"
+  params.model_name = 'cnn'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn_kernel_size = '(3,3),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.cnn_dilation_rate = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_strides = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.5  # pyrefly: ignore[missing-attribute]
+  params.units2 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act2 = "'linear','relu'"  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def tc_resnet_params():
   """Parameters for toy tc_resnet model."""
   params = Params()
-  params.model_name = 'tc_resnet'
-  params.channels = '4, 8'
-  params.debug_2d = 0
-  params.pool_size = ''
-  params.kernel_size = '(3, 1)'
-  params.pool_stride = 0
-  params.bn_momentum = 0.997
-  params.bn_center = 1
-  params.bn_scale = 1
-  params.bn_renorm = 0
-  params.dropout = 0.2
-  params.use_layer_norm = 0
+  params.model_name = 'tc_resnet'  # pyrefly: ignore[missing-attribute]
+  params.channels = '4, 8'  # pyrefly: ignore[missing-attribute]
+  params.debug_2d = 0  # pyrefly: ignore[missing-attribute]
+  params.pool_size = ''  # pyrefly: ignore[missing-attribute]
+  params.kernel_size = '(3, 1)'  # pyrefly: ignore[missing-attribute]
+  params.pool_stride = 0  # pyrefly: ignore[missing-attribute]
+  params.bn_momentum = 0.997  # pyrefly: ignore[missing-attribute]
+  params.bn_center = 1  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 1  # pyrefly: ignore[missing-attribute]
+  params.bn_renorm = 0  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.2  # pyrefly: ignore[missing-attribute]
+  params.use_layer_norm = 0  # pyrefly: ignore[missing-attribute]
 
   # if ln_axis=(-1) then both ln_center and ln_scale has to be = 0, else
   # model does not converge
-  params.ln_center = 0
-  params.ln_scale = 0
+  params.ln_center = 0  # pyrefly: ignore[missing-attribute]
+  params.ln_scale = 0  # pyrefly: ignore[missing-attribute]
 
   # For compatibility with streaming and non streaming modes axis has to be -1.
   # For compatibility with non streaming mode only it can be (1, 3) - it can be
   # more stable during training.
-  params.ln_axis = '(-1)'
+  params.ln_axis = '(-1)'  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def lstm_params():
   """Parameters for toy lstm model."""
   params = Params()
-  params.model_name = 'lstm'
-  params.lstm_units = '4'
-  params.return_sequences = '0'
-  params.use_peepholes = 0
-  params.num_proj = '-1'
-  params.dropout1 = 0.3
-  params.units1 = '4,4'
-  params.act1 = "'linear','relu'"
-  params.stateful = 0
+  params.model_name = 'lstm'  # pyrefly: ignore[missing-attribute]
+  params.lstm_units = '4'  # pyrefly: ignore[missing-attribute]
+  params.return_sequences = '0'  # pyrefly: ignore[missing-attribute]
+  params.use_peepholes = 0  # pyrefly: ignore[missing-attribute]
+  params.num_proj = '-1'  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.3  # pyrefly: ignore[missing-attribute]
+  params.units1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act1 = "'linear','relu'"  # pyrefly: ignore[missing-attribute]
+  params.stateful = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def gru_params():
   """Parameters for toy gru model."""
   params = Params()
-  params.model_name = 'gru'
-  params.gru_units = '4'
-  params.return_sequences = '0'
-  params.dropout1 = 0.1
-  params.units1 = '4,4'
-  params.act1 = "'linear','relu'"
-  params.stateful = 0
+  params.model_name = 'gru'  # pyrefly: ignore[missing-attribute]
+  params.gru_units = '4'  # pyrefly: ignore[missing-attribute]
+  params.return_sequences = '0'  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.1  # pyrefly: ignore[missing-attribute]
+  params.units1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.act1 = "'linear','relu'"  # pyrefly: ignore[missing-attribute]
+  params.stateful = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def ds_cnn_params():
   """Parameters for toy "depthwise convolutional neural network" stride model."""
   params = Params()
-  params.model_name = 'ds_cnn'
-  params.cnn1_kernel_size = '(3,2)'
-  params.cnn1_dilation_rate = '(1,1)'
-  params.cnn1_strides = '(2,1)'
-  params.cnn1_padding = 'same'
-  params.cnn1_filters = 4
-  params.cnn1_act = 'relu'
-  params.bn_momentum = 0.98
-  params.bn_center = 1
-  params.bn_scale = 0
-  params.bn_renorm = 0
-  params.dw2_dilation_rate = '(1,1),(1,1)'
-  params.dw2_kernel_size = '(3,3),(3,3)'
-  params.dw2_strides = '(2,2),(1,1)'
-  params.dw2_padding = 'same'
-  params.dw2_act = "'relu','relu'"
-  params.cnn2_filters = '4,4'
-  params.cnn2_act = "'relu','relu'"
-  params.dropout1 = 0.2
+  params.model_name = 'ds_cnn'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_kernel_size = '(3,2)'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_dilation_rate = '(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_strides = '(2,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_padding = 'same'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_filters = 4  # pyrefly: ignore[missing-attribute]
+  params.cnn1_act = 'relu'  # pyrefly: ignore[missing-attribute]
+  params.bn_momentum = 0.98  # pyrefly: ignore[missing-attribute]
+  params.bn_center = 1  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
+  params.bn_renorm = 0  # pyrefly: ignore[missing-attribute]
+  params.dw2_dilation_rate = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.dw2_kernel_size = '(3,3),(3,3)'  # pyrefly: ignore[missing-attribute]
+  params.dw2_strides = '(2,2),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.dw2_padding = 'same'  # pyrefly: ignore[missing-attribute]
+  params.dw2_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.2  # pyrefly: ignore[missing-attribute]
   params.data_stride = 2
   return params
 
@@ -281,47 +281,47 @@ def ds_cnn_params():
 def svdf_params():
   """Parameters for toy svdf model."""
   params = Params()
-  params.model_name = 'svdf'
-  params.svdf_memory_size = '2,1'
-  params.svdf_units1 = '4,4'
-  params.svdf_act = "'relu','relu'"
-  params.svdf_units2 = '4,-1'
-  params.svdf_dropout = '0.0,0.0'
-  params.svdf_pad = 0
-  params.dropout1 = 0.0
-  params.units2 = ''
-  params.act2 = ''
+  params.model_name = 'svdf'  # pyrefly: ignore[missing-attribute]
+  params.svdf_memory_size = '2,1'  # pyrefly: ignore[missing-attribute]
+  params.svdf_units1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.svdf_act = "'relu','relu'"  # pyrefly: ignore[missing-attribute]
+  params.svdf_units2 = '4,-1'  # pyrefly: ignore[missing-attribute]
+  params.svdf_dropout = '0.0,0.0'  # pyrefly: ignore[missing-attribute]
+  params.svdf_pad = 0  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.0  # pyrefly: ignore[missing-attribute]
+  params.units2 = ''  # pyrefly: ignore[missing-attribute]
+  params.act2 = ''  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def mobilenet_params():
   """Parameters for mobilenet model."""
   params = Params()
-  params.model_name = 'mobilenet'
-  params.cnn1_filters = 4
-  params.cnn1_kernel_size = '(3,1)'
-  params.cnn1_strides = '(1,1)'
-  params.ds_kernel_size = '(3,1),(1,1)'
-  params.ds_strides = '(1,1),(1,1)'
-  params.cnn_filters = '4,4'
-  params.dropout = 0.2
-  params.bn_scale = 0
+  params.model_name = 'mobilenet'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_filters = 4  # pyrefly: ignore[missing-attribute]
+  params.cnn1_kernel_size = '(3,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_strides = '(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.ds_kernel_size = '(3,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.ds_strides = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.2  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def mobilenet_v2_params():
   """Parameters for mobilenet v2 model."""
   params = Params()
-  params.model_name = 'mobilenet_v2'
-  params.cnn1_filters = 4
-  params.cnn1_kernel_size = '(3,1)'
-  params.cnn1_strides = '(2,1)'
-  params.ds_kernel_size = '(3,1),(3,1)'
-  params.cnn_strides = '(1,1),(1,1)'
-  params.cnn_filters = '4,4'
-  params.cnn_expansions = '1.5,1.5'
-  params.dropout = 0.2
-  params.bn_scale = 0
+  params.model_name = 'mobilenet_v2'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_filters = 4  # pyrefly: ignore[missing-attribute]
+  params.cnn1_kernel_size = '(3,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_strides = '(2,1)'  # pyrefly: ignore[missing-attribute]
+  params.ds_kernel_size = '(3,1),(3,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_strides = '(1,1),(1,1)'  # pyrefly: ignore[missing-attribute]
+  params.cnn_filters = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn_expansions = '1.5,1.5'  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.2  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
   params.data_stride = 2
   return params
 
@@ -329,135 +329,135 @@ def mobilenet_v2_params():
 def xception_params():
   """Parameters for xception model."""
   params = Params()
-  params.model_name = 'xception'
-  params.cnn1_kernel_sizes = '3'
-  params.cnn1_filters = '4'
-  params.stride1 = 1
-  params.stride2 = 1
-  params.stride3 = 1
-  params.stride4 = 1
-  params.cnn2_kernel_sizes = '3'
-  params.cnn2_filters = '4'
-  params.cnn3_kernel_sizes = '1'
-  params.cnn3_filters = '4'
-  params.cnn4_kernel_sizes = '1'
-  params.cnn4_filters = '4'
-  params.units2 = '4'
-  params.dropout = 0.2
-  params.bn_scale = 0
+  params.model_name = 'xception'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_kernel_sizes = '3'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_filters = '4'  # pyrefly: ignore[missing-attribute]
+  params.stride1 = 1  # pyrefly: ignore[missing-attribute]
+  params.stride2 = 1  # pyrefly: ignore[missing-attribute]
+  params.stride3 = 1  # pyrefly: ignore[missing-attribute]
+  params.stride4 = 1  # pyrefly: ignore[missing-attribute]
+  params.cnn2_kernel_sizes = '3'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters = '4'  # pyrefly: ignore[missing-attribute]
+  params.cnn3_kernel_sizes = '1'  # pyrefly: ignore[missing-attribute]
+  params.cnn3_filters = '4'  # pyrefly: ignore[missing-attribute]
+  params.cnn4_kernel_sizes = '1'  # pyrefly: ignore[missing-attribute]
+  params.cnn4_filters = '4'  # pyrefly: ignore[missing-attribute]
+  params.units2 = '4'  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.2  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def inception_params():
   """Parameters for inception model."""
   params = Params()
-  params.model_name = 'inception'
-  params.cnn1_filters = '4'
-  params.cnn1_kernel_sizes = '3'
-  params.cnn1_strides = '1'
-  params.cnn2_filters1 = '4,4'
-  params.cnn2_filters2 = '4,4'
-  params.cnn2_kernel_sizes = '3,1'
-  params.cnn2_strides = '1,1'
-  params.dropout = 0.2
-  params.bn_scale = 0
+  params.model_name = 'inception'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_filters = '4'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_kernel_sizes = '3'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_strides = '1'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters2 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_kernel_sizes = '3,1'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_strides = '1,1'  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.2  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def inception_resnet_params():
   """Parameters for inception resnet model."""
   params = Params()
-  params.model_name = 'inception_resnet'
-  params.cnn1_filters = '4'
-  params.cnn1_strides = '1'
-  params.cnn1_kernel_sizes = '3'
-  params.cnn2_scales = '0.2,1.0'
-  params.cnn2_filters_branch0 = '4,4'
-  params.cnn2_filters_branch1 = '4,4'
-  params.cnn2_filters_branch2 = '4,4'
-  params.cnn2_strides = '1,1'
-  params.cnn2_kernel_sizes = '3,1'
-  params.dropout = 0.2
-  params.bn_scale = 0
+  params.model_name = 'inception_resnet'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_filters = '4'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_strides = '1'  # pyrefly: ignore[missing-attribute]
+  params.cnn1_kernel_sizes = '3'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_scales = '0.2,1.0'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters_branch0 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters_branch1 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_filters_branch2 = '4,4'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_strides = '1,1'  # pyrefly: ignore[missing-attribute]
+  params.cnn2_kernel_sizes = '3,1'  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.2  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def svdf_resnet_params():
   """Parameters for svdf with resnet model."""
   params = Params()
-  params.model_name = 'svdf_resnet'
-  params.block1_memory_size = '1'
-  params.block2_memory_size = '1'
-  params.block3_memory_size = '1'
-  params.block1_units1 = '4'
-  params.block2_units1 = '4'
-  params.block3_units1 = '4'
-  params.blocks_pool = '1,1,1'
-  params.use_batch_norm = 1
-  params.bn_scale = 0
-  params.activation = 'relu'
-  params.svdf_dropout = 0.0
-  params.svdf_pad = 1
-  params.svdf_use_bias = 0
-  params.dropout1 = 0.2
-  params.units2 = '4'
-  params.flatten = 0
+  params.model_name = 'svdf_resnet'  # pyrefly: ignore[missing-attribute]
+  params.block1_memory_size = '1'  # pyrefly: ignore[missing-attribute]
+  params.block2_memory_size = '1'  # pyrefly: ignore[missing-attribute]
+  params.block3_memory_size = '1'  # pyrefly: ignore[missing-attribute]
+  params.block1_units1 = '4'  # pyrefly: ignore[missing-attribute]
+  params.block2_units1 = '4'  # pyrefly: ignore[missing-attribute]
+  params.block3_units1 = '4'  # pyrefly: ignore[missing-attribute]
+  params.blocks_pool = '1,1,1'  # pyrefly: ignore[missing-attribute]
+  params.use_batch_norm = 1  # pyrefly: ignore[missing-attribute]
+  params.bn_scale = 0  # pyrefly: ignore[missing-attribute]
+  params.activation = 'relu'  # pyrefly: ignore[missing-attribute]
+  params.svdf_dropout = 0.0  # pyrefly: ignore[missing-attribute]
+  params.svdf_pad = 1  # pyrefly: ignore[missing-attribute]
+  params.svdf_use_bias = 0  # pyrefly: ignore[missing-attribute]
+  params.dropout1 = 0.2  # pyrefly: ignore[missing-attribute]
+  params.units2 = '4'  # pyrefly: ignore[missing-attribute]
+  params.flatten = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def ds_tc_resnet_params():
   """Parameters for ds_tc_resnet model based on MatchboxNet."""
   params = Params()
-  params.model_name = 'ds_tc_resnet'
-  params.ds_padding = "'same','same'"
-  params.activation = 'relu'
-  params.dropout = 0.0
-  params.ds_filters = '4, 4'
-  params.ds_repeat = '1, 1'
-  params.ds_residual = '1, 0'
-  params.ds_kernel_size = '3, 1'
-  params.ds_stride = '1, 1'
-  params.ds_dilation = '2, 1'
-  params.ds_pool = '1,1'
-  params.ds_scale = 1
-  params.ds_filter_separable = '1,1'
-  params.ds_max_pool = 0
+  params.model_name = 'ds_tc_resnet'  # pyrefly: ignore[missing-attribute]
+  params.ds_padding = "'same','same'"  # pyrefly: ignore[missing-attribute]
+  params.activation = 'relu'  # pyrefly: ignore[missing-attribute]
+  params.dropout = 0.0  # pyrefly: ignore[missing-attribute]
+  params.ds_filters = '4, 4'  # pyrefly: ignore[missing-attribute]
+  params.ds_repeat = '1, 1'  # pyrefly: ignore[missing-attribute]
+  params.ds_residual = '1, 0'  # pyrefly: ignore[missing-attribute]
+  params.ds_kernel_size = '3, 1'  # pyrefly: ignore[missing-attribute]
+  params.ds_stride = '1, 1'  # pyrefly: ignore[missing-attribute]
+  params.ds_dilation = '2, 1'  # pyrefly: ignore[missing-attribute]
+  params.ds_pool = '1,1'  # pyrefly: ignore[missing-attribute]
+  params.ds_scale = 1  # pyrefly: ignore[missing-attribute]
+  params.ds_filter_separable = '1,1'  # pyrefly: ignore[missing-attribute]
+  params.ds_max_pool = 0  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def bc_resnet_params():
   """Parameters for bc_resnet model."""
   params = Params()
-  params.model_name = 'bc_resnet'
-  params.dropouts = '0.5, 0.5'
-  params.filters = '2, 2'
-  params.blocks_n = '1, 1'
-  params.strides = '(1,1), (1,1)'
-  params.dilations = '(1,1), (1,1)'
-  params.paddings = 'same'
-  params.first_filters = 2
-  params.last_filters = 2
-  params.sub_groups = 1
-  params.max_pool = 0
-  params.pools = '1, 1'
+  params.model_name = 'bc_resnet'  # pyrefly: ignore[missing-attribute]
+  params.dropouts = '0.5, 0.5'  # pyrefly: ignore[missing-attribute]
+  params.filters = '2, 2'  # pyrefly: ignore[missing-attribute]
+  params.blocks_n = '1, 1'  # pyrefly: ignore[missing-attribute]
+  params.strides = '(1,1), (1,1)'  # pyrefly: ignore[missing-attribute]
+  params.dilations = '(1,1), (1,1)'  # pyrefly: ignore[missing-attribute]
+  params.paddings = 'same'  # pyrefly: ignore[missing-attribute]
+  params.first_filters = 2  # pyrefly: ignore[missing-attribute]
+  params.last_filters = 2  # pyrefly: ignore[missing-attribute]
+  params.sub_groups = 1  # pyrefly: ignore[missing-attribute]
+  params.max_pool = 0  # pyrefly: ignore[missing-attribute]
+  params.pools = '1, 1'  # pyrefly: ignore[missing-attribute]
   return params
 
 
 def bc_resnet_causal_params():
   """Parameters for bc_resnet model."""
   params = Params()
-  params.model_name = 'bc_resnet'
-  params.dropouts = '0.5, 0.5'
-  params.filters = '2, 2'
-  params.blocks_n = '1, 1'
-  params.strides = '(1,1), (1,1)'
-  params.dilations = '(1,1), (1,1)'
-  params.paddings = 'causal'
-  params.first_filters = 2
-  params.last_filters = 2
-  params.sub_groups = 1
-  params.max_pool = 0
-  params.pools = '1, 1'
+  params.model_name = 'bc_resnet'  # pyrefly: ignore[missing-attribute]
+  params.dropouts = '0.5, 0.5'  # pyrefly: ignore[missing-attribute]
+  params.filters = '2, 2'  # pyrefly: ignore[missing-attribute]
+  params.blocks_n = '1, 1'  # pyrefly: ignore[missing-attribute]
+  params.strides = '(1,1), (1,1)'  # pyrefly: ignore[missing-attribute]
+  params.dilations = '(1,1), (1,1)'  # pyrefly: ignore[missing-attribute]
+  params.paddings = 'causal'  # pyrefly: ignore[missing-attribute]
+  params.first_filters = 2  # pyrefly: ignore[missing-attribute]
+  params.last_filters = 2  # pyrefly: ignore[missing-attribute]
+  params.sub_groups = 1  # pyrefly: ignore[missing-attribute]
+  params.max_pool = 0  # pyrefly: ignore[missing-attribute]
+  params.pools = '1, 1'  # pyrefly: ignore[missing-attribute]
   return params
 
 
