@@ -422,7 +422,7 @@ class Router(nn.Module):
     """
     token_inputs = sharding.shard_array(token_inputs, self.inputs_shardings)
     router_probs, router_logits = self._compute_router_probabilities(
-        token_inputs, num_experts, apply_jitter, metadata=metadata)
+        token_inputs, num_experts, apply_jitter, metadata=metadata)  # pyrefly: ignore[bad-argument-type]
     router_probs = sharding.shard_array(router_probs, self.logits_shardings)
     router_logits = sharding.shard_array(router_logits, self.logits_shardings)
 
@@ -658,7 +658,7 @@ class TokensChooseScatterRouter(ScatterRouter):
 
     if self.batch_prioritized_routing:
       # Place tokens in their original ordering.
-      inverse_token_ordering = jnp.argsort(token_ordering, axis=-1)  # pylint: disable=undefined-variable
+      inverse_token_ordering = jnp.argsort(token_ordering, axis=-1)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
       preferred_experts = _take_along_axis(
           preferred_experts,
           jnp.expand_dims(inverse_token_ordering, axis=-1),
@@ -795,7 +795,7 @@ class TokensChooseMaskedRouter(MaskedRouter):
 
     if self.batch_prioritized_routing:
       # Place token priorities in original ordering of tokens.
-      inv_permutation = jnp.argsort(permutation, axis=-1)  # pylint: disable=undefined-variable
+      inv_permutation = jnp.argsort(permutation, axis=-1)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
       token_priority = _take_along_axis(
           token_priority, jnp.expand_dims(inv_permutation, axis=-1), axis=-2)
 
@@ -930,7 +930,7 @@ class SoftRouter(Router):
     # single vector parameter per expert.
     _, router_logits = self._compute_router_probabilities(
         token_inputs, num_experts * expert_capacity, apply_jitter,
-        metadata=metadata)
+        metadata=metadata)  # pyrefly: ignore[bad-argument-type]
     router_logits = sharding.shard_array(router_logits, self.logits_shardings)
 
     if self.ignore_padding_tokens:

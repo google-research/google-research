@@ -23,7 +23,7 @@ import jax
 from imp.max.core import constants
 from imp.max.utils import typing
 
-ModelT = Type[TypeVar('_ModelT', bound='Model')]
+ModelT = Type[TypeVar('_ModelT', bound='Model')]  # pyrefly: ignore[not-a-type]
 DataFeatureType = constants.DataFeatureType
 
 

@@ -159,8 +159,8 @@ def memoize(f):
     return result
 
   # For inspection/testing only.
-  wrapper.get_cache_hits = lambda cache, key: cache.hits[f][key]
-  wrapper.get_total_cache_hits = lambda cache: sum(cache.hits[f].values())
+  wrapper.get_cache_hits = lambda cache, key: cache.hits[f][key]  # pyrefly: ignore[missing-attribute]
+  wrapper.get_total_cache_hits = lambda cache: sum(cache.hits[f].values())  # pyrefly: ignore[missing-attribute]
   return wrapper
 
 

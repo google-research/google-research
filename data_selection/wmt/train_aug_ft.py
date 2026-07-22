@@ -148,8 +148,8 @@ def main(argv):
       decode=False,
       kernel_init=nn.initializers.xavier_uniform(),
       bias_init=nn.initializers.normal(stddev=1e-6))
-  eval_config = train_config.replace(deterministic=True)
-  predict_config = train_config.replace(deterministic=True, decode=True)
+  eval_config = train_config.replace(deterministic=True)  # pyrefly: ignore[missing-attribute]
+  predict_config = train_config.replace(deterministic=True, decode=True)  # pyrefly: ignore[missing-attribute]
 
   start_step = 0
   rng = jax.random.PRNGKey(FLAGS.random_seed)
@@ -357,7 +357,7 @@ def main(argv):
                 step, {'eval_' + k: v for k, v in eval_results.items()})
 
         if FLAGS.aux_eval_dataset:
-          for aux_i, aux_eval_ds in enumerate(aux_datasets):
+          for aux_i, aux_eval_ds in enumerate(aux_datasets):  # pyrefly: ignore[unbound-name]
             with report_progress.timed('aux_eval'):
               eval_results = train_util.evaluate(
                   p_eval_step=p_eval_step,

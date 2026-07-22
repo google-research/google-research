@@ -96,7 +96,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  (ds_train, ds_val, ds_test), dataset_info = dataset.load(
+  (ds_train, ds_val, ds_test), dataset_info = dataset.load(  # pyrefly: ignore[bad-unpacking]
       _DATASET.value, False, _BATCH_SIZE.value, with_info=True)
   assert isinstance(dataset_info, enum_utils.DatasetInfo)
 
@@ -157,10 +157,10 @@ def main(argv):
     pruned_instance_ids = []
     for bag_batch in ds_train:
       bag_range_ids = tf.unique(bag_batch['bag_id'])[1]
-      preds = model(bag_batch, training=False)
+      preds = model(bag_batch, training=False)  # pyrefly: ignore[not-callable]
       agg_preds = model.pred_aggregation_fn(preds, bag_range_ids)
       agg_preds = tf.gather(agg_preds, bag_range_ids)
-      loss = mse_loss(preds, agg_preds[:, None])
+      loss = mse_loss(preds, agg_preds[:, None])  # pyrefly: ignore[not-callable]
 
       n_bags = tf.reduce_max(bag_range_ids) + 1
       mask = bag_range_ids[:, None] == tf.range(n_bags)[None]

@@ -148,7 +148,7 @@ class ISPRS(fids_dataset.FIDSDataset):
         red_channel, green_channel = img_raw[:, :, 0], img_raw[:, :, 1]
       elif ISPRS_SETS[split]['format'] == 'IRG':
         red_channel, green_channel = img_raw[:, :, 1], img_raw[:, :, 2]
-      blue_channel = .5 * (red_channel + green_channel)
+      blue_channel = .5 * (red_channel + green_channel)  # pyrefly: ignore[unbound-name]
       img = np.stack([red_channel, green_channel, blue_channel], axis=-1)
       img = img.astype(img_raw_dtype)
       return img, True

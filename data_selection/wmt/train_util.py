@@ -303,7 +303,7 @@ def compute_per_example_loss(logits,
   if weights is not None:
     loss = loss * weights
 
-  return loss.sum(axis=-1)/ weights.sum(axis=-1)
+  return loss.sum(axis=-1)/ weights.sum(axis=-1)  # pyrefly: ignore[missing-attribute]
 
 
 def compute_per_pos_loss(logits,
@@ -490,7 +490,7 @@ def train_step(optimizer,
     step = optimizer.state[0].step
   else:
     step = optimizer.state.step
-  dropout_rng = jax.random.fold_in(dropout_rng, step)
+  dropout_rng = jax.random.fold_in(dropout_rng, step)  # pyrefly: ignore[bad-argument-type]
 
   def loss_fn(params):
     """loss function used for training."""

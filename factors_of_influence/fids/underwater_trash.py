@@ -95,7 +95,7 @@ def _xml_extract_img_size(xml):
   """Extract image size from XML."""
   size_xml = _xml_find(xml, 'size')
   return [
-      float(_xml_find(size_xml, s).text) for s in ['width', 'height', 'depth']
+      float(_xml_find(size_xml, s).text) for s in ['width', 'height', 'depth']  # pyrefly: ignore[bad-argument-type]
   ]
 
 
@@ -110,10 +110,10 @@ def _extract_object_boxes_from_xml(xml):
     # Convert bndbox to box_shape
     box_shape_xml = _xml_find(box_xml, 'bndbox')
     box_shape = {
-        key: int(_xml_find(box_shape_xml, key).text)
+        key: int(_xml_find(box_shape_xml, key).text)  # pyrefly: ignore[bad-argument-type]
         for key in ['ymin', 'xmin', 'ymax', 'xmax']
     }
-    box_annotation['bbox'] = box_shape
+    box_annotation['bbox'] = box_shape  # pyrefly: ignore[unsupported-operation]
 
     box_list.append(box_annotation)
 

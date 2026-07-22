@@ -101,7 +101,7 @@ def get_memberships(df):
       )
       instances[instance_id].append(instance)
       bags[bag_id].append(instance)
-  memberships = enum_utils.DatasetMembershipInfo(instances=instances, bags=bags)
+  memberships = enum_utils.DatasetMembershipInfo(instances=instances, bags=bags)  # pyrefly: ignore[bad-argument-type]
   return memberships
 
 
@@ -121,7 +121,7 @@ def load_instances(path, batch_size):
         batch[key] = value[:, None]
     return batch
   df = pd.read_feather(path)
-  dataset = tf.data.Dataset.from_tensor_slices(dict(df))
+  dataset = tf.data.Dataset.from_tensor_slices(dict(df))  # pyrefly: ignore[bad-argument-type]
   dataset = dataset.shuffle(SHUFFLE_BUFFER_SIZE)
   dataset = dataset.batch(batch_size)
   dataset = dataset.map(make_2d)
@@ -154,12 +154,12 @@ def load_bags(
   bags_df = path_or_df
   if not isinstance(path_or_df, pd.DataFrame):
     bags_df = pd.read_feather(path_or_df)
-  bags_dict = dict(bags_df)
+  bags_dict = dict(bags_df)  # pyrefly: ignore[no-matching-overload]
   for key in bags_dict:
     bags_dict[key] = np.stack(
         bags_dict[key].to_numpy(),
         dtype=bags_dict[key][0].dtype)
-  dataset = tf.data.Dataset.from_tensor_slices(bags_dict)
+  dataset = tf.data.Dataset.from_tensor_slices(bags_dict)  # pyrefly: ignore[bad-argument-type]
   dataset = dataset.shuffle(SHUFFLE_BUFFER_SIZE)
   dataset = dataset.batch(batch_size)
   dataset = dataset.map(functools.partial(make_instances, bag_size=bag_size))
@@ -185,29 +185,29 @@ def load(
     If with_info is True, returns a tuple of (train, val, test) datasets and
     dataset info. Otherwise, returns a tuple of (train, val, test) datasets.
   """
-  dataset = {
+  dataset = {  # pyrefly: ignore[bad-assignment]
       enum_utils.Dataset.SYNTHETIC: synthetic,
       enum_utils.Dataset.US_CENSUS: us_census,
   }[dataset]
   bags_df = None
   dataset_info = None
   if with_info:
-    get_info_out = dataset.get_info(return_bags_df=True)
+    get_info_out = dataset.get_info(return_bags_df=True)  # pyrefly: ignore[missing-attribute]
     assert isinstance(get_info_out, tuple)
     dataset_info, bags_df = get_info_out
-  dataset_info.memberships = get_memberships(bags_df)
+  dataset_info.memberships = get_memberships(bags_df)  # pyrefly: ignore[bad-argument-type, missing-attribute]
 
   if train_instance:
     ds_train = load_instances(
-        dataset.TRAIN_INSTANCE_DATA_PATH, batch_size)
+        dataset.TRAIN_INSTANCE_DATA_PATH, batch_size)  # pyrefly: ignore[missing-attribute]
   else:
     ds_train = load_bags(
-        dataset.TRAIN_BAGS_DATA_PATH if bags_df is None else bags_df,
-        dataset.BAG_SIZE,
+        dataset.TRAIN_BAGS_DATA_PATH if bags_df is None else bags_df,  # pyrefly: ignore[missing-attribute]
+        dataset.BAG_SIZE,  # pyrefly: ignore[missing-attribute]
         batch_size)
 
-  ds_val = load_instances(dataset.VAL_DATA_PATH, batch_size)
-  ds_test = load_instances(dataset.TEST_DATA_PATH, batch_size)
+  ds_val = load_instances(dataset.VAL_DATA_PATH, batch_size)  # pyrefly: ignore[missing-attribute]
+  ds_test = load_instances(dataset.TEST_DATA_PATH, batch_size)  # pyrefly: ignore[missing-attribute]
 
   if with_info:
     return (ds_train, ds_val, ds_test), dataset_info

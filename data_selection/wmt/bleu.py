@@ -187,7 +187,7 @@ def complete_bleu(matches_by_order,
         smooth *= 2
         precisions[i] = 1.0 / (smooth * possible_matches_by_order[i])
     else:
-      precisions[i] = 0.0
+      precisions[i] = 0.0  # pyrefly: ignore[unsupported-operation]
 
   if max(precisions) > 0:
     p_log_sum = sum(math.log(p) for p in precisions if p)
@@ -204,7 +204,7 @@ def complete_bleu(matches_by_order,
         bp = 1.0
       else:
         bp = math.exp(1 - 1. / ratio)
-  bleu = geo_mean * bp
+  bleu = geo_mean * bp  # pyrefly: ignore[unbound-name]
   return float(bleu) * 100.0
 
 

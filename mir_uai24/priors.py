@@ -31,4 +31,4 @@ def uniform(dataset_info):
     ]
     prior[instances] = 1 / bag_size
   assert not (prior == -1).any()
-  return prior
+  return prior  # pyrefly: ignore[bad-return]

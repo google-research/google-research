@@ -135,7 +135,7 @@ class ISAID(fids_dataset.FIDSDataset):
       segmentation_base = os.path.splitext(curr_file)[0]
       segmentation_file = f'{segmentation_base}_instance_color_RGB.png'
       segmentation = utils.convert_segmentation_rgb_to_class_id(
-          segmentation_file, ISAID_LABELS)
+          segmentation_file, ISAID_LABELS)  # pyrefly: ignore[bad-argument-type]
       return segmentation, True
 
     raise ValueError(f'{feature_name} unknown')

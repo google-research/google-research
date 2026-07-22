@@ -211,7 +211,7 @@ class PerModalityCLS(nn.Module):
       return classes
 
     elif isinstance(classes, int) or utils.is_sub_np_dtype(classes, int):
-      return (('', int(classes)),)
+      return (('', int(classes)),)  # pyrefly: ignore[bad-argument-type]
 
     else:
       raise ValueError(
@@ -720,7 +720,7 @@ class BaseEmbedProjection(nn.Module):
 
     self.add_pos_embeddings = pos_encoding_module(
         hidden_size=self.d_model,
-        pos_buckets=self.pos_buckets,
+        pos_buckets=self.pos_buckets,  # pyrefly: ignore[bad-argument-type]
         dropout_rate=self.dropout_rate,
         dtype=self.dtype,
         embedding_shardings=self.pos_encode_embed_shardings,
@@ -731,7 +731,7 @@ class BaseEmbedProjection(nn.Module):
   def setup_waveform_pos_encoding(self):
     self.add_pos_embeddings = embeds.TemporalPosEncode(
         hidden_size=self.d_model,
-        pos_buckets=self.pos_buckets,
+        pos_buckets=self.pos_buckets,  # pyrefly: ignore[bad-argument-type]
         dropout_rate=self.dropout_rate,
         dtype=self.dtype,
         embedding_shardings=self.pos_encode_embed_shardings,
@@ -754,7 +754,7 @@ class BaseEmbedProjection(nn.Module):
 
     self.add_pos_embeddings = pos_encoding_module(
         hidden_size=self.d_model,
-        pos_buckets=self.pos_buckets,
+        pos_buckets=self.pos_buckets,  # pyrefly: ignore[bad-argument-type]
         dropout_rate=self.dropout_rate,
         dtype=self.dtype,
         lookup_dot_general=self.pos_encode_lookup_dot_general,
@@ -765,7 +765,7 @@ class BaseEmbedProjection(nn.Module):
   def setup_text_pos_encoding(self):
     self.add_pos_embeddings = embeds.TemporalPosEncode(
         hidden_size=self.d_model,
-        pos_buckets=self.pos_buckets,
+        pos_buckets=self.pos_buckets,  # pyrefly: ignore[bad-argument-type]
         dropout_rate=self.dropout_rate,
         dtype=self.dtype,
         lookup_dot_general=self.pos_encode_lookup_dot_general,
@@ -798,7 +798,7 @@ class RawToEmbed(BaseEmbedProjection):
     self.input_rank = constants.DataFeatureRank.Vision.RAW
     self.raw_to_embeddings = linear.Conv(
         features=self.d_model,
-        kernel_size=self.patch_size,
+        kernel_size=self.patch_size,  # pyrefly: ignore[bad-argument-type]
         strides=self.patch_size,
         padding='SAME',
         dtype=self.dtype,
@@ -811,8 +811,8 @@ class RawToEmbed(BaseEmbedProjection):
     self.input_rank = constants.DataFeatureRank.Waveform.RAW
     self.raw_to_embeddings = linear.Conv(
         features=self.d_model,
-        kernel_size=(self.patch_size,),
-        strides=(self.patch_size,),
+        kernel_size=(self.patch_size,),  # pyrefly: ignore[bad-argument-type]
+        strides=(self.patch_size,),  # pyrefly: ignore[bad-argument-type]
         padding='SAME',
         dtype=self.dtype,
         precision=self.precision,
@@ -824,7 +824,7 @@ class RawToEmbed(BaseEmbedProjection):
     self.input_rank = constants.DataFeatureRank.Spectrogram.RAW
     self.raw_to_embeddings = linear.Conv(
         features=self.d_model,
-        kernel_size=self.patch_size,
+        kernel_size=self.patch_size,  # pyrefly: ignore[bad-argument-type]
         strides=self.patch_size,
         padding='SAME',
         dtype=self.dtype,
@@ -999,7 +999,7 @@ class TokenRawToEmbed(BaseEmbedProjection):
     # add positional embeddings
     if hasattr(self, 'add_pos_embeddings'):
       embeddings = self.add_pos_embeddings(
-          embeddings, deterministic, token_coordinate, coordinate_scale)
+          embeddings, deterministic, token_coordinate, coordinate_scale)  # pyrefly: ignore[bad-argument-type]
     else:
       logging.info('No positional encoding has been annotated in %s', self)
 
@@ -1015,8 +1015,8 @@ class TokenIdToEmbed(TokenRawToEmbed):
 
   def setup_vision_embedding_projection(self):
     self.input_rank = constants.DataFeatureRank.Vision.TOKEN_ID
-    self.raw_to_embeddings = embeds.Embed(
-        num_embeddings=self.vocab_size,
+    self.raw_to_embeddings = embeds.Embed(  # pyrefly: ignore[bad-assignment]
+        num_embeddings=self.vocab_size,  # pyrefly: ignore[bad-argument-type]
         features=self.d_model,
         dtype=self.dtype,
         lookup_dot_general=self.id_to_embed_lookup_dot_general,
@@ -1025,8 +1025,8 @@ class TokenIdToEmbed(TokenRawToEmbed):
 
   def setup_waveform_embedding_projection(self):
     self.input_rank = constants.DataFeatureRank.Waveform.TOKEN_ID
-    self.raw_to_embeddings = embeds.Embed(
-        num_embeddings=self.vocab_size,
+    self.raw_to_embeddings = embeds.Embed(  # pyrefly: ignore[bad-assignment]
+        num_embeddings=self.vocab_size,  # pyrefly: ignore[bad-argument-type]
         features=self.d_model,
         dtype=self.dtype,
         lookup_dot_general=self.id_to_embed_lookup_dot_general,
@@ -1035,8 +1035,8 @@ class TokenIdToEmbed(TokenRawToEmbed):
 
   def setup_spectrogram_embedding_projection(self):
     self.input_rank = constants.DataFeatureRank.Spectrogram.TOKEN_ID
-    self.raw_to_embeddings = embeds.Embed(
-        num_embeddings=self.vocab_size,
+    self.raw_to_embeddings = embeds.Embed(  # pyrefly: ignore[bad-assignment]
+        num_embeddings=self.vocab_size,  # pyrefly: ignore[bad-argument-type]
         features=self.d_model,
         dtype=self.dtype,
         lookup_dot_general=self.id_to_embed_lookup_dot_general,
@@ -1045,8 +1045,8 @@ class TokenIdToEmbed(TokenRawToEmbed):
 
   def setup_text_embedding_projection(self):
     self.input_rank = constants.DataFeatureRank.Text.TOKEN_ID
-    self.raw_to_embeddings = embeds.Embed(
-        num_embeddings=self.vocab_size,
+    self.raw_to_embeddings = embeds.Embed(  # pyrefly: ignore[bad-assignment]
+        num_embeddings=self.vocab_size,  # pyrefly: ignore[bad-argument-type]
         features=self.d_model,
         dtype=self.dtype,
         lookup_dot_general=self.id_to_embed_lookup_dot_general,

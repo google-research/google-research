@@ -145,8 +145,8 @@ class MSegBase(
     segmentation_label_list = [None] * (label_with_highest_id.id+1)
     for lm in label_mapping:
       if not segmentation_label_list[lm.id]:
-        segmentation_label_list[lm.id] = lm.name
-    return segmentation_label_list
+        segmentation_label_list[lm.id] = lm.name  # pyrefly: ignore[unsupported-operation]
+    return segmentation_label_list  # pyrefly: ignore[bad-return]
 
   def split_name(self, split):
     """Returns split name."""
@@ -228,7 +228,7 @@ class MSegBase(
     if feature_name == 'segmentation_mseg_relabeled':
       label_list_file = self._label_list_filename(feature_name)
       label_list = utils.load_text_to_list(label_list_file)
-      return ['background'] + label_list
+      return ['background'] + label_list  # pyrefly: ignore[bad-return]
 
     if feature_name == 'segmentation_mseg':
       if self.mseg_use_mapping_for_mseg_segmentation:
@@ -236,7 +236,7 @@ class MSegBase(
       else:
         label_list_file = self._label_list_filename(feature_name)
         label_list = utils.load_text_to_list(label_list_file)
-        return ['background'] + label_list
+        return ['background'] + label_list  # pyrefly: ignore[bad-return]
 
     assert feature_name == 'segmentation'
     return self._label_list_from_mapping(feature_name)

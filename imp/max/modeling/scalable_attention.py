@@ -464,6 +464,6 @@ def general_favor_attention(
   attention_output = av_attention / attention_normalizer
   if bf_attention_global_size > 0:
     attention_output = jnp.concatenate(
-        [global_full_attn_output, attention_output], 1
+        [global_full_attn_output, attention_output], 1  # pyrefly: ignore[bad-argument-type]
     )
   return attention_output

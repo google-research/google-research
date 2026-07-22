@@ -200,7 +200,7 @@ class FIDSDataset(metaclass=abc.ABCMeta):
         if feature_name not in possible_missing_features:
           assert feature_present[feature_name], (
               f'Feature {feature_name} is missing {split} - {curr_id}')
-      example['is_present'] = feature_present
+      example['is_present'] = feature_present  # pyrefly: ignore[bad-assignment]
 
       yield curr_id, example  # pytype: disable=bad-return-type  # gen-stub-imports
 

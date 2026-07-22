@@ -224,7 +224,7 @@ def compute_per_example_loss(logits,
   if weights is not None:
     loss = loss * weights
 
-  return loss.sum(axis=-1)/ weights.sum(axis=-1)
+  return loss.sum(axis=-1)/ weights.sum(axis=-1)  # pyrefly: ignore[missing-attribute]
 
 
 def eval_for_is_step(params, batch, config, label_smoothing=0.0):
@@ -307,7 +307,7 @@ def setup():
       decode=False,
       kernel_init=nn.initializers.xavier_uniform(),
       bias_init=nn.initializers.normal(stddev=1e-6))
-  predict_config = eval_config.replace(deterministic=True, decode=True)
+  predict_config = eval_config.replace(deterministic=True, decode=True)  # pyrefly: ignore[missing-attribute]
   rng = jax.random.PRNGKey(FLAGS.random_seed)
   rng, init_rng = jax.random.split(rng)
   # It's possible that is supposed to be per device batch size

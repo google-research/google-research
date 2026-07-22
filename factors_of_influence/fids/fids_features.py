@@ -189,7 +189,7 @@ class FeatureUtils:
     if isinstance(feature_type, tfds.features.Image):
       im_shape = feature_type.shape
       im_shape = [s if s is not None else 1 for s in im_shape]
-      dtype = feature_type.dtype.as_numpy_dtype
+      dtype = feature_type.dtype.as_numpy_dtype  # pyrefly: ignore[missing-attribute]
       return np.zeros(im_shape, dtype=dtype)
     elif isinstance(feature_type, tfds.features.Sequence):
       return [self._get_fake_feature_for_type(feature_type.feature)]
@@ -198,7 +198,7 @@ class FeatureUtils:
     elif isinstance(feature_type, tfds.features.Tensor):
       tensor_shape = feature_type.shape
       tensor_shape = [s if s is not None else 1 for s in tensor_shape]
-      dtype = feature_type.dtype.as_numpy_dtype
+      dtype = feature_type.dtype.as_numpy_dtype  # pyrefly: ignore[missing-attribute]
       return np.zeros(tensor_shape, dtype=dtype)
     else:
       raise NotImplementedError(f'for {feature_type}')

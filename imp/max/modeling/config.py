@@ -24,7 +24,7 @@ from jax import numpy as jnp
 from imp.max.config import base
 from imp.max.utils import typing
 
-ModelT = Type[TypeVar('_ModelT', bound='Model')]
+ModelT = Type[TypeVar('_ModelT', bound='Model')]  # pyrefly: ignore[not-a-type]
 
 
 @dataclasses.dataclass

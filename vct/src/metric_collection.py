@@ -106,7 +106,7 @@ class Metrics(NamedTuple):
 
   @property
   def scalars_float(self):
-    return {k: float(v) for k, v in self.scalars.items()}
+    return {k: float(v) for k, v in self.scalars.items()}  # pyrefly: ignore[bad-argument-type]
 
   @classmethod
   def make(cls):

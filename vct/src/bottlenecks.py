@@ -54,7 +54,7 @@ def verysoftplus(inputs):
   """Evaluates a softplus function transitioning from 1/(1-x) to 1+x at x=0."""
   inputs_pos = tf.maximum(inputs, 0)
   inputs_neg = tf.minimum(inputs, 0)
-  return tf.where(inputs > 0, inputs_pos + 1, 1 / (1 - inputs_neg))
+  return tf.where(inputs > 0, inputs_pos + 1, 1 / (1 - inputs_neg))  # pyrefly: ignore[unsupported-operation]
 
 
 class ContinuousIndexedEntropyModel(tfc.ContinuousIndexedEntropyModel):
@@ -168,7 +168,7 @@ class Scaler:
     if self.verify_valid_scales:
       tf.debugging.assert_greater_equal(scale, 0.0)
 
-    scale += self.scales_min
+    scale += self.scales_min  # pyrefly: ignore[bad-assignment, unsupported-operation]
 
     # \in [log(scales_min), log(scales_max+scales_min)]
     idx = tf.math.log(scale)
@@ -185,7 +185,7 @@ class Scaler:
     return idx
 
   def from_scale_idx(self, idx):
-    out = idx / (self.num_bins - 1)
+    out = idx / (self.num_bins - 1)  # pyrefly: ignore[unsupported-operation]
     normalizer = self.scales_max / self.scales_min
     normalizer += 1  # log(max+min) - log(min) = log(max/min + 1)
     out = out * tf.math.log(normalizer)
@@ -272,7 +272,7 @@ class ConditionalLocScaleShiftBottleneck(tf.Module):
     if not training and self._round_indices:
       indexes = tf.round(indexes)
     shift = self._get_shift(mean)
-    latent = latent - shift
+    latent = latent - shift  # pyrefly: ignore[unsupported-operation]
     quantized_latent, bits = self._entropy_model(
         latent, indexes=indexes, training=training)
     if training:  # Round + STE
@@ -283,7 +283,7 @@ class ConditionalLocScaleShiftBottleneck(tf.Module):
     """Compresses into a bytestring."""
     indexes = self._get_indexes(mean, scale, training=False)
     shift = self._get_shift(mean)
-    latent = latent - shift
+    latent = latent - shift  # pyrefly: ignore[unsupported-operation]
     with tf.device("cpu"):
       bytestring = self._entropy_model.compress(latent, indexes)
     quantized = self._entropy_model.quantize(latent)
@@ -299,4 +299,4 @@ class ConditionalLocScaleShiftBottleneck(tf.Module):
 
   def quantize(self, latent, mean):
     shift = self._get_shift(mean)
-    return tf.round(latent - shift) + shift
+    return tf.round(latent - shift) + shift  # pyrefly: ignore[unsupported-operation]

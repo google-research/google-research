@@ -128,10 +128,10 @@ class WindowMultiHeadAttention(tf.Module):
     if mask is not None:
       # We use the mask again, to be double sure that no masked dimension
       # affects the output.
-      keep = 1 - mask
+      keep = 1 - mask  # pyrefly: ignore[unsupported-operation]
       attn *= tf.tile(keep, tile_pattern)
 
-    attn = self._attn_drop(attn, training)
+    attn = self._attn_drop(attn, training)  # pyrefly: ignore[not-callable]
 
     # *b, num_heads, seq_len_q, d_model//num_heads
     features = tf.matmul(attn, v)
@@ -141,8 +141,8 @@ class WindowMultiHeadAttention(tf.Module):
     features = tf.einsum("...hnd->...nhd", features)
     # Merge num_heads, seq_len_q dimensions
     features = tf.reshape(features, (*b, seq_len_q, self._d_model))
-    features = self._proj(features)
-    features = self._proj_drop(features, training)
+    features = self._proj(features)  # pyrefly: ignore[not-callable]
+    features = self._proj_drop(features, training)  # pyrefly: ignore[not-callable]
     assert features.shape == (*b, seq_len_q, c)
     return features, attn
 
@@ -219,10 +219,10 @@ class MLP(tf.keras.layers.Layer):
 
   def call(self, features, training):
     """Forward pass."""
-    features = self._fc1(features)
-    features = self._drop(features, training)
-    features = self._fc2(features)
-    features = self._drop(features, training)
+    features = self._fc1(features)  # pyrefly: ignore[not-callable]
+    features = self._drop(features, training)  # pyrefly: ignore[not-callable]
+    features = self._fc2(features)  # pyrefly: ignore[not-callable]
+    features = self._drop(features, training)  # pyrefly: ignore[not-callable]
     return features
 
 
@@ -310,33 +310,33 @@ class TransformerBlock(tf.Module):
 
     # First Block ---
     shortcut = features
-    features = self._norm1a(features)
+    features = self._norm1a(features)  # pyrefly: ignore[not-callable]
     # Masked self-attention.
     features, _ = self._attn1(
         v=features,
         k=features,
         q=features,
-        mask=self.look_ahead_mask,
+        mask=self.look_ahead_mask,  # pyrefly: ignore[bad-argument-type]
         training=training)
     assert features.shape == shortcut.shape
-    features = shortcut + self._drop_path(features, training)
+    features = shortcut + self._drop_path(features, training)  # pyrefly: ignore[not-callable]
 
-    features = features + self._drop_path(
-        self._mlp1(self._norm1b(features), training), training)
+    features = features + self._drop_path(  # pyrefly: ignore[not-callable]
+        self._mlp1(self._norm1b(features), training), training)  # pyrefly: ignore[not-callable]
 
     # Second Block ---
     shortcut = features
-    features = self._norm2a(features)
+    features = self._norm2a(features)  # pyrefly: ignore[not-callable]
     # Unmasked "lookup" into enc_output, no need for mask.
     features, _ = self._attn2(  # pytype: disable=wrong-arg-types  # dynamic-method-lookup
         v=enc_output if enc_output is not None else features,
         k=enc_output if enc_output is not None else features,
         q=features,
-        mask=None,
+        mask=None,  # pyrefly: ignore[bad-argument-type]
         training=training)
-    features = shortcut + self._drop_path(features, training)
-    output = features + self._drop_path(
-        self._mlp2(self._norm2b(features), training), training)
+    features = shortcut + self._drop_path(features, training)  # pyrefly: ignore[not-callable]
+    output = features + self._drop_path(  # pyrefly: ignore[not-callable]
+        self._mlp2(self._norm2b(features), training), training)  # pyrefly: ignore[not-callable]
 
     return output
 

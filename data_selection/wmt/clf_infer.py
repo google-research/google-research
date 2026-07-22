@@ -137,9 +137,9 @@ def main(argv):
       if FLAGS.clf_targets:
         target_decode = decode_tokens(encoder_tgt, x)
       if FLAGS.clf_inputs and FLAGS.clf_targets:
-        decode_tok = input_decode + ' [SEP] ' + target_decode
+        decode_tok = input_decode + ' [SEP] ' + target_decode  # pyrefly: ignore[unbound-name]
       else:
-        decode_tok = target_decode if FLAGS.clf_targets else input_decode
+        decode_tok = target_decode if FLAGS.clf_targets else input_decode  # pyrefly: ignore[unbound-name]
       targets_decoded_pt.append(decode_tok)
 
   # Load model
@@ -172,7 +172,7 @@ def main(argv):
       truncation=True,
       max_length=512)
 
-  train_dataset = tf.data.Dataset.from_tensor_slices((
+  train_dataset = tf.data.Dataset.from_tensor_slices((  # pyrefly: ignore[bad-argument-type]
       dict(encoding),
   ))
   batch_size = 256

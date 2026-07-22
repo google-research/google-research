@@ -196,11 +196,11 @@ class EvalVideo(NamedTuple):
       dim = (dim, dim)
     elif len(dim) != 2:
       raise ValueError(f"Dimension should be an int or a 2-tuple, not {dim}")
-    dim = (1,) + tuple(dim)
+    dim = (1,) + tuple(dim)  # pyrefly: ignore[bad-assignment]
 
     def video_iterator():
       for _ in range(num_frames):
-        random_rgb = tf.random.stateless_normal(dim + (3,), seed=[1, 1])
+        random_rgb = tf.random.stateless_normal(dim + (3,), seed=[1, 1])  # pyrefly: ignore[unsupported-operation]
         yield Frame(random_rgb)
     return cls(list(video_iterator()))
 

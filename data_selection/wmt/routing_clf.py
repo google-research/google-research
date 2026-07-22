@@ -92,7 +92,7 @@ class CNSCheckpointCallback(tf.keras.callbacks.Callback):
         f.write(str(new_loss))
 
   def on_test_end(self, logs = None):
-    new_loss = logs['loss']
+    new_loss = logs['loss']  # pyrefly: ignore[unsupported-operation]
     if new_loss < self.best_loss:
       self.best_loss = new_loss
       self._save_model(new_loss)
@@ -184,11 +184,11 @@ def main(argv):
       if FLAGS.loss == STRUCT:
         split_scores = tf.split(all_scores, all_scores.shape[1], axis=1)
         split_scores = [tf.reshape(scores, -1) for scores in split_scores]
-        label = tf.data.Dataset.from_tensor_slices(split_scores)
+        label = tf.data.Dataset.from_tensor_slices(split_scores)  # pyrefly: ignore[bad-argument-type]
       elif FLAGS.loss == ONE_HOT:
         labels = np.argmin(all_scores, axis=0)
         label = tf.data.Dataset.from_tensor_slices(labels)
-      train_data_w_label = tf.data.Dataset.zip((train_data, label))
+      train_data_w_label = tf.data.Dataset.zip((train_data, label))  # pyrefly: ignore[bad-argument-type, unbound-name]
       eval_data_w_label = train_data_w_label.take(100)
       train_data_w_label = train_data_w_label.skip(100)
 
@@ -213,7 +213,7 @@ def main(argv):
         padding=True,
         truncation=True,
         max_length=128)
-    train_dataset = tf.data.Dataset.from_tensor_slices((dict(encoding), labels))
+    train_dataset = tf.data.Dataset.from_tensor_slices((dict(encoding), labels))  # pyrefly: ignore[bad-argument-type]
     train_dataset = train_dataset.batch(
         FLAGS.batch_size).shuffle(100_000).repeat(20)
 
@@ -232,7 +232,7 @@ def main(argv):
         truncation=True,
         max_length=128)
     eval_dataset = tf.data.Dataset.from_tensor_slices(
-        (dict(eval_encoding), eval_labels))
+        (dict(eval_encoding), eval_labels))  # pyrefly: ignore[bad-argument-type]
     eval_dataset = eval_dataset.batch(FLAGS.batch_size)
 
   num_train_steps = int(FLAGS.train_data_size / FLAGS.batch_size) * FLAGS.epochs

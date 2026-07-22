@@ -150,8 +150,8 @@ class StanfordDogs(fids_dataset.FIDSDataset):
   def get_ids(self, split):
     if self._json_dict is None:
       self._load_json()
-    return [id for id in self._json_dict
-            if self._json_dict[id]['split'] == split]
+    return [id for id in self._json_dict  # pyrefly: ignore[not-iterable]
+            if self._json_dict[id]['split'] == split]  # pyrefly: ignore[unsupported-operation]
 
   def get_feature(self, split, curr_id, feature_name):
     """Returns a feature. Can be a numpy array or path to an image."""
@@ -162,7 +162,7 @@ class StanfordDogs(fids_dataset.FIDSDataset):
       return f'{STANFORD_DOGS_DIR}/Images/{curr_id}', True
 
     if feature_name in ['scene_class', 'person_keypoints']:
-      return self._json_dict[curr_id][feature_name], True
+      return self._json_dict[curr_id][feature_name], True  # pyrefly: ignore[unsupported-operation]
 
     raise ValueError(f'Feature {feature_name} not a valid feature: '
                      f'{self.feature_names}')

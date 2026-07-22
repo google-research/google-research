@@ -38,7 +38,7 @@ def posterior_sum_1(bag_ids, posterior):
   _, bag_ids = tf.unique(bag_ids)
   aggregation_matrix = tf.transpose(
       tf.one_hot(bag_ids, tf.reduce_max(bag_ids) + 1))
-  posterior_mae_loss = mae_loss(
+  posterior_mae_loss = mae_loss(  # pyrefly: ignore[not-callable]
       tf.matmul(aggregation_matrix, posterior),
       tf.ones(tf.reduce_max(bag_ids) + 1)[: None])
   return posterior_mae_loss
@@ -56,6 +56,6 @@ def overlap_posterior_max_sum_1(overlap_posterior):
   """
   overlap_posterior_sum = tf.reduce_sum(
       overlap_posterior, axis=1, keepdims=True)
-  return mae_loss(
+  return mae_loss(  # pyrefly: ignore[not-callable]
       tf.maximum(overlap_posterior_sum, 1.0), tf.ones_like(overlap_posterior))
 

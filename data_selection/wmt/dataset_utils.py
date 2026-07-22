@@ -62,8 +62,8 @@ class WmtDatasetBuilder():
                 version='1.0.0',
                 language_pair=('de', 'en'),
                 subsets={
-                    tfds.Split.TRAIN: ['newscommentary_v13'],
-                    tfds.Split.VALIDATION: ['newstest2013'],
+                    tfds.Split.TRAIN: ['newscommentary_v13'],  # pyrefly: ignore[missing-attribute]
+                    tfds.Split.VALIDATION: ['newstest2013'],  # pyrefly: ignore[missing-attribute]
                 },
                 name='newscommentary'),
         NEWS_COMMENTARY_FT:
@@ -71,8 +71,8 @@ class WmtDatasetBuilder():
                 version='1.0.0',
                 language_pair=('de', 'en'),
                 subsets={
-                    tfds.Split.TRAIN: ['newscommentary_v13'],
-                    tfds.Split.VALIDATION: ['newscommentary_v13'],
+                    tfds.Split.TRAIN: ['newscommentary_v13'],  # pyrefly: ignore[missing-attribute]
+                    tfds.Split.VALIDATION: ['newscommentary_v13'],  # pyrefly: ignore[missing-attribute]
                 },
                 name='newscommentary'),
         PARACRAWL:
@@ -80,7 +80,7 @@ class WmtDatasetBuilder():
                 version='1.0.0',
                 language_pair=('de', 'en'),
                 subsets={
-                    tfds.Split.TRAIN: ['paracrawl_v1'],
+                    tfds.Split.TRAIN: ['paracrawl_v1'],  # pyrefly: ignore[missing-attribute]
                 },
                 name='paracrawl'),
         NEWSTEST:
@@ -88,8 +88,8 @@ class WmtDatasetBuilder():
                 version='1.0.0',
                 language_pair=('de', 'en'),
                 subsets={
-                    tfds.Split.TRAIN: ['newstest2011', 'newstest2012'],
-                    tfds.Split.VALIDATION: ['newstest2013'],
+                    tfds.Split.TRAIN: ['newstest2011', 'newstest2012'],  # pyrefly: ignore[missing-attribute]
+                    tfds.Split.VALIDATION: ['newstest2013'],  # pyrefly: ignore[missing-attribute]
                 },
                 name='newstest_finetune')
     }
@@ -141,8 +141,8 @@ class WmtDatasetBuilder():
 
   def build_wmt_ft_half(self):
     """Create en-ru paracrawl / newscommentary dataset."""
-    train_files = [self.data_dir + '/' + wmt_train_small]
-    eval_files = [self.data_dir + '/' + wmt_test_large]
+    train_files = [self.data_dir + '/' + wmt_train_small]  # pyrefly: ignore[unsupported-operation]
+    eval_files = [self.data_dir + '/' + wmt_test_large]  # pyrefly: ignore[unsupported-operation]
 
     train_data = tf.data.experimental.CsvDataset(
         train_files,
@@ -169,8 +169,8 @@ class WmtDatasetBuilder():
 
   def build_wmt_ft(self):
     """Create en-ru paracrawl / newscommentary dataset."""
-    train_files = [self.data_dir + '/' + wmt_train]
-    eval_files = [self.data_dir + '/' + wmt_test]
+    train_files = [self.data_dir + '/' + wmt_train]  # pyrefly: ignore[unsupported-operation]
+    eval_files = [self.data_dir + '/' + wmt_test]  # pyrefly: ignore[unsupported-operation]
 
     train_data = tf.data.experimental.CsvDataset(
         train_files,
@@ -204,16 +204,16 @@ class WmtDatasetBuilder():
   def _build_wmt_filtered(self, half=False):
     """Create en-ru paracrawl / newscommentary dataset."""
     paracrawl_files = [
-        self.data_dir + '/' + wmt_paracrawl % i for i in range(40)
+        self.data_dir + '/' + wmt_paracrawl % i for i in range(40)  # pyrefly: ignore[unsupported-operation]
     ]
     europarl_files = [
-        self.data_dir + '/' + wmt_euro % i for i in range(4)
+        self.data_dir + '/' + wmt_euro % i for i in range(4)  # pyrefly: ignore[unsupported-operation]
     ]
     newscomment_files = [
-        self.data_dir + '/' + wmt_newscomment % i for i in range(4)
+        self.data_dir + '/' + wmt_newscomment % i for i in range(4)  # pyrefly: ignore[unsupported-operation]
     ]
     commoncrawl_files = [
-        self.data_dir + '/' + wmt_commoncrawl % i for i in range(1)
+        self.data_dir + '/' + wmt_commoncrawl % i for i in range(1)  # pyrefly: ignore[unsupported-operation]
     ]
 
     pc_data = tf.data.experimental.CsvDataset(
@@ -282,7 +282,7 @@ class WmtDatasetBuilder():
 
   def build_enru_custom_ft(self):
     """Create en-ru paracrawl / newscommentary dataset."""
-    eval_data_file = self.data_dir + '/' + enru_newscomm
+    eval_data_file = self.data_dir + '/' + enru_newscomm  # pyrefly: ignore[unsupported-operation]
     eval_data = tf.data.experimental.CsvDataset(
         [eval_data_file],
         record_defaults=[tf.string, tf.string],
@@ -306,8 +306,8 @@ class WmtDatasetBuilder():
 
   def build_enru_custom_test(self):
     """Create en-ru paracrawl / newscommentary dataset."""
-    train_data_file = self.data_dir + '/' + enru_paracrawl
-    eval_data_file = self.data_dir + '/' + enru_newscomm
+    train_data_file = self.data_dir + '/' + enru_paracrawl  # pyrefly: ignore[unsupported-operation]
+    eval_data_file = self.data_dir + '/' + enru_newscomm  # pyrefly: ignore[unsupported-operation]
     train_data = tf.data.experimental.CsvDataset(
         [train_data_file],
         record_defaults=[tf.string, tf.string],
@@ -336,8 +336,8 @@ class WmtDatasetBuilder():
 
   def build_enru_custom(self):
     """Create en-ru paracrawl / newscommentary dataset."""
-    train_data_file = self.data_dir + '/' + enru_paracrawl
-    eval_data_file = self.data_dir + '/' + enru_newscomm
+    train_data_file = self.data_dir + '/' + enru_paracrawl  # pyrefly: ignore[unsupported-operation]
+    eval_data_file = self.data_dir + '/' + enru_newscomm  # pyrefly: ignore[unsupported-operation]
     train_data = tf.data.experimental.CsvDataset(
         [train_data_file],
         record_defaults=[tf.string, tf.string],

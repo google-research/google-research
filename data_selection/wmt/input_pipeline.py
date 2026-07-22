@@ -389,10 +389,10 @@ def data_selection(train_data, is_scores_path, num_to_keep=-1):
 
   threshold = np.sort(scores)[num_to_keep]
 
-  tf_is_scores = tf.data.Dataset.from_tensor_slices(scores)
-  tf_lengths = tf.data.Dataset.from_tensor_slices(lengths)
+  tf_is_scores = tf.data.Dataset.from_tensor_slices(scores)  # pyrefly: ignore[bad-argument-type]
+  tf_lengths = tf.data.Dataset.from_tensor_slices(lengths)  # pyrefly: ignore[bad-argument-type]
 
-  scored_data = tf.data.Dataset.zip((tf_is_scores, tf_lengths, train_data))
+  scored_data = tf.data.Dataset.zip((tf_is_scores, tf_lengths, train_data))  # pyrefly: ignore[bad-argument-type]
   def filter_fn(score, _, __):  #  # pylint: disable=invalid-name
     return tf.math.less_equal(score, threshold)
 
@@ -597,7 +597,7 @@ def get_wmt_is_datasets(n_devices,
   # effect is 0.017% of the dataset so shouldn't effect model
 
   if split_tokenizer:
-    return train_batches, (sp_tokenizer_input, sp_tokenizer_target)
+    return train_batches, (sp_tokenizer_input, sp_tokenizer_target)  # pyrefly: ignore[unbound-name]
   return train_batches, (sp_tokenizer, sp_tokenizer)
 
 
@@ -741,9 +741,9 @@ def create_buckets(dataset, is_scores_path, num_buckets):
 
   # Iterate through dataset and write to memory
   bin_assignments = np.digitize(scores, ends)
-  tf_is_bins = tf.data.Dataset.from_tensor_slices(bin_assignments)
-  tf_lengths = tf.data.Dataset.from_tensor_slices(lengths)
-  scored_data = tf.data.Dataset.zip((tf_is_bins, tf_lengths, dataset))
+  tf_is_bins = tf.data.Dataset.from_tensor_slices(bin_assignments)  # pyrefly: ignore[bad-argument-type]
+  tf_lengths = tf.data.Dataset.from_tensor_slices(lengths)  # pyrefly: ignore[bad-argument-type]
+  scored_data = tf.data.Dataset.zip((tf_is_bins, tf_lengths, dataset))  # pyrefly: ignore[bad-argument-type]
   bucket_examples = collections.defaultdict(list)
   iter_index = 0
   for ex_bin, ex_len, data in iter(scored_data):

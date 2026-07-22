@@ -297,10 +297,10 @@ class VitPostEncoderHead(nn.Module):
     elif self.aggregation_type == AggregationType.MULTI_HEAD_ATTENTION_POOL:
       outputs[constants.DataFeatureName.FEATURES] = inputs
       outputs[constants.DataFeatureName.FEATURES_AGG] = MAPHead(
-          num_heads=self.num_heads,
+          num_heads=self.num_heads,  # pyrefly: ignore[bad-argument-type]
           mlp_dim=self.d_ff,
-          dropout_rate=self.dropout_rate,
-          use_bias=self.use_bias,
+          dropout_rate=self.dropout_rate,  # pyrefly: ignore[bad-argument-type]
+          use_bias=self.use_bias,  # pyrefly: ignore[bad-argument-type]
           lora_rank=self.lora_rank,
           lora_scale=self.lora_scale,
       )(inputs, deterministic=deterministic)
@@ -474,7 +474,7 @@ class Classifier(nn.Module):
       return classes
 
     elif isinstance(classes, int) or utils.is_sub_np_dtype(classes, int):
-      return (('', int(classes)),)
+      return (('', int(classes)),)  # pyrefly: ignore[bad-argument-type]
 
     else:
       raise ValueError(

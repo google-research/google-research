@@ -82,7 +82,7 @@ def load_image_cv2(full_path,
   """Load image from dis. Lazely using OpenCV (v2)."""
   with tf.io.gfile.GFile(full_path, 'rb') as f:
     img = lazy_imports.cv2.imdecode(
-        np.fromstring(f.read(), dtype=np.uint8), cv2_decode_flags)
+        np.fromstring(f.read(), dtype=np.uint8), cv2_decode_flags)  # pyrefly: ignore[no-matching-overload]
   if cv2_convert_to_rgb and len(img.shape) == 3:
     img = lazy_imports.cv2.cvtColor(img, lazy_imports.cv2.COLOR_BGR2RGB)
 

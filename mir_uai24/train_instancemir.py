@@ -67,7 +67,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  (ds_train, ds_val, ds_test), dataset_info = dataset.load(
+  (ds_train, ds_val, ds_test), dataset_info = dataset.load(  # pyrefly: ignore[bad-unpacking]
       _DATASET.value, False, _BATCH_SIZE.value, with_info=True)
   assert isinstance(dataset_info, enum_utils.DatasetInfo)
 

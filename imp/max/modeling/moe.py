@@ -122,7 +122,7 @@ class BaseMoE(nn.Module):
           '(batch, instance, length, dim). Instead, configured '
           f'{self.tokens_shardings=}.')
 
-    if len(self.tokens_shardings[0]) != 2:
+    if len(self.tokens_shardings[0]) != 2:  # pyrefly: ignore[bad-argument-type]
       raise ValueError(
           'The `batch` dimension of `tokens_shardings` should be a 2D '
           "super-axis such as ('expert', 'data'). Instead, received "
@@ -222,7 +222,7 @@ class BaseMoE(nn.Module):
         routing_probs=router_mask.router_probs,
         fraction_tokens_left_behind=fraction_tokens_left_behind,
         router_confidence=router_confidence,
-        expert_usage=expert_usage,
+        expert_usage=expert_usage,  # pyrefly: ignore[bad-argument-type]
         metadata=metadata,
         probe_routing_distributions=False,
     )
@@ -262,10 +262,10 @@ class BaseMoE(nn.Module):
 
     # Re-assure sharding with: ('batch', None, 'length', 'dim')
     inputs = sharding.shard_array(
-        inputs, (self.tokens_shardings[0],
+        inputs, (self.tokens_shardings[0],  # pyrefly: ignore[unsupported-operation]
                  None,
-                 self.tokens_shardings[2],
-                 self.tokens_shardings[3]))
+                 self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+                 self.tokens_shardings[3]))  # pyrefly: ignore[unsupported-operation]
 
     # Split the batch dim to number of experts and their residue
     inputs = inputs.reshape(
@@ -274,11 +274,11 @@ class BaseMoE(nn.Module):
 
     # Re-assure sharding with: ('expert', 'data', None, 'length', 'dim')
     inputs = sharding.shard_array(
-        inputs, (self.tokens_shardings[0][0],
-                 self.tokens_shardings[0][1],
+        inputs, (self.tokens_shardings[0][0],  # pyrefly: ignore[bad-index, unsupported-operation]
+                 self.tokens_shardings[0][1],  # pyrefly: ignore[bad-index, unsupported-operation]
                  None,
-                 self.tokens_shardings[2],
-                 self.tokens_shardings[3]))
+                 self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+                 self.tokens_shardings[3]))  # pyrefly: ignore[unsupported-operation]
 
     if self.optimize_parallel_comms:
       # Partition inputs along model parallel submesh axis to reduce duplicate
@@ -296,17 +296,17 @@ class BaseMoE(nn.Module):
 
     # Re-assure sharding with: ('expert', 'data', 'dim')
     inputs = sharding.shard_array(
-        inputs, (self.tokens_shardings[0][0],
-                 self.tokens_shardings[0][1],
-                 self.tokens_shardings[3])
+        inputs, (self.tokens_shardings[0][0],  # pyrefly: ignore[bad-index, unsupported-operation]
+                 self.tokens_shardings[0][1],  # pyrefly: ignore[bad-index, unsupported-operation]
+                 self.tokens_shardings[3])  # pyrefly: ignore[unsupported-operation]
     )
 
     # Apply expert transformation.
 
     # Vectorize over the 'expert' axis of `inputs`. We use Flax's Lifted vmap
     # to introduce parameters along the mapped `expert` axis.
-    expert_axis_name = self.tokens_shardings[0][0]
-    @functools.partial(
+    expert_axis_name = self.tokens_shardings[0][0]  # pyrefly: ignore[bad-index, unsupported-operation]
+    @functools.partial(  # pyrefly: ignore[bad-specialization]
         nn.vmap,
         in_axes=(0,),
         variable_axes={PARAMS: 0},  # Each expert has its own parameters
@@ -326,10 +326,10 @@ class BaseMoE(nn.Module):
     outputs = outputs.reshape(num_experts, num_groups, capacity, hidden_dim)
     # Re-assure sharding with: ('expert', 'data', 'length', 'dim')
     outputs = sharding.shard_array(
-        outputs, (self.tokens_shardings[0][0],
-                  self.tokens_shardings[0][1],
-                  self.tokens_shardings[2],
-                  self.tokens_shardings[3]))
+        outputs, (self.tokens_shardings[0][0],  # pyrefly: ignore[bad-index, unsupported-operation]
+                  self.tokens_shardings[0][1],  # pyrefly: ignore[bad-index, unsupported-operation]
+                  self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+                  self.tokens_shardings[3]))  # pyrefly: ignore[unsupported-operation]
     # Prepare outputs for swapping axes
     outputs = outputs.reshape(num_experts, num_groups // num_experts,
                               num_experts, capacity, hidden_dim)
@@ -349,10 +349,10 @@ class BaseMoE(nn.Module):
 
     # Re-assure sharding with: ('batch', None, 'length', 'dim')
     outputs = sharding.shard_array(
-        outputs, (self.tokens_shardings[0],
+        outputs, (self.tokens_shardings[0],  # pyrefly: ignore[unsupported-operation]
                   None,
-                  self.tokens_shardings[2],
-                  self.tokens_shardings[3]))
+                  self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+                  self.tokens_shardings[3]))  # pyrefly: ignore[unsupported-operation]
 
     return jax.lax.convert_element_type(outputs, inputs_dtype)
 
@@ -452,11 +452,11 @@ class BaseMoE(nn.Module):
 
     # Sharding will represent ('expert', 'data', None, 'length', 'dim', 'model')
     sharding_axes = (
-        self.tokens_shardings[0][0],
-        self.tokens_shardings[0][1],
+        self.tokens_shardings[0][0],  # pyrefly: ignore[bad-index, unsupported-operation]
+        self.tokens_shardings[0][1],  # pyrefly: ignore[bad-index, unsupported-operation]
         None,
-        self.tokens_shardings[2],
-        self.tokens_shardings[3],
+        self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+        self.tokens_shardings[3],  # pyrefly: ignore[unsupported-operation]
         self.model_axis_name,
     )
     array = sharding.shard_array(array, sharding_axes)
@@ -590,23 +590,23 @@ class BaseSparseMoE(BaseMoE):
       raise ValueError(f'Unrecognized router type: {self.router_type}')
 
     # Router inputs shardings should represent (batch, length, dim)
-    router_inputs_shardings = (self.tokens_shardings[0],
-                               self.tokens_shardings[2],
-                               self.tokens_shardings[3])
+    router_inputs_shardings = (self.tokens_shardings[0],  # pyrefly: ignore[unsupported-operation]
+                               self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+                               self.tokens_shardings[3])  # pyrefly: ignore[unsupported-operation]
     # Router inputs shardings should represent (batch, length, None)
-    router_logits_shardings = (self.tokens_shardings[0],
-                               self.tokens_shardings[2],
+    router_logits_shardings = (self.tokens_shardings[0],  # pyrefly: ignore[unsupported-operation]
+                               self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
                                None)
     router = router_module(
         router_weights=routing.RouterWeights(
             use_bias=self.router_bias,
             dtype=jnp.float32,  # router dtype is always float32 for accuracy
-            kernel_shardings=self.router_kernel_shardings,
+            kernel_shardings=self.router_kernel_shardings,  # pyrefly: ignore[bad-argument-type]
             name='router',
         ),
         ignore_padding_tokens=self.ignore_padding_tokens,
         jitter_noise=self.jitter_noise,
-        dtype=self.comm_dtype,
+        dtype=self.comm_dtype,  # pyrefly: ignore[bad-argument-type]
         inputs_shardings=router_inputs_shardings,
         logits_shardings=router_logits_shardings,
         router_kwargs=dict(self.router_kwargs))
@@ -791,12 +791,12 @@ class BaseSoftMoE(BaseMoE):
     inputs = jnp.reshape(inputs, (-1, seq_length, hidden_dim))
 
     # Router inputs shardings should represent (batch, length, dim)
-    router_inputs_shardings = (self.tokens_shardings[0],
-                               self.tokens_shardings[2],
-                               self.tokens_shardings[3])
+    router_inputs_shardings = (self.tokens_shardings[0],  # pyrefly: ignore[unsupported-operation]
+                               self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
+                               self.tokens_shardings[3])  # pyrefly: ignore[unsupported-operation]
     # Router inputs shardings should represent (batch, length, None)
-    router_logits_shardings = (self.tokens_shardings[0],
-                               self.tokens_shardings[2],
+    router_logits_shardings = (self.tokens_shardings[0],  # pyrefly: ignore[unsupported-operation]
+                               self.tokens_shardings[2],  # pyrefly: ignore[unsupported-operation]
                                None)
 
     router = routing.SoftRouter(
@@ -807,7 +807,7 @@ class BaseSoftMoE(BaseMoE):
         ),
         ignore_padding_tokens=self.ignore_padding_tokens,
         jitter_noise=self.jitter_noise,
-        dtype=self.comm_dtype,
+        dtype=self.comm_dtype,  # pyrefly: ignore[bad-argument-type]
         inputs_shardings=router_inputs_shardings,
         logits_shardings=router_logits_shardings,
         router_kwargs=dict(self.router_kwargs))

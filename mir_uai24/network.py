@@ -159,7 +159,7 @@ class MLPModel(tfk.Model, metaclass=abc.ABCMeta):
       hidden_inputs = self.hidden_layers[layer_index](
           hidden_inputs, training=training
       )
-    return self.output_layer(hidden_inputs, training=training)
+    return self.output_layer(hidden_inputs, training=training)  # pyrefly: ignore[not-callable]
 
   def compile(
       self,
@@ -231,20 +231,20 @@ class MLPModel(tfk.Model, metaclass=abc.ABCMeta):
 
     if prior is not None:
       expected_preds_under_prior = self.compute_expected_preds(
-          prior, preds, bag_batch[self.dataset_info.bag_id])
+          prior, preds, bag_batch[self.dataset_info.bag_id])  # pyrefly: ignore[unsupported-operation]
       for bag_metric_under_prior in self.bag_metrics_under_prior:
         bag_metric_under_prior.update_state(
             bag_labels, expected_preds_under_prior)
 
     if posterior is not None:
       attribution_metric_vals = self.compute_attribution_metrics(
-          bag_batch, posterior)
+          bag_batch, posterior)  # pyrefly: ignore[bad-argument-type]
       for attribution_metric, attribution_metric_val in zip(
           self.attribution_metrics, attribution_metric_vals):
         attribution_metric.update_state(attribution_metric_val)
 
   @property
-  def metrics(self):
+  def metrics(self):  # pyrefly: ignore[bad-override]
     return (
         self.loss_metrics
         + self.instance_regression_metrics
@@ -258,7 +258,7 @@ class InstanceMLPModel(MLPModel):
   """MLP model for instance-level training."""
 
   def get_prior(self, bag_batch):
-    return np.ones(
+    return np.ones(  # pyrefly: ignore[bad-return]
         shape=(tf.shape(bag_batch[self.dataset_info.bag_id])[0], 1),
         dtype=np.float32,
     )
@@ -290,8 +290,8 @@ class InstanceMLPModel(MLPModel):
 
   def train_step(self, bag_batch):
     with tf.GradientTape() as tape:
-      preds = self(bag_batch, training=True)
-      loss = losses.mse_loss(bag_batch[self.dataset_info.label], preds)
+      preds = self(bag_batch, training=True)  # pyrefly: ignore[not-callable]
+      loss = losses.mse_loss(bag_batch[self.dataset_info.label], preds)  # pyrefly: ignore[not-callable]
 
     gradients = tape.gradient(loss, self.trainable_variables)
     self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
@@ -300,7 +300,7 @@ class InstanceMLPModel(MLPModel):
     return {m.name: m.result() for m in self.metrics}
 
   def test_step(self, bag_batch):
-    preds = self(bag_batch, training=False)
+    preds = self(bag_batch, training=False)  # pyrefly: ignore[not-callable]
     self.update_metrics(
         bag_batch[self.dataset_info.label], preds)
     return {m.name: m.result() for m in self.metrics}
@@ -318,7 +318,7 @@ class BagMLPModelWithERM(MLPModel):
 
     def build(self, _):
       self.posterior = tf.Variable(
-          initial_value=tf.math.log(self.prior/(1-self.prior)),
+          initial_value=tf.math.log(self.prior/(1-self.prior)),  # pyrefly: ignore[unsupported-operation]
           trainable=True,
           dtype=tf.float32
       )
@@ -376,7 +376,7 @@ class BagMLPModelWithERM(MLPModel):
   ):
     del prior, preds
 
-    posterior = self.posterior(
+    posterior = self.posterior(  # pyrefly: ignore[not-callable]
         bag_batch[self.dataset_info.bag_id_x_instance_id]
     )
     batch_instance_ids = (
@@ -400,7 +400,7 @@ class BagMLPModelWithERM(MLPModel):
           dtype=tf.int64,
       )
       n_overlapping_instances.append(len(bag_overlap))
-      overlap_posteriors.append(self.posterior(
+      overlap_posteriors.append(self.posterior(  # pyrefly: ignore[not-callable]
           bag_id_x_instance_ids[:, None])[:, 0])
     overlap_posteriors = tf.concat(overlap_posteriors, axis=0)
     overlap_posteriors = tf.RaggedTensor.from_row_lengths(
@@ -419,7 +419,7 @@ class BagMLPModelWithERM(MLPModel):
     )
 
     with tf.GradientTape() as tape:
-      preds = self(bag_batch, training=True)
+      preds = self(bag_batch, training=True)  # pyrefly: ignore[not-callable]
       prior = self.get_prior(bag_batch)
       posterior, overlap_posteriors = self.compute_posterior(
           prior, preds, bag_batch
@@ -427,8 +427,8 @@ class BagMLPModelWithERM(MLPModel):
       expected_preds = self.compute_expected_preds(
           posterior, preds, bag_batch[self.dataset_info.bag_id]
       )
-      bag_mse = losses.mse_loss(bag_labels, expected_preds)
-      posterior_bce_loss = losses.bce_loss(posterior, posterior)
+      bag_mse = losses.mse_loss(bag_labels, expected_preds)  # pyrefly: ignore[not-callable]
+      posterior_bce_loss = losses.bce_loss(posterior, posterior)  # pyrefly: ignore[not-callable]
       posterior_sum_1 = losses.posterior_sum_1(
           bag_batch[self.dataset_info.bag_id], posterior
       )
@@ -476,7 +476,7 @@ class BagMLPModelWithERM(MLPModel):
             == bag_batch[self.dataset_info.instance_id]
         )
     )
-    preds = self(bag_batch, training=True)
+    preds = self(bag_batch, training=True)  # pyrefly: ignore[not-callable]
     prior = self.get_prior(bag_batch)
     posterior = tf.ones_like(
         bag_batch[self.dataset_info.instance_id], dtype=tf.float32)
@@ -518,7 +518,7 @@ class BagMLPModelWithBP(MLPModel):
     )
 
   def get_prior(self, bag_batch):
-    return np.ones(
+    return np.ones(  # pyrefly: ignore[bad-return]
         shape=(tf.shape(bag_batch[self.dataset_info.bag_id])[0], 1),
         dtype=np.float32
     )
@@ -534,10 +534,10 @@ class BagMLPModelWithBP(MLPModel):
     bag_ids = tf.unique(bag_batch['bag_id'])[1]
 
     with tf.GradientTape() as tape:
-      preds = self(bag_batch, training=True)
+      preds = self(bag_batch, training=True)  # pyrefly: ignore[not-callable]
       agg_preds = self.pred_aggregation_fn(preds, bag_ids)
       agg_labels = self.pred_aggregation_fn(instance_labels, bag_ids)
-      loss = losses.mse_loss(agg_labels, agg_preds)
+      loss = losses.mse_loss(agg_labels, agg_preds)  # pyrefly: ignore[not-callable]
 
     gradients = tape.gradient(loss, self.trainable_variables)
     self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
@@ -552,7 +552,7 @@ class BagMLPModelWithBP(MLPModel):
         bag_batch['bag_id'][:, None] == bag_batch['instance_id']
     )
     bag_ids = tf.unique(bag_batch['bag_id'])[1]
-    preds = self(bag_batch, training=False)
+    preds = self(bag_batch, training=False)  # pyrefly: ignore[not-callable]
     agg_preds = self.pred_aggregation_fn(preds, bag_ids)
     self.update_metrics(
         instance_labels, preds, bag_labels, agg_preds)

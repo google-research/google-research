@@ -86,7 +86,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  (ds_train, ds_val, ds_test), dataset_info = dataset.load(
+  (ds_train, ds_val, ds_test), dataset_info = dataset.load(  # pyrefly: ignore[bad-unpacking]
       _DATASET.value, _TRAIN_INSTANCE.value, _BATCH_SIZE.value, with_info=True)
 
   optimizer = {
@@ -97,7 +97,7 @@ def main(argv):
   if _TRAIN_INSTANCE.value:
     model = network.InstanceMLPModel(
         _EMBEDDING_DIM.value, _NUM_HIDDEN_LAYERS.value, _NUM_HIDDEN_UNITS.value,
-        dataset_info)
+        dataset_info)  # pyrefly: ignore[bad-argument-type]
     model.compile(optimizer=optimizer, run_eagerly=True)
     experiment_dir = os.path.join(
         _EXPERIMENT_DIR.value,
@@ -107,10 +107,10 @@ def main(argv):
             f'{_OPTIMIZER.value}_lr-{_LR.value}_wd-{_WD.value}')
         )
   else:
-    prior = priors.uniform(dataset_info)
+    prior = priors.uniform(dataset_info)  # pyrefly: ignore[bad-argument-type]
     model = network.BagMLPModelWithERM(
         _EMBEDDING_DIM.value, _NUM_HIDDEN_LAYERS.value, _NUM_HIDDEN_UNITS.value,
-        dataset_info, prior)
+        dataset_info, prior)  # pyrefly: ignore[bad-argument-type]
     if _POSTERIOR_LR.value is not None:
       posterior_lr = _POSTERIOR_LR.value
     else:

@@ -69,7 +69,7 @@ def main(argv):
   if len(argv) > 1:
     raise app.UsageError('Too many command-line arguments.')
 
-  (ds_train, ds_val, ds_test), dataset_info = dataset.load(
+  (ds_train, ds_val, ds_test), dataset_info = dataset.load(  # pyrefly: ignore[bad-unpacking]
       _DATASET.value, False, _BATCH_SIZE.value, with_info=True)
 
   ds_train = ds_train.map(functools.partial(
@@ -82,7 +82,7 @@ def main(argv):
 
   model = network.InstanceMLPModel(
       _EMBEDDING_DIM.value, _NUM_HIDDEN_LAYERS.value, _NUM_HIDDEN_UNITS.value,
-      dataset_info)
+      dataset_info)  # pyrefly: ignore[bad-argument-type]
   model.compile(optimizer=optimizer, run_eagerly=True)
   experiment_dir = os.path.join(
       _EXPERIMENT_DIR.value,

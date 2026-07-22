@@ -336,7 +336,7 @@ class DenseGeneral(nn.Module):
 
     if self.use_bias:
       bias_shape = features
-      bias_shardings = self.kernel_shardings[-len(features):]
+      bias_shardings = self.kernel_shardings[-len(features):]  # pyrefly: ignore[unsupported-operation]
       if bias_shardings:
         if len(bias_shardings) != len(bias_shape):
           raise ValueError(
@@ -627,7 +627,7 @@ class _Conv(nn.Module):
       y += bias
 
     if num_batch_dimensions != 1:
-      output_shape = input_batch_shape + y.shape[1:]  # pylint: disable=undefined-variable
+      output_shape = input_batch_shape + y.shape[1:]  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
       y = jnp.reshape(y, output_shape)
     return y
 
@@ -902,7 +902,7 @@ class ConvTranspose(nn.Module):
       y += jnp.reshape(bias, (1,) * (y.ndim - 1) + (-1,))
 
     if num_batch_dimensions != 1:
-      output_shape = input_batch_shape + y.shape[1:]  # pylint: disable=undefined-variable
+      output_shape = input_batch_shape + y.shape[1:]  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
       y = jnp.reshape(y, output_shape)
 
     return y

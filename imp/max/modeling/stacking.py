@@ -77,7 +77,7 @@ class RematScannedStack(nn.Module):
 
     module = transforms.remat(  # pylint: disable=invalid-name
         module=self.module,
-        level=self.remat,
+        level=self.remat,  # pyrefly: ignore[bad-argument-type]
         scanned=True,
         static_argnums=self.static_argnums,
     )

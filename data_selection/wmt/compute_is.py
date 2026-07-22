@@ -218,7 +218,7 @@ def compute_per_example_loss(logits,
   if weights is not None:
     loss = loss * weights
 
-  return loss.sum(axis=-1)/ weights.sum(axis=-1)
+  return loss.sum(axis=-1)/ weights.sum(axis=-1)  # pyrefly: ignore[missing-attribute]
 
 
 def eval_for_is_step(params, batch, config, label_smoothing=0.0):

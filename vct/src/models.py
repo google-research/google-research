@@ -97,7 +97,7 @@ class _WrapAsWeightDecaySchedule(LearningRateSchedule):
     self._weight_decay = weight_decay
 
   def __call__(self, step):
-    return self._weight_decay * self._lr_schedule(step)
+    return self._weight_decay * self._lr_schedule(step)  # pyrefly: ignore[not-callable]
 
 
 Cls = Callable[Ellipsis, tf.Module]
@@ -200,8 +200,8 @@ class ResidualBlock(tf.keras.layers.Layer):
     self._act_2 = tf.keras.layers.LeakyReLU()
 
   def call(self, inputs):
-    filtered_1 = self._act_1(self._conv_1(inputs))
-    filtered_2 = self._act_2(self._conv_2(filtered_1))
+    filtered_1 = self._act_1(self._conv_1(inputs))  # pyrefly: ignore[not-callable]
+    filtered_2 = self._act_2(self._conv_2(filtered_1))  # pyrefly: ignore[not-callable]
     return filtered_2 + inputs
 
 
@@ -302,8 +302,8 @@ def _mse_psnr(original, reconstruction,
   # [0...255] before computing the MSE.
   mse_per_batch = tf.reduce_mean(
       tf.math.squared_difference(
-          _round_if_not_training(original * 255.0, training),
-          _round_if_not_training(reconstruction * 255.0, training)),
+          _round_if_not_training(original * 255.0, training),  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+          _round_if_not_training(reconstruction * 255.0, training)),  # pyrefly: ignore[bad-argument-type, unsupported-operation]
       axis=(1, 2, 3))
   mse = tf.reduce_mean(mse_per_batch)
   psnr_factor = -10. / tf.math.log(10.)
@@ -436,12 +436,12 @@ class Model(tf.Module):
       training,
       cache,
   ):
-    latent = self._analysis_image(frame.rgb, training=training)
+    latent = self._analysis_image(frame.rgb, training=training)  # pyrefly: ignore[not-callable]
     output = self._encode_iframe_latent(latent, training)
     metrics = output.metrics
     bottleneck = Bottleneck(output.perturbed_latent,
                             output.bits, output.features)
-    decode_iframe = tf_memoize.bind(self.decode_iframe, cache)
+    decode_iframe = tf_memoize.bind(self.decode_iframe, cache)  # pyrefly: ignore[bad-argument-type]
     _, state, _ = decode_iframe(bottleneck, training)
     return state, EncodeOut(bottleneck, metrics)
 
@@ -455,7 +455,7 @@ class Model(tf.Module):
     latent_q = bottleneck.latent_q
     synthesis_in = self._dequantizer(
         latent_q=latent_q, entropy_features=bottleneck.entropy_model_features)
-    reconstruction = self._synthesis_image(synthesis_in, training=training)
+    reconstruction = self._synthesis_image(synthesis_in, training=training)  # pyrefly: ignore[not-callable]
     latent_q = bottleneck.latent_q
     # TODO(mentzer): Remove.
     latent_q = tf.stop_gradient(latent_q)
@@ -474,7 +474,7 @@ class Model(tf.Module):
       cache,
       ):
     metrics = Metrics.make()
-    latent = self._analysis_image(frame.rgb, training=training)
+    latent = self._analysis_image(frame.rgb, training=training)  # pyrefly: ignore[not-callable]
 
     if not training and self._range_code_transformer:
       # Note that at the moment, we also decode right away inside
@@ -494,7 +494,7 @@ class Model(tf.Module):
                             output.features)
     metrics.merge(output.metrics)
 
-    decode_pframe = tf_memoize.bind(self.decode_pframe, cache)
+    decode_pframe = tf_memoize.bind(self.decode_pframe, cache)  # pyrefly: ignore[bad-argument-type]
     _, new_state, _ = decode_pframe(
         bottleneck, frame_index, state, training, cache)
 
@@ -513,7 +513,7 @@ class Model(tf.Module):
     synthesis_in = self._dequantizer(
         latent_q=latent_q,
         entropy_features=bottleneck.entropy_model_features)
-    reconstruction = self._synthesis_image(synthesis_in, training=training)
+    reconstruction = self._synthesis_image(synthesis_in, training=training)  # pyrefly: ignore[not-callable]
 
     # Preprocess `latent_q`.
     next_state_entry = self._entropy_model_pframe.process_previous_latent_q(
@@ -544,8 +544,8 @@ class Model(tf.Module):
       training,
       cache,
   ):
-    decode_iframe = tf_memoize.bind(self.decode_iframe, cache)
-    decode_pframe = tf_memoize.bind(self.decode_pframe, cache)
+    decode_iframe = tf_memoize.bind(self.decode_iframe, cache)  # pyrefly: ignore[bad-argument-type]
+    decode_pframe = tf_memoize.bind(self.decode_pframe, cache)  # pyrefly: ignore[bad-argument-type]
 
     state = None
     for frame_index, bottleneck in enumerate(bottlenecks):
@@ -605,7 +605,7 @@ class Model(tf.Module):
 
     mse, psnr = _mse_psnr(frame.rgb, network_out.reconstruction, training)
     distortion_loss = mse
-    rd_loss = bpp_loss + (self._scheduled_rd_lambda() * distortion_loss)
+    rd_loss = bpp_loss + (self._scheduled_rd_lambda() * distortion_loss)  # pyrefly: ignore[unsupported-operation]
     metrics.record_image("reconstruction", network_out.reconstruction)
     metrics.record_scalar("mse", mse)
     metrics.record_scalar("psnr", psnr)
@@ -647,7 +647,7 @@ class Model(tf.Module):
       else:
         # Use a 10x higher weight for the P-frame.
         rd_loss_weight = 10.0
-      rd_loss_scaled = rd_loss * rd_loss_weight
+      rd_loss_scaled = rd_loss * rd_loss_weight  # pyrefly: ignore[unsupported-operation]
       rd_losses.append(rd_loss_scaled)
 
       frame_metrics = network_out.frame_metrics
@@ -670,7 +670,7 @@ class Model(tf.Module):
     metrics.record_scalar("scheduled_rd_lambda",
                           self._scheduled_rd_lambda())
     metrics.record_scalar("scheduled_learning_rate",
-                          self._learning_rate_schedule(self.global_step))
+                          self._learning_rate_schedule(self.global_step))  # pyrefly: ignore[not-callable]
     avg_metrics = Metrics.reduce(
         frame_metrics_list, scalar_reduce_fn=tf.reduce_mean)
     metrics.merge("video_avg", avg_metrics)

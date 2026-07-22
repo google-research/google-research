@@ -212,11 +212,11 @@ class VCTEntropyModel(tf.Module):
     # (b', seq_len, num_channels)
     latent_patches, _ = self.patcher(
         previous_latent_quantized, self.window_size_enc)
-    patches = latent_patches / _LATENT_NORM_FAC
+    patches = latent_patches / _LATENT_NORM_FAC  # pyrefly: ignore[unsupported-operation]
 
     # (b', seq_len, d_model)
-    patches = self.encoder_embedding(patches)
-    patches = self.post_embedding_norm(patches)
+    patches = self.encoder_embedding(patches)  # pyrefly: ignore[not-callable]
+    patches = self.post_embedding_norm(patches)  # pyrefly: ignore[not-callable]
     patches = self.enc_position_sep(patches)
     patches = self.encoder_sep(patches, training)
 
@@ -225,10 +225,10 @@ class VCTEntropyModel(tf.Module):
   def _embed_latent_q_patched(self, latent_q_patched):
     """Embeds current latent for decoder."""
     # (b', seq_len, num_channels)
-    latent_q_patched = latent_q_patched / _LATENT_NORM_FAC
+    latent_q_patched = latent_q_patched / _LATENT_NORM_FAC  # pyrefly: ignore[bad-assignment, unsupported-operation]
     # (b', seq_len, d_model)
-    latent_q_patched = self.decoder_embedding(latent_q_patched)
-    latent_q_patched = self.post_embedding_norm(latent_q_patched)
+    latent_q_patched = self.decoder_embedding(latent_q_patched)  # pyrefly: ignore[not-callable]
+    latent_q_patched = self.post_embedding_norm(latent_q_patched)  # pyrefly: ignore[not-callable]
     return self.dec_position(latent_q_patched)
 
   def _get_transformer_output(
@@ -245,7 +245,7 @@ class VCTEntropyModel(tf.Module):
                        f"got shape={encoded_patched.shape}. "
                        "Did you run `process_previous_latent_q`?")
 
-    latent_q_patched_shifted = self.learned_zero(latent_q_patched)
+    latent_q_patched_shifted = self.learned_zero(latent_q_patched)  # pyrefly: ignore[not-callable]
     latent_q_patched_emb_shifted = self._embed_latent_q_patched(
         latent_q_patched_shifted)
     del latent_q_patched  # Should not use after this line.
@@ -348,7 +348,7 @@ class VCTEntropyModel(tf.Module):
 
     metrics.record_scalar("bits/total", tf.reduce_mean(bits_per_batch))
     metrics.record_scalar("mean_quantization_error",
-                          tf.reduce_mean(output - latent_unquantized))
+                          tf.reduce_mean(output - latent_unquantized))  # pyrefly: ignore[unsupported-operation]
 
     return TemporalEntropyModelOut(
         output,
@@ -485,7 +485,7 @@ class VCTEntropyModel(tf.Module):
       # the zero symbol first to get an initial distribution.
       if prev_mean is not None:
         latent_i = latent_patched[:, i - 1, :]
-        quantized_i, bytestring = self.range_bottleneck.compress(
+        quantized_i, bytestring = self.range_bottleneck.compress(  # pyrefly: ignore[missing-attribute]
             latent_i, prev_mean, prev_scale)
         assert bytestring.shape == ()  # pylint: disable=g-explicit-bool-comparison
         bytestrings.append(bytestring)
@@ -512,7 +512,7 @@ class VCTEntropyModel(tf.Module):
     prev_scale = None
     for i in itertools.chain(range(self.seq_len_dec), [0]):
       if prev_mean is not None:
-        decompressed_i = self.range_bottleneck.decompress(
+        decompressed_i = self.range_bottleneck.decompress(  # pyrefly: ignore[missing-attribute]
             bytestrings.pop(0), prev_mean, prev_scale)
         current_inp[:, i - 1, :] = decompressed_i
         if i == 0:
@@ -539,4 +539,4 @@ class VCTEntropyModel(tf.Module):
       prev_scale = target_scale
 
     assert not bytestrings
-    return self.patcher.unpatch(current_inp, n_h, n_w, crop=(h, w))
+    return self.patcher.unpatch(current_inp, n_h, n_w, crop=(h, w))  # pyrefly: ignore[bad-argument-type]
