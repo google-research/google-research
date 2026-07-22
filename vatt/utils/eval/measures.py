@@ -17,7 +17,7 @@
 
 import numpy as np
 import scipy
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 import sklearn.metrics
 
 

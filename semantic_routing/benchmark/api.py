@@ -277,5 +277,5 @@ class EdgeListPredictionDatapointGenerator(object):
     Returns:
       Tensorflow dataset object.
     """
-    ds = tf.data.Dataset.from_generator(self, output_signature=self.signature())
+    ds = tf.data.Dataset.from_generator(self, output_signature=self.signature())  # pyrefly: ignore[bad-argument-type]
     return tfds.as_numpy(ds.batch(batch_size, drop_remainder=True))

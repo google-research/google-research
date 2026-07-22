@@ -304,7 +304,7 @@ class GraphStruct(NamedTuple):
     g_edges = {}
     g_edges_schema = {}
     for node_name, features in self.nodes.items():
-      if node_name in excluded_node_sets:
+      if node_name in excluded_node_sets:  # pyrefly: ignore[not-iterable]
         continue
 
       if num_nodes_map is not None:
@@ -1218,11 +1218,11 @@ class InMemoryDB:
     """Converts all features to device memory."""
     if self._cumsum_sizes is None:
       raise ValueError('You have not yet called finalize().')
-    self._features = {k: to_device_fn(v) for k, v in self._features.items()}
+    self._features = {k: to_device_fn(v) for k, v in self._features.items()}  # pyrefly: ignore[bad-assignment]
     self._cumsum_sizes = {
         k: to_device_fn(v) for k, v in self._cumsum_sizes.items()
     }
-    self._sizes = {k: to_device_fn(v) for k, v in self._sizes.items()}
+    self._sizes = {k: to_device_fn(v) for k, v in self._sizes.items()}  # pyrefly: ignore[bad-assignment]
     self._edges = {k: to_device_fn(v) for k, v in self._edges.items()}
 
   def get_item(self, i):
@@ -1332,7 +1332,7 @@ class GraphBuilder(Generic[T]):
             node_set_name: {
                 k: np.stack(v, axis=0) for k, v in node_features.items()}
             for node_set_name, node_features in self.node_features.items()},
-        schema=self._schema,
+        schema=self._schema,  # pyrefly: ignore[bad-argument-type]
         edges={edge_name: ((np.array(srcs), np.array(tgts)), {})
                for edge_name, (srcs, tgts) in self._edges.items()})
 
@@ -1415,7 +1415,7 @@ class GraphBuilder(Generic[T]):
             f'{node_set_name}: {existing_features} VS {set(features)}+["_name"]'
         )
 
-      self.node_features[node_set_name]['_name'].append(node_name)
+      self.node_features[node_set_name]['_name'].append(node_name)  # pyrefly: ignore[bad-argument-type]
       for k, v in features.items():
         self.node_features[node_set_name][k].append(np.array(v))
     return node_id

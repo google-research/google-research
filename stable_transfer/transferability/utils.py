@@ -19,7 +19,7 @@ import os
 from typing import Any, Dict, Text
 
 import ml_collections
-from six.moves import cPickle as pickle  # for performance
+from six.moves import cPickle as pickle  # for performance  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow as tf
 
 
@@ -51,7 +51,7 @@ def config_dict_flatten(config_dict,
     k_flat = f'{prefix}{k}'
 
     if isinstance(v, dict) or isinstance(v, ml_collections.ConfigDict):
-      flattened_items.extend(config_dict_flatten(v, prefix=k_flat).items())
+      flattened_items.extend(config_dict_flatten(v, prefix=k_flat).items())  # pyrefly: ignore[bad-argument-type]
     else:
       flattened_items.append((k_flat, v))
 

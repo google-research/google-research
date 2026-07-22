@@ -40,7 +40,7 @@ def get_features_dict(
     A features dictionary for TensorFlow IO.
   """
   sample_shape = [sample_size, sample_size]
-  features = set(features)
+  features = set(features)  # pyrefly: ignore[bad-assignment]
   columns = [tf.io.FixedLenFeature(shape=sample_shape, dtype=tf.float32)
             ] * len(features)
   return dict(zip(features, columns))
@@ -395,9 +395,9 @@ def get_dataset(file_pattern,
   """
   if (clip_and_normalize and clip_and_rescale):
     raise ValueError('Cannot have both normalize and rescale.')
-  dataset = tf.data.Dataset.list_files(file_pattern, shuffle=shuffle)
+  dataset = tf.data.Dataset.list_files(file_pattern, shuffle=shuffle)  # pyrefly: ignore[bad-argument-type]
   dataset = dataset.interleave(
-      lambda x: tf.data.TFRecordDataset(x, compression_type=compression_type),
+      lambda x: tf.data.TFRecordDataset(x, compression_type=compression_type),  # pyrefly: ignore[bad-instantiation]
       num_parallel_calls=tf.data.experimental.AUTOTUNE)
   dataset = dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
   dataset = dataset.map(

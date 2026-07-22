@@ -45,32 +45,32 @@ from aux_tasks.synthetic import utils
 
 _config = config_dict.ConfigDict()
 
-_config.method: str = 'explicit'
-_config.optimizer: str = 'sgd'
-_config.num_epochs: int = 2_000_000
+_config.method: str = 'explicit'  # pyrefly: ignore[bad-assignment]
+_config.optimizer: str = 'sgd'  # pyrefly: ignore[bad-assignment]
+_config.num_epochs: int = 2_000_000  # pyrefly: ignore[bad-assignment]
 _config.rescale_psi = ''
 _config.use_mnist = False
 _config.sample_with_replacement = True
 
-_config.S: int = 10  # Number of states
-_config.T: int = 10  # Number of aux. tasks
-_config.d: int = 1  # feature dimension
+_config.S: int = 10  # Number of states  # pyrefly: ignore[bad-assignment]
+_config.T: int = 10  # Number of aux. tasks  # pyrefly: ignore[bad-assignment]
+_config.d: int = 1  # feature dimension  # pyrefly: ignore[bad-assignment]
 
 # The theoretical maximum for kappa is 2, and 1.9 works well.
-_config.kappa: float = 1.9  # Lissa kappa
+_config.kappa: float = 1.9  # Lissa kappa  # pyrefly: ignore[bad-assignment]
 
-_config.covariance_batch_size: int = 32
-_config.main_batch_size: int = 32
-_config.weight_batch_size: int = 32
+_config.covariance_batch_size: int = 32  # pyrefly: ignore[bad-assignment]
+_config.main_batch_size: int = 32  # pyrefly: ignore[bad-assignment]
+_config.weight_batch_size: int = 32  # pyrefly: ignore[bad-assignment]
 
-_config.seed: int = 4753849
-_config.lr: float = 0.01
+_config.seed: int = 4753849  # pyrefly: ignore[bad-assignment]
+_config.lr: float = 0.01  # pyrefly: ignore[bad-assignment]
 
 _config.suite = 'synthetic'  # synthetic or puddle_world
 
 # SYNTHETIC SUITE CONFIG
 # If the SVD has precomputed, supply the path here to avoid recomputing it.
-_config.svd_path: str = ''
+_config.svd_path: str = ''  # pyrefly: ignore[bad-assignment]
 _config.use_tabular_gradient = True
 
 # PUDDLE WORLD SUITE CONFIG
@@ -276,7 +276,7 @@ def compute_gradient(
           d,
           covariance_batch_size,
           lissa_kappa,
-          feature_norm=feature_norm,
+          feature_norm=feature_norm,  # pyrefly: ignore[bad-argument-type]
       )
       covariance_2, key = estimates.lissa_inverse_covariance_matrix(
           compute_phi_no_params,
@@ -285,7 +285,7 @@ def compute_gradient(
           d,
           covariance_batch_size,
           lissa_kappa,
-          feature_norm=feature_norm,
+          feature_norm=feature_norm,  # pyrefly: ignore[bad-argument-type]
       )
 
       # Draw two separate sets of states for the weight vectors (important!)
@@ -295,12 +295,12 @@ def compute_gradient(
     # Compute the weight estimates by combining the inverse covariance
     # estimate and the sampled Phi & Psi's.
     weight_1 = (
-        covariance_1
+        covariance_1  # pyrefly: ignore[unbound-name]
         @ compute_phi(phi_params, weight_states_1).T  # pytype: disable=wrong-arg-types  # jax-ndarray
         @ compute_psi(weight_states_1, task)
     ) / len(weight_states_1)
     weight_2 = (
-        covariance_2
+        covariance_2  # pyrefly: ignore[unbound-name]
         @ compute_phi(phi_params, weight_states_2).T  # pytype: disable=wrong-arg-types  # jax-ndarray
         @ compute_psi(weight_states_2, task)
     ) / len(weight_states_2)
@@ -325,7 +325,7 @@ def compute_gradient(
     # duplicate indices. Most of the time we care about the case where our
     # batch size is much smaller than the number of states, so duplicate
     # indices should be rare.
-    phi_gradient = jnp.zeros_like(phi_params)
+    phi_gradient = jnp.zeros_like(phi_params)  # pyrefly: ignore[bad-argument-type]
     phi_gradient = phi_gradient.at[source_states, :].set(partial_gradient)
   else:
     # Calculate implicit gradient (Phi @ w_1 - Psi) @ w_2.T
@@ -339,7 +339,7 @@ def compute_gradient(
     expanded_gradient = jnp.expand_dims(weight_gradient, axis=1)
 
     explicit_weight_matrix = params['explicit_weight_matrix']
-    explicit_weight_gradient = jnp.zeros_like(explicit_weight_matrix)
+    explicit_weight_gradient = jnp.zeros_like(explicit_weight_matrix)  # pyrefly: ignore[bad-argument-type]
     explicit_weight_gradient = explicit_weight_gradient.at[:, task].set(
         expanded_gradient
     )
@@ -448,7 +448,7 @@ def _train_step(
   )
 
   updates, optimizer_state = optimizer.update(gradient, optimizer_state)
-  params = optax.apply_updates(params, updates)
+  params = optax.apply_updates(params, updates)  # pyrefly: ignore[bad-assignment]
 
   return {  # pytype: disable=bad-return-type  # numpy-scalars
       'params': params,
@@ -528,12 +528,12 @@ def train(
     params['explicit_weight_matrix'] = explicit_weight_matrix
 
   if optimizer == 'sgd':
-    optimizer = optax.sgd(learning_rate)
+    optimizer = optax.sgd(learning_rate)  # pyrefly: ignore[bad-assignment]
   elif optimizer == 'adam':
-    optimizer = optax.adam(learning_rate)
+    optimizer = optax.adam(learning_rate)  # pyrefly: ignore[bad-assignment]
   else:
     raise ValueError(f'Unknown optimizer {optimizer}.')
-  optimizer_state = optimizer.init(params)
+  optimizer_state = optimizer.init(params)  # pyrefly: ignore[missing-attribute]
 
   chkpt_manager = checkpoint.Checkpoint(base_directory=_WORKDIR.value)
   initial_step, params, optimizer_state = chkpt_manager.restore_or_initialize(
@@ -635,7 +635,7 @@ def main(_):
 
   train(  # pytype: disable=wrong-arg-types  # jax-ndarray
       workdir=workdir,
-      compute_phi=experiment.compute_phi,
+      compute_phi=experiment.compute_phi,  # pyrefly: ignore[bad-argument-type]
       compute_psi=experiment.compute_psi,
       params={'phi_params': experiment.params},
       optimal_subspace=experiment.optimal_subspace,

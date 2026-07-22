@@ -23,7 +23,7 @@ import collections
 import os
 
 from absl import logging
-from six.moves import cPickle
+from six.moves import cPickle  # pyrefly: ignore[missing-source-for-stubs]
 
 f_open = open
 f_exists = os.path.exists

@@ -252,9 +252,9 @@ class TransferExperiment():
       optim_name += f"_LR{optim_args['learning_rate']:5.0e}"
       if optim_args == 'sgd':
         sgd_name = ''
-        if not optim_args['nesterov']:
+        if not optim_args['nesterov']:  # pyrefly: ignore[bad-index]
           sgd_name += '_NoNesterov'
-        if optim_args['momentum'] != 0.9:
+        if optim_args['momentum'] != 0.9:  # pyrefly: ignore[bad-index]
           sgd_name += f"_M{optim_args['momentum']}".replace('.', '_')
         optim_name += sgd_name
       return f'accuracy_{base_model}_{optim_name}'

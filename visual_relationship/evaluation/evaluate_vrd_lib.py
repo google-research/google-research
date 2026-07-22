@@ -375,7 +375,7 @@ def load_groundtruth(
       objects,
       left_on=['image_id_2', 'object_id_2'],
       right_on=['image_id', 'object_id'],
-      suffixes=['_1', '_2'],
+      suffixes=['_1', '_2'],  # pyrefly: ignore[bad-argument-type]
   ).drop(
       ['image_id', 'object_id'],
       axis=1,

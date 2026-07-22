@@ -85,10 +85,10 @@ def train_step(
         tstep_config.forward_observation_length)
 
     hidden_state_reconstruction_loss = train_utils.l2_reconstruction_loss(
-        predicted_hidden_states[0], batch['hidden_state'])
+        predicted_hidden_states[0], batch['hidden_state'])  # pyrefly: ignore[bad-argument-type]
 
     observation_reconstruction_loss = sum([
-        train_utils.logit_binary_cross_entropy_loss(o_pred, o_gt) for o_gt,
+        train_utils.logit_binary_cross_entropy_loss(o_pred, o_gt) for o_gt,  # pyrefly: ignore[bad-argument-type]
         o_pred in zip(batch['observation_sequence'], predicted_observations)
     ])
 
@@ -106,7 +106,7 @@ def train_step(
   grad = jax.lax.pmean(grad, axis_name='batch')
   updates, opt_state = tx.update(grad, state.opt_state, state.params)
   params = optax.apply_updates(state.params, updates)
-  new_state = state.replace(
+  new_state = state.replace(  # pyrefly: ignore[missing-attribute]
       opt_state=opt_state,
       params=params,
       step=state.step + 1,
@@ -146,10 +146,10 @@ def eval_step(model, state,
       len(batch['observation_sequence']), True)
 
   hidden_state_reconstruction_loss = train_utils.l2_reconstruction_loss(
-      predicted_hidden_states[0], batch['hidden_state'])
+      predicted_hidden_states[0], batch['hidden_state'])  # pyrefly: ignore[bad-argument-type]
 
   observation_reconstruction_loss = sum([
-      train_utils.logit_binary_cross_entropy_loss(o_pred, o_gt) for o_gt, o_pred
+      train_utils.logit_binary_cross_entropy_loss(o_pred, o_gt) for o_gt, o_pred  # pyrefly: ignore[bad-argument-type]
       in zip(batch['observation_sequence'], predicted_observations)
   ])
 
@@ -179,7 +179,7 @@ def get_model(
   ]
   variables = model.init(model_rng, observations)
 
-  return model, variables
+  return model, variables  # pyrefly: ignore[bad-return]
 
 
 def train_and_evaluate(cfg):
@@ -188,7 +188,7 @@ def train_and_evaluate(cfg):
 
   train_ds, eval_ds, test_ds = train_eval_setup.datasets  # pylint: disable=unused-variable
 
-  train_iter = iter(train_ds)
+  train_iter = iter(train_ds)  # pyrefly: ignore[no-matching-overload]
   train_metrics = None
 
   writer = train_eval_setup.loggers['writer']
@@ -232,7 +232,7 @@ def train_and_evaluate(cfg):
         rng, eval_rng = random.split(rng)
         with report_progress.timed('eval'):
           eval_metrics = train_utils.evaluate(
-              model, tstate, eval_ds, eval_step, eval_rng,
+              model, tstate, eval_ds, eval_step, eval_rng,  # pyrefly: ignore[bad-argument-type]
               cfg.train.backward_observation_length)
         eval_metrics_cpu = jax.tree.map(np.array, eval_metrics.compute())
         eval_metrics_cpu = utils.prepend_dict_keys(eval_metrics_cpu, 'eval/')
@@ -245,7 +245,7 @@ def train_and_evaluate(cfg):
 
   rng, test_rng = random.split(rng)
   with report_progress.timed('test'):
-    test_metrics = train_utils.evaluate(model, tstate, test_ds, eval_step,
+    test_metrics = train_utils.evaluate(model, tstate, test_ds, eval_step,  # pyrefly: ignore[bad-argument-type]
                                         test_rng,
                                         cfg.train.backward_observation_length)
   test_metrics_cpu = jax.tree.map(np.array, test_metrics.compute())

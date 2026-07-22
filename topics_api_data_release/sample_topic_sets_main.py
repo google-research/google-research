@@ -144,8 +144,8 @@ def main(argv):
 
   # Read the TypeDistribution json.
   dist_load_start = time.time()
-  with open(_DISTRIBUTION_PATH.value, "r") as fh:
-    dist = TypeMixtureTopicDistribution.from_json(fh.read(), topic_ids)
+  with open(_DISTRIBUTION_PATH.value, "r") as fh:  # pyrefly: ignore[no-matching-overload]
+    dist = TypeMixtureTopicDistribution.from_json(fh.read(), topic_ids)  # pyrefly: ignore[bad-argument-type]
   logging.info(
       "Loaded distribution with %d types in %.2f seconds.",
       dist.theta.shape[0],

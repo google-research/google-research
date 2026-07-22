@@ -939,7 +939,7 @@ def brute_force_fast_saliency_evaluate_masks(run_params,
       min_score = eval_record['saliency_score']
       record = eval_record
   session.close()
-  return record
+  return record  # pyrefly: ignore[unbound-name]
 
 
 def remove_ticks():

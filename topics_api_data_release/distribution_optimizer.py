@@ -118,7 +118,7 @@ def fit_distribution(
     return dist, opt_state, loss
 
   dist = initial_distribution
-  opt_state = optimizer.init(dist)
+  opt_state = optimizer.init(dist)  # pyrefly: ignore[bad-argument-type]
   global_step = 0
 
   for epoch_ix in range(num_epochs):

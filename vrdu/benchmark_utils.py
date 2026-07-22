@@ -95,9 +95,9 @@ class DataUtils:
     """
     with open(split_filepath, 'r') as f:
       splits = json.load(f)
-    self.train_filenames = list(splits['train'])
-    self.valid_filenames = list(splits['valid'])
-    self.test_filenames = list(splits['test'])
+    self.train_filenames = list(splits['train'])  # pyrefly: ignore[bad-assignment]
+    self.valid_filenames = list(splits['valid'])  # pyrefly: ignore[bad-assignment]
+    self.test_filenames = list(splits['test'])  # pyrefly: ignore[bad-assignment]
 
   def load_entity_name_info(
       self, meta_filepath):
@@ -230,7 +230,7 @@ def get_nested_entity_name(
   Raises:
     <Any>: The nested entity name cannot match with any entity short name.
   """
-  entity_name_tuple = set(entity_name_tuple)
+  entity_name_tuple = set(entity_name_tuple)  # pyrefly: ignore[bad-assignment]
   for nested_entity_name, sub_entity_names in nested_entity_name_dict.items():
     if entity_name_tuple.issubset(set(sub_entity_names)):
       return nested_entity_name
@@ -626,7 +626,7 @@ def evaluate_for_target_entity_names(
   all_groundtruth = {
       filename: groundtruth
       for filename, groundtruth in benchmark.annotations.items()
-      if filename in benchmark.test_filenames
+      if filename in benchmark.test_filenames  # pyrefly: ignore[not-iterable]
   }
 
   for filename in all_groundtruth:

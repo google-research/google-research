@@ -118,7 +118,7 @@ class MultiBCLearner(acme.Learner):
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter(prefix='encoder')
     self._logger = logger or loggers.make_default_logger(
-        'encoder', asynchronous=True, serialize_fn=utils.fetch_devicearray)
+        'encoder', asynchronous=True, serialize_fn=utils.fetch_devicearray)  # pyrefly: ignore[bad-argument-type]
 
     # Iterator on demonstration transitions.
     self._demonstrations = demonstrations
@@ -149,7 +149,7 @@ class MultiBCLearner(acme.Learner):
   def step(self, transitions=None):
     # Get a batch of Transitions.
     if transitions is None:
-      transitions = next(self._demonstrations)
+      transitions = next(self._demonstrations)  # pyrefly: ignore[bad-argument-type]
     self._state, metrics = self._sgd_step(self._state, transitions)
 
     # Compute elapsed time.
@@ -162,7 +162,7 @@ class MultiBCLearner(acme.Learner):
     # Attempts to write the logs.
     self._logger.write({**metrics, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = {
         'aquadem_encoder': self._state.encoder_params,
     }
@@ -273,7 +273,7 @@ class AquademLearner(acme.Learner):
   def step(self):
     self._discrete_rl_learner.step()
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = []
     for name in names:
       if name == 'aquadem_encoder':

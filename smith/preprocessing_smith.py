@@ -382,7 +382,7 @@ def get_tokens_segment_ids_masks(max_sent_length_by_word,
           # goes across the boundary will be put into the next sentence block.
           natural_sentence_index -= 1
           break
-    sent_tokens = cur_sent_block
+    sent_tokens = cur_sent_block  # pyrefly: ignore[unbound-name]
     sent_block_token_list.append(sent_tokens)
     if len(sent_block_token_list) >= max_doc_length_by_sentence:
       break  # Skip more sentence blocks if the document is too long.

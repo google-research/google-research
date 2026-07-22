@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Model layers in dual encoder SMITH model."""
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 from smith import constants

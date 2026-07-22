@@ -92,17 +92,17 @@ def get_planetoid_dataset(dataset_name, cache_dir=None):
     _maybe_download_file(source_url, destination_path)
 
   # Load data files.
-  edge_lists = pickle.load(open_file(base_path + '.graph', 'rb'))
-  allx = pickle.load(open_file(base_path + '.allx', 'rb'), encoding='latin1')
-  ally = np.load(open_file(base_path + '.ally', 'rb'), allow_pickle=True)
+  edge_lists = pickle.load(open_file(base_path + '.graph', 'rb'))  # pyrefly: ignore[bad-argument-type]
+  allx = pickle.load(open_file(base_path + '.allx', 'rb'), encoding='latin1')  # pyrefly: ignore[bad-argument-type]
+  ally = np.load(open_file(base_path + '.ally', 'rb'), allow_pickle=True)  # pyrefly: ignore[bad-argument-type]
 
-  testx = pickle.load(open_file(base_path + '.tx', 'rb'), encoding='latin1')
+  testx = pickle.load(open_file(base_path + '.tx', 'rb'), encoding='latin1')  # pyrefly: ignore[bad-argument-type]
 
   # Add test
   test_idx = list(
       map(
           int,
-          open_file(base_path + '.test.index').read().split('\n')[:-1],
+          open_file(base_path + '.test.index').read().split('\n')[:-1],  # pyrefly: ignore[bad-argument-type]
       )
   )
 
@@ -116,7 +116,7 @@ def get_planetoid_dataset(dataset_name, cache_dir=None):
   llallx[test_idx] = testx
   allx = np.array(llallx.todense())
 
-  testy = np.load(open_file(base_path + '.ty', 'rb'), allow_pickle=True)
+  testy = np.load(open_file(base_path + '.ty', 'rb'), allow_pickle=True)  # pyrefly: ignore[bad-argument-type]
   ally = np.pad(ally, [(0, num_test_examples), (0, 0)], mode='constant')
   ally[test_idx] = testy
 
@@ -157,7 +157,7 @@ def get_malnet_tiny_dataset(
   splits = ['train', 'val', 'test']
   db_paths = [os.path.join(cache_dir, f'{s}_db.npz') for s in splits]
   if all(map(_file_exists, db_paths)):  # All database files already exist.
-    return tuple([InMemoryDB.from_file(db_path) for db_path in db_paths])
+    return tuple([InMemoryDB.from_file(db_path) for db_path in db_paths])  # pyrefly: ignore[bad-return]
 
   splits_dir = os.path.join(cache_dir, 'split_info_tiny', 'type')
   data_dir = os.path.join(cache_dir, 'malnet-graphs-tiny')
@@ -165,7 +165,7 @@ def get_malnet_tiny_dataset(
   if not _file_exists(data_dir):
     destination_tar = os.path.join(cache_dir, 'malnet-graphs-tiny.tar.gz')
     _maybe_download_file(download_url, destination_tar)
-    with tarfile.open(fileobj=open_file(destination_tar, 'rb')) as f:
+    with tarfile.open(fileobj=open_file(destination_tar, 'rb')) as f:  # pyrefly: ignore[no-matching-overload]
       f.extractall(cache_dir)
 
   if not _file_exists(splits_dir):
@@ -181,10 +181,10 @@ def get_malnet_tiny_dataset(
   labels = {}
   for split in splits:
     with open_file(os.path.join(splits_dir, f'{split}.txt'), 'r') as f:
-      filenames = f.read().split('\n')[:-1]
+      filenames = f.read().split('\n')[:-1]  # pyrefly: ignore[bad-argument-type]
 
       for filename in filenames:
-        label = filename.split('/')[0]
+        label = filename.split('/')[0]  # pyrefly: ignore[bad-argument-type]
         if label not in labels and not labels:
           labels[label] = 0
         elif label not in labels:

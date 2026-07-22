@@ -144,4 +144,4 @@ def get_dummy_batched_obs_and_actions(
       utils.zeros_like(environment_spec.observations), 1)
   dummy_action = utils.tile_nested(
       utils.zeros_like(environment_spec.actions), 1)
-  return dummy_observation, dummy_action
+  return dummy_observation, dummy_action  # pyrefly: ignore[bad-return]

@@ -106,7 +106,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
           networks,
           dataset,
           logger_fn=logger_fn,
-          environment_spec=environment_spec,
+          environment_spec=environment_spec,  # pyrefly: ignore[bad-argument-type]
           replay_client=replay_client,
           counter=discrete_rl_counter)
 
@@ -130,7 +130,7 @@ class AquademBuilder(builders.ActorLearnerBuilder):
         temperature=self._config.temperature,
         num_actions=self._config.num_actions,
         demonstration_ratio=self._config.demonstration_ratio,
-        min_demo_reward=self._config.min_demo_reward,
+        min_demo_reward=self._config.min_demo_reward,  # pyrefly: ignore[bad-argument-type]
         counter=counter,
         logger=logger_fn('learner'))
 
@@ -167,8 +167,8 @@ class AquademBuilder(builders.ActorLearnerBuilder):
     wrapped_actor = self._rl_agent.make_actor(random_key,
                                               policy.discrete_policy,
                                               environment_spec,
-                                              adder,
-                                              variable_source)
+                                              adder,  # pyrefly: ignore[bad-argument-type]
+                                              variable_source)  # pyrefly: ignore[bad-argument-type]
     return actor.AquademActor(
         wrapped_actor=wrapped_actor,
         policy=policy.aquadem_policy,

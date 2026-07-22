@@ -25,7 +25,7 @@ import sys
 
 from absl import app
 from absl import flags
-from six.moves import map
+from six.moves import map  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 from tunas import controller

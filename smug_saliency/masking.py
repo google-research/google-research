@@ -507,7 +507,7 @@ def find_mask_full_encoding(image,
                      image=image,
                      session=session,
                      run_params=run_params)
-  result.update({
+  result.update({  # pyrefly: ignore[no-matching-overload]
       'image': image.reshape(-1),
       'combined_solver_runtime': time.time() - solver_start_time,
       'unmasked_logits': np.squeeze(unmasked_predictions['logits']),
@@ -938,7 +938,7 @@ def _sort_indices(session, image, label_index, run_params, unmasked_predictions,
         output_tensor_name=tensor_names['softmax'])
     first_layer_priority = _reorder(
         _remove_batch_axis(first_layer_priority)).reshape(-1)
-  return first_layer_priority.argsort()
+  return first_layer_priority.argsort()  # pyrefly: ignore[unbound-name]
 
 
 def _process_image(image, run_params, window_size, session=None):
@@ -1198,7 +1198,7 @@ def find_mask_first_layer(image,
                      image=image,
                      session=session,
                      run_params=run_params)
-  result.update({
+  result.update({  # pyrefly: ignore[no-matching-overload]
       'image': image.reshape(-1),
       'combined_solver_runtime': time.time() - solver_start_time,
       'unmasked_logits': unmasked_predictions['logits'].reshape(-1),

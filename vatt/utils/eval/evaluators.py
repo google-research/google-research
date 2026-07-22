@@ -42,7 +42,7 @@ class LinearClsHead(object):
     self.hidden_size = hidden_size
     self.dropout_rate = dropout_rate
     self.strategy = strategy
-    with self.strategy.scope():
+    with self.strategy.scope():  # pyrefly: ignore[missing-attribute]
       self.optimizer = tf.keras.optimizers.Adam(learning_rate)
       self.loss = tf.keras.losses.CategoricalCrossentropy()
       self.metric = tf.keras.metrics.CategoricalAccuracy()
@@ -57,7 +57,7 @@ class LinearClsHead(object):
 
     labels = tf.keras.utils.to_categorical(labels)
     _, self.num_classes = labels.shape
-    with self.strategy.scope():
+    with self.strategy.scope():  # pyrefly: ignore[missing-attribute]
       self.model = tf.keras.Sequential()
       self.model.add(
           tf.keras.layers.Dense(

@@ -24,7 +24,7 @@ import tensorflow as tf
 def parse_tfrecord_file(filename):
   """Parses a TFRecord file and prints the contents."""
 
-  raw_dataset = tf.data.TFRecordDataset(filename)
+  raw_dataset = tf.data.TFRecordDataset(filename)  # pyrefly: ignore[bad-instantiation]
   for raw_record in raw_dataset:
     example = tf.train.Example()
     example.ParseFromString(raw_record.numpy())

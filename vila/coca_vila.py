@@ -117,15 +117,15 @@ class CoCaVilaPretrain(base_model.BaseModel):
   decode_num_samples: int = 1
   generative_loss_weight: float = 1.0
   contrastive_loss_weight: float = 1.0
-  encoder_tpl: LayerTpl = template_field(layers.VisionTransformer)
-  decoder_tpl: LayerTpl = template_field(coca_vila_layers.MultimodalDecoder)
-  contrastive_img_pooler_tpl: LayerTpl = template_field(
+  encoder_tpl: LayerTpl = template_field(layers.VisionTransformer)  # pyrefly: ignore[bad-assignment]
+  decoder_tpl: LayerTpl = template_field(coca_vila_layers.MultimodalDecoder)  # pyrefly: ignore[bad-assignment]
+  contrastive_img_pooler_tpl: LayerTpl = template_field(  # pyrefly: ignore[bad-assignment]
       coca_vila_layers.AttenTokenPoolingLayer
   )
-  contrastive_loss_layer_tpl: LayerTpl = template_field(
+  contrastive_loss_layer_tpl: LayerTpl = template_field(  # pyrefly: ignore[bad-assignment]
       coca_vila_layers.ContrastiveLossLayer
   )
-  generative_img_pooler_tpl: Optional[LayerTpl] = template_field(
+  generative_img_pooler_tpl: Optional[LayerTpl] = template_field(  # pyrefly: ignore[bad-assignment]
       coca_vila_layers.AttenTokenPoolingLayer
   )
 
@@ -136,7 +136,7 @@ class CoCaVilaPretrain(base_model.BaseModel):
 
     self.create_child('contrastive_img_pooler', self.contrastive_img_pooler_tpl)
     self.create_child('contrastive_loss', self.contrastive_loss_layer_tpl)
-    self.create_child('generative_img_pooler', self.generative_img_pooler_tpl)
+    self.create_child('generative_img_pooler', self.generative_img_pooler_tpl)  # pyrefly: ignore[bad-argument-type]
 
     next_token_sampler_p = pax_fiddle.Config(
         sample_decode.DefaultNextTokenSampler, top_k=0, top_p=1.0
@@ -270,7 +270,7 @@ class CoCaVilaPretrain(base_model.BaseModel):
     predictions.update(text_encoded)
     return predictions
 
-  def compute_loss(
+  def compute_loss(  # pyrefly: ignore[bad-override]
       self,
       predictions,  # pytype: disable=signature-mismatch
       input_batch,
@@ -506,7 +506,7 @@ class CoCaVilaRankBasedFinetune(CoCaVilaPretrain):
   margin_value: float = 0.1
   bias_init: Optional[float] = 0.0
   model_dims: int = 0
-  feed_forward_tpl: LayerTpl = template_field(linears.FeedForward)
+  feed_forward_tpl: LayerTpl = template_field(linears.FeedForward)  # pyrefly: ignore[bad-assignment]
 
   def setup(self):
     super().setup()

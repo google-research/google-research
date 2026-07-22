@@ -272,8 +272,8 @@ class UniversalVATT(tf.keras.layers.Layer):
                      input_shape=None):
 
     # linear projection to d_model
-    embeddings = self.raw_to_embeddings[modality](inputs)
-    embeddings = self.pre_proj[modality](embeddings)
+    embeddings = self.raw_to_embeddings[modality](inputs)  # pyrefly: ignore[not-callable]
+    embeddings = self.pre_proj[modality](embeddings)  # pyrefly: ignore[not-callable]
 
     # flatten inputs if not flattened already
     if input_shape is None:
@@ -284,7 +284,7 @@ class UniversalVATT(tf.keras.layers.Layer):
           "if input_shape provided, inputs should be flattened and have rank 3")
 
     # add modality-specific positional encoding embeddings
-    embeddings = self.pos_embedding_lookup[modality](
+    embeddings = self.pos_embedding_lookup[modality](  # pyrefly: ignore[not-callable]
         embeddings,
         input_shape,
         training
@@ -307,13 +307,13 @@ class UniversalVATT(tf.keras.layers.Layer):
       attention_mask = self._extend_attn_mask(attention_mask)
 
     # call Transformer
-    tx_outputs = self.tx(tx_inputs,
+    tx_outputs = self.tx(tx_inputs,  # pyrefly: ignore[not-callable]
                          attention_mask,
                          training)
 
     # get last hidden states and perform final linear projection
     last_hidden_states = tx_outputs["hidden_states"][-1]
-    modality_outputs = self.post_proj[modality](last_hidden_states)
+    modality_outputs = self.post_proj[modality](last_hidden_states)  # pyrefly: ignore[not-callable]
     output_shape = input_shape[:-1] + [get_shape(modality_outputs)[-1]]
 
     features_pooled = modality_outputs[:, 0, :]

@@ -59,7 +59,7 @@ def main(argv):
       .groupby(['task', 'train_size'])[['metric-micro_f1', 'metric-macro_f1']]
       .mean()
   )
-  eval_df.to_csv(open(_EVAL_OUTPUT_PATH.value, 'w'), sep='\t')
+  eval_df.to_csv(open(_EVAL_OUTPUT_PATH.value, 'w'), sep='\t')  # pyrefly: ignore[no-matching-overload]
 
 
 if __name__ == '__main__':

@@ -26,7 +26,7 @@ import math
 import re
 import numpy as np
 import six
-from six.moves import range
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 import tf_slim as slim
 
@@ -270,7 +270,7 @@ class DocBertModel(object):
     return self.embedding_output
 
   def get_embedding_table(self):
-    return self.embedding_table
+    return self.embedding_table  # pyrefly: ignore[missing-attribute]
 
 
 class BertModel(object):

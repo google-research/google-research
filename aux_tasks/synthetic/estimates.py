@@ -85,10 +85,10 @@ def lissa_inverse_covariance_matrix(
   sampled_phis = compute_phi(states)
 
   if feature_norm is None:
-    feature_norm = utils.compute_max_feature_norm(sampled_phis)
+    feature_norm = utils.compute_max_feature_norm(sampled_phis)  # pyrefly: ignore[bad-assignment]
 
   I = np.eye(d)  # pylint: disable=invalid-name
-  kappa = lissa_kappa / feature_norm
+  kappa = lissa_kappa / feature_norm  # pyrefly: ignore[unsupported-operation]
   estimate = kappa * I
 
   for t in range(lissa_iterations):
@@ -110,4 +110,4 @@ def lissa_inverse_covariance_matrix(
     outer_prod_e = jnp.outer(phi, jnp.einsum('i,ij->j', phi, estimate))
     estimate = kappa * (I - outer_prod_e) + estimate
 
-  return estimate, key
+  return estimate, key  # pyrefly: ignore[bad-return]

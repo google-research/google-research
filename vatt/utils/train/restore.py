@@ -187,7 +187,7 @@ def interpolate_pos(source_weights, target_shape):
   # shape = [1, source_buckets, embd_dim]
   available_embeddings = source_weights[None, Ellipsis]
 
-  expanded_embeddings = tf.squeeze(tfa_image.interpolate_spline(
+  expanded_embeddings = tf.squeeze(tfa_image.interpolate_spline(  # pyrefly: ignore[not-callable]
       train_points=available_buckets,
       train_values=available_embeddings,
       query_points=query_buckets,

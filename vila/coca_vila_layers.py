@@ -112,9 +112,9 @@ class MultimodalDecoder(base_layer.BaseLayer):
   num_unimodal_layers: int = 0
 
   unimodal_tr_tpl: pax_fiddle.Config[
-      layers.StackedTransformer] = template_field(layers.StackedTransformer)
+      layers.StackedTransformer] = template_field(layers.StackedTransformer)  # pyrefly: ignore[bad-assignment]
   crossmodal_tr_tpl: pax_fiddle.Config[
-      layers.StackedTransformer] = template_field(layers.StackedTransformer)
+      layers.StackedTransformer] = template_field(layers.StackedTransformer)  # pyrefly: ignore[bad-assignment]
 
   def setup(self):
 
@@ -364,7 +364,7 @@ class MultimodalDecoder(base_layer.BaseLayer):
       x = self.crossmodal_transformer.extend_step(
           inputs=x,
           time_step=time_step,
-          cross_paddings=encoded_paddings,
+          cross_paddings=encoded_paddings,  # pyrefly: ignore[unbound-name]
           segment_pos=segment_pos)
 
       x = self.crossmodal_ln(x)
@@ -414,7 +414,7 @@ class AttenTokenPoolingLayer(base_layer.BaseLayer):
   num_queries: int = 1
   add_layer_norm: bool = True
   dropout_prob: float = 0.0
-  pool_atten_tpl: LayerTpl = template_field(layers.DotProductAttention)
+  pool_atten_tpl: LayerTpl = template_field(layers.DotProductAttention)  # pyrefly: ignore[bad-assignment]
 
   def setup(self):
     if self.input_dims == 0:

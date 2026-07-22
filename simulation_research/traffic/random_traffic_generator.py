@@ -64,9 +64,9 @@ class RandomTrafficGenerator(object):
     Returns:
       input_output_pairs: A list of input-output pairs.
     """
-    freeway_edges = self._net.filterEdges(FREEWAY_EDGE_TYPES)
+    freeway_edges = self._net.filterEdges(FREEWAY_EDGE_TYPES)  # pyrefly: ignore[missing-attribute]
     (freeway_input_edges,
-     freeway_output_edges) = self._net.getInputOutputEdges(freeway_edges)
+     freeway_output_edges) = self._net.getInputOutputEdges(freeway_edges)  # pyrefly: ignore[missing-attribute]
     if figure_path is not None:
       self._map_visualizer.plot_edges(
           [(freeway_edges, 'darkgreen', 1),
@@ -87,12 +87,12 @@ class RandomTrafficGenerator(object):
     Returns:
       input_output_pairs: A list of input-output pairs.
     """
-    freeway_edges = self._net.filterEdges(FREEWAY_EDGE_TYPES)
+    freeway_edges = self._net.filterEdges(FREEWAY_EDGE_TYPES)  # pyrefly: ignore[missing-attribute]
     (freeway_input_edges,
-     freeway_output_edges) = self._net.getInputOutputEdges(freeway_edges)
-    arterial_edges = self._net.filterEdges(ARTERIAL_EDGE_TYPES)
+     freeway_output_edges) = self._net.getInputOutputEdges(freeway_edges)  # pyrefly: ignore[missing-attribute]
+    arterial_edges = self._net.filterEdges(ARTERIAL_EDGE_TYPES)  # pyrefly: ignore[missing-attribute]
     (arterial_input_edges,
-     arterial_output_edges) = self._net.getInputOutputEdges(arterial_edges)
+     arterial_output_edges) = self._net.getInputOutputEdges(arterial_edges)  # pyrefly: ignore[missing-attribute]
     if figure_path is not None:
       self._map_visualizer.plot_edges(
           [(freeway_edges, 'darkgreen', 1),
@@ -136,7 +136,7 @@ class RandomTrafficGenerator(object):
     for from_to_pair in input_output_pairs:
       valid_path = False
       edge_from, edge_to = from_to_pair
-      path_edges, route_length = self._net.getRestrictedShortestPath(
+      path_edges, route_length = self._net.getRestrictedShortestPath(  # pyrefly: ignore[missing-attribute]
           edge_from,
           edge_to,
           vehicleClass=vehicle_type_list,
@@ -163,7 +163,7 @@ class RandomTrafficGenerator(object):
         route['route_id'] = route_id
         routes.append(route)
       if figures_folder is not None and valid_path:
-        selected_edges = [(path_edges, 'darkblue', 1)] + selected_edges
+        selected_edges = [(path_edges, 'darkblue', 1)] + selected_edges  # pyrefly: ignore[unbound-name]
         figure_path = os.path.join(
             figures_folder,
             (edge_from.getID() + '_' + edge_to.getID() + '_route.pdf'))

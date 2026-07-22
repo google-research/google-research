@@ -75,7 +75,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
               )
               if this_info is None:
                 continue
-              if this_info[0] > query_data["time_budget"] * 60:
+              if this_info[0] > query_data["time_budget"] * 60:  # pyrefly: ignore[bad-index]
                 continue
               options.append((subset, this_info))
             if options:
@@ -102,7 +102,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
           new_graph = self.road_graph.contract_graph([start, end])
           if "time_budget" in query_data:
             this_data = query_data.copy()
-            this_data["pois"] = subset
+            this_data["pois"] = subset  # pyrefly: ignore[bad-assignment]
             new_path_info = new_graph.get_shortest_path_len(
                 start, end, this_data, return_path=True
             )
@@ -111,7 +111,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
                 start, end, query_data, return_path=True
             )
           assert new_path_info is not None
-          edgelist = new_path_info[1]
+          edgelist = new_path_info[1]  # pyrefly: ignore[bad-index]
           parent = TouringDataset(
               tokenizer=self.tokenizer,
               graph=new_graph,
@@ -128,7 +128,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
         break
       if not found:
         raise TimeoutError("")
-      edgelist += (self.term_token,)
+      edgelist += (self.term_token,)  # pyrefly: ignore[unsupported-operation]
     else:  # Cache hit, re-use datapoint from last time
       assert self._current_datapoint is not None
       end = self._current_datapoint["end"]
@@ -144,9 +144,9 @@ class TouringDataset(routing_dataset.RoutingDataset):
       if prefix_len >= 2:
         self._current_datapoint = dataset.DatapointType(
             end=end,
-            query_text=query_text,
-            query_data=query_data,
-            edgelist=edgelist,
+            query_text=query_text,  # pyrefly: ignore[bad-argument-type]
+            query_data=query_data,  # pyrefly: ignore[bad-argument-type]
+            edgelist=edgelist,  # pyrefly: ignore[bad-argument-type]
             ground_truth=ground_truth,
             candidates=(),
             parent=parent,
@@ -166,15 +166,15 @@ class TouringDataset(routing_dataset.RoutingDataset):
       self._current_datapoint = None
       self._current_params = None
 
-    candidates = parent.get_candidates(edgelist)
+    candidates = parent.get_candidates(edgelist)  # pyrefly: ignore[bad-argument-type]
     if edgelist[-1] == end:
       candidates += (dataset.TERM,)
 
     return dataset.DatapointType(
         end=end,
-        query_text=query_text,
-        query_data=query_data,
-        edgelist=edgelist,
+        query_text=query_text,  # pyrefly: ignore[bad-argument-type]
+        query_data=query_data,  # pyrefly: ignore[bad-argument-type]
+        edgelist=edgelist,  # pyrefly: ignore[bad-argument-type]
         ground_truth=ground_truth,
         candidates=candidates,
         parent=parent,
@@ -185,13 +185,13 @@ class TouringDataset(routing_dataset.RoutingDataset):
   ):
     if dataset.TERM in datapoint["edgelist"]:
       assert datapoint["edgelist"].count(dataset.TERM) == 1
-      assert datapoint["edgelist"][-1] == dataset.TERM
+      assert datapoint["edgelist"][-1] == dataset.TERM  # pyrefly: ignore[bad-index]
       edgelist = datapoint["edgelist"][:-1]
     else:
       edgelist = datapoint["edgelist"]
 
     metrics = self.road_graph.route_metrics(
-        datapoint["query_data"], datapoint["end"], edgelist
+        datapoint["query_data"], datapoint["end"], edgelist  # pyrefly: ignore[bad-argument-type]
     )
     new_metrics = {
         k: metrics[k]
@@ -203,7 +203,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
         )
     }
     if "time_budget" in datapoint["query_data"]:
-      new_metrics["task"] = "tour"
+      new_metrics["task"] = "tour"  # pyrefly: ignore[unsupported-operation]
       new_metrics["tour_budget_met"] = metrics["budget_met"]
       new_metrics["mask"] = int(
           metrics["reaches_destination"] and metrics["budget_met"]
@@ -220,7 +220,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
           this_data = datapoint["query_data"].copy()
           this_data["pois"] = subset
           this_info = datapoint["parent"].road_graph.get_shortest_path_len(
-              datapoint["edgelist"][0],
+              datapoint["edgelist"][0],  # pyrefly: ignore[bad-index]
               datapoint["end"],
               this_data,
               return_path=True,
@@ -246,7 +246,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
           and new_metrics["tour_excess_frac_poi_missed"] <= 0.5
       )
     else:
-      new_metrics["task"] = "routing"
+      new_metrics["task"] = "routing"  # pyrefly: ignore[unsupported-operation]
       new_metrics["routing_excess_penalty"] = metrics["excess_penalty"]
       new_metrics["routing_excess_travel_time"] = metrics["excess_travel_time"]
       new_metrics["routing_poi_met"] = metrics["frac_pois_achieved"] > 0.999
@@ -260,14 +260,14 @@ class TouringDataset(routing_dataset.RoutingDataset):
           new_metrics["reaches_destination"] and new_metrics["routing_poi_met"]
       )
       new_metrics["is_routing"] = 1
-    return new_metrics
+    return new_metrics  # pyrefly: ignore[bad-return]
 
   def fast_score(
       self, datapoint
   ):
     if dataset.TERM in datapoint["edgelist"]:
       assert datapoint["edgelist"].count(dataset.TERM) == 1
-      assert datapoint["edgelist"][-1] == dataset.TERM
+      assert datapoint["edgelist"][-1] == dataset.TERM  # pyrefly: ignore[bad-index]
       edgelist = datapoint["edgelist"][:-1]
     else:
       edgelist = datapoint["edgelist"]
@@ -276,7 +276,7 @@ class TouringDataset(routing_dataset.RoutingDataset):
     if "time_budget" not in fake_data:
       fake_data["time_budget"] = 10000000
     metrics = self.road_graph.route_metrics(
-        fake_data, datapoint["end"], edgelist
+        fake_data, datapoint["end"], edgelist  # pyrefly: ignore[bad-argument-type]
     )
     new_metrics = {
         k: metrics[k]
@@ -299,4 +299,4 @@ class TouringDataset(routing_dataset.RoutingDataset):
       new_metrics["score"] = (
           10000 * int(metrics["reaches_destination"]) + metrics_4
       )
-    return new_metrics
+    return new_metrics  # pyrefly: ignore[bad-return]

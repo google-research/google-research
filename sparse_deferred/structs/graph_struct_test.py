@@ -65,8 +65,8 @@ class GraphStructTest(tf.test.TestCase):
         schema={'e': ('ns1', 'ns2')},
     ).add_pooling(sdtf.engine, stack_edges=True)
 
-    self.assertAllEqual(g1.edges['g_ns1'][0].shape, [2, 2])
-    self.assertAllEqual(g1.edges['g_ns2'][0].shape, [2, 3])
+    self.assertAllEqual(g1.edges['g_ns1'][0].shape, [2, 2])  # pyrefly: ignore[missing-attribute]
+    self.assertAllEqual(g1.edges['g_ns2'][0].shape, [2, 3])  # pyrefly: ignore[missing-attribute]
 
   def test_add_pooling_without_features(self):
     g1 = graph_struct.GraphStruct.new(
@@ -80,8 +80,8 @@ class GraphStructTest(tf.test.TestCase):
         sdtf.engine, stack_edges=True, num_nodes_map={'ns1': 2, 'ns2': 3}
     )
 
-    self.assertAllEqual(g1.edges['g_ns1'][0].shape, [2, 2])
-    self.assertAllEqual(g1.edges['g_ns2'][0].shape, [2, 3])
+    self.assertAllEqual(g1.edges['g_ns1'][0].shape, [2, 2])  # pyrefly: ignore[missing-attribute]
+    self.assertAllEqual(g1.edges['g_ns2'][0].shape, [2, 3])  # pyrefly: ignore[missing-attribute]
 
   def test_add_pooling(self):
     """Test the `add_pooling` method can construct properly."""
@@ -395,7 +395,7 @@ class FixedSizePadderTest(tf.test.TestCase, parameterized.TestCase):
               'seed': ((seed_src, seed_tgt), {}),
               'writes': ((writes_src, writes_tgt), {}),
           },
-          schema=toy_schema,
+          schema=toy_schema,  # pyrefly: ignore[bad-argument-type]
           engine=engine,
       ).add_pooling(engine, {})
 
@@ -445,7 +445,7 @@ class FixedSizePadderTest(tf.test.TestCase, parameterized.TestCase):
       if edge_name.startswith('g_'):
         continue
       if stack_edges:
-        self.assertEqual(padded_g.edges[edge_name][0].shape[0], 2)
+        self.assertEqual(padded_g.edges[edge_name][0].shape[0], 2)  # pyrefly: ignore[missing-attribute]
       padded_src, padded_tgt = padded_g.edges[edge_name][0]
       batch_sizes = sizes[('edge', edge_name)]
       expected_padded_size = int(
@@ -742,7 +742,7 @@ class CombineGraphStructsTest(tf.test.TestCase):
     combined_g = graph_struct.combine_graph_structs(
         sdtf.engine, G1, G2, G3, stack_edges=True
     )
-    self.assertAllEqual(combined_g.edges['friendship'][0].shape, [2, 5])
+    self.assertAllEqual(combined_g.edges['friendship'][0].shape, [2, 5])  # pyrefly: ignore[missing-attribute]
 
 
 class GraphsExactlyEqualTest(tf.test.TestCase):

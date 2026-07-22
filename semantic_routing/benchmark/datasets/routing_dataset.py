@@ -126,16 +126,16 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
   ):
     assert len(datapoint["edgelist"]) == 1
     new_graph = self.road_graph.contract_graph(
-        [datapoint["edgelist"][0], datapoint["end"]]
+        [datapoint["edgelist"][0], datapoint["end"]]  # pyrefly: ignore[bad-argument-type]
     )
     new_path_info = new_graph.get_shortest_path_len(
         datapoint["edgelist"][0],
-        datapoint["end"],
+        datapoint["end"],  # pyrefly: ignore[bad-argument-type]
         datapoint["query_data"],
         return_path=True,
     )
     assert new_path_info is not None
-    new_edgelist = new_path_info[1]
+    new_edgelist = new_path_info[1]  # pyrefly: ignore[bad-index]
     new_parent = RoutingDataset(
         tokenizer=self.tokenizer,
         graph=new_graph,
@@ -151,7 +151,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
     if datapoint["ground_truth"] is None:
       new_ground_truth = None
     else:
-      new_ground_truth = new_edgelist[1]
+      new_ground_truth = new_edgelist[1]  # pyrefly: ignore[bad-index]
     new_candidates = new_parent.get_candidates(datapoint["edgelist"])
     return dataset.DatapointType(
         end=datapoint["end"],
@@ -218,7 +218,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
               start, end, query_data, return_path=True
           )
           assert new_path_info is not None
-          edgelist = new_path_info[1]
+          edgelist = new_path_info[1]  # pyrefly: ignore[bad-index]
           parent = RoutingDataset(
               tokenizer=self.tokenizer,
               graph=new_graph,
@@ -235,7 +235,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
         break
       if not found:
         raise TimeoutError("")
-      edgelist += (self.term_token,)
+      edgelist += (self.term_token,)  # pyrefly: ignore[unsupported-operation]
     else:  # Cache hit, re-use datapoint from last time
       assert self._current_datapoint is not None
       end = self._current_datapoint["end"]
@@ -251,9 +251,9 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
       if prefix_len >= 2:
         self._current_datapoint = dataset.DatapointType(
             end=end,
-            query_text=query_text,
-            query_data=query_data,
-            edgelist=edgelist,
+            query_text=query_text,  # pyrefly: ignore[bad-argument-type]
+            query_data=query_data,  # pyrefly: ignore[bad-argument-type]
+            edgelist=edgelist,  # pyrefly: ignore[bad-argument-type]
             ground_truth=ground_truth,
             candidates=(),
             parent=parent,
@@ -273,15 +273,15 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
       self._current_datapoint = None
       self._current_params = None
 
-    candidates = parent.get_candidates(edgelist)
+    candidates = parent.get_candidates(edgelist)  # pyrefly: ignore[bad-argument-type]
     if edgelist[-1] == end:
       candidates += (dataset.TERM,)
 
     return dataset.DatapointType(
         end=end,
-        query_text=query_text,
-        query_data=query_data,
-        edgelist=edgelist,
+        query_text=query_text,  # pyrefly: ignore[bad-argument-type]
+        query_data=query_data,  # pyrefly: ignore[bad-argument-type]
+        edgelist=edgelist,  # pyrefly: ignore[bad-argument-type]
         ground_truth=ground_truth,
         candidates=candidates,
         parent=parent,
@@ -292,13 +292,13 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
   ):
     if dataset.TERM in datapoint["edgelist"]:
       assert datapoint["edgelist"].count(dataset.TERM) == 1
-      assert datapoint["edgelist"][-1] == dataset.TERM
+      assert datapoint["edgelist"][-1] == dataset.TERM  # pyrefly: ignore[bad-index]
       edgelist = datapoint["edgelist"][:-1]
     else:
       edgelist = datapoint["edgelist"]
 
     metrics = self.road_graph.route_metrics(
-        datapoint["query_data"], datapoint["end"], edgelist
+        datapoint["query_data"], datapoint["end"], edgelist  # pyrefly: ignore[bad-argument-type]
     )
     score = (
         10000 * int(metrics["reaches_destination"])
@@ -309,13 +309,13 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
     metrics["mask"] = int(
         metrics["reaches_destination"] and metrics["frac_pois_achieved"] > 0.99
     )
-    return metrics
+    return metrics  # pyrefly: ignore[bad-return]
 
   def featurize_datapoint(
       self, datapoint, pad = False
   ):
     """Default featurization of datapoints."""
-    assert datapoint["edgelist"][-1] != self.term_token
+    assert datapoint["edgelist"][-1] != self.term_token  # pyrefly: ignore[bad-index]
     empty_embedding = np.zeros((self.road_graph.embedding_dim,), dtype=np.int32)
 
     # Move ground-truth to the first position in `candidates`
@@ -348,7 +348,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
       else:
         candidate_tokens.append(self.cand_tokens[candidate_ordering[cand]])
         candidate_embeddings.append(
-            self.road_graph.get_edge_embedding(cand, datapoint["edgelist"][0])
+            self.road_graph.get_edge_embedding(cand, datapoint["edgelist"][0])  # pyrefly: ignore[bad-index]
         )
         # Use candidate number as token.
       candidate_type_ids.append(self.cand_type)
@@ -382,7 +382,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
     end_tokens = [self.placeholder_token]
     end_embeddings = [
         self.road_graph.get_edge_embedding(
-            datapoint["end"], datapoint["edgelist"][0]
+            datapoint["end"], datapoint["edgelist"][0]  # pyrefly: ignore[bad-argument-type, bad-index]
         )
     ]  # End embeddings are w.r.t. start.
     end_tokens.append(self.sep_token)
@@ -398,7 +398,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
     for edge in datapoint["edgelist"]:
       prefix_tokens.append(self.placeholder_token)
       prefix_embeddings.append(
-          self.road_graph.get_edge_embedding(edge, datapoint["edgelist"][0])
+          self.road_graph.get_edge_embedding(edge, datapoint["edgelist"][0])  # pyrefly: ignore[bad-index]
       )  # Prefix embeddings are w.r.t. start.
     prefix_tokens.append(self.sep_token)
     prefix_embeddings.append(empty_embedding)
@@ -421,7 +421,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
         self.road_graph.get_receptive_field(
             current_edge,
             self.receptive_field_size,
-            includes=[datapoint["end"]],
+            includes=[datapoint["end"]],  # pyrefly: ignore[bad-argument-type]
         )  # Receptive embeddings are w.r.t. HEAD.
     ):
       if edge in candidate_ordering:
@@ -431,7 +431,7 @@ class RoutingDataset(dataset.EdgeListPredictionDataset):
       else:
         receptive_tokens.append(self.cand_tokens[candidate_ordering[cand_edge]])
       receptive_embeddings.append(
-          self.road_graph.get_edge_embedding(edge, datapoint["edgelist"][0])
+          self.road_graph.get_edge_embedding(edge, datapoint["edgelist"][0])  # pyrefly: ignore[bad-index]
       )
     tokens += receptive_tokens + [self.sep_token]
     position_ids += [

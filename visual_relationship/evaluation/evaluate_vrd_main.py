@@ -49,7 +49,7 @@ def main(argv):
   evaluator = evaluate_vrd_lib.VRDEvaluator(
       _GROUNDTRUTH_VRD_PATH.value, _GROUNDTRUTH_OBJECT_PATH.value)
 
-  predictions = evaluate_vrd_lib.load_prediction(_PREDICTION_PATH.value)
+  predictions = evaluate_vrd_lib.load_prediction(_PREDICTION_PATH.value)  # pyrefly: ignore[bad-argument-type]
   results = evaluator.compute_metrics(predictions)
 
   if _OUTPUT_PATH.value is not None:

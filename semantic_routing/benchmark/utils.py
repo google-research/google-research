@@ -107,7 +107,7 @@ def get_poi_specs(
   """Get point-of-interest specs from POI category list."""
   with open(file_path, 'r') as f:
     reader = csv.DictReader(f)
-    poi_csv = {field: [] for field in reader.fieldnames}
+    poi_csv = {field: [] for field in reader.fieldnames}  # pyrefly: ignore[not-iterable]
     for row in reader:
       for k in poi_csv:
         poi_csv[k].append(row[k])

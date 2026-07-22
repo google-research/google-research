@@ -49,7 +49,7 @@ def _update_azimuth_flip_left_right(img,
   Returns:
     Tensor with recalculated azimuth channel.
   """
-  img = _tensor_to_list_of_channel_tensors(img)
+  img = _tensor_to_list_of_channel_tensors(img)  # pyrefly: ignore[bad-assignment]
   img[azimuth_channel] = 360 - img[azimuth_channel]
   img = tf.stack(img, axis=-1)
   return img
@@ -68,7 +68,7 @@ def _update_azimuth_flip_up_down(img,
   Returns:
     Tensor with recalculated azimuth channel.
   """
-  img = _tensor_to_list_of_channel_tensors(img)
+  img = _tensor_to_list_of_channel_tensors(img)  # pyrefly: ignore[bad-assignment]
   new_azimuth = (180. - img[azimuth_channel]) % 360.
   img[azimuth_channel] = new_azimuth
   img = tf.stack(img, axis=-1)
@@ -157,8 +157,8 @@ def _update_azimuth_rotate90(img, azimuth_channel,
     Tensor with recalculated azimuth channel.
   """
   img_list = _tensor_to_list_of_channel_tensors(img)
-  new_azimuth = (img_list[azimuth_channel] - 90. * float(num_rotations)) % 360.
-  img_list[azimuth_channel] = new_azimuth
+  new_azimuth = (img_list[azimuth_channel] - 90. * float(num_rotations)) % 360.  # pyrefly: ignore[unsupported-operation]
+  img_list[azimuth_channel] = new_azimuth  # pyrefly: ignore[unsupported-operation]
   img = tf.stack(img_list, axis=-1)
   return img
 

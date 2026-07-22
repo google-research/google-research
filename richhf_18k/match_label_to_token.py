@@ -38,10 +38,10 @@ def match_misalignment_label_to_token(
   tokens = re.split(pattern, prompt)
   tokens = [t for t in tokens if t]
 
-  misalignment_label = misalignment_label.split(' ')
-  misalignment_label = [int(l) for l in misalignment_label]
+  misalignment_label = misalignment_label.split(' ')  # pyrefly: ignore[bad-assignment]
+  misalignment_label = [int(l) for l in misalignment_label]  # pyrefly: ignore[bad-assignment]
   assert len(tokens) == len(misalignment_label)
-  return list(zip(tokens, misalignment_label))
+  return list(zip(tokens, misalignment_label))  # pyrefly: ignore[bad-return]
 
 
 if __name__ == '__main__':

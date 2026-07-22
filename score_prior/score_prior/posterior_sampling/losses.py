@@ -162,7 +162,7 @@ def get_prior_loss_fn(
     raise ValueError('Must provide `prob_flow` for score-based prior.')
   else:
     raise ValueError(f'Unknown prior: {config.optim.prior}')
-  return prior_loss_fn
+  return prior_loss_fn  # pyrefly: ignore[bad-return]
 
 
 def entropy_weight_fn(step, beta_0, tau):
@@ -279,7 +279,7 @@ def get_train_step_fn(
 
     # Prior loss gradient.
     if use_score_fn:
-      grad_prior_covector = -score_fn(samples, t0_batch)
+      grad_prior_covector = -score_fn(samples, t0_batch)  # pyrefly: ignore[not-callable]
       loss_prior = np.nan
     else:
       rng, logp_rng = jax.random.split(rng)

@@ -203,7 +203,7 @@ def train(train_step_fn,
       logging.info(
           'step %d: %.0f seconds (data weight = %.1e)',
           step + 1, step_time, data_weight)
-      with writer.as_default(step=step + 1):
+      with writer.as_default(step=step + 1):  # pyrefly: ignore[unbound-name]
         tf.summary.scalar('total', loss)
         tf.summary.scalar('likelihood', loss_data)
         tf.summary.scalar('prior', loss_prior)

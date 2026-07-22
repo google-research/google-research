@@ -284,12 +284,12 @@ def create_puddle_world_experiment(
   compute_phi = module.apply
 
   return SyntheticExperiment(  # pytype: disable=wrong-arg-types  # jax-ndarray
-      compute_phi=compute_phi,
+      compute_phi=compute_phi,  # pyrefly: ignore[bad-argument-type]
       compute_psi=compute_psi,
-      sample_states=sample_states,
+      sample_states=sample_states,  # pyrefly: ignore[bad-argument-type]
       eval_states=eval_states,
       optimal_subspace=optimal_subspace,
-      params=params,
+      params=params,  # pyrefly: ignore[bad-argument-type]
       key=key,
   )
 

@@ -395,7 +395,7 @@ class AsymmetricNCE(object):
         )
 
     if embed_2_mask is not None:
-      mask_f_all = tf.cast(1 - embed_2_mask_all, dtype=tf.float32)
+      mask_f_all = tf.cast(1 - embed_2_mask_all, dtype=tf.float32)  # pyrefly: ignore[unsupported-operation]
       sim_sp_local2all = sim_sp_local2all - mask_f_all[None, :, None]*LARGE_NUM
 
     sim_sp_all2local = self._calculate_similarity(

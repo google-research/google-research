@@ -28,7 +28,7 @@ from absl import app
 from absl import flags
 import numpy as np
 import six
-from six.moves import map
+from six.moves import map  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 # The mobile_classifier_factory import might look like it's unused, but

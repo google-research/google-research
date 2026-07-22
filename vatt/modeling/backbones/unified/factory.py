@@ -50,7 +50,7 @@ class UnifiedModule(tf.keras.Model):
     self._num_classes = params.num_classes
     self._ops = collections.OrderedDict()
 
-    self.unified_transformer = base_model(**params.as_dict())
+    self.unified_transformer = base_model(**params.as_dict())  # pyrefly: ignore[not-callable]
 
     if self._num_classes is not None:
       self._ops["dropout"] = tf.keras.layers.Dropout(rate=self._dropout_rate)
@@ -64,7 +64,7 @@ class UnifiedModule(tf.keras.Model):
            audio,
            word_ids,
            txt_attn_mask,
-           training = None):
+           training = None):  # pyrefly: ignore[bad-function-definition]
     """Call the layer.
 
     Args:
@@ -121,7 +121,7 @@ def build_model(
     raise ValueError("Unknown backbone {!r}".format(backbone))
 
   model = UnifiedModule(
-      base_model=base_model,
+      base_model=base_model,  # pyrefly: ignore[bad-argument-type]
       params=params,
       )
 

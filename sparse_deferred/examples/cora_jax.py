@@ -65,7 +65,7 @@ def main(argv):
     train_ids = graph.nodes['graph']['train_idx']
     h = h[train_ids]
     label = label[train_ids]
-    return jnp.mean(-nn.activation.log_softmax(h) * label)
+    return jnp.mean(-nn.activation.log_softmax(h) * label)  # pyrefly: ignore[bad-argument-type]
 
   l2reg = 1e-3
   def l2_loss(x):
@@ -95,7 +95,7 @@ def main(argv):
 
   z = model.apply(params, graph)
   acc = jnp.argmax(node_labels[test_idx], axis=-1) == jnp.argmax(
-      z[test_idx], axis=-1
+      z[test_idx], axis=-1  # pyrefly: ignore[bad-argument-type]
   )
   print('Accuracy is', jnp.mean(acc))
 
