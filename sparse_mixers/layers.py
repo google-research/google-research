@@ -472,8 +472,8 @@ class MoeLayer(GeneralizedFeedForwardLayer):
 
     self._sow_expert_metrics(router_indices.auxiliary_loss,  # pytype: disable=wrong-arg-types  # jax-types
                              router_indices.router_z_loss,
-                             fraction_tokens_left_behind, router_confidence,
-                             expert_usage)
+                             fraction_tokens_left_behind, router_confidence,  # pyrefly: ignore[bad-argument-type]
+                             expert_usage)  # pyrefly: ignore[bad-argument-type]
 
     return combined_outputs
 
@@ -543,7 +543,7 @@ class MoeLayer(GeneralizedFeedForwardLayer):
 
     self._sow_expert_metrics(router_mask.auxiliary_loss,  # pytype: disable=wrong-arg-types  # jnp-type
                              router_mask.router_z_loss,
-                             fraction_tokens_left_behind, router_confidence,
+                             fraction_tokens_left_behind, router_confidence,  # pyrefly: ignore[bad-argument-type]
                              expert_usage)
 
     return combined_outputs
@@ -1186,7 +1186,7 @@ class EncoderBlock(nn.Module):
       mixing_output = self.mixing_sublayer(
           input_emb, deterministic=deterministic)
     else:
-      mixing_output = self.attention_sublayer(
+      mixing_output = self.attention_sublayer(  # pyrefly: ignore[not-callable]
           input_emb, input_ids=input_ids, deterministic=deterministic)
     x = self.mixing_layer_norm(input_emb + mixing_output)
 

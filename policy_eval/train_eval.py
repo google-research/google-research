@@ -146,7 +146,7 @@ def main(_):
     actor.load_weights(behavior_dataset.model_filename)
 
   policy_returns = utils.estimate_monte_carlo_returns(env, FLAGS.discount,
-                                                      actor,
+                                                      actor,  # pyrefly: ignore[bad-argument-type]
                                                       FLAGS.target_policy_std,
                                                       FLAGS.num_mc_episodes)
   logging.info('Estimated Per-Step Average Returns=%f', policy_returns)
@@ -169,14 +169,14 @@ def main(_):
 
   @tf.function
   def get_target_actions(states):
-    return actor(
+    return actor(  # pyrefly: ignore[not-callable]
         tf.cast(behavior_dataset.unnormalize_states(states),
                 env.observation_spec().dtype),
         std=FLAGS.target_policy_std)[1]
 
   @tf.function
   def get_target_logprobs(states, actions):
-    log_probs = actor(
+    log_probs = actor(  # pyrefly: ignore[not-callable]
         tf.cast(behavior_dataset.unnormalize_states(states),
                 env.observation_spec().dtype),
         actions=actions,
@@ -218,23 +218,23 @@ def main(_):
 
     if i % FLAGS.eval_interval == 0:
       if 'fqe' in FLAGS.algo:
-        pred_returns = model.estimate_returns(behavior_dataset.initial_states,
+        pred_returns = model.estimate_returns(behavior_dataset.initial_states,  # pyrefly: ignore[missing-argument, unbound-name]
                                               behavior_dataset.initial_weights,
                                               get_target_actions)
       elif 'mb' in FLAGS.algo:
-        pred_returns = model.estimate_returns(behavior_dataset.initial_states,
+        pred_returns = model.estimate_returns(behavior_dataset.initial_states,  # pyrefly: ignore[unbound-name]
                                               behavior_dataset.initial_weights,
                                               get_target_actions,
                                               FLAGS.discount,
                                               min_reward, max_reward,
                                               min_state, max_state)
       elif FLAGS.algo in ['dual_dice']:
-        pred_returns, pred_ratio = model.estimate_returns(iter(tf_dataset))
+        pred_returns, pred_ratio = model.estimate_returns(iter(tf_dataset))  # pyrefly: ignore[missing-argument, unbound-name]
 
         tf.summary.scalar('train/pred ratio', pred_ratio, step=i)
       elif 'iw' in FLAGS.algo or 'dr' in FLAGS.algo:
         discount = FLAGS.discount
-        _, behavior_log_probs = behavior(behavior_dataset.states,
+        _, behavior_log_probs = behavior(behavior_dataset.states,  # pyrefly: ignore[unbound-name]
                                          behavior_dataset.actions)
         target_log_probs = get_target_logprobs(behavior_dataset.states,
                                                behavior_dataset.actions)
@@ -244,16 +244,16 @@ def main(_):
           # Doubly-robust is effectively the same as importance-weighting but
           # transforming rewards at (s,a) to r(s,a) + gamma * V^pi(s') -
           # Q^pi(s,a) and adding an offset to each trajectory equal to V^pi(s0).
-          offset = model.estimate_returns(behavior_dataset.initial_states,
+          offset = model.estimate_returns(behavior_dataset.initial_states,  # pyrefly: ignore[missing-argument, unbound-name]
                                           behavior_dataset.initial_weights,
                                           get_target_actions)
-          q_values = (model(behavior_dataset.states, behavior_dataset.actions) /
+          q_values = (model(behavior_dataset.states, behavior_dataset.actions) /  # pyrefly: ignore[not-callable]
                       (1 - discount))
           n_samples = 10
           next_actions = [get_target_actions(behavior_dataset.next_states)
                           for _ in range(n_samples)]
           next_q_values = sum(
-              [model(behavior_dataset.next_states, next_action) / (1 - discount)
+              [model(behavior_dataset.next_states, next_action) / (1 - discount)  # pyrefly: ignore[not-callable]
                for next_action in next_actions]) / n_samples
           rewards = rewards + discount * next_q_values - q_values
 
@@ -301,7 +301,7 @@ def main(_):
                                 np.sum(trajectory_weights))
         pred_returns = offset + avg_trajectory_value
 
-      pred_returns = behavior_dataset.unnormalize_rewards(pred_returns)
+      pred_returns = behavior_dataset.unnormalize_rewards(pred_returns)  # pyrefly: ignore[unbound-name]
 
       tf.summary.scalar('train/pred returns', pred_returns, step=i)
       logging.info('pred returns=%f', pred_returns)

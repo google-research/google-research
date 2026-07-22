@@ -228,7 +228,7 @@ class VideoFromTfds:
       features_new[self.frames_key] = features["instances"]["bbox_frames"]
       if "segmentations" in features["instances"]:
         features_new[self.ragged_segmentations_key] = tf.cast(
-            features["instances"]["segmentations"][Ellipsis, 0], tf.int32)
+            features["instances"]["segmentations"][Ellipsis, 0], tf.int32)  # pyrefly: ignore[bad-index]
 
       # Special handling of CLEVR (https://arxiv.org/abs/1612.06890) objects.
       if ("color" in features["instances"] and
@@ -242,14 +242,14 @@ class VideoFromTfds:
 
     if "segmentations" in features:
       features_new[self.segmentations_key] = tf.cast(
-          features["segmentations"][Ellipsis, 0], tf.int32)
+          features["segmentations"][Ellipsis, 0], tf.int32)  # pyrefly: ignore[bad-index]
 
     if "depth" in features:
       # Undo float to uint16 scaling
       if "metadata" in features and "depth_range" in features["metadata"]:
         depth_range = features["metadata"]["depth_range"]
         features_new[self.depth_key] = convert_uint16_to_float(
-            features["depth"], depth_range[0], depth_range[1])
+            features["depth"], depth_range[0], depth_range[1])  # pyrefly: ignore[bad-index]
 
     if "flows" in features:
       # Some datasets use "flows" instead of "flow" for optical flow.
@@ -263,7 +263,7 @@ class VideoFromTfds:
       # Undo float to uint16 scaling
       flow_range = features["metadata"].get("flow_range", (-255, 255))
       features_new[self.flow_key] = convert_uint16_to_float(
-          features["flow"], flow_range[0], flow_range[1])
+          features["flow"], flow_range[0], flow_range[1])  # pyrefly: ignore[bad-index]
 
     # Convert video to float and normalize.
     video = features["video"]
@@ -392,7 +392,7 @@ class VideoPreprocessOp(abc.ABC):
     # Apply the op to all features.
     for key in all_keys:
       if key in features:
-        features[key] = self.apply(features[key], key, video_shape)
+        features[key] = self.apply(features[key], key, video_shape)  # pyrefly: ignore[bad-argument-type]
     return features
 
   @abc.abstractmethod
@@ -433,11 +433,11 @@ class RandomVideoPreprocessOp(VideoPreprocessOp):
     # Apply the op to all features.
     for key in all_keys:
       if key in features:
-        features[key] = self.apply(features[key], op_seed, key, video_shape)
+        features[key] = self.apply(features[key], op_seed, key, video_shape)  # pyrefly: ignore[bad-argument-type]
     return features
 
   @abc.abstractmethod
-  def apply(self, tensor, seed, key,
+  def apply(self, tensor, seed, key,  # pyrefly: ignore[bad-override]
             video_shape):
     """Returns the transformed tensor.
 
@@ -509,7 +509,7 @@ class ResizeSmall(VideoPreprocessOp):
     if key in (self.padding_mask_key, self.segmentations_key):
       tensor = tensor[Ellipsis, 0]
     elif key == self.sparse_segmentations_key:
-      tensor = tf.reshape(tensor, (video_shape[0], -1, new_h, new_w))
+      tensor = tf.reshape(tensor, (video_shape[0], -1, new_h, new_w))  # pyrefly: ignore[unsupported-operation]
 
     return tensor
 
@@ -531,7 +531,7 @@ class CentralCrop(VideoPreprocessOp):
     """See base class."""
     if key == self.boxes_key:
       width = self.width or self.height
-      h_orig, w_orig = video_shape[1], video_shape[2]
+      h_orig, w_orig = video_shape[1], video_shape[2]  # pyrefly: ignore[unsupported-operation]
       top = (h_orig - self.height) // 2
       left = (w_orig - width) // 2
       tensor = crop_or_pad_boxes(tensor, top, left, self.height,
@@ -572,7 +572,7 @@ class CropOrPad(VideoPreprocessOp):
     """See base class."""
     if key == self.boxes_key:
       # Pad and crop the spatial dimensions.
-      h_orig, w_orig = video_shape[1], video_shape[2]
+      h_orig, w_orig = video_shape[1], video_shape[2]  # pyrefly: ignore[unsupported-operation]
       if self.allow_crop:
         # After cropping, the frame shape is always [self.height, self.width].
         height, width = self.height, self.width
@@ -637,14 +637,14 @@ class RandomCrop(RandomVideoPreprocessOp):
     if key == self.boxes_key:
       # We copy the random generation part from tf.image.stateless_random_crop
       # to generate exactly the same offset as for the video.
-      crop_size = (video_shape[0], self.height, self.width, video_shape[-1])
+      crop_size = (video_shape[0], self.height, self.width, video_shape[-1])  # pyrefly: ignore[unsupported-operation]
       size = tf.convert_to_tensor(crop_size, tf.int32)
       limit = video_shape - size + 1
       offset = tf.random.stateless_uniform(
           tf.shape(video_shape), dtype=tf.int32, maxval=tf.int32.max,
           seed=seed) % limit
       tensor = crop_or_pad_boxes(tensor, offset[1], offset[2], self.height,
-                                 self.width, video_shape[1], video_shape[2])
+                                 self.width, video_shape[1], video_shape[2])  # pyrefly: ignore[unsupported-operation]
       return tensor
     elif key == self.sparse_segmentations_key:
       raise NotImplementedError("Sparse segmentations aren't supported yet")
@@ -833,13 +833,13 @@ class TransformDepth:
       if self.transform == "log":
         depth_norm = tf.math.log(features[self.depth_key])
       elif self.transform == "log_plus":
-        depth_norm = tf.math.log(1. + features[self.depth_key])
+        depth_norm = tf.math.log(1. + features[self.depth_key])  # pyrefly: ignore[unsupported-operation]
       elif self.transform == "invert_plus":
-        depth_norm = 1. / (1. + features[self.depth_key])
+        depth_norm = 1. / (1. + features[self.depth_key])  # pyrefly: ignore[unsupported-operation]
       else:
         raise ValueError(f"Unknown depth transformation {self.transform}")
 
-      features[self.depth_key] = depth_norm
+      features[self.depth_key] = depth_norm  # pyrefly: ignore[unsupported-operation]
     return features
 
 
@@ -1049,11 +1049,11 @@ class TfdsImageToTfdsVideo:
         # Create dummy ragged tensor (1, None) and broadcast
         dummy = tf.ragged.constant([[0]], dtype=tf.int32)
         boxes_frames_value = tf.zeros_like(
-            v[self.TFDS_BOXES_KEY][Ellipsis, 0], dtype=tf.int32)[Ellipsis, tf.newaxis]
+            v[self.TFDS_BOXES_KEY][Ellipsis, 0], dtype=tf.int32)[Ellipsis, tf.newaxis]  # pyrefly: ignore[bad-index]
         features_new[k][self.TFDS_BOXES_FRAMES_KEY] = boxes_frames_value + dummy
         # Create dummy ragged tensor (1, None, 1) and broadcast
         dummy = tf.ragged.constant([[0]], dtype=tf.float32)[Ellipsis, tf.newaxis]
-        boxes_value = v[self.TFDS_BOXES_KEY][Ellipsis, tf.newaxis, :]
+        boxes_value = v[self.TFDS_BOXES_KEY][Ellipsis, tf.newaxis, :]  # pyrefly: ignore[bad-index]
         features_new[k][self.TFDS_BOXES_KEY] = boxes_value + dummy
       elif k == self.depth_key:
         features_new[self.depth_key] = v[tf.newaxis]
@@ -1091,7 +1091,7 @@ class TopLeftCrop(VideoPreprocessOp):
     """See base class."""
     if key in (self.boxes_key,):
       width = self.width or self.height
-      h_orig, w_orig = video_shape[1], video_shape[2]
+      h_orig, w_orig = video_shape[1], video_shape[2]  # pyrefly: ignore[unsupported-operation]
       tensor = transforms.crop_or_pad_boxes(
           tensor, self.top, self.left, self.height, width, h_orig, w_orig)
       return tensor
@@ -1132,7 +1132,7 @@ class DeleteSmallMasks:
 
         with tf.control_dependencies([assert_op]):
           # Delete time dimension.
-          seg = seg[0]
+          seg = seg[0]  # pyrefly: ignore[bad-index]
 
           # Get the minimum number of pixels a masks needs to have.
           max_pixels = size[1] * size[2]
@@ -1231,5 +1231,5 @@ class SubtractOneFromSegmentations:
   segmentations_key: str = SEGMENTATIONS
 
   def __call__(self, features):
-    features[self.segmentations_key] = features[self.segmentations_key] - 1
+    features[self.segmentations_key] = features[self.segmentations_key] - 1  # pyrefly: ignore[unsupported-operation]
     return features

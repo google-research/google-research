@@ -63,10 +63,10 @@ class GlobalAttentionPooling1D(tf.keras.layers.Layer):
            inputs,
            mask = None,
            training = True):
-    att_act = inputs if self.layer_norm is None else self.layer_norm(inputs)
-    att_act = tf.squeeze(self.dense(att_act), axis=-1)
-    att_act = self.dropout(att_act, training=training)
-    att_weights = self.softmax(att_act, mask=mask)
+    att_act = inputs if self.layer_norm is None else self.layer_norm(inputs)  # pyrefly: ignore[not-callable]
+    att_act = tf.squeeze(self.dense(att_act), axis=-1)  # pyrefly: ignore[not-callable]
+    att_act = self.dropout(att_act, training=training)  # pyrefly: ignore[not-callable]
+    att_weights = self.softmax(att_act, mask=mask)  # pyrefly: ignore[not-callable]
     return tf.einsum('bld,bl->bd', inputs, att_weights)
 
 
@@ -75,7 +75,7 @@ class MLP(tf.keras.Sequential):
   """A generic multi-layer perceptron."""
 
   def __init__(self,
-               output_size = gin.REQUIRED,
+               output_size = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                output_activation = None,
                output_dropout = 0.0,
                pre_pooling_layer_norm = False,
@@ -124,7 +124,7 @@ class NetSurfP2(tf.keras.Model):
   """NetSurfP-2.0 output head ala Klausen et al. 2009."""
 
   def __init__(self,
-               output_size = gin.REQUIRED,
+               output_size = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                output_layer_norm = False,
                cnn_layer_norm = False,
                cnn_filters = (),
@@ -197,13 +197,13 @@ class NetSurfP2(tf.keras.Model):
     # CNN layers.
     x = embeddings
     if self._cnn_layer_norm is not None:
-      x = self._cnn_layer_norm(x)
+      x = self._cnn_layer_norm(x)  # pyrefly: ignore[not-callable]
     for cnn_layer in self._cnn_layers:
-      x = x * float_mask[Ellipsis, None] if masked else x
+      x = x * float_mask[Ellipsis, None] if masked else x  # pyrefly: ignore[unsupported-operation]
       x = cnn_layer(x, training=training)
       # TODO(fllinares): add BatchNormalization, but what about padding??
       x = self._cnn_act(x)
-      x = self._cnn_dropout(x, training=training)
+      x = self._cnn_dropout(x, training=training)  # pyrefly: ignore[not-callable]
 
     # Concat original embeddings to output of CNN, optionally.
     if self._concat_input:
@@ -211,15 +211,15 @@ class NetSurfP2(tf.keras.Model):
 
     # Bidirectional LSTM here.
     if self._lstm_layer_norm is not None:
-      x = self._lstm_layer_norm(x)
+      x = self._lstm_layer_norm(x)  # pyrefly: ignore[not-callable]
     for lstm_layer in self._lstm_layers:
       x = lstm_layer(x, mask=mask, training=training)
 
     # Fully-connected output layer.
     if self._output_layer_norm is not None:
-      x = self._output_layer_norm(x)
-    x = x * float_mask[Ellipsis, None] if masked else embeddings
-    return self._output_dense(x, training=training)
+      x = self._output_layer_norm(x)  # pyrefly: ignore[not-callable]
+    x = x * float_mask[Ellipsis, None] if masked else embeddings  # pyrefly: ignore[unsupported-operation]
+    return self._output_dense(x, training=training)  # pyrefly: ignore[not-callable]
 
 
 @gin.configurable
@@ -355,7 +355,7 @@ class ContactPredictor(tf.keras.Model):
                       tf.tile(seq_embs[:, None, :], [1, len_seq, 1, 1])],
                      axis=-1)
 
-  def call(self, embs, mask=None):
+  def call(self, embs, mask=None):  # pyrefly: ignore[bad-override]
     x = self.concat_pairs(embs)
     if mask is not None:
       mask = tf.cast(mask, dtype=embs.dtype)
@@ -367,7 +367,7 @@ class ContactPredictor(tf.keras.Model):
     # Initial PaddedConv.
     x = self._layers[1](x)
     if mask is not None:
-      x *= mask_2d
+      x *= mask_2d  # pyrefly: ignore[unbound-name]
     # ResNet.
     for layer in self._layers[2:-1]:
       x = layer(x, mask=mask_2d)

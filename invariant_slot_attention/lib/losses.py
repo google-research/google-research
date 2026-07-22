@@ -64,7 +64,7 @@ def standardize_loss_config(
     return ml_collections.FrozenConfigDict({k: {} for k in loss_config})
 
   # Convert all option-2-style weights to option-3-style dictionaries.
-  loss_config = {
+  loss_config = {  # pyrefly: ignore[bad-assignment]
       k: {
           "weight": v
       } if isinstance(v, (float, int)) else v for k, v in loss_config.items()
@@ -276,8 +276,8 @@ def recon(preds,
   """Reconstruction loss (MSE)."""
   squared_l2_norm_fn = jax.vmap(functools.partial(
       squared_l2_norm, reduction_type=reduction_type))
-  targets = targets[key]
-  loss = squared_l2_norm_fn(preds["outputs"][key], targets)
+  targets = targets[key]  # pyrefly: ignore[bad-index]
+  loss = squared_l2_norm_fn(preds["outputs"][key], targets)  # pyrefly: ignore[bad-index]
   if reduction_type == "mean":
     # This rescaling reflects taking the sum over feature axis &
     # mean over space/time axes.

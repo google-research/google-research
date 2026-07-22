@@ -102,8 +102,8 @@ class PerceptualLoss(tf.keras.losses.Loss):
       according to the base class's specs, if the inputs have D dimensions, the
       output must have D-1 dimensions. Hence the [B, 1, 1] shape.
     """
-    true_features = self._model(y_true)
-    pred_features = self._model(y_pred)
+    true_features = self._model(y_true)  # pyrefly: ignore[not-callable]
+    pred_features = self._model(y_pred)  # pyrefly: ignore[not-callable]
     total_loss = tf.constant(0.0)
     for ft, fp, coeff in zip(true_features, pred_features, self._coeffs):
       # MAE only reduces the last dimension, leading to a [B, H, W]-tensor.
@@ -164,5 +164,5 @@ class CompositeLoss(tf.keras.losses.Loss):
     y_true = tf.cast(y_true, tf.float32)
     y_pred = tf.cast(y_pred, tf.float32)
     for loss, weight in self.losses.items():
-      loss_sum = loss(y_true, y_pred) * weight + loss_sum
+      loss_sum = loss(y_true, y_pred) * weight + loss_sum  # pyrefly: ignore[not-callable]
     return loss_sum

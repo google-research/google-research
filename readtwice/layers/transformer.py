@@ -189,12 +189,12 @@ class TransformerWithSideInputLayers(tf.keras.layers.Layer):
     if side_input is not None and not isinstance(side_input, list):
       side_input = [side_input] * self.num_hidden_layers
     else:
-      side_input = [None] * self.num_hidden_layers
+      side_input = [None] * self.num_hidden_layers  # pyrefly: ignore[bad-assignment]
 
-    if len(side_input) != self.num_hidden_layers:
+    if len(side_input) != self.num_hidden_layers:  # pyrefly: ignore[bad-argument-type]
       raise ValueError('Length of side input ({}) is not equal to '
                        'the number of hidden layers ({})'.format(
-                           len(side_input), self.num_hidden_layers))
+                           len(side_input), self.num_hidden_layers))  # pyrefly: ignore[bad-argument-type]
 
     if att_mask is not None and self.num_cross_attention_heads is not None:
       main_seq_len = tf.shape(main_input)[1]
@@ -214,14 +214,14 @@ class TransformerWithSideInputLayers(tf.keras.layers.Layer):
 
         output_tensor = self.cross_attention_layers[i](
             output_tensor,
-            side_input=side_input[i],
+            side_input=side_input[i],  # pyrefly: ignore[unsupported-operation]
             att_mask=att_mask_cross_attention_layer,
             training=training)
       else:
         output_tensor = self.attention_layers[i](
             output_tensor,
             training=training,
-            side_input=side_input[i],
+            side_input=side_input[i],  # pyrefly: ignore[unsupported-operation]
             att_mask=att_mask)
 
       output_tensor = self.feed_forward_layers[i](

@@ -129,7 +129,7 @@ def main(_):
 
   step_time_metric = tf.keras.metrics.Mean('step_time')
   step_start_time = time.time()
-  for scene, flare in tf.data.Dataset.zip((scenes, flares)):
+  for scene, flare in tf.data.Dataset.zip((scenes, flares)):  # pyrefly: ignore[bad-argument-type]
     # Perform one training step.
     loss_value, summary = train_step(model, scene, flare, loss_fn, optimizer)
 

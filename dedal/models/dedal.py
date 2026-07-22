@@ -83,9 +83,9 @@ class Dedal(tf.keras.Model):
   """Main architecture for the aligner. This is shared among all our models."""
 
   def __init__(self,
-               encoder_cls = gin.REQUIRED,
-               aligner_cls = gin.REQUIRED,
-               heads_cls = gin.REQUIRED,
+               encoder_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               aligner_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               heads_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                process_negatives = True,
                switch = None,
                backprop = None,
@@ -144,7 +144,7 @@ class Dedal(tf.keras.Model):
       if not backprop:
         safe_stop_grad = lambda t: None if t is None else tf.stop_gradient(t)
         inputs = tf.nest.map_structure(safe_stop_grad, inputs)
-      return head(inputs, mask=mask, training=training)
+      return head(inputs, mask=mask, training=training)  # pyrefly: ignore[not-callable]
 
   def forward(self,
               inputs,
@@ -165,13 +165,13 @@ class Dedal(tf.keras.Model):
     """
     selector = self.heads.constant_copy(True) if selector is None else selector
 
-    embeddings = self.encoder(inputs, training=training)
+    embeddings = self.encoder(inputs, training=training)  # pyrefly: ignore[not-callable]
     masks = self.encoder.compute_mask(inputs)
 
     result = multi_task.Backbone()
     for head, on, backprop, in zip(self.heads.embeddings,
                                    selector.embeddings,
-                                   self.backprop.embeddings):
+                                   self.backprop.embeddings):  # pyrefly: ignore[missing-attribute]
       head_output = self.head_output(
           head, on, backprop, embeddings, mask=masks, training=training)
       result.embeddings.append(head_output)
@@ -181,12 +181,12 @@ class Dedal(tf.keras.Model):
       # alignment phase due to selector.
       for _ in selector.alignments:
         result.alignments.append(tf.constant([]))
-      return result
+      return result  # pyrefly: ignore[bad-return]
 
     # Recomputes padding mask, this time ensuring special tokens such as EOS or
     # MASK are zeroed out as well, regardless of the value of the flag
     # `self.encoder._mask_special_tokens`.
-    masks = self.encoder.compute_mask(inputs, mask_special_tokens=True)
+    masks = self.encoder.compute_mask(inputs, mask_special_tokens=True)  # pyrefly: ignore[unexpected-keyword]
     # For each head, we compute the output of positive pairs and negative ones,
     # then concatenate to obtain an output batch where the first half is
     # positive and the second half is negative.
@@ -198,11 +198,11 @@ class Dedal(tf.keras.Model):
     for indices in (pos_indices, neg_indices)[:num_alignment_calls]:
       curr = []
       embedding_pairs, mask_pairs = pairs_lib.build(indices, embeddings, masks)
-      alignments = self.aligner(
+      alignments = self.aligner(  # pyrefly: ignore[not-callable]
           embedding_pairs, mask=mask_pairs, training=training)
       for head, on, backprop, in zip(self.heads.alignments,
                                      selector.alignments,
-                                     self.backprop.alignments):
+                                     self.backprop.alignments):  # pyrefly: ignore[missing-attribute]
         head_output = self.head_output(
             head, on, backprop, alignments, mask=mask_pairs, training=training)
         curr.append(head_output)
@@ -210,7 +210,7 @@ class Dedal(tf.keras.Model):
 
     for output in merge(*outputs):
       result.alignments.append(output)
-    return result
+    return result  # pyrefly: ignore[bad-return]
 
   def call(self,
            inputs,
@@ -247,14 +247,14 @@ class Dedal(tf.keras.Model):
     outputs_list = []
     for i, inputs in enumerate(inputs_list):
       selector_i = self.heads.pack(
-          [f1 and f2 for f1, f2 in zip(selector, self.switch.get_selector(i))])
-      outputs_i = self.forward(inputs, selector=selector_i, training=training)
+          [f1 and f2 for f1, f2 in zip(selector, self.switch.get_selector(i))])  # pyrefly: ignore[missing-attribute]
+      outputs_i = self.forward(inputs, selector=selector_i, training=training)  # pyrefly: ignore[bad-argument-type]
       # Removes "dummy" entries in `outputs_i` corresponding to positions where
       # `self._switch.get_selector(i)` is False, while keeping "dummy" entries
       # due to the externaly provided `selector` argument.
-      outputs_i = self.switch.filter(outputs_i, i)
+      outputs_i = self.switch.filter(outputs_i, i)  # pyrefly: ignore[missing-attribute]
       outputs_list.append(outputs_i)
-    return self.switch.merge(outputs_list)
+    return self.switch.merge(outputs_list)  # pyrefly: ignore[missing-attribute]
 
 
 @gin.configurable
@@ -270,21 +270,21 @@ class DedalLight(tf.keras.Model):
 
   @tf.function
   def call(self, inputs, training = False, embeddings_only = False):
-    embeddings = self.encoder(inputs, training=training)
+    embeddings = self.encoder(inputs, training=training)  # pyrefly: ignore[not-callable]
     if embeddings_only:
       return embeddings
 
     # Recomputes padding mask, this time ensuring special tokens such as EOS or
     # MASK are zeroed out as well, regardless of the value of the flag
     # `self.encoder._mask_special_tokens`.
-    masks = self.encoder.compute_mask(inputs, mask_special_tokens=True)
+    masks = self.encoder.compute_mask(inputs, mask_special_tokens=True)  # pyrefly: ignore[unexpected-keyword]
     indices = pairs_lib.consecutive_indices(inputs)
     embedding_pairs, mask_pairs = pairs_lib.build(indices, embeddings, masks)
-    alignments = self.aligner(
+    alignments = self.aligner(  # pyrefly: ignore[not-callable]
         embedding_pairs, mask=mask_pairs, training=training)
 
     # Computes homology scores from SW scores and sequence lengths.
-    homology_scores = self.homology_head(
+    homology_scores = self.homology_head(  # pyrefly: ignore[not-callable]
         alignments, mask=mask_pairs, training=training)
     # Removes "dummy" trailing dimension.
     homology_scores = tf.squeeze(homology_scores, axis=-1)

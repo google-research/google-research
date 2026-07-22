@@ -49,7 +49,7 @@ def estimate_monte_carlo_returns(env,
   """
 
   durations = []
-  for gym_env in env.pyenv.envs:
+  for gym_env in env.pyenv.envs:  # pyrefly: ignore[missing-attribute]
     if hasattr(gym_env, 'duration'):
       durations.append(gym_env.duration)
       gym_env._duration = max_length  # pylint: disable=protected-access
@@ -61,14 +61,14 @@ def estimate_monte_carlo_returns(env,
 
     t = 0
     while not timestep.is_last():
-      _, action, _ = actor(timestep.observation, std)
+      _, action, _ = actor(timestep.observation, std)  # pyrefly: ignore[not-callable]
       timestep = env.step(action)
       episode_return += timestep.reward[0] * (discount**t)
       t += 1
 
     episode_return_sum += episode_return
 
-  for i, gym_env in enumerate(env.pyenv.envs):
+  for i, gym_env in enumerate(env.pyenv.envs):  # pyrefly: ignore[missing-attribute]
     if hasattr(gym_env, 'duration'):
       gym_env._duration = durations[i]  # pylint: disable=protected-access
 

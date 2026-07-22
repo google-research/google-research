@@ -212,7 +212,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
     # outputs[:,0:self.overlap,:] = outputs[:,0:self.overlap,:] + self.states
     # but 'Tensor' object does not support item assignment,
     # so doing it through full summation below
-    output_shape[1] -= self.state_shape[1]
+    output_shape[1] -= self.state_shape[1]  # pyrefly: ignore[unsupported-operation]
     padded_remainder = tf.concat(
         [self.states, tf.zeros(output_shape, tf.float32)], 1)
     outputs = outputs + padded_remainder
@@ -244,7 +244,7 @@ class Conv2DTranspose(tf.keras.layers.Conv2DTranspose):
 
     output_shape = outputs.shape.as_list()
 
-    output_shape[1] -= self.state_shape[1]
+    output_shape[1] -= self.state_shape[1]  # pyrefly: ignore[unsupported-operation]
     padded_remainder = tf.concat(
         [states, tf.zeros(output_shape, tf.float32)], 1)
     outputs = outputs + padded_remainder

@@ -73,7 +73,7 @@ class DensePerTokenOutputHead(tf.keras.layers.Layer):
       each input token. If mask is not None, the logits corresponding to padding
       tokens will be zeroed-out.
     """
-    logits = self.dense(inputs)
+    logits = self.dense(inputs)  # pyrefly: ignore[not-callable]
     if mask is not None:
       logits *= tf.cast(mask[:, :, None], logits.dtype)
     return logits
@@ -173,7 +173,7 @@ class BERTPerTokenOutputHead(tf.keras.layers.Layer):
     norm_factor = tf.sqrt(tf.cast(norm_factor, dtype=inputs.dtype))
 
     if self._layer_norm is not None:
-      inputs = self._layer_norm(self._activation(self._dense(inputs)))
+      inputs = self._layer_norm(self._activation(self._dense(inputs)))  # pyrefly: ignore[not-callable]
 
     logits = tf.matmul(inputs, shared_weights, transpose_b=True) / norm_factor
     logits = tf.nn.bias_add(logits, self._b_out)
@@ -226,7 +226,7 @@ class DenseEOSOutputHead(tf.keras.layers.Layer):
       state. If mask is not None, the logits corresponding to padding tokens
       will be zeroed-out.
     """
-    logits = self._dense(inputs)
+    logits = self._dense(inputs)  # pyrefly: ignore[not-callable]
     if mask is not None:
       logits *= tf.cast(mask[:, :, None], dtype=logits.dtype)
     return logits

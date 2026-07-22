@@ -205,7 +205,7 @@ def create_datasets(
   """
 
   if config.data.dataset_name == "tetrominoes":
-    ds = tf.data.TFRecordDataset(
+    ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         PATH_TETROMINOES,
         compression_type="GZIP", buffer_size=2*(2**20))
     ds = ds.map(_decode_tetrominoes,
@@ -232,7 +232,7 @@ def create_datasets(
 
     dataset_builder = TetrominoesBuilder()
   elif config.data.dataset_name == "objects_room":
-    ds = tf.data.TFRecordDataset(
+    ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         PATH_OBJECTS_ROOM,
         compression_type="GZIP", buffer_size=2*(2**20))
     ds = ds.map(_decode_objects_room,
@@ -258,7 +258,7 @@ def create_datasets(
 
     dataset_builder = ObjectsRoomBuilder()
   elif config.data.dataset_name == "clevr_with_masks":
-    ds = tf.data.TFRecordDataset(
+    ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         PATH_CLEVR_WITH_MASKS,
         compression_type="GZIP", buffer_size=2*(2**20))
     ds = ds.map(_decode_clevr_with_masks,
@@ -284,8 +284,8 @@ def create_datasets(
     eval_path = os.path.join(
         PATH_WAYMO_OPEN, "validation/camera_1/*tfrecords*")
 
-    train_files = tf.data.Dataset.list_files(train_path)
-    eval_files = tf.data.Dataset.list_files(eval_path)
+    train_files = tf.data.Dataset.list_files(train_path)  # pyrefly: ignore[bad-argument-type]
+    eval_files = tf.data.Dataset.list_files(eval_path)  # pyrefly: ignore[bad-argument-type]
 
     train_data_reader = functools.partial(
         tf.data.TFRecordDataset,
@@ -344,10 +344,10 @@ def create_datasets(
   eval_split_name = config.get("validation_split", "validation")
 
   train_ds = deterministic_data.create_dataset(
-      dataset_builder,
+      dataset_builder,  # pyrefly: ignore[bad-argument-type]
       split=train_split_name,
       rng=data_rng,
-      preprocess_fn=train_preprocess_fn,
+      preprocess_fn=train_preprocess_fn,  # pyrefly: ignore[bad-argument-type]
       cache=False,
       shuffle_buffer_size=config.data.shuffle_buffer_size,
       batch_dims=batch_dims,
@@ -366,10 +366,10 @@ def create_datasets(
     filter_fn = None
 
   eval_ds = deterministic_data.create_dataset(
-      dataset_builder,
+      dataset_builder,  # pyrefly: ignore[bad-argument-type]
       split=eval_split_name,
       rng=None,
-      preprocess_fn=eval_preprocess_fn,
+      preprocess_fn=eval_preprocess_fn,  # pyrefly: ignore[bad-argument-type]
       filter_fn=filter_fn,
       cache=False,
       batch_dims=batch_dims,

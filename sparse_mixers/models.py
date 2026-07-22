@@ -439,8 +439,8 @@ def _compute_pretraining_metrics(
       next_sentence_logits.argmax(-1) == next_sentence_labels.ravel())
 
   return PretrainingStats(masked_lm_loss, next_sentence_loss, masked_lm_correct,  # pytype: disable=wrong-arg-types  # jax-ndarray
-                          masked_lm_normalization, masked_lm_total,
-                          next_sentence_correct, num_next_sentence_labels)
+                          masked_lm_normalization, masked_lm_total,  # pyrefly: ignore[bad-argument-type]
+                          next_sentence_correct, num_next_sentence_labels)  # pyrefly: ignore[bad-argument-type]
 
 
 class SequenceClassificationModel(nn.Module):
@@ -515,6 +515,6 @@ class SequenceClassificationModel(nn.Module):
       batch_loss = jnp.mean(per_example_loss)
       correct_predictions = jnp.sum(logits.argmax(-1) == labels)
       return ClassificationStats(  # pytype: disable=wrong-arg-types  # jnp-type
-          batch_loss=batch_loss,
+          batch_loss=batch_loss,  # pyrefly: ignore[bad-argument-type]
           num_labels=labels.size,
-          correct_predictions=correct_predictions)
+          correct_predictions=correct_predictions)  # pyrefly: ignore[bad-argument-type]

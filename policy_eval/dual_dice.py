@@ -60,17 +60,17 @@ class DualDICE(object):
       tape.watch(self.nu.trainable_variables)
       tape.watch(self.zeta.trainable_variables)
 
-      nu = self.nu(states, actions)
-      nu_next = self.nu(next_states, next_actions)
-      nu_0 = self.nu(initial_states, initial_actions)
+      nu = self.nu(states, actions)  # pyrefly: ignore[not-callable]
+      nu_next = self.nu(next_states, next_actions)  # pyrefly: ignore[not-callable]
+      nu_0 = self.nu(initial_states, initial_actions)  # pyrefly: ignore[not-callable]
 
-      zeta = self.zeta(states, actions)
+      zeta = self.zeta(states, actions)  # pyrefly: ignore[not-callable]
 
       nu_loss = (
           tf.reduce_sum(weights * (
-              (nu - discount * masks * nu_next) * zeta - tf.square(zeta) / 2)) /
+              (nu - discount * masks * nu_next) * zeta - tf.square(zeta) / 2)) /  # pyrefly: ignore[unsupported-operation]
           tf.reduce_sum(weights) -
-          tf.reduce_sum(initial_weights *
+          tf.reduce_sum(initial_weights *  # pyrefly: ignore[unsupported-operation]
                         (1 - discount) * nu_0) / tf.reduce_sum(initial_weights))
       zeta_loss = -nu_loss
 
@@ -109,7 +109,7 @@ class DualDICE(object):
     pred_ratio = 0.0
     for _ in tqdm.tqdm(range(num_samples), desc='Estimating Returns'):
       states, actions, _, rewards, _, weights, _ = next(tf_dataset_iter)
-      zeta = self.zeta(states, actions)
+      zeta = self.zeta(states, actions)  # pyrefly: ignore[not-callable]
       pred_ratio += tf.reduce_sum(weights * zeta) / tf.reduce_sum(weights)
       pred_returns += tf.reduce_sum(
           weights * zeta * rewards) / tf.reduce_sum(weights)

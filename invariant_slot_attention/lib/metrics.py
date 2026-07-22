@@ -194,7 +194,7 @@ class Ari(metrics.Average):
   """
 
   @classmethod
-  def from_model_output(cls,
+  def from_model_output(cls,  # pyrefly: ignore[bad-override]
                         predicted_segmentations,
                         ground_truth_segmentations,
                         padding_mask,
@@ -258,6 +258,6 @@ class AriNoBg(Ari):
   """Adjusted Rand Index (ARI), ignoring the ground-truth background label."""
 
   @classmethod
-  def from_model_output(cls, **kwargs):
+  def from_model_output(cls, **kwargs):  # pyrefly: ignore[bad-override]
     """See `Ari` docstring for allowed keyword arguments."""
     return super().from_model_output(**kwargs, ignore_background=True)

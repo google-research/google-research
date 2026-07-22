@@ -48,7 +48,7 @@ def _tfds_stream(dataset_name,
 
   if preprocess_fn is not None:
     ds_numpy = list(tfds.as_numpy(ds))
-    ds = tf.data.Dataset.from_tensor_slices(preprocess_fn(ds_numpy))
+    ds = tf.data.Dataset.from_tensor_slices(preprocess_fn(ds_numpy))  # pyrefly: ignore[bad-argument-type]
 
   if repeat:
     ds = ds.cache()
@@ -173,10 +173,10 @@ def classification_inputs(dataset_name,
       dataset_name=dataset_name,
       split=split,
       batch_size=batch_size,
-      data_dir=data_dir,
+      data_dir=data_dir,  # pyrefly: ignore[bad-argument-type]
       shuffle_files=training,
-      shuffle_buffer_size=1024 if training else None,
-      batch_shuffle_size=128 if training else None,
+      shuffle_buffer_size=1024 if training else None,  # pyrefly: ignore[bad-argument-type]
+      batch_shuffle_size=128 if training else None,  # pyrefly: ignore[bad-argument-type]
       preprocess_fn=preprocess_fn,
       postprocess_fn=process_classification,
       repeat=training)
@@ -186,8 +186,8 @@ def _clean_multirc_inputs(dataset_name, text):
   """Removes HTML markup from Multi-RC task input text."""
   if dataset_name == "super_glue/multirc":
     # Remove HTML markup.
-    text = re.sub(r"<br>", " ", text.decode("utf-8"))
-    text = re.sub(r"<(/)?b>", " ", text)
+    text = re.sub(r"<br>", " ", text.decode("utf-8"))  # pyrefly: ignore[bad-assignment]
+    text = re.sub(r"<(/)?b>", " ", text)  # pyrefly: ignore[no-matching-overload]
   return text
 
 
@@ -372,7 +372,7 @@ def c4_masked_lm_inputs(batch_size, tokenizer,
   it = _c4_data_unbatched(tokenizer, max_seq_length)
   examples = []
   while True:
-    example = next(it)
+    example = next(it)  # pyrefly: ignore[bad-argument-type]
 
     num_tokens = np.sum(example["input_ids"] != pad_id).item()
     prediction_mask = np.all(example["input_ids"] != ignore_ids, axis=0)

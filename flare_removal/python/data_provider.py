@@ -49,7 +49,7 @@ def image_dataset_from_files(data_dir,
   globs = [os.path.join(data_dir, f'*.{e}') for e in extensions]
   # Images under subdirectories.
   globs += [os.path.join(data_dir, '**', f'*.{e}') for e in extensions]
-  files = tf.data.Dataset.list_files(globs, shuffle, seed=0)
+  files = tf.data.Dataset.list_files(globs, shuffle, seed=0)  # pyrefly: ignore[bad-argument-type]
 
   def _parser(file_name):
     blob = tf.io.read_file(file_name)
@@ -95,7 +95,7 @@ def image_dataset_from_tfrecords(globs,
   Returns:
     A Dataset object containing (H, W, C) or (B, H, W, C) image tensors.
   """
-  files = tf.data.Dataset.list_files(globs, shuffle, seed=0)
+  files = tf.data.Dataset.list_files(globs, shuffle, seed=0)  # pyrefly: ignore[bad-argument-type]
   examples = files.interleave(
       tf.data.TFRecordDataset,
       num_parallel_calls=tf.data.AUTOTUNE,

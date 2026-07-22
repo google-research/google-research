@@ -76,7 +76,7 @@ def make_metrics_collection(
     for m_name, m_type in metrics_spec.items():
       metrics_dict[m_name] = METRIC_TYPE_TO_CLS[m_type]
 
-  return flax.struct.dataclass(
+  return flax.struct.dataclass(  # pyrefly: ignore[bad-return]
       type(class_name,
            (base_metrics.Collection,),
            {"__annotations__": metrics_dict}))
@@ -468,7 +468,7 @@ def retrieve_from_collection(
 
   # In case the variable is not found, we return None.
   if (key.isdigit() and not isinstance(variable_collection, Sequence)) or (
-      key.isdigit() and int(key) >= len(variable_collection)) or (
+      key.isdigit() and int(key) >= len(variable_collection)) or (  # pyrefly: ignore[bad-argument-type]
           not key.isdigit() and key not in variable_collection):
     return None
 
@@ -476,16 +476,16 @@ def retrieve_from_collection(
     key = int(key)
 
   if not rpath:
-    return variable_collection[key]
+    return variable_collection[key]  # pyrefly: ignore[bad-index]
   else:
-    return retrieve_from_collection(variable_collection[key], rpath)
+    return retrieve_from_collection(variable_collection[key], rpath)  # pyrefly: ignore[bad-index]
 
 
 def build_model_from_config(config):
   """Build a Flax model from a (nested) ConfigDict."""
   model_constructor = _parse_config(config)
   if callable(model_constructor):
-    return model_constructor()
+    return model_constructor()  # pyrefly: ignore[bad-return]
   else:
     raise ValueError("Provided config does not contain module constructors.")
 
@@ -559,12 +559,12 @@ def get_slices_along_axis(
 
   # Infer end index if not provided.
   if end_idx == -1:
-    end_idx = max_size
+    end_idx = max_size  # pyrefly: ignore[bad-assignment]
 
   # Set padding size if end index is larger than maximum size of requested axis.
-  elif end_idx > max_size:
-    pad_size = end_idx - max_size
-    end_idx = max_size
+  elif end_idx > max_size:  # pyrefly: ignore[unsupported-operation]
+    pad_size = end_idx - max_size  # pyrefly: ignore[unsupported-operation]
+    end_idx = max_size  # pyrefly: ignore[bad-assignment]
 
   outputs = {}
   for key in slice_keys:

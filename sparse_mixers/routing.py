@@ -434,7 +434,7 @@ class TokensChooseScatterRouter(ScatterRouter):
 
     if self.batch_prioritized_routing:
       # Place tokens in their original ordering.
-      inverse_token_ordering = jnp.argsort(token_ordering, axis=-1)
+      inverse_token_ordering = jnp.argsort(token_ordering, axis=-1)  # pyrefly: ignore[unbound-name]
       preferred_experts = _take_along_axis(
           preferred_experts,
           jnp.expand_dims(inverse_token_ordering, axis=-1),
@@ -541,7 +541,7 @@ class TokensChooseMaskedRouter(MaskedRouter):
 
     if self.batch_prioritized_routing:
       # Place token priorities in original ordering of tokens.
-      inv_permutation = jnp.argsort(permutation, axis=-1)
+      inv_permutation = jnp.argsort(permutation, axis=-1)  # pyrefly: ignore[unbound-name]
       token_priority = _take_along_axis(
           token_priority, jnp.expand_dims(inv_permutation, axis=-1), axis=-2)
 

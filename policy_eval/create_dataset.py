@@ -71,7 +71,7 @@ def main(_):
     std = FLAGS.std
 
   def get_action(state):
-    _, action, log_prob = sac(state, std)
+    _, action, log_prob = sac(state, std)  # pyrefly: ignore[not-callable]
     return action, log_prob
 
   dataset = dict(

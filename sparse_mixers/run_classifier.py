@@ -132,7 +132,7 @@ def _restore_state_from_checkpoint(
           config.init_checkpoint_dir,
           target=None,
           sharded_match_fn=sharded_match_fn)
-      ckpt_state = _clear_pretrained_output_layer(state_cpu, ckpt_state)
+      ckpt_state = _clear_pretrained_output_layer(state_cpu, ckpt_state)  # pyrefly: ignore[bad-argument-type]
       ckpt_state = _replicate_and_shard_target(ckpt_state, sharded_match_fn,
                                                not_sharded_match_fn)
       state = jax_utils.replicate(state_cpu)
@@ -224,7 +224,7 @@ def _compute_loss_and_metrics(
     # Experts are sharded so we can gather their metrics independently on each
     # device.
     expert_metrics = train_utils.summarize_expert_metrics(
-        state, auxiliary_loss_factor, router_z_loss_factor)
+        state, auxiliary_loss_factor, router_z_loss_factor)  # pyrefly: ignore[bad-argument-type]
     total_loss += expert_metrics.auxiliary_loss + expert_metrics.router_z_loss
     output = output.replace(expert_metrics=expert_metrics)
 
@@ -256,7 +256,7 @@ def _compute_stats(
   result = {
       "idx": batch["idx"],
       "label": batch["label"],
-      "prediction": scoring_fn(y),
+      "prediction": scoring_fn(y),  # pyrefly: ignore[bad-argument-type]
       "input_ids": batch["input_ids"],  # Required for SQuAD F1 metric
   }
 
@@ -483,7 +483,7 @@ def train_and_evaluate(config, workdir,
   )
 
   tx = optax.adamw(  # pytype: disable=wrong-arg-types  # numpy-scalars
-      learning_rate_fn, b1=0.9, b2=0.999, eps=1e-6, weight_decay=0.01)
+      learning_rate_fn, b1=0.9, b2=0.999, eps=1e-6, weight_decay=0.01)  # pyrefly: ignore[bad-argument-type]
   if config.clipped_grad_norm:
     tx = optax.chain(optax.clip_by_global_norm(config.clipped_grad_norm), tx)
 
@@ -521,7 +521,7 @@ def train_and_evaluate(config, workdir,
       max_seq_length=config.max_seq_length,
       tokenizer=tokenizer)
   train_ds = classification_inputs(
-      split=tfds.Split.TRAIN,
+      split=tfds.Split.TRAIN,  # pyrefly: ignore[missing-attribute]
       batch_size=per_host_train_batch_size,
       training=True)
   train_iter = iter(train_ds)
@@ -604,7 +604,7 @@ def train_and_evaluate(config, workdir,
 
     for split_suffix in split_suffixes:
       eval_ds = classification_inputs(
-          split=tfds.Split.VALIDATION + split_suffix,
+          split=tfds.Split.VALIDATION + split_suffix,  # pyrefly: ignore[missing-attribute]
           batch_size=per_host_eval_batch_size,
           training=False)
 

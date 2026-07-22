@@ -60,7 +60,7 @@ class RingBuffer(tf.keras.layers.Wrapper):
     self.state_shape = state_shape
     self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
     self.use_one_step = use_one_step
-    self.stride = 1
+    self.stride = 1  # pyrefly: ignore[bad-assignment]
 
     wrappped_cell = self.get_core_layer()
 
@@ -249,13 +249,13 @@ class RingBuffer(tf.keras.layers.Wrapper):
       # temporal padding
       pad = [[0, 0]] * inputs.shape.rank
       if self.use_one_step:
-        pad_total_amount = self.ring_buffer_size_in_time_dim - 1
+        pad_total_amount = self.ring_buffer_size_in_time_dim - 1  # pyrefly: ignore[unsupported-operation]
       else:
         pad_total_amount = self.ring_buffer_size_in_time_dim
       if self.pad_time_dim == 'causal':
         pad[1] = [pad_total_amount, 0]
       elif self.pad_time_dim == 'same':
-        half = pad_total_amount // 2
-        pad[1] = [half, pad_total_amount - half]
+        half = pad_total_amount // 2  # pyrefly: ignore[unsupported-operation]
+        pad[1] = [half, pad_total_amount - half]  # pyrefly: ignore[unsupported-operation]
       inputs = tf.pad(inputs, pad, 'constant')
     return self.layer(inputs)

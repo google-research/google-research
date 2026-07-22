@@ -109,7 +109,7 @@ def train_step(
         padding_mask=batch.get("padding_mask"))
     # Filter intermediates, as we do not want to store them in the TrainState.
     state_vars = utils.filter_key_from_frozen_dict(
-        mutable_vars, key="intermediates")
+        mutable_vars, key="intermediates")  # pyrefly: ignore[bad-argument-type]
     loss, loss_aux = loss_fn(preds, batch)
     return loss, (state_vars, preds, loss_aux)
 
@@ -133,7 +133,7 @@ def train_step(
       ground_truth_max_num_instances=ground_truth_max_num_instances,
       padding_mask=batch.get("padding_mask"),
       mask=batch.get("mask"))
-  return (
+  return (  # pyrefly: ignore[bad-return]
       new_opt_state, new_params, state_vars, new_rng, metrics_update, step + 1)
 
 
@@ -157,7 +157,7 @@ def train_and_evaluate(config,
     data_rng = jax.random.fold_in(data_rng, jax.process_index())
   else:
     data_rng = None
-  train_ds, eval_ds = input_pipeline.create_datasets(config, data_rng)
+  train_ds, eval_ds = input_pipeline.create_datasets(config, data_rng)  # pyrefly: ignore[bad-argument-type]
   train_iter = iter(train_ds)  # pytype: disable=wrong-arg-types
 
   # Initialize model
@@ -278,7 +278,7 @@ def train_and_evaluate(config,
       report_progress(step, time.time())
 
       if jax.process_index() == 0:
-        profiler(step)
+        profiler(step)  # pyrefly: ignore[unbound-name]
 
       if step % config.log_loss_every_steps == 0 or is_last_step:
         metrics_res = train_metrics.compute()
@@ -314,7 +314,7 @@ def evaluate(model, state, eval_ds, loss_fn_eval, eval_metrics_cls, config,
 
   metrics_res = eval_metrics.compute()
   writer.write_scalars(
-      step, jax.tree.map(np.array, utils.flatten_named_dicttree(metrics_res)))
+      step, jax.tree.map(np.array, utils.flatten_named_dicttree(metrics_res)))  # pyrefly: ignore[bad-argument-type]
   writer.write_images(
       step,
       jax.tree.map(

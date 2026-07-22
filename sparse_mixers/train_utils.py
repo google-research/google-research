@@ -178,7 +178,7 @@ def compute_pretraining_metrics(stats,
   metrics["loss"] = metrics["masked_lm_loss"] + metrics["next_sentence_loss"]
 
   if record_grad_norm:
-    metrics.update({"grad_l2_norm": jnp.sqrt(jnp.sum(stats.grad_l2_sum))})
+    metrics.update({"grad_l2_norm": jnp.sqrt(jnp.sum(stats.grad_l2_sum))})  # pyrefly: ignore[bad-argument-type]
 
   if stats.expert_metrics:
     # Mixture of experts specific metrics are averaged across experts/devices.
@@ -209,7 +209,7 @@ def compute_classification_metrics(
       "loss": jnp.sum(stats.batch_loss) / jnp.sum(stats.num_labels),
   }
   if not is_regression_task:
-    metrics["accuracy"] = jnp.sum(stats.correct_predictions) / jnp.sum(
+    metrics["accuracy"] = jnp.sum(stats.correct_predictions) / jnp.sum(  # pyrefly: ignore[bad-argument-type]
         stats.num_labels)
 
   if stats.expert_metrics:
@@ -260,8 +260,8 @@ def summarize_expert_metrics(state, auxiliary_loss_factor,
       jnp.asarray([m.router_confidence for m in diversity_metrics]))
 
   return DiversityMetrics(total_aux_loss, total_router_z_loss,  # pytype: disable=wrong-arg-types  # jnp-type
-                          avg_fraction_tokens_left_behind, avg_expert_usage,
-                          avg_confidence)
+                          avg_fraction_tokens_left_behind, avg_expert_usage,  # pyrefly: ignore[bad-argument-type]
+                          avg_confidence)  # pyrefly: ignore[bad-argument-type]
 
 
 def create_learning_rate_scheduler(
@@ -292,7 +292,7 @@ def create_learning_rate_scheduler(
     ValueError: If unrecognized factor is passed in, or the warm-up factor is
       specified with 0 warm-up steps.
   """
-  factors = [n.strip() for n in factors.split("*")]
+  factors = [n.strip() for n in factors.split("*")]  # pyrefly: ignore[bad-assignment]
 
   def step_fn(step):
     """Step to learning rate function."""

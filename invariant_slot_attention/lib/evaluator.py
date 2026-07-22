@@ -60,10 +60,10 @@ def get_eval_metrics(
   Returns:
     The evaluation metrics.
   """
-  loss, loss_aux = loss_fn(preds, batch)
+  loss, loss_aux = loss_fn(preds, batch)  # pyrefly: ignore[bad-argument-type]
   metrics_update = eval_metrics_cls.gather_from_model_output(
       loss=loss,
-      **loss_aux,
+      **loss_aux,  # pyrefly: ignore[bad-unpacking]
       predicted_segmentations=utils.remove_singleton_dim(
           preds["outputs"].get("segmentations")),  # pytype: disable=attribute-error
       ground_truth_segmentations=batch.get("segmentations"),
@@ -326,4 +326,4 @@ def evaluate(
     eval_metrics = (
         update if eval_metrics is None else eval_metrics.merge(update))
   assert eval_metrics is not None
-  return eval_metrics, batch, preds
+  return eval_metrics, batch, preds  # pyrefly: ignore[bad-return]

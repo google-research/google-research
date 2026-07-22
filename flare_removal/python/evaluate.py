@@ -109,7 +109,7 @@ def main(_):
       logging.exception('Failed to restore checkpoint from %s.', ckpt_path)
       continue
 
-    for scene, flare in tf.data.Dataset.zip((scenes, flares)):
+    for scene, flare in tf.data.Dataset.zip((scenes, flares)):  # pyrefly: ignore[bad-argument-type]
       loss_value, summary = synthesis.run_step(
           scene,
           flare,
@@ -120,8 +120,8 @@ def main(_):
           flare_loss_weight=FLAGS.flare_loss_weight,
           training_res=FLAGS.training_res)
     with summary_writer.as_default():
-      tf.summary.image('prediction', summary, max_outputs=1, step=ckpt.step)
-      tf.summary.scalar('loss', loss_value, step=ckpt.step)
+      tf.summary.image('prediction', summary, max_outputs=1, step=ckpt.step)  # pyrefly: ignore[unbound-name]
+      tf.summary.scalar('loss', loss_value, step=ckpt.step)  # pyrefly: ignore[unbound-name]
 
   logging.info('Done!')
 

@@ -66,7 +66,7 @@ class Encoder(tf.keras.Model):
 class OneHotEncoder(Encoder):
   """Embeds sequences using non-contextual, one-hot embeddings."""
 
-  def call(self, inputs):
+  def call(self, inputs):  # pyrefly: ignore[bad-override]
     return tf.one_hot(inputs, len(self._vocab))
 
 
@@ -120,14 +120,14 @@ class LookupEncoder(Encoder):
     self._dropout = tf.keras.layers.Dropout(
         rate=dropout, name='embeddings/dropout')
 
-  def call(self, inputs):
+  def call(self, inputs):  # pyrefly: ignore[bad-override]
     embeddings = self._aa_embed(inputs)
     if self._positional_embedding is not None:
       pos_embeddings = self._positional_embedding(embeddings)
       embeddings += pos_embeddings
     if self._layer_norm is not None:
-      embeddings = self._layer_norm(embeddings)
-    embeddings = self._dropout(embeddings)
+      embeddings = self._layer_norm(embeddings)  # pyrefly: ignore[not-callable]
+    embeddings = self._dropout(embeddings)  # pyrefly: ignore[not-callable]
     return embeddings
 
 
@@ -175,7 +175,7 @@ class RecurrentEncoder(Encoder):
         layer = tf.keras.layers.Bidirectional(layer, name=f'BiRNN/layer_{i}')
       self._rnn_layers.append(layer)
 
-  def call(self, inputs):
+  def call(self, inputs):  # pyrefly: ignore[bad-override]
     embeddings = self._aaemb_layer(inputs)
     mask = self._vocab.padding_mask(inputs)
     for layer in self._rnn_layers:
@@ -249,13 +249,13 @@ class TransformerEncoder(Encoder):
           norm_first=norm_first,
           name=f'transformer/layer_{i}'))
 
-  def call(self, inputs):
+  def call(self, inputs):  # pyrefly: ignore[bad-override]
     aa_embeddings = self.aaemb_layer(inputs)
     pos_embeddings = self.posemb_layer(aa_embeddings)
     embeddings = aa_embeddings + pos_embeddings
     if self._input_norm_layer is not None:
-      embeddings = self._input_norm_layer(embeddings)  # pylint: disable=not-callable
-    embeddings = self._dropout_layer(embeddings)
+      embeddings = self._input_norm_layer(embeddings)  # pylint: disable=not-callable  # pyrefly: ignore[not-callable]
+    embeddings = self._dropout_layer(embeddings)  # pyrefly: ignore[not-callable]
 
     mask = self._vocab.padding_mask(inputs)
     attention_mask = self._attention_mask(
@@ -271,6 +271,6 @@ class TransformerEncoder(Encoder):
       embeddings = layer((embeddings, attention_mask))
 
     if self._output_norm_layer is not None:
-      embeddings = self._output_norm_layer(embeddings)
+      embeddings = self._output_norm_layer(embeddings)  # pyrefly: ignore[not-callable]
 
     return embeddings

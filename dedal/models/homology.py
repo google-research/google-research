@@ -204,7 +204,7 @@ def finetune_homology_head(loop,
         selector = loop.model.switch.get_selector(multi_input_idx)
         model_output = loop.model.forward(x, selector=selector, training=False)
       else:
-        model_output = loop.model(x, training=False)
+        model_output = loop.model(x, training=False)  # pyrefly: ignore[not-callable]
       y_true = y_true[f'alignments/{homology_idx}']
       y_pred = model_output.flatten()[f'alignments/{alignment_idx}'][0]
       seq_lens = length_fn(x)
@@ -216,7 +216,7 @@ def finetune_homology_head(loop,
 
   # Builds a "dataset" of (homology labels, similarity scores, sequence lengths)
   # triplets.
-  iterator = iter(loop.make_ds(tfds.Split.TRAIN))
+  iterator = iter(loop.make_ds(tfds.Split.TRAIN))  # pyrefly: ignore[missing-attribute]
   y_true, y_pred, seq_lens = [], [], []
   for _ in range(n_steps):
     y_true_i, y_pred_i, seq_lens_i = tf.nest.map_structure(
@@ -231,7 +231,7 @@ def finetune_homology_head(loop,
   @tf.function
   def tf_value_and_grad_fn():
     with tf.GradientTape() as tape:
-      logits = dummy_head((y_pred,), seq_lens[Ellipsis, tf.newaxis])
+      logits = dummy_head((y_pred,), seq_lens[Ellipsis, tf.newaxis])  # pyrefly: ignore[not-callable]
       loss_val = loss(y_true, logits)
     grads = tape.gradient(loss_val, dummy_head.trainable_variables)
     return loss_val, tf.stack(grads)
@@ -298,7 +298,7 @@ def finetune_homology_head_eval(
   @tf.function
   def tf_value_and_grad_fn():
     with tf.GradientTape() as tape:
-      logits = dummy_head((y_pred,), seq_lens[Ellipsis, tf.newaxis])
+      logits = dummy_head((y_pred,), seq_lens[Ellipsis, tf.newaxis])  # pyrefly: ignore[not-callable]
       loss_val = loss(y_true, logits)
     grads = tape.gradient(loss_val, dummy_head.trainable_variables)
     return loss_val, tf.stack(grads)

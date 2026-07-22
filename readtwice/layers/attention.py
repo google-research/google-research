@@ -172,7 +172,7 @@ class FusedSideAttention(tf.keras.layers.Layer):
     attention_probs = tf.nn.softmax(attention_scores)
 
     if self.att_dropout_prob != 0.0:
-      attention_probs = self.att_dropout(attention_probs, training=training)
+      attention_probs = self.att_dropout(attention_probs, training=training)  # pyrefly: ignore[not-callable]
 
     if side_input is not None:
       side_seq_len = tf.shape(side_input)[0]
@@ -386,12 +386,12 @@ class SideAttention(tf.keras.layers.Layer):
 
     if self.pos_embed_mode == 'absolute_add_ln':
       # [batch_size, hidden_size]
-      main_pos_emb = self.block_position_embedding(main_pos)
+      main_pos_emb = self.block_position_embedding(main_pos)  # pyrefly: ignore[not-callable]
       main_pos_emb = tf.reshape(main_pos_emb,
                                 [batch_size, 1, effective_num_heads, head_size])
       queries = self.block_position_embedding_norm(queries + main_pos_emb)
       # [side_seq_len, hidden_size]
-      side_pos_emb = self.block_position_embedding(side_pos)
+      side_pos_emb = self.block_position_embedding(side_pos)  # pyrefly: ignore[not-callable]
       side_pos_emb = tf.reshape(side_pos_emb,
                                 [side_seq_len, effective_num_heads, head_size])
       keys = keys + side_pos_emb
@@ -429,12 +429,12 @@ class SideAttention(tf.keras.layers.Layer):
 
     if self.pos_embed_mode == 'absolute':
       # [batch_size, hidden_size]
-      main_pos_emb = self.block_position_embedding(main_pos)
+      main_pos_emb = self.block_position_embedding(main_pos)  # pyrefly: ignore[not-callable]
       # [batch_size, num_heads, head_size]
       main_pos_emb = tf.reshape(main_pos_emb,
                                 [batch_size, effective_num_heads, head_size])
       # [side_seq_len, hidden_size]
-      side_pos_emb = self.block_position_embedding(side_pos)
+      side_pos_emb = self.block_position_embedding(side_pos)  # pyrefly: ignore[not-callable]
       # [side_seq_len, num_heads, head_size]
       side_pos_emb = tf.reshape(side_pos_emb,
                                 [side_seq_len, effective_num_heads, head_size])
@@ -459,7 +459,7 @@ class SideAttention(tf.keras.layers.Layer):
       # pylint: enable=invalid-unary-operand-type
       relative_pos = tf.math.minimum(relative_pos, self.pos_embed_size)
       # [batch_size, side_seq_len, hidden_size or num_heads]
-      relatibe_pos_emb = self.block_position_embedding(relative_pos +
+      relatibe_pos_emb = self.block_position_embedding(relative_pos +  # pyrefly: ignore[not-callable]
                                                        self.pos_embed_size)
       if self.pos_embed_mode == 'simple_relative':
         # [batch_size, side_seq_len, num_heads, 1]

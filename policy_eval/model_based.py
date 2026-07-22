@@ -113,7 +113,7 @@ class ModelBased(object):
     """
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.dynamics_net.trainable_variables)
-      pred_state = self.dynamics_net(states, actions)
+      pred_state = self.dynamics_net(states, actions)  # pyrefly: ignore[not-callable]
       dyn_loss = tf.losses.mean_squared_error(next_states, pred_state)
       dyn_loss = tf.reduce_mean(dyn_loss * weights)
 
@@ -124,7 +124,7 @@ class ModelBased(object):
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.rewards_net.trainable_variables)
-      pred_rewards = self.rewards_net(states, actions)
+      pred_rewards = self.rewards_net(states, actions)  # pyrefly: ignore[not-callable]
       reward_loss = tf.losses.mean_squared_error(rewards, pred_rewards)
       reward_loss = tf.reduce_mean(reward_loss * weights)
 
@@ -135,7 +135,7 @@ class ModelBased(object):
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.done_net.trainable_variables)
-      pred_dones = self.done_net(states, actions)
+      pred_dones = self.done_net(states, actions)  # pyrefly: ignore[not-callable]
       done_loss = tf.keras.losses.binary_crossentropy(
           masks, pred_dones, from_logits=True)
       done_loss = tf.reduce_mean(done_loss * weights)
@@ -188,17 +188,17 @@ class ModelBased(object):
     for i in range(horizon):
       actions = get_action(states)
 
-      pred_rewards = self.rewards_net(states, actions)
+      pred_rewards = self.rewards_net(states, actions)  # pyrefly: ignore[not-callable]
       if clip:
         pred_rewards = tf.clip_by_value(pred_rewards, min_reward,
                                         max_reward)
-      logits = self.done_net(states, actions)
+      logits = self.done_net(states, actions)  # pyrefly: ignore[not-callable]
       mask_dist = tfp.distributions.Bernoulli(logits=logits)
       masks *= tf.cast(mask_dist.sample(), tf.float32)
 
       returns += (discount**i) * masks * pred_rewards
 
-      states = self.dynamics_net(states, actions)
+      states = self.dynamics_net(states, actions)  # pyrefly: ignore[not-callable]
       if clip:
         states = tf.clip_by_value(states, min_state, max_state)
     return tf.reduce_sum(

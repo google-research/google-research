@@ -76,11 +76,11 @@ class TemporalPadding(tf.keras.layers.Layer):
       pad[1] = [0, self.padding_size]
     elif self.padding == 'same':
       half = (
-          self.padding_size // 2 if self.padding_size >= 0 else
-          (self.padding_size + 1) // 2)
-      pad[1] = [half, self.padding_size - half]
+          self.padding_size // 2 if self.padding_size >= 0 else  # pyrefly: ignore[unsupported-operation]
+          (self.padding_size + 1) // 2)  # pyrefly: ignore[unsupported-operation]
+      pad[1] = [half, self.padding_size - half]  # pyrefly: ignore[unsupported-operation]
 
-    if self.padding_size >= 0:
+    if self.padding_size >= 0:  # pyrefly: ignore[unsupported-operation]
       inputs = tf.pad(inputs, pad, 'constant')
     else:  # Crop:
       crop_left = -pad[1][0]

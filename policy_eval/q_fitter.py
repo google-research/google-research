@@ -70,7 +70,7 @@ class QFitter(object):
                                           weight_decay=weight_decay)
 
   def __call__(self, states, actions):
-    return self.critic_target(states, actions)
+    return self.critic_target(states, actions)  # pyrefly: ignore[not-callable]
 
   @tf.function
   def update(self, states, actions,
@@ -96,14 +96,14 @@ class QFitter(object):
       Critic loss.
     """
 
-    next_q = self.critic_target(next_states, next_actions) / (1 - discount)
-    target_q = rewards + discount * masks * next_q
-    target_q = tf.clip_by_value(target_q, min_reward / (1 - discount),
-                                max_reward / (1 - discount))
+    next_q = self.critic_target(next_states, next_actions) / (1 - discount)  # pyrefly: ignore[not-callable]
+    target_q = rewards + discount * masks * next_q  # pyrefly: ignore[unsupported-operation]
+    target_q = tf.clip_by_value(target_q, min_reward / (1 - discount),  # pyrefly: ignore[unsupported-operation]
+                                max_reward / (1 - discount))  # pyrefly: ignore[unsupported-operation]
 
     with tf.GradientTape(watch_accessed_variables=False) as tape:
       tape.watch(self.critic.trainable_variables)
-      q = self.critic(states, actions) / (1 - discount)
+      q = self.critic(states, actions) / (1 - discount)  # pyrefly: ignore[not-callable]
       critic_loss = (
           tf.reduce_sum(tf.square(target_q - q) * weights) /
           tf.reduce_sum(weights))
@@ -135,5 +135,5 @@ class QFitter(object):
     """
     initial_actions = get_action(initial_states)
     preds = self(initial_states, initial_actions)
-    return (tf.reduce_sum(preds * initial_weights) /
+    return (tf.reduce_sum(preds * initial_weights) /  # pyrefly: ignore[unsupported-operation]
             tf.reduce_sum(initial_weights))

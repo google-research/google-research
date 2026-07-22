@@ -134,7 +134,7 @@ class Stream(tf.keras.layers.Layer):
     self.ring_buffer_size_in_time_dim = ring_buffer_size_in_time_dim
     self.use_one_step = use_one_step
     self.state_name_tag = state_name_tag
-    self.stride = 1
+    self.stride = 1  # pyrefly: ignore[bad-assignment]
     self.pad_freq_dim = pad_freq_dim
     self.transposed_conv_crop_output = transposed_conv_crop_output
 
@@ -355,14 +355,14 @@ class Stream(tf.keras.layers.Layer):
           self.inference_batch_size, self.ring_buffer_size_in_time_dim
       ] + input_shape.as_list()[2:]
 
-    if self.pad_freq_dim == 'same' and self.state_shape[2] is not None:
+    if self.pad_freq_dim == 'same' and self.state_shape[2] is not None:  # pyrefly: ignore[unsupported-operation]
       # Additional padding value in frequency dimension
       # defined by above function: frequeny_pad().
       kernel_size = (self.kernel_size_freq - 1) * self.dilation_freq + 1
       total_pad = kernel_size - self.stride_freq
       output_feature_size = self.state_shape[2] + total_pad
       # Note: override first feature dimension with padded value.
-      self.state_shape[2] = output_feature_size
+      self.state_shape[2] = output_feature_size  # pyrefly: ignore[unsupported-operation]
 
     if self.mode == modes.Modes.STREAM_INTERNAL_STATE_INFERENCE:
       # Create a state varaible for streaming inference mode (internal state).
@@ -379,7 +379,7 @@ class Stream(tf.keras.layers.Layer):
       # the states are passed in as input.
       if self.ring_buffer_size_in_time_dim:
         self.input_state = tf.keras.layers.Input(
-            shape=self.state_shape[1:],
+            shape=self.state_shape[1:],  # pyrefly: ignore[unsupported-operation]
             batch_size=self.inference_batch_size,
             name=self.name + '/' +
             self.state_name_tag)  # adding names to make it unique
@@ -470,7 +470,7 @@ class Stream(tf.keras.layers.Layer):
       # outputs[:,0:self.ring_buffer_size_in_time_dim,:] + self.states
       # but 'Tensor' object does not support item assignment,
       # so doing it through full summation below
-      output_shape[1] -= self.state_shape[1]
+      output_shape[1] -= self.state_shape[1]  # pyrefly: ignore[unsupported-operation]
       padded_remainder = tf.concat(
           [self.states, tf.zeros(output_shape, tf.float32)], 1)
       outputs = outputs + padded_remainder
@@ -534,7 +534,7 @@ class Stream(tf.keras.layers.Layer):
 
       output_shape = outputs.shape.as_list()
 
-      output_shape[1] -= self.state_shape[1]
+      output_shape[1] -= self.state_shape[1]  # pyrefly: ignore[unsupported-operation]
       padded_remainder = tf.concat(
           [state, tf.zeros(output_shape, tf.float32)], 1)
       outputs = outputs + padded_remainder
@@ -558,7 +558,7 @@ class Stream(tf.keras.layers.Layer):
           raise ValueError('inputs.shape[1]: %d must be 1 ' % inputs.shape[1])
 
         # remove latest row [batch_size, (memory_size-1), feature_dim, channel]
-        memory = state[:, 1:self.ring_buffer_size_in_time_dim, :]
+        memory = state[:, 1:self.ring_buffer_size_in_time_dim, :]  # pyrefly: ignore[bad-index]
 
         # add new row [batch_size, memory_size, feature_dim, channel]
         memory = tf.keras.backend.concatenate([memory, inputs], 1)
@@ -583,7 +583,7 @@ class Stream(tf.keras.layers.Layer):
       self.output_time_dim = tf.shape(inputs)[1] * self.stride
       if self.transposed_conv_crop_output:
         if self.pad_time_dim == 'same':
-          crop_left = self.ring_buffer_size_in_time_dim // 2
+          crop_left = self.ring_buffer_size_in_time_dim // 2  # pyrefly: ignore[unsupported-operation]
           return outputs[:, crop_left:crop_left + self.output_time_dim, :]
         else:
           return outputs[:, 0:self.output_time_dim, :]
@@ -601,14 +601,14 @@ class Stream(tf.keras.layers.Layer):
         # temporal padding
         pad = [[0, 0]] * inputs.shape.rank
         if self.use_one_step:
-          pad_total_amount = self.ring_buffer_size_in_time_dim - 1
+          pad_total_amount = self.ring_buffer_size_in_time_dim - 1  # pyrefly: ignore[unsupported-operation]
         else:
           pad_total_amount = self.ring_buffer_size_in_time_dim
         if self.pad_time_dim == 'causal':
           pad[1] = [pad_total_amount, 0]
         elif self.pad_time_dim == 'same':
-          half = pad_total_amount // 2
-          pad[1] = [half, pad_total_amount - half]
+          half = pad_total_amount // 2  # pyrefly: ignore[unsupported-operation]
+          pad[1] = [half, pad_total_amount - half]  # pyrefly: ignore[unsupported-operation]
         inputs = tf.pad(inputs, pad, 'constant')
 
       return self.cell(inputs)

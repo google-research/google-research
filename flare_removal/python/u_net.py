@@ -82,7 +82,7 @@ def _up_block(x,
   Returns:
     Output of the upscaling block. Has shape [B, 2H, 2W, `depth`].
   """
-  up_2x = tf.keras.layers.UpSampling2D(
+  up_2x = tf.keras.layers.UpSampling2D(  # pyrefly: ignore[not-callable]
       size=(2, 2), interpolation=interpolation, name=f'{name_prefix}_2x')(
           x)
   up_2x = tf.keras.layers.Conv2D(

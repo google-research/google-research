@@ -189,7 +189,7 @@ class GRU(tf.keras.layers.Layer):
 
   def _non_streaming(self, inputs):
     # inputs [batch, time, feature]
-    output = self.gru(inputs)  # [batch, time, units]
+    output = self.gru(inputs)  # [batch, time, units]  # pyrefly: ignore[not-callable]
 
     if not self.return_sequences:
       # if we do not return sequence the output will be [batch, units]

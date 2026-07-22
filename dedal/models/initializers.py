@@ -135,7 +135,7 @@ class SubsMatInitializer(tf.initializers.Initializer):
 
   def _fill_gaps(self, weights):
     """Sets the gap penalties in the input weight matrix of size |V|x|V|."""
-    for token in self._vocab.get_specials() + (self._vocab.MASK,):
+    for token in self._vocab.get_specials() + (self._vocab.MASK,):  # pyrefly: ignore[unsupported-operation]
       idx = self._vocab.get(token)
       weights[idx] = self._pad_penalty
       weights[:, idx] = self._pad_penalty

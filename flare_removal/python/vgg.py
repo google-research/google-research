@@ -82,7 +82,7 @@ class Vgg19(tf.keras.Model):
     tap_outs = [model.get_layer(l).get_output_at(1) for l in tap_out_layers]
     self._model = tf.keras.Model(inputs=model.inputs, outputs=tap_outs)
 
-  def call(self, images, **kwargs):
+  def call(self, images, **kwargs):  # pyrefly: ignore[bad-override]
     """Invokes the model on batched images.
 
     Args:
@@ -95,8 +95,8 @@ class Vgg19(tf.keras.Model):
     """
     # Scale from [0, 1] to [0, 255], convert to BGR channel order, and subtract
     # channel means.
-    x = tf.keras.applications.vgg19.preprocess_input(images * 255.0)
-    return self._model(x)
+    x = tf.keras.applications.vgg19.preprocess_input(images * 255.0)  # pyrefly: ignore[unsupported-operation]
+    return self._model(x)  # pyrefly: ignore[not-callable]
 
   @staticmethod
   def _replace_max_by_average_pool(model):
@@ -116,7 +116,7 @@ class Vgg19(tf.keras.Model):
             name=layer.name,
         )
       x = layer(x)
-    return tf.keras.models.Model(inputs=input_layer.input, outputs=x)
+    return tf.keras.models.Model(inputs=input_layer.input, outputs=x)  # pyrefly: ignore[bad-return]
 
 
 class IdentityInitializer(tf.keras.initializers.Initializer):
@@ -191,7 +191,7 @@ class _CanBlock(tf.keras.layers.Layer):
   def call(self, inputs):
     convolved = self.conv(inputs)
     normalized = self.w0 * convolved + self.w1 * self.batch_norm(convolved)
-    outputs = self.activation(normalized)
+    outputs = self.activation(normalized)  # pyrefly: ignore[not-callable]
     return outputs
 
 
@@ -220,15 +220,15 @@ def build_can(input_shape = (512, 512, 3),
 
   vgg = Vgg19(
       tap_out_layers=[f'block{i}_conv2' for i in range(1, 6)], trainable=False)
-  features = vgg(input_layer)
+  features = vgg(input_layer)  # pyrefly: ignore[not-callable]
   features = [tf.image.resize(f, input_shape[:2]) / 255.0 for f in features]
 
   x = tf.concat([input_layer] + features, axis=-1)
 
-  x = _CanBlock(conv_channels, size=1, rate=1, name=f'{name}_g_conv0')(x)
+  x = _CanBlock(conv_channels, size=1, rate=1, name=f'{name}_g_conv0')(x)  # pyrefly: ignore[not-callable]
 
   for i, rate in enumerate([1, 2, 4, 8, 16, 32, 64, 1]):
-    x = _CanBlock(
+    x = _CanBlock(  # pyrefly: ignore[not-callable]
         conv_channels, size=3, rate=rate, name=f'{name}_g_conv{i + 1}')(
             x)
 

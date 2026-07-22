@@ -113,7 +113,7 @@ class PairwiseBilinearDense(tf.keras.layers.Layer):
         out[n][i][j] = mask_penalty
       instead.
     """
-    inputs = self.dropout(inputs, training=training)
+    inputs = self.dropout(inputs, training=training)  # pyrefly: ignore[not-callable]
     x, y = inputs[:, 0], inputs[:, 1]
     if not self._use_kernel:
       output = tf.einsum('ijk,ilk->ijl', x, y)
@@ -171,7 +171,7 @@ class SoftSymmetricAlignment(tf.keras.Model):
     self.softmax_a = tf.keras.layers.Softmax(axis=2)
     self.softmax_b = tf.keras.layers.Softmax(axis=1)
 
-  def call(
+  def call(  # pyrefly: ignore[bad-override]
       self,
       embeddings,
       mask=None):
@@ -193,13 +193,13 @@ class SoftSymmetricAlignment(tf.keras.Model):
       entries in [0, 1].
     """
     if self._proj:
-      embeddings = self.dense(embeddings)
+      embeddings = self.dense(embeddings)  # pyrefly: ignore[not-callable]
 
     pair_dist = self.pairwise_distance(embeddings[:, 0], embeddings[:, 1])
-    pair_mask = pairs_lib.pair_masks(mask[:, 0], mask[:, 1])
+    pair_mask = pairs_lib.pair_masks(mask[:, 0], mask[:, 1])  # pyrefly: ignore[unsupported-operation]
 
-    a = self.softmax_a(-pair_dist, pair_mask)
-    b = self.softmax_b(-pair_dist, pair_mask)
+    a = self.softmax_a(-pair_dist, pair_mask)  # pyrefly: ignore[not-callable]
+    b = self.softmax_b(-pair_dist, pair_mask)  # pyrefly: ignore[not-callable]
     att_weights = tf.where(pair_mask, (a + b - a * b), 0.0)
     scores = -tf.reduce_sum(att_weights * pair_dist, (1, 2))
     scores /= tf.reduce_sum(att_weights, (1, 2))
@@ -239,8 +239,8 @@ class SoftSymmetricAlignment(tf.keras.Model):
         abs_diff = tf.abs(tf.expand_dims(x, 2) - tf.expand_dims(y, 1))
         pair_dist = tf.reduce_sum(abs_diff, -1)
     elif self._norm == 'l2':
-      x_normsq = tf.reduce_sum(x ** 2, -1)
-      y_normsq = tf.reduce_sum(y ** 2, -1)
+      x_normsq = tf.reduce_sum(x ** 2, -1)  # pyrefly: ignore[unsupported-operation]
+      y_normsq = tf.reduce_sum(y ** 2, -1)  # pyrefly: ignore[unsupported-operation]
       x_dot_y = tf.einsum('ijk,ilk->ijl', x, y)
       pair_dist = x_normsq[:, :, None] + y_normsq[:, None, :] - 2.0 * x_dot_y
     else:
@@ -343,8 +343,8 @@ class ContextualGapPenalties(tf.keras.Model):
   """
 
   def __init__(self,
-               gap_open_cls = gin.REQUIRED,
-               gap_extend_cls = gin.REQUIRED,
+               gap_open_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               gap_extend_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                **kwargs):
     super().__init__(**kwargs)
     self._gap_open = gap_open_cls()
@@ -367,8 +367,8 @@ class ContextualGapPenalties(tf.keras.Model):
     Returns:
       A 2-tuple (gap_open, gap_extend) of tf.Tensor<float>[batch, len, len].
     """
-    return (self._gap_open(embeddings, mask=mask, training=training),
-            self._gap_extend(embeddings, mask=mask, training=training))
+    return (self._gap_open(embeddings, mask=mask, training=training),  # pyrefly: ignore[not-callable]
+            self._gap_extend(embeddings, mask=mask, training=training))  # pyrefly: ignore[not-callable]
 
 
 @gin.configurable
@@ -380,7 +380,7 @@ class ContextualSharedGapPenalties(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               gap_cls = gin.REQUIRED,
+               gap_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
                gap_open_bias_init = tf.initializers.Constant(11.0),
                gap_open_bias_trainable = True,
                **kwargs):
@@ -410,7 +410,7 @@ class ContextualSharedGapPenalties(tf.keras.layers.Layer):
     Returns:
       A 2-tuple (gap_open, gap_extend) of tf.Tensor<float>[batch, len, len].
     """
-    gap_pen = self._gap(embeddings, mask=mask, training=training)
+    gap_pen = self._gap(embeddings, mask=mask, training=training)  # pyrefly: ignore[not-callable]
     return gap_pen + self._gap_open_bias, gap_pen
 
 
@@ -451,14 +451,14 @@ class SoftAligner(tf.keras.Model):
           the gap penalties can be either tf.Tensor<float>[batch] or
           tf.Tensor<float>[batch, len, len].
     """
-    sim_mat = self._similarity(embeddings, mask=mask, training=training)
-    gap_open, gap_extend = self._gap_pen(
+    sim_mat = self._similarity(embeddings, mask=mask, training=training)  # pyrefly: ignore[not-callable]
+    gap_open, gap_extend = self._gap_pen(  # pyrefly: ignore[not-callable]
         embeddings, mask=mask, training=training)
     sw_params = (sim_mat, gap_open, gap_extend)
     results = (self._align_fn if training else self._eval_align_fn)(*sw_params)
     results = (results,) if not isinstance(results, Sequence) else results
     # TODO(oliviert): maybe inject some metrics here.
-    return (results + (None,))[:2] + (sw_params,)
+    return (results + (None,))[:2] + (sw_params,)  # pyrefly: ignore[unsupported-operation]
 
 
 @gin.configurable
@@ -495,7 +495,7 @@ class NaiveAligner(tf.keras.Model):
           output signature.
     """
     batch, dtype = tf.shape(embeddings)[0], embeddings.dtype
-    sim_mat = self._similarity(embeddings, mask=mask, training=training)
+    sim_mat = self._similarity(embeddings, mask=mask, training=training)  # pyrefly: ignore[not-callable]
     match_indicators_pred = tf.nn.sigmoid(sim_mat)
     scores = tf.reduce_sum(sim_mat * match_indicators_pred, axis=[1, 2])
     sw_params = (sim_mat, tf.zeros([batch], dtype), tf.zeros([batch], dtype))
@@ -535,9 +535,9 @@ class SSAAligner(tf.keras.Model):
           output signature.
     """
     batch, dtype = tf.shape(embeddings)[0], embeddings.dtype
-    scores, match_indicators_pred = self._similarity(embeddings, mask=mask)
+    scores, match_indicators_pred = self._similarity(embeddings, mask=mask)  # pyrefly: ignore[not-callable]
     # Here sim_mat has no real purpose other than passing the padding mask to
     # the loss and metrics for the corresponding output head.
-    sim_mat = tf.where(pairs_lib.pair_masks(mask[:, 0], mask[:, 1]), 0.0, 1e9)
+    sim_mat = tf.where(pairs_lib.pair_masks(mask[:, 0], mask[:, 1]), 0.0, 1e9)  # pyrefly: ignore[unsupported-operation]
     sw_params = (sim_mat, tf.zeros([batch], dtype), tf.zeros([batch], dtype))
     return scores, match_indicators_pred, sw_params

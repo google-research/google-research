@@ -167,7 +167,7 @@ class Dataset(object):
 
   def with_uniform_sampling(self, sample_batch_size):
     return tf.data.Dataset.from_tensor_slices(
-        (self.states, self.actions, self.next_states, self.rewards, self.masks,
+        (self.states, self.actions, self.next_states, self.rewards, self.masks,  # pyrefly: ignore[bad-argument-type]
          self.weights, self.steps)).repeat().shuffle(
              self.states.shape[0], reshuffle_each_iteration=True).batch(
                  sample_batch_size, drop_remainder=True).prefetch(100)
@@ -238,7 +238,7 @@ class D4rlDataset(Dataset):
         trajectory = dict(
             states=[], actions=[], next_states=[], rewards=[], masks=[])
 
-      trajectory['states'].append(d4rl_dataset['observations'][idx])
+      trajectory['states'].append(d4rl_dataset['observations'][idx])  # pyrefly: ignore[unbound-name]
       trajectory['actions'].append(d4rl_dataset['actions'][idx])
       trajectory['rewards'].append(d4rl_dataset['rewards'][idx])
       trajectory['masks'].append(1.0 - d4rl_dataset['terminals'][idx])
@@ -271,7 +271,7 @@ class D4rlDataset(Dataset):
         for state_trajectory in dataset['trajectories']['states']
     ]
 
-    dataset['initial_states'] = np.stack([
+    dataset['initial_states'] = np.stack([  # pyrefly: ignore[bad-assignment]
         state_trajectory[0]
         for state_trajectory in dataset['trajectories']['states']
     ])
@@ -282,13 +282,13 @@ class D4rlDataset(Dataset):
           num_trajectories, [1.0 / num_trajectories] * num_trajectories,
           1).astype(np.float32)[0]
     else:
-      dataset['initial_weights'] = np.ones(num_trajectories, dtype=np.float32)
+      dataset['initial_weights'] = np.ones(num_trajectories, dtype=np.float32)  # pyrefly: ignore[bad-assignment]
 
     dataset['trajectories']['weights'] = []
     for i in range(len(dataset['trajectories']['masks'])):
       dataset['trajectories']['weights'].append(
           np.ones_like(dataset['trajectories']['masks'][i]) *
-          dataset['initial_weights'][i])
+          dataset['initial_weights'][i])  # pyrefly: ignore[bad-index]
 
     dataset['initial_weights'] = tf.convert_to_tensor(
         dataset['initial_weights'])
