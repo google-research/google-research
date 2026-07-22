@@ -88,7 +88,7 @@ class LGBMBoosterClassifier(sk_base.ClassifierMixin, sk_base.BaseEstimator):
 
   def predict_proba(self, *args, **kwargs):
     y = self.booster.predict(*args, **kwargs)
-    return np.stack((1.0 - y, y)).T
+    return np.stack((1.0 - y, y)).T  # pyrefly: ignore[no-matching-overload, unsupported-operation]
 
   def predict(self, *args, **kwargs):
     return self.predict_proba(*args, **kwargs).argmax(axis=1)
@@ -287,7 +287,7 @@ def load_combined_lgbm_model(dirname, **kwargs):
   classifier = load_multi_output_lgbm_classifier(
       os.path.join(dirname, 'classifier')
   )
-  return CombinedModel(regressor=regressor, classifier=classifier, **kwargs)
+  return CombinedModel(regressor=regressor, classifier=classifier, **kwargs)  # pyrefly: ignore[bad-argument-type]
 
 
 def score_sequences(
@@ -299,7 +299,7 @@ def score_sequences(
   """Scores sequences with the provided model."""
   encoded_seqs = encoder.encode_sequences(sequences)
   predict_fn = model.predict_proba if proba else model.predict
-  return pd.DataFrame(predict_fn(encoded_seqs), columns=TARGET_NAMES)
+  return pd.DataFrame(predict_fn(encoded_seqs), columns=TARGET_NAMES)  # pyrefly: ignore[bad-argument-type]
 
 
 def score_labeled_sequences(

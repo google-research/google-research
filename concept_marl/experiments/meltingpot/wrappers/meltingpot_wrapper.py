@@ -164,7 +164,7 @@ class MeltingPotWrapper(base.EnvironmentWrapper):
     for i, value in self._player_observations(source,
                                               "REWARD",  # pytype: disable=attribute-error  # dynamic-method-lookup
                                               self._num_players):
-      rewards[str(i)] = value
+      rewards[str(i)] = value  # pyrefly: ignore[unsupported-operation]
     return rewards
 
   def _process_actions(
@@ -249,7 +249,7 @@ class MeltingPotWrapper(base.EnvironmentWrapper):
     return self._reward_spec
 
   def render(self, mode = "rgb_array"):
-    img_arr = self._environment.observation()["WORLD.RGB"]
+    img_arr = self._environment.observation()["WORLD.RGB"]  # pyrefly: ignore[missing-attribute]
     if mode == "human":
       img = Image.fromarray(img_arr, "RGB")
       img.show()
@@ -280,7 +280,7 @@ def make_and_wrap_meltingpot_environment(
   substrate_config.lab2d_settings.maxEpisodeLengthFrames = episode_length
 
   # config overrides (e.g. dense rewards)
-  environment = meltingpot_builder.builder(**substrate_config, seed=seed)
+  environment = meltingpot_builder.builder(**substrate_config, seed=seed)  # pyrefly: ignore[bad-unpacking, missing-argument]
 
   # wrappers
   local_obs_types = [ot for ot in observation_types if "WORLD" not in ot]

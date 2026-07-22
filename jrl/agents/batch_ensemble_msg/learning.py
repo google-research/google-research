@@ -481,7 +481,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
 
       key = state.key
       if adaptive_entropy_coefficient:
-        alpha = jnp.exp(state.alpha_params)
+        alpha = jnp.exp(state.alpha_params)  # pyrefly: ignore[bad-argument-type]
       else:
         alpha = entropy_coefficient
 
@@ -582,9 +582,9 @@ class BatchEnsembleMSGLearner(acme.Learner):
         alpha_loss, alpha_grads = alpha_loss_val_and_grad(
             state.alpha_params, avg_log_prob)
         alpha_update, alpha_optimizer_state = alpha_optimizer.update(
-            alpha_grads, state.alpha_optimizer_state)
-        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)
-        alpha_params = jax.nn.relu(alpha_params + 20.) - 20.
+            alpha_grads, state.alpha_optimizer_state)  # pyrefly: ignore[bad-argument-type]
+        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)  # pyrefly: ignore[bad-argument-type]
+        alpha_params = jax.nn.relu(alpha_params + 20.) - 20.  # pyrefly: ignore[unsupported-operation]
         # metrics.update({
         #     'alpha_loss': alpha_loss,
         #     'alpha': jnp.exp(alpha_params),
@@ -606,7 +606,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()
     self._logger = logger or loggers.make_default_logger(
-        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)
+        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)  # pyrefly: ignore[bad-argument-type]
 
     # Iterator on demonstration transitions.
     self._iterator = iterator
@@ -727,7 +727,7 @@ class BatchEnsembleMSGLearner(acme.Learner):
     # Attempts to write the logs.
     self._logger.write({**metrics, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = {
         # 'policy': self._state.policy_params,
         'policy': jax.tree.map(lambda x: x[0], self._state.replicated_policy_params),

@@ -57,7 +57,7 @@ class ContMountainCar(continuous_mountain_car.Continuous_MountainCarEnv,  # pyty
   """
 
   def deterministic_start(self):
-    self._reset()
+    self._reset()  # pyrefly: ignore[missing-attribute]
     value = -0.55
     self.state = np.array([value, 0.0])
     return self.state

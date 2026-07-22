@@ -87,7 +87,7 @@ def make_and_wrap_cooking_environment(
   substrate_config.lab2d_settings.maxEpisodeLengthFrames = episode_length
 
   # build meltingpot environment
-  environment = meltingpot_builder.builder(**substrate_config, seed=seed)
+  environment = meltingpot_builder.builder(**substrate_config, seed=seed)  # pyrefly: ignore[bad-unpacking, missing-argument]
 
   # wrappers
   local_obs_types = [ot for ot in observation_types if "WORLD" not in ot]
@@ -107,14 +107,14 @@ def make_and_wrap_cooking_environment(
   # observation scaling (if necessary)
   if scale_dims or grayscale:
     environment = meltingpot_pixels_wrapper.MeltingPotPixelsWrapper(
-        environment, grayscale=grayscale, scale_dims=scale_dims)
+        environment, grayscale=grayscale, scale_dims=scale_dims)  # pyrefly: ignore[bad-argument-type]
 
   # concept extraction wrapper (interventions turned off for training)
   environment = ma_concept_extraction_wrapper.MAConceptExtractionWrapper(
       environment,
       environment.num_agents,
       concept_spec=concept_spec,
-      intervene=intervene,
+      intervene=intervene,  # pyrefly: ignore[bad-argument-type]
       concept_noise=None,
       concepts_to_intervene=concepts_to_intervene,
       mask_agent_self=mask_agent_self)
@@ -152,7 +152,7 @@ def make_and_wrap_cleanup_environment(
           component["kwargs"]["eatRewardAmount"] = eat_reward
 
   # build meltingpot environment
-  environment = meltingpot_builder.builder(**substrate_config, seed=seed)
+  environment = meltingpot_builder.builder(**substrate_config, seed=seed)  # pyrefly: ignore[bad-unpacking, missing-argument]
 
   # wrappers
   local_obs_types = [ot for ot in observation_types if "WORLD" not in ot]
@@ -167,14 +167,14 @@ def make_and_wrap_cleanup_environment(
   # observation stacking (if necessary)
   if scale_dims or grayscale:
     environment = meltingpot_pixels_wrapper.MeltingPotPixelsWrapper(
-        environment, grayscale=grayscale, scale_dims=scale_dims)
+        environment, grayscale=grayscale, scale_dims=scale_dims)  # pyrefly: ignore[bad-argument-type]
 
   # interventions turned off for training
   environment = ma_concept_extraction_wrapper.MAConceptExtractionWrapper(
       environment,
       environment.num_agents,
       concept_spec=concept_spec,
-      intervene=intervene,
+      intervene=intervene,  # pyrefly: ignore[bad-argument-type]
       concept_noise=None,
       concepts_to_intervene=concepts_to_intervene,
       mask_agent_self=mask_agent_self)
@@ -202,7 +202,7 @@ def make_and_wrap_capture_environment(
   substrate_config.lab2d_settings.maxEpisodeLengthFrames = episode_length
 
   # build meltingpot environment
-  environment = meltingpot_builder.builder(**substrate_config, seed=seed)
+  environment = meltingpot_builder.builder(**substrate_config, seed=seed)  # pyrefly: ignore[bad-unpacking, missing-argument]
 
   # wrappers
   local_obs_types = [ot for ot in observation_types if "WORLD" not in ot]
@@ -217,14 +217,14 @@ def make_and_wrap_capture_environment(
   # observation stacking (if necessary)
   if scale_dims or grayscale:
     environment = meltingpot_pixels_wrapper.MeltingPotPixelsWrapper(
-        environment, grayscale=grayscale, scale_dims=scale_dims)
+        environment, grayscale=grayscale, scale_dims=scale_dims)  # pyrefly: ignore[bad-argument-type]
 
   # interventions turned off for training
   environment = ma_concept_extraction_wrapper.MAConceptExtractionWrapper(
       environment,
       environment.num_agents,
       concept_spec=concept_spec,
-      intervene=intervene,
+      intervene=intervene,  # pyrefly: ignore[bad-argument-type]
       concept_noise=None,
       concepts_to_intervene=concepts_to_intervene,
       mask_agent_self=mask_agent_self)

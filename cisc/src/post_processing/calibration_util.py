@@ -119,15 +119,15 @@ class TemperatureScaling:
     if temperature is None:
       temperature = self.temperature
     scaled_confidences = (np.array(confidences) * abs(temperature)).reshape(-1)
-    return np.clip(scaled_confidences, 0, 1)
+    return np.clip(scaled_confidences, 0, 1)  # pyrefly: ignore[bad-return]
 
 
 def temperature_scaling(is_correct, confidence):
   scalar = TemperatureScaling()
   confidence = confidence.reshape(-1, 1)
   labels = is_correct.reshape(-1, 1)
-  scalar.fit(confidences=confidence, one_hot_labels=labels)
-  output = np.array(scalar.predict(confidence)).reshape(-1)
+  scalar.fit(confidences=confidence, one_hot_labels=labels)  # pyrefly: ignore[bad-argument-type]
+  output = np.array(scalar.predict(confidence)).reshape(-1)  # pyrefly: ignore[bad-argument-type]
   return output
 
 

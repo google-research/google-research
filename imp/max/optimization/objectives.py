@@ -156,7 +156,7 @@ class ObjectiveAggregator:
 
     loss *= self.loss_weight
 
-    return loss, metrics
+    return loss, metrics  # pyrefly: ignore[bad-return]
 
 
 class BaseSequenceObjective(BaseObjective):
@@ -209,23 +209,23 @@ class BaseSequenceObjective(BaseObjective):
           "`modality_token_weights` must not be empty! Please specify the "
           "modality-token pairs for which the objective should be calculated.")
 
-    modality_token_weights = utils.unflatten_unitemize_dict(
+    modality_token_weights = utils.unflatten_unitemize_dict(  # pyrefly: ignore[bad-assignment]
         modality_token_weights)
     for modality in modality_token_weights:
-      for token_key in modality_token_weights[modality]:
-        if modality_token_weights[modality][token_key] == 0:
-          del modality_token_weights[modality][token_key]
+      for token_key in modality_token_weights[modality]:  # pyrefly: ignore[bad-index]
+        if modality_token_weights[modality][token_key] == 0:  # pyrefly: ignore[bad-index]
+          del modality_token_weights[modality][token_key]  # pyrefly: ignore[bad-index]
 
     self.modality_token_weights = modality_token_weights
 
   @property
   def supported_modalities(self):
     """Returns all of the modalities supported under this instance."""
-    return set(self.modality_token_weights.keys())
+    return set(self.modality_token_weights.keys())  # pyrefly: ignore[missing-attribute]
 
   def supported_modality_token_keys(self, modality):
     """Returns all of the token keys supported under this instance."""
-    return set(self.modality_token_weights[modality].keys())
+    return set(self.modality_token_weights[modality].keys())  # pyrefly: ignore[bad-index]
 
   def _verify_predictions_and_targets(
       self,
@@ -994,13 +994,13 @@ def get_objective(
           raise ValueError("Nesting objectives is discouraged. Please "
                            "flatten them into a single sequence instead.")
       config_dict["objectives"] = tuple(
-          fetch_objective_cls(objective.name)(**objective.as_dict())
+          fetch_objective_cls(objective.name)(**objective.as_dict())  # pyrefly: ignore[bad-argument-type]
           for objective in objective_config.objectives
       )
 
     if unique_config_id not in cached_instances:
       cached_instances[unique_config_id] = (
-          fetch_objective_cls(objective_name)(**config_dict)
+          fetch_objective_cls(objective_name)(**config_dict)  # pyrefly: ignore[bad-argument-type]
           )
 
     # Concatenate all objective functions together.

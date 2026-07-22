@@ -55,7 +55,7 @@ def filter_top_directions(perturbations,
   elif est_type == "antithetic":
     top_index = np.argsort(-np.abs(function_values[0::2] -
                                    function_values[1::2]))
-  top_index = top_index[:num_top_directions]
+  top_index = top_index[:num_top_directions]  # pyrefly: ignore[unbound-name]
   if est_type == "forward_fd":
     perturbations = perturbations[top_index]
     function_values = function_values[top_index]
@@ -187,7 +187,7 @@ class MCOptimizer(Optimizer):
         gradient_sample = (function_value - current_value) * perturbation
       elif self.est_type == "antithetic":
         gradient_sample = function_value * perturbation
-      gradient_sample /= self.precision_parameter**2
+      gradient_sample /= self.precision_parameter**2  # pyrefly: ignore[unbound-name]
       gradient += gradient_sample
     gradient /= len(top_ps)
 
@@ -377,10 +377,10 @@ class SklearnRegressionOptimizer(Optimizer):
     if hyperparameters_update_method == "state_normalization":
       self.state_dim = extra_params[0]
       self.nb_steps = 0
-      self.sum_state_vector = [0.0] * self.state_dim
-      self.squares_state_vector = [0.0] * self.state_dim
-      self.mean_state_vector = [0.0] * self.state_dim
-      self.std_state_vector = [1.0] * self.state_dim
+      self.sum_state_vector = [0.0] * self.state_dim  # pyrefly: ignore[unsupported-operation]
+      self.squares_state_vector = [0.0] * self.state_dim  # pyrefly: ignore[unsupported-operation]
+      self.mean_state_vector = [0.0] * self.state_dim  # pyrefly: ignore[unsupported-operation]
+      self.std_state_vector = [1.0] * self.state_dim  # pyrefly: ignore[unsupported-operation]
 
   def run_step(self, perturbations, function_values, current_input,
                current_value):

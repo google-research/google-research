@@ -225,7 +225,7 @@ def per_evaluation(basisnet,
       optimizer = tf.keras.optimizers.Adam(learning_rate=FINE_TUNE_LR)
 
     local_basisnet.compile(
-        optimizer=optimizer,
+        optimizer=optimizer,  # pyrefly: ignore[unbound-name]
         loss=tf.keras.losses.SparseCategoricalCrossentropy(from_logits=True),
         metrics=['accuracy'])
     local_basisnet.set_weights(basisnet.get_weights())

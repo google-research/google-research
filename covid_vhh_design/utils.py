@@ -210,14 +210,14 @@ def standardize_affinities(
     values, with_mean = True, with_std = True
 ):
   """Standardizes dataset affinities."""
-  values = np.asarray(values)
+  values = np.asarray(values)  # pyrefly: ignore[bad-assignment]
   is_inf = np.isinf(values)
   if is_inf.all():
-    return values
-  values[~is_inf] = sklearn.preprocessing.scale(
-      values[~is_inf], with_mean=with_mean, with_std=with_std
+    return values  # pyrefly: ignore[bad-return]
+  values[~is_inf] = sklearn.preprocessing.scale(  # pyrefly: ignore[unsupported-operation]
+      values[~is_inf], with_mean=with_mean, with_std=with_std  # pyrefly: ignore[bad-index]
   )
-  return values
+  return values  # pyrefly: ignore[bad-return]
 
 
 def standardize_experimental_replicates(raw_df):
@@ -501,7 +501,7 @@ def compute_hit_rate(
         .assign(threshold=threshold)
     )
 
-  return pd.concat(hit_dfs, ignore_index=True)
+  return pd.concat(hit_dfs, ignore_index=True)  # pyrefly: ignore[bad-return]
 
 
 def extract_best_sequences_by_category(
@@ -607,7 +607,7 @@ def avg_distance_to_set(seq, other_seqs):
   if not other_seqs.size:
     return 0
 
-  return np.mean(
+  return np.mean(  # pyrefly: ignore[bad-return]
       [
           hamming_distance(
               vocab.encode(seq), vocab.encode(other_seq), normalize=False

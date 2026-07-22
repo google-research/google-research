@@ -81,7 +81,7 @@ def create_preprocess_fn(word_vocab, tag_vocab, shuffle_buffer_size=1000):
         lambda x: x['client_id'],
         num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    dataset = tf.data.Dataset.zip((dataset, id_dataset))
+    dataset = tf.data.Dataset.zip((dataset, id_dataset))  # pyrefly: ignore[bad-argument-type]
 
     def _reorder_id(x, idx):
       return (x[0], idx), x[1]

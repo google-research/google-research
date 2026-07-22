@@ -34,7 +34,7 @@ def naive_embedding_layer_computation(
   if num_microbatches is not None:
     raise NotImplementedError("Microbatches are not supported.")
   del input_kwargs
-  input_ids = tf.cast(*input_args, tf.int32)
+  input_ids = tf.cast(*input_args, tf.int32)  # pyrefly: ignore[bad-argument-count]
   base_vars = layer_instance.trainable_variables[0]
   tape.watch(base_vars)
   outputs = tf.nn.embedding_lookup(base_vars, input_ids)
@@ -109,7 +109,7 @@ def dense_layer_computation(
     raise NotImplementedError("Microbatching is not currently supported.")
   orig_activation = layer_instance.activation
   layer_instance.activation = None
-  base_vars = layer_instance(*input_args)
+  base_vars = layer_instance(*input_args)  # pyrefly: ignore[not-callable]
   tape.watch(base_vars)
   layer_instance.activation = orig_activation
   outputs = orig_activation(base_vars) if orig_activation else base_vars
@@ -153,7 +153,7 @@ def einsum_layer_computation(
     raise NotImplementedError("Microbatching is not currently supported.")
   orig_activation = layer_instance.activation
   layer_instance.activation = None
-  base_vars = layer_instance(*input_args)
+  base_vars = layer_instance(*input_args)  # pyrefly: ignore[not-callable]
   tape.watch(base_vars)
   layer_instance.activation = orig_activation
   outputs = orig_activation(base_vars) if orig_activation else base_vars
@@ -490,7 +490,7 @@ def multi_head_attention_layer_computation(
   # Get registry output tensors ready.
   if query_is_ragged:
     attention_output = tf.RaggedTensor.from_tensor(
-        attention_output, query_lengths
+        attention_output, query_lengths  # pyrefly: ignore[unbound-name]
     )
   outputs = attention_output
   if return_attention_scores:

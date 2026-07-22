@@ -218,7 +218,7 @@ class MAConceptExtractionWrapper(base.EnvironmentWrapper):
             c_ids = list(np.repeat(c_ids, num_concept_values))
 
         # construct concept intervention flags (1 = keep value, 0 = mask value)
-        if self._intervene and concept_key in self._concepts_to_intervene[
+        if self._intervene and concept_key in self._concepts_to_intervene[  # pyrefly: ignore[unsupported-operation]
             agent_id]:
           if self._concept_spec['concepts'][concept_key][
               'object_type'] == ObjectType.AGENT:

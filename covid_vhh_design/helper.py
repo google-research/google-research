@@ -110,7 +110,7 @@ def unique(values: Sequence[Any], sort: bool = False) -> Any:
   """
   values = list(set(values))
   if sort is None:
-    sort = not pd.isna(values).any()
+    sort = not pd.isna(values).any()  # pyrefly: ignore[missing-attribute]
   return sorted(values) if sort else values
 
 
@@ -166,7 +166,7 @@ def read_csv(
 
   mode = 'rb' if compression else 'r'
   with gfile.GFile(path, mode) as f:
-    return pd.read_csv(f, compression=compression, **kwargs)
+    return pd.read_csv(f, compression=compression, **kwargs)  # pyrefly: ignore[no-matching-overload]
 
 
 def impute_inf(
@@ -221,7 +221,7 @@ def map_values(
   if ignore_unmapped:
     return df_or_series.map(lambda x: mapping.get(x, x), **kwargs)
   else:
-    return df_or_series.map(mapping, **kwargs)
+    return df_or_series.map(mapping, **kwargs)  # pyrefly: ignore[bad-argument-type]
 
 
 def map_columns(

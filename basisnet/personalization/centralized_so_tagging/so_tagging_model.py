@@ -97,25 +97,25 @@ def create_logistic_basis_model(vocab_tokens_size,
       shape=(vocab_tokens_size,), dtype=tf.float32, name='input_x')
   input_id = tf.keras.layers.Input(
       shape=(), dtype=tf.int64, name='input_id')
-  basis_vec = tf.keras.layers.Embedding(
+  basis_vec = tf.keras.layers.Embedding(  # pyrefly: ignore[not-callable]
       CLIENT_NUM, num_basis, name='embedding')(
           tf.expand_dims(input_id, -1))
 
   basis_vec = tf.reshape(basis_vec, shape=[-1, 1, 1, num_basis])
-  basis_prob = tf.keras.layers.Softmax()(basis_vec)
-  x = tf.keras.layers.Dense(
+  basis_prob = tf.keras.layers.Softmax()(basis_vec)  # pyrefly: ignore[not-callable]
+  x = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
       100,
       activation='relu',
       input_shape=(vocab_tokens_size,),
       kernel_initializer=tf.keras.initializers.GlorotNormal(seed=seed))(
           input_x)
-  x = BasisDense(
+  x = BasisDense(  # pyrefly: ignore[not-callable]
       100,
       num_basis=num_basis,
       activation='relu',
       kernel_initializer=tf.keras.initializers.GlorotNormal(seed=seed))(
           x, basis_prob)
-  y = tf.keras.layers.Dense(
+  y = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
       vocab_tags_size,
       activation='sigmoid',
       kernel_initializer=tf.keras.initializers.GlorotNormal(seed=seed))(x)

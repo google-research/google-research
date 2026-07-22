@@ -205,7 +205,7 @@ class BCLearner(acme.Learner):
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()
     self._logger = logger or loggers.make_default_logger(
-        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray
+        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray  # pyrefly: ignore[bad-argument-type]
     )
 
     # Iterator on demonstration transitions.
@@ -283,7 +283,7 @@ class BCLearner(acme.Learner):
     # Attempts to write the logs.
     self._logger.write({**metrics, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = {
         'policy': jax.tree.map(lambda x: x[0], self._state.policy_params),
     }

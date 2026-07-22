@@ -179,14 +179,14 @@ def get_optimizer(
 
   learning_rate = schedules.get_schedule(config.learning_rate)
 
-  config = config.as_dict()
-  config['learning_rate'] = learning_rate
-  name = config.pop('name')
+  config = config.as_dict()  # pyrefly: ignore[bad-assignment]
+  config['learning_rate'] = learning_rate  # pyrefly: ignore[unsupported-operation]
+  name = config.pop('name')  # pyrefly: ignore[missing-attribute]
   optimizer = _OPTIMIZERS[name]
 
   if name in (Optimizer.ADAM_W, Optimizer.GALORE_ADAM_W):
-    config['mask'] = _weight_decay_mask_fn
+    config['mask'] = _weight_decay_mask_fn  # pyrefly: ignore[unsupported-operation]
   elif name == Optimizer.ADAFACTOR:
-    config['weight_decay_mask'] = _weight_decay_mask_fn
+    config['weight_decay_mask'] = _weight_decay_mask_fn  # pyrefly: ignore[unsupported-operation]
 
-  return optimizer(**config)
+  return optimizer(**config)  # pyrefly: ignore[bad-unpacking, missing-argument]

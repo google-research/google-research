@@ -107,7 +107,7 @@ def get_dataset(batch_size, data='celeb_a'):
 
 def binary_cross_entropy(y_true, y_pred, from_logits=False):
   """Binary CrossEntropy Loss."""
-  bce = tf.keras.losses.BinaryCrossentropy(from_logits=from_logits)(y_true,
+  bce = tf.keras.losses.BinaryCrossentropy(from_logits=from_logits)(y_true,  # pyrefly: ignore[not-callable]
                                                                     y_pred)
   return tf.reduce_sum(bce)
 

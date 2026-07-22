@@ -147,30 +147,30 @@ class Model:
     # get prediction of x at t=0
     if self.mean_type == 'both':
       # reconcile the two predictions
-      model_x_eps = predict_x_from_eps(z=z, eps=_model_eps, logsnr=logsnr)
+      model_x_eps = predict_x_from_eps(z=z, eps=_model_eps, logsnr=logsnr)  # pyrefly: ignore[unbound-name]
       wx = utils.broadcast_from_left(nn.sigmoid(-logsnr), z.shape)
-      model_x = wx * _model_x + (1. - wx) * model_x_eps
+      model_x = wx * _model_x + (1. - wx) * model_x_eps  # pyrefly: ignore[unbound-name]
     elif self.mean_type == 'eps':
-      model_x = predict_x_from_eps(z=z, eps=model_eps, logsnr=logsnr)
+      model_x = predict_x_from_eps(z=z, eps=model_eps, logsnr=logsnr)  # pyrefly: ignore[unbound-name]
     elif self.mean_type == 'v':
-      model_x = predict_x_from_v(z=z, v=model_v, logsnr=logsnr)
+      model_x = predict_x_from_v(z=z, v=model_v, logsnr=logsnr)  # pyrefly: ignore[unbound-name]
 
     # clipping
     if clip_x:
-      model_x = jnp.clip(model_x, -1., 1.)
+      model_x = jnp.clip(model_x, -1., 1.)  # pyrefly: ignore[unbound-name]
 
     # get eps prediction if clipping or if mean_type != eps
     if self.mean_type != 'eps' or clip_x:
-      model_eps = predict_eps_from_x(z=z, x=model_x, logsnr=logsnr)
+      model_eps = predict_eps_from_x(z=z, x=model_x, logsnr=logsnr)  # pyrefly: ignore[unbound-name]
 
     # get v prediction if clipping or if mean_type != v
     if self.mean_type != 'v' or clip_x:
       model_v = predict_v_from_x_and_eps(
-          x=model_x, eps=model_eps, logsnr=logsnr)
+          x=model_x, eps=model_eps, logsnr=logsnr)  # pyrefly: ignore[unbound-name]
 
     return {'model_x': model_x,
             'model_eps': model_eps,
-            'model_v': model_v}
+            'model_v': model_v}  # pyrefly: ignore[unbound-name]
 
   def predict(self, *, z_t, logsnr_t, logsnr_s, clip_x=None,
               model_output=None, model_fn=None):
@@ -279,7 +279,7 @@ class Model:
       stdv_frac = bc(jnp.exp(
           0.5 * (nn.softplus(logsnr) - nn.softplus(logsnr_s))))
       x_target = (z_teacher - stdv_frac * z) / (a_s - stdv_frac * a_t)
-      x_target = jnp.where(bc(i == 0), x_pred, x_target)
+      x_target = jnp.where(bc(i == 0), x_pred, x_target)  # pyrefly: ignore[unbound-name]
       eps_target = predict_eps_from_x(z=z, x=x_target, logsnr=logsnr)
 
     else:  # denoise to original data

@@ -177,7 +177,7 @@ class TFRecordSource(sources.Source):
 
   def load_and_decode_shard(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
       self, shard):
-    ds = tf.data.TFRecordDataset(
+    ds = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         shard,
         compression_type=self._compression_type,
         num_parallel_reads=self._num_parallel_reads)
@@ -209,7 +209,7 @@ class ExampleCustomParserBuilder(builders.BaseParserBuilder):
   def override_parse_fn(
       self, parse_fn):
     """Overrides the annotated image extraction function."""
-    self._default_parse_fn = parse_fn
+    self._default_parse_fn = parse_fn  # pyrefly: ignore[bad-assignment]
 
   def parse_feature(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
       self,
@@ -277,7 +277,7 @@ class ExampleCustomParserBuilder(builders.BaseParserBuilder):
         continue
       output_names = self._name_dict[k]
       for output_name in output_names:
-        output[output_name]: tf.Tensor = tf.identity(f)
+        output[output_name]: tf.Tensor = tf.identity(f)  # pyrefly: ignore[invalid-syntax]
 
     return output
 

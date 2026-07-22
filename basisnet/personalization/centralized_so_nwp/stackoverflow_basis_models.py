@@ -50,7 +50,7 @@ class BasisRNNLayer(tf.keras.layers.Layer):
         self.rnn_cell, return_sequences=return_sequences)
 
   def call(self, input_tensor):
-    return self.rnn(input_tensor)
+    return self.rnn(input_tensor)  # pyrefly: ignore[not-callable]
 
 
 class BasisLSTMCell(tf.keras.layers.Layer):
@@ -214,7 +214,7 @@ def create_basis_recurrent_model(vocab_size = 10000,
       mask_zero=True,
       embeddings_initializer=tf.keras.initializers.RandomUniform(seed=seed),
   )
-  embedded = input_embedding(input_x)
+  embedded = input_embedding(input_x)  # pyrefly: ignore[not-callable]
   projected = embedded
 
   # Somehow if the vocabulary size is too small,
@@ -224,13 +224,13 @@ def create_basis_recurrent_model(vocab_size = 10000,
 
   if global_embedding_only:
     # using id = 0 for the global embedding
-    basis_vec = basis_embeddings(tf.zeros_like(input_id))
+    basis_vec = basis_embeddings(tf.zeros_like(input_id))  # pyrefly: ignore[not-callable]
   else:
-    basis_vec = basis_embeddings(input_id)
+    basis_vec = basis_embeddings(input_id)  # pyrefly: ignore[not-callable]
 
   # [batch_size, 1, num_basis]
   basis_vec = tf.reshape(basis_vec, shape=[-1, 1, num_basis])
-  basis_prob = tf.keras.layers.Softmax()(basis_vec)
+  basis_prob = tf.keras.layers.Softmax()(basis_vec)  # pyrefly: ignore[not-callable]
 
   basis_tensor = tf.tile(
       basis_prob,
@@ -253,19 +253,19 @@ def create_basis_recurrent_model(vocab_size = 10000,
       kernel_initializer=tf.keras.initializers.GlorotNormal(seed=seed))
 
   layer = lstm_layer_builder()
-  processed = layer(projected)
+  processed = layer(projected)  # pyrefly: ignore[not-callable]
   # A projection changes dimension from rnn_layer_size to input_embedding_size
   dense_layer = dense_layer_builder(units=embedding_size)
-  projected = dense_layer(processed)
+  projected = dense_layer(processed)  # pyrefly: ignore[not-callable]
   projected = tf.concat([projected, basis_tensor], -1)
 
   if shared_embedding:
     transposed_embedding = TransposableEmbedding(input_embedding)
-    logits = transposed_embedding(projected)
+    logits = transposed_embedding(projected)  # pyrefly: ignore[not-callable]
   else:
     final_dense_layer = dense_layer_builder(
         units=extended_vocab_size, activation=None)
-    logits = final_dense_layer(projected)
+    logits = final_dense_layer(projected)  # pyrefly: ignore[not-callable]
 
   return tf.keras.Model(inputs=[input_x, input_id], outputs=logits, name=name)
 
@@ -305,7 +305,7 @@ def create_recurrent_model(vocab_size = 10000,
       mask_zero=True,
       embeddings_initializer=tf.keras.initializers.RandomUniform(seed=seed),
   )
-  embedded = input_embedding(input_x)
+  embedded = input_embedding(input_x)  # pyrefly: ignore[not-callable]
   projected = embedded
 
   lstm_layer_builder = functools.partial(
@@ -321,17 +321,17 @@ def create_recurrent_model(vocab_size = 10000,
 
   for _ in range(num_layers):
     layer = lstm_layer_builder()
-    processed = layer(projected)
+    processed = layer(projected)  # pyrefly: ignore[not-callable]
     # A projection changes dimension from rnn_layer_size to input_embedding_size
     dense_layer = dense_layer_builder(units=embedding_size)
-    projected = dense_layer(processed)
+    projected = dense_layer(processed)  # pyrefly: ignore[not-callable]
 
   if shared_embedding:
     transposed_embedding = TransposableEmbedding(input_embedding)
-    logits = transposed_embedding(projected)
+    logits = transposed_embedding(projected)  # pyrefly: ignore[not-callable]
   else:
     final_dense_layer = dense_layer_builder(
         units=extended_vocab_size, activation=None)
-    logits = final_dense_layer(projected)
+    logits = final_dense_layer(projected)  # pyrefly: ignore[not-callable]
 
   return tf.keras.Model(inputs=[input_x, input_id], outputs=logits, name=name)

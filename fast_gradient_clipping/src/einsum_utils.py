@@ -66,7 +66,7 @@ def _parse_einsum_equation(
         "Must be one of the forms {ab,bc->ac}, {...ab,bc->...ac}, "
         "{ab...,bc->ac...}"
     )
-  return eqn_type, matched[0].groups()
+  return eqn_type, matched[0].groups()  # pyrefly: ignore[bad-return]
 
 
 def _reshape_einsum_inputs(

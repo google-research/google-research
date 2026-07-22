@@ -270,7 +270,7 @@ def label_smoothing(labels,
     the smoothed labels.
   """
   num_classes = get_shape(labels)[-1]
-  return (1 - alpha) * labels + alpha / num_classes
+  return (1 - alpha) * labels + alpha / num_classes  # pyrefly: ignore[unsupported-operation]
 
 
 def label_normalization(labels):
@@ -425,8 +425,8 @@ def crop_frames(
           frames=frames,
           output_h=crop_size,
           output_w=crop_size,
-          aspect_ratio=(min_aspect_ratio, max_aspect_ratio),
-          area_range=(min_area_ratio, max_area_ratio))
+          aspect_ratio=(min_aspect_ratio, max_aspect_ratio),  # pyrefly: ignore[bad-argument-type]
+          area_range=(min_area_ratio, max_area_ratio))  # pyrefly: ignore[bad-argument-type]
     else:
       # VGG-style image crop: resize -> random crop.
       frames = resize_smallest(
@@ -1512,7 +1512,7 @@ def parse_features(
   del kwargs
   extra_kwargs = {}
   if feature_type in (tf.io.FixedLenFeature, tf.io.FixedLenSequenceFeature):
-    feature_type = functools.partial(feature_type, shape=shape)
+    feature_type = functools.partial(feature_type, shape=shape)  # pyrefly: ignore[bad-assignment]
   if is_context is not None:
     # Some parser builders accept `is_context` arg
     extra_kwargs['is_context'] = is_context
@@ -1809,7 +1809,7 @@ def add_vision(
   decode_vision_features(
       decoder_builder=decoder_builder,
       feature_name=raw_feature_name,
-      is_rgb=is_rgb,
+      is_rgb=is_rgb,  # pyrefly: ignore[bad-argument-type]
       is_flow=is_flow)
 
   if is_flow:
@@ -2427,7 +2427,7 @@ def add_text(
     if is_multi_language:
       parse_features(
           parser_builder=parser_builder,
-          parsing_feature_name=parsing_language_feature_name,
+          parsing_feature_name=parsing_language_feature_name,  # pyrefly: ignore[bad-argument-type]
           parsed_feature_name=language_feature_name,
           feature_type=tf.io.VarLenFeature,
           dtype=tf.string)

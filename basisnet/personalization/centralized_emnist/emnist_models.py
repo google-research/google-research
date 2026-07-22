@@ -117,16 +117,16 @@ def create_basis_conv_dropout_model(only_digits = True,
       name='embedding')
 
   if global_embedding_only:
-    basis_vec = basis_embeddings(tf.zeros_like(input_id))
+    basis_vec = basis_embeddings(tf.zeros_like(input_id))  # pyrefly: ignore[not-callable]
   else:
-    basis_vec = basis_embeddings(input_id)
+    basis_vec = basis_embeddings(input_id)  # pyrefly: ignore[not-callable]
 
   basis_vec = tf.reshape(basis_vec, shape=[-1, 1, 1, 1, num_basis])
 
   if with_dist:
     input_dist = tf.keras.layers.Input(
         shape=(62,), dtype=tf.float32, batch_size=batch_size, name='input_dist')
-    dist_vec = tf.keras.layers.Dense(
+    dist_vec = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
         num_basis, activation='linear',
         kernel_initializer=initializer, input_shape=(62,))(input_dist)
     dist_vec = tf.reshape(dist_vec, shape=[-1, 1, 1, 1, num_basis])
@@ -135,7 +135,7 @@ def create_basis_conv_dropout_model(only_digits = True,
   if temp != 1.0:
     basis_vec = basis_vec / temp
 
-  basis_prob = tf.keras.layers.Softmax()(basis_vec)
+  basis_prob = tf.keras.layers.Softmax()(basis_vec)  # pyrefly: ignore[not-callable]
 
   x = tf.keras.layers.Conv2D(
       int(32 * num_filters_expand),
@@ -144,7 +144,7 @@ def create_basis_conv_dropout_model(only_digits = True,
       data_format=data_format,
       kernel_initializer=initializer)(
           input_x)
-  x = BasisConv2D(
+  x = BasisConv2D(  # pyrefly: ignore[not-callable]
       int(64 * num_filters_expand),
       kernel_size=(3, 3),
       activation='relu',
@@ -155,23 +155,23 @@ def create_basis_conv_dropout_model(only_digits = True,
           x, basis_prob)
 
   x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), data_format=data_format)(x)
-  x = tf.keras.layers.Dropout(0.25, seed=seed)(x)
-  x = tf.keras.layers.Flatten()(x)
+  x = tf.keras.layers.Dropout(0.25, seed=seed)(x)  # pyrefly: ignore[not-callable]
+  x = tf.keras.layers.Flatten()(x)  # pyrefly: ignore[not-callable]
 
-  x = tf.keras.layers.Dense(
+  x = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
       128,
       activation='relu',
       kernel_initializer=initializer,
       input_shape=(9216,))(
           x)
-  x = tf.keras.layers.Dropout(0.5, seed=seed)(x)
-  y = tf.keras.layers.Dense(
+  x = tf.keras.layers.Dropout(0.5, seed=seed)(x)  # pyrefly: ignore[not-callable]
+  y = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
       10 if only_digits else 62,
       activation=tf.nn.softmax,
       kernel_initializer=initializer, name='classifier')(x)
 
   if with_dist:
-    return tf.keras.Model(inputs=[input_x, input_id, input_dist], outputs=[y])
+    return tf.keras.Model(inputs=[input_x, input_id, input_dist], outputs=[y])  # pyrefly: ignore[unbound-name]
   else:
     return tf.keras.Model(inputs=[input_x, input_id], outputs=[y])
 
@@ -213,12 +213,12 @@ def create_conv_dropout_model(only_digits = True,
       data_format=data_format,
       kernel_initializer=initializer)(x)
   x = tf.keras.layers.MaxPool2D(pool_size=(2, 2), data_format=data_format)(x)
-  x = tf.keras.layers.Dropout(0.25, seed=seed)(x)
-  x = tf.keras.layers.Flatten()(x)
-  x = tf.keras.layers.Dense(
+  x = tf.keras.layers.Dropout(0.25, seed=seed)(x)  # pyrefly: ignore[not-callable]
+  x = tf.keras.layers.Flatten()(x)  # pyrefly: ignore[not-callable]
+  x = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
       128, activation='relu', kernel_initializer=initializer)(x)
-  x = tf.keras.layers.Dropout(0.5, seed=seed)(x)
-  y = tf.keras.layers.Dense(
+  x = tf.keras.layers.Dropout(0.5, seed=seed)(x)  # pyrefly: ignore[not-callable]
+  y = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
       10 if only_digits else 62,
       activation=tf.nn.softmax,
       kernel_initializer=initializer)(

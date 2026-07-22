@@ -266,7 +266,7 @@ def train_step(model, threshold_var, loss_op, constraint_op, optimizer,
     optimizer.apply_gradients(zip(grads, model.trainable_variables))
   else:
     grad_loss_w = tape.gradient(loss, model.trainable_variables)
-    grad_weighted_constraint_w = tape.gradient(constraint_weighted,
+    grad_weighted_constraint_w = tape.gradient(constraint_weighted,  # pyrefly: ignore[unbound-name]
                                                model.trainable_variables)
     # final gradient wrt. model parameters
     final_grad_w = [

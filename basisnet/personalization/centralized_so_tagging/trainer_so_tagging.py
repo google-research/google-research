@@ -167,17 +167,17 @@ def main(argv):
         datasets = _create_split_dataset_with_id(tf_clnt_id)
         train_dataset, train_split_dataset, test_dataset = datasets
 
-      bf_acc = local_basisnet.evaluate(test_dataset)[-1]
+      bf_acc = local_basisnet.evaluate(test_dataset)[-1]  # pyrefly: ignore[unbound-name]
       all_clients_acc_before.append(bf_acc)
       logging.info(bf_acc)
 
       local_basisnet.fit(
-          train_dataset, epochs=10, verbose=0)
+          train_dataset, epochs=10, verbose=0)  # pyrefly: ignore[unbound-name]
       all_clients_acc.append(local_basisnet.evaluate(test_dataset)[-1])
 
       local_basisnet.set_weights(basisnet.get_weights())
       local_basisnet.fit(
-          train_split_dataset, epochs=10, verbose=0)
+          train_split_dataset, epochs=10, verbose=0)  # pyrefly: ignore[unbound-name]
       # Fine-tune with a smaller split of the training data. Here is 20%.
       all_clients_split_acc.append(local_basisnet.evaluate(test_dataset)[-1])
 

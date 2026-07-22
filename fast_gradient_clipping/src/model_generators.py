@@ -47,7 +47,7 @@ def make_fully_connected_model(n, m, p, q):
       activation='relu',
       bias_axes='m',
   )
-  transformed = esd_layer(inputs)
+  transformed = esd_layer(inputs)  # pyrefly: ignore[not-callable]
   outputs = reshape_and_sum(transformed)
   model = tf.keras.Model(inputs=inputs, outputs=outputs)
   model.compile(loss=tf.keras.losses.MeanSquaredError())
@@ -89,14 +89,14 @@ def make_indirect_bias_model(p, q, r, m):
       output_shape=(r, q),
       activation='relu',
   )
-  transformed1 = esd_layer1(inputs1)
+  transformed1 = esd_layer1(inputs1)  # pyrefly: ignore[not-callable]
   inputs2 = tf.keras.Input(shape=(r, q, m))
   esd_layer2 = tf.keras.layers.EinsumDense(
       equation='brqm,md->brqd',  # d==1
       output_shape=(r, q, 1),
       activation='relu',
   )
-  transformed2 = tf.squeeze(esd_layer2(inputs2), axis=-1)
+  transformed2 = tf.squeeze(esd_layer2(inputs2), axis=-1)  # pyrefly: ignore[not-callable]
   transformed = transformed1 + transformed2
   outputs = reshape_and_sum(transformed)
   model = tf.keras.Model(inputs=[inputs1, inputs2], outputs=outputs)
@@ -108,7 +108,7 @@ def make_embedding_model(vocab_size, num_queries, output_dim):
   """Makes a simple embedding model."""
   inputs = tf.keras.Input(shape=(num_queries))
   emb_layer = tf.keras.layers.Embedding(vocab_size, output_dim)
-  transformed = emb_layer(inputs)
+  transformed = emb_layer(inputs)  # pyrefly: ignore[not-callable]
   outputs = reshape_and_sum(transformed)
   model = tf.keras.Model(inputs=inputs, outputs=outputs)
   model.compile(loss=tf.keras.losses.MeanSquaredError())

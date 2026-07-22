@@ -59,12 +59,12 @@ def get_datasets(
         },
     )
 
-  test_ds = tf.data.TFRecordDataset(test_example_paths)
+  test_ds = tf.data.TFRecordDataset(test_example_paths)  # pyrefly: ignore[bad-instantiation]
   test_ds = test_ds.map(decode_fn)
   test_ds = test_ds.batch(batch_size)
   test_ds = test_ds.prefetch(10)
 
-  train_ds = tf.data.TFRecordDataset(train_example_paths)
+  train_ds = tf.data.TFRecordDataset(train_example_paths)  # pyrefly: ignore[bad-instantiation]
   train_ds = train_ds.map(decode_fn)
   if repeat:
     train_ds = train_ds.repeat()

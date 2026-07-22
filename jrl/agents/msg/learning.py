@@ -815,7 +815,7 @@ class MSGLearner(acme.Learner):
       if rem_mode:
         raise NotImplementedError()
         rem_alphas = jax.random.uniform(
-            key, all_q_vals.shape, dtype=all_q_vals.dtype)
+            key, all_q_vals.shape, dtype=all_q_vals.dtype)  # pyrefly: ignore[unbound-name]
         rem_alphas = rem_alphas / jnp.sum(rem_alphas, axis=(0, 1), keepdims=True)
         rem_all_q_vals = rem_alphas * all_q_vals
         REM = jnp.sum(rem_all_q_vals, axis=(0, 1))
@@ -870,7 +870,7 @@ class MSGLearner(acme.Learner):
       assert kernel_fn is not None
       assert callable(kernel_fn)
       K_X_X = kernel_fn(X, X, mode)
-      K_X_X = K_X_X + (1e-4) * jnp.eye(K_X_X.shape[0])
+      K_X_X = K_X_X + (1e-4) * jnp.eye(K_X_X.shape[0])  # pyrefly: ignore[missing-attribute, unsupported-operation]
       K_inv = jnp.linalg.inv(K_X_X)
       K_Xp_X = kernel_fn(X_prime, X, mode)
 
@@ -1068,7 +1068,7 @@ class MSGLearner(acme.Learner):
 
       key = state.key
       if adaptive_entropy_coefficient:
-        alpha = jnp.exp(state.alpha_params)
+        alpha = jnp.exp(state.alpha_params)  # pyrefly: ignore[bad-argument-type]
       else:
         alpha = entropy_coefficient
 
@@ -1203,10 +1203,10 @@ class MSGLearner(acme.Learner):
       # alpha update step
       if use_entropy_regularization and (not self._perform_sarsa_q_eval) and (not in_initial_bc_iters) and adaptive_entropy_coefficient:
         alpha_loss, alpha_grads = alpha_loss_val_and_grad(
-            state.alpha_params, avg_log_prob)
+            state.alpha_params, avg_log_prob)  # pyrefly: ignore[unbound-name]
         alpha_update, alpha_optimizer_state = alpha_optimizer.update(
-            alpha_grads, state.alpha_optimizer_state)
-        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)
+            alpha_grads, state.alpha_optimizer_state)  # pyrefly: ignore[bad-argument-type]
+        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)  # pyrefly: ignore[bad-argument-type]
 
         # # not used in generating paper results, just for playing around
         # alpha_params = jnp.clip(alpha_params, max=0.) # alpha params is log of alpha
@@ -1218,7 +1218,7 @@ class MSGLearner(acme.Learner):
         new_state = new_state._replace(
             alpha_optimizer_state=alpha_optimizer_state,
             alpha_params=alpha_params)
-        metrics['alpha'] = jnp.exp(alpha_params)
+        metrics['alpha'] = jnp.exp(alpha_params)  # pyrefly: ignore[bad-argument-type]
         metrics['alpha_loss'] = alpha_loss
       else:
         new_state = new_state._replace(
@@ -1263,7 +1263,7 @@ class MSGLearner(acme.Learner):
       cur_obs = transitions.observation
       cur_act = transitions.action
 
-      h1 = networks.get_critic_repr(
+      h1 = networks.get_critic_repr(  # pyrefly: ignore[not-callable]
           q_params, cur_obs, cur_act)
 
       # # So far the best results
@@ -1315,7 +1315,7 @@ class MSGLearner(acme.Learner):
       # )
       stop_grad_target_q_params = jax.tree.map(
           jax.lax.stop_gradient, target_q_params)
-      h2 = networks.get_critic_repr(
+      h2 = networks.get_critic_repr(  # pyrefly: ignore[not-callable]
           stop_grad_target_q_params,
           next_obs,
           next_act,
@@ -1426,7 +1426,7 @@ class MSGLearner(acme.Learner):
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()
     self._logger = logger or loggers.make_default_logger(
-        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)
+        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)  # pyrefly: ignore[bad-argument-type]
 
     # Iterator on demonstration transitions.
     self._iterator = iterator
@@ -1481,7 +1481,7 @@ class MSGLearner(acme.Learner):
               jax.random.randint(
                   sub_key, shape=(), minval=0, maxval=len(init_type_options)-1))
           key, sub_key = jax.random.split(key)
-          q_params = networks.get_particular_critic_init(
+          q_params = networks.get_particular_critic_init(  # pyrefly: ignore[not-callable]
               init_type_options[idx],
               jnp.zeros,
               sub_key,)
@@ -1637,7 +1637,7 @@ class MSGLearner(acme.Learner):
     # Attempts to write the logs.
     self._logger.write({**metrics, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = {
         'policy': self._state.policy_params,
         'all_q': self._state.all_q_params,

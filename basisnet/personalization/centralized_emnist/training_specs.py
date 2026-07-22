@@ -82,7 +82,7 @@ class TaskSpec(object):
   num_basis: int = attr.ib(
       validator=[attr.validators.instance_of(int), _check_positive],
       converter=int)
-  embedding_type: int = attr.ib(
+  embedding_type: int = attr.ib(  # pyrefly: ignore[bad-assignment]
       validator=[attr.validators.instance_of(str)],
       converter=str)  # pytype: disable=annotation-type-mismatch  # kwargs-checking
   num_filters_expand: float = attr.ib(

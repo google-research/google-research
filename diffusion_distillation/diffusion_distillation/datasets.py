@@ -101,7 +101,7 @@ class Dataset:
     ds = ds.map(
         functools.partial(self._preprocess, split=split, augment=augment),
         num_parallel_calls=tf.data.AUTOTUNE)
-    ds = batch_dataset(ds, batch_shape=batch_shape)
+    ds = batch_dataset(ds, batch_shape=batch_shape)  # pyrefly: ignore[bad-argument-type]
     return ds.prefetch(tf.data.AUTOTUNE)
 
   def get_padded_one_shot_dataset(self, *, batch_shape,
@@ -127,7 +127,7 @@ class Dataset:
         ds, batch_dims=(num_shards, *batch_shape),
         cardinality={'train': self.num_train, 'eval': self.num_eval}[split])
     ds = ds.shard(index=shard_id, num_shards=num_shards)
-    ds = batch_dataset(ds, batch_shape=batch_shape)
+    ds = batch_dataset(ds, batch_shape=batch_shape)  # pyrefly: ignore[bad-argument-type]
     return ds.prefetch(tf.data.AUTOTUNE)
 
 

@@ -530,7 +530,7 @@ def convolve(list_of_vectors, weights, stride, biases, nonlinearity):
         conv_res_local = c
       else:
         conv_res_local += c
-    conv_res_local += biases[i] * np.ones(len(conv_res_local))
+    conv_res_local += biases[i] * np.ones(len(conv_res_local))  # pyrefly: ignore[bad-argument-type]
     r = nonlinearity(np.array(conv_res_local))
     final.append(r)
   return np.array(final)
@@ -630,7 +630,7 @@ class Conv1DPolicy(Policy):
         np.matmul(
             scipy.linalg.toeplitz(self.column, self.row),
             channels.reshape((len(self.row), 1))) +
-        (self.second_biases).reshape((len(self.column), 1)))
+        (self.second_biases).reshape((len(self.column), 1)))  # pyrefly: ignore[missing-attribute]
     return action
 
   def get_initial(self):

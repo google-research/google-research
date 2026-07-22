@@ -73,7 +73,7 @@ class BCBuilder(builders.ActorLearnerBuilder):
         logger=logger_fn('learner'),
         num_sgd_steps_per_step=self._config.num_sgd_steps_per_step,)
 
-  def make_actor(
+  def make_actor(  # pyrefly: ignore[bad-override]
       self,
       random_key,
       policy_network,

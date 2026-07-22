@@ -62,8 +62,8 @@ _SCHEDULES = {
 def get_schedule(config):
   """Get the desired Learning Rate Schedule for the optimizers."""
 
-  config = config.as_dict()
-  name = config.pop("name")
+  config = config.as_dict()  # pyrefly: ignore[bad-assignment]
+  name = config.pop("name")  # pyrefly: ignore[missing-attribute]
   schedule = _SCHEDULES[name]
 
-  return schedule(**config)
+  return schedule(**config)  # pyrefly: ignore[bad-unpacking, missing-argument]

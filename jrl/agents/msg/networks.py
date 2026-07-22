@@ -482,7 +482,7 @@ def make_networks(
     # v = hk.Linear(1, w_init=rlu_uniform_initializer)(h)
     # v = hk.Linear(critic_output_dim)(h)
     all_vs = []
-    for _ in range(critic_output_dim):
+    for _ in range(critic_output_dim):  # pyrefly: ignore[bad-argument-type]
       head_v = hk.Linear(256, w_init=rlu_uniform_initializer)(h)
       head_v = jax.nn.relu(head_v)
       head_v = hk.Linear(1, w_init=rlu_uniform_initializer)(head_v)
@@ -582,7 +582,7 @@ def make_networks(
           stax.Dense(hid_dim, W_std=W_std, b_std=0.05),
           stax.Relu()
       ]
-    layers += [stax.Dense(1, W_std=W_std, b_std=0.05)]
+    layers += [stax.Dense(1, W_std=W_std, b_std=0.05)]  # pyrefly: ignore[unbound-name]
     nt_init_fn, nt_apply_fn, nt_kernel_fn = stax.serial(*layers)
     kernel_fn = jax.jit(nt_kernel_fn, static_argnums=(2,))
 
@@ -649,13 +649,13 @@ def make_networks(
     if mimo_using_obs_tile:
       # if using the version where we are also tiling the obs
       tile_array = [1]*len(critic_dummy_encoded_input.shape) # type: ignore
-      tile_array[-1] = ensemble_size
-      critic_dummy_encoded_input = jnp.tile(critic_dummy_encoded_input, tile_array)
+      tile_array[-1] = ensemble_size  # pyrefly: ignore[unsupported-operation]
+      critic_dummy_encoded_input = jnp.tile(critic_dummy_encoded_input, tile_array)  # pyrefly: ignore[bad-argument-type]
 
     if mimo_using_act_tile:
       # if using the version where we are also tiling the acts
       tile_array = [1]*len(critic_dummy_action.shape)
-      tile_array[-1] = ensemble_size
+      tile_array[-1] = ensemble_size  # pyrefly: ignore[unsupported-operation]
       critic_dummy_action = jnp.tile(critic_dummy_action, tile_array)
 
   temp_critic_params = critic_init(
@@ -686,7 +686,7 @@ def make_networks(
       # sample_eval=mixture_sample_eval,
 
       img_encoder=img_encoder_network,
-      kernel_fn=kernel_fn,
+      kernel_fn=kernel_fn,  # pyrefly: ignore[bad-argument-type]
       get_particular_critic_init=lambda w_init, b_init, key: get_particular_critic_init(
           w_init, b_init, key, dummy_encoded_input, dummy_action),
       get_critic_repr=critic_repr,

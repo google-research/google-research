@@ -226,7 +226,7 @@ def build_preprocess_fn(vocab,
     dataset = dataset.map(
         split_input_target, num_parallel_calls=tf.data.experimental.AUTOTUNE)
 
-    dataset = tf.data.Dataset.zip((dataset, id_dataset.batch(batch_size)))
+    dataset = tf.data.Dataset.zip((dataset, id_dataset.batch(batch_size)))  # pyrefly: ignore[bad-argument-type]
 
     def _reorder_id(x, idx):
       return (x[0], idx), x[1]
@@ -412,9 +412,9 @@ def build_split_centralized_dataset(clientdata,
     split_fn = _random_split_create_dataset_with_id_train_sp
     test_fn = _random_split_create_dataset_with_id_test
 
-  per_train = nested_dataset.flat_map(train_fn)
-  per_train_split = nested_dataset.flat_map(split_fn)
-  per_test = nested_dataset.flat_map(test_fn)
+  per_train = nested_dataset.flat_map(train_fn)  # pyrefly: ignore[unbound-name]
+  per_train_split = nested_dataset.flat_map(split_fn)  # pyrefly: ignore[unbound-name]
+  per_test = nested_dataset.flat_map(test_fn)  # pyrefly: ignore[unbound-name]
 
   per_train = preprocess_fn(per_train).cache()
   per_train_split = preprocess_fn(per_train_split).cache()

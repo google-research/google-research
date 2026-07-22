@@ -139,7 +139,7 @@ def run_eval_for_num_traces(
               lambda x: aggregators.majority_with_conf(
                   x['answer'],
                   x[config.confidence_col_name],  # pylint: disable=cell-var-from-loop
-                  norm_type=config.norm_type,  # pylint: disable=cell-var-from-loop
+                  norm_type=config.norm_type,  # pylint: disable=cell-var-from-loop  # pyrefly: ignore[bad-argument-type]
                   temp=config.temperature,  # pylint: disable=cell-var-from-loop
               )[0],
               samples=samples,
@@ -151,7 +151,7 @@ def run_eval_for_num_traces(
               lambda x: aggregators.majority_with_conf(
                   x['answer'],
                   x[config.confidence_col_name],  # pylint: disable=cell-var-from-loop
-                  norm_type=config.norm_type,  # pylint: disable=cell-var-from-loop
+                  norm_type=config.norm_type,  # pylint: disable=cell-var-from-loop  # pyrefly: ignore[bad-argument-type]
                   temp=config.temperature,  # pylint: disable=cell-var-from-loop
                   only_tie_break=True,
               )[0],

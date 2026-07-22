@@ -147,7 +147,7 @@ def majority_with_conf(
       filtered.append((ans, conf))
   if not filtered:
     return '', 0
-  answers, confidences = zip(*filtered)
+  answers, confidences = zip(*filtered)  # pyrefly: ignore[bad-assignment]
 
   def _majority_with_tie(answers):
     top2 = Counter(answers).most_common(2)
@@ -175,12 +175,12 @@ def majority_with_conf(
     confidences = util.softmax(confidences, temp)
   else:
     assert norm_type == NormalizationType.NONE
-    confidences = np.array(confidences)
+    confidences = np.array(confidences)  # pyrefly: ignore[bad-assignment]
 
   # Choose the answer with the highest sum of confidences.
   conf_counter = Counter()
   for ans, conf in zip(answers, confidences):
-    conf_counter[ans] += conf
+    conf_counter[ans] += conf  # pyrefly: ignore[unsupported-operation]
   ans, sum_chosen_conf = conf_counter.most_common(1)[0]
   # In rare cases all the confidences might be 0.
   confidence = sum_chosen_conf / sum(confidences) if sum(confidences) else 0
@@ -195,7 +195,7 @@ def max_confidence(answers, confidences):
       filtered.append((ans, conf))
   if not filtered:
     return '', 0
-  answers, confidences = zip(*filtered)
+  answers, confidences = zip(*filtered)  # pyrefly: ignore[bad-assignment]
   return answers[np.argmax(confidences)]
 
 

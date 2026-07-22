@@ -48,14 +48,14 @@ def pack_dataset(data_tuple, mode, batch_size=256, with_dist=False):
   """
   if with_dist:
     x, idx, dist, y = data_tuple
-    dataset = tf.data.Dataset.from_tensor_slices(({
+    dataset = tf.data.Dataset.from_tensor_slices(({  # pyrefly: ignore[bad-argument-type]
         'input_x': x,
         'input_id': idx,
         'input_dist': dist,
     }, y))
   else:
     x, idx, y = data_tuple
-    dataset = tf.data.Dataset.from_tensor_slices(({
+    dataset = tf.data.Dataset.from_tensor_slices(({  # pyrefly: ignore[bad-argument-type]
         'input_x': x,
         'input_id': idx
     }, y))
@@ -139,7 +139,7 @@ def parse_data(emnist_train,
         train_id[cnt:cnt+num] = idx
 
         if with_dist:
-          train_dist[cnt:cnt+num] = np.tile(y_dist, [num, 1])
+          train_dist[cnt:cnt+num] = np.tile(y_dist, [num, 1])  # pyrefly: ignore[unbound-name]
 
         cnt += num
         client_num += num
@@ -150,7 +150,7 @@ def parse_data(emnist_train,
     train_id = train_id[:cnt]
 
     if with_dist:
-      train_dist = train_dist[:cnt]
+      train_dist = train_dist[:cnt]  # pyrefly: ignore[unbound-name]
       return train_x, train_id, train_dist, train_y
     else:
       return train_x, train_id, train_y

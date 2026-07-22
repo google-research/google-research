@@ -29,36 +29,36 @@ def build_model(image_size, bias_last=True, num_classes=1, squeeze=True):
       128, (3, 3), strides=(1, 1), padding='valid', activation=None)(
           image)
   x = tf.keras.layers.BatchNormalization()(x, training)
-  x = tf.keras.layers.ReLU()(x)
+  x = tf.keras.layers.ReLU()(x)  # pyrefly: ignore[not-callable]
   x = tf.keras.layers.Conv2D(
       128, (3, 3), strides=(2, 2), padding='valid', activation=None)(
           x)
   x = tf.keras.layers.BatchNormalization()(x, training)
-  x = tf.keras.layers.ReLU()(x)
+  x = tf.keras.layers.ReLU()(x)  # pyrefly: ignore[not-callable]
   x = tf.keras.layers.Conv2D(
       256, (3, 3), strides=(2, 2), padding='valid', activation=None)(
           x)
   x = tf.keras.layers.BatchNormalization()(x, training)
-  x = tf.keras.layers.ReLU()(x)
+  x = tf.keras.layers.ReLU()(x)  # pyrefly: ignore[not-callable]
   x = tf.keras.layers.Conv2D(
       256, (3, 3), strides=(2, 2), padding='valid', activation=None)(
           x)
   x = tf.keras.layers.BatchNormalization()(x, training)
-  x = tf.keras.layers.ReLU()(x)
+  x = tf.keras.layers.ReLU()(x)  # pyrefly: ignore[not-callable]
   x = tf.keras.layers.Conv2D(
       512, (1, 1), strides=(1, 1), padding='valid', activation=None)(
           x)
   x = tf.keras.layers.BatchNormalization()(x, training)
-  x = tf.keras.layers.ReLU()(x)
+  x = tf.keras.layers.ReLU()(x)  # pyrefly: ignore[not-callable]
   # x = tf.keras.layers.Conv2D(64, (2, 2), padding='valid')(x)
-  x = tf.keras.layers.Flatten()(x)
+  x = tf.keras.layers.Flatten()(x)  # pyrefly: ignore[not-callable]
 
   last_layer_fc = tf.keras.layers.Dense(num_classes, use_bias=bias_last)
 
   if squeeze:
-    x = tf.squeeze(last_layer_fc(x))
+    x = tf.squeeze(last_layer_fc(x))  # pyrefly: ignore[not-callable]
   else:
-    x = last_layer_fc(x)
+    x = last_layer_fc(x)  # pyrefly: ignore[not-callable]
 
   model = tf.keras.models.Model(
       inputs=[image, training], outputs=x, name='model')

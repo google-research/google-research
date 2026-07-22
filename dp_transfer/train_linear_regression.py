@@ -93,7 +93,7 @@ def train_and_evaluate(config, workdir):
 
   gramian = np.sum(np.array(xtx_list), axis=0)
   xtx = np.stack(xtx_list).reshape([
-      data_config.num_labels // num_devices,
+      data_config.num_labels // num_devices,  # pyrefly: ignore[unbound-name]
       num_devices,
       data_config.hidden_dims,
       data_config.hidden_dims,

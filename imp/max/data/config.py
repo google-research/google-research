@@ -624,7 +624,7 @@ class ExperimentData(base.Config):
 
     # Loaders should be copied to avoid overriding multiple configs that
     # share a reference to the same loader config.
-    self.loaders: tuple[Loader, Ellipsis] = tuple(
+    self.loaders: tuple[Loader, Ellipsis] = tuple(  # pyrefly: ignore[bad-assignment]
         loader.copy() for loader in self.loaders)
 
     # override loader-specific configs if canonical_params is provided
@@ -651,11 +651,11 @@ class ExperimentData(base.Config):
         for dataset in loader_datasets:
           dataset.is_training = self.is_training
           if dataset.modalities.audio:
-            dataset.modalities.audio.is_training = self.is_training
+            dataset.modalities.audio.is_training = self.is_training  # pyrefly: ignore[missing-attribute]
           if dataset.modalities.text:
-            dataset.modalities.text.is_training = self.is_training
+            dataset.modalities.text.is_training = self.is_training  # pyrefly: ignore[missing-attribute]
           if dataset.modalities.vision:
-            dataset.modalities.vision.is_training = self.is_training
+            dataset.modalities.vision.is_training = self.is_training  # pyrefly: ignore[missing-attribute]
 
       for dataset in loader_datasets:
         self._update_modalites(dataset)
@@ -664,9 +664,9 @@ class ExperimentData(base.Config):
     self._validate_configs()
 
   def _update_modalites(self, dataset):
-    self._update_vision_params(dataset.modalities.vision, dataset.is_training)
-    self._update_audio_params(dataset.modalities.audio)
-    self._update_text_params(dataset.modalities.text)
+    self._update_vision_params(dataset.modalities.vision, dataset.is_training)  # pyrefly: ignore[bad-argument-type]
+    self._update_audio_params(dataset.modalities.audio)  # pyrefly: ignore[bad-argument-type]
+    self._update_text_params(dataset.modalities.text)  # pyrefly: ignore[bad-argument-type]
 
   def _update_vision_params(self, params, is_training):
     """Propagates experiment-wide vision constraints."""
@@ -734,7 +734,7 @@ class ExperimentData(base.Config):
     if self.tokenizer is None:
       return
     if dataset.modalities.text is not None:
-      dataset.modalities.text.tokenizer_specs = self.tokenizer
+      dataset.modalities.text.tokenizer_specs = self.tokenizer  # pyrefly: ignore[missing-attribute]
 
   def _validate_configs(self):
     for loader in self.loaders:

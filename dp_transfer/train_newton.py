@@ -175,7 +175,7 @@ def train_and_evaluate(config, workdir):
       hidden_dims=data_config.hidden_dims)
   newton_update_from_grad_hess_pmapped = jax.pmap(
       newton_update_from_grad_hess_partial,
-      devices=jax.local_devices()[:num_devices])
+      devices=jax.local_devices()[:num_devices])  # pyrefly: ignore[unbound-name]
   split_newton_grad_hess_partial = functools.partial(
       split_newton_grad_hess, alpha=config.alpha)
   split_newton_grad_hess_pmapped = jax.pmap(

@@ -111,7 +111,7 @@ class Model:
   def load_teacher_state(self, ckpt_path=None):
     """Load teacher state and fix flax version incompatibilities."""
     teacher_state = jax.device_get(
-        self.make_init_state().replace(optimizer=None))
+        self.make_init_state().replace(optimizer=None))  # pyrefly: ignore[missing-attribute]
     if ckpt_path is None:
       ckpt_path = self.config.distillation.teacher_checkpoint_path
     loaded_state = checkpoints.restore_from_path(ckpt_path, target=None)
@@ -242,7 +242,7 @@ class Model:
         # Apply update if the new optimizer state is all finite
         ok = jnp.all(jnp.asarray([
             jnp.all(jnp.isfinite(p)) for p in jax.tree.leaves(new_optimizer)]))
-        new_state_no_update = state.replace(step=step + 1)
+        new_state_no_update = state.replace(step=step + 1)  # pyrefly: ignore[missing-attribute]
         state = jax.tree.map(
             lambda a, b: jnp.where(ok, a, b), new_state, new_state_no_update)
       else:
