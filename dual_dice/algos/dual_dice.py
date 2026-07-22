@@ -90,7 +90,7 @@ class TabularDualDice(base_algo.BaseAlgo):
       total_weights[nu_index] += weight
 
       next_probs = target_policy.get_probabilities(transition.next_state)
-      policy_ratio = policy_lib.get_policy_ratio(data.policy, target_policy,
+      policy_ratio = policy_lib.get_policy_ratio(data.policy, target_policy,  # pyrefly: ignore[bad-argument-type]
                                                  transition.state,
                                                  transition.action)
 

@@ -41,7 +41,7 @@ def flatten_dims(tensor: tf.Tensor,
     Tensor of shape [..., flattened_dim_size, ...] where
     flattened_dim_size = first_dim_size * ...middle_dims... * last_dim_size.
   """
-  with tf.name_scope(name or 'flatten_dims'):
+  with tf.name_scope(name or 'flatten_dims'):  # pyrefly: ignore[bad-instantiation]
     tensor = tf.convert_to_tensor(tensor)
 
     rank = tensor.shape.rank
@@ -98,7 +98,7 @@ def gather_by_one_hot(params: tf.Tensor,
   Returns:
     [indices.shape, params.shape[1:]] Tensor.
   """
-  with tf.name_scope(name or 'gather_by_one_hot'):
+  with tf.name_scope(name or 'gather_by_one_hot'):  # pyrefly: ignore[bad-instantiation]
     params = tf.convert_to_tensor(params)
     indices = tf.convert_to_tensor(indices)
 
@@ -143,7 +143,7 @@ def batch_gather_by_one_hot(params: tf.Tensor,
   num_batch_dims = batch_dims
   del batch_dims
 
-  with tf.name_scope(name or 'batch_gather_by_one_hot'):
+  with tf.name_scope(name or 'batch_gather_by_one_hot'):  # pyrefly: ignore[bad-instantiation]
     params = tf.convert_to_tensor(params)
     indices = tf.convert_to_tensor(indices)
 
@@ -206,7 +206,7 @@ def pad_to_multiple(tensor: tf.Tensor,
   Returns:
     The padded Tensor result.
   """
-  with tf.name_scope(name or 'pad_to_multiple'):
+  with tf.name_scope(name or 'pad_to_multiple'):  # pyrefly: ignore[bad-instantiation]
     tensor = tf.convert_to_tensor(tensor)
 
     if isinstance(factor, int) and factor < 1:
@@ -251,7 +251,7 @@ def split_into_blocks(tensor: tf.Tensor,
     Tensor of shape [..., num_blocks, block_len, ...], where
     num_blocks = ceiling(axis_len / block_len).
   """
-  with tf.name_scope(name or 'split_into_blocks'):
+  with tf.name_scope(name or 'split_into_blocks'):  # pyrefly: ignore[bad-instantiation]
     tensor = tf.convert_to_tensor(tensor)
 
     if block_len < 1:
@@ -292,7 +292,7 @@ def concat_3_blocks(blocked_seq: tf.Tensor,
   Returns:
     A Tensor of shape [batch_size, num_blocks, 3*block_len, ...].
   """
-  with tf.name_scope(name or 'concat_3_blocks'):
+  with tf.name_scope(name or 'concat_3_blocks'):  # pyrefly: ignore[bad-instantiation]
     blocked_seq = tf.convert_to_tensor(blocked_seq)
 
     num_blocks = tf.shape(blocked_seq)[1]
@@ -337,7 +337,7 @@ def shift_elements_right(tensor: tf.Tensor,
   Returns:
     Shifted tensor with the same shape as the input `tensor`.
   """
-  with tf.name_scope(name or 'shift_elements_right'):
+  with tf.name_scope(name or 'shift_elements_right'):  # pyrefly: ignore[bad-instantiation]
     tensor = tf.convert_to_tensor(tensor)
 
     rank = tensor.shape.rank
@@ -395,7 +395,7 @@ def skew_elements_right(tensor: tf.Tensor,
   Returns:
     Tensor of shape [..., num_rows, axis_len + num_rows - 1, ...].
   """
-  with tf.name_scope(name or 'skew_elements_right'):
+  with tf.name_scope(name or 'skew_elements_right'):  # pyrefly: ignore[bad-instantiation]
     tensor = tf.convert_to_tensor(tensor)
 
     rank = tensor.shape.rank
@@ -467,7 +467,7 @@ def unskew_elements_right(tensor: tf.Tensor,
   Returns:
     Tensor of shape [..., num_rows, axis_len - num_rows + 1, ...]
   """
-  with tf.name_scope(name or 'unskew_elements_right'):
+  with tf.name_scope(name or 'unskew_elements_right'):  # pyrefly: ignore[bad-instantiation]
     tensor = tf.convert_to_tensor(tensor)
 
     rank = tensor.shape.rank

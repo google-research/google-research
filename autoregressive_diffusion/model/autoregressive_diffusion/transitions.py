@@ -124,7 +124,7 @@ def augment_least_significant_bit(num_classes,
     in_offset = out_offset
     out_offset = new_out_offset
 
-  assert len(outputs) == 1
+  assert len(outputs) == 1  # pyrefly: ignore[unbound-name]
   absorbing_state = outputs.pop() + in_offset  # The previous out_offset.
 
   # Recompute number of total classes.
@@ -168,7 +168,7 @@ def zero_least_significant_bit(num_classes,
     # Outputs from previous round are new inputs
     inputs = outputs
 
-  assert len(outputs) == 1
+  assert len(outputs) == 1  # pyrefly: ignore[unbound-name]
   absorbing_state = outputs.pop()
 
   cum_matmul_transition_matrices = np.zeros(

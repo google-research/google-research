@@ -49,7 +49,7 @@ class MMRLModel(tf.keras.Model):
     super(MMRLModel, self).__init__(name=params.model_name)
     self._params = params
 
-    self._base_layer = base_module(**params.backbone_config.as_dict())
+    self._base_layer = base_module(**params.backbone_config.as_dict())  # pyrefly: ignore[not-callable]
     self._head_layer = head_module
     self._loss_lib = self._build_losses(params)
 
@@ -101,7 +101,7 @@ class MMRLModel(tf.keras.Model):
 
   def call(self,  # pytype: disable=annotation-type-mismatch,signature-mismatch
            inputs,
-           training = None):
+           training = None):  # pyrefly: ignore[bad-function-definition]
     """Call the layer.
 
     Args:
@@ -123,7 +123,7 @@ class MMRLModel(tf.keras.Model):
         training=training,
         )
     features['current_step'] = inputs.get('current_step', -1)
-    heads_outputs = self._head_layer(inputs=features,
+    heads_outputs = self._head_layer(inputs=features,  # pyrefly: ignore[not-callable]
                                      training=training,
                                      mask=None)
 
@@ -157,7 +157,7 @@ def build_model(
   head_module = head_factory.build_model(params=params.head_config)
 
   model = MMRLModel(
-      base_module=base_module,
+      base_module=base_module,  # pyrefly: ignore[bad-argument-type]
       head_module=head_module,
       params=params,
   )

@@ -118,7 +118,7 @@ class DiscretizedPuddleWorld:
 
     return DiscreteTransition(
         state,
-        action,
+        action,  # pyrefly: ignore[bad-argument-type]
         t.reward,
         DiscreteState(
             t.next_state,

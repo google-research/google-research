@@ -135,8 +135,8 @@ def enrich_traces_with_confidence_inplace(
   for trace in sc_result.traces:
     trace.confidence = confidence_extraction.generate_confidence(
         trace.prompt,
-        trace.response,
-        trace.answer_span,
+        trace.response,  # pyrefly: ignore[bad-argument-type]
+        trace.answer_span,  # pyrefly: ignore[bad-argument-type]
         runner,
         config,
         trace.confidence,
@@ -190,7 +190,7 @@ def run_question_answering_on_dataset(
   self_consistency_results = []
   for i, f in enumerate(self_consistency_futures):
     if f.exception():
-      raise f.exception()
+      raise f.exception()  # pyrefly: ignore[bad-raise]
     original_row = dataset.data.iloc[i]
     result = f.result()
     result.golden_label = original_row.golden_label
@@ -244,7 +244,7 @@ def enrich_dataset_with_confidence(
   self_consistency_results = []
   for f in self_consistency_futures:
     if f.exception():
-      raise f.exception()
+      raise f.exception()  # pyrefly: ignore[bad-raise]
     self_consistency_results.append(f.result())
   return self_consistency_results
 

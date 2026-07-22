@@ -168,7 +168,7 @@ class ConceptPPOBuilder(
         device='cpu',
         update_period=self._config.variable_update_period)
     return actors.GenericActor(
-        actor, random_key, variable_client, adder, backend='cpu')
+        actor, random_key, variable_client, adder, backend='cpu')  # pyrefly: ignore[bad-argument-type]
 
   def make_policy(
       self,

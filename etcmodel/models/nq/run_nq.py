@@ -254,7 +254,7 @@ def main(_):
 
   if FLAGS.do_train:
     tf.logging.info("***** Running training on precomputed features *****")
-    tf.logging.info("  Num split examples = %d", num_train_features)
+    tf.logging.info("  Num split examples = %d", num_train_features)  # pyrefly: ignore[unbound-name]
     tf.logging.info("  Batch size = %d", FLAGS.train_batch_size)
     tf.logging.info("  Num steps = %d", train_steps)
     train_filename = FLAGS.train_precomputed_file

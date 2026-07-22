@@ -357,7 +357,7 @@ def compute_expected_norm_comparison_for_fixed_dimension_over_parameter(
     parameter_lower_bound = 0
     parameter_upper_bound = int(d * (d - 1) / 2)
   expected_norm_ratios_for_all_graphs_per_parameter = [
-      [] for _ in range(parameter_upper_bound + 1)
+      [] for _ in range(parameter_upper_bound + 1)  # pyrefly: ignore[unsupported-operation]
   ]
   for _ in range(num_graphs):
     samples, parameter = generate_samples_from_poset_ball_and_get_parameter(
@@ -371,7 +371,7 @@ def compute_expected_norm_comparison_for_fixed_dimension_over_parameter(
         expected_norm_for_poset_ball / expected_norm_for_linf_ball
     )
   expected_norm_ratios_per_parameter = []
-  for parameter in range(parameter_lower_bound, parameter_upper_bound + 1):
+  for parameter in range(parameter_lower_bound, parameter_upper_bound + 1):  # pyrefly: ignore[bad-argument-type, unsupported-operation]
     expected_norm_ratios_per_parameter.append((
         parameter,
         np.mean(expected_norm_ratios_for_all_graphs_per_parameter[parameter]),

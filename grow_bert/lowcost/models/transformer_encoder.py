@@ -194,11 +194,11 @@ class TransformerEncoder(tf.keras.Model):
 
       group_size = num_layers // net2net_layers if net2net_layers is not None else None
       layer_net2net_ratio = None if (net2net_layers is None or
-                                     i % group_size != 0) else net2net_ratio
+                                     i % group_size != 0) else net2net_ratio  # pyrefly: ignore[unsupported-operation]
 
       group_size = num_layers // lightatt_layers if lightatt_layers is not None else None
-      use_lightatt = False if (lightatt_layers is None or i % group_size !=
-                               (group_size - 1)) else True
+      use_lightatt = False if (lightatt_layers is None or i % group_size !=  # pyrefly: ignore[unsupported-operation]
+                               (group_size - 1)) else True  # pyrefly: ignore[unsupported-operation]
 
       logging.info(i)
       logging.info(layer_net2net_ratio)
@@ -243,29 +243,29 @@ class TransformerEncoder(tf.keras.Model):
 
     word_embeddings = self._embedding_layer(word_ids)
     type_embeddings = self._type_embedding_layer(type_ids)
-    position_embeddings = self._position_embedding_layer(input_positions)
+    position_embeddings = self._position_embedding_layer(input_positions)  # pyrefly: ignore[not-callable]
     embeddings = word_embeddings + type_embeddings + position_embeddings
-    embeddings = self._embedding_norm_layer(embeddings)
-    embeddings = self._dropout_layer(embeddings)
+    embeddings = self._embedding_norm_layer(embeddings)  # pyrefly: ignore[not-callable]
+    embeddings = self._dropout_layer(embeddings)  # pyrefly: ignore[not-callable]
 
     target_positions = inputs['masked_lm_positions']
     target_type_ids = inputs['masked_segment_ids']
     target_input_ids = inputs['masked_input_ids']
     batch_size, target_len = target_positions.shape
     target_mask = tf.cast(inputs['masked_lm_weights'], dtype=mask.dtype)
-    target_position_embeddings = self._position_embedding_layer(
+    target_position_embeddings = self._position_embedding_layer(  # pyrefly: ignore[not-callable]
         target_positions)
     target_input_embeddings = self._embedding_layer(target_input_ids)
     target_type_embeddings = self._type_embedding_layer(target_type_ids)
     target_embeddings = target_input_embeddings + target_position_embeddings + target_type_embeddings
-    target_embeddings = self._embedding_norm_layer(target_embeddings)
-    target_embeddings = self._dropout_layer(target_embeddings)
+    target_embeddings = self._embedding_norm_layer(target_embeddings)  # pyrefly: ignore[not-callable]
+    target_embeddings = self._dropout_layer(target_embeddings)  # pyrefly: ignore[not-callable]
 
     # We project the 'embedding' output to 'hidden_size' if it is not already
     # 'hidden_size'.
     if self._config_dict['embedding_width'] != self._config_dict['hidden_size']:
-      embeddings = self._embedding_projection_layer(embeddings)
-      target_embeddings = self._embedding_projection_layer(target_embeddings)
+      embeddings = self._embedding_projection_layer(embeddings)  # pyrefly: ignore[not-callable]
+      target_embeddings = self._embedding_projection_layer(target_embeddings)  # pyrefly: ignore[not-callable]
 
     encoder_outputs = []
     attention_scores_list = []  # score previous attention score mappings
@@ -273,7 +273,7 @@ class TransformerEncoder(tf.keras.Model):
     merged_mask = tf.concat([mask, target_mask], axis=1)
     merged_embeddings = tf.concat([embeddings, target_embeddings], axis=1)
     pooled_query = tf.concat(
-        [self._embed_resolution_layer(embeddings), target_embeddings], axis=1)
+        [self._embed_resolution_layer(embeddings), target_embeddings], axis=1)  # pyrefly: ignore[not-callable]
     first_layer_attention_mask = self._self_attention_mask_layer(
         [pooled_query, merged_mask])
     data, attention_scores = self.transformer_layers[0](
@@ -283,7 +283,7 @@ class TransformerEncoder(tf.keras.Model):
     attention_scores_list.append(None)  # layer 1 will apply identical attention
 
     pooled_merged_mask = tf.concat(
-        [self._mask_resolution_layer(mask), target_mask], axis=1)
+        [self._mask_resolution_layer(mask), target_mask], axis=1)  # pyrefly: ignore[not-callable]
     attention_mask = self._self_attention_mask_layer([data, pooled_merged_mask])
     for i in range(1, self._config_dict['num_layers']):
       current_layer = self.transformer_layers[i]
@@ -295,8 +295,8 @@ class TransformerEncoder(tf.keras.Model):
       encoder_outputs.append(data)
       attention_scores_list.append(attention_scores)
 
-    first_token_tensor = self._squeeze_layer(encoder_outputs[-1])
-    cls_output = self._pooler_layer(first_token_tensor)
+    first_token_tensor = self._squeeze_layer(encoder_outputs[-1])  # pyrefly: ignore[not-callable]
+    cls_output = self._pooler_layer(first_token_tensor)  # pyrefly: ignore[not-callable]
     target_outputs = encoder_outputs[-1][:, -target_len:, :]
 
     if self._config_dict['return_all_encoder_outputs']:

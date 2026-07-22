@@ -91,9 +91,9 @@ class BatchManager:
                dataset,
                batch_size):
     self._prng = hk.PRNGSequence(key)
-    self._num = len(dataset['images'])
-    assert len(dataset['hf_obs']) == self._num
-    assert len(dataset['actions']) == self._num
+    self._num = len(dataset['images'])  # pyrefly: ignore[bad-argument-type]
+    assert len(dataset['hf_obs']) == self._num  # pyrefly: ignore[bad-argument-type]
+    assert len(dataset['actions']) == self._num  # pyrefly: ignore[bad-argument-type]
 
     # Ensure saved copy off accelerator device
     self._dataset = {k: jax.device_get(arr) for k, arr in dataset.items()}
@@ -132,7 +132,7 @@ class BatchManager:
     assert self._permutation is not None
     inds = self._permutation[self._current_batch_idx]
     ret = self._select(inds)
-    self._current_batch_idx += 1
+    self._current_batch_idx += 1  # pyrefly: ignore[unsupported-operation]
     if self._current_batch_idx >= len(self._permutation):
       self._epochs_completed += 1
       self._resample()

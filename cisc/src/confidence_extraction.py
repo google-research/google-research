@@ -188,7 +188,7 @@ def generate_confidence(
     )
     confidence_result.confidence_likelihoods = runner.get_completion_likelihoods(
         [full_prompt],
-        completions=config.confidence_likelihoods.confidence_options,
+        completions=config.confidence_likelihoods.confidence_options,  # pyrefly: ignore[bad-argument-type]
         # Do not enable server side formatting, as it is expected that the
         # prompt is already formatted.
         enable_formatting=False,

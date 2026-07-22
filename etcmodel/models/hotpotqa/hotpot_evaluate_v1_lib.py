@@ -143,22 +143,22 @@ def evaluate(prediction, gold):
                                             dp['supporting_facts'])
 
     if can_eval_joint:
-      joint_prec = prec * sp_prec
-      joint_recall = recall * sp_recall
+      joint_prec = prec * sp_prec  # pyrefly: ignore[unbound-name]
+      joint_recall = recall * sp_recall  # pyrefly: ignore[unbound-name]
       if joint_prec + joint_recall > 0:
         joint_f1 = 2 * joint_prec * joint_recall / (joint_prec + joint_recall)
       else:
         joint_f1 = 0.
-      joint_em = em * sp_em
+      joint_em = em * sp_em  # pyrefly: ignore[unbound-name]
 
       metrics['joint_em'] += joint_em
-      metrics['joint_f1'] += joint_f1
+      metrics['joint_f1'] += joint_f1  # pyrefly: ignore[bad-assignment]
       metrics['joint_prec'] += joint_prec
       metrics['joint_recall'] += joint_recall
 
   num_gold = len(gold)
   for k in metrics:
-    metrics[k] /= num_gold
+    metrics[k] /= num_gold  # pyrefly: ignore[bad-assignment]
 
   return metrics
 

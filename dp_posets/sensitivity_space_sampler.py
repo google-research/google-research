@@ -160,14 +160,14 @@ def get_filters_chain_from_extended_subposet(
     order: Matrix where order[i,j] = 1 if poset elements p_i <= p_j and 0
       otherwise.
   """
-  ground_set = np.array(ground_set)
+  ground_set = np.array(ground_set)  # pyrefly: ignore[bad-assignment]
   filters = [[]]
   for i in range(1, len(extended_subposet) + 1):
     new_filter = filters[-1].copy()
     new_element = extended_subposet[-i]
     new_element_idx = np.where(ground_set == new_element)[0][0]
     ancestor_indices = np.where(order[new_element_idx, :] == 1)
-    new_filter.extend(list(ground_set[ancestor_indices]))
+    new_filter.extend(list(ground_set[ancestor_indices]))  # pyrefly: ignore[bad-index]
     filters.append(list(set(new_filter)))
   return filters
 
@@ -186,7 +186,7 @@ def get_vertices_from_filters_chain(
     filters in `chain`.
   """
   vertices = np.zeros((len(chain), len(ground_set)))
-  ground_set = np.array(ground_set)
+  ground_set = np.array(ground_set)  # pyrefly: ignore[bad-assignment]
   for i, f in enumerate(chain):
     indices = [np.where(ground_set == x)[0][0] for x in f]
     vertices[i, indices] = 1

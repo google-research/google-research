@@ -109,10 +109,10 @@ def load_dataset(tasks_list):
       for task_name, task_type in tasks_list.items()
   ]
   combined_tasks_df = pd.concat(all_dfs, ignore_index=True)
-  combined_tasks_df.rename(
+  combined_tasks_df.rename(  # pyrefly: ignore[no-matching-overload]
       columns={'input': 'question', 'target': 'golden_label'}, inplace=True
   )
-  return combined_tasks_df
+  return combined_tasks_df  # pyrefly: ignore[bad-return]
 
 
 def _cached_ds():

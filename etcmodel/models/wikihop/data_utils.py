@@ -77,7 +77,7 @@ def create_string_feature(values: Iterable[Text]) -> tf.train.Feature:
   """
   # Converts to `str` (in Python 2) and `bytes` (in Python 3) as
   # `tf.train.Feature` only takes bytes.
-  values = [value.encode("utf-8") for value in values]
+  values = [value.encode("utf-8") for value in values]  # pyrefly: ignore[bad-assignment]
 
   feature = tf.train.Feature(bytes_list=tf.train.BytesList(value=values))
   return feature

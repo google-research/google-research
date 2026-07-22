@@ -94,7 +94,7 @@ class InputMatrix:
     if self.row_reg is not None:
       output_signature["row_reg"] = tf.TensorSpec([None], tf.float32)
     return tf.data.Dataset.from_generator(
-        gen, output_signature=output_signature)
+        gen, output_signature=output_signature)  # pyrefly: ignore[bad-argument-type]
 
   def batch_gd(
       self,
@@ -139,7 +139,7 @@ class InputMatrix:
                  values[indices],
                  weights[indices])
     return tf.data.Dataset.from_generator(
-        generator,
+        generator,  # pyrefly: ignore[bad-argument-type]
         output_types=({OUTPUT_USER_KEY: tf.int64, OUTPUT_ITEM_KEY: tf.int64},
                       tf.float32, tf.float32),
         output_shapes=({OUTPUT_USER_KEY: (batch_size,),
@@ -250,7 +250,7 @@ class InputMatrix:
 
     batch_size = num_examples_per_user * num_users_per_batch
     return tf.data.Dataset.from_generator(
-        generator,
+        generator,  # pyrefly: ignore[bad-argument-type]
         output_types=({OUTPUT_USER_KEY: tf.int64, OUTPUT_ITEM_KEY: tf.int64},
                       tf.float32, tf.float32),
         output_shapes=({OUTPUT_USER_KEY: (batch_size,),

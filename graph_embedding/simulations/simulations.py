@@ -133,11 +133,11 @@ def GenerateStochasticBlockModelWithFeatures(
         num_clusters1=len(pi),
         p_to_q_ratio1=edge_probability_profile.p_to_q_ratio1,
         num_clusters2=0 if pi2 is None else len(pi2),
-        p_to_q_ratio2=edge_probability_profile.p_to_q_ratio2,
-        p_to_q_ratio_cross=edge_probability_profile.p_to_q_ratio_cross)
+        p_to_q_ratio2=edge_probability_profile.p_to_q_ratio2,  # pyrefly: ignore[bad-argument-type]
+        p_to_q_ratio_cross=edge_probability_profile.p_to_q_ratio_cross)  # pyrefly: ignore[bad-argument-type]
 
   sbm_simulator.SimulateSbm(result, num_vertices, num_edges, pi,
-                            prop_mat, out_degs, pi2)
+                            prop_mat, out_degs, pi2)  # pyrefly: ignore[bad-argument-type]
   sbm_simulator.SimulateFeatures(result, feature_center_distance,
                                  feature_dim, num_feature_groups,
                                  feature_group_match_type,

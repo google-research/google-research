@@ -47,7 +47,7 @@ def create_learning_rate_scheduler(
     A function learning_rate(step): float -> {'learning_rate': float}, the
     step-dependent lr.
   """
-  factors = [n.strip() for n in factors.split('*')]
+  factors = [n.strip() for n in factors.split('*')]  # pyrefly: ignore[bad-assignment]
 
   def step_fn(step):
     """Step to learning rate function."""

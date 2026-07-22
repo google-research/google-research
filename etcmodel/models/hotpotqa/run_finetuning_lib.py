@@ -349,14 +349,14 @@ def model_fn_builder(etc_model_config: modeling.EtcConfig,
       ]
       if answer_encoding_method == "span":
         losses.extend([
-            compute_answer_span_loss(answer_span_logits[0],
+            compute_answer_span_loss(answer_span_logits[0],  # pyrefly: ignore[unbound-name]
                                      features["answer_begins"]),
             compute_answer_span_loss(answer_span_logits[1],
                                      features["answer_ends"]),
         ])
       else:
         losses.append(
-            compute_answer_bio_loss(answer_bio_logits,
+            compute_answer_bio_loss(answer_bio_logits,  # pyrefly: ignore[unbound-name]
                                     features["answer_bio_ids"]))
       loss = sum(losses) / len(losses)
       if extra_model_losses:
@@ -380,7 +380,7 @@ def model_fn_builder(etc_model_config: modeling.EtcConfig,
       }
       if answer_encoding_method == "span":
         answer_begin_top_probs, answer_begin_top_indices = tf.math.top_k(
-            tf.nn.softmax(answer_span_logits[0], axis=-1), k=50)
+            tf.nn.softmax(answer_span_logits[0], axis=-1), k=50)  # pyrefly: ignore[unbound-name]
         answer_end_top_probs, answer_end_top_indices = tf.math.top_k(
             tf.nn.softmax(answer_span_logits[1], axis=-1), k=50)
         predictions.update({
@@ -391,7 +391,7 @@ def model_fn_builder(etc_model_config: modeling.EtcConfig,
         })
       else:
         answer_bio_probs, answer_bio_ids = tf.math.top_k(
-            tf.nn.softmax(answer_bio_logits, axis=-1))
+            tf.nn.softmax(answer_bio_logits, axis=-1))  # pyrefly: ignore[unbound-name]
         predictions.update({
             "answer_bio_probs": tf.squeeze(answer_bio_probs, axis=-1),
             "answer_bio_ids": tf.squeeze(answer_bio_ids, axis=-1),

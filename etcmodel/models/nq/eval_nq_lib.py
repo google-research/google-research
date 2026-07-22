@@ -190,14 +190,14 @@ def joint_span_prediction(pred, official_prediction, max_short_answer_len):
   official_prediction["short_answers_score"] = sa_start_score + sa_end_score
   official_prediction["long_answer_score"] = la_start_score + la_end_score
   official_prediction["short_answers"] = [{
-      "start_token": min(sa_start_pred, sa_end_pred),
-      "end_token": max(sa_start_pred, sa_end_pred) + 1,
+      "start_token": min(sa_start_pred, sa_end_pred),  # pyrefly: ignore[bad-specialization]
+      "end_token": max(sa_start_pred, sa_end_pred) + 1,  # pyrefly: ignore[bad-specialization]
       "start_byte": -1,
       "end_byte": -1
   }]
   official_prediction["long_answer"] = {
       "start_token": la_start_pred,
-      "end_token": la_end_pred+1,
+      "end_token": la_end_pred+1,  # pyrefly: ignore[unsupported-operation]
       "start_byte": -1,
       "end_byte": -1
   }

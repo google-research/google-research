@@ -57,7 +57,7 @@ class TextAttributor:
   _attributed_expanded_idxs: set[int] = dataclasses.field(
       init=False, default_factory=set)
   _orig_idx_to_expanded_idxs: collections.defaultdict[int, Sequence[int]] = (
-      dataclasses.field(
+      dataclasses.field(  # pyrefly: ignore[bad-assignment]
           init=False, default_factory=lambda: collections.defaultdict(list)))
   _expanded_idx_to_orig_idx: MutableMapping[int, int] = dataclasses.field(
       init=False, default_factory=dict)
@@ -80,12 +80,12 @@ class TextAttributor:
       orig_idx: The index of the token in the original text to link.
       expansion_idx: The index of the token in the expanded text to connect.
     """
-    self._orig_idx_to_expanded_idxs[orig_idx].append(expansion_idx)
+    self._orig_idx_to_expanded_idxs[orig_idx].append(expansion_idx)  # pyrefly: ignore[missing-attribute]
     if expansion_idx in self._expanded_idx_to_orig_idx:
       prior_orig_idx = self._expanded_idx_to_orig_idx[expansion_idx]
       prior_orig_expansion_idxs = (
           self._orig_idx_to_expanded_idxs[prior_orig_idx])
-      del prior_orig_expansion_idxs[
+      del prior_orig_expansion_idxs[  # pyrefly: ignore[unsupported-operation]
           prior_orig_expansion_idxs.index(expansion_idx)]
       self._orig_idx_to_expanded_idxs[prior_orig_idx] = (
           prior_orig_expansion_idxs)

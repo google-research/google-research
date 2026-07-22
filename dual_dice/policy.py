@@ -104,7 +104,7 @@ class TabularPolicy(DiscreteFunctionPolicy):
         states to indices into the probability table. Should be usable on
         batches of states.
     """
-    probability_table = np.array(probability_table)
+    probability_table = np.array(probability_table)  # pyrefly: ignore[bad-assignment]
     policy_fn = lambda state: probability_table[obs_to_index_fn(state)]
 
     super(TabularPolicy, self).__init__(policy_fn)
@@ -151,7 +151,7 @@ class MixturePolicy(Policy):
 
   def get_probabilities(self, state):
     policy_probabilities = [p.get_probabilities(state) for p in self._policies]
-    return sum(w * p for w, p in zip(self._weights, policy_probabilities))
+    return sum(w * p for w, p in zip(self._weights, policy_probabilities))  # pyrefly: ignore[bad-return]
 
   def get_log_probability(self, state, action):
     policy_log_probabilities = [p.get_log_probability(state, action)

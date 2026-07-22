@@ -109,7 +109,7 @@ class ARADataset:
       variance = (clip_threshold / contribution_budget)**2 * stats.dlaplace(
           total_privacy_budget / self.total_contribution_budget).var()
     df[column + "_Error"] = metric.error(
-        df[column] - df[column+"_Clipped"], variance, df[column])
+        df[column] - df[column+"_Clipped"], variance, df[column])  # pyrefly: ignore[bad-argument-type]
 
     return metric.avg_error(df[column+"_Error"])
 
@@ -125,7 +125,7 @@ class ARADataset:
     df["count_column_variance"] = variance
     df["count_column_bias"] = 0
     df[self.count_column + "_Error"] = count_error_metric.error(
-        df["count_column_bias"], df["count_column_variance"],
+        df["count_column_bias"], df["count_column_variance"],  # pyrefly: ignore[bad-argument-type]
         df[self.count_column])
     return count_error_metric.avg_error(df[self.count_column + "_Error"])
 

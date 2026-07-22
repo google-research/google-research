@@ -81,10 +81,10 @@ def get_env_and_policies(env_name, tabular_obs, alpha):
     policy0 = gridworld_policies.get_behavior_gridwalk_policy(
         env, tabular_obs, alpha)
     policy1 = gridworld_policies.get_target_gridwalk_policy(env, tabular_obs)
-    env.discrete_actions = True
+    env.discrete_actions = True  # pyrefly: ignore[missing-attribute]
   else:
     ValueError('Environment is not supported.')
-  return env, policy0, policy1
+  return env, policy0, policy1  # pyrefly: ignore[unbound-name]
 
 
 def get_solver(solver_name, env, gamma, tabular_solver,

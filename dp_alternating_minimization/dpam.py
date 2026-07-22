@@ -94,7 +94,7 @@ class Sanitizer:
     self.center_users = center_users
     self.count_stddev = count_stddev
     if count_sample is None:
-      count_sample = budget
+      count_sample = budget  # pyrefly: ignore[bad-assignment]
     self.count_sample = count_sample
     self.weight_exponent = weight_exponent
     self.exact_split = exact_split
@@ -145,7 +145,7 @@ class Sanitizer:
       if "rating" not in train_data.columns:
         raise ValueError("cannot center when the dataset has no ratings.")
       user_means = dataset.train.data.groupby("uid").agg({"rating": "mean"})
-      dataset.remove_user_bias(user_means)
+      dataset.remove_user_bias(user_means)  # pyrefly: ignore[missing-attribute]
 
     # 2. Compute counts
     noisy_item_counts = self._noisy_count(train_data, num_items)
@@ -332,7 +332,7 @@ class DPALSOptimizer:
       lhs, rhs = self._apply_noise_lhs_rhs(lhs, rhs)
     # Add Regularization and Gravity terms then solve.
     lhs = lhs + unobserved_weight*tf.expand_dims(gramian, 0)
-    lhs = lhs + reg*_reg_tensor(input_batch, embedding_dim)
+    lhs = lhs + reg*_reg_tensor(input_batch, embedding_dim)  # pyrefly: ignore[unsupported-operation]
     solution = tf.squeeze(tf.linalg.solve(lhs, rhs), [2])
     update_indices = input_batch["update_indices"]
     return variable.scatter_update(tf.IndexedSlices(solution, update_indices))
@@ -638,7 +638,7 @@ class Dataset:
       sanitizer = Sanitizer()
     value_key = None if binarize else "rating"
     train_st, noisy_frequent_item_counts = sanitizer.preprocess_data(
-        self, value_key)
+        self, value_key)  # pyrefly: ignore[bad-argument-type]
     self.noisy_frequent_item_counts = noisy_frequent_item_counts
     # Training data
     self.train.sp_data = dataset_lib.df_to_input_matrix(
@@ -721,7 +721,7 @@ class Dataset:
             x.row_reg = row_reg
     if col_reg_exponent:
       self.train.sp_data_sampled_transposed.row_reg = _compute_weights(
-          self.noisy_frequent_item_counts, col_reg_exponent)
+          self.noisy_frequent_item_counts, col_reg_exponent)  # pyrefly: ignore[bad-argument-type]
 
 
 class EvalMetrics:
@@ -758,7 +758,7 @@ class EvalMetrics:
     self.do_project = False
     if matrix.sp_history is not None:
       self.do_project = True
-      self.history_ds = matrix.sp_history.batch_ls(eval_batch_size)
+      self.history_ds = matrix.sp_history.batch_ls(eval_batch_size)  # pyrefly: ignore[bad-argument-type]
     # Pre-compute user-means for use in the metrics.
     self.user_avg_ratings = None
     if matrix.history is not None and not model.binarize:
@@ -785,7 +785,7 @@ class EvalMetrics:
         row_embeddings, self.model.col_embeddings, transpose_b=True)
     if self.do_project:
       # Exclude history labels.
-      hist = self.matrix.sp_history.to_sparse_tensor()
+      hist = self.matrix.sp_history.to_sparse_tensor()  # pyrefly: ignore[missing-attribute]
       hist_indicator = hist.with_values(
           tf.ones_like(hist.values, dtype=tf.float32))
       preds = preds - 1000000*tf.sparse.to_dense(hist_indicator)
@@ -896,7 +896,7 @@ class EvalMetrics:
         fraction.
       user_avg: whether to predict the user average for rare items.
     """
-    mse = np.square(self.rmse_per_item(user_avg=user_avg))
+    mse = np.square(self.rmse_per_item(user_avg=user_avg))  # pyrefly: ignore[no-matching-overload]
     weights = self._item_count(self.matrix.data)
     # mse[i] may be nan if weights[i] is 0. We set it to 0 so that the product
     # is well defined.
@@ -1004,7 +1004,7 @@ class _TwoTowerModel(abc.ABC):
     """Compute the WALS projection for one batch."""
     lhs, rhs = _get_lhs_rhs(batch, self.col_embeddings)
     lhs = lhs + self._unobserved_weight*tf.expand_dims(col_gramian, 0)
-    lhs = lhs + self._row_reg*_reg_tensor(batch, self.embedding_dim)
+    lhs = lhs + self._row_reg*_reg_tensor(batch, self.embedding_dim)  # pyrefly: ignore[unsupported-operation]
     return tf.squeeze(tf.linalg.solve(lhs, rhs), [2])
 
   def wals_projection(self, input_matrix: tf.data.Dataset) -> tf.Tensor:
@@ -1169,11 +1169,11 @@ class DPALSModel(_TwoTowerModel):
         eval_batch_size=batch_size,
         row_reg_exponent=row_reg_exponent,
         col_reg_exponent=col_reg_exponent,
-        recall_positions=recall_positions)
+        recall_positions=recall_positions)  # pyrefly: ignore[bad-argument-type]
     if random_seed:
       tf.random.set_seed(random_seed)
     self.optimizer = optimizer
-    self._unobserved_weight = unobserved_weight
+    self._unobserved_weight = unobserved_weight  # pyrefly: ignore[bad-assignment]
     self._batch_size = batch_size
     def gram_var(name):
       return tf.Variable(
@@ -1182,14 +1182,14 @@ class DPALSModel(_TwoTowerModel):
     self._col_gramian = gram_var("col_gramian")
     self._row_gramian = gram_var("row_gramian")
     # Regularization.
-    self._row_reg = regularization_weight
-    self._col_reg = regularization_weight
+    self._row_reg = regularization_weight  # pyrefly: ignore[bad-assignment]
+    self._col_reg = regularization_weight  # pyrefly: ignore[bad-assignment]
     # Use the full (not sampled) data for the row solve.
     self._row_data = self.dataset.train.sp_data.batch_ls(self._batch_size)
     self._col_data = (self.dataset.train.sp_data_sampled_transposed
                       .batch_ls(self._batch_size))
 
-  def train_step(self):
+  def train_step(self):  # pyrefly: ignore[bad-override]
     """Runs one outer step of training."""
     # User update ==============================================================
     col_gram = tf.matmul(
@@ -1238,7 +1238,7 @@ class _ItemTower(tf.keras.Model):
     self._row_embeddings = row_embeddings
     self._encoder = encoder
 
-  def call(self, features: InputBatch) -> tf.Tensor:
+  def call(self, features: InputBatch) -> tf.Tensor:  # pyrefly: ignore[bad-override]
     """Returns the predictions."""
     row_emb = tf.nn.embedding_lookup(self._row_embeddings, features["uid"])
     col_emb = self._encoder.call(features)
@@ -1307,12 +1307,12 @@ class AMModel(_TwoTowerModel):
     """
     super().__init__(
         dataset, embedding_dim=embedding_dim, binarize=binarize,
-        row_reg_exponent=row_reg_exponent, sanitizer=sanitizer,
-        recall_positions=recall_positions)
+        row_reg_exponent=row_reg_exponent, sanitizer=sanitizer,  # pyrefly: ignore[bad-argument-type]
+        recall_positions=recall_positions)  # pyrefly: ignore[bad-argument-type]
     if random_seed:
       tf.random.set_seed(random_seed)
-    self._unobserved_weight = unobserved_weight
-    self._row_reg = regularization_weight
+    self._unobserved_weight = unobserved_weight  # pyrefly: ignore[bad-assignment]
+    self._row_reg = regularization_weight  # pyrefly: ignore[bad-assignment]
     # TF ops
     self._col_gramian = tf.Variable(
         tf.zeros([embedding_dim, embedding_dim], dtype=tf.float32),
@@ -1356,7 +1356,7 @@ class AMModel(_TwoTowerModel):
       raise ValueError("Exactly One of item_encoder and item_tower must be "
                        "defined.")
     if item_tower is None:
-      item_tower = _ItemTower(self.row_embeddings, item_encoder)
+      item_tower = _ItemTower(self.row_embeddings, item_encoder)  # pyrefly: ignore[bad-argument-type]
     user_batching = (num_users_per_batch is not None
                      and num_examples_per_user is not None)
     normal_batching = item_batch_size is not None
@@ -1388,7 +1388,7 @@ class AMModel(_TwoTowerModel):
     col_emb = encoder.trainable_variables[0]
     self.col_embeddings_freq.assign(col_emb)
 
-  def train_step(self, inner_steps: Optional[int] = None):
+  def train_step(self, inner_steps: Optional[int] = None):  # pyrefly: ignore[bad-override]
     """Runs one outer step of training.
 
     Args:
@@ -1419,7 +1419,7 @@ class AMModel(_TwoTowerModel):
     lhs, rhs = _get_lhs_rhs(input_matrix, self.col_embeddings_freq)
     # Add Regularization and Gravity terms then solve.
     lhs = lhs + self._unobserved_weight*tf.expand_dims(gramian, 0)
-    lhs = lhs + self._row_reg*_reg_tensor(input_matrix, self.embedding_dim)
+    lhs = lhs + self._row_reg*_reg_tensor(input_matrix, self.embedding_dim)  # pyrefly: ignore[unsupported-operation]
     solution = tf.squeeze(tf.linalg.solve(lhs, rhs), [2])
     # Apply the update.
     update_indices = input_matrix["update_indices"]
@@ -1467,7 +1467,7 @@ def _sliced_recall(labels: pd.DataFrame,
     buckets: a list of lists of sid, used to partition the items into buckets.
   """
   labels = labels.sort_values(["uid", "sid"])
-  num_items = max(np.max(labels["sid"]), np.max(preds)) + 1
+  num_items = max(np.max(labels["sid"]), np.max(preds)) + 1  # pyrefly: ignore[no-matching-overload]
   num_users = preds.shape[0]
   preds = preds[:, :k]
   recalls = []
@@ -1583,7 +1583,7 @@ def _get_lhs_rhs(
     rowids = indices[:, 0]
     ragged_indices = tf.RaggedTensor.from_value_rowids(indices[:, 1], rowids)
     ragged_values = tf.RaggedTensor.from_value_rowids(
-        weights*values if weights is not None else values, rowids)
+        weights*values if weights is not None else values, rowids)  # pyrefly: ignore[unsupported-operation]
     x = tf.gather(factors, ragged_indices)  # [num_rows, (row_length), dim]
     y = tf.expand_dims(ragged_values, 2)  # [num_rows, (row length), 1]
     if weights is not None:

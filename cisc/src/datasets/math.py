@@ -48,7 +48,7 @@ def _cached_ds():
         ).to_pandas()
         for config in configs
     ])
-  return _ds
+  return _ds  # pyrefly: ignore[bad-return]
 
 
 

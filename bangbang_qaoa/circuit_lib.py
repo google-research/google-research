@@ -249,7 +249,7 @@ class BangBangProtocolCircuit(abc.ABC):
       Complex numpy array with shape [2 ** self.num_qubits].
     """
     circuit = self.qaoa_circuit(bangbang_protocol)
-    return self.simulator.simulate(circuit).final_state
+    return self.simulator.simulate(circuit).final_state  # pyrefly: ignore[missing-attribute]
 
   def get_probabilities(self, wavefunction):
     """Gets the probabilities of states from wavefunction.
@@ -303,4 +303,4 @@ class BangBangProtocolCircuit(abc.ABC):
       Float.
     """
     probabilities = self.get_probabilities(wavefunction)
-    return np.dot(probabilities, self.hamiltonian_diagonal)
+    return np.dot(probabilities, self.hamiltonian_diagonal)  # pyrefly: ignore[bad-argument-type]

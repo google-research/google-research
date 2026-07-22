@@ -143,7 +143,7 @@ def load(domain_name,
     if camera_kwargs:
       # Overwrite kwargs with those passed here.
       final_camera_kwargs.update(camera_kwargs)
-    env = camera.DistractingCameraEnv(env, **final_camera_kwargs)
+    env = camera.DistractingCameraEnv(env, **final_camera_kwargs)  # pyrefly: ignore[missing-argument]
 
   # Apply color distractions.
   if difficulty or color_kwargs:

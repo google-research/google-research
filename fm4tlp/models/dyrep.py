@@ -70,12 +70,12 @@ class DyRep(model_template.TlpModel):
     utils.save_structural_feature_measurement(
         model_path,
         "structural_feature_mean",
-        self._structural_feature_mean,
+        self._structural_feature_mean,  # pyrefly: ignore[bad-argument-type]
     )
     utils.save_structural_feature_measurement(
         model_path,
         "structural_feature_std",
-        self._structural_feature_std,
+        self._structural_feature_std,  # pyrefly: ignore[bad-argument-type]
     )
 
   def load_model(self, model_path):
@@ -143,7 +143,7 @@ class DyRep(model_template.TlpModel):
           memory_emb_dim=self._config.memory_dimension,
       ).to(self._device)
 
-      self._model_components.update({"struct_mapper": self._struct_mapper})
+      self._model_components.update({"struct_mapper": self._struct_mapper})  # pyrefly: ignore[no-matching-overload]
 
       self._optimizer.add_param_group(
           {"params": self._struct_mapper.parameters()}
@@ -187,8 +187,8 @@ class DyRep(model_template.TlpModel):
         memory_embeddings,
         last_updated_timestamps,
         edge_index,
-        data.t[e_id].to(self._device),
-        data.msg[e_id].to(self._device),
+        data.t[e_id].to(self._device),  # pyrefly: ignore[unsupported-operation]
+        data.msg[e_id].to(self._device),  # pyrefly: ignore[unsupported-operation]
     )
 
     self._memory.update_state(

@@ -83,13 +83,13 @@ def _restore_text(
   """
   outputs = []
   for document in data_dicts:
-    docid = document["context"]["document_id"]
+    docid = document["context"]["document_id"]  # pyrefly: ignore[bad-index, unsupported-operation]
     logging.log(logging.DEBUG, "Process doc %s", docid)
-    if "text" in document["context"] and document["context"]["text"]:
+    if "text" in document["context"] and document["context"]["text"]:  # pyrefly: ignore[bad-index, not-iterable, unsupported-operation]
       raise ValueError("Unexpected text encountered in data dictionary for "
                        f"document id '{docid}': {document['context']['text']}")
 
-    language = document["context"]["language"]
+    language = document["context"]["language"]  # pyrefly: ignore[bad-index, unsupported-operation]
     text_to_restore = _load_text(base_input_dir / language / "text" / docid)
 
     # Add the recovered text to the structured dictionary. (Needs explicit cast,

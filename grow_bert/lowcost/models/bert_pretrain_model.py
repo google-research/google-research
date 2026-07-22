@@ -97,10 +97,10 @@ class BertPretrainModel(tf.keras.Model):
     return cls(**config)
 
   def call(self, inputs):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
-    sequence_output, _, target_outputs = self.encoder_network(inputs)
+    sequence_output, _, target_outputs = self.encoder_network(inputs)  # pyrefly: ignore[not-callable]
 
     outputs = dict()
-    outputs['mlm_logits'] = self.masked_lm(target_outputs)
+    outputs['mlm_logits'] = self.masked_lm(target_outputs)  # pyrefly: ignore[not-callable]
     for cls_head in self.classification_heads:
-      outputs[cls_head.name] = cls_head(sequence_output)
+      outputs[cls_head.name] = cls_head(sequence_output)  # pyrefly: ignore[not-callable]
     return outputs

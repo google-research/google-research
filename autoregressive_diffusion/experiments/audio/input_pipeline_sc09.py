@@ -47,7 +47,7 @@ class PrepareAudio:
     features['inputs'] = tf.pad(
         features['inputs'],
         [(0, self.max_length - tf.shape(features['inputs'])[0])])
-    features['inputs'] = features['inputs'] + self.shift
+    features['inputs'] = features['inputs'] + self.shift  # pyrefly: ignore[unsupported-operation]
     features['inputs'] = tf.expand_dims(features['inputs'], axis=-1)
     features['inputs'] = tf.ensure_shape(
         features['inputs'], (self.max_length, 1))
@@ -98,13 +98,13 @@ def get_split(rng,
   ds = data.create_dataset(
       builder,
       split=host_split,
-      preprocess_fn=PrepareAudio(),
+      preprocess_fn=PrepareAudio(),  # pyrefly: ignore[bad-argument-type]
       cache=cache,
       batch_dims=batch_dims,
       rng=rng,
       num_epochs=num_epochs,
       pad_up_to_batches='auto',
-      shuffle=shuffle_buffer_size and (shuffle_buffer_size > 0),
+      shuffle=shuffle_buffer_size and (shuffle_buffer_size > 0),  # pyrefly: ignore[bad-argument-type]
       shuffle_buffer_size=shuffle_buffer_size or 0)
   if repeat_after:
     ds = ds.repeat()
@@ -147,7 +147,7 @@ def get_dataset(rng, config):
 
   ds, metadata = {}, {}
   for name, conf in splits.items():
-    ds[name] = get_split(rng, builder, **conf)
+    ds[name] = get_split(rng, builder, **conf)  # pyrefly: ignore[bad-argument-type]
     num_examples = builder.info.splits[conf['split']].num_examples
     num_batches, remainder = divmod(num_examples, conf['batch_size'])
     if remainder:

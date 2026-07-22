@@ -86,7 +86,7 @@ def main(argv):
             circuit=dnf_circuit_lib.BangBangProtocolCircuit(
                 chunk_time=FLAGS.total_time / FLAGS.num_chunks, dnf=dnf),
             max_num_flips=FLAGS.max_num_flips,
-            initial_protocol=get_initial_protocol(FLAGS.num_chunks),
+            initial_protocol=get_initial_protocol(FLAGS.num_chunks),  # pyrefly: ignore[unbound-name]
             minimize=False,
             skip_search=FLAGS.skip_search))
     logging.info(

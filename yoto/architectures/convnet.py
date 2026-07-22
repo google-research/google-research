@@ -114,7 +114,7 @@ class ConditionalConvnet(tf.keras.Model):
     if self._fc_layer_sizes is not None:
       x = tf.keras.layers.Flatten()(x)
       x = utils.mlp(x, self._fc_layer_sizes)
-      x = tf.reshape(x, [-1] + self._upconv_reshape_size)
+      x = tf.reshape(x, [-1] + self._upconv_reshape_size)  # pyrefly: ignore[unsupported-operation]
     for nblock in range(self._num_blocks-1, -1, -1):
       num_channels = self._base_num_channels * (2**nblock)
       if (inputs_extra is not None and

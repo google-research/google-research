@@ -35,10 +35,10 @@ class MLP(nn.Module):
   @nn.compact
   def __call__(self, x):
     for feat in self.features[:-1]:
-      x = self.activation(nn.Dense(feat)(x))
+      x = self.activation(nn.Dense(feat)(x))  # pyrefly: ignore[bad-assignment]
     x = nn.Dense(self.features[-1])(x)
     if self.activate_final:
-      x = self.activation(x)
+      x = self.activation(x)  # pyrefly: ignore[bad-assignment]
     return x
 
 
@@ -85,7 +85,7 @@ class ResNetDense(nn.Module):
 
   def __call__(self, x):
     x = self.dense0(x)
-    x = self.activation(x)
+    x = self.activation(x)  # pyrefly: ignore[bad-assignment]
     for block in self.blocks:
       x = block(x)
     x = self.dense1(x)

@@ -310,19 +310,19 @@ class SubgraphModel():
 
       # graph for graph inputs -> subg inputs
       self.subg_inputs_graph = copy.deepcopy(graph)
-      self.subg_inputs_graph.output_names = self.input_names
+      self.subg_inputs_graph.output_names = self.input_names  # pyrefly: ignore[bad-assignment]
       self.subg_inputs_model = Model(self.subg_inputs_graph, self.constants)
       self.subg_inputs = None
 
       # graph for graph inputs -> subg outputs
       self.subg_outputs_graph = copy.deepcopy(graph)
-      self.subg_outputs_graph.output_names = self.output_names
+      self.subg_outputs_graph.output_names = self.output_names  # pyrefly: ignore[bad-assignment]
       self.subg_outputs_model = Model(self.subg_outputs_graph, self.constants)
       self.subg_outputs = None
 
       # graph for subg inputs -> subg outputs
       subg_ops = [node.op for node in subgraph]
-      self.subg_graph = new_graph(self.input_names, self.output_names, subg_ops)
+      self.subg_graph = new_graph(self.input_names, self.output_names, subg_ops)  # pyrefly: ignore[bad-argument-type]
       self.subg_model = Model(self.subg_graph, self.constants)
     else:
       self.input_names = [
@@ -401,7 +401,7 @@ class SubgraphModel():
       self.subg_inputs_model.graph.output_names = []
     subg_inputs = self.subg_inputs_model.apply(self.state, graph_inputs)
     if intermediates:
-      self.subg_inputs_model.graph.output_names = old_output_names
+      self.subg_inputs_model.graph.output_names = old_output_names  # pyrefly: ignore[unbound-name]
 
     return subg_inputs
 

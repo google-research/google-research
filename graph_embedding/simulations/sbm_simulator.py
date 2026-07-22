@@ -65,7 +65,7 @@ class EdgeProbabilityProfile:
     p_to_q_ratio_cross: Probability of in-cluster edges divided by probability
       of out-cluster edges, for node clusters that are linked across-type.
   """
-  p_to_q_ratio1: float = Ellipsis
+  p_to_q_ratio1: float = Ellipsis  # pyrefly: ignore[bad-assignment]
   p_to_q_ratio2: Optional[float] = 0.0
   p_to_q_ratio_cross: Optional[float] = 0.0
 
@@ -103,14 +103,14 @@ class StochasticBlockModel:
       are linked across types.
   """
   graph: graph_tool.Graph = Ellipsis
-  graph_memberships: np.ndarray = Ellipsis
-  node_features1: np.ndarray = Ellipsis
-  node_features2: Optional[np.ndarray] = Ellipsis
-  feature_memberships: np.ndarray = Ellipsis
-  edge_features: Dict[Tuple[int, int], np.ndarray] = Ellipsis
-  type1_clusters: Optional[List[int]] = Ellipsis
-  type2_clusters: Optional[List[int]] = Ellipsis
-  cross_links: Optional[List[Tuple[int, int]]] = Ellipsis
+  graph_memberships: np.ndarray = Ellipsis  # pyrefly: ignore[bad-assignment]
+  node_features1: np.ndarray = Ellipsis  # pyrefly: ignore[bad-assignment]
+  node_features2: Optional[np.ndarray] = Ellipsis  # pyrefly: ignore[bad-assignment]
+  feature_memberships: np.ndarray = Ellipsis  # pyrefly: ignore[bad-assignment]
+  edge_features: Dict[Tuple[int, int], np.ndarray] = Ellipsis  # pyrefly: ignore[bad-assignment]
+  type1_clusters: Optional[List[int]] = Ellipsis  # pyrefly: ignore[bad-assignment]
+  type2_clusters: Optional[List[int]] = Ellipsis  # pyrefly: ignore[bad-assignment]
+  cross_links: Optional[List[Tuple[int, int]]] = Ellipsis  # pyrefly: ignore[bad-assignment]
 
 
 def _GetNestingMap(large_k, small_k):
@@ -199,7 +199,7 @@ def _GenerateFeatureMemberships(
       num_graph_cluster_nodes = np.sum(
           [i == graph_cluster_id for i in graph_memberships])
       sub_memberships = _GenerateNodeMemberships(num_graph_cluster_nodes,
-                                                 feature_pi)
+                                                 feature_pi)  # pyrefly: ignore[bad-argument-type]
       sub_memberships = [sorted_feature_cluster_ids[i] for i in sub_memberships]
       memberships.extend(sub_memberships)
   else:  # MatchType.RANDOM
@@ -309,7 +309,7 @@ def SimulateSbm(sbm_data,
   """
   if pi2 is None: pi2 = []
   k1, k2 = len(pi), len(pi2)
-  pi = np.array(list(pi) + list(pi2)).astype(np.float64)
+  pi = np.array(list(pi) + list(pi2)).astype(np.float64)  # pyrefly: ignore[bad-assignment]
   pi /= np.sum(pi)
   if prop_mat.shape[0] != len(pi) or prop_mat.shape[1] != len(pi):
     raise ValueError("prop_mat must be k x k; k = len(pi1) + len(pi2)")
@@ -412,7 +412,7 @@ def SimulateFeatures(sbm_data,
     num_groups = len(sbm_data.type1_clusters)
   centers = list(_GetFeatureCenters(num_groups, center_var, feature_dim))
   num_groups2 = (0 if sbm_data.type2_clusters is Ellipsis
-                 else len(sbm_data.type2_clusters))
+                 else len(sbm_data.type2_clusters))  # pyrefly: ignore[bad-argument-type]
   if num_groups2 > 0:
     # The SBM is heterogeneous. Check input and adjust variables.
     if not isinstance(sbm_data.cross_links, list):
@@ -439,7 +439,7 @@ def SimulateFeatures(sbm_data,
 
   # Get memberships
   sbm_data.feature_memberships = _GenerateFeatureMemberships(
-      graph_memberships=sbm_data.graph_memberships,
+      graph_memberships=sbm_data.graph_memberships,  # pyrefly: ignore[bad-argument-type]
       num_groups=num_groups,
       match_type=match_type)
   cluster_indices = sbm_data.feature_memberships
@@ -512,5 +512,5 @@ def SimulateEdgeFeatures(sbm_data,
       center = center1
     else:
       center = center0
-    sbm_data.edge_features[edge_tuple] = np.random.multivariate_normal(
+    sbm_data.edge_features[edge_tuple] = np.random.multivariate_normal(  # pyrefly: ignore[unsupported-operation]
         center, covariance, 1)[0]

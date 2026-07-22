@@ -312,7 +312,7 @@ def generate_slice_distribution_with_conversions_raw(
       for cur_slice_conversion_cnt in cur_contributions:
         global_imp_id += 1
         conv_dist = get_conversion_distribution_uniformly(
-            num_slices=conversion_key_cardinality,
+            num_slices=conversion_key_cardinality,  # pyrefly: ignore[bad-argument-type]
             total_conversions=cur_slice_conversion_cnt,
         )
 
@@ -381,7 +381,7 @@ def generate_counts_and_values_dataset_raw(
   # Step 1: Generate impression side distribution.
   num_impression_keys = np.prod(impression_side_dimensions)
   impression_dist = _generate_slice_distribution_for_impressions(
-      param_b, num_impression_keys
+      param_b, num_impression_keys  # pyrefly: ignore[bad-argument-type]
   )
 
   dataset = generate_slice_distribution_with_conversions_raw(
@@ -472,5 +472,5 @@ def export_synthetic_raw(
           dataset_row[0],
           dataset_row[1],
           dataset_row[2],
-          rescale_value(dataset_row[3]),
+          rescale_value(dataset_row[3]),  # pyrefly: ignore[bad-argument-type]
       ])

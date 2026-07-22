@@ -276,7 +276,7 @@ def process_model_output(model_config,
           inner_activation=tensor_utils.get_activation(model_config.hidden_act),
           use_pre_activation_order=False,
           dropout_probability=model_config.hidden_dropout_prob)
-      global_output_tensor = final_layer(
+      global_output_tensor = final_layer(  # pyrefly: ignore[not-callable]
           global_output_tensor, training=is_training)
 
   output_weights = tf.get_variable(

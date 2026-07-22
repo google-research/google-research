@@ -204,11 +204,11 @@ class ConceptPPOLearner(acme.Learner):
 
       # Extract the data.
       data = sample.data
-      observations, actions, rewards, termination, extra = (data.observation,
-                                                            data.action,
-                                                            data.reward,
-                                                            data.discount,
-                                                            data.extras)
+      observations, actions, rewards, termination, extra = (data.observation,  # pyrefly: ignore[missing-attribute]
+                                                            data.action,  # pyrefly: ignore[missing-attribute]
+                                                            data.reward,  # pyrefly: ignore[missing-attribute]
+                                                            data.discount,  # pyrefly: ignore[missing-attribute]
+                                                            data.extras)  # pyrefly: ignore[missing-attribute]
       discounts = termination * discount
       behavior_log_probs = extra['log_prob']
 
@@ -366,7 +366,7 @@ class ConceptPPOLearner(acme.Learner):
     # Snapshot and attempt to write logs.
     self._logger.write({**results, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     return [self._state.params]
 
   def save(self):

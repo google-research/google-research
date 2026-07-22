@@ -52,7 +52,7 @@ class Span:
   @staticmethod
   def from_json(json_dict: JsonDict) -> Span:
     """Creates a new Span instance from the given JSON-dictionary."""
-    return Span(start=json_dict["start"], end=json_dict["end"])
+    return Span(start=json_dict["start"], end=json_dict["end"])  # pyrefly: ignore[bad-argument-type]
 
   def to_json(self) -> JsonDict:
     """Returns instance as JSON-compatible nested dictionary."""
@@ -114,7 +114,7 @@ class TextSpan(Span):
   def from_json(json_dict: JsonDict) -> TextSpan:
     """Creates a new TextSpan from the given JSON-dictionary."""
     return TextSpan(
-        start=json_dict["start"], end=json_dict["end"], text=json_dict["text"])
+        start=json_dict["start"], end=json_dict["end"], text=json_dict["text"])  # pyrefly: ignore[bad-argument-type]
 
   def to_json(self) -> JsonDict:
     """Returns instance as JSON-compatible nested dictionary."""
@@ -164,13 +164,13 @@ class Entity:
   def from_json(json_dict: JsonDict) -> Entity:
     """Creates a new Entity from the given JSON-dictionary."""
     return Entity(
-        entity_id=json_dict["entity_id"],
-        title=json_dict["title"],
-        description=json_dict["description"],
-        description_language=json_dict["description_language"],
-        description_url=json_dict["description_url"],
+        entity_id=json_dict["entity_id"],  # pyrefly: ignore[bad-argument-type]
+        title=json_dict["title"],  # pyrefly: ignore[bad-argument-type]
+        description=json_dict["description"],  # pyrefly: ignore[bad-argument-type]
+        description_language=json_dict["description_language"],  # pyrefly: ignore[bad-argument-type]
+        description_url=json_dict["description_url"],  # pyrefly: ignore[bad-argument-type]
         sentence_spans=tuple(
-            Span.from_json(t) for t in json_dict["sentence_spans"]),
+            Span.from_json(t) for t in json_dict["sentence_spans"]),  # pyrefly: ignore[bad-argument-type, not-iterable]
     )
 
   def to_json(self) -> JsonDict:
@@ -204,10 +204,10 @@ class Mention:
   def from_json(json_dict: JsonDict) -> Mention:
     """Creates a new Mention from the given JSON-dictionary."""
     return Mention(
-        example_id=json_dict["example_id"],
-        mention_span=TextSpan.from_json(json_dict["mention_span"]),
-        entity_id=json_dict["entity_id"],
-        metadata=json_dict.get("metadata"),
+        example_id=json_dict["example_id"],  # pyrefly: ignore[bad-argument-type]
+        mention_span=TextSpan.from_json(json_dict["mention_span"]),  # pyrefly: ignore[bad-argument-type]
+        entity_id=json_dict["entity_id"],  # pyrefly: ignore[bad-argument-type]
+        metadata=json_dict.get("metadata"),  # pyrefly: ignore[bad-argument-type]
     )
 
   def to_json(self) -> JsonDict:
@@ -218,8 +218,8 @@ class Mention:
         entity_id=self.entity_id,
     )
     if self.metadata is not None:
-      json_dict["metadata"] = self.metadata
-    return json_dict
+      json_dict["metadata"] = self.metadata  # pyrefly: ignore[bad-assignment]
+    return json_dict  # pyrefly: ignore[bad-return]
 
 
 @dataclasses.dataclass()
@@ -264,14 +264,14 @@ class Context:
   def from_json(json_dict: JsonDict) -> Context:
     """Creates a new Context from the given JSON-dictionary."""
     return Context(
-        document_title=json_dict["document_title"],
-        section_title=json_dict.get("section_title"),
-        document_url=json_dict["document_url"],
-        document_id=json_dict["document_id"],
-        language=json_dict["language"],
-        text=json_dict["text"],
+        document_title=json_dict["document_title"],  # pyrefly: ignore[bad-argument-type]
+        section_title=json_dict.get("section_title"),  # pyrefly: ignore[bad-argument-type]
+        document_url=json_dict["document_url"],  # pyrefly: ignore[bad-argument-type]
+        document_id=json_dict["document_id"],  # pyrefly: ignore[bad-argument-type]
+        language=json_dict["language"],  # pyrefly: ignore[bad-argument-type]
+        text=json_dict["text"],  # pyrefly: ignore[bad-argument-type]
         sentence_spans=tuple(
-            Span.from_json(t) for t in json_dict["sentence_spans"]),
+            Span.from_json(t) for t in json_dict["sentence_spans"]),  # pyrefly: ignore[bad-argument-type, not-iterable]
     )
 
   def to_json(self, keep_text: bool = True) -> JsonDict:
@@ -286,7 +286,7 @@ class Context:
     )
     if self.section_title is not None:
       json_dict["section_title"] = self.section_title
-    return json_dict
+    return json_dict  # pyrefly: ignore[bad-return]
 
   def truncate(self, focus: int, window_size: int) -> Tuple[int, Context]:
     """Truncates the Context to window_size sentences each side of focus.
@@ -372,8 +372,8 @@ class ContextualMentions:
   def from_json(json_dict: JsonDict) -> ContextualMentions:
     """Creates a new ContextualMentions from the given JSON-dictionary."""
     return ContextualMentions(
-        context=Context.from_json(json_dict["context"]),
-        mentions=[Mention.from_json(m) for m in json_dict["mentions"]],
+        context=Context.from_json(json_dict["context"]),  # pyrefly: ignore[bad-argument-type]
+        mentions=[Mention.from_json(m) for m in json_dict["mentions"]],  # pyrefly: ignore[bad-argument-type, not-iterable]
     )
 
   def to_json(self, keep_text: bool = True) -> JsonDict:
@@ -382,7 +382,7 @@ class ContextualMentions:
         context=self.context.to_json(keep_text=keep_text),
         mentions=[m.to_json() for m in self.mentions],
     )
-    return json_dict
+    return json_dict  # pyrefly: ignore[bad-return]
 
   def unnest_to_single_mention_per_context(self) -> Iterator[ContextualMention]:
     for mention in self.mentions:
@@ -426,8 +426,8 @@ class ContextualMention:
   def from_json(json_dict: JsonDict) -> ContextualMention:
     """Creates a new ContextualMention from the given JSON-dictionary."""
     return ContextualMention(
-        context=Context.from_json(json_dict["context"]),
-        mention=Mention.from_json(json_dict["mention"]),
+        context=Context.from_json(json_dict["context"]),  # pyrefly: ignore[bad-argument-type]
+        mention=Mention.from_json(json_dict["mention"]),  # pyrefly: ignore[bad-argument-type]
     )
 
   def to_json(self, keep_text: bool = True) -> JsonDict:
@@ -436,7 +436,7 @@ class ContextualMention:
         context=self.context.to_json(keep_text=keep_text),
         mention=self.mention.to_json(),
     )
-    return json_dict
+    return json_dict  # pyrefly: ignore[bad-return]
 
   def truncate(self, window_size: int) -> Optional[ContextualMention]:
     """Truncates the context to window_size sentences each side of the mention.
@@ -492,8 +492,8 @@ class MentionEntityPair:
     """Creates a new MentionEntityPair from the given JSON-dictionary."""
     return MentionEntityPair(
         contextual_mention=ContextualMention.from_json(
-            json_dict["contextual_mention"]),
-        entity=Entity.from_json(json_dict["entity"]),
+            json_dict["contextual_mention"]),  # pyrefly: ignore[bad-argument-type]
+        entity=Entity.from_json(json_dict["entity"]),  # pyrefly: ignore[bad-argument-type]
     )
 
   def to_json(self) -> JsonDict:
@@ -502,7 +502,7 @@ class MentionEntityPair:
         contextual_mention=self.contextual_mention.to_json(),
         entity=self.entity.to_json(),
     )
-    return json_dict
+    return json_dict  # pyrefly: ignore[bad-return]
 
 
 SchemaAnyT = TypeVar("SchemaAnyT", ContextualMention, ContextualMentions,

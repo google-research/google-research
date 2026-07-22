@@ -63,8 +63,8 @@ class DistractingColorEnv(control.Environment):
       self._min_rgb = np.clip(self._original_rgb - self._max_delta, 0.0, 1.0)
 
     # Pick random colors in the allowed ranges.
-    r = self._random_state.uniform(size=self._min_rgb.shape)
-    self._current_rgb = self._min_rgb + r * (self._max_rgb - self._min_rgb)
+    r = self._random_state.uniform(size=self._min_rgb.shape)  # pyrefly: ignore[missing-attribute]
+    self._current_rgb = self._min_rgb + r * (self._max_rgb - self._min_rgb)  # pyrefly: ignore[unsupported-operation]
 
     # Apply the color changes.
     self._env.physics.model.mat_rgba[:, :3] = self._current_rgb

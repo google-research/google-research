@@ -184,10 +184,10 @@ class WallPuddle(SlowPuddle):
 
 
 class Action(enum.IntEnum):
-  UP: int = 0
-  RIGHT: int = 1
-  DOWN: int = 2
-  LEFT: int = 3
+  UP: int = 0  # pyrefly: ignore[invalid-annotation]
+  RIGHT: int = 1  # pyrefly: ignore[invalid-annotation]
+  DOWN: int = 2  # pyrefly: ignore[invalid-annotation]
+  LEFT: int = 3  # pyrefly: ignore[invalid-annotation]
 
 
 @dataclasses.dataclass

@@ -185,7 +185,7 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
     # order of the diffusion process. So here future is 's' and past 's+1'.
     stage_reverse = self.num_stages - 1 - stage
     if self.direct_parametrization:
-      t = jnp.expand_dims(stage_reverse, np.arange(1, len(x.shape)))
+      t = jnp.expand_dims(stage_reverse, np.arange(1, len(x.shape)))  # pyrefly: ignore[bad-argument-type]
       # The branch_factor determines at which speed the integers are reduced.
       # For example: suppose we have a 16-bit problem and we want to model it
       # in two stages, we could pick a branch factor of 256. Then, 16383 // 256
@@ -230,7 +230,7 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
       log_probs = jax.nn.log_softmax(logits, axis=-1)
 
       t = self.num_stages - 1 - stage
-      t = jnp.expand_dims(t, np.arange(1, len(x_future.shape)))
+      t = jnp.expand_dims(t, np.arange(1, len(x_future.shape)))  # pyrefly: ignore[bad-argument-type]
       x_target = (x_future // self.branch_factor**t) % self.branch_factor
 
       x_target_onehot = util_fns.onehot(x_target, self.branch_factor)
@@ -270,7 +270,7 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
       sample = distribution_utils.sample_categorical(rng, log_probs)
 
       t = self.num_stages - 1 - stage
-      t = jnp.expand_dims(t, np.arange(1, len(x_past.shape)))
+      t = jnp.expand_dims(t, np.arange(1, len(x_past.shape)))  # pyrefly: ignore[bad-argument-type]
       x_sample = x_past + sample * self.branch_factor**t
 
     else:
@@ -873,7 +873,7 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
             # Convert the code to the value it attains in x.
             s_reverse = self.num_stages - 1 - stage_batch
             s_reverse = jnp.expand_dims(s_reverse,  # pytype: disable=wrong-arg-types  # jnp-type
-                                        jnp.arange(1, len(decoded_value.shape)))
+                                        jnp.arange(1, len(decoded_value.shape)))  # pyrefly: ignore[bad-argument-type]
             decoded_value = decoded_value * self.branch_factor**s_reverse
 
             # Add to the already decoded values in x.
@@ -1044,8 +1044,8 @@ class BitUpscaleAutoregressiveDiffusion(struct.PyTreeNode):
         num_stages=num_stages,
         num_input_classes=num_input_classes,
         num_output_classes=config.num_classes,
-        transition_matrices=transition_mats,
-        cum_matmul_transition_matrices=cum_matmul_transition_mats,
+        transition_matrices=transition_mats,  # pyrefly: ignore[bad-argument-type]
+        cum_matmul_transition_matrices=cum_matmul_transition_mats,  # pyrefly: ignore[bad-argument-type]
         absorbing_state=absorb,
         branch_factor=config.upscale_branch_factor,
         direct_parametrization=config.upscale_direct_parametrization

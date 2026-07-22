@@ -182,22 +182,22 @@ def _resolve_symbolic(maybe_iter, input_values,
   if k == "S":
     if ":" not in v:
       key = int(v)
-      v = input_values[0].shape[key]
+      v = input_values[0].shape[key]  # pyrefly: ignore[unsupported-operation]
     else:
       arr = v.split(":")
       key1, key2 = ":".join(arr[:-1]), arr[-1]
       key2 = int(key2)
       try:
         key1 = int(key1)
-        v = input_values[key1].shape[key2]
+        v = input_values[key1].shape[key2]  # pyrefly: ignore[unsupported-operation]
       except ValueError:
         key1 = canonicalize_tensor_name(key1)
-        v = intermediate_values[key1].shape[key2]
+        v = intermediate_values[key1].shape[key2]  # pyrefly: ignore[unsupported-operation]
 
   # parsing as named integer constant
   else:
     assert k == "K"
-    v = int(intermediate_values[v])
+    v = int(intermediate_values[v])  # pyrefly: ignore[unsupported-operation]
 
   if v % div != 0:
     raise ValueError(f"Div {div} not a factor of value {v}")
@@ -229,7 +229,7 @@ class Model(nn.Module):
     Returns:
       The hash for the Model.
     """
-    return self.graph.__hash__()
+    return self.graph.__hash__()  # pyrefly: ignore[not-callable]
 
   def __eq__(self, other):
     """Checks for equality of underlying graphs, ignoring constants."""
@@ -406,7 +406,7 @@ class Model(nn.Module):
       else:
         add_kwargs = {}
       output_values = [
-          nn.BatchNorm(**op_kwargs)(input_value, **input_kwargs, **add_kwargs)
+          nn.BatchNorm(**op_kwargs)(input_value, **input_kwargs, **add_kwargs)  # pyrefly: ignore[bad-argument-type]
       ]
 
     elif op_type == OpType.LAYER_NORM:

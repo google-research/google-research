@@ -67,7 +67,7 @@ def estimate_value_from_state_ratios(
   all_data = data.get_all()
   state_density_ratio = state_ratio_fn(all_data.state)
   policy_ratio = policy_lib.get_policy_ratio(
-      data.policy, target_policy,
+      data.policy, target_policy,  # pyrefly: ignore[bad-argument-type]
       all_data.state, all_data.action)
   state_action_density_ratio = state_density_ratio * policy_ratio
   # Multiply by discount to account for discounted behavior policy.

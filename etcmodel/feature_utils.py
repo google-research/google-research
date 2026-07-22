@@ -93,7 +93,7 @@ class RelativePositionGenerator(object):
     Returns:
       <int32>[batch_size, seq_len, seq_len] Tensor of relative position ids.
     """
-    with tf.name_scope(name or 'make_relative_att_ids'):
+    with tf.name_scope(name or 'make_relative_att_ids'):  # pyrefly: ignore[bad-instantiation]
       if isinstance(seq_len, int) and seq_len < 1:
         raise ValueError('`seq_len` must be positive.')
       if isinstance(batch_size, int) and batch_size < 1:
@@ -101,7 +101,7 @@ class RelativePositionGenerator(object):
 
       # We need the id_pattern to cover all tokens to the left of the last token
       # and all tokens to the right of the first token at the same time.
-      window_size = 2 * seq_len - 1
+      window_size = 2 * seq_len - 1  # pyrefly: ignore[unsupported-operation]
 
       # [window_size]
       id_pattern = self._make_relative_id_pattern(window_size)
@@ -113,7 +113,7 @@ class RelativePositionGenerator(object):
       id_tensor = tensor_utils.skew_elements_right(id_tensor, -1)
 
       # [seq_len, seq_len]
-      id_tensor = tf.slice(id_tensor, [0, seq_len - 1], [seq_len, seq_len])
+      id_tensor = tf.slice(id_tensor, [0, seq_len - 1], [seq_len, seq_len])  # pyrefly: ignore[unsupported-operation]
 
       return tf.tile(id_tensor[tf.newaxis, :, :], [batch_size, 1, 1])
 
@@ -152,7 +152,7 @@ class RelativePositionGenerator(object):
       <int32>[batch_size, seq_len, 2*local_radius + 1] Tensor of relative
       position ids.
     """
-    with tf.name_scope(name or 'make_local_relative_att_ids'):
+    with tf.name_scope(name or 'make_local_relative_att_ids'):  # pyrefly: ignore[bad-instantiation]
       if isinstance(seq_len, int) and seq_len < 1:
         raise ValueError('`seq_len` must be positive.')
       if local_radius < 1:
@@ -259,7 +259,7 @@ def overwrite_relative_att_ids_outside_segments(
     <int32>[batch_size, seq_len, seq_len] Tensor of the new
     relative position ids.
   """
-  with tf.name_scope(name or 'overwrite_relative_att_ids_outside_segments'):
+  with tf.name_scope(name or 'overwrite_relative_att_ids_outside_segments'):  # pyrefly: ignore[bad-instantiation]
     rel_att_ids = tf.convert_to_tensor(rel_att_ids)
     segment_ids = tf.convert_to_tensor(segment_ids)
     segment_mask = make_segmented_att_mask(segment_ids)
@@ -288,7 +288,7 @@ def make_att_mask_from_input_mask(input_mask: tf.Tensor,
   # We just use `make_segmented_att_mask` to constrain attention within unmasked
   # tokens. This will allow all masked tokens to attend (only) to other masked
   # tokens also, but this is harmless since masked token results won't be used.
-  with tf.name_scope(name or 'make_att_mask_from_input_mask'):
+  with tf.name_scope(name or 'make_att_mask_from_input_mask'):  # pyrefly: ignore[bad-instantiation]
     return make_segmented_att_mask(input_mask)
 
 
@@ -308,7 +308,7 @@ def make_segmented_att_mask(segment_ids: tf.Tensor,
   Returns:
     <int32>[batch_size, seq_len, seq_len] attention mask.
   """
-  with tf.name_scope(name or 'make_segmented_att_mask'):
+  with tf.name_scope(name or 'make_segmented_att_mask'):  # pyrefly: ignore[bad-instantiation]
     segment_ids = tf.convert_to_tensor(segment_ids)
 
     if segment_ids.shape.rank != 2:
@@ -339,7 +339,7 @@ def make_att_mask_from_breakpoints(att_breakpoints: tf.Tensor,
   Returns:
     <int32>[batch_size, seq_len, seq_len] attention mask.
   """
-  with tf.name_scope(name or 'make_att_mask_from_breakpoints'):
+  with tf.name_scope(name or 'make_att_mask_from_breakpoints'):  # pyrefly: ignore[bad-instantiation]
     att_breakpoints = tf.convert_to_tensor(att_breakpoints)
 
     if att_breakpoints.shape.rank != 2:
@@ -374,7 +374,7 @@ def make_local_segmented_att_mask(segment_ids: tf.Tensor,
   Returns:
     <int32>[batch_size, seq_len, 2*local_radius + 1] attention mask.
   """
-  with tf.name_scope(name or 'make_local_segmented_att_mask'):
+  with tf.name_scope(name or 'make_local_segmented_att_mask'):  # pyrefly: ignore[bad-instantiation]
     segment_ids = tf.convert_to_tensor(segment_ids)
 
     if segment_ids.shape.rank != 2:
@@ -448,7 +448,7 @@ def make_local_att_mask_from_breakpoints(
   Returns:
     <int32>[batch_size, seq_len, 2*local_radius + 1] attention mask.
   """
-  with tf.name_scope(name or 'make_local_att_mask_from_breakpoints'):
+  with tf.name_scope(name or 'make_local_att_mask_from_breakpoints'):  # pyrefly: ignore[bad-instantiation]
     att_breakpoints = tf.convert_to_tensor(att_breakpoints)
 
     if att_breakpoints.shape.rank != 2:

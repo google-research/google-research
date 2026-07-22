@@ -197,9 +197,9 @@ class NeedlemanWunschMatrix:
       return
     expansion_indices = collections.defaultdict(int)
     for i, token in enumerate(self.orig_tokens):
-      if token not in self.label_abbreviation_expansions:
+      if token not in self.label_abbreviation_expansions:  # pyrefly: ignore[not-iterable]
         continue
-      expansion_list = self.label_abbreviation_expansions[token]
+      expansion_list = self.label_abbreviation_expansions[token]  # pyrefly: ignore[unsupported-operation]
       try:
         expansion = expansion_list[expansion_indices[token]]
       except IndexError as ie:
@@ -216,7 +216,7 @@ class NeedlemanWunschMatrix:
       if len(expansion_list) > 1:
         expansion_indices[token] += 1
     for abbrev, expansion_index in expansion_indices.items():
-      expansions_in_dict = self.label_abbreviation_expansions[abbrev]
+      expansions_in_dict = self.label_abbreviation_expansions[abbrev]  # pyrefly: ignore[unsupported-operation]
       if (expansion_index > 0 and
           expansion_index < len(expansions_in_dict)):
         raise ValueError(
@@ -263,7 +263,7 @@ class NeedlemanWunschMatrix:
     """Computes the score for consecutive lefts taken from a gap start cell."""
     num_expansion_steps = min(expected_gapsize, num_lefts)
     num_other_steps = num_lefts - num_expansion_steps
-    abbrev_expansion_gap_score = self.expansion_gap_score * num_expansion_steps
+    abbrev_expansion_gap_score = self.expansion_gap_score * num_expansion_steps  # pyrefly: ignore[unsupported-operation]
     other_insert_score = self.indel_score * num_other_steps
     return abbrev_expansion_gap_score + other_insert_score
 
