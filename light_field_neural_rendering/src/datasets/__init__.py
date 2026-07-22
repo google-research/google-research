@@ -30,7 +30,7 @@ def create_dataset(args):
   train_ds = dataset_dict[args.dataset.name]("train", args)
   if dataset_is_epipolar(args.dataset.name):
     # For `epipolar` dataset we need to supply train images to the eval dataset.
-    eval_ds = dataset_dict[args.dataset.name]("test", args, train_ds)
+    eval_ds = dataset_dict[args.dataset.name]("test", args, train_ds)  # pyrefly: ignore[bad-argument-count]
   else:
     eval_ds = dataset_dict[args.dataset.name]("test", args)
 

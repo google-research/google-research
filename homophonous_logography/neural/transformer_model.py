@@ -363,9 +363,9 @@ class Seq2SeqTransformerModel(object):
                name="model"):
     self._batch_size = batch_size
     self._input_symbols = input_symbols
-    self._input_vocab_size = len(input_symbols)
+    self._input_vocab_size = len(input_symbols)  # pyrefly: ignore[bad-argument-type]
     self._output_symbols = output_symbols
-    self._output_vocab_size = len(output_symbols)
+    self._output_vocab_size = len(output_symbols)  # pyrefly: ignore[bad-argument-type]
     self._num_heads = num_heads
     self._num_layers = num_layers
     self._multihead_retrieval = multihead_retrieval_strategy
@@ -457,7 +457,7 @@ class Seq2SeqTransformerModel(object):
       batch, (inputs, targ) = next(batches)
       while batch > -1:
         bos = np.expand_dims(
-            [self._output_symbols.find("<s>")] * np.shape(targ)[0], 1)
+            [self._output_symbols.find("<s>")] * np.shape(targ)[0], 1)  # pyrefly: ignore[missing-attribute]
         targets = np.concatenate((bos, targ), axis=-1)
         batch_loss = self._train_step(inputs, targets)
         total_loss += batch_loss
@@ -536,7 +536,7 @@ class Seq2SeqTransformerModel(object):
     encoder_input = tf.convert_to_tensor([inputs], dtype=tf.int32)
 
     # The first input to the transformer will be the start token.
-    start = [self._output_symbols.find("<s>")]
+    start = [self._output_symbols.find("<s>")]  # pyrefly: ignore[missing-attribute]
     output = tf.convert_to_tensor(start, dtype=tf.int32)
     output = tf.expand_dims(output, 0)
 
@@ -554,7 +554,7 @@ class Seq2SeqTransformerModel(object):
       # decoder as its input.
       output = tf.concat([output, predicted_id], axis=-1)
 
-      outsym = self._output_symbols.find(int(predicted_id.numpy()))
+      outsym = self._output_symbols.find(int(predicted_id.numpy()))  # pyrefly: ignore[missing-attribute]
       if outsym == "</s>" or outsym == "</targ>":
         break
       else:

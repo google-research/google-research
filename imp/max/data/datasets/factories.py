@@ -85,28 +85,28 @@ class MultimodalDataset(dmvr_base.BaseVideoDatasetFactory):
     text_config = modality_selection.text
     if audio_config:
       if config.is_training is not None:
-        audio_config.is_training = config.is_training
+        audio_config.is_training = config.is_training  # pyrefly: ignore[missing-attribute]
       if isinstance(audio_config, data_config.CustomModality):
         self._add_custom_modality(audio_config)
       else:
         self._add_audio(audio_config)
     if vision_config:
       if config.is_training is not None:
-        vision_config.is_training = config.is_training
+        vision_config.is_training = config.is_training  # pyrefly: ignore[missing-attribute]
       if isinstance(vision_config, data_config.CustomModality):
         self._add_custom_modality(vision_config)
       else:
         self._add_vision(vision_config)
     if text_config:
       if config.is_training is not None:
-        text_config.is_training = config.is_training
+        text_config.is_training = config.is_training  # pyrefly: ignore[missing-attribute]
       if isinstance(text_config, data_config.CustomModality):
         self._add_custom_modality(text_config)
       else:
         self._add_text(text_config)
 
     self.postprocessor_builder.add_fn(  # type: ignore
-        fn=processing.unflatten_features_dict,
+        fn=processing.unflatten_features_dict,  # pyrefly: ignore[bad-argument-type]
         fn_name='unflatten_features_dict')
 
   def _add_audio(
@@ -286,7 +286,7 @@ class ThirdPartyDatasetsBase(MultimodalDataset, abc.ABC):
     if table not in tables_dict.keys():
       raise ValueError(f'Invalid table \'{table}\'. '
                        f'The available tables are: {tables_dict.keys()}.')
-    table_relative_path = tables_dict[table]
+    table_relative_path = tables_dict[table]  # pyrefly: ignore[bad-index]
 
     base_dir = loading.get_latest_dir(base_dir)
     if isinstance(table_relative_path, list):
@@ -337,7 +337,7 @@ class ThirdPartyDatasetsBase(MultimodalDataset, abc.ABC):
   def tables(self):
     """Returns a dictionary from table name to relative path."""
     if self._tables is not None:
-      return self._tables
+      return self._tables  # pyrefly: ignore[bad-return]
     else:
       raise NotImplementedError(
           'tables() only defined for datasets that initialize _tables.')
@@ -489,7 +489,7 @@ class SeqioDataset:
 
     dataset = seqio.get_dataset(
         mixture_or_task_name=self.task_name,
-        task_feature_lengths={
+        task_feature_lengths={  # pyrefly: ignore[bad-argument-type]
             'inputs': self.sequence_length,
             'targets': self.sequence_length,
         },

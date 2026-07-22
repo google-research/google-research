@@ -19,7 +19,7 @@ from typing import Optional, Sequence, Tuple
 import chex
 import jax
 from jax import lax
-from jax.experimental import maps
+from jax.experimental import maps  # pyrefly: ignore[missing-module-attribute]
 from jax.experimental import mesh_utils
 
 

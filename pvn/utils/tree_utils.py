@@ -187,6 +187,6 @@ def filter_empty_nodes(
     )
 
   mask_tree = flax.serialization.to_state_dict(mask_tree)
-  other_trees = (flax.serialization.to_state_dict(t) for t in other_trees)
+  other_trees = (flax.serialization.to_state_dict(t) for t in other_trees)  # pyrefly: ignore[bad-assignment]
   r = _filter_helper(mask_tree, *other_trees)
   return r[0] if len(r) == 1 else r

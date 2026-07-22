@@ -31,8 +31,8 @@ import gin
 import numpy as np
 import pandas as pd
 import simplejson
-from six.moves import range
-from six.moves import zip
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 import typing

@@ -192,7 +192,7 @@ def generate_data(env_config,
   np.random.seed(seed)
   rng = np.random.default_rng(seed)
   if recommender_agent is None:
-    recommender_agent = agent.RandomAgent(movies=top_movie_slate)
+    recommender_agent = agent.RandomAgent(movies=top_movie_slate)  # pyrefly: ignore[bad-argument-type]
 
   ml_env = movie_lens_simulator.create_gym_environment(env_config)
   ml_env.environment.set_active_pool(user_pool)

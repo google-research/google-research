@@ -59,8 +59,8 @@ class MaskedLMLayer(tf.keras.layers.Layer):
     super(MaskedLMLayer, self).build(input_shape)
 
   def call(self, target_embedding):
-    lm_data = self.dense(target_embedding)
-    lm_data = self.layer_norm(lm_data)
+    lm_data = self.dense(target_embedding)  # pyrefly: ignore[not-callable]
+    lm_data = self.layer_norm(lm_data)  # pyrefly: ignore[not-callable]
     lm_data = tf.matmul(lm_data, self.embedding_table, transpose_b=True)
     logits = tf.nn.bias_add(lm_data, self.bias)
 

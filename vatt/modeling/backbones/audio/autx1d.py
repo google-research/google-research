@@ -286,10 +286,10 @@ class AuTx1D(tf.keras.layers.Layer):
       random_mask = tf.ones((get_shape(embeddings)[0:2]), dtype=tf.float32)
 
     # apply pre-tx projection - if applies
-    masked_embeddings = self.pre_proj(masked_embeddings)
+    masked_embeddings = self.pre_proj(masked_embeddings)  # pyrefly: ignore[not-callable]
 
     # add modality-specific positional encoding embeddings
-    masked_embeddings = self.pos_embedding_lookup(
+    masked_embeddings = self.pos_embedding_lookup(  # pyrefly: ignore[not-callable]
         masked_embeddings,
         input_shape,
         training
@@ -307,13 +307,13 @@ class AuTx1D(tf.keras.layers.Layer):
     tx_inputs = self._append_special_tokens(masked_embeddings)
 
     # call Transformer
-    outputs = self.tx(inputs=tx_inputs,
+    outputs = self.tx(inputs=tx_inputs,  # pyrefly: ignore[not-callable]
                       attention_mask=None,
                       training=training)
 
     # get last hidden states and perform final linear projection
     last_hidden_states = outputs["hidden_states"][-1]
-    last_hidden_states = self.post_proj(last_hidden_states)
+    last_hidden_states = self.post_proj(last_hidden_states)  # pyrefly: ignore[not-callable]
     output_shape = input_shape[:-1] + [get_shape(last_hidden_states)[-1]]
 
     aggregated = last_hidden_states[:, 0, :]

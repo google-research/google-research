@@ -27,8 +27,8 @@ import gin
 import numpy as np
 import scipy.optimize as sp_opt
 import simplejson
-from six.moves import range
-from six.moves import zip
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from typing import Tuple
@@ -231,7 +231,7 @@ def GetTargetSpec(
           rng.gamma(shape=gamma_shape, scale=1.,
                     size=num_dims)).astype(np.float32)
     q, _ = np.linalg.qr(rng.randn(num_dims, num_dims))
-    covariance = (q * eigenvalues**-1).dot(q.T).astype(np.float32)
+    covariance = (q * eigenvalues**-1).dot(q.T).astype(np.float32)  # pyrefly: ignore[unbound-name]
     target = tfd.MultivariateNormalFullCovariance(
         loc=tf.zeros(num_dims), covariance_matrix=covariance)
   elif name == "ill_cond_t":
@@ -272,7 +272,7 @@ def GetTargetSpec(
       eigenvalues = np.sort(rng.gamma(shape=0.5, scale=1.,
                                       size=num_dims)).astype(np.float32)
     q, _ = np.linalg.qr(rng.randn(num_dims, num_dims))
-    covariance = (q * eigenvalues**-1).dot(q.T).astype(np.float32)
+    covariance = (q * eigenvalues**-1).dot(q.T).astype(np.float32)  # pyrefly: ignore[unbound-name]
 
     scale = tf.linalg.LinearOperatorFullMatrix(covariance)
     target = tfd.MultivariateStudentTLinearOperator(
@@ -318,19 +318,19 @@ def GetTargetSpec(
     if regression_stochastic_points > 0:
       chosen_rows = tf.random.uniform([int(regression_stochastic_points)],
                                       0,
-                                      int(x.shape[0]),
+                                      int(x.shape[0]),  # pyrefly: ignore[unbound-name]
                                       dtype=tf.int32)
       x = tf.gather(x, chosen_rows)
-      y = tf.gather(y, chosen_rows)
+      y = tf.gather(y, chosen_rows)  # pyrefly: ignore[unbound-name]
 
     if regression_normalize:
-      x_min = tf.reduce_min(x, 0, keep_dims=True)
+      x_min = tf.reduce_min(x, 0, keep_dims=True)  # pyrefly: ignore[unbound-name]
       x_max = tf.reduce_max(x, 0, keep_dims=True)
 
       x /= (x_max - x_min)
       x = 2.0 * x - 1.0
 
-    x = tf.concat([x, tf.ones([int(x.shape[0]), 1])], -1)
+    x = tf.concat([x, tf.ones([int(x.shape[0]), 1])], -1)  # pyrefly: ignore[unbound-name]
 
     def regular_log_prob_fn(params):
       if regression_hier_type == "none":
@@ -394,7 +394,7 @@ def GetTargetSpec(
       else:
         mu_0_dist = tfd.Normal(loc=0.0, scale=10.0)
         tau_0_dist = tfd.Gamma(2.0, 1.0)
-        log_prob += mu_0_dist.log_prob(mu_0) + tau_0_dist.log_prob(tau_0)
+        log_prob += mu_0_dist.log_prob(mu_0) + tau_0_dist.log_prob(tau_0)  # pyrefly: ignore[unbound-name]
 
         if regression_hier_type == "centered":
           mu_0 = tf.tile(
@@ -553,22 +553,22 @@ def GetTargetSpec(
       log_prob_fn = regular_log_prob_fn
     elif regression_type == "gamma_scales":
       log_prob_fn = gamma_scales_log_prob_fn
-      num_dims = num_features + 1
+      num_dims = num_features + 1  # pyrefly: ignore[unbound-name]
       if regression_use_beta_scales:
         num_dims += num_features
     elif regression_type == "horseshoe":
       log_prob_fn = horseshoe_log_prob_fn
-      num_dims = num_features * 3 + 2
+      num_dims = num_features * 3 + 2  # pyrefly: ignore[unbound-name]
       bijector = tfb.Blockwise([tfb.Identity(), tfb.Exp()],
                                [num_features, num_features * 2 + 2])
     elif regression_type == "gamma_scales2":
       log_prob_fn = gamma_scales2_log_prob_fn
-      num_dims = num_features * 2 + 1
+      num_dims = num_features * 2 + 1  # pyrefly: ignore[unbound-name]
       bijector = tfb.Blockwise([tfb.Identity(), tfb.Exp()],
                                [num_features, num_features + 1])
 
 
-    target = utils.LogProbDist(num_dims=num_dims, log_prob_fn=log_prob_fn)
+    target = utils.LogProbDist(num_dims=num_dims, log_prob_fn=log_prob_fn)  # pyrefly: ignore[unbound-name]
     spec = TargetSpec(
         name=name,
         num_dims=num_dims,
@@ -674,9 +674,9 @@ def GetTargetSpec(
     with tf.gfile.Open(precomputed_stats_path) as f:
       stats = simplejson.load(f)
       stats = {k: np.array(v) for k, v in stats.items()}
-      spec = spec._replace(stats=stats)
+      spec = spec._replace(stats=stats)  # pyrefly: ignore[unbound-name]
 
-  return target, spec._replace(**kwargs)
+  return target, spec._replace(**kwargs)  # pyrefly: ignore[unbound-name]
 
 
 NeuTraOutputs = collections.namedtuple(

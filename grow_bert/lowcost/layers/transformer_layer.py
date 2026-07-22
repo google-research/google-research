@@ -230,12 +230,12 @@ class TransformerLayer(tf.keras.layers.Layer):
       target_tensor = _target_tensor
     elif self._output_range:
       target_tensor = input_tensor[:, 0:self._output_range, :]
-      attention_mask = attention_mask[:, 0:self._output_range, :]
+      attention_mask = attention_mask[:, 0:self._output_range, :]  # pyrefly: ignore[unsupported-operation]
     else:
       target_tensor = input_tensor
 
     if self.use_lightatt:
-      attention_output, attention_scores = self._attention_layer(
+      attention_output, attention_scores = self._attention_layer(  # pyrefly: ignore[not-callable]
           target_tensor,
           input_tensor,
           key=None,
@@ -243,33 +243,33 @@ class TransformerLayer(tf.keras.layers.Layer):
           return_attention_scores=True,
           shared_attention_scores=shared_attention_scores)
     else:
-      attention_output, attention_scores = self._attention_layer(
+      attention_output, attention_scores = self._attention_layer(  # pyrefly: ignore[not-callable]
           target_tensor,
           input_tensor,
           key=None,
           attention_mask=attention_mask,
           return_attention_scores=True)
 
-    attention_output = self._attention_dropout(attention_output)
-    attention_output = self._attention_layer_norm(target_tensor +
+    attention_output = self._attention_dropout(attention_output)  # pyrefly: ignore[not-callable]
+    attention_output = self._attention_layer_norm(target_tensor +  # pyrefly: ignore[not-callable]
                                                   attention_output)
     if self.net2net_ratio is not None:
-      intermediate_output = self._intermediate_dense_small(attention_output)
+      intermediate_output = self._intermediate_dense_small(attention_output)  # pyrefly: ignore[not-callable]
     else:
-      intermediate_output = self._intermediate_dense(attention_output)
-    intermediate_output = self._intermediate_activation_layer(
+      intermediate_output = self._intermediate_dense(attention_output)  # pyrefly: ignore[not-callable]
+    intermediate_output = self._intermediate_activation_layer(  # pyrefly: ignore[not-callable]
         intermediate_output)
 
     if self.net2net_ratio is not None:
-      layer_output = self._output_dense_small(intermediate_output)
+      layer_output = self._output_dense_small(intermediate_output)  # pyrefly: ignore[not-callable]
     else:
-      layer_output = self._output_dense(intermediate_output)
-    layer_output = self._output_dropout(layer_output)
+      layer_output = self._output_dense(intermediate_output)  # pyrefly: ignore[not-callable]
+    layer_output = self._output_dropout(layer_output)  # pyrefly: ignore[not-callable]
     # During mixed precision training, attention_output is from layer norm and
     # is always fp32 for now. Cast layer_output to fp32 for the subsequent
     # add.
     layer_output = tf.cast(layer_output, tf.float32)
-    layer_output = self._output_layer_norm(layer_output + attention_output)
+    layer_output = self._output_layer_norm(layer_output + attention_output)  # pyrefly: ignore[not-callable]
 
     return layer_output, attention_scores
 

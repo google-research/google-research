@@ -40,15 +40,15 @@ TF_SEQUENCE_EXAMPLE = 'tf_sequence_example'
 
 class Mode(enum.Enum):
   """Experiment mode for training or evaluation."""
-  TRAIN: str = 'train'
-  EVAL: str = 'eval'
+  TRAIN: str = 'train'  # pyrefly: ignore[invalid-annotation]
+  EVAL: str = 'eval'  # pyrefly: ignore[invalid-annotation]
 
 
 class Task(enum.Enum):
   """Experiment task for pre-/training or finetuning."""
-  TRAIN: str = 'train'
-  PRETRAIN: str = 'pretrain'
-  FINETUNE: str = 'finetune'
+  TRAIN: str = 'train'  # pyrefly: ignore[invalid-annotation]
+  PRETRAIN: str = 'pretrain'  # pyrefly: ignore[invalid-annotation]
+  FINETUNE: str = 'finetune'  # pyrefly: ignore[invalid-annotation]
 
 
 class TextVocabSize:

@@ -151,10 +151,10 @@ def _private_optimize_obj(
   """
   _, center = dp_med.get_private_kmed_center(
       data,
-      privacy_params.lambd,
-      privacy_params.epsilon,
-      privacy_params.delta,
-      privacy_params.gamma,
+      privacy_params.lambd,  # pyrefly: ignore[missing-attribute]
+      privacy_params.epsilon,  # pyrefly: ignore[missing-attribute]
+      privacy_params.delta,  # pyrefly: ignore[missing-attribute]
+      privacy_params.gamma,  # pyrefly: ignore[missing-attribute]
       max_num_points,
   )
   obj = objective(data, center, weights)

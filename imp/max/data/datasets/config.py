@@ -309,4 +309,4 @@ ALL_DATASETS = (
 )
 
 
-DATASET_REGISTRY = {dataset.name: dataset for dataset in ALL_DATASETS}
+DATASET_REGISTRY = {dataset.name: dataset for dataset in ALL_DATASETS}  # pyrefly: ignore[missing-attribute]

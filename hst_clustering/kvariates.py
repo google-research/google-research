@@ -214,7 +214,7 @@ def parse_centers_from_files(center_dir, data_recovery_info=None):
       data = pd.read_csv(f, sep=r"\s+", header=None, index_col=0)
     with open(data_recovery_info.raw_data, "rb") as f:
       raw_data = np.load(f)
-    assignment = np.argmin(kmedian_plus_plus.find_distances(data, centers), 1)
+    assignment = np.argmin(kmedian_plus_plus.find_distances(data, centers), 1)  # pyrefly: ignore[bad-argument-type]
     centers = kmedian_plus_plus.private_center_recovery(
         raw_data,
         assignment,

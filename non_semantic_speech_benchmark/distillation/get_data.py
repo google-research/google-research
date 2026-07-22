@@ -153,8 +153,8 @@ def get_data(file_patterns,
     unnormalized_samples = kv[SAMPLES_]
 
     # Normalize.
-    normalized_samples = unnormalized_samples / np.iinfo(np.int16).max
-    kv[SAMPLES_] = normalized_samples
+    normalized_samples = unnormalized_samples / np.iinfo(np.int16).max  # pyrefly: ignore[unsupported-operation]
+    kv[SAMPLES_] = normalized_samples  # pyrefly: ignore[unsupported-operation]
 
     return kv
 

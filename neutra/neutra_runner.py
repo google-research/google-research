@@ -27,8 +27,8 @@ from absl import flags
 import gin
 import numpy as np
 import simplejson
-from six.moves import range
-from six.moves import zip
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 
 from neutra import neutra

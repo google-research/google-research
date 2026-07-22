@@ -110,10 +110,10 @@ class EmbedPoolLayer(tf.keras.layers.Layer):
       pooled_len = seq_len // self.pool_size
       pooled_tensor = tf.reshape(
           tensor_to_pool, [batch_size, pooled_len, self.pool_size * embed_dim])
-      pooled_tensor = self.embedding_projection_dense(pooled_tensor)
+      pooled_tensor = self.embedding_projection_dense(pooled_tensor)  # pyrefly: ignore[not-callable]
     elif self.pool_name is not None:
       raise NotImplementedError
     if unpooled_len > 0:
       pooled_tensor = tf.concat(
-          [pooled_tensor, input_tensor[:, -unpooled_len:, :]], axis=1)
-    return pooled_tensor
+          [pooled_tensor, input_tensor[:, -unpooled_len:, :]], axis=1)  # pyrefly: ignore[unbound-name]
+    return pooled_tensor  # pyrefly: ignore[unbound-name]

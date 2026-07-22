@@ -82,7 +82,7 @@ class EnvConfig(core.Params):
   # rating of movies independently of the topic affinity.
   genre_shift = attr.ib(factory=list)
 
-  @genre_shift.validator
+  @genre_shift.validator  # pyrefly: ignore[missing-attribute]
   def _check_genre_shift(self, attribute, value):
     if value and len(value) != len(utils.GENRES):
       raise ValueError(('genre_shift must be empty or len(genre_shift) must '
@@ -203,7 +203,7 @@ class User(user.AbstractUserState):
   def rate_document(self, doc):
     """Returns the user's rating for a document."""
     return np.clip(
-        np.dot(doc.movie_vec, self.topic_affinity), MIN_RATING_SCORE,
+        np.dot(doc.movie_vec, self.topic_affinity), MIN_RATING_SCORE,  # pyrefly: ignore[bad-argument-type]
         MAX_RATING_SCORE)
 
   def check_if_new_genre(self, doc):
@@ -258,14 +258,14 @@ class User(user.AbstractUserState):
     return {'user_id': self.user_id}
 
   def _update_affinity_vector(self, doc):
-    embedding_dim = len(self.topic_affinity)
+    embedding_dim = len(self.topic_affinity)  # pyrefly: ignore[bad-argument-type]
     if embedding_dim < len(utils.GENRES):
       raise ValueError('Embedding dimension is smaller than number of genres')
     offset_index = embedding_dim - len(utils.GENRES)
     genre_indices_to_update = [
         genre_id + offset_index for genre_id in doc.genres
     ]
-    self.topic_affinity[genre_indices_to_update] *= (1 +
+    self.topic_affinity[genre_indices_to_update] *= (1 +  # pyrefly: ignore[unsupported-operation]
                                                      self.affinity_update_delta)
 
   def shift_genre_preferences(self, genre_shift=None):
@@ -277,13 +277,13 @@ class User(user.AbstractUserState):
     Args:
       genre_shift: List of length len(utils.GENRES) or None
     """
-    embedding_dim = len(self.topic_affinity)
+    embedding_dim = len(self.topic_affinity)  # pyrefly: ignore[bad-argument-type]
     if embedding_dim < len(utils.GENRES):
       raise ValueError('Embedding dimension is smaller than number of genres')
     if genre_shift and len(genre_shift) != len(utils.GENRES):
       raise ValueError('Genre shift vector is not the correct length')
     if genre_shift:
-      self.topic_affinity[-len(utils.GENRES):] += genre_shift
+      self.topic_affinity[-len(utils.GENRES):] += genre_shift  # pyrefly: ignore[unsupported-operation]
 
   def _update_genre_history(self, doc):
     for genre in doc.genres:
@@ -296,7 +296,7 @@ class User(user.AbstractUserState):
     self._update_genre_history(doc)
 
   def reset_state(self):
-    self.topic_affinity = np.copy(self.initial_topic_affinity)
+    self.topic_affinity = np.copy(self.initial_topic_affinity)  # pyrefly: ignore[no-matching-overload]
     self.genre_history = np.copy(self.initial_genre_history)
     # Diversity seeking behavior can vary across instances of this user.
     self.diversity_seeking = bool(self._rng.binomial(1, self.diversity_prob))

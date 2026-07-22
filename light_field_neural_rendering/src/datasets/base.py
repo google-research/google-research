@@ -45,9 +45,9 @@ class BaseDataset(threading.Thread):
     self.batching = args.dataset.batching
     self.render_path = args.dataset.render_path
     # Set the image height and width in the config
-    args.dataset.image_height = self.h
-    args.dataset.image_width = self.w
-    self.resolution = self.h * self.w
+    args.dataset.image_height = self.h  # pyrefly: ignore[missing-attribute]
+    args.dataset.image_width = self.w  # pyrefly: ignore[missing-attribute]
+    self.resolution = self.h * self.w  # pyrefly: ignore[missing-attribute]
     self.start()
 
   def __iter__(self):
@@ -90,7 +90,7 @@ class BaseDataset(threading.Thread):
 
   @property
   def size(self):
-    return self.n_examples
+    return self.n_examples  # pyrefly: ignore[missing-attribute]
 
   def _load_renderings(self, args):
     raise NotImplementedError
@@ -134,7 +134,7 @@ class BaseDataset(threading.Thread):
 
     elif self.batching == "single_image":
       # Choose a random image
-      image_index = np.random.randint(0, self.n_examples, ())
+      image_index = np.random.randint(0, self.n_examples, ())  # pyrefly: ignore[missing-attribute]
       # Choose ray indices for this image
       # Ray elements have a shape of (num_train_images, resolution, _)
       ray_indices = np.random.randint(0, self.rays.batch_shape[1],
@@ -153,10 +153,10 @@ class BaseDataset(threading.Thread):
   def _next_test(self):
     """Sample next test example."""
     idx = self.it
-    self.it = (self.it + 1) % self.n_examples
+    self.it = (self.it + 1) % self.n_examples  # pyrefly: ignore[missing-attribute]
 
     if self.render_path:
-      rays = jax.tree.map(lambda r: r[idx], self.render_rays)
+      rays = jax.tree.map(lambda r: r[idx], self.render_rays)  # pyrefly: ignore[missing-attribute]
       target_view = data_types.Views(rays=rays)
       return data_types.Batch(target_view=target_view)
 
@@ -170,18 +170,18 @@ class BaseDataset(threading.Thread):
     """Generate rays for all the views."""
     pixel_center = 0.5 if self.use_pixel_centers else 0.0
     x, y = np.meshgrid(  # pylint: disable=unbalanced-tuple-unpacking
-        np.arange(self.w, dtype=np.float32) + pixel_center,  # X-Axis (columns)
-        np.arange(self.h, dtype=np.float32) + pixel_center,  # Y-Axis (rows)
+        np.arange(self.w, dtype=np.float32) + pixel_center,  # X-Axis (columns)  # pyrefly: ignore[missing-attribute]
+        np.arange(self.h, dtype=np.float32) + pixel_center,  # Y-Axis (rows)  # pyrefly: ignore[missing-attribute]
         indexing="xy")
 
     pixels = np.stack((x, y, -np.ones_like(x)), axis=-1)
-    inverse_intrisics = np.linalg.inv(self.intrinsic_matrix[Ellipsis, :3, :3])
+    inverse_intrisics = np.linalg.inv(self.intrinsic_matrix[Ellipsis, :3, :3])  # pyrefly: ignore[missing-attribute]
     camera_dirs = (inverse_intrisics[None, None, :] @ pixels[Ellipsis, None])[Ellipsis, 0]
 
-    directions = (self.camtoworlds[:, None, None, :3, :3]
+    directions = (self.camtoworlds[:, None, None, :3, :3]  # pyrefly: ignore[missing-attribute]
                   @ camera_dirs[None, Ellipsis, None])[Ellipsis, 0]
-    origins = np.broadcast_to(self.camtoworlds[:, None, None, :3, -1],
+    origins = np.broadcast_to(self.camtoworlds[:, None, None, :3, -1],  # pyrefly: ignore[missing-attribute]
                               directions.shape)
     viewdirs = directions / np.linalg.norm(directions, axis=-1, keepdims=True)
 
-    self.rays = data_types.Rays(origins=origins, directions=viewdirs)
+    self.rays = data_types.Rays(origins=origins, directions=viewdirs)  # pyrefly: ignore[bad-argument-type]

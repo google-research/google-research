@@ -293,9 +293,9 @@ class Seq2SeqRnnModel(object):
     self._attention_type = attention_type
     self._rnn_cell_type = rnn_cell_type
     self._input_symbols = input_symbols
-    self._input_vocab_size = len(input_symbols)
+    self._input_vocab_size = len(input_symbols)  # pyrefly: ignore[bad-argument-type]
     self._output_symbols = output_symbols
-    self._output_vocab_size = len(output_symbols)
+    self._output_vocab_size = len(output_symbols)  # pyrefly: ignore[bad-argument-type]
     self._encoder = Encoder(self._input_vocab_size,
                             self._embedding_dim,
                             self._enc_units,
@@ -331,7 +331,7 @@ class Seq2SeqRnnModel(object):
       dec_hidden = enc_hidden
       dec_context = self._decoder.init_context(self._batch_size)
       dec_input = tf.expand_dims(
-          [self._output_symbols.find("<s>")] * self._batch_size, 1)
+          [self._output_symbols.find("<s>")] * self._batch_size, 1)  # pyrefly: ignore[missing-attribute]
       for t in range(1, targ.shape[1]):
         predictions, dec_hidden, dec_context, _ = self._decoder(
             dec_input, dec_hidden, dec_context, enc_output)
@@ -418,7 +418,7 @@ class Seq2SeqRnnModel(object):
     enc_out, enc_hidden = self._encoder(inputs, enc_hidden)
     dec_hidden = enc_hidden
     dec_context = self._decoder.init_context(1)
-    dec_input = tf.expand_dims([self._output_symbols.find("<s>")], 0)
+    dec_input = tf.expand_dims([self._output_symbols.find("<s>")], 0)  # pyrefly: ignore[missing-attribute]
     result = []
     attention_plot = np.zeros([self._output_length, self._input_length])
     for t in range(self._output_length):
@@ -431,7 +431,7 @@ class Seq2SeqRnnModel(object):
       attention_weights = tf.reshape(attention_weights, [-1])
       attention_plot[t] = attention_weights.numpy()
       predicted_id = int(tf.argmax(predictions[0]).numpy())
-      outsym = self._output_symbols.find(predicted_id)
+      outsym = self._output_symbols.find(predicted_id)  # pyrefly: ignore[missing-attribute]
       if outsym == "</s>" or outsym == "</targ>":
         return joiner.join(result), attention_plot
       else:

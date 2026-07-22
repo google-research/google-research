@@ -56,7 +56,7 @@ def find_top_movies_overall(num_movies, data_path):
   """
   ratings_df = pd.read_csv(file_util.open(f'{data_path}/ratings.csv', 'r'))
 
-  top_movies = ratings_df.groupby('movieId').size().sort_values(
+  top_movies = ratings_df.groupby('movieId').size().sort_values(  # pyrefly: ignore[missing-argument]
       ascending=False)[:num_movies].index.values
 
   top_movies = np.unique(top_movies)
@@ -85,7 +85,7 @@ def find_top_movies_per_genre(movies_per_genre,
     movies_in_genre = movies_df[filter_genre]['movieId'].values  # pylint: disable=unused-variable
     movies_in_genre_by_num_ratings = ratings_df.query(
         'movieId in @movies_in_genre').groupby('movieId').size()
-    top_movies_in_genre = movies_in_genre_by_num_ratings.sort_values(
+    top_movies_in_genre = movies_in_genre_by_num_ratings.sort_values(  # pyrefly: ignore[missing-argument]
         ascending=False)[:movies_per_genre].index.values
     top_movies = np.append(top_movies, top_movies_in_genre)
 
@@ -302,7 +302,7 @@ class Dataset(object):
             for genre in row.genres.split('|')
         ]
 
-        genre_vecs[idx, genres] = 1
+        genre_vecs[idx, genres] = 1  # pyrefly: ignore[unsupported-operation]
 
       if not np.all(genre_vecs.sum(axis=1) > 0):
         raise ValueError('Some movies have no genres')

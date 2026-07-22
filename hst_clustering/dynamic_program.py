@@ -38,10 +38,10 @@ class Node:
     self.cost_matrix = []
     self.right_optimal = []
     self.left_optimal = []
-    self.is_root = False
+    self.is_root = False  # pyrefly: ignore[bad-assignment]
 
   def mark_as_root(self):
-    self.is_root = True
+    self.is_root = True  # pyrefly: ignore[bad-assignment]
 
   def is_root(self):
     return self.is_root
@@ -53,9 +53,9 @@ class Node:
     return True
 
   def initialize_cost_matrix_and_facilities(self, k):
-    self.cost_matrix = np.zeros(k + 1)
-    self.right_optimal = np.zeros(k + 1, dtype=int)
-    self.left_optimal = np.zeros(k + 1, dtype=int)
+    self.cost_matrix = np.zeros(k + 1)  # pyrefly: ignore[bad-assignment]
+    self.right_optimal = np.zeros(k + 1, dtype=int)  # pyrefly: ignore[bad-assignment]
+    self.left_optimal = np.zeros(k + 1, dtype=int)  # pyrefly: ignore[bad-assignment]
 
   def set_right_child(self, node):
     self.right_child = node
@@ -106,7 +106,7 @@ class HST:
       raise IndexError("Tree already has root")
     self.nodes[root_id] = node
     self.root_id = root_id
-    node.is_root = True
+    node.is_root = True  # pyrefly: ignore[bad-assignment]
 
   def get_node(self, node_id):
     if node_id not in self.nodes.keys():

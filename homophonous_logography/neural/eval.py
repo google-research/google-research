@@ -341,4 +341,4 @@ def eval_and_plot(model, data, indices, show_plots=False,
   return (total_predictions,
           cor / total_predictions,
           normalized_ratio,
-          normalized_reduced_ratio)
+          normalized_reduced_ratio)  # pyrefly: ignore[unbound-name]

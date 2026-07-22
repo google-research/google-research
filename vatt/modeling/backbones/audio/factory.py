@@ -48,7 +48,7 @@ class PredictionAggregator(tf.keras.layers.Layer):
 
   def call(self,  # pytype: disable=annotation-type-mismatch
            inputs,
-           training = None):
+           training = None):  # pyrefly: ignore[bad-function-definition]
     if training or self._num_test_clips == 1:
       return inputs
 
@@ -82,7 +82,7 @@ class AudioModel(tf.keras.Model):
     self._ops = collections.OrderedDict()
 
     base_kwargs = params.as_dict()
-    self._base = base_model(**base_kwargs)
+    self._base = base_model(**base_kwargs)  # pyrefly: ignore[not-callable]
 
     if self._freeze_backbone:
       self._base.trainable = False
@@ -140,7 +140,7 @@ class AudioModel(tf.keras.Model):
 
   def call(self,  # pytype: disable=annotation-type-mismatch,signature-mismatch
            inputs,
-           training = None):
+           training = None):  # pyrefly: ignore[bad-function-definition]
     """Call the layer.
 
     Args:
@@ -173,7 +173,7 @@ class AudioModel(tf.keras.Model):
     features_pooled = self._ops['dropout'](features_pooled, training)  # pytype: disable=duplicate-keyword-argument
     logits = self._ops['cls'](features_pooled)
     if self.pred_aggregator is not None:
-      logits = self.pred_aggregator(logits, training)
+      logits = self.pred_aggregator(logits, training)  # pyrefly: ignore[not-callable]
     probabilities = self._ops['sigmoid'](logits)
 
     outputs = {
@@ -210,13 +210,13 @@ def build_model(
 
   if mode == 'predict':
     pred_aggregator = PredictionAggregator(
-        num_test_clips=params.num_test_samples
+        num_test_clips=params.num_test_samples  # pyrefly: ignore[bad-argument-type]
         )
   else:
     pred_aggregator = None
 
   model = AudioModel(
-      base_model=base_model,
+      base_model=base_model,  # pyrefly: ignore[bad-argument-type]
       params=params,
       pred_aggregator=pred_aggregator
       )

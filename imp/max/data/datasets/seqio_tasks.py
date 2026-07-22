@@ -31,7 +31,7 @@ TaskRegistry = seqio.TaskRegistry
 
 TaskRegistry.add(
     'max.c4.en.bert',
-    source=seqio.TfdsDataSource(tfds_name='c4/en:3.0.1'),
+    source=seqio.TfdsDataSource(tfds_name='c4/en:3.0.1'),  # pyrefly: ignore[bad-argument-type]
     preprocessors=[
         functools.partial(
             t5_preprocessors.rekey, key_map={
@@ -49,7 +49,7 @@ TaskRegistry.add(
 
 TaskRegistry.add(
     'max.c4.en.t5',
-    source=seqio.TfdsDataSource(tfds_name='c4/en:3.0.1'),
+    source=seqio.TfdsDataSource(tfds_name='c4/en:3.0.1'),  # pyrefly: ignore[bad-argument-type]
     preprocessors=[
         functools.partial(
             t5_preprocessors.rekey, key_map={
@@ -68,7 +68,7 @@ TaskRegistry.add(
 
 TaskRegistry.add(
     'max.wikipedia.en.bert',
-    source=seqio.TfdsDataSource(tfds_name='wikipedia/20220620.en:1.0.0'),
+    source=seqio.TfdsDataSource(tfds_name='wikipedia/20220620.en:1.0.0'),  # pyrefly: ignore[bad-argument-type]
     preprocessors=[
         functools.partial(
             t5_preprocessors.rekey, key_map={

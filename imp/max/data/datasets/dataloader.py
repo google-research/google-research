@@ -181,7 +181,7 @@ class DataLoader:
   def add_metadata(self,
                    dataset):
     """Adds the metadata to the iterable elements of the dataset."""
-    return _GeneratorWithMetadata(dataset, self.metadata)
+    return _GeneratorWithMetadata(dataset, self.metadata)  # pyrefly: ignore[bad-argument-type]
 
   def __call__(self, **kwargs):
     """Builds the dataset."""

@@ -130,7 +130,7 @@ class ConfigHelper:
     spec = importlib.util.spec_from_file_location(
         self.config_flag_name, self.absolute_path
     )
-    module = importlib.util.module_from_spec(spec)
+    module = importlib.util.module_from_spec(spec)  # pyrefly: ignore[bad-argument-type]
     spec.loader.exec_module(module)  # pytype: disable=attribute-error
     if not isinstance(module, ConfigProtocol):
       raise RuntimeError(f"Config {module} doesn't conform to ConfigProtocol")

@@ -125,8 +125,8 @@ def verify_attention_shapes(attention_bias,
                             inputs_shape):
   """Ensures that attention bias and mask match expected shapes."""
   length = np.prod(inputs_shape[2:-1])
-  _verify_bias_shape(attention_bias, length)
-  _verify_mask_shape(token_mask, length)
+  _verify_bias_shape(attention_bias, length)  # pyrefly: ignore[bad-argument-type]
+  _verify_mask_shape(token_mask, length)  # pyrefly: ignore[bad-argument-type]
 
 
 def _flatten_dict_fn(
@@ -137,12 +137,12 @@ def _flatten_dict_fn(
   flattened_list = []
   for key, value in dictionary.items():
     if sep is None:
-      new_key = parent_key + (key,) if parent_key else (key,)
+      new_key = parent_key + (key,) if parent_key else (key,)  # pyrefly: ignore[unsupported-operation]
     else:
       new_key = f'{parent_key}{sep}{key}' if parent_key else key
 
     if isinstance(value, Mapping):
-      flattened = _flatten_dict_fn(value, new_key, sep).items()
+      flattened = _flatten_dict_fn(value, new_key, sep).items()  # pyrefly: ignore[bad-argument-type]
       flattened_list.extend(flattened)
     elif isinstance(value, Sequence) and not isinstance(value, str):
       value = tuple(value)
@@ -1561,9 +1561,9 @@ def extract_raw_voxels_from_volume_patches(
     patches = jnp.reshape(
         patches,
         (patches.shape[0], patches.shape[1],
-         expected_voxel_shape[0] // patch_sizes[0],
-         expected_voxel_shape[1] // patch_sizes[1],
-         expected_voxel_shape[2] // patch_sizes[2], -1))
+         expected_voxel_shape[0] // patch_sizes[0],  # pyrefly: ignore[unsupported-operation]
+         expected_voxel_shape[1] // patch_sizes[1],  # pyrefly: ignore[unsupported-operation]
+         expected_voxel_shape[2] // patch_sizes[2], -1))  # pyrefly: ignore[unsupported-operation]
 
   patches = sharding.shard_array(patches, volume_patches_shardings)
   patches = jnp.reshape(
@@ -1630,7 +1630,7 @@ def extract_raw_waveform_from_patches(
 # TODO(hassanak): add support for precise jax or np modes to avoid memory leak
 def harmonic_mean(x, eps = 1e-6):
   """Calculates the harmonic mean of an array."""
-  return 1. / np.sum(1. / (x + eps))
+  return 1. / np.sum(1. / (x + eps))  # pyrefly: ignore[bad-return]
 
 
 # TODO(hassanak): add support for precise jax or np modes to avoid memory leak

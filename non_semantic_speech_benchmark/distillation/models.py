@@ -67,7 +67,7 @@ def get_keras_model(model_type,
   model_in, feats = frontend_keras(frontend, tflite)
   feats.shape.assert_is_compatible_with([None, None, None, 1])
   spec_augment_fn = augmentation.SpecAugment() if spec_augment else tf.identity
-  feats = spec_augment_fn(feats)
+  feats = spec_augment_fn(feats)  # pyrefly: ignore[not-callable]
 
   # Build network.
   logging.info('Features shape: %s', feats.shape)
@@ -98,7 +98,7 @@ def get_keras_model(model_type,
 
   target = embeddings
   if need_final_layer and not truncate_output:
-    target = tf.keras.layers.Dense(
+    target = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
         output_dimension, name='embedding_to_target')(target)
   output_dict['embedding_to_target'] = target
   output_model = tf.keras.Model(inputs=[model_in], outputs=output_dict)
@@ -119,7 +119,7 @@ def frontend_keras(frontend, tflite):
                               name='audio_samples',
                               batch_size=num_batches)
     bs = tf.shape(model_in)[0]
-    feats = frontend_lib.SamplesToFeats(tflite, frontend_args)(model_in)
+    feats = frontend_lib.SamplesToFeats(tflite, frontend_args)(model_in)  # pyrefly: ignore[not-callable]
     feats.shape.assert_is_compatible_with(
         [num_batches, feats_inner_dim, frontend_args['frame_width'],
          frontend_args['num_mel_bins']])

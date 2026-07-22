@@ -105,18 +105,18 @@ class QLearning(LossFn):
     transitions = batch.data
 
     # Forward pass.
-    q_tm1 = network.apply(params, transitions.observation)
-    q_t = network.apply(target_params, transitions.next_observation)
+    q_tm1 = network.apply(params, transitions.observation)  # pyrefly: ignore[missing-attribute]
+    q_t = network.apply(target_params, transitions.next_observation)  # pyrefly: ignore[missing-attribute]
 
     # Cast and clip rewards.
-    d_t = (transitions.discount * self.discount).astype(jnp.float32)
+    d_t = (transitions.discount * self.discount).astype(jnp.float32)  # pyrefly: ignore[missing-attribute]
     r_t = jnp.clip(
-        transitions.reward, -self.max_abs_reward, self.max_abs_reward
+        transitions.reward, -self.max_abs_reward, self.max_abs_reward  # pyrefly: ignore[missing-attribute]
     ).astype(jnp.float32)
 
     # Compute Q-learning TD-error.
     batch_error = jax.vmap(rlax.q_learning)
-    td_error = batch_error(q_tm1, transitions.action, r_t, d_t, q_t)
+    td_error = batch_error(q_tm1, transitions.action, r_t, d_t, q_t)  # pyrefly: ignore[missing-attribute]
     batch_loss = jnp.square(td_error)
 
     loss = jnp.mean(batch_loss)
@@ -221,7 +221,7 @@ def make_environment(
       ),
   ]
   if encoder_wrapper:
-    wrapper_list.append(encoder_wrapper)
-  wrapper_list.append(wrappers.SinglePrecisionWrapper)
+    wrapper_list.append(encoder_wrapper)  # pyrefly: ignore[bad-argument-type]
+  wrapper_list.append(wrappers.SinglePrecisionWrapper)  # pyrefly: ignore[bad-argument-type]
 
-  return wrappers.wrap_all(env, wrapper_list)
+  return wrappers.wrap_all(env, wrapper_list)  # pyrefly: ignore[bad-argument-type]

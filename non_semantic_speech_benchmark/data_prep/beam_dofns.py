@@ -185,7 +185,7 @@ class ComputeEmbeddingMapFn(beam.DoFn):
     # Calculate the 2D embedding.
     logging.info('[%s] `model_input` shape: %s', self._name, model_input.shape)
     embedding_2d = self._module_call_fn(
-        model_input, sample_rate, self.post_setup_module, self._output_key,
+        model_input, sample_rate, self.post_setup_module, self._output_key,  # pyrefly: ignore[bad-argument-type]
         self._name)  # pytype: disable=wrong-arg-types  # trace-all-classes
     if not isinstance(embedding_2d, np.ndarray):
       raise ValueError(f'`embedding_2d` wrong type: {type(embedding_2d)}')
@@ -223,7 +223,7 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
                module_call_fn = utils.samples_to_embedding_tfhub_w2v2,
                **kwargs):
     super(ComputeMultipleEmbeddingsFromSingleModel, self).__init__(
-        *args, module_call_fn=module_call_fn, **kwargs)
+        *args, module_call_fn=module_call_fn, **kwargs)  # pyrefly: ignore[bad-argument-type]
     self._chunk_len = chunk_len
     self._output_keys = self._output_key
     self._embedding_names = embedding_names
@@ -259,20 +259,20 @@ class ComputeMultipleEmbeddingsFromSingleModel(ComputeEmbeddingMapFn):
 
     if isinstance(self.post_setup_module, predictor.Predictor):
       tf_out = self._module_call_fn(
-          model_input=model_input,
-          sample_rate=sample_rate,
-          asr_pred=self.post_setup_module,
-          output_key=self._output_keys,
+          model_input=model_input,  # pyrefly: ignore[bad-argument-count, unexpected-keyword]
+          sample_rate=sample_rate,  # pyrefly: ignore[unexpected-keyword]
+          asr_pred=self.post_setup_module,  # pyrefly: ignore[unexpected-keyword]
+          output_key=self._output_keys,  # pyrefly: ignore[unexpected-keyword]
       )
     else:
-      tf_out = self._module_call_fn(model_input, self.post_setup_module)
+      tf_out = self._module_call_fn(model_input, self.post_setup_module)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
 
     out_dict = {}
     for name, output_key in zip(self._embedding_names, self._output_keys):
       assert isinstance(name, str)
       if output_key not in tf_out:
         raise ValueError(
-            f'Output key not recognized: {output_key} vs {tf_out.keys()}')
+            f'Output key not recognized: {output_key} vs {tf_out.keys()}')  # pyrefly: ignore[missing-attribute]
       cur_emb = np.array(tf_out[output_key])
       if cur_emb.ndim != 3:  #  (chunk size, time, embedding dim)
         raise ValueError(f'Wrong output dim size: {cur_emb.ndim}')
@@ -319,7 +319,7 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     logging.info('label_key: %s', self._label_key)
     logging.info('speaker_id_key: %s', self._speaker_id_key)
 
-  def process(
+  def process(  # pyrefly: ignore[bad-override]
       self, k_v):
     k, ex = k_v
 
@@ -331,13 +331,13 @@ class ChunkAudioAndComputeEmbeddings(ComputeMultipleEmbeddingsFromSingleModel):
     # Calculate the 3D embeddings.
     if self._compute_embeddings_on_chunked_audio:
       model_input = chnkd_audio
-      tf_out = self._module_call_fn(model_input, self.post_setup_module)
+      tf_out = self._module_call_fn(model_input, self.post_setup_module)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
     else:
       model_input, _ = self.read_and_preprocess_audio(k, ex)
       assert model_input.ndim == 1
       model_input = np.expand_dims(model_input, axis=0)
-      tf_out = self._module_call_fn(model_input, self.post_setup_module)
+      tf_out = self._module_call_fn(model_input, self.post_setup_module)  # pyrefly: ignore[bad-argument-count, bad-argument-type]
       cur_embs = [np.array(tf_out[okey]) for okey in self._output_key]
       bs = chnkd_audio.shape[0]
       cur_embs = [np.tile(e, (bs, 1, 1)) for e in cur_embs]
@@ -399,7 +399,7 @@ class ComputeBatchedChunkedSingleEmbeddings(ComputeEmbeddingMapFn):
     if len(output_key) != 1:
       raise ValueError(f'output_key must be len 1: {output_key}')
     super(ComputeBatchedChunkedSingleEmbeddings, self).__init__(
-        *args, output_key=output_key, module_call_fn=module_call_fn, **kwargs)
+        *args, output_key=output_key, module_call_fn=module_call_fn, **kwargs)  # pyrefly: ignore[bad-argument-type]
     self._chunk_len = chunk_len
     self._embedding_len = embedding_length
 
@@ -438,18 +438,18 @@ class ComputeBatchedChunkedSingleEmbeddings(ComputeEmbeddingMapFn):
 
     return batched_model_input, audios, sr
 
-  def process(
+  def process(  # pyrefly: ignore[bad-override]
       self, k_v
   ):
     """Computes (k, audio, embedding) in batches."""
     ks, exs = zip(*k_v)
     batched_model_input, audio_samples, sr = self.read_and_preprocess_batched_audio(
-        ks, exs)
+        ks, exs)  # pyrefly: ignore[bad-argument-type]
 
     # Calculate the 3D embeddings.
     assert len(self._output_key) == 1, self._output_key
     logging.info('batched_model_input: %s', batched_model_input)
-    embedding_3d = self._module_call_fn(batched_model_input, sr,
+    embedding_3d = self._module_call_fn(batched_model_input, sr,  # pyrefly: ignore[bad-argument-type]
                                         self.post_setup_module,
                                         self._output_key[0], self._name)
     if not isinstance(embedding_3d, np.ndarray):

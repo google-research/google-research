@@ -81,7 +81,7 @@ def samples_to_embedding_tfhub(
                  (cur_model_input, sample_rate))
     try:
       if sig:
-        tf_out = mod.signatures[sig](*func_args)
+        tf_out = mod.signatures[sig](*func_args)  # pyrefly: ignore[missing-attribute]
       else:
         tf_out = mod(*func_args)
     except (ValueError, TypeError,

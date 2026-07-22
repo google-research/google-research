@@ -47,11 +47,11 @@ def LoadFilesIntoDataFrame(
   for file in files:
     with open(file, "r") as f:
       dfs.append(
-          pd.read_csv(
+          pd.read_csv(  # pyrefly: ignore[no-matching-overload]
               f, names=columns, keep_default_na=False, dtype=str_type_dict
           )
       )
-  return pd.concat(dfs), feature_columns
+  return pd.concat(dfs), feature_columns  # pyrefly: ignore[bad-return]
 
 
 def ReadRawData(file):

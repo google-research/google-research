@@ -179,7 +179,7 @@ def make_many_models_beam_pipeline(
             sample_rate_key=sample_rate_key,
             sample_rate=sample_rate,
             average_over_time=average_over_time,
-            feature_fn=(utils.default_feature_fn if use_frontend_fn
+            feature_fn=(utils.default_feature_fn if use_frontend_fn  # pyrefly: ignore[bad-argument-type]
                         else None),
             normalize_to_pm_one=normalize_to_pm_one,
             model_input_min_length=model_input_min_length,
@@ -585,7 +585,7 @@ def _common_pipeline_beginning(
   """Common input reading for beam pipelines."""
   # Read from input.
   input_examples = utils.reader_functions[input_format](
-      root, input_filenames, s)
+      root, input_filenames, s)  # pyrefly: ignore[bad-argument-type]
 
   # In debug mode, take one input example.
   if debug:

@@ -136,7 +136,7 @@ def make_loss_func(model,
 
   def bias_reg(params):
     # get conditional average error for each action / time
-    residual = y_batch - model.apply(params, m_batch)[:, 0]
+    residual = y_batch - model.apply(params, m_batch)[:, 0]  # pyrefly: ignore[bad-index]
     bias_list = []
     weighted_bias_list = []
 
@@ -184,7 +184,7 @@ def initialize_params(model, mdim,
     raise ValueError('Surrogate dimension must be positive')
   k = jax.random.PRNGKey(seed)
   m = jax.random.normal(k, (mdim,))  # Dummy input
-  return model.init(k, m)
+  return model.init(k, m)  # pyrefly: ignore[bad-return]
 
 
 def train(loss,
@@ -248,7 +248,7 @@ def train(loss,
       if verbose:
         logging.info('Step %d: Train Loss %f', i, loss_val)
         if validation_loss is not None:
-          logging.info('Step %d: Validation Loss %f', i, iter_validation_loss)
+          logging.info('Step %d: Validation Loss %f', i, iter_validation_loss)  # pyrefly: ignore[unbound-name]
 
     _, w_grad = jax.tree.leaves(grads)
     if jnp.max(jnp.absolute(w_grad)) < tol:

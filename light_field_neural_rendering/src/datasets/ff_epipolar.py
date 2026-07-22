@@ -35,10 +35,10 @@ class FFEpipolar(ForwardFacing):
     ], "Only single image batching supported for now"
 
     if split == "test":
-      self.train_images = train_ds.images
-      self.train_rays = train_ds.rays
-      self.train_worldtocamera = train_ds.worldtocamera
-      self.train_camtoworlds = train_ds.camtoworlds
+      self.train_images = train_ds.images  # pyrefly: ignore[missing-attribute]
+      self.train_rays = train_ds.rays  # pyrefly: ignore[missing-attribute]
+      self.train_worldtocamera = train_ds.worldtocamera  # pyrefly: ignore[missing-attribute]
+      self.train_camtoworlds = train_ds.camtoworlds  # pyrefly: ignore[missing-attribute]
 
     self.num_ref_views = args.dataset.num_interpolation_views
 
@@ -133,12 +133,12 @@ class FFEpipolar(ForwardFacing):
       l_devices = jax.local_device_count()
       target_view = data_types.Views(rays=batch_rays, rgb=batch_pixels)
       reference_views = data_types.ReferenceViews(
-          rgb=np.tile(ref_images, (l_devices, 1, 1, 1)),
-          ref_worldtocamera=np.tile(ref_worldtocamera, (l_devices, 1, 1)),
-          ref_cameratoworld=np.tile(ref_cameratoworld, (l_devices, 1, 1)),
-          intrinsic_matrix=np.tile(self.intrinsic_matrix[None, :],
+          rgb=np.tile(ref_images, (l_devices, 1, 1, 1)),  # pyrefly: ignore[bad-argument-type]
+          ref_worldtocamera=np.tile(ref_worldtocamera, (l_devices, 1, 1)),  # pyrefly: ignore[bad-argument-type]
+          ref_cameratoworld=np.tile(ref_cameratoworld, (l_devices, 1, 1)),  # pyrefly: ignore[bad-argument-type]
+          intrinsic_matrix=np.tile(self.intrinsic_matrix[None, :],  # pyrefly: ignore[bad-argument-type]
                                    (l_devices, 1, 1)),
-          idx=np.tile(batch_near_cam_idx[None, :],
+          idx=np.tile(batch_near_cam_idx[None, :],  # pyrefly: ignore[bad-argument-type]
                       (jax.local_device_count(), 1)),
       )
 
@@ -176,12 +176,12 @@ class FFEpipolar(ForwardFacing):
     # parallel computaion.
     l_devices = jax.local_device_count()
     reference_views = data_types.ReferenceViews(
-        rgb=np.tile(ref_images, (l_devices, 1, 1, 1)),
-        ref_worldtocamera=np.tile(ref_worldtocamera, (l_devices, 1, 1)),
-        ref_cameratoworld=np.tile(ref_cameratoworld, (l_devices, 1, 1)),
-        intrinsic_matrix=np.tile(self.intrinsic_matrix[None, :],
+        rgb=np.tile(ref_images, (l_devices, 1, 1, 1)),  # pyrefly: ignore[bad-argument-type]
+        ref_worldtocamera=np.tile(ref_worldtocamera, (l_devices, 1, 1)),  # pyrefly: ignore[bad-argument-type]
+        ref_cameratoworld=np.tile(ref_cameratoworld, (l_devices, 1, 1)),  # pyrefly: ignore[bad-argument-type]
+        intrinsic_matrix=np.tile(self.intrinsic_matrix[None, :],  # pyrefly: ignore[bad-argument-type]
                                  (l_devices, 1, 1)),
-        idx=np.tile(batch_near_cam_idx[None, :], (jax.local_device_count(), 1)),
+        idx=np.tile(batch_near_cam_idx[None, :], (jax.local_device_count(), 1)),  # pyrefly: ignore[bad-argument-type]
     )
 
     return_batch = data_types.Batch(

@@ -220,7 +220,7 @@ class Conv2dFixedPadding(tf.keras.layers.Layer):  # pylint: disable=missing-docs
 
   def call(self, inputs, training):
     if self.fixed_padding:
-      inputs = self.fixed_padding(inputs, training=training)
+      inputs = self.fixed_padding(inputs, training=training)  # pyrefly: ignore[not-callable]
     return self.conv2d(inputs, training=training)
 
 
@@ -282,15 +282,15 @@ class SK_Conv2D(tf.keras.layers.Layer):  # pylint: disable=invalid-name
     pooling_axes = [2, 3] if self.data_format == 'channels_first' else [1, 2]
 
     # Two stream convs (using split and both are 3x3).
-    inputs = self.conv2d_fixed_padding(inputs, training=training)
-    inputs = self.batch_norm_relu(inputs, training=training)
+    inputs = self.conv2d_fixed_padding(inputs, training=training)  # pyrefly: ignore[not-callable]
+    inputs = self.batch_norm_relu(inputs, training=training)  # pyrefly: ignore[not-callable]
     inputs = tf.stack(tf.split(inputs, num_or_size_splits=2, axis=channel_axis))
 
     # Mixing weights for two streams.
     global_features = tf.reduce_mean(
         tf.reduce_sum(inputs, axis=0), pooling_axes, keepdims=True)
     global_features = self.conv2d_0(global_features, training=training)
-    global_features = self.batch_norm_relu_1(global_features, training=training)
+    global_features = self.batch_norm_relu_1(global_features, training=training)  # pyrefly: ignore[not-callable]
     mixing = self.conv2d_1(global_features, training=training)
     mixing = tf.stack(tf.split(mixing, num_or_size_splits=2, axis=channel_axis))
     mixing = tf.nn.softmax(mixing, axis=0)
@@ -427,7 +427,7 @@ class ResidualBlock(tf.keras.layers.Layer):  # pylint: disable=missing-docstring
       inputs = layer(inputs, training=training)
 
     if self.se_ratio > 0:
-      inputs = self.se_layer(inputs, training=training)
+      inputs = self.se_layer(inputs, training=training)  # pyrefly: ignore[not-callable]
 
     return tf.nn.relu(inputs + shortcut)
 
@@ -572,7 +572,7 @@ class BottleneckBlock(tf.keras.layers.Layer):
     shortcut = inputs
     for layer in self.projection_layers:
       shortcut = layer(shortcut, training=training)
-    shortcut = self.shortcut_dropblock(shortcut, training=training)
+    shortcut = self.shortcut_dropblock(shortcut, training=training)  # pyrefly: ignore[not-callable]
 
     for layer in self.conv_relu_dropblock_layers:
       inputs = layer(inputs, training=training)

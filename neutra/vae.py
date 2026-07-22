@@ -27,8 +27,8 @@ from absl import flags
 from concurrent import futures
 import gin
 import numpy as np
-from six.moves import range
-from six.moves import zip
+from six.moves import range  # pyrefly: ignore[missing-source-for-stubs]
+from six.moves import zip  # pyrefly: ignore[missing-source-for-stubs]
 import tensorflow.compat.v1 as tf
 import tensorflow_probability as tfp
 from typing import Any, Dict, List, Optional, Tuple
@@ -78,7 +78,7 @@ def Conv2DWN(inputs,
     out = tf.nn.conv2d(inputs, w, [1, stride[0], stride[1], 1], pad)
 
     if biases_initializer is not None:
-      out += tf.reshape(b, [1, 1, 1, num_filters])
+      out += tf.reshape(b, [1, 1, 1, num_filters])  # pyrefly: ignore[unbound-name]
 
     return activation(out)
 
@@ -195,7 +195,7 @@ def DenseWN(inputs,
     out = tf.matmul(inputs, w)
 
     if biases_initializer is not None:
-      out += tf.expand_dims(b, 0)
+      out += tf.expand_dims(b, 0)  # pyrefly: ignore[unbound-name]
 
     return activation(out)
 
@@ -287,7 +287,7 @@ def ConvHierPriorPost(images=None,
     if images is not None:
       batch = tf.shape(images)[0]
     else:
-      batch = tf.shape(z[0])[0]
+      batch = tf.shape(z[0])[0]  # pyrefly: ignore[unsupported-operation]
   h = tf.get_variable("h_top", [h_dims], initializer=tf.zeros_initializer())
   h = tf.reshape(h, [1, 1, 1, -1])
   top_width = image_width // 2 ** num_blocks
@@ -321,9 +321,9 @@ def ConvHierPriorPost(images=None,
             kernel_size=[3, 3])(
                 inputs=h)
         q_mean, q_raw_scale = tf.split(h_q, [z_dims, z_dims], -1)
-        context = down_context + up_contexts.pop()
-        q_mean += means.pop()
-        q_raw_scale += raw_scales.pop()
+        context = down_context + up_contexts.pop()  # pyrefly: ignore[unbound-name]
+        q_mean += means.pop()  # pyrefly: ignore[unbound-name]
+        q_raw_scale += raw_scales.pop()  # pyrefly: ignore[unbound-name]
 
         num_flat_dims = np.prod(q_mean.shape.as_list()[1:])
 
@@ -359,7 +359,7 @@ def ConvHierPriorPost(images=None,
         q_z = tfd.TransformedDistribution(mvn, bijector)
 
       if is_q:
-        dist = q_z
+        dist = q_z  # pyrefly: ignore[unbound-name]
       else:
         dist = p_z
 
@@ -711,7 +711,7 @@ def DenseRecognition(images, encoder, z=None, sigma_activation="exp"
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))
+  bijector = tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma))  # pyrefly: ignore[unbound-name]
 
   mvn = tfd.MultivariateNormalDiag(
       loc=tf.zeros_like(mu), scale_diag=tf.ones_like(sigma))
@@ -831,7 +831,7 @@ def DenseRecognitionRNVP(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))
+  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))  # pyrefly: ignore[unbound-name]
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.MultivariateNormalDiag(
@@ -905,7 +905,7 @@ def DenseRecognitionIAF(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))
+  bijectors.append(tfb.Shift(shift=mu)(tfb.ScaleMatvecDiag(scale_diag=sigma)))  # pyrefly: ignore[unbound-name]
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.MultivariateNormalDiag(
@@ -1018,7 +1018,7 @@ def ConvIAF(
     sigma = tf.nn.softplus(encoding_parts[1])
 
   bijectors.append(tfb.Shift(shift=mu))
-  bijectors.append(tfb.Scale(scale=sigma))
+  bijectors.append(tfb.Scale(scale=sigma))  # pyrefly: ignore[unbound-name]
   bijector = tfb.Chain(bijectors)
 
   mvn = tfd.Independent(
@@ -1057,7 +1057,7 @@ def ConvShiftScale(
   elif sigma_activation == "softplus":
     sigma = tf.nn.softplus(encoding_parts[1])
 
-  bijector = tfb.Chain([tfb.Shift(shift=mu), tfb.Scale(scale=sigma)])
+  bijector = tfb.Chain([tfb.Shift(shift=mu), tfb.Scale(scale=sigma)])  # pyrefly: ignore[unbound-name]
 
   mvn = tfd.Independent(
       tfd.Normal(loc=tf.zeros_like(mu), scale=tf.ones_like(sigma)),
@@ -1096,7 +1096,7 @@ def Simple3DPrior(z=None, batch=None,
 @utils.MakeTFTemplate
 def DenseMNISTNoise(x=None, z=None, decoder=None, return_means=True):
   """Models P(x | decoder(z))"""
-  decoding = decoder(z)
+  decoding = decoder(z)  # pyrefly: ignore[not-callable]
   bernoulli = IndependentBernouli3D(decoding)
 
   if x is None:
@@ -1112,7 +1112,7 @@ def DenseMNISTNoise(x=None, z=None, decoder=None, return_means=True):
 @utils.MakeTFTemplate
 def DenseCIFAR10TNoise(x=None, z=None, decoder=None, return_means=True, uniform_scale=False, logistic_impl="mine"):
   """Models P(x | decoder(z))"""
-  decoding = decoder(z)
+  decoding = decoder(z)  # pyrefly: ignore[not-callable]
   if uniform_scale:
     scale = tf.get_variable("scale", initializer=1.0)
     scales = tf.reshape(scale, [1, 1, 1])
@@ -1126,7 +1126,7 @@ def DenseCIFAR10TNoise(x=None, z=None, decoder=None, return_means=True, uniform_
     disc_logistic = IndependentDiscreteLogistic3D2(decoding, tf.nn.softplus(scales))
 
   if x is None:
-    x = tf.to_float(disc_logistic.sample())
+    x = tf.to_float(disc_logistic.sample())  # pyrefly: ignore[unbound-name]
 
   return x, disc_logistic.log_prob(x)
 
@@ -1236,9 +1236,9 @@ class DLGM(object):
                use_q_z_for_ais=False,
                affine_rank=1,
                step_size_warmup=0):
-    self.train_size = dataset.train_size
+    self.train_size = dataset.train_size  # pyrefly: ignore[missing-attribute]
     self._use_q_z_for_ais = use_q_z_for_ais
-    if dataset.name == "mnist":
+    if dataset.name == "mnist":  # pyrefly: ignore[missing-attribute]
       output_shape = [28, 28, 1]
     elif dataset.name == "cifar10":
       output_shape = [32, 32, 3]
@@ -1297,28 +1297,28 @@ class DLGM(object):
         self._encoder = DenseEncoder(
             "encoder", num_outputs=num_outputs, activation=tf.nn.softplus)
         self._decoder = DenseDecoder(
-            "decoder", output_shape=output_shape, activation=tf.nn.softplus)
+            "decoder", output_shape=output_shape, activation=tf.nn.softplus)  # pyrefly: ignore[unbound-name]
       elif encoder_type == "conv":
         self._encoder = ConvEncoder("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [4, 4, self._z_dims]
       elif encoder_type == "conv2":
         self._encoder = ConvEncoder2("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder2("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder2("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [4, 4, self._z_dims]
       elif encoder_type == "conv3":
         self._encoder = ConvEncoder3("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder3("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder3("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [8, 8, self._z_dims]
       elif encoder_type == "conv4":
         self._encoder = ConvEncoder4("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder4("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder4("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [8, 8, self._z_dims]
 
       if prior_type == "simple":
         self._prior = SimplePrior("prior", num_dims=self._z_dims)
       elif prior_type == "simple_3d":
-        self._prior = Simple3DPrior("prior", shape=conv_z_shape)
+        self._prior = Simple3DPrior("prior", shape=conv_z_shape)  # pyrefly: ignore[unbound-name]
       if bijector_type == "iaf":
         recog = DenseRecognitionIAF(
             "recog", encoder=self._encoder, condition_iaf=condition_bijector)
@@ -1339,7 +1339,7 @@ class DLGM(object):
         recog = DenseRecognitionAffineLR("recog", encoder=self._encoder, z_dims=z_dims, rank=affine_rank)
       elif bijector_type == "conv_iaf":
         recog = ConvIAF("recog", encoder=self._encoder, condition_iaf=condition_bijector)
-      self._recog = recog
+      self._recog = recog  # pyrefly: ignore[unbound-name]
 
     if dataset.name == "mnist":
       self._noise = DenseMNISTNoise("noise", decoder=self._decoder)
@@ -1378,7 +1378,7 @@ class DLGM(object):
 
     if use_other_z_init is not None:
       z_init = [tf.cond(use_other_z_init, lambda: tf.identity(other_layer_z),
-                        lambda: tf.identity(layer_z)) for other_layer_z, layer_z in zip(z, other_z_init)]
+                        lambda: tf.identity(layer_z)) for other_layer_z, layer_z in zip(z, other_z_init)]  # pyrefly: ignore[bad-argument-type]
     z_init = z
 
     log_q_z = [tf.reduce_mean(layer_log_q_z) for layer_log_q_z in log_q_z]
@@ -1509,7 +1509,7 @@ class DLGM(object):
         loss = tf.cond(use_other_z_init, lambda: tf.identity(loss),
                        lambda: tf.identity(-outputs.elbo))
       recog_train_op = utils.CreateTrainOp(
-          total_loss=loss,
+          total_loss=loss,  # pyrefly: ignore[unbound-name]
           optimizer=opt,
           global_step=global_step,
           variables_to_train=self.RecogVars(),
@@ -1597,8 +1597,8 @@ class VAE(object):
                dataset=None,
                prior_type="simple",
                affine_rank=1):
-    self.train_size = dataset.train_size
-    if dataset.name == "mnist":
+    self.train_size = dataset.train_size  # pyrefly: ignore[missing-attribute]
+    if dataset.name == "mnist":  # pyrefly: ignore[missing-attribute]
       output_shape = [28, 28, 1]
     elif dataset.name == "cifar10":
       output_shape = [32, 32, 3]
@@ -1637,28 +1637,28 @@ class VAE(object):
         self._encoder = DenseEncoder(
             "encoder", num_outputs=num_outputs, activation=tf.nn.softplus)
         self._decoder = DenseDecoder(
-            "decoder", output_shape=output_shape, activation=tf.nn.softplus)
+            "decoder", output_shape=output_shape, activation=tf.nn.softplus)  # pyrefly: ignore[unbound-name]
       elif encoder_type == "conv":
         self._encoder = ConvEncoder("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [4, 4, self._z_dims]
       elif encoder_type == "conv2":
         self._encoder = ConvEncoder2("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder2("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder2("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [4, 4, self._z_dims]
       elif encoder_type == "conv3":
         self._encoder = ConvEncoder3("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder3("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder3("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [8, 8, self._z_dims]
       elif encoder_type == "conv4":
         self._encoder = ConvEncoder4("encoder", num_outputs=num_outputs)
-        self._decoder = ConvDecoder4("decoder", output_shape=output_shape)
+        self._decoder = ConvDecoder4("decoder", output_shape=output_shape)  # pyrefly: ignore[unbound-name]
         conv_z_shape = [8, 8, self._z_dims]
 
       if prior_type == "simple":
         self._prior = SimplePrior("prior", num_dims=self._z_dims)
       elif prior_type == "simple_3d":
-        self._prior = Simple3DPrior("prior", shape=conv_z_shape)
+        self._prior = Simple3DPrior("prior", shape=conv_z_shape)  # pyrefly: ignore[unbound-name]
       if bijector_type == "iaf":
         recog = DenseRecognitionIAF(
             "recog", encoder=self._encoder, condition_iaf=condition_bijector)
@@ -1966,11 +1966,11 @@ def main(argv):
     dataset = utils.FakeMNISTDataset()
 
   if FLAGS.mode == "train":
-    model = MODEL_TO_CLASS[FLAGS.model](dataset=dataset)
+    model = MODEL_TO_CLASS[FLAGS.model](dataset=dataset)  # pyrefly: ignore[unbound-name]
     Train(model, dataset, FLAGS.train_dir, FLAGS.master,
           polyak_averaging=FLAGS.polyak_averaging)
   elif FLAGS.mode == "eval":
-    model = MODEL_TO_CLASS[FLAGS.model](dataset=dataset)
+    model = MODEL_TO_CLASS[FLAGS.model](dataset=dataset)  # pyrefly: ignore[unbound-name]
     Eval(model, dataset, FLAGS.train_dir, FLAGS.eval_dir,
          FLAGS.master,
          use_polyak_averaging=FLAGS.polyak_averaging > 0.0)
@@ -1984,7 +1984,7 @@ def main(argv):
       train_dir = FLAGS.train_dir.format(i)
       eval_dir = FLAGS.eval_dir.format(i)
       model_fn = lambda: MODEL_TO_CLASS[FLAGS.model](dataset=dataset)
-      log_p = AISEval(model_fn, dataset, train_dir, eval_dir,
+      log_p = AISEval(model_fn, dataset, train_dir, eval_dir,  # pyrefly: ignore[unbound-name]
                       FLAGS.ais_worker_pattern, FLAGS.ais_num_workers,
                       FLAGS.ais_num_chains,
                       use_polyak_averaging=FLAGS.polyak_averaging > 0.0)
@@ -2011,7 +2011,7 @@ def main(argv):
         continue
 
       batch = FLAGS.ais_batch_size
-      assert (dataset.test_size // FLAGS.ais_num_workers) % batch == 0
+      assert (dataset.test_size // FLAGS.ais_num_workers) % batch == 0  # pyrefly: ignore[unbound-name]
       writer = tf.summary.FileWriter(eval_dir)
       log_p = AISEvalShard(FLAGS.ais_shard, "", FLAGS.ais_num_workers, FLAGS.ais_num_chains,
                            dataset, FLAGS.polyak_averaging > 0.0, writer, train_dir, model_fn, batch)

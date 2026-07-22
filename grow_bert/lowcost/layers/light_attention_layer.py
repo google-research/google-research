@@ -21,7 +21,7 @@ EinsumDense = tf.keras.layers.experimental.EinsumDense
 
 class LightMultiHeadAttention(tf.keras.layers.MultiHeadAttention):
 
-  def call(self, query, value, key=None, attention_mask=None,
+  def call(self, query, value, key=None, attention_mask=None,  # pyrefly: ignore[bad-override]
            return_attention_scores=False, shared_attention_scores=None):
 
     if not self._built_from_signature:

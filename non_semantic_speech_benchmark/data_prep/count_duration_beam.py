@@ -110,7 +110,7 @@ def duration_and_num_examples(
         root, ds_file, ds_name, reader_type, suffix=f'{ds_name}_{i}')
     durations_l.append(cur_dur)
   def _mean_and_count(durs):
-    return np.mean(durs), len(durs)
+    return np.mean(durs), len(durs)  # pyrefly: ignore[bad-return]
   return (durations_l
           | f'Flatten-{ds_name}' >> beam.Flatten()
           | f'ToList-{ds_name}' >> beam.combiners.ToList()

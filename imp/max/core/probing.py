@@ -135,7 +135,7 @@ def add_probe(data,
              name=name,
              value=ProbeData(data=data, ptype=ptype),
              init_fn=init_fn,
-             reduce_fn=reduce_fn)
+             reduce_fn=reduce_fn)  # pyrefly: ignore[bad-argument-type]
 
 
 def _add_multimedia_probe(data,

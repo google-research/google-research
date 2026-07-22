@@ -171,7 +171,7 @@ class ForwardFacing(BaseDataset):
 
     # Split poses from the dataset and generated poses
     if self.split == "test":
-      self.camtoworlds = self.camtoworlds[n_render_poses:]
+      self.camtoworlds = self.camtoworlds[n_render_poses:]  # pyrefly: ignore[unbound-name]
       split_origins = np.split(self.rays.origins, [n_render_poses], 0)
       split_directions = np.split(self.rays.directions, [n_render_poses], 0)
       if self.rays.base_radius is None:
@@ -180,14 +180,14 @@ class ForwardFacing(BaseDataset):
         split_base_radius = np.split(self.rays.base_radius, [n_render_poses], 0)
 
       self.render_rays = data_types.Rays(
-          origins=split_origins[0],
-          directions=split_directions[0],
-          base_radius=split_base_radius[0])
+          origins=split_origins[0],  # pyrefly: ignore[bad-argument-type]
+          directions=split_directions[0],  # pyrefly: ignore[bad-argument-type]
+          base_radius=split_base_radius[0])  # pyrefly: ignore[bad-argument-type]
 
       self.rays = data_types.Rays(
-          origins=split_origins[1],
-          directions=split_directions[1],
-          base_radius=split_base_radius[1])
+          origins=split_origins[1],  # pyrefly: ignore[bad-argument-type]
+          directions=split_directions[1],  # pyrefly: ignore[bad-argument-type]
+          base_radius=split_base_radius[1])  # pyrefly: ignore[bad-argument-type]
 
   def _recenter_poses(self, poses):
     """Recenter poses according to the original NeRF code.

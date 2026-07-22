@@ -148,10 +148,10 @@ def scan(
   scanned = nn.scan(
       ScannedOutputModule,
       length=length,
-      variable_axes=variable_axes,
+      variable_axes=variable_axes,  # pyrefly: ignore[bad-argument-type]
       in_axes=in_axes,
       out_axes=out_axes,
-      split_rngs=split_rngs,
+      split_rngs=split_rngs,  # pyrefly: ignore[bad-argument-type]
       metadata_params={nn.meta.PARTITION_NAME: sharding_axis},
   )
   scanned_carry = transforms.lift_transform(_lift_keep_carry, scanned)

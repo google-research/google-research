@@ -77,7 +77,7 @@ class CompressedDense(tf.keras.layers.Dense):
 
   def build(self, input_shape):
     super().build(input_shape)
-    self.compression_op = self.compression_obj.apply_compression_keras(
+    self.compression_op = self.compression_obj.apply_compression_keras(  # pyrefly: ignore[missing-attribute]
         self.kernel, layer=self)
 
     logging.info(
@@ -90,7 +90,7 @@ class CompressedDense(tf.keras.layers.Dense):
     if training is None:
       training = tf.keras.backend.learning_phase()
     if training:
-      self.compression_op.maybe_run_update_step()
+      self.compression_op.maybe_run_update_step()  # pyrefly: ignore[missing-attribute]
     return self.activation(
-        self.compression_op.compressed_matmul_keras(inputs, training=training) +
+        self.compression_op.compressed_matmul_keras(inputs, training=training) +  # pyrefly: ignore[missing-attribute]
         self.bias)
