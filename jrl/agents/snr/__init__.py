@@ -52,5 +52,5 @@ class SNRRLComponents(RLComponents):
   def make_behavior_policy(self, network):
     return networks.apply_policy_and_sample(network, eval_mode=False)
 
-  def make_eval_behavior_policy(self, network):
+  def make_eval_behavior_policy(self, network):  # pyrefly: ignore[bad-override]
     return networks.apply_policy_and_sample(network, eval_mode=True)

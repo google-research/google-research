@@ -178,7 +178,7 @@ def save_image_grid(ndarray,
            all(isinstance(t, (jnp.ndarray, np.ndarray)) for t in ndarray))):
     raise TypeError('array_like of tensors expected, got {}'.format(
         type(ndarray)))
-  ndarray = np.asarray(ndarray)
+  ndarray = np.asarray(ndarray)  # pyrefly: ignore[bad-assignment]
 
   # Keep largest-possible number of images for given `nrow`.
   ncol = len(ndarray) // nrow

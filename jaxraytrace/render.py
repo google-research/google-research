@@ -135,7 +135,7 @@ def generate_image(
       num_samples,
       rng,
   ):
-    j, i = position
+    j, i = position  # pyrefly: ignore[not-iterable]
 
     def get_color_at_sample(u, v,
                             sample_rng):

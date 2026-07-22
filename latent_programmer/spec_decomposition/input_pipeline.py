@@ -45,7 +45,7 @@ def create_robust_fill_dataset(
     `renaming_dict`.
   """
   filenames = gfile.glob(file_pattern)
-  raw_dataset = tf.data.TFRecordDataset(filenames)
+  raw_dataset = tf.data.TFRecordDataset(filenames)  # pyrefly: ignore[bad-instantiation]
 
   spec_vocab_table = tf.lookup.StaticVocabularyTable(
       tf.lookup.KeyValueTensorInitializer(
@@ -175,7 +175,7 @@ def create_deepcoder_dataset(
     `renaming_dict`.
   """
   filenames = gfile.glob(file_pattern)
-  raw_dataset = tf.data.TFRecordDataset(filenames)
+  raw_dataset = tf.data.TFRecordDataset(filenames)  # pyrefly: ignore[bad-instantiation]
 
   vocab_table = tf.lookup.StaticVocabularyTable(
       tf.lookup.KeyValueTensorInitializer(

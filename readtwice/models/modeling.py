@@ -110,7 +110,7 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
 
     self.token_embedding = readtwice_layers.EmbeddingLookup(
         vocab_size=config.vocab_size,
-        embedding_size=config.embedding_size,
+        embedding_size=config.embedding_size,  # pyrefly: ignore[bad-argument-type]
         projection_size=config.hidden_size,
         initializer_range=config.initializer_range,
         use_one_hot_lookup=use_one_hot_embeddings,
@@ -128,7 +128,7 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
         use_one_hot_lookup=use_one_hot_embeddings,
         name="position_emb_lookup_long")
     # Call layers to force variable initialization.
-    self.position_embedding(tf.ones([1, 1], tf.int32))
+    self.position_embedding(tf.ones([1, 1], tf.int32))  # pyrefly: ignore[not-callable]
 
     if config.cross_attention_pos_emb_mode is not None:
       # We would end up adding block position embeddings multiple times.
@@ -287,19 +287,19 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
     """
     batch_size = tf.shape(token_ids)[0]
     main_seq_length = tf.shape(token_ids)[1]
-    main_input = self.token_embedding(token_ids)
+    main_input = self.token_embedding(token_ids)  # pyrefly: ignore[not-callable]
     if self.position_embedding is not None:
       if position_ids is None:
         main_input += self.position_embedding.embedding_table[
             tf.newaxis, :tf.shape(main_input)[1], :]
       else:
-        main_input += self.position_embedding(position_ids)
+        main_input += self.position_embedding(position_ids)  # pyrefly: ignore[not-callable]
 
     main_input = self.token_embedding_norm(main_input)
     main_input = self.token_embedding_dropout(main_input, training=training)
 
     # [batch_size, main_seq_len, hidden_size]
-    first_read = self.transformer_with_side_inputs(
+    first_read = self.transformer_with_side_inputs(  # pyrefly: ignore[not-callable]
         main_input=main_input,
         side_input=None,
         att_mask=att_mask,
@@ -341,7 +341,7 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
 
     if self.config.second_read_type == "from_scratch":
       # [batch_size, main_seq_len, hidden_size]
-      second_read = self.transformer_with_side_inputs(
+      second_read = self.transformer_with_side_inputs(  # pyrefly: ignore[not-callable]
           main_input=main_input,
           side_input=summary_output.global_summary.processed_states,
           att_mask=att_mask_with_side_input,
@@ -350,7 +350,7 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
         "new_layers", "new_layers_cross_attention"
     ]:
       # [batch_size, main_seq_len, hidden_size]
-      second_read = self.second_read_transformer(
+      second_read = self.second_read_transformer(  # pyrefly: ignore[not-callable]
           main_input=first_read,
           side_input=summary_output.global_summary.processed_states,
           att_mask=att_mask_with_side_input,
@@ -362,7 +362,7 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
           summary_output.token_to_global_summary_att_map, axis=-1)
       att_value_mask = tf.cast(tf.greater(att_value_mask, 0), tf.float32)
 
-      first_read_after_attention = self.cross_attention_layer(
+      first_read_after_attention = self.cross_attention_layer(  # pyrefly: ignore[not-callable]
           first_read_for_attention,
           side_input=summary_output.global_summary.processed_states,
           att_mask=summary_output.token_to_global_summary_att_map,
@@ -371,7 +371,7 @@ class ReadItTwiceBertModel(tf.keras.layers.Layer):
           att_value_mask=att_value_mask,
           training=training)
       # [batch_size, main_seq_len, hidden_size]
-      second_read = self.second_read_transformer(
+      second_read = self.second_read_transformer(  # pyrefly: ignore[not-callable]
           main_input=first_read_after_attention,
           side_input=None,
           att_mask=att_mask,
@@ -517,7 +517,7 @@ class SummaryExtraction(tf.keras.Model):
           use_one_hot_lookup=use_one_hot_embeddings,
           name="block_position_emb_lookup")
       # Call layers to force variable initialization.
-      self.position_embedding(tf.ones([1, 1], tf.int32))
+      self.position_embedding(tf.ones([1, 1], tf.int32))  # pyrefly: ignore[not-callable]
       self.embedding_norm = tf.keras.layers.LayerNormalization(
           axis=-1, epsilon=1e-12, name="summary_emb_layer_norm")
       self.embedding_dropout = tf.keras.layers.Dropout(
@@ -563,7 +563,7 @@ class SummaryExtraction(tf.keras.Model):
       x = x * annotation_mask
       return x
     elif self.mode == "text_block":
-      token_block_offset = self.text_block_extract_every_x - 1
+      token_block_offset = self.text_block_extract_every_x - 1  # pyrefly: ignore[unsupported-operation]
       token_block_len = self.text_block_extract_every_x
       x = tf.concat([
           hidden_states[:, ::token_block_len, :],
@@ -668,12 +668,12 @@ class SummaryExtraction(tf.keras.Model):
       labels = block_ids
       all_labels = all_block_ids
     elif self.mode == "text_block":
-      token_block_offset = self.text_block_extract_every_x - 1
+      token_block_offset = self.text_block_extract_every_x - 1  # pyrefly: ignore[unsupported-operation]
       token_block_len = self.text_block_extract_every_x
       labels = tf.cast(
           tf.logical_and(
-              tf.not_equal(token_ids[:, ::token_block_len], 0),
-              tf.not_equal(token_ids[:, token_block_offset::token_block_len],
+              tf.not_equal(token_ids[:, ::token_block_len], 0),  # pyrefly: ignore[unsupported-operation]
+              tf.not_equal(token_ids[:, token_block_offset::token_block_len],  # pyrefly: ignore[unsupported-operation]
                            0),
           ), tf.int32)
       labels = tf.reshape(labels, [batch_size * local_num_summaries])
@@ -708,7 +708,7 @@ class SummaryExtraction(tf.keras.Model):
     if self.postprocessing_type == "none":
       all_cls_summary = all_first_token_tensor
     elif self.postprocessing_type == "linear":
-      all_cls_summary = self.postprocessing(all_first_token_tensor)
+      all_cls_summary = self.postprocessing(all_first_token_tensor)  # pyrefly: ignore[not-callable]
     elif self.postprocessing_type in ["pos", "transformer"]:
       # We treat sequence of summaries as just a single sentence.
       # [1, global_num_summaries, hidden_dim]
@@ -716,8 +716,8 @@ class SummaryExtraction(tf.keras.Model):
 
       # Add positional embeddings based on positions of blocks in their
       # original documents.
-      all_cls_summary += self.position_embedding(all_block_pos)
-      all_cls_summary = self.embedding_norm(all_cls_summary)
+      all_cls_summary += self.position_embedding(all_block_pos)  # pyrefly: ignore[not-callable]
+      all_cls_summary = self.embedding_norm(all_cls_summary)  # pyrefly: ignore[not-callable]
       # Note, we don't apply dropout here
       # all_cls_summary = self.embedding_dropout(
       #     all_cls_summary, training=training)
@@ -731,7 +731,7 @@ class SummaryExtraction(tf.keras.Model):
         # [1, global_num_summaries, global_num_summaries]
         block_att_mask = tf.expand_dims(block_att_mask, 0)
 
-        all_cls_summary = self.postprocessing(
+        all_cls_summary = self.postprocessing(  # pyrefly: ignore[not-callable]
             main_input=all_cls_summary,
             side_input=None,
             att_mask=block_att_mask,
@@ -766,7 +766,7 @@ class SummaryExtraction(tf.keras.Model):
         mask_begin = tf.sequence_mask(
             annotation_begins, main_seq_length, dtype=tf.int32)
         mask_end = tf.sequence_mask(
-            annotation_ends + 1, main_seq_length, dtype=tf.int32)
+            annotation_ends + 1, main_seq_length, dtype=tf.int32)  # pyrefly: ignore[unsupported-operation]
 
         def make_mask(x):
           x = x * annotation_mask
@@ -879,10 +879,10 @@ class SpanPredictionHead(tf.keras.layers.Layer):
 
     if self._intermediate_dense is not None:
       intermediate_outputs = self._intermediate_dense(hidden_states)
-      intermediate_outputs = self._intermediate_activation(intermediate_outputs)
+      intermediate_outputs = self._intermediate_activation(intermediate_outputs)  # pyrefly: ignore[not-callable]
       outputs = self._output_dense(intermediate_outputs)
-      outputs = self._output_dropout(outputs, training=training)
-      outputs = self._output_layer_norm(outputs + hidden_states)
+      outputs = self._output_dropout(outputs, training=training)  # pyrefly: ignore[not-callable]
+      outputs = self._output_layer_norm(outputs + hidden_states)  # pyrefly: ignore[not-callable]
     else:
       outputs = hidden_states
     logits = self._logits_dense(outputs)
@@ -944,7 +944,7 @@ class ReadItTwiceDecoderModel(tf.keras.layers.Layer):
 
     self.token_embedding = readtwice_layers.EmbeddingLookup(
         vocab_size=config.vocab_size,
-        embedding_size=config.embedding_size,
+        embedding_size=config.embedding_size,  # pyrefly: ignore[bad-argument-type]
         projection_size=config.hidden_size,
         initializer_range=config.initializer_range,
         use_one_hot_lookup=use_one_hot_embeddings,
@@ -962,7 +962,7 @@ class ReadItTwiceDecoderModel(tf.keras.layers.Layer):
         use_one_hot_lookup=use_one_hot_embeddings,
         name="position_emb_lookup_long")
     # Call layers to force variable initialization.
-    self.position_embedding(tf.ones([1, 1], tf.int32))
+    self.position_embedding(tf.ones([1, 1], tf.int32))  # pyrefly: ignore[not-callable]
 
     self.transformer_with_side_inputs = readtwice_layers.TransformerWithSideInputLayers(
         hidden_size=config.hidden_size,
@@ -999,13 +999,13 @@ class ReadItTwiceDecoderModel(tf.keras.layers.Layer):
     Returns:
         main_output: <float32>[batch_size, main_seq_len, hidden_size]
     """
-    main_input = self.token_embedding(token_ids)
+    main_input = self.token_embedding(token_ids)  # pyrefly: ignore[not-callable]
     if self.position_embedding is not None:
       if position_ids is None:
         main_input += self.position_embedding.embedding_table[
             tf.newaxis, :tf.shape(main_input)[1], :]
       else:
-        main_input += self.position_embedding(position_ids)
+        main_input += self.position_embedding(position_ids)  # pyrefly: ignore[not-callable]
 
     main_input = self.token_embedding_norm(main_input)
     main_input = self.token_embedding_dropout(main_input, training=training)
@@ -1021,7 +1021,7 @@ class ReadItTwiceDecoderModel(tf.keras.layers.Layer):
     att_mask = tf.concat([att_mask, token2side_input_att_mask], axis=2)
 
     # [batch_size, main_seq_len, hidden_size]
-    main_output = self.transformer_with_side_inputs(
+    main_output = self.transformer_with_side_inputs(  # pyrefly: ignore[not-callable]
         main_input=main_input,
         side_input=side_input,
         att_mask=att_mask,

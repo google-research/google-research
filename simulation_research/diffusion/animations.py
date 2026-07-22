@@ -55,11 +55,11 @@ class Animation:
     lower = xyzmin - .1 * delta
     upper = xyzmax + .1 * delta
     if lims is None:
-      lims = 3 * [(min(lower), max(upper))]
-    self.ax.set_xlim(lims[0])
-    self.ax.set_ylim(lims[1])
+      lims = 3 * [(min(lower), max(upper))]  # pyrefly: ignore[bad-assignment]
+    self.ax.set_xlim(lims[0])  # pyrefly: ignore[unsupported-operation]
+    self.ax.set_ylim(lims[1])  # pyrefly: ignore[unsupported-operation]
     if d == 3:
-      self.ax.set_zlim(lims[2])
+      self.ax.set_zlim(lims[2])  # pyrefly: ignore[unsupported-operation]
     if d != 3:
       self.ax.set_aspect("equal")
     empty = d * [[]]

@@ -193,15 +193,15 @@ def build_snr_loss_fn(
       else:
         # dQ_dX1 = compute_kernel_features(q_params[0], X_prime)
         dQ_dX1 = compute_kernel_features(q_params, X_prime)
-      K_Xprime_X = dQ_dX1 @ dQ_dX0.T
+      K_Xprime_X = dQ_dX1 @ dQ_dX0.T  # pyrefly: ignore[unbound-name]
     else:
       raise NotImplementedError()
 
     if snr_kwargs.use_log_space_matrix:
       assert snr_kwargs.snr_mode == 'params_kernel', snr_kwargs.snr_mode
-      C = dQ_dX0.T @ (step_discount * discount * dQ_dX1 - dQ_dX0)
+      C = dQ_dX0.T @ (step_discount * discount * dQ_dX1 - dQ_dX0)  # pyrefly: ignore[unbound-name]
       snr_matrix = snr_state.snr_matrix
-      snr_matrix = (1. - snr_kwargs.snr_matrix_tau) * snr_matrix + snr_kwargs.snr_matrix_tau * C
+      snr_matrix = (1. - snr_kwargs.snr_matrix_tau) * snr_matrix + snr_kwargs.snr_matrix_tau * C  # pyrefly: ignore[unsupported-operation]
       max_eig = 0.
     else:
       C = K_Xprime_X @ K_X_X_inv
@@ -265,7 +265,7 @@ def build_snr_loss_fn(
       key, sub_key = jax.random.split(key)
 
       centroids = snr_state.centroids
-      phi = jnp.concatenate([centroids, dQ_dX0], axis=0)
+      phi = jnp.concatenate([centroids, dQ_dX0], axis=0)  # pyrefly: ignore[bad-argument-type]
       phi_phiT = phi @ phi.T
       phi_prime_phiT = dQ_dX1 @ phi.T
       snr_matrix = phi_prime_phiT @ jnp.linalg.inv(
@@ -301,9 +301,11 @@ def build_snr_loss_fn(
       key, sub_key = jax.random.split(key)
 
       phiT_phi_prime = dQ_dX0.T @ dQ_dX1
+      # pyrefly: ignore[unsupported-operation]
       phiT_phi_prime = (1. - snr_kwargs.snr_matrix_tau) * snr_state.phiT_phi_prime + \
           snr_kwargs.snr_matrix_tau * phiT_phi_prime
       phiT_phi = dQ_dX0.T @ dQ_dX0
+      # pyrefly: ignore[unsupported-operation]
       phiT_phi = (1. - snr_kwargs.snr_matrix_tau) * snr_state.phiT_phi + \
           snr_kwargs.snr_matrix_tau * phiT_phi
       snr_matrix = phiT_phi_prime @ jnp.linalg.inv(
@@ -333,8 +335,10 @@ def build_snr_loss_fn(
       phiT_phi_prime = snr_state.phiT_phi_prime
       phiT_phi = snr_state.phiT_phi
 
+      # pyrefly: ignore[unsupported-operation]
       phiT_phi_prime = (1. - snr_kwargs.snr_matrix_tau) * phiT_phi_prime + \
           snr_kwargs.snr_matrix_tau * (dQ_dX0.T @ (discount * step_discount[:, None] * dQ_dX1))
+      # pyrefly: ignore[unsupported-operation]
       phiT_phi = (1. - snr_kwargs.snr_matrix_tau) * phiT_phi + \
           snr_kwargs.snr_matrix_tau * (dQ_dX0.T @ dQ_dX0)
 
@@ -350,8 +354,10 @@ def build_snr_loss_fn(
       phiT_phi_prime = snr_state.phiT_phi_prime
       phiT_phi = snr_state.phiT_phi
 
+      # pyrefly: ignore[unsupported-operation]
       phiT_phi_prime = (1. - snr_kwargs.snr_matrix_tau) * phiT_phi_prime + \
           snr_kwargs.snr_matrix_tau * (dQ_dX0.T @ (discount * step_discount[:, None] * dQ_dX1))
+      # pyrefly: ignore[unsupported-operation]
       phiT_phi = (1. - snr_kwargs.snr_matrix_tau) * phiT_phi + \
           snr_kwargs.snr_matrix_tau * (dQ_dX0.T @ dQ_dX0)
 
@@ -391,14 +397,14 @@ def build_snr_loss_fn(
     else:
       if snr_kwargs.snr_loss_type == 'svd_kamyar_v3':
         new_snr_state = SNRState(
-            phiT_phi_prime=phiT_phi_prime,
-            phiT_phi=phiT_phi,)
+            phiT_phi_prime=phiT_phi_prime,  # pyrefly: ignore[unbound-name]
+            phiT_phi=phiT_phi,)  # pyrefly: ignore[unbound-name]
       elif snr_kwargs.snr_loss_type == 'svd_kamyar_v1_with_kmeans':
         centroids, counts = kmeans._kmeans_update_step(
           data=jax.lax.stop_gradient(dQ_dX0),
           prev_centroids=snr_state.centroids,
           prev_counts=snr_state.counts,
-          key=sub_key,
+          key=sub_key,  # pyrefly: ignore[unbound-name]
           iters=snr_kwargs.snr_kmeans_iters,
           decay=0.9,
           counts_decay=0.9,
@@ -408,8 +414,8 @@ def build_snr_loss_fn(
             counts=counts,)
       elif snr_kwargs.snr_loss_type in ['svd_ofir_v2', 'gelfand_ofir_v1']:
         new_snr_state = SNRState(
-            phiT_phi_prime=phiT_phi_prime,
-            phiT_phi=phiT_phi,)
+            phiT_phi_prime=phiT_phi_prime,  # pyrefly: ignore[unbound-name]
+            phiT_phi=phiT_phi,)  # pyrefly: ignore[unbound-name]
       # elif snr_kwargs.snr_loss_type == 'spec_norm_v0':
       #   new_snr_state = SNRState(
       #       snr_matrix=None,

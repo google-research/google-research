@@ -154,7 +154,7 @@ def _log_customized_initialization(
 def get_scaffold_fn(
     init_checkpoint,
     global_vars = False,
-    variable_scope_pairs = (("", ""))
+    variable_scope_pairs = (("", ""))  # pyrefly: ignore[bad-function-definition]
 ):  # pytype: disable=annotation-type-mismatch
   """Gets `scaffold_fn` for initializing model variables from checkpoint.
 

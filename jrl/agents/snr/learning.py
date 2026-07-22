@@ -179,13 +179,13 @@ class SNRLearner(acme.Learner):
         snr_loss_weight = 0.
         total_q_loss = q_loss
 
-      return total_q_loss, (q_loss, snr_loss, masked_s, c_matrix, snr_state, snr_loss_weight)
+      return total_q_loss, (q_loss, snr_loss, masked_s, c_matrix, snr_state, snr_loss_weight)  # pyrefly: ignore[bad-return]
 
     def critic_apply_separate_last_layer(
         last_layer_params,
         rest_params,
         x):
-      return networks.nt_critic_apply_fn(
+      return networks.nt_critic_apply_fn(  # pyrefly: ignore[not-callable]
           rest_params + [last_layer_params],
           x)
     dQ_dX = jax.jacfwd(critic_apply_separate_last_layer)
@@ -312,7 +312,7 @@ class SNRLearner(acme.Learner):
         c_matrix = 0.
         snr_loss_weight = 0.
 
-      return total_actor_loss, (min_q, log_prob, snr_loss, masked_s, c_matrix, snr_state, snr_loss_weight)
+      return total_actor_loss, (min_q, log_prob, snr_loss, masked_s, c_matrix, snr_state, snr_loss_weight)  # pyrefly: ignore[bad-return]
 
     alpha_val_and_grad = jax.jit(jax.value_and_grad(alpha_loss_fn))
     critic_val_and_grad = jax.value_and_grad(critic_loss, has_aux=True)
@@ -326,7 +326,7 @@ class SNRLearner(acme.Learner):
 
       key, key_alpha, key_critic, key_actor = jax.random.split(state.key, 4)
       if adaptive_entropy_coefficient:
-        alpha = jnp.exp(state.alpha_params)
+        alpha = jnp.exp(state.alpha_params)  # pyrefly: ignore[bad-argument-type]
       else:
         alpha = entropy_coefficient
 
@@ -392,9 +392,9 @@ class SNRLearner(acme.Learner):
       metrics['q/std'] = jnp.std(min_q)
       metrics['q/max'] = jnp.max(min_q)
       metrics['q/min'] = jnp.min(min_q)
-      metrics['snr/loss'] = snr_term
-      metrics['snr/loss_weight'] = snr_loss_weight
-      num_gt_zero = jnp.sum(masked_s > 0.)
+      metrics['snr/loss'] = snr_term  # pyrefly: ignore[unbound-name]
+      metrics['snr/loss_weight'] = snr_loss_weight  # pyrefly: ignore[unbound-name]
+      num_gt_zero = jnp.sum(masked_s > 0.)  # pyrefly: ignore[unbound-name]
       metrics['snr/num_gt_zero'] = num_gt_zero
       min_s = jnp.take(masked_s, [num_gt_zero - 1], axis=0)[0]  # pytype: disable=wrong-arg-types  # jnp-type
       num_gt_zero = num_gt_zero + 1e-6
@@ -412,7 +412,7 @@ class SNRLearner(acme.Learner):
           q_params=q_params,
           target_q_params=new_target_q_params,
           key=key,
-          snr_state=snr_state,
+          snr_state=snr_state,  # pyrefly: ignore[unbound-name]
       )
 
       # alpha update step
@@ -420,8 +420,8 @@ class SNRLearner(acme.Learner):
         alpha_loss, alpha_grads = alpha_val_and_grad(
             state.alpha_params, jnp.mean(log_prob))
         alpha_update, alpha_optimizer_state = alpha_optimizer.update(
-            alpha_grads, state.alpha_optimizer_state)
-        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)
+            alpha_grads, state.alpha_optimizer_state)  # pyrefly: ignore[bad-argument-type]
+        alpha_params = optax.apply_updates(state.alpha_params, alpha_update)  # pyrefly: ignore[bad-argument-type]
         # metrics.update({
         #     'alpha_loss': alpha_loss,
         #     'alpha': jnp.exp(alpha_params),
@@ -429,7 +429,7 @@ class SNRLearner(acme.Learner):
         new_state = new_state._replace(
             alpha_optimizer_state=alpha_optimizer_state,
             alpha_params=alpha_params)
-        metrics['alpha'] = jnp.exp(alpha_params)
+        metrics['alpha'] = jnp.exp(alpha_params)  # pyrefly: ignore[bad-argument-type]
         metrics['alpha_loss'] = alpha_loss
       else:
         new_state = new_state._replace(
@@ -443,7 +443,7 @@ class SNRLearner(acme.Learner):
     # General learner book-keeping and loggers.
     self._counter = counter or counting.Counter()
     self._logger = logger or loggers.make_default_logger(
-        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)
+        'learner', asynchronous=True, serialize_fn=utils.fetch_devicearray)  # pyrefly: ignore[bad-argument-type]
 
     # Iterator on demonstration transitions.
     self._iterator = iterator
@@ -550,7 +550,7 @@ class SNRLearner(acme.Learner):
     # Attempts to write the logs.
     self._logger.write({**metrics, **counts})
 
-  def get_variables(self, names):
+  def get_variables(self, names):  # pyrefly: ignore[bad-override]
     variables = {
         'policy': self._state.policy_params,
     }

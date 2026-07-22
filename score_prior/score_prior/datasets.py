@@ -200,4 +200,4 @@ def get_dataset(
     test_ds = create_dataset(dataset_builder, 'test')  # 26,032
     val_ds = create_dataset(dataset_builder, 'extra')  # 531,131
 
-  return train_ds, val_ds, test_ds
+  return train_ds, val_ds, test_ds  # pyrefly: ignore[unbound-name]

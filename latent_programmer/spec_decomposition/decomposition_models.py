@@ -94,7 +94,7 @@ class DecomposeAttentionTransformer(nn.Module):
 
     # Shifting is done separately in decoder.
     self.decoder = base_models.TransformerDecoder(
-        config=base_config.replace(shift=False), name='decoder')
+        config=base_config.replace(shift=False), name='decoder')  # pyrefly: ignore[missing-attribute]
 
   def encode(self,
              inputs,

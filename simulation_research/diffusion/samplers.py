@@ -121,7 +121,7 @@ def compute_nll(diffusion,
   bs = data.shape[0]
   flat_data = data.reshape(bs, -1)
   # N(0,1) probe variables
-  zs = jax.random.normal(key, (num_probes,) + (np.prod(flat_data.shape),))
+  zs = jax.random.normal(key, (num_probes,) + (np.prod(flat_data.shape),))  # pyrefly: ignore[bad-argument-type]
   q0 = jnp.concatenate(
       [data.reshape(-1), jnp.zeros((bs,), data.dtype)], axis=-1)
 
@@ -204,7 +204,7 @@ def discrete_ode_sample(diffusion,
   xf = diffusion.noise(key, x_shape) * diffusion.sigma(tmax)
   dynamics = jit(partial(diffusion.dynamics, scorefn))
   timesteps = (.5 + np.arange(nsteps)[::-1]) / nsteps
-  x0, xs = heun_integrate(dynamics, xf, timesteps)
+  x0, xs = heun_integrate(dynamics, xf, timesteps)  # pyrefly: ignore[bad-argument-type]
   return xs if traj else x0  # pytype: disable=bad-return-type  # jax-ndarray
 
 
@@ -230,7 +230,7 @@ def sde_sample(diffusion,
   timesteps = (.5 + np.arange(nsteps)[::-1]) / nsteps
   key0, key1 = random.split(key)
   xf = diffusion.noise(key0, x_shape) * diffusion.sigma(diffusion.tmax)
-  samples, xt = euler_maruyama_integrate(diffusion, scorefn, xf, timesteps,
+  samples, xt = euler_maruyama_integrate(diffusion, scorefn, xf, timesteps,  # pyrefly: ignore[bad-argument-type]
                                          key1)
   return xt if traj else samples  # pytype: disable=bad-return-type  # jax-ndarray
 
@@ -286,7 +286,7 @@ def event_scores(diffusion,
   def xhat(xt, t):
     tt = unsqueeze_like(xt, t)
     score_xhat = (xt +
-                  diffusion.sigma(tt)**2 * scorefn(xt, t)) / diffusion.scale(tt)
+                  diffusion.sigma(tt)**2 * scorefn(xt, t)) / diffusion.scale(tt)  # pyrefly: ignore[bad-argument-type]
     return score_xhat
 
   def conditioned_scores(xt, t):

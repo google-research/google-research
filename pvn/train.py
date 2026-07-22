@@ -97,7 +97,7 @@ def main(_):
   if train := MODULES.get(MODULE.value, None):
     if CHECKPOINT_DIR.value:
       train = functools.partial(train, checkpoint_dir=CHECKPOINT_DIR.value)
-    train(workdir=WORKDIR.value, config=config)
+    train(workdir=WORKDIR.value, config=config)  # pyrefly: ignore[missing-argument]
   else:
     raise AttributeError(f"Module {MODULE.value} doesn't exist.")
 

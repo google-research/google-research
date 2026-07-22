@@ -131,7 +131,7 @@ class WildfireDataset(tfds.core.GeneratorBasedBuilder):
       DynamicTimeSeriesDynamicWindBuilderConfig('dynamic_wind_dynamic_ts'),
       DynamicTimeSeriesDynamicWindSlopeBuilderConfig(
           'dynamic_wind_slope_dynamic_ts'),
-      DynamicTimeSeriesRealisticBuilderConfig('realistic_dynamic_ts'),
+      DynamicTimeSeriesRealisticBuilderConfig('realistic_dynamic_ts'),  # pyrefly: ignore[bad-argument-type]
   ]
 
   def _info(self):
@@ -299,7 +299,7 @@ def _generate_wildfire_sequence(prng,
                                           ignition_heat)
 
   return {
-      'hidden_state': hidden_state,
+      'hidden_state': hidden_state,  # pyrefly: ignore[unbound-name]
       'hstate_sequence': hstate_sequence,
       'observation_sequence': observation_sequence,
       'kernel': simprop.base_kernel,

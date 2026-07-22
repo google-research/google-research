@@ -343,7 +343,7 @@ def get_ignition_heat(simprop,
   if simparams.moisture_alpha.ndim < fieldprop.moisture.ndim:
     moisture_alpha = jnp.expand_dims(
         simparams.moisture_alpha,
-        axis=np.arange(simparams.moisture_alpha.ndim, fieldprop.moisture.ndim))
+        axis=np.arange(simparams.moisture_alpha.ndim, fieldprop.moisture.ndim))  # pyrefly: ignore[bad-argument-type]
   else:
     moisture_alpha = simparams.moisture_alpha
 
@@ -420,7 +420,7 @@ def burn_step(bstate, simprop,
   lit = jnp.logical_and(
       jnp.greater_equal(heat, ignition_heat), jnp.logical_not(burnt))
 
-  return bstate.replace(lit=lit, fire=fire, heat=heat, burnt=burnt)
+  return bstate.replace(lit=lit, fire=fire, heat=heat, burnt=burnt)  # pyrefly: ignore[missing-attribute]
 
 
 @ft.partial(jax.vmap, in_axes=(None, 0, 0))
@@ -444,12 +444,12 @@ def parameterized_generate_dynamic_kernel(
 
   # Computing Slope/Terrain Factor
   slope = utils.gradient_o1(fieldprop.terrain, 1)
-  slope_factor = get_slope_factor(slope, simparams.slope_alpha, kernel_shape,
+  slope_factor = get_slope_factor(slope, simparams.slope_alpha, kernel_shape,  # pyrefly: ignore[bad-argument-type]
                                   simprop.boundary_condition)
 
   # Computing Wind Factor
   wind_factor = get_wind_factor(fieldprop.wind, simparams.wind_alpha,
-                                kernel_shape, simprop.boundary_condition)
+                                kernel_shape, simprop.boundary_condition)  # pyrefly: ignore[bad-argument-type]
 
   # Generate dynamic kernel
   dynamic_kernel = generate_dynamic_kernel(simprop.base_kernel, wind_factor,
@@ -490,4 +490,4 @@ def approximate_burn_step(bstate,
   lit = utils.sigmoid(heat - ignition_heat, simprop.sigmoid_coefficient)
   lit = jnp.abs(lit - burnt)
 
-  return bstate.replace(lit=lit, fire=fire, heat=heat, burnt=burnt)
+  return bstate.replace(lit=lit, fire=fire, heat=heat, burnt=burnt)  # pyrefly: ignore[missing-attribute]

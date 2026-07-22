@@ -181,19 +181,19 @@ def get_material(material_type, material_color,
   """Convenience function for creating materials."""
 
   if material_type == "diffuse":
-    material_type = MaterialTypes.DIFFUSE
+    material_type = MaterialTypes.DIFFUSE  # pyrefly: ignore[bad-assignment]
     fuzz = 0.
   elif material_type == "reflective":
-    material_type = MaterialTypes.REFLECTIVE
+    material_type = MaterialTypes.REFLECTIVE  # pyrefly: ignore[bad-assignment]
     fuzz = 0.
   elif material_type == "fuzzy":
-    material_type = MaterialTypes.FUZZY
+    material_type = MaterialTypes.FUZZY  # pyrefly: ignore[bad-assignment]
     if fuzz is None:
       raise ValueError("Fuzz value for fuzzy material cannot be None.")
   else:
     raise ValueError(f"Unsupported material: {material_type}.")
-  material_color = color.get_color(material_color)
-  return Material(material_type, material_color, fuzz)
+  material_color = color.get_color(material_color)  # pyrefly: ignore[bad-assignment]
+  return Material(material_type, material_color, fuzz)  # pyrefly: ignore[bad-argument-type]
 
 
 def create_dummy_material():

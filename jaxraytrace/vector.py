@@ -83,7 +83,7 @@ class Vector:
   @classmethod
   def tree_unflatten(cls, aux_data, children):
     del aux_data
-    return cls(*children)
+    return cls(*children)  # pyrefly: ignore[not-iterable]
 
 
 @jax.tree_util.register_pytree_node_class
@@ -102,7 +102,7 @@ class Ray:
   def at(self, t):
     coords = self.origin + t * self.direction
     coords = coords.array()
-    return Point(*coords)
+    return Point(*coords)  # pyrefly: ignore[not-iterable]
 
   def unit(self):
     return self.direction.unit()

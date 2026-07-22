@@ -59,7 +59,7 @@ class BiLSTMCRFSequenceTagger(tf.keras.Model):
         name='word_embeddings')(
             input_word_ids)
 
-    bilstm_outputs = tf.keras.layers.Bidirectional(
+    bilstm_outputs = tf.keras.layers.Bidirectional(  # pyrefly: ignore[not-callable]
         tf.keras.layers.LSTM(
             units=lstm_units,
             recurrent_dropout=recurrent_dropout,
@@ -67,7 +67,7 @@ class BiLSTMCRFSequenceTagger(tf.keras.Model):
         name='BiLSTM')(
             word_embeddings, mask=boolean_mask)
     if use_attention_layer:
-      attention_outputs = tf.keras.layers.Attention(
+      attention_outputs = tf.keras.layers.Attention(  # pyrefly: ignore[not-callable]
           use_scale=use_attention_scale,
           dropout=attention_dropout,
           name='Attention')(
@@ -77,7 +77,7 @@ class BiLSTMCRFSequenceTagger(tf.keras.Model):
       attention_outputs = bilstm_outputs
 
     crf = crf_layer.CRF(units=num_tags, name='CRF')
-    outputs = crf(attention_outputs, mask=input_mask)
+    outputs = crf(attention_outputs, mask=input_mask)  # pyrefly: ignore[not-callable]
 
     inputs = {
         'input_word_ids': input_word_ids,
@@ -107,7 +107,7 @@ class BiLSTMCRFSequenceTagger(tf.keras.Model):
     # the config dict attribute. TF does not track immutable attrs which
     # do not contain Trackables, so by creating a config namedtuple instead of
     # a dict we avoid tracking it.
-    config_cls = collections.namedtuple('Config', config_dict.keys())
+    config_cls = collections.namedtuple('Config', config_dict.keys())  # pyrefly: ignore[bad-class-definition]
     self._config = config_cls(**config_dict)
 
   def train_step(self, data):
@@ -116,7 +116,7 @@ class BiLSTMCRFSequenceTagger(tf.keras.Model):
     # Run forward pass.
     with tf.GradientTape() as tape:
       y_pred, potentials, sequence_length, chain_kernel = (
-          self._bisltm_crf_encoder(x, training=True))
+          self._bisltm_crf_encoder(x, training=True))  # pyrefly: ignore[not-callable]
       log_likelihood, _ = crf_utils.crf_log_likelihood(potentials, y,
                                                        sequence_length,
                                                        chain_kernel)

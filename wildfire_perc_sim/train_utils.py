@@ -62,25 +62,25 @@ class EvalStepCallable(Protocol):
 @struct.dataclass
 class EvalMetrics(metrics.Collection):
 
-  hstate_loss: metrics.Average.from_output('hstate_loss')
-  hstate_seq_loss: metrics.Average.from_output('hstate_seq_loss')
-  observation_loss: metrics.Average.from_output('observation_loss')
+  hstate_loss: metrics.Average.from_output('hstate_loss')  # pyrefly: ignore[invalid-annotation]
+  hstate_seq_loss: metrics.Average.from_output('hstate_seq_loss')  # pyrefly: ignore[invalid-annotation]
+  observation_loss: metrics.Average.from_output('observation_loss')  # pyrefly: ignore[invalid-annotation]
 
 
 @struct.dataclass
 class TrainMetrics(metrics.Collection):
   """Stores Metrics during Training."""
 
-  loss: metrics.Average.from_output('loss')
-  loss_std: metrics.Std.from_output('loss')
-  hstate_loss: metrics.Average.from_output('hstate_loss')
-  hstate_loss_std: metrics.Std.from_output('hstate_loss')
-  hstate_seq_loss: metrics.Average.from_output('hstate_seq_loss')
-  hstate_seq_loss_std: metrics.Std.from_output('hstate_seq_loss')
-  observation_loss: metrics.Average.from_output('observation_loss')
-  observation_loss_std: metrics.Std.from_output('observation_loss')
-  kld_loss: metrics.Average.from_output('kld_loss')
-  kld_loss_std: metrics.Std.from_output('kld_loss')
+  loss: metrics.Average.from_output('loss')  # pyrefly: ignore[invalid-annotation]
+  loss_std: metrics.Std.from_output('loss')  # pyrefly: ignore[invalid-annotation]
+  hstate_loss: metrics.Average.from_output('hstate_loss')  # pyrefly: ignore[invalid-annotation]
+  hstate_loss_std: metrics.Std.from_output('hstate_loss')  # pyrefly: ignore[invalid-annotation]
+  hstate_seq_loss: metrics.Average.from_output('hstate_seq_loss')  # pyrefly: ignore[invalid-annotation]
+  hstate_seq_loss_std: metrics.Std.from_output('hstate_seq_loss')  # pyrefly: ignore[invalid-annotation]
+  observation_loss: metrics.Average.from_output('observation_loss')  # pyrefly: ignore[invalid-annotation]
+  observation_loss_std: metrics.Std.from_output('observation_loss')  # pyrefly: ignore[invalid-annotation]
+  kld_loss: metrics.Average.from_output('kld_loss')  # pyrefly: ignore[invalid-annotation]
+  kld_loss_std: metrics.Std.from_output('kld_loss')  # pyrefly: ignore[invalid-annotation]
 
 
 def l2_reconstruction_loss(x, y):
@@ -129,7 +129,7 @@ def with_warmup(warmup_steps, end_value,
     return remainder_schedule
   init_value = warmup_init_value if warmup_init_value >= 0 else end_value
   warmup_fn = optax.linear_schedule(
-      init_value=init_value, end_value=end_value, transition_steps=warmup_steps)
+      init_value=init_value, end_value=end_value, transition_steps=warmup_steps)  # pyrefly: ignore[bad-argument-type]
   return optax.join_schedules(
       schedules=[warmup_fn, remainder_schedule], boundaries=[warmup_steps])
 
@@ -277,7 +277,7 @@ class TrainEvalSetup:
         model=model,
         variables=variables,
         datasets=(train_ds, eval_ds, test_ds),
-        optimizer=tx,
+        optimizer=tx,  # pyrefly: ignore[bad-argument-type]
         tstate=state,
         loggers=loggers,
         checkpoint=ckpt,

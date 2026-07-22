@@ -262,7 +262,7 @@ class ProbabilityFlow:
         y0=x_init,
         stepsize_controller=self.stepsize_controller,
         **kwargs)
-    (x_final,) = solution.ys
+    (x_final,) = solution.ys  # pyrefly: ignore[not-iterable]
     return x_final, solution
 
   def ode_with_logp(self,
@@ -308,7 +308,7 @@ class ProbabilityFlow:
         y0=(x_init, jnp.zeros(mini_batch_shape[0])),
         args=(rng,),
         **kwargs)
-    (x_final,), (delta_logp,) = solution.ys
+    (x_final,), (delta_logp,) = solution.ys  # pyrefly: ignore[not-iterable]
     return x_final, delta_logp, solution
 
   def logp_fn(self,

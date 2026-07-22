@@ -67,7 +67,7 @@ class BertSequenceTagger(tf.keras.Model):
 
     # Because we have a copy of inputs to create this Model object, we can
     # invoke the Network object with its own input tensors to start the Model.
-    outputs = network(inputs)
+    outputs = network(inputs)  # pyrefly: ignore[not-callable]
     if isinstance(outputs, list):
       sequence_output = outputs[0]
     else:
@@ -78,13 +78,13 @@ class BertSequenceTagger(tf.keras.Model):
     if isinstance(sequence_output, list):
       sequence_output = sequence_output[-1]
 
-    output_logits = tf.keras.layers.Dense(
+    output_logits = tf.keras.layers.Dense(  # pyrefly: ignore[not-callable]
         1,  # This layer predicts token level binary label.
         kernel_initializer=initializer,
         name="predictions/transform/logits")(
             sequence_output)
 
-    predictions = tf.keras.layers.Activation(tf.nn.sigmoid)(output_logits)
+    predictions = tf.keras.layers.Activation(tf.nn.sigmoid)(output_logits)  # pyrefly: ignore[not-callable]
 
     if output == "logits":
       output_tensors = output_logits
@@ -99,7 +99,7 @@ class BertSequenceTagger(tf.keras.Model):
     # Use identity layers wrapped in lambdas to explicitly name the output
     # tensors. This allows us to use string-keyed dicts in Keras fit/predict/
     # evaluate calls.
-    output_tensors = tf.keras.layers.Lambda(
+    output_tensors = tf.keras.layers.Lambda(  # pyrefly: ignore[not-callable]
         tf.identity, name="output_tensors")(
             output_tensors)
 
@@ -122,7 +122,7 @@ class BertSequenceTagger(tf.keras.Model):
     # the config dict attribute. TF does not track immutable attrs which
     # do not contain Trackables, so by creating a config namedtuple instead of
     # a dict we avoid tracking it.
-    config_cls = collections.namedtuple("Config", config_dict.keys())
+    config_cls = collections.namedtuple("Config", config_dict.keys())  # pyrefly: ignore[bad-class-definition]
     self._config = config_cls(**config_dict)
 
   @property

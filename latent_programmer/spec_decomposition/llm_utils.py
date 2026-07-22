@@ -133,7 +133,7 @@ def create_dataset(file_pattern, num_examples):
     A tf.data.Dataset.
   """
   filenames = sorted(tf.io.gfile.glob(file_pattern))
-  raw_dataset = tf.data.TFRecordDataset(filenames)
+  raw_dataset = tf.data.TFRecordDataset(filenames)  # pyrefly: ignore[bad-instantiation]
 
   def _parse_fn(record):
     """Parses a record into a feature_dict."""
@@ -200,7 +200,7 @@ def get_handwritten_few_shot(dataset_type,
                       'x3 = ZipWith (-) x2 x0 | x4 = Drop x1 x3'),
       },
   ]
-  return tf.data.Dataset.from_tensor_slices({
+  return tf.data.Dataset.from_tensor_slices({  # pyrefly: ignore[bad-argument-type]
       'inputs': tf.constant([p['inputs'] for p in problems]),
       'outputs': tf.constant([p['outputs'] for p in problems]),
       'program': tf.constant([p['program'] for p in problems]),
@@ -426,7 +426,7 @@ def run_program(program_code,
       for input_name, input_values in inputs.items():
         namespace_copy[input_name] = input_values[i]
     elif dataset_type == 'robustfill':
-      namespace_copy['x'] = inputs[i]
+      namespace_copy['x'] = inputs[i]  # pyrefly: ignore[bad-index]
     else:
       raise ValueError(f'Unhandled dataset type: {dataset_type}')
     # Call the solution function.
@@ -634,7 +634,7 @@ def get_exe_dec_trajectory(
       actual_states = run_program(
           compose_program, dataset_element.inputs, dataset_type
       )
-      for s in actual_states:
+      for s in actual_states:  # pyrefly: ignore[not-iterable]
         if not check_deepcoder_object_valid(s):
           raise ValueError(f'Invalid DeepCoder object: {s}')
       actual_states = {new_var: actual_states}
@@ -657,14 +657,15 @@ def get_exe_dec_trajectory(
       new_targets = []
       num_examples = get_num_examples(dataset_element.inputs, dataset_type)
 
-      for s in actual_states:
+      for s in actual_states:  # pyrefly: ignore[not-iterable]
         if not check_robustfill_object_valid(s):
           raise ValueError(f'Invalid RobustFill object: {s}')
       for i in range(num_examples):
-        if (not isinstance(actual_states[i], str)) or (
-            not previous_targets[i].startswith(actual_states[i])
+        if (not isinstance(actual_states[i], str)) or (  # pyrefly: ignore[unsupported-operation]
+            not previous_targets[i].startswith(actual_states[i])  # pyrefly: ignore[unsupported-operation]
         ):
           raise ValueError(
+              # pyrefly: ignore[unsupported-operation]
               f'Case {i + 1}: {previous_targets[i]} does not match the prefix'
               f' of {actual_states[i]}'
           )

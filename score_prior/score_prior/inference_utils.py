@@ -82,13 +82,13 @@ def _get_stepsize_controller(stepsize_controller,
                              ):
   """Return `diffrax.AbstractStepSizeController` instance."""
   if stepsize_controller == 'ConstantStepSize':
-    return diffrax.ConstantStepSize(compile_steps=True)
+    return diffrax.ConstantStepSize(compile_steps=True)  # pyrefly: ignore[bad-return]
   elif stepsize_controller == 'PIDController':
     if adjoint_rms_seminorm:
-      return diffrax.PIDController(
+      return diffrax.PIDController(  # pyrefly: ignore[bad-return]
           norm=diffrax.adjoint_rms_seminorm, rtol=rtol, atol=atol)
     else:
-      return diffrax.PIDController(rtol=rtol, atol=atol)
+      return diffrax.PIDController(rtol=rtol, atol=atol)  # pyrefly: ignore[bad-return]
   else:
     raise ValueError(f'Unsupported stepsize controller: {stepsize_controller}')
 
@@ -141,7 +141,7 @@ def get_prob_flow(config,
       score_fn=score_fn,
       solver=solver,
       stepsize_controller=stepsize_controller,
-      adjoint=adjoint,
+      adjoint=adjoint,  # pyrefly: ignore[bad-argument-type]
       n_trace_estimates=config.prob_flow.n_trace_estimates)
 
   return prob_flow
@@ -186,7 +186,7 @@ def get_likelihood(config
     # Multiply noise scale by flux of image.
     eht_sigmas = eht_sigmas * np.sum(source_image)
     likelihood = forward_models.EHT(eht_matrix, eht_sigmas, image_size)
-  return likelihood
+  return likelihood  # pyrefly: ignore[unbound-name]
 
 
 def get_measurement(config,
@@ -215,8 +215,8 @@ def get_measurement(config,
     image = np.expand_dims(image, axis=-1)
     # Get measurement.
     x = np.expand_dims(image, axis=0)
-    y = likelihood.get_measurement(jax.random.PRNGKey(0), x)
-    return image, y
+    y = likelihood.get_measurement(jax.random.PRNGKey(0), x)  # pyrefly: ignore[bad-argument-type]
+    return image, y  # pyrefly: ignore[bad-return]
 
   data_config = ml_collections.ConfigDict()
   data_config.data = ml_collections.ConfigDict()
@@ -246,6 +246,6 @@ def get_measurement(config,
 
   # Get measurement.
   x = np.expand_dims(image, axis=0) if single_image else image
-  y = likelihood.get_measurement(jax.random.PRNGKey(0), x)
+  y = likelihood.get_measurement(jax.random.PRNGKey(0), x)  # pyrefly: ignore[bad-argument-type]
 
   return image, y

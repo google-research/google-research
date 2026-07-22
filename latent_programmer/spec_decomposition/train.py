@@ -856,10 +856,10 @@ def main(_):
       dataset_type=FLAGS.dataset_type,
       aligned_relative_attention=FLAGS.aligned_relative_attention,
       separator_token_id=separator_token_id)
-  eval_config = train_config.replace(
-      base_config=base_config.replace(deterministic=True))
-  predict_config = train_config.replace(
-      base_config=base_config.replace(
+  eval_config = train_config.replace(  # pyrefly: ignore[missing-attribute]
+      base_config=base_config.replace(deterministic=True))  # pyrefly: ignore[missing-attribute]
+  predict_config = train_config.replace(  # pyrefly: ignore[missing-attribute]
+      base_config=base_config.replace(  # pyrefly: ignore[missing-attribute]
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode,
           max_len=max(FLAGS.predict_max_input_length, FLAGS.max_target_length)))

@@ -447,10 +447,10 @@ class LanguageModelLoss(tf.keras.layers.Layer):
       pad_mask = tf.cast(tf.not_equal(label_ids, padding_token_id), tf.float32)
     if label_weights is not None:
       if padding_token_id is not None:
-        label_weights *= pad_mask
+        label_weights *= pad_mask  # pyrefly: ignore[unbound-name]
     else:
       if padding_token_id is not None:
-        label_weights = pad_mask
+        label_weights = pad_mask  # pyrefly: ignore[unbound-name]
       else:
         label_weights = tf.ones_like(label_ids, tf.float32)
 

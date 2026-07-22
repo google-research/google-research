@@ -41,7 +41,7 @@ class IndependentGaussianLikelihood(abc.ABC):
     """Std. dev. of the noise for each measured channel."""
 
   def invert_measurement(self,
-                         y):
+                         y):  # pyrefly: ignore[bad-return]
     """Invert measurement to a naive estimate of `x`. Optional method."""
 
   @abc.abstractmethod
@@ -104,7 +104,7 @@ def get_isotropic_dft_comps(n_freqs_per_orientation,
   vertical_dft_comps = np.arange(n_freqs_per_orientation)
   dft_comps_2d = np.array(
       np.meshgrid(vertical_dft_comps, horizontal_dft_comps)).T.reshape(-1, 2)
-  return np.ravel_multi_index(dft_comps_2d.T, (image_size, image_size))
+  return np.ravel_multi_index(dft_comps_2d.T, (image_size, image_size))  # pyrefly: ignore[bad-return]
 
 
 def get_dft_matrix(image_size, dft_comps):

@@ -75,7 +75,7 @@ class Color:
   @classmethod
   def tree_unflatten(cls, aux_data, children):
     del aux_data
-    return cls(*children)
+    return cls(*children)  # pyrefly: ignore[not-iterable]
 
 
 _NAMED_COLORS = {

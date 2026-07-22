@@ -1114,17 +1114,17 @@ def main(_):
       c=FLAGS.c,
       train_vq=True,
       commitment_cost_vq=FLAGS.commitment_cost_vq)
-  eval_config = train_config.replace(
-      base_cfg=base_config.replace(deterministic=True),
+  eval_config = train_config.replace(  # pyrefly: ignore[missing-attribute]
+      base_cfg=base_config.replace(deterministic=True),  # pyrefly: ignore[missing-attribute]
       train_vq=False)
-  predict_config = train_config.replace(
-      base_cfg=base_config.replace(
+  predict_config = train_config.replace(  # pyrefly: ignore[missing-attribute]
+      base_cfg=base_config.replace(  # pyrefly: ignore[missing-attribute]
           shift=False, deterministic=True,
           decode=not FLAGS.slow_decode,
           max_len=max(FLAGS.predict_max_input_length, FLAGS.max_target_length)),
       train_vq=False)
 
-  lp_train_config = base_config.replace(
+  lp_train_config = base_config.replace(  # pyrefly: ignore[missing-attribute]
       vocab_size=spec_vocab_size,
       output_vocab_size=FLAGS.latent_vocab_size)
   lp_eval_config = lp_train_config.replace(deterministic=True)
@@ -1159,10 +1159,10 @@ def main(_):
   optimizer = optimizer_def.create(initial_variables['params'])
   lp_optimizer = optimizer_def.create(lp_initial_variables['params'])
 
-  state = TrainState(step=0,
-                     optimizer=optimizer,
-                     model_state=initial_variables['vqvae'],
-                     lp_optimizer=lp_optimizer)
+  state = TrainState(step=0,  # pyrefly: ignore[unexpected-keyword]
+                     optimizer=optimizer,  # pyrefly: ignore[unexpected-keyword]
+                     model_state=initial_variables['vqvae'],  # pyrefly: ignore[unexpected-keyword]
+                     lp_optimizer=lp_optimizer)  # pyrefly: ignore[unexpected-keyword]
   # Don't keep a copy of the initial model.
   del initial_variables, lp_initial_variables
 
@@ -1256,7 +1256,7 @@ def main(_):
     if FLAGS.do_training:
       inputs, outputs, targets, rng = load_data(next(train_iter), rng)
 
-      state, metrics, latent_metrics, dropout_rng = p_train_step(  # pylint: disable=undefined-variable
+      state, metrics, latent_metrics, dropout_rng = p_train_step(  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
           state, inputs, outputs, targets, step <= FLAGS.num_pretrain_steps,
           dropout_rng=dropout_rng)
       metrics_all.append(metrics)
@@ -1300,7 +1300,7 @@ def main(_):
         for batches in eval_ds.as_numpy_iterator():
           inputs, outputs, targets, rng = load_data(batches, rng)
 
-          metrics, latent_metrics = p_eval_step(state, inputs, outputs, targets)  # pylint: disable=undefined-variable
+          metrics, latent_metrics = p_eval_step(state, inputs, outputs, targets)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
           eval_metrics.append(metrics)
           latent_eval_metrics.append(latent_metrics)
 
@@ -1355,9 +1355,9 @@ def main(_):
                            jax.process_index(), predict_or_test, padded_size)
             inputs, outputs, targets, rng = load_data(pred_batch, rng)
 
-            cache, lp_cache = (p_init_cache(inputs, outputs, targets)  # pylint: disable=undefined-variable
+            cache, lp_cache = (p_init_cache(inputs, outputs, targets)  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
                                if not FLAGS.slow_decode else (None, None))
-            predicted, _ = p_pred_step(state, inputs, outputs, cache, lp_cache,  # pylint: disable=undefined-variable
+            predicted, _ = p_pred_step(state, inputs, outputs, cache, lp_cache,  # pylint: disable=undefined-variable  # pyrefly: ignore[unbound-name]
                                        beam_size)
             predicted = tohost(predicted)
             inputs, outputs, targets = map(tohost, (inputs, outputs, targets))

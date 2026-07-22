@@ -157,7 +157,7 @@ class EncoderConvLSTM(nn.Module):
     carry = (jnp.zeros(memory_shape), jnp.zeros(memory_shape))
     for i in range(len(inputs)):
       carry, encoding = self.convlstm(carry, inputs[i])
-    encoding = jnp.reshape(encoding, (batch_size, -1))
+    encoding = jnp.reshape(encoding, (batch_size, -1))  # pyrefly: ignore[unbound-name]
     encoding = self.encoding_layer(encoding)
     return encoding
 
@@ -282,11 +282,11 @@ class PercolationPropagator(nn.Module):
       states.append(x)
       if not self.static_kernel and i != unroll_steps - 1:
         kernel = op_predictor(x)
-        kernels.append(kernel)
+        kernels.append(kernel)  # pyrefly: ignore[unbound-name]
 
     if self.static_kernel:
       return states, kernel
-    return states, kernels
+    return states, kernels  # pyrefly: ignore[unbound-name]
 
 
 class StandardPropagator(nn.Module):
@@ -310,7 +310,7 @@ class StandardPropagator(nn.Module):
       hstates.append(hidden_state_new)
       observations.append(observation_predictor(hidden_state_new))
 
-    return tuple(hstates), tuple(observations)
+    return tuple(hstates), tuple(observations)  # pyrefly: ignore[bad-return]
 
 
 class DeterministicPredictorPropagator(nn.Module):

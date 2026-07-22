@@ -94,7 +94,7 @@ def make_networks(
           stax.Dense(hid_dim, W_std=W_std, b_std=b_std),
           stax.Relu()
       ]
-    layers += [stax.Dense(1, W_std=W_std, b_std=0.05)]
+    layers += [stax.Dense(1, W_std=W_std, b_std=0.05)]  # pyrefly: ignore[unbound-name]
     nt_init_fn, nt_apply_fn, nt_kernel_fn = stax.serial(*layers)
     # kernel_fn = jax.jit(nt_kernel_fn, static_argnums=(2,))
 

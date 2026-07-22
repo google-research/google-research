@@ -186,7 +186,7 @@ class MultiHeadAttentionBlock(nn.Module):
 
     # Apply attention mask (Only used for cross-attention right now).
     if kv_mask is not None:
-      assert kv is not None
+      assert kv is not None  # pyrefly: ignore[unbound-name]
       mask = jnp.expand_dims(kv_mask, [1, 2])
       logits = ((1. - mask) * -1e9) + logits
 

@@ -74,7 +74,7 @@ class StackedNatureDqnIndicator(nn.Module):
         num_features=self.tasks_per_module,
         apply_final_relu=self.apply_final_relu,
         dtype=self.dtype,
-        param_dtype=self.param_dtype)(obs)  # pyformat: disable
+        param_dtype=self.param_dtype)(obs)  # pyformat: disable  # pyrefly: ignore[bad-argument-type]
 
     # Squeeze the last dimension as the NatureDqnEncoder outputs shape (1)
     outputs = jax.lax.reshape(outputs, (self.num_auxiliary_tasks,))
@@ -109,14 +109,14 @@ def multiply_shift_hash_function(
   prime = 2**mersenne_prime_exponent - 1
 
   # a_i * x_i
-  result = x * params[1:]
+  result = x * params[1:]  # pyrefly: ignore[bad-index]
   # \sum_i a_i * x_i mod p
   result = jnp.sum(
       jnp.bitwise_and(result, prime)
       + jnp.right_shift(result, mersenne_prime_exponent)
   )
   # a_0 + \sum_i a_i * x_i mod p
-  result = params[0] + result
+  result = params[0] + result  # pyrefly: ignore[bad-index]
   # (a_0 + \sum_i a_i * x_i mod p) mod p
   result = jnp.bitwise_and(result, prime) + jnp.right_shift(
       result, mersenne_prime_exponent

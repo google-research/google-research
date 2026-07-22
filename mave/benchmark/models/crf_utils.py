@@ -81,7 +81,7 @@ def crf_sequence_score(
     unary_scores = crf_unary_score(tag_indices, sequence_lengths, inputs)
     binary_scores = crf_binary_score(tag_indices, sequence_lengths,
                                      transition_params)
-    sequence_scores = unary_scores + binary_scores
+    sequence_scores = unary_scores + binary_scores  # pyrefly: ignore[unsupported-operation]
     return sequence_scores
 
   return _multi_seq_fn()
@@ -206,14 +206,14 @@ def crf_log_likelihood(
   if transition_params is None:
     initializer = tf.keras.initializers.GlorotUniform()
     transition_params = tf.Variable(
-        initializer([num_tags, num_tags]), "transitions")
+        initializer([num_tags, num_tags]), "transitions")  # pyrefly: ignore[not-callable]
   transition_params = tf.cast(transition_params, inputs.dtype)
   sequence_scores = crf_sequence_score(inputs, tag_indices, sequence_lengths,
                                        transition_params)
   log_norm = crf_log_norm(inputs, sequence_lengths, transition_params)
 
   # Normalize the scores to get the log-likelihood per example.
-  log_likelihood = sequence_scores - log_norm
+  log_likelihood = sequence_scores - log_norm  # pyrefly: ignore[unsupported-operation]
   return log_likelihood, transition_params
 
 
@@ -393,11 +393,11 @@ class CrfDecodeForwardRnnCell(tf.keras.layers.AbstractRNNCell):
     self._num_tags = transition_params.shape[0]
 
   @property
-  def state_size(self):
+  def state_size(self):  # pyrefly: ignore[bad-override]
     return self._num_tags
 
   @property
-  def output_size(self):
+  def output_size(self):  # pyrefly: ignore[bad-override]
     return self._num_tags
 
   def call(self, inputs, state):
@@ -462,7 +462,7 @@ def crf_decode_forward(
       return_sequences=True,
       return_state=True,
       dtype=inputs.dtype)
-  return crf_fwd_layer(inputs, state, mask=mask)
+  return crf_fwd_layer(inputs, state, mask=mask)  # pyrefly: ignore[not-callable]
 
 
 def crf_decode_backward(inputs, state):

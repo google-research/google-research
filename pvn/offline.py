@@ -63,25 +63,25 @@ TargetParamsUpdateFunction = Callable[
 class TrainMetrics(clu_metrics.Collection):
   """Train metrics."""
 
-  tde_loss: clu_metrics.Average.from_output('tde_loss')
-  tde_loss_std: clu_metrics.Std.from_output('tde_loss')
+  tde_loss: clu_metrics.Average.from_output('tde_loss')  # pyrefly: ignore[invalid-annotation]
+  tde_loss_std: clu_metrics.Std.from_output('tde_loss')  # pyrefly: ignore[invalid-annotation]
 
-  average_prediction: clu_metrics.Average.from_output('dsm_action_preds')
+  average_prediction: clu_metrics.Average.from_output('dsm_action_preds')  # pyrefly: ignore[invalid-annotation]
 
-  gradient_norm: clu_metrics.Average.from_output('gradient_norm')
+  gradient_norm: clu_metrics.Average.from_output('gradient_norm')  # pyrefly: ignore[invalid-annotation]
 
 
 @flax.struct.dataclass
 class IndicatorMetrics(clu_metrics.Collection):
-  average_reward: clu_metrics.Average.from_output('dsm_rewards')
+  average_reward: clu_metrics.Average.from_output('dsm_rewards')  # pyrefly: ignore[invalid-annotation]
 
 
 @flax.struct.dataclass
 class RNDIndicatorMetrics(clu_metrics.Collection):
-  average_reward: clu_metrics.Average.from_output('dsm_rewards')
+  average_reward: clu_metrics.Average.from_output('dsm_rewards')  # pyrefly: ignore[invalid-annotation]
 
-  proportion_loss: clu_metrics.Average.from_output('proportion_loss')
-  proportion_loss_std: clu_metrics.Std.from_output('proportion_loss')
+  proportion_loss: clu_metrics.Average.from_output('proportion_loss')  # pyrefly: ignore[invalid-annotation]
+  proportion_loss_std: clu_metrics.Std.from_output('proportion_loss')  # pyrefly: ignore[invalid-annotation]
 
 
 def construct_hard_target_params_update_fn(
@@ -98,7 +98,7 @@ def construct_hard_target_params_update_fn(
       that takes new_params, old_params, step. When step % update_period == 0
       then new_params == old_params.
   """
-  return functools.partial(optax.periodic_update, update_period=update_period)
+  return functools.partial(optax.periodic_update, update_period=update_period)  # pyrefly: ignore[bad-return]
 
 
 def construct_soft_target_params_update_fn(
@@ -227,7 +227,7 @@ def train_step(
         td_targets, mesh_utils.create_partition_spec('data', 'model')
     )
     # TD errors
-    td_errors = td_targets - chosen_action_preds
+    td_errors = td_targets - chosen_action_preds  # pyrefly: ignore[unsupported-operation]
     td_errors = mesh_utils.with_sharding_constraint(
         td_errors, mesh_utils.create_partition_spec('data', 'model')
     )

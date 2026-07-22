@@ -64,7 +64,7 @@ def make_global_local_transformer_side_inputs(
   Returns:
     A `GlobalLocalTransformerSideInputs` with all relevant tensors set.
   """
-  with tf.name_scope(name or "make_global_local_transformer_side_inputs"):
+  with tf.name_scope(name or "make_global_local_transformer_side_inputs"):  # pyrefly: ignore[bad-instantiation]
 
     # Make paragraphs not attend to other paragraphs in the long input.
     long_paragraph_breakpoints = tf.convert_to_tensor(
@@ -247,8 +247,8 @@ class EtcSequenceTagger(tf.keras.Model):
     long_output, global_output = self.etc_model(
         **etc_model_inputs, training=training)
 
-    global_logits = self.global_head(global_output)
-    long_logits = self.long_head(long_output)
+    global_logits = self.global_head(global_output)  # pyrefly: ignore[not-callable]
+    long_logits = self.long_head(long_output)  # pyrefly: ignore[not-callable]
 
     global_predictions = tf.nn.sigmoid(global_logits)
     long_predictions = tf.nn.sigmoid(long_logits)
@@ -280,7 +280,7 @@ def build_model(config):
                  config.etc.pretrain_checkpoint)
 
   # Builds the model by calling.
-  model({
+  model({  # pyrefly: ignore[not-callable]
       "global_token_ids":
           tf.ones((1, config.etc.global_seq_length), tf.int32),
       "global_breakpoints":

@@ -217,12 +217,12 @@ def get_num_annotations_from_input_file(input_file):
         .value)
   num_blocks_per_example = len(
       first_example.features.feature['block_ids'].int64_list.value)
-  if num_annotations_per_example % num_blocks_per_example != 0:
+  if num_annotations_per_example % num_blocks_per_example != 0:  # pyrefly: ignore[unsupported-operation]
     raise ValueError(
         'Record contain inconsistent input: '
         'num_blocks_per_example={}, num_annotations_per_example={}'.format(
             num_blocks_per_example, num_annotations_per_example))
-  return num_annotations_per_example // num_blocks_per_example
+  return num_annotations_per_example // num_blocks_per_example  # pyrefly: ignore[unsupported-operation]
 
 
 def get_span_prediction_example_decode_fn(

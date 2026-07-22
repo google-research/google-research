@@ -56,14 +56,14 @@ class Camera:
     self.horizontal = viewport_width * horizontal_unit_vector  # pytype: disable=unsupported-operands  # jax-operator-types
     self.vertical = viewport_height * vertical_unit_vector  # pytype: disable=unsupported-operands  # jax-operator-types
     self.lower_left_corner = (
-        self.origin - self.horizontal / 2 - self.vertical / 2 +
+        self.origin - self.horizontal / 2 - self.vertical / 2 +  # pyrefly: ignore[unsupported-operation]
         (self.view_direction.unit()))
 
   def get_ray(self, u, v):
     """Returns the ray emitted from the camera for the given (u, v) coordinates."""
     return vector.Ray(  # pytype: disable=wrong-arg-types  # jax-types
         self.origin,
-        self.lower_left_corner + u * self.horizontal + v * self.vertical -
+        self.lower_left_corner + u * self.horizontal + v * self.vertical -  # pyrefly: ignore[unsupported-operation]
         self.origin,
     )
 

@@ -174,7 +174,7 @@ class CRF(tf.keras.layers.Layer):
           raise NotImplementedError(
               "Currently, CRF layer do not support left padding")
 
-    potentials = self._dense_layer(inputs)
+    potentials = self._dense_layer(inputs)  # pyrefly: ignore[not-callable]
 
     # appending boundary probability info
     if self.use_boundary:

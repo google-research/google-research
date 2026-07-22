@@ -113,7 +113,7 @@ class FittedValueTrainState(TrainState):  # pytype: disable=invalid-function-def
     )
 
   @classmethod
-  def create(
+  def create(  # pyrefly: ignore[bad-override]
       cls,
       *,
       apply_fn,
@@ -150,7 +150,7 @@ def create_indicator_state(
   params = model.init(rng, dummy_observation)
   # We have to unfreeze the parameters or else optax has some issues
   # with optax.masked
-  params = params.unfreeze()
+  params = params.unfreeze()  # pyrefly: ignore[missing-attribute]
 
   return TrainState.create(apply_fn=model.apply, params=params, optim=optim)
 
@@ -303,7 +303,7 @@ def maybe_restore_train_and_indicator_state(
       train_state_shape, train_state_shape
   )
   train_state_pspec = create_train_state_partition_spec_from_shape(
-      train_state_shape
+      train_state_shape  # pyrefly: ignore[bad-argument-type]
   )
   train_state_restore_args = jax.tree_util.tree_map(
       restore_arguments_with_mesh_axes(train_state_pspec), train_state_shape
@@ -320,7 +320,7 @@ def maybe_restore_train_and_indicator_state(
       indicator_state_shape, indicator_state_shape
   )
   indicator_state_pspec = create_indicator_state_partition_spec_from_shape(
-      indicator_state_shape
+      indicator_state_shape  # pyrefly: ignore[bad-argument-type]
   )
   indicator_state_restore_args = jax.tree_util.tree_map(
       restore_arguments_with_mesh_axes(indicator_state_pspec),
@@ -359,7 +359,7 @@ def save_train_and_indicator_state(
 
   # We just need to filter out empty nodes for the train state.
   transformed_train_state = tree_utils.filter_empty_nodes(
-      train_state, train_state
+      train_state, train_state  # pyrefly: ignore[bad-argument-type]
   )  # pytype: disable=wrong-arg-types
 
   # The indicator state requires a little more care.

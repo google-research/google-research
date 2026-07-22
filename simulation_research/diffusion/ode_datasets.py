@@ -271,7 +271,7 @@ class HamiltonianDataset(ODEDataset):
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     # convert the momentum into velocity
-    qs, ps = unpack(self.Zs)
+    qs, ps = unpack(self.Zs)  # pyrefly: ignore[bad-argument-type]
     Ms = vmap(vmap(self.mass))(qs)  # pylint: disable=invalid-name
     vs = jnp.linalg.solve(Ms, ps[Ellipsis, None]).squeeze(-1)
     self.Zs = pack(qs, vs)
@@ -289,15 +289,15 @@ class HamiltonianDataset(ODEDataset):
 
   def animate(self, zt = None):  # type: ignore  # jax-ndarray
     if zt is None:
-      zt = np.asarray(
+      zt = np.asarray(  # pyrefly: ignore[bad-assignment]
           self.integrate(self.sample_initial_conditions(10)[0], self.T_long))
     # bs, T, 2nd
     if len(zt.shape) == 3:
       j = np.random.randint(zt.shape[0])
       zt = zt[j]
     xt, _ = unpack(zt)
-    anim = self.animator(xt)
-    return anim.animate()
+    anim = self.animator(xt)  # pyrefly: ignore[bad-argument-type]
+    return anim.animate()  # pyrefly: ignore[bad-return]
 
 
 class SHO(HamiltonianDataset):
@@ -312,7 +312,7 @@ class SHO(HamiltonianDataset):
     return jnp.eye(1)
 
   def sample_initial_conditions(self, bs):  # pytype: disable=signature-mismatch  # jax-ndarray
-    return np.random.randn(bs, 2)
+    return np.random.randn(bs, 2)  # pyrefly: ignore[bad-return]
 
 
 class NPendulum(HamiltonianDataset):
@@ -359,4 +359,4 @@ class NPendulum(HamiltonianDataset):
     z0 = np.random.randn(bs, 2 * self.n)
     z0[:, self.n:] *= .2
     z0[:, -1] *= 1.5
-    return z0
+    return z0  # pyrefly: ignore[bad-return]

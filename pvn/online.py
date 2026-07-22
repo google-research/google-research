@@ -139,7 +139,7 @@ def create_q_network_with_encoder(
 
     def init_fn(
         rng_key,  # pytype: disable=annotation-type-mismatch  # jax-ndarray
-        unused_example_observation = None,
+        unused_example_observation = None,  # pyrefly: ignore[bad-function-definition]
     ):
       del unused_example_observation
       q_network_params = q_network.init(rng_key, example_state)
@@ -169,7 +169,7 @@ def create_q_network_with_encoder(
         )
     )
 
-  return network_factory
+  return network_factory  # pyrefly: ignore[bad-return]
 
 
 def create_q_network_without_encoder(
@@ -199,7 +199,7 @@ def create_q_network_without_encoder(
     # an RNG key and an observation, while some pass in just the RNG key.
     def network_init(
         rng_key,  # pytype: disable=annotation-type-mismatch  # jax-ndarray
-        unused_example_observation = None,
+        unused_example_observation = None,  # pyrefly: ignore[bad-function-definition]
     ):
       return q_network.init(rng_key, example_state)
 
@@ -209,7 +209,7 @@ def create_q_network_without_encoder(
         )
     )
 
-  return network_factory
+  return network_factory  # pyrefly: ignore[bad-return]
 
 
 def restore_encoder_params(
@@ -287,7 +287,7 @@ def train(
     network_factory = create_q_network_with_encoder(  # pytype: disable=wrong-arg-types  # numpy-scalars
         num_features,
         encoder,
-        encoder_params,
+        encoder_params,  # pyrefly: ignore[bad-argument-type]
         distributional=use_distributional_rl,
         num_hidden_layers=config.online.num_hidden_layers,
         hidden_layer_width=config.online.hidden_layer_width,

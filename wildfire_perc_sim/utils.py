@@ -167,13 +167,13 @@ def _get_xy_stencil(neighborhood_size):
   Returns:
     A 2-tuple of x-indices and y-indices.
   """
-  return jnp.nonzero(jnp.tril(jnp.ones((neighborhood_size, neighborhood_size))))
+  return jnp.nonzero(jnp.tril(jnp.ones((neighborhood_size, neighborhood_size))))  # pyrefly: ignore[bad-return]
 
 
 def get_stencil(neighborhood_size):
   """Generate an array of indices of neighbors for a given neighborhood size."""
 
-  x_arr, y_arr = _get_xy_stencil(neighborhood_size)
+  x_arr, y_arr = _get_xy_stencil(neighborhood_size)  # pyrefly: ignore[bad-argument-type]
   xy_norm = jnp.linalg.norm(jnp.stack([x_arr, y_arr]), axis=0)
   dist_array = jnp.column_stack([x_arr, y_arr, xy_norm])
 

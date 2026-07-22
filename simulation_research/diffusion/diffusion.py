@@ -232,12 +232,12 @@ class Diffusion(object):
   @classmethod
   def dynamics(cls, score_fn, x, t):
     """Backwards probability flow ODE dynamics."""
-    return cls.f(t) * x - .5 * cls.g2(t) * score_fn(x, t)
+    return cls.f(t) * x - .5 * cls.g2(t) * score_fn(x, t)  # pyrefly: ignore[bad-argument-type]
 
   @classmethod
   def drift(cls, score_fn, x, t):
     """Backwards SDE drift term."""
-    return cls.f(t) * x - cls.g2(t) * score_fn(x, t)
+    return cls.f(t) * x - cls.g2(t) * score_fn(x, t)  # pyrefly: ignore[bad-argument-type]
 
   @classmethod
   def diffusion(cls, score_fn, x, t):
@@ -370,7 +370,7 @@ def train_diffusion(
     input_scale = 1 / jnp.sqrt(sigma**2 + (scale * data_std)**2)
     cond = cond / data_std if cond is not None else None
     out = model.apply(params, x=x * input_scale, t=t, train=train, cond=cond)
-    return out / jnp.sqrt(sigma**2 + scale**2 * data_std**2)
+    return out / jnp.sqrt(sigma**2 + scale**2 * data_std**2)  # pyrefly: ignore[unsupported-operation]
 
   def loss(params, x, key):
     """Score matching MSE loss from Yang's Score-SDE paper."""
@@ -384,7 +384,7 @@ def train_diffusion(
     # weighting from Yang Song's https://arxiv.org/abs/2011.13456
     weighting = unsqueeze_like(x, diffusion.sigma(t)**2)
     error = score(params, xt, t, cond=cond_fn(x)) - target_score
-    return jnp.mean((diffusion.covsqrt.inverse(error)**2) * weighting)
+    return jnp.mean((diffusion.covsqrt.inverse(error)**2) * weighting)  # pyrefly: ignore[bad-argument-type]
 
   tx = optax.adam(learning_rate=lr)
   opt_state = tx.init(params)
@@ -409,13 +409,13 @@ def train_diffusion(
           params, ema_params, opt_state, key, data)
     if epoch % 25 == 0:
       ema_loss = jloss(ema_params, data, key)  # pylint: disable=undefined-loop-variable
-      message = f'Loss epoch {epoch}: {loss_val:.3f} Ema {ema_loss:.3f}'
+      message = f'Loss epoch {epoch}: {loss_val:.3f} Ema {ema_loss:.3f}'  # pyrefly: ignore[unbound-name]
       logging.info(message)
       if writer is not None:
         metrics = {'loss': loss_val, 'ema_loss': ema_loss}
         eval_metrics_cpu = jax.tree.map(np.array, metrics)
         writer.write_scalars(epoch, eval_metrics_cpu)
-        report(epoch, time.time())
+        report(epoch, time.time())  # pyrefly: ignore[not-callable]
 
   model_state = ema_params
   if ckpt is not None:
@@ -428,7 +428,7 @@ def train_diffusion(
     """Trained score function s(xₜ,t):=∇logp(xₜ)."""
     if not hasattr(t, 'shape') or not t.shape:
       t = jnp.ones(x.shape[0]) * t
-    return score(ema_params, x, t, train=False, cond=cond)
+    return score(ema_params, x, t, train=False, cond=cond)  # pyrefly: ignore[bad-argument-type]
 
   return score_out
 
@@ -436,7 +436,7 @@ def train_diffusion(
 def count_params(params):
   """Count the number of parameters in the flax model param dict."""
   if isinstance(params, jax.numpy.ndarray):
-    return np.prod(params.shape)
+    return np.prod(params.shape)  # pyrefly: ignore[bad-return]
   elif isinstance(params, (dict, FrozenDict)):
     return sum([count_params(v) for v in params.values()])
   else:
