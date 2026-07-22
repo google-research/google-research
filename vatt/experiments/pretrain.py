@@ -70,7 +70,7 @@ class BaseExecutor(base.Executor):
       embedding_name = 'word2vec'
       embedding_vocab_size = 2**16
     elif tokenizer == 'BertTokenizer':
-      d_model = embedding_layer.output_dim
+      d_model = embedding_layer.output_dim  # pyrefly: ignore[unbound-name]
       embedding_vocab_size = 30522
       dim2size = {512: 'small', 768: 'base', 1024: 'large'}
       embedding_name = 'bert_uncased_{}'.format(dim2size[d_model])
@@ -78,7 +78,7 @@ class BaseExecutor(base.Executor):
       raise ValueError('Text tokenizer {!r} not supported!'.format(tokenizer))
 
     # make sure the correct vocab_size has been used
-    assert embedding_layer.input_dim == embedding_vocab_size, (
+    assert embedding_layer.input_dim == embedding_vocab_size, (  # pyrefly: ignore[unbound-name]
         'Text embedding layer is not configured properly. '
         'Expected vocab_size={}, but configured with vocab_size={}.'
         .format(embedding_vocab_size, embedding_layer.input_dim)
@@ -137,7 +137,7 @@ class BaseExecutor(base.Executor):
       for dataset_id in params.eval.input.name:
         if dataset_id in dataloaders.CLS_DS:
           for subset in ['train', 'test']:
-            for split in dataloaders.CLS_DS[dataset_id]['splits']:
+            for split in dataloaders.CLS_DS[dataset_id]['splits']:  # pyrefly: ignore[not-iterable]
               data.append(dataloaders.EvalLoader(
                   dataset_id=dataset_id,
                   subset=subset,
@@ -281,7 +281,7 @@ class EvalExecutor(BaseExecutor):
       modality = 'audio'
 
     outputs_filter = self._create_outputs_filter(task='classification',
-                                                 modality=modality)
+                                                 modality=modality)  # pyrefly: ignore[unbound-name]
 
     train_outputs, cnt = self.infer(iterator=train_iterator,
                                     outputs_filter=outputs_filter)

@@ -135,7 +135,7 @@ class RescalePointsTest(absltest.TestCase):
     dummy_input = np.zeros(shape=(7, 11, 2), dtype=np.float32)
     expected_output_shape = (7, 11, 2)
 
-    output = space_mappings.rescale_points(dummy_input)
+    output = space_mappings.rescale_points(dummy_input)  # pyrefly: ignore[bad-argument-type]
 
     self.assertSequenceEqual(expected_output_shape, output.shape)
 

@@ -143,7 +143,7 @@ def get_data(file_patterns,
     logging.info('[get_data.crop] Cropping to %i...', max_samples_length)
     samples = tf.expand_dims(tf.expand_dims(samples, axis=-1), axis=-1)
     # Pretend input is batches images of shape (..., height, width, channels).
-    cropped_samples = random_crop(samples)
+    cropped_samples = random_crop(samples)  # pyrefly: ignore[not-callable]
     cropped_samples = tf.squeeze(cropped_samples, axis=[2, 3])
     return (cropped_samples,) + args[1:]
 

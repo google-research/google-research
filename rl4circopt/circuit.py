@@ -389,7 +389,7 @@ class Operation:
     return self._gate
 
   def get_qubits(self):
-    return self._qubits
+    return self._qubits  # pyrefly: ignore[bad-return]
 
   def get_num_qubits(self):
     return len(self._qubits)
@@ -453,7 +453,7 @@ class Operation:
             of qubits of this gate.
     """
 
-    permutation = np.array(permutation).astype(int, casting='safe')
+    permutation = np.array(permutation).astype(int, casting='safe')  # pyrefly: ignore[bad-assignment]
     num_qubits = self.get_num_qubits()
 
     if np.array_equal(permutation, np.arange(num_qubits)):  # trivial perm.
@@ -462,9 +462,9 @@ class Operation:
     _check_permutation(permutation, num_qubits)
 
     if inverse:
-      permutation = np.argsort(permutation)
+      permutation = np.argsort(permutation)  # pyrefly: ignore[bad-assignment]
 
-    return self.replace_qubits(np.array(self.get_qubits())[permutation])
+    return self.replace_qubits(np.array(self.get_qubits())[permutation])  # pyrefly: ignore[bad-argument-type]
 
   @functools.lru_cache(maxsize=10000)
   def commutes_trivially_with(self, other):
@@ -871,10 +871,10 @@ class Gate(abc.ABC):
         ValueError: if active_qubits is invalid or not consistent with the
             number of qubits for this gate, or if total_num_qubits is too small.
     """
-    active_qubits = np.array(active_qubits).astype(int, casting='safe')
-    if active_qubits.ndim != 1:
+    active_qubits = np.array(active_qubits).astype(int, casting='safe')  # pyrefly: ignore[bad-assignment]
+    if active_qubits.ndim != 1:  # pyrefly: ignore[missing-attribute]
       raise TypeError('active_qubits is not a sequence of int [shape: %s]'
-                      %str(active_qubits.shape))
+                      %str(active_qubits.shape))  # pyrefly: ignore[missing-attribute]
 
     self_num_qubits = self.get_num_qubits()
     total_num_qubits = _cast_to_int(total_num_qubits, 'total_num_qubits')
@@ -882,7 +882,7 @@ class Gate(abc.ABC):
     if total_num_qubits < self_num_qubits:
       raise ValueError('number of qubits cannot be reduced (from %d to %d)'
                        %(self_num_qubits, total_num_qubits))
-    if active_qubits.size != self_num_qubits:
+    if active_qubits.size != self_num_qubits:  # pyrefly: ignore[missing-attribute]
       raise ValueError('illegal length for active_qubits: %d (expected: %d)'
                        %(active_qubits.size, self_num_qubits))
     if not (np.min(active_qubits) >= 0
@@ -929,7 +929,7 @@ class Gate(abc.ABC):
     # new objects if avoidable. In particular, gate can be self if active_qubits
     # is already sorted, but there are more difficult cases and it is much
     # easier to consistently treat them all in the permute_qubits(...) method.
-    gate = self.permute_qubits(np.argsort(active_qubits))
+    gate = self.permute_qubits(np.argsort(active_qubits))  # pyrefly: ignore[bad-argument-type]
 
     # step 2: extend the operation on additional qubits if necessary
     #
@@ -939,7 +939,7 @@ class Gate(abc.ABC):
     else:
       return MatrixGate(extend_operator(
           gate.get_operator(),
-          np.isin(np.arange(total_num_qubits), active_qubits)
+          np.isin(np.arange(total_num_qubits), active_qubits)  # pyrefly: ignore[bad-argument-type]
       ))
 
   def __eq__(self, other, **kwargs):
@@ -1406,7 +1406,7 @@ def compute_pauli_transform(operator):
   # where <.,.> is the Hilbert-Schmidt product. The first element of pauli_n
   # which is the n-qubit identity does not need to be included because it is
   # always mapped to identity.
-  pauli_transform = 0.5 ** num_qubits * np.tensordot(
+  pauli_transform = 0.5 ** num_qubits * np.tensordot(  # pyrefly: ignore[no-matching-overload]
       np.matmul(pauli_n[1:], operator),
       np.matmul(operator, pauli_n[1:]).conj(),
       axes=[(1, 2), (1, 2)]
@@ -1460,7 +1460,7 @@ def permute_qubits(operator,
           number of qubits for the operator.
   """
 
-  permutation = np.array(permutation).astype(int, casting='safe')
+  permutation = np.array(permutation).astype(int, casting='safe')  # pyrefly: ignore[bad-assignment]
   operator = np.array(operator, dtype=complex)
 
   num_qubits = _analyse_operator(operator)
@@ -1472,7 +1472,7 @@ def permute_qubits(operator,
   _check_permutation(permutation, num_qubits)
 
   if inverse:
-    permutation = np.argsort(permutation)
+    permutation = np.argsort(permutation)  # pyrefly: ignore[bad-assignment]
 
   # Given a unitary operator U and a permutation perm, we want to construct the
   # operator U' which satisfies
@@ -1549,10 +1549,11 @@ def extend_operator(operator,
 
   operator = np.array(operator, dtype=complex)
 
-  is_qubit_active = np.array(is_qubit_active)
+  is_qubit_active = np.array(is_qubit_active)  # pyrefly: ignore[bad-assignment]
   try:
-    is_qubit_active = is_qubit_active.astype(bool, casting='safe')
+    is_qubit_active = is_qubit_active.astype(bool, casting='safe')  # pyrefly: ignore[missing-attribute]
   except TypeError:
+    # pyrefly: ignore[missing-attribute]
     raise TypeError('is_qubit_active is not a sequence of bool [%s cannot be'
                     r' casted safely to bool]'%is_qubit_active.dtype)
   if is_qubit_active.ndim != 1:

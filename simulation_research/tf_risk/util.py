@@ -80,7 +80,7 @@ def running_mean_estimate(estimate,
   tot_num_samples = float(num_samples + batch_size)
   estimate_fraction = float(num_samples) / tot_num_samples
   batch_fraction = float(batch_size) / tot_num_samples
-  return estimate * estimate_fraction + batch_estimate * batch_fraction
+  return estimate * estimate_fraction + batch_estimate * batch_fraction  # pyrefly: ignore[bad-return]
 
 
 def black_scholes_call_price(current_price,

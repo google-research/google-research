@@ -115,7 +115,7 @@ class FullTokenizer(object):
     # more robust to all tokenization discrepancies between pre-training /
     # fine-tuning stages.
     processed_text = sentencepiece_pb2.SentencePieceText.FromString(
-        self.sp_model.EncodeAsSerializedProto(text))
+        self.sp_model.EncodeAsSerializedProto(text))  # pyrefly: ignore[missing-attribute]
 
     # Note that SentencePiece returns offsets in bytes.
     # So we have to manually convert to offset in unicode code points.
@@ -165,7 +165,7 @@ class FullTokenizer(object):
     surface_forms, is_continuation = [], []
 
     for word_index, word in enumerate(words):
-      word_tokens = self.tokenizer.tokenize(word)
+      word_tokens = self.tokenizer.tokenize(word)  # pyrefly: ignore[missing-attribute]
       current_word_offset = 0
       for token_index, token in enumerate(word_tokens):
         surface_forms_prefix = ' ' if token_index == 0 else ''
@@ -179,7 +179,7 @@ class FullTokenizer(object):
           is_continuation.append(0)
           current_word_offset += len(token)
           surface_forms.append(surface_forms_prefix + token)
-      token_ids.extend(self.tokenizer.convert_tokens_to_ids(word_tokens))
+      token_ids.extend(self.tokenizer.convert_tokens_to_ids(word_tokens))  # pyrefly: ignore[missing-attribute]
     assert len(tokens) == len(token_ids)
     return TokenizationResult(tokens, token_ids, None, offsets, surface_forms,
                               is_continuation)
@@ -191,10 +191,10 @@ class FullTokenizer(object):
     if self.sp_model is not None:
       return [self.sp_model.PieceToId(token) for token in tokens]
     else:
-      return self.tokenizer.convert_tokens_to_ids(tokens)
+      return self.tokenizer.convert_tokens_to_ids(tokens)  # pyrefly: ignore[missing-attribute]
 
   def convert_ids_to_tokens(self, ids):
     if self.sp_model is not None:
       return [self.sp_model.IdToPiece(id_) for id_ in ids]
     else:
-      return self.tokenizer.convert_ids_to_tokens(ids)
+      return self.tokenizer.convert_ids_to_tokens(ids)  # pyrefly: ignore[missing-attribute]

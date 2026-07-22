@@ -106,20 +106,20 @@ class Mixed(tf.keras.layers.Layer):
                               name='conv3d_0b_1x1')
 
   def call(self, inputs, training=None):
-    with tf.name_scope('branch_0'):
-      branch_0 = self.unit3d_b0_0(inputs, training=training)
+    with tf.name_scope('branch_0'):  # pyrefly: ignore[bad-instantiation]
+      branch_0 = self.unit3d_b0_0(inputs, training=training)  # pyrefly: ignore[not-callable]
 
-    with tf.name_scope('branch_1'):
-      branch_1 = self.unit3d_b1_0(inputs, training=training)
-      branch_1 = self.unit3d_b1_1(branch_1, training=training)
+    with tf.name_scope('branch_1'):  # pyrefly: ignore[bad-instantiation]
+      branch_1 = self.unit3d_b1_0(inputs, training=training)  # pyrefly: ignore[not-callable]
+      branch_1 = self.unit3d_b1_1(branch_1, training=training)  # pyrefly: ignore[not-callable]
 
-    with tf.name_scope('branch_2'):
-      branch_2 = self.unit3d_b2_0(inputs, training=training)
-      branch_2 = self.unit3d_b2_1(branch_2, training=training)
+    with tf.name_scope('branch_2'):  # pyrefly: ignore[bad-instantiation]
+      branch_2 = self.unit3d_b2_0(inputs, training=training)  # pyrefly: ignore[not-callable]
+      branch_2 = self.unit3d_b2_1(branch_2, training=training)  # pyrefly: ignore[not-callable]
 
-    with tf.name_scope('branch_3'):
+    with tf.name_scope('branch_3'):  # pyrefly: ignore[bad-instantiation]
       branch_3 = self.max3d_b3_0(inputs)
-      branch_3 = self.unit3d_b3_1(branch_3, training=training)
+      branch_3 = self.unit3d_b3_1(branch_3, training=training)  # pyrefly: ignore[not-callable]
 
     output = tf.concat([branch_0, branch_1, branch_2, branch_3], 4)
     return output

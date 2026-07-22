@@ -559,8 +559,8 @@ class PriorityExamplePacker(BaseExamplePacker):
       repeated_values = get_repeated_values(name, partial_example)
       extension_values = list(get_repeated_values(name, extension))
       if name in self._cumulative_features:
-        adder = repeated_values[-1] + 1 if repeated_values else 0
-        extension_values = [x + adder for x in extension_values]
+        adder = repeated_values[-1] + 1 if repeated_values else 0  # pyrefly: ignore[unsupported-operation]
+        extension_values = [x + adder for x in extension_values]  # pyrefly: ignore[unsupported-operation]
       repeated_values.extend(extension_values)
 
   def _insert_into_cache(self, example):

@@ -52,7 +52,7 @@ def get_metrics(task='classification'):
   elif task == 'dummy':
     metrics = {}
 
-  return metrics
+  return metrics  # pyrefly: ignore[unbound-name]
 
 
 def convert_metric_to_numpy(metrics):
@@ -343,7 +343,7 @@ class Executor(object):
         metrics.update(convert_metric_to_numpy(auxiliary_metrics))
 
         if callable(optimizer.lr):
-          metrics.update({'learning_rate': optimizer.lr(current_step).numpy()})
+          metrics.update({'learning_rate': optimizer.lr(current_step).numpy()})  # pyrefly: ignore[missing-attribute]
         else:
           metrics.update({'learning_rate': optimizer.lr.numpy()})
 
@@ -364,7 +364,7 @@ class Executor(object):
       logging.info('Final checkpoint saved at step %d at path: %s',
                    current_step, ckpt_save_path)
 
-      return metrics
+      return metrics  # pyrefly: ignore[unbound-name]
 
   def infer(self,
             iterator,

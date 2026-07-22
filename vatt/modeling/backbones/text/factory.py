@@ -78,7 +78,7 @@ class LanguageModel(tf.keras.layers.Layer):
     else:
       self.pre_proj = tf.identity
 
-    self.base_lm = base_lm_head(**params.as_dict())
+    self.base_lm = base_lm_head(**params.as_dict())  # pyrefly: ignore[not-callable]
 
     # if specified, there would be a dense projection after the LM outputs
     if params.d_post_proj is not None:
@@ -120,7 +120,7 @@ class LanguageModel(tf.keras.layers.Layer):
     """Connects graph to sentence representation."""
 
     # word_id to embeddings
-    word_embeddings = self.embedding(inputs_ids)
+    word_embeddings = self.embedding(inputs_ids)  # pyrefly: ignore[not-callable]
 
     # generate padding mask
     if attention_mask is None:
@@ -134,7 +134,7 @@ class LanguageModel(tf.keras.layers.Layer):
           attention_mask,
           )
 
-    word_embeddings = self.pre_proj(word_embeddings)
+    word_embeddings = self.pre_proj(word_embeddings)  # pyrefly: ignore[not-callable]
     base_outputs = self.base_lm(
         inputs=None,
         inputs_embeddings=word_embeddings,
@@ -142,7 +142,7 @@ class LanguageModel(tf.keras.layers.Layer):
         training=training,
         )
 
-    last_hidden_states = self.post_proj(base_outputs["hidden_states"][-1])
+    last_hidden_states = self.post_proj(base_outputs["hidden_states"][-1])  # pyrefly: ignore[not-callable]
     if self._use_agg_token or self._is_transformer:
       word_embeddings = last_hidden_states[:, 1:, :]
       sentence_embeddings = last_hidden_states[:, 0, :]
@@ -184,7 +184,7 @@ def build_model(
     raise ValueError("Unknown model name {!r}".format(params.name))
 
   model = LanguageModel(
-      base_lm_head=base_lm_head,
+      base_lm_head=base_lm_head,  # pyrefly: ignore[bad-argument-type]
       params=params,
       )
 

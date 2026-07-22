@@ -407,7 +407,7 @@ def gbm_euler_step_nd(states,
     sample_shape = states.get_shape().as_list()
     normals = random_normal(sample_shape, t / dt, key)
 
-  dw_t = normals * tf.sqrt(dt)
+  dw_t = normals * tf.sqrt(dt)  # pyrefly: ignore[unbound-name]
 
   return states * (
       tf.constant(1.0, dtype=states.dtype) + drift * dt +

@@ -48,7 +48,7 @@ def main(argv):
   sampler = cirq.Simulator()
 
   samples_outputs = circuit_generation_test.experimental_circuit_samples(
-      meas_shots, deg, qubits, sampler
+      meas_shots, deg, qubits, sampler  # pyrefly: ignore[bad-argument-type]
   )
   recon_h_from_exp, recon_h_from_exp_wo_correction, probs, confusion_matrix = (
       samples_outputs

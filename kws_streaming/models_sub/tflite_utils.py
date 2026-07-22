@@ -158,4 +158,4 @@ def run_stream_inference_classification_tflite(interpreter,
           output_details[out_tensor_name_to_tflite_out_index[key]]["index"])
 
   # return the last classification results
-  return tflite_output
+  return tflite_output  # pyrefly: ignore[unbound-name]

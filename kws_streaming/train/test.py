@@ -167,7 +167,7 @@ def tf_stream_state_internal_model_accuracy(
         stream_output_arg = np.argmax(stream_output_prediction)
 
     total_accuracy = total_accuracy + (
-        test_ground_truth[0] == stream_output_arg)
+        test_ground_truth[0] == stream_output_arg)  # pyrefly: ignore[unbound-name]
     count = count + 1
     if i % 200 == 0 and i:
       logging.info(
@@ -303,7 +303,7 @@ def tf_stream_state_external_model_accuracy(
 
         stream_output_arg = np.argmax(outputs[0])
     total_accuracy = total_accuracy + (
-        test_ground_truth[0] == stream_output_arg)
+        test_ground_truth[0] == stream_output_arg)  # pyrefly: ignore[unbound-name]
     count = count + 1
     if i % 200 == 0 and i:
       logging.info(
@@ -427,7 +427,7 @@ def tflite_stream_state_external_model_accuracy(
         out_tflite_argmax = np.argmax(out_tflite)
 
     total_accuracy = total_accuracy + (
-        test_ground_truth[0] == out_tflite_argmax)
+        test_ground_truth[0] == out_tflite_argmax)  # pyrefly: ignore[unbound-name]
     count = count + 1
     if i % 200 == 0 and i:
       logging.info(

@@ -106,7 +106,7 @@ class GenerateDataSetTest(parameterized.TestCase):
     expected_coord_shape = (num_points, 2)
 
     for latent, coord, label in zip(latents, coords, labels):
-      assert latent.shape == expected_latent_shape
+      assert latent.shape == expected_latent_shape  # pyrefly: ignore[unbound-name]
       assert coord.shape == expected_coord_shape
       assert isinstance(label, bool)
 

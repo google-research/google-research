@@ -65,7 +65,7 @@ def get_keras_model(model_type,
   if model_out.shape[1] == output_dimension:
     embedding = model_out
   else:
-    embedding = tf.keras.layers.Dense(output_dimension)(model_out)
+    embedding = tf.keras.layers.Dense(output_dimension)(model_out)  # pyrefly: ignore[not-callable]
   output_dict['embedding'] = embedding
   output_model = tf.keras.Model(inputs=[model_in], outputs=output_dict)
 
@@ -84,7 +84,7 @@ def frontend_keras(
       pad_mode='SYMMETRIC')
   logging.info('frontend_args overrides: %s', frontend_args)
 
-  feats = frontend_lib.SamplesToFeats(frontend_args)(model_in)
+  feats = frontend_lib.SamplesToFeats(frontend_args)(model_in)  # pyrefly: ignore[not-callable]
   feats.shape.assert_is_compatible_with(
       [None, None, frontend_args['frame_width'], frontend_args['num_mel_bins']])
 

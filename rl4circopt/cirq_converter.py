@@ -52,7 +52,7 @@ def import_from_cirq(obj):
   elif isinstance(obj, cirq.ZPowGate):
     return circuit.RotZGate(obj.exponent * np.pi)
   elif isinstance(obj, cirq.CZPowGate):
-    if not np.isclose(np.mod(obj.exponent, 2.0), 1.0):
+    if not np.isclose(np.mod(obj.exponent, 2.0), 1.0):  # pyrefly: ignore[no-matching-overload]
       raise ValueError('partial ControlledZ gates are not supported')
     return circuit.ControlledZGate()
   elif isinstance(obj, cirq.MatrixGate):
@@ -60,7 +60,7 @@ def import_from_cirq(obj):
   elif isinstance(obj, cirq.GateOperation):
     return circuit.Operation(
         import_from_cirq(obj.gate),
-        [qubit.x for qubit in obj.qubits]
+        [qubit.x for qubit in obj.qubits]  # pyrefly: ignore[missing-attribute]
     )
   elif isinstance(obj, cirq.Circuit):
     qubits = obj.all_qubits()
@@ -70,7 +70,7 @@ def import_from_cirq(obj):
       raise ValueError('import is supported for circuits on LineQubits only'
                        ' [found qubit type(s): %s]'%', '.join(qubit_types))
     return circuit.Circuit(
-        max(qubit.x for qubit in qubits) + 1,
+        max(qubit.x for qubit in qubits) + 1,  # pyrefly: ignore[missing-attribute]
         [
             import_from_cirq(operation)
             for operation in itertools.chain.from_iterable(obj)

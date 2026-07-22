@@ -177,7 +177,7 @@ def main(_):
           })
       wall_times.append(time.time() - start_time)
       delta_eval += delta_eval_batch / num_batches
-      cash_eval += cash_eval_batch / num_batches
+      cash_eval += cash_eval_batch / num_batches  # pyrefly: ignore[unbound-name]
 
     if t == 0.0:
       logging.info("Initial price estimate: %.2f", cash_eval)

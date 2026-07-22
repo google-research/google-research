@@ -110,7 +110,7 @@ def run_stream_inference_classification(flags, model_stream, inp_audio):
     # classification result of a current frame
     stream_output_prediction = model_stream.predict(stream_update)
 
-  return stream_output_prediction
+  return stream_output_prediction  # pyrefly: ignore[unbound-name]
 
 
 def run_stream_inference_classification_tflite(flags, interpreter, inp_audio,
@@ -165,7 +165,7 @@ def run_stream_inference_classification_tflite(flags, interpreter, inp_audio,
       # Use `tensor()` in order to get a pointer to the tensor.
       input_states[s] = interpreter.get_tensor(output_details[s]['index'])
 
-  return out_tflite
+  return out_tflite  # pyrefly: ignore[unbound-name]
 
 
 def run_stream_inference_tflite(flags,

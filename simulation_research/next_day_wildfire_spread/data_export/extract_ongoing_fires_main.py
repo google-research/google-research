@@ -98,9 +98,9 @@ def get_dataset(
     described in the constants, and with the shapes determined from the input
     parameters to this function.
   """
-  tf_dataset = tf.data.Dataset.list_files(file_pattern, shuffle=False)
+  tf_dataset = tf.data.Dataset.list_files(file_pattern, shuffle=False)  # pyrefly: ignore[bad-argument-type]
   tf_dataset = tf_dataset.interleave(
-      lambda x: tf.data.TFRecordDataset(x, compression_type=compression_type),
+      lambda x: tf.data.TFRecordDataset(x, compression_type=compression_type),  # pyrefly: ignore[bad-instantiation]
       num_parallel_calls=tf.data.experimental.AUTOTUNE)
   tf_dataset = tf_dataset.prefetch(buffer_size=tf.data.experimental.AUTOTUNE)
   tf_dataset = tf_dataset.map(
@@ -146,7 +146,7 @@ def write_ongoing_dataset(tf_dataset,
   ongoing_count = 0
   ongoing_tfrecord_count = 0
   prev_fire_index = feature_names.index('PrevFireMask')
-  compression_type = tf.io.TFRecordOptions(compression_type=compression_type)
+  compression_type = tf.io.TFRecordOptions(compression_type=compression_type)  # pyrefly: ignore[bad-assignment]
   for feature_list in tf_dataset:
     if ongoing_count % num_samples_per_file == 0:
       out_file = (f'{file_prefix}_ongoing_{ongoing_tfrecord_count:03d}'
@@ -156,7 +156,7 @@ def write_ongoing_dataset(tf_dataset,
     # Only keep samples with at least one positive fire label in the previous
     # day.
     if np.amax(feature_list[prev_fire_index].numpy()) == 1:
-      write_to_tfrecord(ongoing_writer, feature_names, feature_list)
+      write_to_tfrecord(ongoing_writer, feature_names, feature_list)  # pyrefly: ignore[unbound-name]
       ongoing_count += 1
 
 

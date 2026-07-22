@@ -60,7 +60,7 @@ def evaluate_sparse_dataset(
   # One batch data of `movies` contains all the candidates.
   for i in movies.take(1):
     movie_candidates = i
-  movies = movie_candidates["item_id"].values.numpy()
+  movies = movie_candidates["item_id"].values.numpy()  # pyrefly: ignore[unbound-name]
 
   movie_vocabulary = dict(zip(movies.tolist(), range(len(movies))))
 
@@ -105,7 +105,7 @@ def evaluate_sparse_dataset(
             k: [v[i]] for k, v in item_features_dict.items()
         }
 
-  movie_embeddings = movie_model(movie_candidates).numpy()
+  movie_embeddings = movie_model(movie_candidates).numpy()  # pyrefly: ignore[not-callable]
 
   precision_values = collections.defaultdict(list)
   recall_values = collections.defaultdict(list)
@@ -119,7 +119,7 @@ def evaluate_sparse_dataset(
           lambda: collections.defaultdict(list))
 
   for (user, test_movies) in test_user_to_movies_ids.items():
-    user_embedding = user_model(test_user_to_features[user]).numpy()
+    user_embedding = user_model(test_user_to_features[user]).numpy()  # pyrefly: ignore[not-callable]
     scores = (user_embedding @ movie_embeddings.T).flatten()
     test_movies = np.frombuffer(test_movies, dtype=np.int32)
     if train is not None:
@@ -149,9 +149,9 @@ def evaluate_sparse_dataset(
             # Parse user-side subgroup features.
             subgroups = test_user_to_features[user][group]
           for subgroup in subgroups:
-            groups_wise_precision_values[group][subgroup][k].append(
+            groups_wise_precision_values[group][subgroup][k].append(  # pyrefly: ignore[unbound-name]
                 sample_precision)
-            groups_wise_recall_values[group][subgroup][k].append(sample_recall)
+            groups_wise_recall_values[group][subgroup][k].append(sample_recall)  # pyrefly: ignore[unbound-name]
 
   # Logging for averaged performance.
   number_of_samples = len(precision_values[cutoffs[0]])
@@ -168,8 +168,8 @@ def evaluate_sparse_dataset(
   if groups is not None:
     for group in groups:
       print("\nGroup:", group)
-      target_group_precision = groups_wise_precision_values[group]
-      target_group_recall = groups_wise_recall_values[group]
+      target_group_precision = groups_wise_precision_values[group]  # pyrefly: ignore[unbound-name]
+      target_group_recall = groups_wise_recall_values[group]  # pyrefly: ignore[unbound-name]
       for subgroup in sorted(list(target_group_precision.keys())):
         print(
             f"Subgroup={subgroup}(Num of samples:{len(target_group_precision[subgroup][cutoffs[0]])}"

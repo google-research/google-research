@@ -152,12 +152,12 @@ class MovieLensRetrievalModel(tfrs.models.Model):
     self.global_step.assign_add(1)
 
     # Shape of user_embeddings/item_embeddings: [batch_size, embedding_dim].
-    user_embeddings = self.query_model(inputs)
-    item_embeddings = self.candidate_model(inputs)
+    user_embeddings = self.query_model(inputs)  # pyrefly: ignore[not-callable]
+    item_embeddings = self.candidate_model(inputs)  # pyrefly: ignore[not-callable]
 
     if self._model_configs.task_type == "erm":
       # Perform ERM training.
-      return self.task(
+      return self.task(  # pyrefly: ignore[not-callable]
           user_embeddings, item_embeddings, compute_metrics=not training)
 
     else:
@@ -175,7 +175,7 @@ class MovieLensRetrievalModel(tfrs.models.Model):
         group_identity = group_identity.values
       group_identity = tf.reshape(group_identity, [-1])
 
-      return self.task(
+      return self.task(  # pyrefly: ignore[not-callable]
           user_embeddings,
           item_embeddings,
           group_identity=group_identity,

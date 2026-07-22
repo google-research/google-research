@@ -93,4 +93,4 @@ def run_stream_inference_classification(model, inp_audio):
       states[key] = outputs[key]
 
   # return the last classification results
-  return stream_output_prediction
+  return stream_output_prediction  # pyrefly: ignore[unbound-name]

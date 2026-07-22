@@ -535,11 +535,11 @@ def focus_single_operation(circ,
   )
 
   return AttentionCircuit(
-      focus=[circ[location]],
+      focus=[circ[location]],  # pyrefly: ignore[bad-argument-type]
       context=TransformationContext(
-          before=circ[:location],
+          before=circ[:location],  # pyrefly: ignore[bad-argument-type]
           between=circuit.Circuit(circ.get_num_qubits(), None),
-          after=circ[location + 1:]
+          after=circ[location + 1:]  # pyrefly: ignore[bad-argument-type]
       ),
       locations=[location]
   )
@@ -732,11 +732,11 @@ def focus_operation_pair(circ,
   after, = movement_flags[:, 1].nonzero()
 
   return AttentionCircuit(
-      focus=[circ[location_first], circ[location_second]],
+      focus=[circ[location_first], circ[location_second]],  # pyrefly: ignore[bad-argument-type]
       context=TransformationContext(
-          before=circ[:location_first, before + offset],
-          between=circ[between + offset],
-          after=circ[after + offset, location_second+1:]
+          before=circ[:location_first, before + offset],  # pyrefly: ignore[bad-argument-type]
+          between=circ[between + offset],  # pyrefly: ignore[bad-argument-type]
+          after=circ[after + offset, location_second+1:]  # pyrefly: ignore[bad-argument-type]
       ),
       locations=[location_first, location_second]
   )
@@ -775,19 +775,19 @@ def focus_local_group(circ,
                     %type(circ).__name__)
 
   length = len(circ)
-  locations = np.array([
+  locations = np.array([  # pyrefly: ignore[bad-assignment]
       _check_and_convert_to_non_negative_circuit_index(location, length,
                                                        'location')
       for location in locations
   ])
 
-  num_locations = locations.size
+  num_locations = locations.size  # pyrefly: ignore[missing-attribute]
 
   if num_locations == 0:
     raise ValueError('locations must not be empty')
 
-  locations = np.unique(locations)  # sorts and makes elements unique
-  if locations.size != num_locations:
+  locations = np.unique(locations)  # sorts and makes elements unique  # pyrefly: ignore[bad-assignment]
+  if locations.size != num_locations:  # pyrefly: ignore[missing-attribute]
     raise ValueError('locations contains duplicate elements')
 
   # extract the focus from the input circuit
@@ -797,7 +797,7 @@ def focus_local_group(circ,
     raise ValueError('focus contains non-local operations')
 
   active_qubit = focus.operation(0).get_qubits()
-  if not all(operation.get_qubits() == active_qubit for operation in focus[1:]):
+  if not all(operation.get_qubits() == active_qubit for operation in focus[1:]):  # pyrefly: ignore[not-iterable]
     raise ValueError('operations in the focus act on different qubits')
 
   # every operation between the first and last operation of the focus is put
@@ -816,9 +816,9 @@ def focus_local_group(circ,
     return AttentionCircuit(
         focus.get_operation_sequence(),
         TransformationContext(
-            circ[:locations[0]],
+            circ[:locations[0]],  # pyrefly: ignore[bad-argument-type]
             between,
-            circ[locations[-1] + 1:]
+            circ[locations[-1] + 1:]  # pyrefly: ignore[bad-argument-type]
         ),
         locations=locations
     )

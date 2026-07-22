@@ -555,7 +555,7 @@ def matrix_inverse_pth_root(
     # Use absolute matrix epsilon scaling otherwise.
     max_ev = 1.0
 
-  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)  # pyrefly: ignore[bad-assignment]
 
   # Sometimes error increases after an iteration before decreasing and
   # converging. 1.2 factor is used to bound the maximal allowed increase.
@@ -622,8 +622,8 @@ def matrix_inverse_pth_root(
     # Note that _pth_root_difference returns positive values for this
     # particular argument ordering as min(eigvals) <= eigvals for the
     # jnp.sqrt below.
-    pth_diff = _pth_root_difference(ridge_epsilon, jnp.min(eigvals), eigvals, p)
-    scaled_vecs = eigvecs * jnp.sqrt(pth_diff)
+    pth_diff = _pth_root_difference(ridge_epsilon, jnp.min(eigvals), eigvals, p)  # pyrefly: ignore[bad-argument-type]
+    scaled_vecs = eigvecs * jnp.sqrt(pth_diff)  # pyrefly: ignore[unsupported-operation]
     resultant_mat_h = conditioned_resultant_mat - scaled_vecs.dot(
         scaled_vecs.T, precision=jax.lax.Precision.HIGHEST)
 
@@ -632,7 +632,7 @@ def matrix_inverse_pth_root(
       inverse_pth_root_iters=jnp.array(iters, jnp.float32),
       final_error_ratio=jnp.array(error_ratio, jnp.float32),
       max_eigen_value=jnp.array(max_ev, jnp.float32),
-      total_retries=jnp.array(total_retries, jnp.float32))
+      total_retries=jnp.array(total_retries, jnp.float32))  # pyrefly: ignore[unbound-name]
 
   if lobpcg_topk_precondition > 0:
     damped_matrix = matrix + (ridge_epsilon * (10**total_retries) * identity)
@@ -648,7 +648,7 @@ def matrix_inverse_pth_root(
     unconditional_errors = jnp.maximum(
         unconditioned_diagnostics.max_diag_error,
         unconditioned_diagnostics.max_off_diag_error)
-    error_metrics = error_metrics.replace(
+    error_metrics = error_metrics.replace(  # pyrefly: ignore[missing-attribute]
         inverse_pth_root_errors=unconditional_errors,
         lobpcg_diagnostics=lobpcg_diagnostics,
         conditioned_inverse_pth_root_diagnostics=conditioned_diagnostics,
@@ -662,7 +662,7 @@ def matrix_inverse_pth_root(
     resultant_mat_h = jnp.where(padding_start == 0, 0.0, resultant_mat_h)
     error = jnp.where(padding_start == 0, 0.0,
                       error_metrics.inverse_pth_root_errors)
-    error_metrics = error_metrics.replace(inverse_pth_root_errors=error)
+    error_metrics = error_metrics.replace(inverse_pth_root_errors=error)  # pyrefly: ignore[missing-attribute]
 
   resultant_mat_h = jnp.asarray(resultant_mat_h, orig_dtype)
   return resultant_mat_h, error_metrics
@@ -730,12 +730,12 @@ def matrix_inverse_pth_root_eigh(
   else:
     # Use absolute matrix epsilon scaling otherwise.
     max_ev = 1.0
-  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)
+  ridge_epsilon = ridge_epsilon * jnp.maximum(max_ev, error_tolerance)  # pyrefly: ignore[bad-assignment]
   regularized_input = matrix + ridge_epsilon * identity
   e, u = jnp.linalg.eigh(regularized_input)
   # Due to padding, we may have to zero out eigenvalues.
   if padding_start is not None:
-    e *= jnp.flip(ix)
+    e *= jnp.flip(ix)  # pyrefly: ignore[unbound-name]
   mm = functools.partial(jnp.matmul, precision=precision)
   inv_e = jnp.where(e == 0.0, 0.0,
                     jnp.power(jnp.maximum(e, ridge_epsilon), alpha))
@@ -753,7 +753,7 @@ def matrix_inverse_pth_root_eigh(
     val = jnp.where(padding_start == 0, 0.0, val)
     error = jnp.where(padding_start == 0, 0.0,
                       error_metrics.inverse_pth_root_errors)
-    error_metrics = error_metrics.replace(inverse_pth_root_errors=error)
+    error_metrics = error_metrics.replace(inverse_pth_root_errors=error)  # pyrefly: ignore[missing-attribute]
   val = jnp.asarray(val, orig_dtype)
   return val, error_metrics
 
@@ -1523,7 +1523,7 @@ def distributed_shampoo(
               sizes))
 
     local_stats = jax.tree.unflatten(treedef, local_stats_flat)
-    to_pad = -len(padded_statistics) % num_devices_for_pjit
+    to_pad = -len(padded_statistics) % num_devices_for_pjit  # pyrefly: ignore[unsupported-operation]
     if max_size == 0:
       to_pad = num_devices_for_pjit
       max_size = block_size
@@ -1535,15 +1535,15 @@ def distributed_shampoo(
     # TODO(rohananil): Relax to only the size of the mesh axis where the dim
     # is split on.
     padded_statistics.extend(
-        [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
+        [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])  # pyrefly: ignore[bad-argument-type]
     pd = precond_dim(max_size)
     # If the preconditioner is using a low-rank representation, initialize
     # it to zero instead of an invalid eye.
     padded_preconditioners.extend([
         jnp.eye(max_size, pd, dtype=stat_dtype) * (pd == max_size)
-        for _ in range(to_pad)
+        for _ in range(to_pad)  # pyrefly: ignore[bad-argument-type]
     ])
-    exponents.extend([1 for _ in range(to_pad)])
+    exponents.extend([1 for _ in range(to_pad)])  # pyrefly: ignore[bad-argument-type]
     global_stats = GlobalShardedParameterStats(
         jnp.stack(padded_statistics), jnp.stack(padded_preconditioners),
         jnp.stack(exponents))
@@ -1628,10 +1628,10 @@ def distributed_shampoo(
     local_stats = jax.tree.unflatten(treedef, local_stats_flat)
     global_stats = GlobalShardedParameterStats(partition_spec_for_statistics,  # pytype: disable=wrong-arg-types  # numpy-scalars
                                                partition_spec_for_statistics,
-                                               jax.sharding.PartitionSpec())
+                                               jax.sharding.PartitionSpec())  # pyrefly: ignore[bad-argument-type]
     count_pspec = jax.sharding.PartitionSpec()
     return ShampooState(  # pytype: disable=wrong-arg-types  # numpy-scalars
-        count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))
+        count=count_pspec, stats=ShardedShampooStats(global_stats, local_stats))  # pyrefly: ignore[bad-argument-type]
 
   def sharded_init_shape_and_dtype_fn(params):
     """Returns a parallel state tree with shape, dtype associated with state.
@@ -1687,7 +1687,7 @@ def distributed_shampoo(
 
     local_stats = jax.tree.unflatten(treedef, local_stats_flat)
     max_statistics_size = _max_statistics_size_from_params(params_flat)
-    to_pad = -num_statistics % num_devices_for_pjit
+    to_pad = -num_statistics % num_devices_for_pjit  # pyrefly: ignore[unsupported-operation]
     num_statistics += to_pad
     if num_statistics == 0:
       num_statistics = num_devices_for_pjit
@@ -1700,10 +1700,10 @@ def distributed_shampoo(
         precond_dim(max_statistics_size)
     ]
     global_stats = GlobalShardedParameterStats(  # pytype: disable=wrong-arg-types  # numpy-scalars
-        [statistics_shape, jnp.float32], [preconditioners_shape, jnp.float32],
-        [[num_statistics], jnp.int32])
+        [statistics_shape, jnp.float32], [preconditioners_shape, jnp.float32],  # pyrefly: ignore[bad-argument-type]
+        [[num_statistics], jnp.int32])  # pyrefly: ignore[bad-argument-type]
     return ShampooState(  # pytype: disable=wrong-arg-types  # numpy-scalars
-        count=[[], jnp.float32],
+        count=[[], jnp.float32],  # pyrefly: ignore[bad-argument-type]
         stats=ShardedShampooStats(global_stats, local_stats))
 
   def sharded_update_fn(grads, state, params):
@@ -1763,7 +1763,7 @@ def distributed_shampoo(
     # num devices.
     # TODO(rohananil): Relax to only the size of the mesh axis where the dim
     # is split on.
-    to_pad = -len(new_padded_statistics) % num_devices_for_pjit
+    to_pad = -len(new_padded_statistics) % num_devices_for_pjit  # pyrefly: ignore[unsupported-operation]
     if not new_padded_statistics:
       to_pad = num_devices_for_pjit
       stat_dtype = jnp.float32
@@ -1771,8 +1771,8 @@ def distributed_shampoo(
       stat_dtype = new_padded_statistics[0].dtype
 
     new_padded_statistics.extend(
-        [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])
-    padding_starts += [0] * to_pad
+        [jnp.eye(max_size, dtype=stat_dtype) for _ in range(to_pad)])  # pyrefly: ignore[bad-argument-type]
+    padding_starts += [0] * to_pad  # pyrefly: ignore[unsupported-operation]
 
     if reuse_preconditioner:
       prev_preconditioners = []
@@ -1824,7 +1824,7 @@ def distributed_shampoo(
           ))
       new_errors = jnp.ones_like(metrics_init.inverse_pth_root_errors) * (
           inverse_failure_threshold)
-      metrics_init = metrics_init.replace(inverse_pth_root_errors=new_errors)
+      metrics_init = metrics_init.replace(inverse_pth_root_errors=new_errors)  # pyrefly: ignore[missing-attribute]
       init_state = [preconditioners_init, metrics_init]
       new_preconditioners, metrics = efficient_cond(
           perform_step, _internal_inverse_pth_root_all, init_state)
@@ -2453,7 +2453,7 @@ def distributed_shampoo(
       New optimizer states after computing the preconditioner.
     """
     num_statistics = len(statistics)
-    to_pad = -num_statistics % num_devices_for_pjit
+    to_pad = -num_statistics % num_devices_for_pjit  # pyrefly: ignore[unsupported-operation]
     padded_statistics = [
         pad_square_matrix(stat, max_size) for stat in statistics
     ]
@@ -2499,7 +2499,7 @@ def distributed_shampoo(
       n = len(padded_statistics)
       metrics_init = jax.tree.map(
           lambda x: [x] * n,
-          TrainingMetrics(inverse_pth_root_errors=inverse_failure_threshold))
+          TrainingMetrics(inverse_pth_root_errors=inverse_failure_threshold))  # pyrefly: ignore[bad-argument-type]
       init_state = [preconditioners_init, metrics_init]
       perform_step = step % preconditioning_compute_steps == 0
       preconditioners_flat, metrics_flat = efficient_cond(
@@ -2826,6 +2826,6 @@ def distributed_shampoo(
           shape_and_dtype_fn=sharded_init_shape_and_dtype_fn)
 
     opt_update_fn = sharded_update_fn
-    return optax.GradientTransformation(_init_fns, opt_update_fn)
+    return optax.GradientTransformation(_init_fns, opt_update_fn)  # pyrefly: ignore[bad-argument-type]
   else:
-    return optax.GradientTransformation(init_fn, update_fn)
+    return optax.GradientTransformation(init_fn, update_fn)  # pyrefly: ignore[bad-argument-type]

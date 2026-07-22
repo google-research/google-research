@@ -250,7 +250,7 @@ class BertEncoder(tf.keras.layers.Layer):
       random_mask = tf.ones((get_shape(embeddings)[0:2]), dtype=tf.float32)
 
     # add modality-specific positional encoding embeddings
-    masked_embeddings = self.pos_embedding_lookup(
+    masked_embeddings = self.pos_embedding_lookup(  # pyrefly: ignore[not-callable]
         masked_embeddings,
         input_shape,
         training
@@ -263,7 +263,7 @@ class BertEncoder(tf.keras.layers.Layer):
         )
 
     # call Transformer
-    outputs = self.tx(inputs=tx_inputs,
+    outputs = self.tx(inputs=tx_inputs,  # pyrefly: ignore[not-callable]
                       attention_mask=attention_mask,
                       training=training)
 

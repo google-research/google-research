@@ -208,7 +208,7 @@ def get_detection_count(
   detection_stats = detection_image.reduceRegion(
       reducer=ee.Reducer.sum(), geometry=geometry, scale=sampling_scale)
   try:
-    detection_count = int(detection_stats.get(detection_band).getInfo())
+    detection_count = int(detection_stats.get(detection_band).getInfo())  # pyrefly: ignore[bad-argument-type]
   except ee.EEException:
     # If the number of positive pixels cannot be counted because of a server-
     # side error, return -1.

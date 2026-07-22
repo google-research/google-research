@@ -234,7 +234,7 @@ def write_metadata(base_dir,
         shape=(sine_net_hidden_size, 4), dtype=tf.float32)
   features = tfds.features.FeaturesDict({
       # These are the features of your dataset like images, labels ...
-      'inputs': tfds.features.Sequence(inputs),
+      'inputs': tfds.features.Sequence(inputs),  # pyrefly: ignore[bad-argument-type]
       'label': tfds.features.ClassLabel(names=['simple', 'intersecting']),
   })
   data_dir = base_dir

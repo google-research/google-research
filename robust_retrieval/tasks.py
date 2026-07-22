@@ -238,7 +238,7 @@ class RobustRetrieval(tf.keras.layers.Layer):
     if self._temperature is not None:
       scores = scores / self._temperature
 
-    sample_loss = self._sample_loss(y_true=labels, y_pred=scores)
+    sample_loss = self._sample_loss(y_true=labels, y_pred=scores)  # pyrefly: ignore[not-callable]
 
     # group_mask: [num_groups, num_queries], cur_group_loss: [num_groups]
     cur_group_loss, group_mask = self._compute_group_loss(
@@ -275,7 +275,7 @@ class RobustRetrieval(tf.keras.layers.Layer):
       # Note: only update when subgroup exists in a batch.
       # Assuming only update weights at every `_metric_update_freq` epochs
       # TODO(xinyang,tyao,jiaxit): change to sampled metric for effiency.
-      if (step_count % self._metric_update_freq) == 0:
+      if (step_count % self._metric_update_freq) == 0:  # pyrefly: ignore[unsupported-operation]
         batch_group_metric_update = self._update_group_metrics(
             query_embeddings, candidate_embeddings, group_mask)
         with tf.control_dependencies([batch_group_metric_update]):
@@ -340,7 +340,7 @@ class RobustRetrieval(tf.keras.layers.Layer):
         query_embeddings * true_candidate_embeddings, axis=1, keepdims=True)
 
     # [batch_size, k]
-    top_k_predictions, _ = self._candidates(query_embeddings, k=self._topk)
+    top_k_predictions, _ = self._candidates(query_embeddings, k=self._topk)  # pyrefly: ignore[not-callable]
 
     y_true = tf.concat(
         [tf.ones_like(positive_scores),

@@ -275,7 +275,7 @@ def training(x_train, y_train, x_validation,
                 graph_tensors_and_ops[n]['summary_op'],
                 graph_tensors_and_ops[n]['global_step']
             ])
-            summary_writer.add_summary(global_summary, global_step)
+            summary_writer.add_summary(global_summary, global_step)  # pyrefly: ignore[unbound-name]
 
           if epoch % FLAGS.save_checkpoint_every_n_epochs == 0:
             (curr_best_epoch[n], best_validation_metric[n],
@@ -331,7 +331,7 @@ def single_split_training(data_gen,
   curr_logdir = os.path.join(logdir, 'fold_{}',
                              'split_{}').format(FLAGS.fold_num,
                                                 FLAGS.data_split)
-  training(x_train, y_train, x_validation, y_validation, curr_logdir)
+  training(x_train, y_train, x_validation, y_validation, curr_logdir)  # pyrefly: ignore[unbound-name]
 
 
 def main(argv):

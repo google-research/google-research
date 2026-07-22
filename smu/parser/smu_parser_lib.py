@@ -112,7 +112,7 @@ class Atomic2FieldTypes(enum.Enum):
   TRIPLE = 3
 
 
-ATOMIC_LABEL_FIELDS = collections.OrderedDict([
+ATOMIC_LABEL_FIELDS = collections.OrderedDict([  # pyrefly: ignore[no-matching-overload]
     ['AT2_BSR_LEFT', ('at2_gen_bsr_left', Atomic2FieldTypes.STRING)],
     ['AT2_BSR_RIGHT', ('at2_gen_bsr_right', Atomic2FieldTypes.STRING)],
     ['AT2_T1mol', ('wf_diag_t1_2sd', Atomic2FieldTypes.SCALAR)],
@@ -291,9 +291,9 @@ class SmuParser:
       self._raw_contents.append(line)
 
   def _next_line(self):
-    if self.line_num >= len(self._raw_contents):
+    if self.line_num >= len(self._raw_contents):  # pyrefly: ignore[bad-argument-type, unsupported-operation]
       return None
-    return self._raw_contents[self.line_num]
+    return self._raw_contents[self.line_num]  # pyrefly: ignore[unsupported-operation]
 
   def _next_line_startswith(self, prefix):
     """Whether the next line to parse starts with prefix."""
@@ -327,28 +327,28 @@ class SmuParser:
     first_line = self.line_num
 
     if mode == ParseModes.SKIP_BLANK_LINES:
-      while (self.line_num < len(self._raw_contents) and
-             not str(self._raw_contents[self.line_num]).strip()):
-        self.line_num += 1
+      while (self.line_num < len(self._raw_contents) and  # pyrefly: ignore[bad-argument-type, unsupported-operation]
+             not str(self._raw_contents[self.line_num]).strip()):  # pyrefly: ignore[unsupported-operation]
+        self.line_num += 1  # pyrefly: ignore[unsupported-operation]
       return
 
     # If only label is known, determine size of section.
     if mode == ParseModes.BYLABEL:
-      assert label in self._raw_contents[
+      assert label in self._raw_contents[  # pyrefly: ignore[unsupported-operation]
           first_line], 'Label %s not found in line %s.' % (
-              label, self._raw_contents[first_line])
-      last_line = first_line + 1
-      while (last_line < len(self._raw_contents) and
-             label in self._raw_contents[last_line]):
+              label, self._raw_contents[first_line])  # pyrefly: ignore[unsupported-operation]
+      last_line = first_line + 1  # pyrefly: ignore[unsupported-operation]
+      while (last_line < len(self._raw_contents) and  # pyrefly: ignore[bad-argument-type]
+             label in self._raw_contents[last_line]):  # pyrefly: ignore[unsupported-operation]
         last_line += 1
-      num_lines = last_line - first_line
+      num_lines = last_line - first_line  # pyrefly: ignore[unsupported-operation]
     if mode is not ParseModes.INITIALIZE:
       message = 'Parser was called with invalid number of lines %d.' % num_lines
       assert num_lines > 0, message
 
-    last_line = self.line_num + num_lines
-    section = self._raw_contents[first_line:last_line]
-    self.line_num += num_lines
+    last_line = self.line_num + num_lines  # pyrefly: ignore[unsupported-operation]
+    section = self._raw_contents[first_line:last_line]  # pyrefly: ignore[unsupported-operation]
+    self.line_num += num_lines  # pyrefly: ignore[unsupported-operation]
 
     if mode == ParseModes.INITIALIZE:
       # Resets the line number and returns.
@@ -406,10 +406,10 @@ class SmuParser:
       # This is a fortran numeric overflow. We don't actually care about this
       # info, so we just drop an invalid value in and regenerate '*****' in the
       # writer.
-      self._molecule.original_molecule_index = -1
+      self._molecule.original_molecule_index = -1  # pyrefly: ignore[missing-attribute]
     else:
-      self._molecule.original_molecule_index = int(vals[0])
-    errors = self._molecule.prop.calc
+      self._molecule.original_molecule_index = int(vals[0])  # pyrefly: ignore[missing-attribute]
+    errors = self._molecule.prop.calc  # pyrefly: ignore[missing-attribute]
     for field, val in zip(smu_utils_lib.STAGE1_ERROR_FIELDS, vals[1:5]):
       setattr(errors, field, int(val))
     # Note that vals[6] is the molecule identifier which we ignore in favor of
@@ -428,9 +428,9 @@ class SmuParser:
       # This is a fortran numeric overflow. We don't actually care about this
       # info, so we just drop an invalid value in and regenerate '*****' in the
       # writer.
-      self._molecule.original_molecule_index = -1
+      self._molecule.original_molecule_index = -1  # pyrefly: ignore[missing-attribute]
     else:
-      self._molecule.original_molecule_index = int(molecule_index)
+      self._molecule.original_molecule_index = int(molecule_index)  # pyrefly: ignore[missing-attribute]
     return int(num_atoms)
 
   def parse_database(self):
@@ -446,16 +446,16 @@ class SmuParser:
     if parts[0] != 'Database':
       raise ValueError('Bad keyword on database line, got: {}'.format(parts[0]))
     if parts[1] == 'standard':
-      self._molecule.prop.calc.which_database = dataset_pb2.STANDARD
+      self._molecule.prop.calc.which_database = dataset_pb2.STANDARD  # pyrefly: ignore[missing-attribute]
     elif parts[1] == 'complete':
-      self._molecule.prop.calc.which_database = dataset_pb2.COMPLETE
+      self._molecule.prop.calc.which_database = dataset_pb2.COMPLETE  # pyrefly: ignore[missing-attribute]
     else:
       raise ValueError('Expected database indicator, got: {}'.format(parts[1]))
 
   def parse_error_codes(self):
     """Parses the error section with the warning flags."""
     lines = iter(self.parse(ParseModes.RAW, num_lines=6))
-    errors = self._molecule.prop.calc
+    errors = self._molecule.prop.calc  # pyrefly: ignore[missing-attribute]
 
     parts = str(next(lines)).split()
     assert (len(parts) == 2 and parts[0]
@@ -506,15 +506,15 @@ class SmuParser:
     assert entry_id.startswith('x'), 'Expected line like x02_c2h2'
     atom_types = entry_id[4:].lower()
     expanded_atom_types = self.expand_atom_types(atom_types)
-    self._molecule.bond_topo.add()
-    self._molecule.bond_topo[-1].CopyFrom(
+    self._molecule.bond_topo.add()  # pyrefly: ignore[missing-attribute]
+    self._molecule.bond_topo[-1].CopyFrom(  # pyrefly: ignore[missing-attribute]
         smu_utils_lib.create_bond_topology(expanded_atom_types, adjacency_code,
                                            hydrogen_counts))
-    self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'', '').strip()
+    self._molecule.bond_topo[-1].smiles = str(smiles).replace('\'', '').strip()  # pyrefly: ignore[missing-attribute]
     # Note that we only set source to STARTING and not DDT. This is because this
     # geometry may not actually pass the DDT criteria. We let the later geometry
     # detection take care of this.
-    self._molecule.bond_topo[-1].info = (
+    self._molecule.bond_topo[-1].info = (  # pyrefly: ignore[missing-attribute]
         dataset_pb2.BondTopology.SOURCE_STARTING)
 
   def expand_atom_types(self, atom_types):
@@ -559,17 +559,17 @@ class SmuParser:
     topo_id = int(topo_id_str)
     # Special casing for SMU1. Fun.
     if smu_utils_lib.special_case_bt_id_from_dat_id(
-        topo_id, self._molecule.bond_topo[-1].smiles):
+        topo_id, self._molecule.bond_topo[-1].smiles):  # pyrefly: ignore[missing-attribute]
       topo_id = smu_utils_lib.special_case_bt_id_from_dat_id(
-          topo_id, self._molecule.bond_topo[-1].smiles)
+          topo_id, self._molecule.bond_topo[-1].smiles)  # pyrefly: ignore[missing-attribute]
 
-    self._molecule.bond_topo[-1].topo_id = topo_id
-    self._molecule.mol_id = (topo_id * 1000 + int(mol_id_str))
+    self._molecule.bond_topo[-1].topo_id = topo_id  # pyrefly: ignore[missing-attribute]
+    self._molecule.mol_id = (topo_id * 1000 + int(mol_id_str))  # pyrefly: ignore[missing-attribute]
 
   def parse_cluster_info(self, num_lines):
     """Stores a string describing the compute cluster used for computations."""
     cluster_info = self.parse(ParseModes.RAW, num_lines=num_lines)
-    self._molecule.prop.compute_cluster_info = '\n'.join(cluster_info) + '\n'
+    self._molecule.prop.compute_cluster_info = '\n'.join(cluster_info) + '\n'  # pyrefly: ignore[missing-attribute]
 
   def parse_stage1_timings(self):
     """Parses recorded timings for different computation steps.
@@ -589,7 +589,7 @@ class SmuParser:
         raise ValueError(
             'Expected all trailing timing to be -1, got {}'.format(v))
 
-    calculation_statistics = self._molecule.prop.calculation_statistics
+    calculation_statistics = self._molecule.prop.calculation_statistics  # pyrefly: ignore[missing-attribute]
     calculation_statistics.add(computing_location='Geo', timings=values[1])
     calculation_statistics.add(computing_location='Force', timings=values[2])
 
@@ -601,7 +601,7 @@ class SmuParser:
     assert len(labels) == len(
         values), 'Length mismatch between values %s and %s labels.' % (values,
                                                                        labels)
-    calculation_statistics = self._molecule.prop.calculation_statistics
+    calculation_statistics = self._molecule.prop.calculation_statistics  # pyrefly: ignore[missing-attribute]
     for label, value in zip(labels, values):
       calculation_statistics.add()
       calculation_statistics[-1].computing_location = label
@@ -622,12 +622,12 @@ class SmuParser:
             'E_opt/G_norm'
         ), 'Unable to parse section for gradient norm: %s.' % section
     items = str(section[0]).split()
-    self._molecule.ini_geo.add()
-    self._molecule.ini_geo[0].energy.val = float(items[1])
-    self._molecule.ini_geo[0].gnorm.val = float(items[2])
+    self._molecule.ini_geo.add()  # pyrefly: ignore[missing-attribute]
+    self._molecule.ini_geo[0].energy.val = float(items[1])  # pyrefly: ignore[missing-attribute]
+    self._molecule.ini_geo[0].gnorm.val = float(items[2])  # pyrefly: ignore[missing-attribute]
     items = str(section[1]).split()
-    self._molecule.opt_geo.energy.val = float(items[1])
-    self._molecule.opt_geo.gnorm.val = float(items[2])
+    self._molecule.opt_geo.energy.val = float(items[1])  # pyrefly: ignore[missing-attribute]
+    self._molecule.opt_geo.gnorm.val = float(items[2])  # pyrefly: ignore[missing-attribute]
 
   def parse_coordinates(self, label, num_atoms):
     """Parses a section defining a molecule's geometry in Cartesian coordinates.
@@ -644,11 +644,11 @@ class SmuParser:
     assert label in VALID_COORDINATE_LABELS, 'Unknown label %s.' % label
     molecule = self._molecule
     if label == 'Initial Coords':
-      if not molecule.ini_geo:
-        molecule.ini_geo.add()
-      geometry = molecule.ini_geo[0]
+      if not molecule.ini_geo:  # pyrefly: ignore[missing-attribute]
+        molecule.ini_geo.add()  # pyrefly: ignore[missing-attribute]
+      geometry = molecule.ini_geo[0]  # pyrefly: ignore[bad-index]
     else:
-      geometry = molecule.opt_geo
+      geometry = molecule.opt_geo  # pyrefly: ignore[missing-attribute]
     for line in coordinate_section:
       label1, label2, unused_atomic_number, x, y, z = str(line).strip().split()
       assert '%s %s' % (
@@ -666,14 +666,14 @@ class SmuParser:
       return
     constants = self.parse(ParseModes.RAW, num_lines=1)[0]
     values = str(constants).strip().split()[-3:]
-    self._molecule.opt_geo.brot.val.extend(float(x) for x in values)
+    self._molecule.opt_geo.brot.val.extend(float(x) for x in values)  # pyrefly: ignore[missing-attribute]
 
   def parse_symmetry_used(self):
     """Parses whether or not symmetry was used in the computation."""
     if not self._next_line_startswith('Symmetry used in calculation'):
       return
     symmetry = self.parse(ParseModes.RAW, num_lines=1)[0]
-    self._molecule.prop.symmetry_used_in_calculation = str(
+    self._molecule.prop.symmetry_used_in_calculation = str(  # pyrefly: ignore[missing-attribute]
         symmetry).strip().split()[-1] != 'no'
 
   def parse_frequencies_and_intensities(self, num_atoms, header):
@@ -703,7 +703,7 @@ class SmuParser:
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
     section = [str(line).strip() for line in section]
     section = ' '.join(section).split()
-    vib_freq = self._molecule.prop.vib_freq
+    vib_freq = self._molecule.prop.vib_freq  # pyrefly: ignore[missing-attribute]
     for value in section:
       vib_freq.val.append(float(value))
 
@@ -711,7 +711,7 @@ class SmuParser:
         ParseModes.RAW, num_lines=math.ceil(3 * num_atoms / 10))
     section = [str(line).strip() for line in section]
     section = ' '.join(section).split()
-    vib_intens = self._molecule.prop.vib_intens
+    vib_intens = self._molecule.prop.vib_intens  # pyrefly: ignore[missing-attribute]
     for value in section:
       vib_intens.val.append(float(value))
 
@@ -728,12 +728,12 @@ class SmuParser:
       assert str(line).startswith(prefix)
       parts = line.split()  # pytype: disable=attribute-error
       if len(fields) == 1:
-        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],  # pyrefly: ignore[missing-attribute]
                 float(parts[-1]))
       elif len(fields) == 2:
-        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[0],  # pyrefly: ignore[missing-attribute]
                 float(parts[-2]))
-        setattr(self._molecule.prop.gaussian_sanity_check, fields[1],
+        setattr(self._molecule.prop.gaussian_sanity_check, fields[1],  # pyrefly: ignore[missing-attribute]
                 float(parts[-1]))
       else:
         raise ValueError(f'Bad fields length {len(fields)}')
@@ -753,11 +753,11 @@ class SmuParser:
     # Skip the header line
     self.parse(ParseModes.SKIP, num_lines=1)
 
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     for _ in range(3 * num_atoms):
       if not self._next_line_startswith('Mode'):
         raise ValueError('Parsing vib_mode, expect Mode line, got: {}'.format(
-            self._raw_contents[self.line_num]))
+            self._raw_contents[self.line_num]))  # pyrefly: ignore[unsupported-operation]
 
       self.parse(ParseModes.SKIP, num_lines=1)  # 'Mode   #i'
 
@@ -778,21 +778,21 @@ class SmuParser:
         ParseModes.KEYVALUE,
         num_lines=50,
         allowed_keys=PROPERTIES_LABEL_FIELDS.keys())
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     for label in labels_and_values:
       if label in ['NIMAG', 'NUM_OPT']:
         setattr(properties, PROPERTIES_LABEL_FIELDS[label],
                 int(labels_and_values[label]))
       elif label == 'NUCREP':
         value = float(labels_and_values[label])
-        self._molecule.opt_geo.enuc.val = value
+        self._molecule.opt_geo.enuc.val = value  # pyrefly: ignore[missing-attribute]
       else:
         value = float(labels_and_values[label])
         getattr(properties, PROPERTIES_LABEL_FIELDS[label]).val = value
 
   def parse_diagnostics(self):
     """Parses D1 and T1 diagnostics."""
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
 
     if self._next_line_startswith('D1DIAG'):
       line = self.parse(ParseModes.RAW, num_lines=1)[0]
@@ -816,7 +816,7 @@ class SmuParser:
       return
 
     homo_lumo_data = self.parse(ParseModes.BYLABEL, label='HOMO/LUMO')
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     for line in homo_lumo_data:
       items = str(line).strip().split()
       if items[1] == 'PBE0/6-311Gd':
@@ -864,7 +864,7 @@ class SmuParser:
     if not self._next_line_startswith('AT2_'):
       return
     section = self.parse(ParseModes.BYLABEL, label='AT2_')
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     for line in section:
       label, rest = str(line[:20]).strip(), line[20:]
       field_name, field_type = ATOMIC_LABEL_FIELDS[label]
@@ -904,7 +904,7 @@ class SmuParser:
     segment = self.parse(ParseModes.RAW, num_lines=6)
     for line in segment[1:]:
       items = str(line).strip().split()
-      properties = self._molecule.prop
+      properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
       properties.exc_ene_cc2_tzvp.val.append(float(items[-2]))
       properties.exc_os_cc2_tzvp.val.append(float(items[-1]))
 
@@ -914,11 +914,11 @@ class SmuParser:
     Raises:
       ValueError: if line could not be parsed.
     """
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     while self._next_line_startswith('NMR isotropic shieldings'):
       shieldings_data = self.parse(
           ParseModes.RAW,
-          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))
+          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))  # pyrefly: ignore[missing-attribute]
       theory_basis = str(shieldings_data[0]).split()[-1]
       field = getattr(properties,
                       NMR_ISOTROPIC_SHIELDINGS_LABEL_FIELDS[theory_basis])
@@ -935,11 +935,11 @@ class SmuParser:
 
   def parse_partial_charges(self):
     """Parses partial charges (e) for different levels of theory."""
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     while self._next_line_startswith('Partial charges'):
       partial_charges_data = self.parse(
           ParseModes.RAW,
-          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))
+          num_lines=(len(self._molecule.bond_topo[-1].atom) + 1))  # pyrefly: ignore[missing-attribute]
       theory_basis = str(partial_charges_data[0]).strip().split()[-1]
       field = getattr(properties, PARTIAL_CHARGES_LABEL_FIELDS[theory_basis])
       for line in partial_charges_data[1:]:
@@ -951,7 +951,7 @@ class SmuParser:
     """Parses dipole-dipole polarizability."""
     if not self._next_line_startswith('Polarizability (au)'):
       return
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     header = self.parse(ParseModes.RAW, num_lines=1)  # Polarizability (au).
     items = str(header).strip().split()
     rank2_data = self.parse(ParseModes.KEYVALUE, num_lines=6)
@@ -966,7 +966,7 @@ class SmuParser:
 
   def parse_multipole_moments(self):
     """Parses Di-, Quadru-, and Octopole moments in (au)."""
-    properties = self._molecule.prop
+    properties = self._molecule.prop  # pyrefly: ignore[missing-attribute]
     # PBE0 section.
     if self._next_line_startswith('Dipole moment (au):     PBE0/aug-pc-1'):
       self.parse(ParseModes.SKIP, num_lines=1)  # Dipole moment (au).
@@ -1038,7 +1038,7 @@ class SmuParser:
       self.parse(ParseModes.SKIP_BLANK_LINES)
     except (SmuKnownError, ValueError, IndexError, KeyError,
             AssertionError) as exc:
-      exc.mol_id = self._molecule.mol_id
+      exc.mol_id = self._molecule.mol_id  # pyrefly: ignore[missing-attribute]
       logging.info('Got exception during molecule %d: %s\n'
                    'traceback: %s', exc.mol_id, str(exc),
                    traceback.format_exc())
@@ -1095,7 +1095,7 @@ class SmuParser:
 
     except (SmuKnownError, ValueError, IndexError, KeyError,
             AssertionError) as exc:
-      exc.mol_id = self._molecule.mol_id
+      exc.mol_id = self._molecule.mol_id  # pyrefly: ignore[missing-attribute]
       logging.info('Got exception during molecule %d: %s\n'
                    'traceback: %s', exc.mol_id, str(exc),
                    traceback.format_exc())

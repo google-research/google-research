@@ -163,7 +163,7 @@ def train(flags):
     else:
       raise ValueError('Wrong lr_schedule: %s' % flags.lr_schedule)
 
-    tf.keras.backend.set_value(model.optimizer.lr, learning_rate_value)
+    tf.keras.backend.set_value(model.optimizer.lr, learning_rate_value)  # pyrefly: ignore[unbound-name]
     result = model.train_on_batch(train_fingerprints, train_ground_truth)
 
     summary = tf.Summary(value=[

@@ -86,10 +86,10 @@ class ConvModel(base_model.BaseModel):
     net = self.conv1(net)
     net = self.bn1(net)
     net = self.relu1(net)
-    net = self.conv2(net)
+    net = self.conv2(net)  # pyrefly: ignore[not-callable]
     net = self.bn2(net)
     net = self.relu2(net)
-    net = self.flatten(net)
+    net = self.flatten(net)  # pyrefly: ignore[not-callable]
     net = self.dense(net)
     return net
 
@@ -106,7 +106,7 @@ class ConvModel(base_model.BaseModel):
     # create inference graph, it is the same as in call()
     # but now every streaming aware layer will return its state
     # all states will bereturned together with the output of the model
-    net, output_state = self.conv2(
+    net, output_state = self.conv2(  # pyrefly: ignore[not-callable]
         net, state=states[self.conv2.get_core_layer().name])
     output_state = tf.identity(
         output_state, name=self.conv2.get_core_layer().name)
@@ -115,7 +115,7 @@ class ConvModel(base_model.BaseModel):
     net = self.bn2(net)
     net = self.relu2(net)
 
-    net, output_state = self.flatten(
+    net, output_state = self.flatten(  # pyrefly: ignore[not-callable]
         net, state=states[self.flatten.get_core_layer().name])
     output_state = tf.identity(
         output_state, name=self.flatten.get_core_layer().name)

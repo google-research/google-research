@@ -210,7 +210,7 @@ class BaseExecutor(base.Executor):
       input_shape = processing.get_video_shape(input_params)
 
     if is_img_cls:
-      input_shape[0] = params.model_config.temporal_patch_size
+      input_shape[0] = params.model_config.temporal_patch_size  # pyrefly: ignore[unbound-name]
 
     num_classes = dataloaders.CLS_DS[ds_name]['num_classes']
 

@@ -112,7 +112,7 @@ def main(argv):
         else:
           outcome = Outcome.PARSE_ERROR_UNKNOWN
         regen_contents = '{}\n{}: {} {}\n'.format(smu_parser_lib.SEPARATOR_LINE,
-                                                  molecule.mol_id,
+                                                  molecule.mol_id,  # pyrefly: ignore[missing-attribute]
                                                   type(molecule).__name__,
                                                   str(molecule))
       else:

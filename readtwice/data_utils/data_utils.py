@@ -142,7 +142,7 @@ class BertDocument(object):
 
   def num_characters(self):
     """Computes the total number of characters (unicode code points)."""
-    return sum(len(s.text) for s in self.sentences)
+    return sum(len(s.text) for s in self.sentences)  # pyrefly: ignore[missing-attribute]
 
   def __len__(self):
     return len(self.sentences)
@@ -160,7 +160,7 @@ class BertDocument(object):
         self.document_id), str(self.sentences))
 
   def num_annotations(self, annotation_type=None):
-    return sum(s.num_annotations(annotation_type) for s in self.sentences)
+    return sum(s.num_annotations(annotation_type) for s in self.sentences)  # pyrefly: ignore[missing-attribute]
 
 
 @attr.s
@@ -411,15 +411,15 @@ class TokenizedBertDocument(object):
         # (1) Initialize the current block:
         if current_block_length == 0:
           if max_num_annotations:
-            answer_expected_annotations_length += max_num_annotations
-            entity_expected_annotations_length += max_num_annotations
+            answer_expected_annotations_length += max_num_annotations  # pyrefly: ignore[unbound-name]
+            entity_expected_annotations_length += max_num_annotations  # pyrefly: ignore[unbound-name]
 
           # (1.1) Add prefix if one was specified
           if prefix_token_ids:
             token_ids.extend(prefix_token_ids)
             is_continuation.extend([0] * len(prefix_token_ids))
             current_block_length += len(prefix_token_ids)
-            prefix_length.append(len(prefix_token_ids))
+            prefix_length.append(len(prefix_token_ids))  # pyrefly: ignore[unbound-name]
 
           # (1.2) Prepend stride prefix from previous sentences
           assert len(raw_token_ids) == len(raw_is_continuation)
@@ -455,7 +455,7 @@ class TokenizedBertDocument(object):
               start_index - overlap_length, start_index + length_to_add - 1,
               answer_only_strictly_inside_annotations):
             if len(
-                answer_annotation_begins) >= answer_expected_annotations_length:
+                answer_annotation_begins) >= answer_expected_annotations_length:  # pyrefly: ignore[unbound-name]
               break
             if annotation.type != 0:
               continue
@@ -484,15 +484,15 @@ class TokenizedBertDocument(object):
               if answer_annotation_relative_begin > answer_annotation_relative_end:
                 continue
             answer_annotation_begins.append(answer_annotation_relative_begin)
-            answer_annotation_ends.append(answer_annotation_relative_end)
-            answer_annotation_labels.append(annotation.label or
+            answer_annotation_ends.append(answer_annotation_relative_end)  # pyrefly: ignore[unbound-name]
+            answer_annotation_labels.append(annotation.label or  # pyrefly: ignore[unbound-name]
                                             default_annotation_label)
 
           for annotation in sentence.get_annotations(
               start_index - overlap_length, start_index + length_to_add - 1,
               entity_only_strictly_inside_annotations):
             if len(
-                entity_annotation_begins) >= entity_expected_annotations_length:
+                entity_annotation_begins) >= entity_expected_annotations_length:  # pyrefly: ignore[unbound-name]
               break
             if annotation.type != 1:
               continue
@@ -521,8 +521,8 @@ class TokenizedBertDocument(object):
               if entity_annotation_relative_begin > entity_annotation_relative_end:
                 continue
             entity_annotation_begins.append(entity_annotation_relative_begin)
-            entity_annotation_ends.append(entity_annotation_relative_end)
-            entity_annotation_labels.append(annotation.label or
+            entity_annotation_ends.append(entity_annotation_relative_end)  # pyrefly: ignore[unbound-name]
+            entity_annotation_labels.append(annotation.label or  # pyrefly: ignore[unbound-name]
                                             default_annotation_label)
 
         start_index += length_to_add
@@ -534,22 +534,22 @@ class TokenizedBertDocument(object):
 
           if max_num_annotations:
             while len(
-                answer_annotation_begins) < answer_expected_annotations_length:
+                answer_annotation_begins) < answer_expected_annotations_length:  # pyrefly: ignore[unbound-name]
               answer_annotation_begins.append(0)
-              answer_annotation_ends.append(0)
-              answer_annotation_labels.append(0)
+              answer_annotation_ends.append(0)  # pyrefly: ignore[unbound-name]
+              answer_annotation_labels.append(0)  # pyrefly: ignore[unbound-name]
             assert len(
                 answer_annotation_begins) == answer_expected_annotations_length
             assert len(
-                answer_annotation_ends) == answer_expected_annotations_length
+                answer_annotation_ends) == answer_expected_annotations_length  # pyrefly: ignore[unbound-name]
             assert len(
-                answer_annotation_labels) == answer_expected_annotations_length
+                answer_annotation_labels) == answer_expected_annotations_length  # pyrefly: ignore[unbound-name]
 
             while len(
-                entity_annotation_begins) < entity_expected_annotations_length:
+                entity_annotation_begins) < entity_expected_annotations_length:  # pyrefly: ignore[unbound-name]
               entity_annotation_begins.append(0)
-              entity_annotation_ends.append(0)
-              entity_annotation_labels.append(0)
+              entity_annotation_ends.append(0)  # pyrefly: ignore[unbound-name]
+              entity_annotation_labels.append(0)  # pyrefly: ignore[unbound-name]
             assert len(
                 entity_annotation_begins) == entity_expected_annotations_length
             assert len(
@@ -564,10 +564,10 @@ class TokenizedBertDocument(object):
       is_continuation.extend([0] * padding_length)
       if max_num_annotations:
         while len(
-            entity_annotation_begins) < entity_expected_annotations_length:
+            entity_annotation_begins) < entity_expected_annotations_length:  # pyrefly: ignore[unbound-name]
           entity_annotation_begins.append(0)
-          entity_annotation_ends.append(0)
-          entity_annotation_labels.append(0)
+          entity_annotation_ends.append(0)  # pyrefly: ignore[unbound-name]
+          entity_annotation_labels.append(0)  # pyrefly: ignore[unbound-name]
         assert len(
             entity_annotation_begins) == entity_expected_annotations_length
         assert len(entity_annotation_ends) == entity_expected_annotations_length
@@ -575,10 +575,10 @@ class TokenizedBertDocument(object):
             entity_annotation_labels) == entity_expected_annotations_length
 
         while len(
-            answer_annotation_begins) < answer_expected_annotations_length:
+            answer_annotation_begins) < answer_expected_annotations_length:  # pyrefly: ignore[unbound-name]
           answer_annotation_begins.append(0)
-          answer_annotation_ends.append(0)
-          answer_annotation_labels.append(0)
+          answer_annotation_ends.append(0)  # pyrefly: ignore[unbound-name]
+          answer_annotation_labels.append(0)  # pyrefly: ignore[unbound-name]
         assert len(
             answer_annotation_begins) == answer_expected_annotations_length
         assert len(answer_annotation_ends) == answer_expected_annotations_length
@@ -611,7 +611,7 @@ class TokenizedBertDocument(object):
           ))
 
     if prefix_token_ids:
-      feature_map.update(dict(prefix_length=create_int_feature(prefix_length)))
+      feature_map.update(dict(prefix_length=create_int_feature(prefix_length)))  # pyrefly: ignore[unbound-name]
 
     return tf.train.Example(features=tf.train.Features(feature=feature_map))
 
@@ -736,11 +736,11 @@ def tokenize_document_for_bert(
   """
   tokenized_sentences = []
   for sentence in document.sentences:
-    tokenization_result = tokenizer.tokenize_full_output(sentence.text)
+    tokenization_result = tokenizer.tokenize_full_output(sentence.text)  # pyrefly: ignore[missing-attribute]
     tokens = tokenization_result.tokens
     is_continuation = tokenization_result.is_continuation
     annotations = []
-    for annotation in (sentence.annotations or []):
+    for annotation in (sentence.annotations or []):  # pyrefly: ignore[missing-attribute]
       begin, end = realign_annotations(annotation.begin, annotation.end,
                                        tokenization_result.offsets)
       annotations.append(
@@ -756,7 +756,7 @@ def tokenize_document_for_bert(
             token_ids=token_ids,
             is_continuation=is_continuation,
             tokens=tokens,
-            raw_text=sentence.text,
+            raw_text=sentence.text,  # pyrefly: ignore[missing-attribute]
             annotations=annotations))
 
   return TokenizedBertDocument(
@@ -859,7 +859,7 @@ def split_tokenized_documents(
     remaining_tokens -= len(sentence)
 
     if (i == len(document.sentences) - 1 or
-        current_num_tokens >= target_num_tokens or
+        current_num_tokens >= target_num_tokens or  # pyrefly: ignore[unsupported-operation]
         current_num_tokens + len(document.sentences[i + 1]) > max_tokens or  #
         len(current_sentences) == max_sentences):
       result.append(

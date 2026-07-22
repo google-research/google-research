@@ -24,13 +24,13 @@ TfInput = Union[np.ndarray, tf.Tensor]
 
 def exu(x, weight, bias):
   """ExU hidden unit modification."""
-  return tf.exp(weight) * (x - bias)
+  return tf.exp(weight) * (x - bias)  # pyrefly: ignore[unsupported-operation]
 
 
 # Activation Functions
 def relu(x, weight, bias):
   """ReLU activation."""
-  return tf.nn.relu(weight * (x - bias))
+  return tf.nn.relu(weight * (x - bias))  # pyrefly: ignore[unsupported-operation]
 
 
 def relu_n(x, n = 1):
@@ -156,7 +156,7 @@ class FeatureNN(tf.keras.layers.Layer):
           trainable=self._trainable,
           name='h2_{}'.format(self._feature_num),
           kernel_initializer='glorot_uniform')
-      self.hidden_layers += [self._h1, self._h2]
+      self.hidden_layers += [self._h1, self._h2]  # pyrefly: ignore[bad-assignment]
     self.linear = tf.keras.layers.Dense(
         1,
         use_bias=False,
@@ -168,11 +168,11 @@ class FeatureNN(tf.keras.layers.Layer):
   @tf.function
   def call(self, x, training):
     """Computes FeatureNN output with either evaluation or training mode."""
-    with tf.name_scope(self._tf_name_scope):
+    with tf.name_scope(self._tf_name_scope):  # pyrefly: ignore[bad-instantiation]
       for l in self.hidden_layers:
         x = tf.nn.dropout(
-            l(x), rate=tf.cond(training, lambda: self._dropout, lambda: 0.0))
-      x = tf.squeeze(self.linear(x), axis=1)
+            l(x), rate=tf.cond(training, lambda: self._dropout, lambda: 0.0))  # pyrefly: ignore[not-callable]
+      x = tf.squeeze(self.linear(x), axis=1)  # pyrefly: ignore[not-callable]
     return x
 
 
@@ -221,7 +221,7 @@ class NAM(tf.keras.Model):
     """Builds the FeatureNNs on the first call."""
     self.feature_nns = [None] * self._num_inputs
     for i in range(self._num_inputs):
-      self.feature_nns[i] = FeatureNN(
+      self.feature_nns[i] = FeatureNN(  # pyrefly: ignore[unsupported-operation]
           num_units=self._num_units[i],
           dropout=self._dropout,
           trainable=self._trainable,
@@ -236,7 +236,7 @@ class NAM(tf.keras.Model):
     self._true = tf.constant(True, dtype=tf.bool)
     self._false = tf.constant(False, dtype=tf.bool)
 
-  def call(self, x, training = True):
+  def call(self, x, training = True):  # pyrefly: ignore[bad-override]
     """Computes NAM output by adding the outputs of individual feature nets."""
     individual_outputs = self.calc_outputs(x, training=training)
     stacked_out = tf.stack(individual_outputs, axis=-1)
@@ -261,7 +261,7 @@ class NAM(tf.keras.Model):
     training = self._true if training else self._false
     list_x = tf.split(x, self._num_inputs, axis=-1)
     return [
-        self.feature_nns[i](x_i, training=training)
+        self.feature_nns[i](x_i, training=training)  # pyrefly: ignore[not-callable]
         for i, x_i in enumerate(list_x)
     ]
 
@@ -285,7 +285,7 @@ class DNN(tf.keras.Model):
     self._dropout = dropout
     self.hidden_layers = [None for _ in range(10)]
     for i in range(10):
-      self.hidden_layers[i] = tf.keras.layers.Dense(
+      self.hidden_layers[i] = tf.keras.layers.Dense(  # pyrefly: ignore[unsupported-operation]
           100,
           activation='relu',
           use_bias=True,
@@ -301,11 +301,11 @@ class DNN(tf.keras.Model):
     self._true = tf.constant(True, dtype=tf.bool)
     self._false = tf.constant(False, dtype=tf.bool)
 
-  def call(self, x, training = True):
+  def call(self, x, training = True):  # pyrefly: ignore[bad-override]
     """Creates the output tensor given an input."""
     training = self._true if training else self._false
     for l in self.hidden_layers:
       x = tf.nn.dropout(
-          l(x), rate=tf.cond(training, lambda: self._dropout, lambda: 0.0))
-    x = tf.squeeze(self.linear(x), axis=-1)
+          l(x), rate=tf.cond(training, lambda: self._dropout, lambda: 0.0))  # pyrefly: ignore[not-callable]
+    x = tf.squeeze(self.linear(x), axis=-1)  # pyrefly: ignore[not-callable]
     return x

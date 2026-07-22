@@ -24,7 +24,7 @@ from qsp_quantum_metrology import qsp_types
 
 def angle_unwrap_wpa(
     deg,
-    recon_h_from_exp,
+    recon_h_from_exp,  # pyrefly: ignore[bad-specialization]
     moving_average_length = 1,
     threshold = 0.975,
 ):

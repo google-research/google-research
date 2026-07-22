@@ -46,7 +46,7 @@ class PredictionAggregator(tf.keras.layers.Layer):
 
   def call(self,  # pytype: disable=annotation-type-mismatch
            inputs,
-           training = None):
+           training = None):  # pyrefly: ignore[bad-function-definition]
     if training or self._num_test_clips == 1:
       return inputs
 
@@ -83,7 +83,7 @@ class VideoModel(tf.keras.Model):
     if 'backbone_config' in base_kwargs:
       base_kwargs['backbone_config'] = params.backbone_config
 
-    self._base = base_model(**base_kwargs)
+    self._base = base_model(**base_kwargs)  # pyrefly: ignore[not-callable]
 
     if self._freeze_backbone:
       self._base.trainable = False
@@ -110,7 +110,7 @@ class VideoModel(tf.keras.Model):
               replicator):
 
     del replicator
-    loss = self._loss_object(labels['one_hot'], outputs['probabilities'])
+    loss = self._loss_object(labels['one_hot'], outputs['probabilities'])  # pyrefly: ignore[not-callable]
     loss = tf.reduce_mean(loss)
 
     losses = {'model_loss': loss}
@@ -125,7 +125,7 @@ class VideoModel(tf.keras.Model):
 
   def call(self,  # pytype: disable=annotation-type-mismatch,signature-mismatch
            inputs,
-           training = None):
+           training = None):  # pyrefly: ignore[bad-function-definition]
     """Call the layer.
 
     Args:
@@ -158,7 +158,7 @@ class VideoModel(tf.keras.Model):
     features_pooled = self._ops['dropout'](features_pooled, training)
     logits = self._ops['cls'](features_pooled)
     if self.pred_aggregator is not None:
-      logits = self.pred_aggregator(logits, training)
+      logits = self.pred_aggregator(logits, training)  # pyrefly: ignore[not-callable]
     probabilities = self._ops['softmax'](logits)
 
     outputs = {
@@ -193,13 +193,13 @@ def build_model(
 
   if mode == 'predict':
     pred_aggregator = PredictionAggregator(
-        num_test_clips=params.num_test_samples
+        num_test_clips=params.num_test_samples  # pyrefly: ignore[bad-argument-type]
         )
   else:
     pred_aggregator = None
 
   model = VideoModel(
-      base_model=base_model,
+      base_model=base_model,  # pyrefly: ignore[bad-argument-type]
       params=params,
       pred_aggregator=pred_aggregator,
       )

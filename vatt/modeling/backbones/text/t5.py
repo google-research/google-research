@@ -209,10 +209,10 @@ class DenseReLUDense(tf.keras.layers.Layer):
            hidden_states,
            training=False):
 
-    h = self.wi(hidden_states)
+    h = self.wi(hidden_states)  # pyrefly: ignore[not-callable]
     h = self.act(h)
-    h = self.dropout(h, training=training)
-    h = self.wo(h)
+    h = self.dropout(h, training=training)  # pyrefly: ignore[not-callable]
+    h = self.wo(h)  # pyrefly: ignore[not-callable]
     return h
 
 
@@ -228,7 +228,7 @@ class DenseGeLUDense(DenseReLUDense):
                                          d_model=d_model,
                                          dropout_rate=dropout_rate,
                                          name=name)
-    self.act = tf.keras.activations.gelu
+    self.act = tf.keras.activations.gelu  # pyrefly: ignore[bad-assignment]
 
 
 class DenseSwishDense(DenseReLUDense):
@@ -243,7 +243,7 @@ class DenseSwishDense(DenseReLUDense):
                                           d_model=d_model,
                                           dropout_rate=dropout_rate,
                                           name=name)
-    self.act = tf.keras.activations.swish
+    self.act = tf.keras.activations.swish  # pyrefly: ignore[bad-assignment]
 
 
 class DenseGeGLUDense(tf.keras.layers.Layer):
@@ -265,11 +265,11 @@ class DenseGeGLUDense(tf.keras.layers.Layer):
            hidden_states,
            training=False):
 
-    h_g = self.act(self.wi_0(hidden_states))
-    h_l = self.wi_1(hidden_states)
+    h_g = self.act(self.wi_0(hidden_states))  # pyrefly: ignore[not-callable]
+    h_l = self.wi_1(hidden_states)  # pyrefly: ignore[not-callable]
     h = h_g * h_l
-    h = self.dropout(h, training=training)
-    h = self.wo(h)
+    h = self.dropout(h, training=training)  # pyrefly: ignore[not-callable]
+    h = self.wo(h)  # pyrefly: ignore[not-callable]
     return h
 
 
@@ -316,9 +316,9 @@ class FeedForward(tf.keras.layers.Layer):
            hidden_states,
            training=False):
 
-    norm_x = self.layer_norm(hidden_states)
-    y = self.mlp(norm_x, training=training)
-    layer_output = hidden_states + self.dropout(y, training=training)
+    norm_x = self.layer_norm(hidden_states)  # pyrefly: ignore[not-callable]
+    y = self.mlp(norm_x, training=training)  # pyrefly: ignore[not-callable]
+    layer_output = hidden_states + self.dropout(y, training=training)  # pyrefly: ignore[not-callable]
     return layer_output
 
 
@@ -398,7 +398,7 @@ class MultiHeadAttention(tf.keras.layers.Layer):
         )
 
     # shape (qlen, klen, num_heads)
-    values = self.relative_attention_bias(rp_bucket)
+    values = self.relative_attention_bias(rp_bucket)  # pyrefly: ignore[not-callable]
 
     # shape (1, num_heads, qlen, klen)
     values = tf.expand_dims(tf.transpose(values, [2, 0, 1]), axis=0)
@@ -445,9 +445,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     else:
       seq_len = qlen
 
-    q = self.q(inputs)  # (bs, seq_len, inner_dim)
-    k = self.k(inputs)  # (bs, seq_len, inner_dim)
-    v = self.v(inputs)  # (bs, seq_len, inner_dim)
+    q = self.q(inputs)  # (bs, seq_len, inner_dim)  # pyrefly: ignore[not-callable]
+    k = self.k(inputs)  # (bs, seq_len, inner_dim)  # pyrefly: ignore[not-callable]
+    v = self.v(inputs)  # (bs, seq_len, inner_dim)  # pyrefly: ignore[not-callable]
 
     q = self._split_heads(q, bs)  # (bs, n_heads, seq_len, dim_per_head)
     k = self._split_heads(k, bs)  # (bs, n_heads, seq_len, dim_per_head)
@@ -492,14 +492,14 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     # (bs, n_heads, seq_len, seq_len)
     attention_weights = tf.nn.softmax(scores, axis=-1)
     # (bs, n_heads, seq_len, seq_len)
-    attention_weights = self.dropout(attention_weights, training=training)
+    attention_weights = self.dropout(attention_weights, training=training)  # pyrefly: ignore[not-callable]
 
     # (bs, n_heads, seq_len, dim_per_head)
     hidden_states = tf.matmul(attention_weights, v)
     # (bs, seq_len, dim)
     hidden_states = self._join_heads(hidden_states, bs)
     # (bs, seq_len, out_dim)
-    hidden_states = self.o(hidden_states)
+    hidden_states = self.o(hidden_states)  # pyrefly: ignore[not-callable]
 
     outputs = {
         "hidden_states": hidden_states,
@@ -543,12 +543,12 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
     qlen = real_qlen
 
-    q = self.q(query)  # (bs, qlen, inner_dim)
+    q = self.q(query)  # (bs, qlen, inner_dim)  # pyrefly: ignore[not-callable]
     q = self._split_heads(q, bs)  # (bs, n_heads, qlen, dim_per_head)
 
     if past_key_value_state is None:
-      k = self.k(key)  # (bs, klen, inner_dim)
-      v = self.v(value)  # (bs, klen, inner_dim)
+      k = self.k(key)  # (bs, klen, inner_dim)  # pyrefly: ignore[not-callable]
+      v = self.v(value)  # (bs, klen, inner_dim)  # pyrefly: ignore[not-callable]
       k = self._split_heads(k, bs)  # (bs, n_heads, klen, dim_per_head)
       v = self._split_heads(v, bs)  # (bs, n_heads, vlen, dim_per_head)
     else:
@@ -589,11 +589,11 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     # (bs, n_heads, seq_len, seq_len)
     attention_weights = tf.nn.softmax(scores, axis=-1)
     # (bs, n_heads, seq_len, seq_len)
-    attention_weights = self.dropout(attention_weights, training=training)
+    attention_weights = self.dropout(attention_weights, training=training)  # pyrefly: ignore[not-callable]
     # (bs, n_heads, seq_len, dim_per_head)
     hidden_states = tf.matmul(attention_weights, v)
     hidden_states = self._join_heads(hidden_states, bs)  # (bs, seq_len, dim)
-    hidden_states = self.o(hidden_states)  # (bs, seq_len, out_dim)
+    hidden_states = self.o(hidden_states)  # (bs, seq_len, out_dim)  # pyrefly: ignore[not-callable]
 
     outputs = {
         "hidden_states": hidden_states,
@@ -646,7 +646,7 @@ class AttentionLayer(tf.keras.layers.Layer):
                      use_cache=False,
                      training=False):
 
-    norm_x = self.layer_norm(inputs)
+    norm_x = self.layer_norm(inputs)  # pyrefly: ignore[not-callable]
     attention_outputs = self.attention.self_attention(
         inputs=norm_x,
         bidirectional=bidirectional,
@@ -659,7 +659,7 @@ class AttentionLayer(tf.keras.layers.Layer):
         )
 
     hidden_states = attention_outputs["hidden_states"]
-    hidden_states = inputs + self.dropout(hidden_states, training=training)
+    hidden_states = inputs + self.dropout(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # update hidden states
     attention_outputs["hidden_states"] = hidden_states
@@ -680,7 +680,7 @@ class AttentionLayer(tf.keras.layers.Layer):
                       use_cache=False,
                       training=False):
 
-    norm_query = self.layer_norm(query)
+    norm_query = self.layer_norm(query)  # pyrefly: ignore[not-callable]
     attention_outputs = self.attention.cross_attention(
         query=norm_query,
         key=key,
@@ -697,7 +697,7 @@ class AttentionLayer(tf.keras.layers.Layer):
         )
 
     hidden_states = attention_outputs["hidden_states"]
-    hidden_states = query + self.dropout(hidden_states, training=training)
+    hidden_states = query + self.dropout(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # update hidden states
     attention_outputs["hidden_states"] = hidden_states
@@ -786,7 +786,7 @@ class EncoderLayer(tf.keras.layers.Layer):
            position_embeddings=None,
            training=False):
 
-    attention_outputs = self.self_attention(
+    attention_outputs = self.self_attention(  # pyrefly: ignore[not-callable]
         inputs=inputs,
         bidirectional=True,
         attention_mask=attention_mask,
@@ -798,7 +798,7 @@ class EncoderLayer(tf.keras.layers.Layer):
     hidden_states = attention_outputs["hidden_states"]
 
     # Apply Feed Forward layer
-    hidden_states = self.feed_forward(hidden_states, training=training)
+    hidden_states = self.feed_forward(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     outputs = {
         "hidden_states": hidden_states,
@@ -898,7 +898,7 @@ class DecoderLayer(tf.keras.layers.Layer):
       self_attn_past_key_value_state = None
       cross_attn_past_key_value_state = None
 
-    self_attention_outputs = self.self_attention(
+    self_attention_outputs = self.self_attention(  # pyrefly: ignore[not-callable]
         inputs=inputs,
         bidirectional=False,
         attention_mask=attention_mask,
@@ -920,7 +920,7 @@ class DecoderLayer(tf.keras.layers.Layer):
     else:
       query_length = None
 
-    cross_attention_outputs = self.cross_attention(
+    cross_attention_outputs = self.cross_attention(  # pyrefly: ignore[not-callable]
         inputs=decoder_hidden_states,
         key=encoder_hidden_states,
         value=encoder_hidden_states,
@@ -947,7 +947,7 @@ class DecoderLayer(tf.keras.layers.Layer):
       present_key_value_state = None
 
     # Apply Feed Forward layer
-    decoder_hidden_states = self.feed_forward(decoder_hidden_states,
+    decoder_hidden_states = self.feed_forward(decoder_hidden_states,  # pyrefly: ignore[not-callable]
                                               training=training)
 
     outputs = {
@@ -1034,7 +1034,7 @@ class T5Encoder(tf.keras.layers.Layer):
     if inputs_embeddings is None:
       err_msg = "You have to intialize the model with valid token embeddings"
       assert self.embeddings is not None, err_msg
-      inputs_embeddings = self.embeddings(inputs)
+      inputs_embeddings = self.embeddings(inputs)  # pyrefly: ignore[not-callable]
 
     batch_size, seq_length = input_shape
     mask_seq_length = seq_length
@@ -1052,7 +1052,7 @@ class T5Encoder(tf.keras.layers.Layer):
     all_attentions = ()
     position_bias = None
 
-    hidden_states = self.dropout(inputs_embeddings, training=training)
+    hidden_states = self.dropout(inputs_embeddings, training=training)  # pyrefly: ignore[not-callable]
 
     for n, layer in enumerate(self.layers):
       # temporary --- to reduce memory consumption
@@ -1075,8 +1075,8 @@ class T5Encoder(tf.keras.layers.Layer):
           layer_outputs["self_attention_weights"],
           )
 
-    hidden_states = self.final_layer_norm(hidden_states)
-    hidden_states = self.dropout(hidden_states, training=training)
+    hidden_states = self.final_layer_norm(hidden_states)  # pyrefly: ignore[not-callable]
+    hidden_states = self.dropout(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # Add last layer
     all_hidden_states = all_hidden_states + (hidden_states,)
@@ -1177,7 +1177,7 @@ class T5Decoder(tf.keras.layers.Layer):
     if inputs_embeddings is None:
       err_msg = "You have to intialize the model with valid token embeddings"
       assert self.embeddings is not None, err_msg
-      inputs_embeddings = self.embeddings(inputs)
+      inputs_embeddings = self.embeddings(inputs)  # pyrefly: ignore[not-callable]
 
     if past_key_value_states is not None:
       err_msg = ("Input shape is {}, but should be {} "
@@ -1227,7 +1227,7 @@ class T5Decoder(tf.keras.layers.Layer):
       if past_key_value_states[0] is not None:
         extended_attention_mask = extended_attention_mask[:, :, -1:, :]
 
-    extended_attention_mask = (1.0 - extended_attention_mask) * -1e9
+    extended_attention_mask = (1.0 - extended_attention_mask) * -1e9  # pyrefly: ignore[unbound-name]
 
     if encoder_attention_mask is not None:
       # If a 2D or 3D attention mask is provided for the cross-attention
@@ -1247,7 +1247,7 @@ class T5Decoder(tf.keras.layers.Layer):
             )
 
       encoder_extended_attention_mask = (
-          (1.0 - encoder_extended_attention_mask) * -1e9
+          (1.0 - encoder_extended_attention_mask) * -1e9  # pyrefly: ignore[unbound-name]
           )
     else:
       encoder_extended_attention_mask = None
@@ -1259,7 +1259,7 @@ class T5Decoder(tf.keras.layers.Layer):
     position_bias = None
     encoder_decoder_position_bias = None
 
-    hidden_states = self.dropout(inputs_embeddings, training=training)
+    hidden_states = self.dropout(inputs_embeddings, training=training)  # pyrefly: ignore[not-callable]
 
     for n, (layer, past_key_value_state) in enumerate(
         zip(self.layers, past_key_value_states)
@@ -1302,8 +1302,8 @@ class T5Decoder(tf.keras.layers.Layer):
           all_cross_attentions + (layer_outputs["cross_attention_weights"],)
           )
 
-    hidden_states = self.final_layer_norm(hidden_states)
-    hidden_states = self.dropout(hidden_states, training=training)
+    hidden_states = self.final_layer_norm(hidden_states)  # pyrefly: ignore[not-callable]
+    hidden_states = self.dropout(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # Add last layer
     all_hidden_states = all_hidden_states + (hidden_states,)

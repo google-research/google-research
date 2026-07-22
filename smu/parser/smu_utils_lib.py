@@ -266,7 +266,7 @@ def get_composition(topology):
   counts = {char: 0 for char in ATOM_CHARS}
   heavy_atom_count = 0
   for atom in topology.atom:
-    counts[ATOM_TYPE_TO_CHAR[atom]] += 1
+    counts[ATOM_TYPE_TO_CHAR[atom]] += 1  # pyrefly: ignore[bad-index, unsupported-operation]
     if atom != dataset_pb2.BondTopology.AtomType.ATOM_H:
       heavy_atom_count += 1
   components = []

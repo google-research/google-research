@@ -89,7 +89,7 @@ def _verify_feature_collection(
     its size.
   """
   try:
-    size = int(feature_collection.size().getInfo())
+    size = int(feature_collection.size().getInfo())  # pyrefly: ignore[bad-argument-type]
   except ee.EEException:
     # Reset the feature collection
     feature_collection = ee.FeatureCollection([])

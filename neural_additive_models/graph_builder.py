@@ -46,7 +46,7 @@ def cross_entropy_loss(model, inputs,
   """
   predictions = model(inputs, training=True)
   logits = tf.stack([predictions, tf.zeros_like(predictions)], axis=1)
-  labels = tf.stack([targets, 1 - targets], axis=1)
+  labels = tf.stack([targets, 1 - targets], axis=1)  # pyrefly: ignore[unsupported-operation]
   loss_vals = tf.nn.softmax_cross_entropy_with_logits_v2(
       labels=labels, logits=logits)
   return tf.reduce_mean(loss_vals)
@@ -135,7 +135,7 @@ def accuracy(model, inputs,
   """Accuracy for a binary classification model."""
   pred = model(inputs, training=False)
   binary_pred = tf.cast(pred > 0, dtype=tf.int32)
-  correct = tf.equal(binary_pred, tf.cast(targets > 0.5, dtype=tf.int32))
+  correct = tf.equal(binary_pred, tf.cast(targets > 0.5, dtype=tf.int32))  # pyrefly: ignore[unsupported-operation]
   return tf.reduce_mean(tf.cast(correct, tf.float32))
 
 
@@ -291,8 +291,8 @@ def create_nam_model(x_train,
   nn_model = models.NAM(
       num_inputs=num_inputs,
       num_units=num_units,
-      dropout=np.float32(dropout),
-      feature_dropout=np.float32(feature_dropout),
+      dropout=np.float32(dropout),  # pyrefly: ignore[bad-argument-type]
+      feature_dropout=np.float32(feature_dropout),  # pyrefly: ignore[bad-argument-type]
       activation=activation,
       shallow=shallow,
       trainable=trainable,
@@ -351,7 +351,7 @@ def build_graph(
   lr_decay_op = learning_rate.assign(decay_rate * learning_rate)
   optimizer = tf.train.AdamOptimizer(learning_rate)
 
-  predictions = nn_model(x_batch, training=False)
+  predictions = nn_model(x_batch, training=False)  # pyrefly: ignore[not-callable]
   tf.logging.info(nn_model.summary())
   train_vars = nn_model.trainable_variables
   if regression:
@@ -404,4 +404,4 @@ def build_graph(
       'global_step': global_step,
   }
   eval_metric_scores = {'test': test_metric, 'train': train_metric}
-  return graph_tensors, eval_metric_scores
+  return graph_tensors, eval_metric_scores  # pyrefly: ignore[bad-return]

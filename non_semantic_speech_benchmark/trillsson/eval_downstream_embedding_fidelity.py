@@ -170,7 +170,7 @@ def process_single_checkpoint(
       wav_samples.shape.assert_is_compatible_with([None, None])
       targets.shape.assert_is_compatible_with([None, output_dim])
 
-      embs = model(wav_samples, training=False)[model_output_key]
+      embs = model(wav_samples, training=False)[model_output_key]  # pyrefly: ignore[not-callable]
       embs.shape.assert_is_compatible_with(targets.shape)
       embs = tf.debugging.check_numerics(
           embs, message='Nans', name='check_numerics')

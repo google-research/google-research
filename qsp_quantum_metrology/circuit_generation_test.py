@@ -53,7 +53,7 @@ def build_circuit(
   qr = qubits
   # initial state preparation, "z" = |00>, "x" = |01>+|10>, "y" = |01>+1j|10>
   if circuit_type != "z":
-    yield [cirq.ops.H(qri) for qri in qr]
+    yield [cirq.ops.H(qri) for qri in qr]  # pyrefly: ignore[invalid-yield]
     if circuit_type == "y":
       yield cirq.ops.S(qr[0])
     yield cirq.ops.Z(qr[1])
@@ -62,13 +62,13 @@ def build_circuit(
   # periodic application of Fsim and Rz
   for ii in range(deg):
     angles = [Fsim_angle.theta, Fsim_angle.varphi, Fsim_angle.chi]
-    yield cirq.ops.PhasedFSimGate(*angles).on(*qr).with_tags(
+    yield cirq.ops.PhasedFSimGate(*angles).on(*qr).with_tags(  # pyrefly: ignore[invalid-yield]
         cirq_google.PhysicalZTag()
     )
-    yield cirq.ops.Rz(rads=-2 * omega).on(qr[0])
+    yield cirq.ops.Rz(rads=-2 * omega).on(qr[0])  # pyrefly: ignore[invalid-yield]
   if measure:
     for ii, qri in enumerate(qr):
-      yield cirq.measure(qri, key=f"q{ii}")
+      yield cirq.measure(qri, key=f"q{ii}")  # pyrefly: ignore[invalid-yield]
 
 
 def get_counts(result):
@@ -84,7 +84,7 @@ def run_and_count_prob(
     qc,
     meas_shots,
     circuit_runner,
-):
+):  # pyrefly: ignore[bad-specialization]
   res = circuit_runner.run(qc, repetitions=meas_shots)
   counts = get_counts(res.data)
   qbit_label_list = ["00", "01", "10", "11"]
@@ -98,7 +98,7 @@ def run_and_count_prob(
 
 def unpack_batch_result(
     results,
-):
+):  # pyrefly: ignore[bad-specialization]
   # Given List[cirq.Circuit], sampler.run_batch returns a nested list
   # res = List[List[cirq.Result]] len(res) = n_qcs, len(res[0]) = 1
   qbit_label_list = ["00", "01", "10", "11"]
@@ -136,12 +136,12 @@ def experimental_circuit_samples_omega(
   recon_h_from_mat = px - 0.5 + 1j * (py - 0.5)
   if correct_confusion_matrix:
     confusion_matrix = confusion_matrix_circuit_samples(
-        qubits, circuit_runner, meas_shots
+        qubits, circuit_runner, meas_shots  # pyrefly: ignore[bad-argument-type]
     )
     # (conf_mat)^T @ (prob_orig) = prob_meas
     confusion_matrix_T = confusion_matrix.transpose()  # pylint:disable=invalid-name
-    px_list = np.linalg.solve(confusion_matrix_T, px_list)
-    py_list = np.linalg.solve(confusion_matrix_T, py_list)
+    px_list = np.linalg.solve(confusion_matrix_T, px_list)  # pyrefly: ignore[no-matching-overload]
+    py_list = np.linalg.solve(confusion_matrix_T, py_list)  # pyrefly: ignore[no-matching-overload]
     qx = px_list[2]
     qy = py_list[2]
     recon_h_from_mat_q = qx - 0.5 + 1j * (qy - 0.5)
@@ -155,7 +155,7 @@ def experimental_circuit_samples_get_probs(
     deg,
     qubits,
     sampler,
-):
+):  # pyrefly: ignore[bad-specialization]
   """Samples on equally spaced omegas and returns probability vectors."""
   omegas = np.pi / (2 * deg - 1) * np.array(range(2 * deg - 1))
   # list of circuits x, y, x, y, ...
@@ -171,22 +171,22 @@ def experimental_circuit_samples_get_probs(
 
 
 def get_correct_confusion_matrix(
-    probs,
-    confusion_matrix,
-):
+    probs,  # pyrefly: ignore[bad-specialization]
+    confusion_matrix,  # pyrefly: ignore[bad-specialization]
+):  # pyrefly: ignore[bad-specialization]
   """Corrects the confusion matrix."""
   confusion_matrix_T = confusion_matrix.transpose()  # pylint:disable=invalid-name
-  probs_q = np.linalg.solve(confusion_matrix_T, probs)
+  probs_q = np.linalg.solve(confusion_matrix_T, probs)  # pyrefly: ignore[no-matching-overload]
   return probs_q
 
 
 def recon_h_from_mat_with_probs(
-    probs,
-):
+    probs,  # pyrefly: ignore[bad-specialization]
+):  # pyrefly: ignore[bad-specialization]
   px = probs[2, ::2]
   py = probs[2, 1::2]
   recon_h_from_mat = np.zeros(probs.shape[1] // 2, dtype=complex)
-  recon_h_from_mat = px - 0.5 + 1j * (py - 0.5)
+  recon_h_from_mat = px - 0.5 + 1j * (py - 0.5)  # pyrefly: ignore[unsupported-operation]
   return recon_h_from_mat
 
 

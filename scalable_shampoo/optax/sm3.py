@@ -174,4 +174,4 @@ def sm3(
     new_updates = jax.tree.map(lambda pg: -lr * pg, updated_momentum_with_wd)
     return new_updates, SM3State(count=state.count+1, stats=new_sm3_stats)
 
-  return optax.GradientTransformation(init_fn, update_fn)
+  return optax.GradientTransformation(init_fn, update_fn)  # pyrefly: ignore[bad-argument-type]
