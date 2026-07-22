@@ -158,7 +158,7 @@ class SeqIOVocabulary(Vocabulary):
         [control_specials, tokens, user_specials, extra_id_specials, mask]))
     self._indices = {t: i for i, t in enumerate(self._voc)}
 
-    self.tokens = tokens
+    self.tokens = tokens  # pyrefly: ignore[bad-assignment]
     self.specials = tuple(itertools.chain.from_iterable(
         [control_specials, user_specials, extra_id_specials]))
     self._control_specials = control_specials

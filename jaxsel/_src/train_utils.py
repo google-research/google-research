@@ -125,13 +125,13 @@ def plot_subgraph_classes(
 ):
   """Plots examples of each class, with subgraphs."""
   fig, axs = plt.subplots(2, num_classes // 2, figsize=(num_classes, 4))
-  qs = [
+  qs = [  # pyrefly: ignore[bad-assignment]
       jsparse.BCOO((data, indices),
                    shape=qs.shape[1:])  # remove batch dim in shape
       for data, indices in zip(qs.data, qs.indices)
   ]
 
-  for ax, img, q, label, start_node_coords in zip(axs.flatten(), imgs, qs,
+  for ax, img, q, label, start_node_coords in zip(axs.flatten(), imgs, qs,  # pyrefly: ignore[bad-argument-type]
                                                   labels, start_nodes_coords):
     # Plot digit
     img = img.squeeze()

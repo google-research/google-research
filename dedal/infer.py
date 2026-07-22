@@ -37,7 +37,7 @@ def preprocess(left, right, max_length = 512):
       transforms.CropOrPad(
           size=max_length, vocab=vocabulary.seqio_vocab, on=keys)]
   for t in transformations:
-    seqs = t(seqs)
+    seqs = t(seqs)  # pyrefly: ignore[bad-argument-type]
   return tf.stack([seqs['left'], seqs['right']], axis=0)
 
 
@@ -155,7 +155,7 @@ class Alignment:
     self.matches = ''.join(summary)
 
   def __len__(self):
-    return len(self.matches)
+    return len(self.matches)  # pyrefly: ignore[bad-argument-type]
 
   @property
   def identity(self):
@@ -170,14 +170,14 @@ class Alignment:
   @property
   def gaps(self):
     return sum([x == '-' or y == '-'
-                for x, y in zip(self.left_match, self.right_match)])
+                for x, y in zip(self.left_match, self.right_match)])  # pyrefly: ignore[bad-argument-type]
 
   def __str__(self):
-    start = [str(a).rjust(4).ljust(6) for a in self.start]
-    end = [str(a).rjust(4).ljust(6) for a in self.end]
-    left_match = start[0] + ''.join(self.left_match) + end[0]
-    right_match = start[1] + ''.join(self.right_match) + end[1]
-    links = ' ' * 6 + ''.join(self.matches) + ' ' * 6
+    start = [str(a).rjust(4).ljust(6) for a in self.start]  # pyrefly: ignore[not-iterable]
+    end = [str(a).rjust(4).ljust(6) for a in self.end]  # pyrefly: ignore[not-iterable]
+    left_match = start[0] + ''.join(self.left_match) + end[0]  # pyrefly: ignore[no-matching-overload]
+    right_match = start[1] + ''.join(self.right_match) + end[1]  # pyrefly: ignore[no-matching-overload]
+    links = ' ' * 6 + ''.join(self.matches) + ' ' * 6  # pyrefly: ignore[no-matching-overload]
     return '\n'.join([left_match, links, right_match])
 
 

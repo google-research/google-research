@@ -267,7 +267,7 @@ class PreTrainingModel(nn.Module):
             masked_lm_output)
 
     next_sentence_logits = layers.OutputProjection(  # pytype: disable=wrong-arg-types  # jax-types
-        n_out=2, kernel_init=default_kernel_init, name="classification")(
+        n_out=2, kernel_init=default_kernel_init, name="classification")(  # pyrefly: ignore[bad-argument-type]
             pooled_output)
 
     return _compute_pretraining_metrics(masked_lm_logits, next_sentence_logits,
@@ -399,7 +399,7 @@ class SequenceClassificationModel(nn.Module):
 
     logits = layers.OutputProjection(  # pytype: disable=wrong-arg-types  # jax-types
         n_out=self.n_classes,
-        kernel_init=default_kernel_init,
+        kernel_init=default_kernel_init,  # pyrefly: ignore[bad-argument-type]
         name="classification")(
             pooled_output)
 

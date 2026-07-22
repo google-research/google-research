@@ -114,9 +114,9 @@ class Agent(abc.ABC):
     node_ids = [cur_id]
     for _ in range(50):
       neighbor_relations, neighbor_features, neighbor_ids = (
-          graph.outgoing_neighbors_and_features(cur_id))
+          graph.outgoing_neighbors_and_features(cur_id))  # pyrefly: ignore[bad-argument-type]
       num_neighbors = neighbor_ids.shape[0]  # pytype: disable=attribute-error  # always-use-return-annotations
-      node_features = jnp.tile(graph.node_features(cur_id), [num_neighbors, 1])
+      node_features = jnp.tile(graph.node_features(cur_id), [num_neighbors, 1])  # pyrefly: ignore[bad-argument-type]
       neighbor_logits = self(None, node_features, neighbor_relations,
                              neighbor_features)
 
@@ -124,10 +124,10 @@ class Agent(abc.ABC):
       gumbels = -np.log(-np.log(np.random.rand(*neighbor_logits.shape)))
       neighbor_id = np.argmax(neighbor_logits + gumbels)
       cur_id = neighbor_id
-      node_ids.append(cur_id)
+      node_ids.append(cur_id)  # pyrefly: ignore[bad-argument-type]
     return node_ids
 
-  @functools.partial(
+  @functools.partial(  # pyrefly: ignore[bad-specialization]
       nn.vmap,
       variable_axes={"params": None},
       in_axes=(0, None, None),

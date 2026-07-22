@@ -147,7 +147,7 @@ class Encoder1DBlock(nn.Module):
 
   @nn.compact
   def __call__(  # pytype: disable=annotation-type-mismatch  # jnp-array
-      self, inputs, encoder_mask = None
+      self, inputs, encoder_mask = None  # pyrefly: ignore[bad-function-definition]
   ):
     """Applies Encoder1DBlock module.
 

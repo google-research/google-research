@@ -114,7 +114,7 @@ class ClassificationPipeline(nn.Module):
     if num_classes > 2:
       return logits.argmax(-1)  # pytype: disable=bad-return-type  # jnp-array
     else:
-      return (jax.scipy.special.expit(logits) > .5).astype(int).squeeze()
+      return (jax.scipy.special.expit(logits) > .5).astype(int).squeeze()  # pyrefly: ignore[bad-return]
 
   def __call__(
       self, graph, start_node_id
@@ -157,7 +157,7 @@ class ClassificationPipeline(nn.Module):
 
     return logits, (q, dense_submat)
 
-  @functools.partial(
+  @functools.partial(  # pyrefly: ignore[bad-specialization]
       nn.vmap,
       in_axes=(0, 0, 0),
       variable_axes={'params': None},

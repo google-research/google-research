@@ -76,7 +76,7 @@ def compute_angular_momentum(
     simulation_parameters):
   """Computes the angular momentum at these coordinates."""
   del position, simulation_parameters
-  p_phi = momentum[1]
+  p_phi = momentum[1]  # pyrefly: ignore[bad-index]
   return p_phi  # pytype: disable=bad-return-type  # numpy-scalars
 
 
@@ -84,8 +84,8 @@ def compute_hamiltonian(position, momentum,
                         simulation_parameters):
   """Computes the Hamiltonian at these coordinates."""
   m, k = simulation_parameters['m'], simulation_parameters['k']
-  r = position[0]
-  p_r, p_phi = momentum
+  r = position[0]  # pyrefly: ignore[bad-index]
+  p_r, p_phi = momentum  # pyrefly: ignore[not-iterable]
   return (p_r**2) / (2 * m) + (p_phi**2) / (2 * m * (r**2)) - k / r
 
 
@@ -94,8 +94,8 @@ def polar_to_cartesian(
     simulation_parameters):
   """Converts positions and momentums from polar to Cartesian coordinates."""
   m = simulation_parameters['m']
-  r, phi = position
-  p_r, p_phi = momentum
+  r, phi = position  # pyrefly: ignore[not-iterable]
+  p_r, p_phi = momentum  # pyrefly: ignore[not-iterable]
   v_r = p_r / m
   v_phi = p_phi / (m * r)
   position_cartesian = jnp.asarray([r * jnp.cos(phi), r * jnp.sin(phi)])

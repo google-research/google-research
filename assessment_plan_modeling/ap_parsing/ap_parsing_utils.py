@@ -151,7 +151,7 @@ def normalize_labeled_char_spans_iterable(
     List of LabeledCharSpans only if normalized span is valid (larger than 0
     tokens).
   """
-  labeled_char_spans = [
+  labeled_char_spans = [  # pyrefly: ignore[bad-assignment]
       normalize_labeled_char_span(label, tokens) for label in labeled_char_spans
   ]
   return list(filter(None, labeled_char_spans))

@@ -122,11 +122,11 @@ class ProgressiveSequentialSynthesizer(EnumerativeSequentialSynthesizer):
     """Synthesizes a subgraph satisfying all the properties."""
     subg_ops = []
     if self.max_delta > 0:
-      max_len = self.num_ops + self.max_delta
+      max_len = self.num_ops + self.max_delta  # pyrefly: ignore[unsupported-operation]
     else:
       max_len = self.max_len
     if self.min_delta > 0:
-      min_len = max(0, self.num_ops - self.min_delta)
+      min_len = max(0, self.num_ops - self.min_delta)  # pyrefly: ignore[unsupported-operation]
     else:
       min_len = self.min_len
     last_dist = None

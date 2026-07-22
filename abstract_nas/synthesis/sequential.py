@@ -54,22 +54,24 @@ class AbstractSequentialSynthesizer(AbstractSynthesizer):
       num_ops = len(subg.subgraph)
 
       input_names = subg.input_names
-      if len(input_names) != 1:
+      if len(input_names) != 1:  # pyrefly: ignore[bad-argument-type]
+        # pyrefly: ignore[bad-argument-type]
         raise ValueError("Sequential synthesizer subgraph must have exactly "
                          f"one input, but found {len(input_names)}.")
       if not input_name:
-        input_name = input_names[0]
+        input_name = input_names[0]  # pyrefly: ignore[unsupported-operation]
       else:
-        if input_name != input_names[0]:
+        if input_name != input_names[0]:  # pyrefly: ignore[unsupported-operation]
           raise ValueError("Subgraphs are not identical.")
 
       output_names = subg.output_names
-      if len(output_names) != 1:
+      if len(output_names) != 1:  # pyrefly: ignore[bad-argument-type]
+        # pyrefly: ignore[bad-argument-type]
         raise ValueError("Sequential synthesizer subgraph must have exactly "
                          f"one output, but found {len(output_names)}.")
       if not output_name:
-        output_name = output_names[0]
-      elif output_name != output_names[0]:
+        output_name = output_names[0]  # pyrefly: ignore[unsupported-operation]
+      elif output_name != output_names[0]:  # pyrefly: ignore[unsupported-operation]
         raise ValueError("Subgraphs are not identical.")
 
     self.output_name = output_name
@@ -89,7 +91,7 @@ class AbstractSequentialSynthesizer(AbstractSynthesizer):
       cur_output_features_mul = None
       cur_output_features_div = None
       cur_output_features_const = None
-      for prop in props:
+      for prop in props:  # pyrefly: ignore[bad-assignment]
         # Can't use isinstance because LinopProperty subclasses ShapeProperty.
         if type(prop) is not ShapeProperty:  # pylint: disable=unidiomatic-typecheck
           continue
@@ -182,7 +184,7 @@ class AbstractSequentialSynthesizer(AbstractSynthesizer):
         total_div *= div
 
     required_mul = self.output_features_mul * total_div
-    required_div = self.output_features_div * total_mul
+    required_div = self.output_features_div * total_mul  # pyrefly: ignore[unsupported-operation]
     gcd = math.gcd(required_mul, required_div)
     required_mul //= gcd
     required_div //= gcd
@@ -217,7 +219,7 @@ class AbstractSequentialSynthesizer(AbstractSynthesizer):
       op = copy.deepcopy(op)
       if not op_names_unique:
         op.name = f"{op.name}/{idx}"
-      op.input_names = [input_name]
+      op.input_names = [input_name]  # pyrefly: ignore[bad-assignment]
       input_name = op.name + ":0"
       subgraph_spec.append(subgraph.SubgraphNode(op))
     subgraph_spec[-1].output_names = [self.output_name]

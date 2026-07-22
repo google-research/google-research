@@ -80,12 +80,12 @@ def generate_canonical_coordinates_for_normal_mode(
                   mode_simulation_parameters["m"],
                   mode_simulation_parameters["w"])
   position = a * jnp.cos(w * t + phi)
-  momentum = -m * w * a * jnp.sin(w * t + phi)
+  momentum = -m * w * a * jnp.sin(w * t + phi)  # pyrefly: ignore[unsupported-operation]
   return position, momentum
 
 
 def _squared_l2_distance(u, v):
-  return jnp.square(u - v).sum()
+  return jnp.square(u - v).sum()  # pyrefly: ignore[unsupported-operation]
 
 
 def compute_hamiltonian(
@@ -96,7 +96,7 @@ def compute_hamiltonian(
   """Computes the Hamiltonian at the given coordinates."""
   m, k_wall, k_pair = (simulation_parameters["m"],
                        simulation_parameters["k_wall"],
-                       simulation_parameters["k_pair"][0])
+                       simulation_parameters["k_pair"][0])  # pyrefly: ignore[bad-index]
   q, p = position, momentum
   squared_distance_matrix = jax.vmap(
       jax.vmap(_squared_l2_distance, in_axes=(None, 0)), in_axes=(0, None)

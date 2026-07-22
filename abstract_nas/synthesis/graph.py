@@ -89,7 +89,7 @@ class SynthesisNode:
 
     # The op and subgraph_node at this particular junction.
     self.op = op
-    self.subgraph_node: SubgraphNode = None
+    self.subgraph_node: SubgraphNode = None  # pyrefly: ignore[bad-assignment]
 
     # The parent synthesis nodes, one for each op input.
     # The first element is the index of the parent output which is used as
@@ -156,7 +156,7 @@ class SynthesisNode:
     if self.is_input:
       return subgraph_spec
 
-    original_output_names = list(self.output_names)
+    original_output_names = list(self.output_names)  # pyrefly: ignore[bad-argument-type]
 
     # Create own op.
     if self.op:
@@ -196,10 +196,10 @@ class SynthesisNode:
     assert self.is_output or self.op.num_outputs == 1
 
     parent_output_idx, parent_node = self.parents[parent_idx]
-    input_name = parent_node.output_names[parent_output_idx]
+    input_name = parent_node.output_names[parent_output_idx]  # pyrefly: ignore[unsupported-operation]
 
     if self.is_output:
-      output_name = self.output_names[0]
+      output_name = self.output_names[0]  # pyrefly: ignore[unsupported-operation]
     else:
       output_name = self.op.input_names[parent_idx]
 
@@ -239,7 +239,7 @@ class SynthesisNode:
       subgraph_spec.append(node)
 
     if not self.is_output:
-      subgraph_spec[-1].output_names = [None]
+      subgraph_spec[-1].output_names = [None]  # pyrefly: ignore[bad-assignment]
       input_names = list(self.op.input_names)
       input_names[parent_idx] = f"{subgraph_spec[-1].op.name}:0"
       self.op.input_names = input_names
@@ -373,7 +373,7 @@ class GraphSynthesizer(AS):
           parents[f"{op.name}:{idx}"] = (idx, syn_node)
 
     # Add output nodes.
-    for output_name in self.subgraphs_and_props[0][0].output_names:
+    for output_name in self.subgraphs_and_props[0][0].output_names:  # pyrefly: ignore[not-iterable]
       parent_node = parents[output_name]
       syn_node = SynthesisNode(
           generation=self.generation,
@@ -404,13 +404,13 @@ class GraphSynthesizer(AS):
       new_subgraphs_and_props_by_parent = []
       for parent_idx, parent in enumerate(node.parents):
         parent_output_idx, parent_node = parent
-        start_name = parent_node.output_names[parent_output_idx]
+        start_name = parent_node.output_names[parent_output_idx]  # pyrefly: ignore[unsupported-operation]
         if node.is_output:
           assert len(node.parents) == 1
-          assert len(node.output_names) == 1
-          subg_spec = get_subg_spec(start_name, node.output_names[0])
+          assert len(node.output_names) == 1  # pyrefly: ignore[bad-argument-type]
+          subg_spec = get_subg_spec(start_name, node.output_names[0])  # pyrefly: ignore[unsupported-operation]
         else:
-          subg_spec = get_subg_spec(start_name, node.op.input_names[parent_idx])
+          subg_spec = get_subg_spec(start_name, node.op.input_names[parent_idx])  # pyrefly: ignore[missing-attribute]
 
         new_subgraphs_and_props = []
         if subg_spec:

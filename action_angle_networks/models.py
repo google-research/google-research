@@ -140,7 +140,7 @@ class MaskedCouplingFlowConditioner(nn.Module):
     inputs = MLP(
         self.latent_sizes, self.activation, activate_final=True)(
             inputs)
-    inputs = nn.Dense(np.prod(self.event_shape) * self.num_bijector_params)(
+    inputs = nn.Dense(np.prod(self.event_shape) * self.num_bijector_params)(  # pyrefly: ignore[bad-argument-type]
         inputs)
     inputs = jnp.reshape(
         inputs, inputs.shape[:-1] + tuple(self.event_shape) +
@@ -222,8 +222,8 @@ class PointwiseNormalizingFlow(NormalizingFlow):
     assert inputs.shape[
         -1] == 2 * num_dims, f'Got inputs of shape {inputs.shape} for num_dims = {num_dims}.'
 
-    first_coords = inputs[Ellipsis, :num_dims]
-    second_coords = inputs[Ellipsis, num_dims:]
+    first_coords = inputs[Ellipsis, :num_dims]  # pyrefly: ignore[bad-index]
+    second_coords = inputs[Ellipsis, num_dims:]  # pyrefly: ignore[bad-index]
 
     if self.switch:
       first_coords, second_coords = second_coords, first_coords
@@ -244,8 +244,8 @@ class PointwiseNormalizingFlow(NormalizingFlow):
     assert inputs.shape[
         -1] == 2 * num_dims, f'Got inputs of shape {inputs.shape} for num_dims = {num_dims}.'
 
-    first_coords = inputs[Ellipsis, :num_dims]
-    second_coords = inputs[Ellipsis, num_dims:]
+    first_coords = inputs[Ellipsis, :num_dims]  # pyrefly: ignore[bad-index]
+    second_coords = inputs[Ellipsis, num_dims:]  # pyrefly: ignore[bad-index]
 
     if self.switch:
       first_coords, second_coords = second_coords, first_coords
@@ -321,8 +321,8 @@ class ShearNormalizingFlow(NormalizingFlow):
     assert inputs.shape[-1] == 2 * num_dims, (
         f'Got inputs of shape {inputs.shape} for num_dims = {num_dims}.')
 
-    first_coords = inputs[Ellipsis, :num_dims]
-    second_coords = inputs[Ellipsis, num_dims:]
+    first_coords = inputs[Ellipsis, :num_dims]  # pyrefly: ignore[bad-index]
+    second_coords = inputs[Ellipsis, num_dims:]  # pyrefly: ignore[bad-index]
 
     if self.switch:
       first_coords, second_coords = second_coords, first_coords
@@ -339,8 +339,8 @@ class ShearNormalizingFlow(NormalizingFlow):
     assert inputs.shape[-1] == 2 * num_dims, (
         f'Got inputs of shape {inputs.shape} for num_dims = {num_dims}.')
 
-    first_coords = inputs[Ellipsis, :num_dims]
-    second_coords = inputs[Ellipsis, num_dims:]
+    first_coords = inputs[Ellipsis, :num_dims]  # pyrefly: ignore[bad-index]
+    second_coords = inputs[Ellipsis, num_dims:]  # pyrefly: ignore[bad-index]
 
     if self.switch:
       first_coords, second_coords = second_coords, first_coords
@@ -371,8 +371,8 @@ class SymplecticLinearFlow(NormalizingFlow):
     assert inputs.shape[
         -1] == 2 * num_dims, f'Got inputs of shape {inputs.shape} for num_dims = {num_dims}.'
 
-    first_coords = inputs[Ellipsis, :num_dims]
-    second_coords = inputs[Ellipsis, num_dims:]
+    first_coords = inputs[Ellipsis, :num_dims]  # pyrefly: ignore[bad-index]
+    second_coords = inputs[Ellipsis, num_dims:]  # pyrefly: ignore[bad-index]
     return first_coords, second_coords
 
   def forward(self, inputs):
@@ -532,8 +532,8 @@ class FlowEncoder(CoordinateEncoder):
     assert coords.shape[-1] % 2 == 0, coords.shape
 
     num_positions = coords.shape[-1] // 2
-    latent_positions = coords[Ellipsis, :num_positions]
-    latent_momentums = coords[Ellipsis, num_positions:]
+    latent_positions = coords[Ellipsis, :num_positions]  # pyrefly: ignore[bad-index]
+    latent_momentums = coords[Ellipsis, num_positions:]  # pyrefly: ignore[bad-index]
     return latent_positions, latent_momentums
 
 
@@ -552,8 +552,8 @@ class FlowDecoder(CoordinateDecoder):
     assert coords.shape[-1] % 2 == 0, coords.shape
 
     num_positions = coords.shape[-1] // 2
-    positions = coords[Ellipsis, :num_positions]
-    momentums = coords[Ellipsis, num_positions:]
+    positions = coords[Ellipsis, :num_positions]  # pyrefly: ignore[bad-index]
+    momentums = coords[Ellipsis, num_positions:]  # pyrefly: ignore[bad-index]
     return positions, momentums
 
 
@@ -647,10 +647,10 @@ class ActionAngleNetwork(nn.Module):
     if self.polar_action_angles:
       future_angles = (future_angles + jnp.pi) % (2 * jnp.pi) - (jnp.pi)
       future_latent_positions, future_latent_momentums = jax.vmap(
-          polar_to_cartesian, in_axes=(None, 0))(actions[0], future_angles)
+          polar_to_cartesian, in_axes=(None, 0))(actions[0], future_angles)  # pyrefly: ignore[bad-index]
     else:
       future_latent_positions, future_latent_momentums = jax.vmap(
-          lambda x, y: (x, y), in_axes=(None, 0))(actions[0], future_angles)
+          lambda x, y: (x, y), in_axes=(None, 0))(actions[0], future_angles)  # pyrefly: ignore[bad-index]
 
     # predicted_positions has shape [T x num_trajectories].
     # predicted_momentums has shape [T x num_trajectories].

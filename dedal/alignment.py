@@ -155,7 +155,7 @@ def alignments_to_state_indices(
     for extra details.
   """
   pos_x, pos_y, enc_trans = alignments[:, 0], alignments[:, 1], alignments[:, 2]
-  states = STATES.get(states, states)
+  states = STATES.get(states, states)  # pyrefly: ignore[no-matching-overload]
 
   # Note(fllinares): another ugly "hack", here we assume one-based idx to encode
   # the padding mask implicitly.
@@ -196,7 +196,7 @@ def paths_to_state_indicators(
     iff the trajectory of the alignment for the b-th sequence pair passes by
     character pair (i, j) under one of the states in `states`.
   """
-  states = STATES.get(states, states)
+  states = STATES.get(states, states)  # pyrefly: ignore[no-matching-overload]
   return tf.reduce_max(tf.gather(paths, indices=states, axis=-1), axis=-1)
 
 
@@ -264,7 +264,7 @@ def sw_score_from_alignments(
   gap_open_per_example = dot_by_states(gap_open, 'gap_open')
   gap_extend_per_example = dot_by_states(gap_extend, 'gap_extend')
 
-  return sim_per_example + gap_open_per_example + gap_extend_per_example
+  return sim_per_example + gap_open_per_example + gap_extend_per_example  # pyrefly: ignore[unsupported-operation]
 
 
 def sw_score_from_paths(sw_params, paths):
@@ -287,7 +287,7 @@ def sw_score_from_paths(sw_params, paths):
   """
   if isinstance(sw_params, Sequence):  # _UnpackedSWParams format
     sw_params = weights_from_sim_mat(*sw_params)
-  return tf.reduce_sum(sw_params * paths, axis=[1, 2, 3])
+  return tf.reduce_sum(sw_params * paths, axis=[1, 2, 3])  # pyrefly: ignore[unsupported-operation]
 
 
 def sw_score(
@@ -318,7 +318,7 @@ def mask_from_similarities(sim_mat,
     A tf.Tensor<dtype>[batch, len, len] with binary entries, with 1.0 signifying
     "real" tokens and 0.0 padding / special tokens.
   """
-  mask = tf.logical_and(sim_mat > -pad_penalty, sim_mat < pad_penalty)
+  mask = tf.logical_and(sim_mat > -pad_penalty, sim_mat < pad_penalty)  # pyrefly: ignore[unsupported-operation]
   return tf.cast(mask, dtype)
 
 

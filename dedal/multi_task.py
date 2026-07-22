@@ -106,7 +106,7 @@ class NamedLists(dict, Generic[T]):
 
   @property
   def shape(self):
-    return tuple(len(level) for level in self.levels)
+    return tuple(len(level) for level in self.levels)  # pyrefly: ignore[bad-return]
 
 
 @gin.configurable
@@ -182,7 +182,7 @@ class SwitchNamedLists(NamedLists[int]):
         `output.key[l] = inputs[self.key[l]].key[l]`
       for each key in `self`.
     """
-    inputs = [list(inputs_i) for inputs_i in inputs]
+    inputs = [list(inputs_i) for inputs_i in inputs]  # pyrefly: ignore[bad-assignment]
     offsets = len(inputs) * [0]
     outputs = []
     for i in list(self):  # Needed to appease AutoGraph?

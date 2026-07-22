@@ -69,7 +69,7 @@ class SklearnElasticNetModel(makita_model.MakitaModel):
     Returns:
       Self.
     """
-    self._model.fit(training_data[0], training_data[1])
+    self._model.fit(training_data[0], training_data[1])  # pyrefly: ignore[missing-attribute]
     return self
 
   def predict(self, testing_data,
@@ -86,7 +86,7 @@ class SklearnElasticNetModel(makita_model.MakitaModel):
     Returns:
       An array of predictions.
     """
-    return self._model.predict(testing_data)
+    return self._model.predict(testing_data)  # pyrefly: ignore[missing-attribute]
 
   def save(self, save_dir):
     """Saves the model to the supplied location.
@@ -103,4 +103,4 @@ class SklearnElasticNetModel(makita_model.MakitaModel):
     Returns:
       The protected model.
     """
-    return self._model
+    return self._model  # pyrefly: ignore[bad-return]

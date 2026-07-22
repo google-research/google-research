@@ -153,7 +153,7 @@ def _compute_loss_and_metrics(
   }
 
   metrics = model.apply({"params": params}, rngs={"dropout": rng}, **inputs)
-  return metrics["loss"], metrics
+  return metrics["loss"], metrics  # pyrefly: ignore[bad-index, bad-return]
 
 
 def _compute_classification_stats(params, batch,
@@ -182,7 +182,7 @@ def _compute_classification_stats(params, batch,
   return {
       "idx": batch["idx"],
       "label": batch["label"],
-      "prediction": y.argmax(-1)
+      "prediction": y.argmax(-1)  # pyrefly: ignore[missing-attribute]
   }
 
 
@@ -212,7 +212,7 @@ def _compute_regression_stats(params, batch,
   return {
       "idx": batch["idx"],
       "label": batch["label"],
-      "prediction": y[Ellipsis, 0],
+      "prediction": y[Ellipsis, 0],  # pyrefly: ignore[bad-index]
   }
 
 
@@ -424,7 +424,7 @@ def train_and_evaluate(config, workdir,
       max_seq_length=config.max_seq_length,
       tokenizer=tokenizer)
   train_ds = glue_inputs(
-      split=tfds.Split.TRAIN,
+      split=tfds.Split.TRAIN,  # pyrefly: ignore[missing-attribute]
       batch_size=per_process_train_batch_size,
       training=True)
   train_iter = iter(train_ds)
@@ -505,7 +505,7 @@ def train_and_evaluate(config, workdir,
 
     for split_suffix in split_suffixes:
       eval_ds = glue_inputs(
-          split=tfds.Split.VALIDATION + split_suffix,
+          split=tfds.Split.VALIDATION + split_suffix,  # pyrefly: ignore[missing-attribute]
           batch_size=per_process_eval_batch_size,
           training=False)
 

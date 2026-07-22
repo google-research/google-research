@@ -165,7 +165,7 @@ def make_dataset_helper_unbalanced(
     gen = datasets.TaskGenerator(
         numpy_arr,
         num_labels=num_labels,
-        image_size=image_size,
+        image_size=image_size,  # pyrefly: ignore[bad-argument-type]
         use_label_subset=data_config.use_label_subset,
         always_same_labels=always_same_labels)
     randomize_op = config.randomize_op()
@@ -203,7 +203,7 @@ def make_dataset_helper_balanced(
     gen = datasets.TaskGenerator(
         numpy_arr,
         num_labels=num_labels,
-        image_size=image_size,
+        image_size=image_size,  # pyrefly: ignore[bad-argument-type]
         use_label_subset=data_config.use_label_subset,
         always_same_labels=always_same_labels)
     randomize_op = config.randomize_op()

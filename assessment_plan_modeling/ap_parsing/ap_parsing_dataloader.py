@@ -127,7 +127,7 @@ class APParsingDataLoader(data_loader.DataLoader):
   ):
     """Returns a tf.dataset.Dataset."""
     if self._params.input_path == "test":
-      return test_dataset(self._params.seq_length)
+      return test_dataset(self._params.seq_length)  # pyrefly: ignore[bad-argument-type]
 
     reader = input_reader.InputReader(
         params=self._params, decoder_fn=self._decode, parser_fn=self._parse)

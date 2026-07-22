@@ -79,7 +79,7 @@ class StandardScaler(Scaler):
     return StandardScaler(mean, std)
 
   def transform(self, data):
-    return (data - self.mean()) / self.std()
+    return (data - self.mean()) / self.std()  # pyrefly: ignore[unsupported-operation]
 
   def inverse_transform(self, data):
     return data * self.std() + self.mean()

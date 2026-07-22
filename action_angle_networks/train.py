@@ -108,15 +108,15 @@ def create_masked_coupling_flow(
   conditioners = []
   for _ in range(config.num_flow_layers):
     conditioner = models.MaskedCouplingFlowConditioner(
-        event_shape=init_shape[-1],
+        event_shape=init_shape[-1],  # pyrefly: ignore[bad-argument-type, bad-index]
         latent_sizes=config.latent_sizes,
-        activation=activation,
+        activation=activation,  # pyrefly: ignore[bad-argument-type]
         num_bijector_params=num_bijector_params)
     conditioners.append(conditioner)
 
   return models.MaskedCouplingNormalizingFlow(
-      event_shape=init_shape[-1],
-      bijector_fn=bijector_fn,
+      event_shape=init_shape[-1],  # pyrefly: ignore[bad-argument-type, bad-index]
+      bijector_fn=bijector_fn,  # pyrefly: ignore[bad-argument-type]
       conditioners=conditioners)
 
 
@@ -124,28 +124,28 @@ def create_pointwise_flow(config,
                           init_shape):
   """Builds the pointwise normalizing flow model."""
   activation = models.create_activation_bijector(config.activation)
-  base_flow_input_dims = init_shape[-1] // 2
+  base_flow_input_dims = init_shape[-1] // 2  # pyrefly: ignore[bad-index]
   base_flow = models.OneDimensionalNormalizingFlow(
       num_layers=config.num_flow_layers, activation=activation)
   return models.PointwiseNormalizingFlow(
-      base_flow=base_flow, base_flow_input_dims=base_flow_input_dims)
+      base_flow=base_flow, base_flow_input_dims=base_flow_input_dims)  # pyrefly: ignore[bad-argument-type]
 
 
 def create_shear_flow(config,
                       init_shape):
   """Builds the shear normalizing flow model."""
-  linear_input_dims = conditioner_input_dims = init_shape[-1] // 2
+  linear_input_dims = conditioner_input_dims = init_shape[-1] // 2  # pyrefly: ignore[bad-index]
   activation = getattr(jax.nn, config.activation, None)
   switch = False
-  flows = [models.SymplecticLinearFlow(linear_input_dims)]
+  flows = [models.SymplecticLinearFlow(linear_input_dims)]  # pyrefly: ignore[bad-argument-type]
   for _ in range(config.num_flow_layers):
     conditioner = models.GradientBasedConditioner(
-        projection_dims=config.latent_size, activation=activation)
+        projection_dims=config.latent_size, activation=activation)  # pyrefly: ignore[bad-argument-type]
     shear_flow = models.ShearNormalizingFlow(
         conditioner=conditioner,
-        conditioner_input_dims=conditioner_input_dims,
+        conditioner_input_dims=conditioner_input_dims,  # pyrefly: ignore[bad-argument-type]
         switch=switch)
-    flows.append(shear_flow)
+    flows.append(shear_flow)  # pyrefly: ignore[bad-argument-type]
     switch = not switch
   return models.SequentialFlow(flows)
 
@@ -213,31 +213,31 @@ def create_model(config):
         name='decoder')
   if config.encoder_decoder_type == 'flow':
     flow = create_flow(  # pytype: disable=wrong-arg-types  # numpy-scalars
-        config, init_shape=(config.batch_size, 2 * config.num_trajectories))
+        config, init_shape=(config.batch_size, 2 * config.num_trajectories))  # pyrefly: ignore[bad-argument-type]
     encoder = models.FlowEncoder(flow)
     decoder = models.FlowDecoder(flow)
 
   # Action-Angle Neural Network.
   if config.model == 'action-angle-network':
     return models.ActionAngleNetwork(
-        encoder=encoder,
+        encoder=encoder,  # pyrefly: ignore[unbound-name]
         angular_velocity_net=models.MLP([latent_size, config.num_trajectories],
                                         activation,
                                         skip_connections=True,
                                         name='angular_velocity_net'),
-        decoder=decoder,
+        decoder=decoder,  # pyrefly: ignore[unbound-name]
         polar_action_angles=config.polar_action_angles,
         single_step_predictions=config.single_step_predictions)
 
   # Baseline Euler Update Network.
   if config.model == 'euler-update-network':
     return models.EulerUpdateNetwork(
-        encoder=encoder,
+        encoder=encoder,  # pyrefly: ignore[unbound-name]
         derivative_net=models.MLP([latent_size, latent_size, latent_size, 2],
                                   activation,
                                   skip_connections=True,
                                   name='derivative'),
-        decoder=decoder)
+        decoder=decoder)  # pyrefly: ignore[unbound-name]
 
   raise ValueError('Unsupported model.')
 
@@ -281,11 +281,11 @@ def compute_loss(predicted_positions,
   if auxiliary_predictions is not None:
     angular_velocities = auxiliary_predictions['angular_velocities']
     angular_velocities_variances = jnp.var(angular_velocities, axis=0).sum()
-    loss += regularizations['angular_velocities'] * angular_velocities_variances
+    loss += regularizations['angular_velocities'] * angular_velocities_variances  # pyrefly: ignore[unsupported-operation]
 
     actions = auxiliary_predictions['actions']
     actions_variances = jnp.var(actions, axis=0).sum()
-    loss += regularizations['actions'] * actions_variances
+    loss += regularizations['actions'] * actions_variances  # pyrefly: ignore[unsupported-operation]
   return loss  # pytype: disable=bad-return-type  # jnp-type
 
 
@@ -433,7 +433,7 @@ def fit_scaler(positions, momentums,
   """Fits the scaler."""
   if positions.ndim == 1:
     positions = positions[jnp.newaxis, Ellipsis]
-    momentums = momentums[jnp.newaxis, Ellipsis]
+    momentums = momentums[jnp.newaxis, Ellipsis]  # pyrefly: ignore[bad-index]
 
   assert positions.ndim == 2, f'Got positions of shape {positions.shape}.'
   assert momentums.ndim == 2, f'Got momentums of shape {momentums.shape}.'
@@ -449,7 +449,7 @@ def transform_with_scaler(
   """Performs the rescaling to normalized coordinates."""
   if positions.ndim == 1:
     positions = positions[jnp.newaxis, Ellipsis]
-    momentums = momentums[jnp.newaxis, Ellipsis]
+    momentums = momentums[jnp.newaxis, Ellipsis]  # pyrefly: ignore[bad-index]
 
   assert positions.ndim == 2, f'Got positions of shape {positions.shape}.'
   assert momentums.ndim == 2, f'Got momentums of shape {momentums.shape}.'
@@ -457,8 +457,8 @@ def transform_with_scaler(
   coords = jnp.concatenate((positions, momentums), axis=1)
   coords = scaler.transform(coords)
   num_positions = coords.shape[1] // 2
-  positions = coords[:, :num_positions]
-  momentums = coords[:, num_positions:]
+  positions = coords[:, :num_positions]  # pyrefly: ignore[bad-index]
+  momentums = coords[:, num_positions:]  # pyrefly: ignore[bad-index]
   return positions, momentums
 
 
@@ -469,7 +469,7 @@ def inverse_transform_with_scaler(
   """Performs the inverse rescaling to unnormalized coordinates."""
   if positions.ndim == 1:
     positions = positions[jnp.newaxis, Ellipsis]
-    momentums = momentums[jnp.newaxis, Ellipsis]
+    momentums = momentums[jnp.newaxis, Ellipsis]  # pyrefly: ignore[bad-index]
 
   assert positions.ndim == 2, f'Got positions of shape {positions.shape}.'
   assert momentums.ndim == 2, f'Got momentums of shape {momentums.shape}.'
@@ -477,8 +477,8 @@ def inverse_transform_with_scaler(
   coords = jnp.concatenate((positions, momentums), axis=1)
   coords = scaler.inverse_transform(coords)
   num_positions = coords.shape[1] // 2
-  positions = coords[:, :num_positions]
-  momentums = coords[:, num_positions:]
+  positions = coords[:, :num_positions]  # pyrefly: ignore[bad-index]
+  momentums = coords[:, num_positions:]  # pyrefly: ignore[bad-index]
   return positions, momentums
 
 
@@ -635,10 +635,10 @@ def train_and_evaluate(
   # Train-test split.
   if config.split_on == 'times':
     num_train_samples = int(num_samples * train_split_proportion)
-    train_positions = all_positions[:num_train_samples]
-    test_positions = all_positions[num_train_samples:]
-    train_momentums = all_momentums[:num_train_samples]
-    test_momentums = all_momentums[num_train_samples:]
+    train_positions = all_positions[:num_train_samples]  # pyrefly: ignore[bad-index]
+    test_positions = all_positions[num_train_samples:]  # pyrefly: ignore[bad-index]
+    train_momentums = all_momentums[:num_train_samples]  # pyrefly: ignore[bad-index]
+    test_momentums = all_momentums[num_train_samples:]  # pyrefly: ignore[bad-index]
 
     train_simulation_parameters = simulation_parameters
     test_simulation_parameters = simulation_parameters
@@ -690,10 +690,10 @@ def train_and_evaluate(
     num_samples_on_trajectory = train_curr_positions.shape[0]
     sample_indices = jax.random.choice(step_rng, num_samples_on_trajectory,
                                        (config.batch_size,))
-    batch_curr_positions = train_curr_positions[sample_indices]
-    batch_curr_momentums = train_curr_momentums[sample_indices]
-    batch_target_positions = train_target_positions[sample_indices]
-    batch_target_momentums = train_target_momentums[sample_indices]
+    batch_curr_positions = train_curr_positions[sample_indices]  # pyrefly: ignore[bad-index]
+    batch_curr_momentums = train_curr_momentums[sample_indices]  # pyrefly: ignore[bad-index]
+    batch_target_positions = train_target_positions[sample_indices]  # pyrefly: ignore[bad-index]
+    batch_target_momentums = train_target_momentums[sample_indices]  # pyrefly: ignore[bad-index]
 
     # Update parameters.
     grads = compute_updates(state, batch_curr_positions, batch_curr_momentums,

@@ -179,7 +179,7 @@ class ImageGraph(graph_api.GraphAPI):
 
   def node_features(self, node_id):
     """Concatenates the patch surrounding `nocde_id` to represent it."""
-    return self.node_patch(node_id).reshape(-1)
+    return self.node_patch(node_id).reshape(-1)  # pyrefly: ignore[bad-argument-type]
 
   def task_features(self):
     """Describe the task just in terms of the start location.

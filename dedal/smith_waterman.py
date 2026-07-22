@@ -175,7 +175,7 @@ def hard_sw_affine(
     v_x, d_x = reduce_max_with_argmax(o_x, axis=0)
     v_y, d_y = reduce_max_with_argmax(o_y, axis=0)
     v = tf.where(inv_mask_k, tf.stack([v_m, v_x, v_y]), -inf)
-    d = tf.stack([d_m, d_x + 1, d_y + 1])  # Accounts for start state (0).
+    d = tf.stack([d_m, d_x + 1, d_y + 1])  # Accounts for start state (0).  # pyrefly: ignore[unsupported-operation]
 
     v_p2, v_p1 = v_p1, v
     v_opt_k, i_opt_k = reduce_max_with_argmax(v[0], axis=0)
@@ -622,10 +622,10 @@ def soft_sw_affine(
                  unsqueeze_lead_dim(m_term_p2, 0) +
                  unsqueeze_lead_dim(y_term_p1, 0) +
                  unsqueeze_lead_dim(x_term_p1, 0))  # [1, l1, b]
-        x_adj = (unsqueeze_lead_dim(m_term_p2, 1) +
+        x_adj = (unsqueeze_lead_dim(m_term_p2, 1) +  # pyrefly: ignore[unsupported-operation]
                  unsqueeze_lead_dim(y_term_p1, 1) +
                  unsqueeze_lead_dim(x_term_p1, 1))  # [1, l1, b]
-        y_adj = (unsqueeze_lead_dim(m_term_p2, 2) +
+        y_adj = (unsqueeze_lead_dim(m_term_p2, 2) +  # pyrefly: ignore[unsupported-operation]
                  unsqueeze_lead_dim(y_term_p1, 2))  # [1, l1, b]
 
         m_term = m_adj[:, 1:] * m_tilde  # [3, l1 - 1, b]
@@ -633,10 +633,10 @@ def soft_sw_affine(
         y_term = y_adj * y_tilde  # [3, l1, b]
 
         g_sm_k = m_adj
-        g_go_k = -(unsqueeze_lead_dim(x_term, 0) +
+        g_go_k = -(unsqueeze_lead_dim(x_term, 0) +  # pyrefly: ignore[unsupported-operation]
                    unsqueeze_lead_dim(y_term, 0) +
                    unsqueeze_lead_dim(y_term, 1))  # [1, l1, b]
-        g_ge_k = -(unsqueeze_lead_dim(x_term, 1) +
+        g_ge_k = -(unsqueeze_lead_dim(x_term, 1) +  # pyrefly: ignore[unsupported-operation]
                    unsqueeze_lead_dim(y_term, 2))  # [1, l1, b]
         # NOTE(fllinares): empirically, avoiding unnecessary tf.TensorArray
         # writes for g_go and g_ge g_ge when gap penalties have rank 0 or 1 is

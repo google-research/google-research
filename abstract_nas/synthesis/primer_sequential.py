@@ -80,11 +80,11 @@ class PrimerSequentialSynthesizer(RandomEnumerativeSequentialSynthesizer):
         self.delete,
         self.insert,
         self.mutate_field,
-        lambda x: self.insert(self.delete(x)),
+        lambda x: self.insert(self.delete(x)),  # pyrefly: ignore[bad-argument-type]
         self.swap]
 
     if self.use_automl_zero:
-      mutations.append(lambda _: self.randomize())
+      mutations.append(lambda _: self.randomize())  # pyrefly: ignore[bad-argument-type]
 
     # Certain mutations may not be applicable for the selected subgraph, and
     # they will return None (e.g., if the subgraph is of size 1, we cannot
@@ -101,7 +101,7 @@ class PrimerSequentialSynthesizer(RandomEnumerativeSequentialSynthesizer):
 
     prefix = f"gen{self.generation}/"
     if not subg_ops:
-      subg_ops.append(new_op("dummy", OpType.IDENTITY, [self.input_name]))
+      subg_ops.append(new_op("dummy", OpType.IDENTITY, [self.input_name]))  # pyrefly: ignore[bad-argument-type]
     for op in subg_ops:
       op.name = f"{prefix}{op.type.name.lower()}"
     subgraph_spec = self.make_subgraph_spec(subg_ops)

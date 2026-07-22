@@ -123,8 +123,8 @@ class AbstractSynthesizer(abc.ABC):
     """
     new_subgraph_models = []
     if not graphs:
-      graphs = [None] * len(self.subgraphs_and_props)
-    for graph, (subgraph_model, _) in zip(graphs, self.subgraphs_and_props):
+      graphs = [None] * len(self.subgraphs_and_props)  # pyrefly: ignore[bad-assignment]
+    for graph, (subgraph_model, _) in zip(graphs, self.subgraphs_and_props):  # pyrefly: ignore[bad-argument-type]
       graph = graph if graph else subgraph_model.graph
       constants = subgraph_model.constants
       state = subgraph_model.state
@@ -150,7 +150,7 @@ class AbstractSynthesizer(abc.ABC):
 
         new_state = flax.core.unfreeze(new_state)
         inherited, frozen = subgraph.inherit_params(new_state["params"],
-                                                    state["params"])
+                                                    state["params"])  # pyrefly: ignore[unsupported-operation]
         new_state = {**inherited, **frozen}
       else:
         new_state = None

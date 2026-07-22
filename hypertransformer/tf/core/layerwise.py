@@ -166,7 +166,7 @@ class JointGenerator(Generator):
   def _pad_features(self, features):
     """Pads features to fit the embedding size."""
     feature_size = int(features.shape[1])
-    embedding_dim = self.transformer_io.embedding_dim
+    embedding_dim = self.transformer_io.embedding_dim  # pyrefly: ignore[missing-attribute]
     input_embedding_size = feature_size + embedding_dim
     embedding_size = max(embedding_dim + self.weight_block_size,
                          input_embedding_size)
@@ -213,9 +213,9 @@ class JointGenerator(Generator):
       self._make_feature_extractor()
       self.transformer_io = util.JointTransformerIO(
           num_labels=self.model_config.num_labels,
-          num_weights=self.num_weight_blocks,
+          num_weights=self.num_weight_blocks,  # pyrefly: ignore[bad-argument-type]
           embedding_dim=self.model_config.embedding_dim,
-          weight_block_size=self.weight_block_size)
+          weight_block_size=self.weight_block_size)  # pyrefly: ignore[bad-argument-type]
 
   def generate_weights(
       self,
@@ -244,10 +244,10 @@ class JointGenerator(Generator):
               skip_last_nonlinearity=self.model_config.skip_last_nonlinearity,
               name='transformer')
         if mask is not None:
-          mask = self.transformer_io.extend_label_mask(mask)
-        transformer_input = self.transformer_io.encode_samples(features, labels)
+          mask = self.transformer_io.extend_label_mask(mask)  # pyrefly: ignore[missing-attribute]
+        transformer_input = self.transformer_io.encode_samples(features, labels)  # pyrefly: ignore[missing-attribute]
         transformer_output = self.transformer(transformer_input, mask=mask)
-        return self.transformer_io.decode_weights(transformer_output)
+        return self.transformer_io.decode_weights(transformer_output)  # pyrefly: ignore[missing-attribute]
 
 
 class SeparateGenerator(Generator):
@@ -306,9 +306,9 @@ class SeparateGenerator(Generator):
       self._make_feature_extractor()
       self.transformer_io = util.SeparateTransformerIO(
           num_labels=self.model_config.num_labels,
-          num_weights=self.num_weight_blocks,
+          num_weights=self.num_weight_blocks,  # pyrefly: ignore[bad-argument-type]
           embedding_dim=self.model_config.embedding_dim,
-          weight_block_size=self.weight_block_size)
+          weight_block_size=self.weight_block_size)  # pyrefly: ignore[bad-argument-type]
 
   def generate_weights(
       self,
@@ -325,8 +325,8 @@ class SeparateGenerator(Generator):
                        'in the "separate" weight generator.')
     with tf.variable_scope(f'builder_{self.name}'):
       features = self._features(input_tensor, shared_features)
-      weight_dim = self.transformer_io.embedding_dim + self.weight_block_size
-      sample_dim = self.transformer_io.embedding_dim
+      weight_dim = self.transformer_io.embedding_dim + self.weight_block_size  # pyrefly: ignore[missing-attribute]
+      sample_dim = self.transformer_io.embedding_dim  # pyrefly: ignore[missing-attribute]
       sample_dim += int(features.shape[1])
       with tf.variable_scope('transformer'):
         if self.transformer is None:
@@ -336,9 +336,9 @@ class SeparateGenerator(Generator):
               skip_last_nonlinearity=self.model_config.skip_last_nonlinearity,
               name='transformer')
         decoded = self.transformer(
-            self.transformer_io.encode_samples(features, labels),
-            self.transformer_io.encode_weights())
-        return self.transformer_io.decode_weights(decoded)
+            self.transformer_io.encode_samples(features, labels),  # pyrefly: ignore[missing-attribute]
+            self.transformer_io.encode_weights())  # pyrefly: ignore[missing-attribute]
+        return self.transformer_io.decode_weights(decoded)  # pyrefly: ignore[missing-attribute]
 
 
 # ------------------------------------------------------------
@@ -403,7 +403,7 @@ class BaseCNNLayer(tf.Module):
         labels=labels,
         mask=mask,
         shared_features=shared_features,
-        enable_fe_dropout=enable_fe_dropout)
+        enable_fe_dropout=enable_fe_dropout)  # pyrefly: ignore[unexpected-keyword]
 
   def apply(self,
             input_tensor,
@@ -748,11 +748,11 @@ class LogitsLayer(BaseCNNLayer):
     if weights is None:
       return None
     if name.endswith('/kernel'):
-      n = self.generator.weight_block_size - 1
+      n = self.generator.weight_block_size - 1  # pyrefly: ignore[unsupported-operation]
       ws = [w[:n] for w in weights]
       return tf.stack(ws, axis=-1)
     if name.endswith('/bias'):
-      n = self.generator.weight_block_size - 1
+      n = self.generator.weight_block_size - 1  # pyrefly: ignore[unsupported-operation]
       ws = [w[n] for w in weights]
       output = tf.stack(ws, axis=-1)
       return output
@@ -787,7 +787,7 @@ class FlattenLogitsLayer(LogitsLayer):
     self.generator.set_weight_params(
         num_weight_blocks=self.model_config.num_labels,
         weight_block_size=self.input_dim * width * height + 1)
-    self.generator.set_feature_extractor_class(feature_extractor_class)
+    self.generator.set_feature_extractor_class(feature_extractor_class)  # pyrefly: ignore[bad-argument-type]
 
   def __call__(self, tensor, training = True):
     flatten = tf.layers.Flatten()

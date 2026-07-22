@@ -46,7 +46,7 @@ class SimpleConvFeatureExtractor(FeatureExtractor):
     self.convs = []
     def_stride = 2
     self.kernel_size = kernel_size
-    if input_size < kernel_size:
+    if input_size < kernel_size:  # pyrefly: ignore[unsupported-operation]
       self.kernel_size = input_size
       def_stride = 1
     if feature_dim > 0:
@@ -68,7 +68,7 @@ class SimpleConvFeatureExtractor(FeatureExtractor):
       tensor = input_tensor
       outputs = []
       for conv in self.convs:
-        if int(tensor.shape[1]) < self.kernel_size:
+        if int(tensor.shape[1]) < self.kernel_size:  # pyrefly: ignore[unsupported-operation]
           break
         tensor = conv(tensor)
         if not self.nonlinear_feature:
@@ -78,7 +78,7 @@ class SimpleConvFeatureExtractor(FeatureExtractor):
         tensor = tf.nn.relu(tensor)
         if self.nonlinear_feature:
           feature = tensor
-        outputs.append(feature)
+        outputs.append(feature)  # pyrefly: ignore[unbound-name]
       outputs = [tf.reduce_mean(tensor, axis=(1, 2)) for tensor in outputs]
       return tf.concat(outputs, axis=-1)
 

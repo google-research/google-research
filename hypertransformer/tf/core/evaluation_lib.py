@@ -63,11 +63,11 @@ def dataset_with_custom_labels(
   """Returns a dataset with a controlled label set (should be reshuffled)."""
   custom_labels = copy.copy(dataset_config.use_label_subset)
   dataset_config = dataclasses.replace(  # pytype: disable=wrong-arg-types  # dataclasses-replace-types
-      dataset_config, use_label_subset=lambda: custom_labels)
+      dataset_config, use_label_subset=lambda: custom_labels)  # pyrefly: ignore[bad-argument-type]
   dataset, _ = train_lib.make_dataset(model_config=model_config,
                                       data_config=dataset_config,
                                       shuffle_labels=False)
-  return dataset, custom_labels
+  return dataset, custom_labels  # pyrefly: ignore[bad-return]
 
 
 def make_train_samples(dataset,

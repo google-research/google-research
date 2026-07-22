@@ -207,7 +207,7 @@ def build_embedding_block(
         if k == constants.TOKEN_IDS else initializer,
         name=f"{k}_embedding")
 
-    all_embeddings.append(layer(v))
+    all_embeddings.append(layer(v))  # pyrefly: ignore[not-callable]
 
   embeddings = tf.keras.layers.Concatenate(axis=-1)(all_embeddings)
 
@@ -216,10 +216,10 @@ def build_embedding_block(
   dropout = tf.keras.layers.Dropout(
       rate=embedding_cfg.dropout_rate, name="embeddings/dropout")
 
-  embeddings = dropout(norm(embeddings))
+  embeddings = dropout(norm(embeddings))  # pyrefly: ignore[not-callable]
 
   # Mask zeroes.
-  mask = tf.cast(inputs[constants.TOKEN_IDS] > 0, tf.bool)
+  mask = tf.cast(inputs[constants.TOKEN_IDS] > 0, tf.bool)  # pyrefly: ignore[unsupported-operation]
 
   return embeddings, mask
 
@@ -240,7 +240,7 @@ def build_lstm_encoder(emb_data, mask,
   # Project to hidden size:
   proj = tf.keras.layers.Dense(
       encoder_cfg.hidden_size * 2, name="embedding/projection")
-  data = proj(emb_data)
+  data = proj(emb_data)  # pyrefly: ignore[not-callable]
 
   for i in range(encoder_cfg.num_layers):
     # Block logic is:
@@ -256,10 +256,10 @@ def build_lstm_encoder(emb_data, mask,
         name=f"BiLSTM{i+1}/layer_norm", axis=-1)
 
     orig_data = data
-    data = bilstm(data, mask=mask)
-    data = dropout(data)
+    data = bilstm(data, mask=mask)  # pyrefly: ignore[not-callable]
+    data = dropout(data)  # pyrefly: ignore[not-callable]
     data = add([data, orig_data])
-    data = norm(data)
+    data = norm(data)  # pyrefly: ignore[not-callable]
 
   return data
 
@@ -286,24 +286,24 @@ def build_heads(encoder_output,
   outputs = {}
   heads_shape = [(k, len(v)) for k, v in constants.CLASS_NAMES.items()]
   for head_name, n_classes in heads_shape:
-    cur_output = tf.keras.layers.Dropout(
+    cur_output = tf.keras.layers.Dropout(  # pyrefly: ignore[not-callable]
         rate=dropout_rate, name=f"{head_name}/dropout")(
             encoder_output)
     head_classifier = tf.keras.layers.Dense(
         n_classes, name=f"{head_name}/logits", activation=None)
-    cur_output = head_classifier(cur_output)
+    cur_output = head_classifier(cur_output)  # pyrefly: ignore[not-callable]
     outputs[f"{head_name}/logits"] = cur_output
 
     if use_crf:
       crf = CrfLayer(n_classes, name=f"{head_name}/CRF")
       seq_lengths = tf.reduce_sum(
-          tf.cast(tf.greater_equal(crf_inputs[head_name], 0), tf.int32), -1)
-      predict_ids = crf((cur_output, seq_lengths, crf_inputs[head_name]))
+          tf.cast(tf.greater_equal(crf_inputs[head_name], 0), tf.int32), -1)  # pyrefly: ignore[unsupported-operation]
+      predict_ids = crf((cur_output, seq_lengths, crf_inputs[head_name]))  # pyrefly: ignore[not-callable, unsupported-operation]
     else:
       predict_ids = tf.argmax(cur_output, axis=-1, output_type=tf.int32)
 
     # Use linear activation (pass-through) to have an output name.
-    outputs[f"{head_name}/predict_ids"] = tf.keras.layers.Activation(
+    outputs[f"{head_name}/predict_ids"] = tf.keras.layers.Activation(  # pyrefly: ignore[not-callable]
         None, name=f"{head_name}/predict_ids")(
             predict_ids)
   return outputs

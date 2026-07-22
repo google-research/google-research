@@ -52,7 +52,7 @@ class FeedForwardLayer(nn.Module):
   dropout_rate: float = 0.0
   intermediate_activation: Callable[[jnp.ndarray], jnp.ndarray] = nn.gelu
   kernel_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
-                        jnp.ndarray] = default_kernel_init
+                        jnp.ndarray] = default_kernel_init  # pyrefly: ignore[bad-assignment]
   bias_init: Callable[[PRNGKey, Shape, Dtype], jnp.ndarray] = default_bias_init  # pytype: disable=annotation-type-mismatch  # jax-types
 
   @nn.compact
@@ -150,7 +150,7 @@ class LinearTransform(nn.Module):
   """
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
   kernel_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
-                        jnp.ndarray] = default_kernel_init
+                        jnp.ndarray] = default_kernel_init  # pyrefly: ignore[bad-assignment]
 
   @nn.compact
   def __call__(self,
@@ -203,7 +203,7 @@ class RandomTransform(nn.Module):
   d_model: int
   key: PRNGKey
   kernel_init: Callable[[PRNGKey, Shape],  # pytype: disable=annotation-type-mismatch  # jax-types
-                        jnp.ndarray] = nn.initializers.lecun_normal()
+                        jnp.ndarray] = nn.initializers.lecun_normal()  # pyrefly: ignore[bad-assignment]
   precision: jax.lax.Precision = jax.lax.Precision.DEFAULT
 
   def setup(self):
@@ -304,7 +304,7 @@ class OutputProjection(nn.Module):
   n_out: Optional[int] = None  # Required if kernel is None.
   bias: bool = True
   kernel_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
-                        jnp.ndarray] = default_kernel_init
+                        jnp.ndarray] = default_kernel_init  # pyrefly: ignore[bad-assignment]
   bias_init: Callable[[PRNGKey, Shape, Dtype], jnp.ndarray] = default_bias_init  # pytype: disable=annotation-type-mismatch  # jax-types
 
   @nn.compact
@@ -369,7 +369,7 @@ class EmbeddingLayer(nn.Module):
             input_ids)
     position_embeddings = PositionalEncoding(  # pytype: disable=wrong-arg-types  # jax-types
         max_seq_length=self.config.max_seq_length,
-        posemb_init=default_kernel_init,
+        posemb_init=default_kernel_init,  # pyrefly: ignore[bad-argument-type]
         name="position")(
             word_embeddings)
     type_embeddings = nn.Embed(
@@ -399,7 +399,7 @@ class PositionalEncoding(nn.Module):
   """
   max_seq_length: int
   posemb_init: Callable[[PRNGKey, Shape, Dtype],  # pytype: disable=annotation-type-mismatch  # jax-types
-                        jnp.ndarray] = default_kernel_init
+                        jnp.ndarray] = default_kernel_init  # pyrefly: ignore[bad-assignment]
 
   @nn.compact
   def __call__(self, word_embeddings):

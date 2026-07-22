@@ -119,7 +119,7 @@ class MultiHeadAttention(tf.Module):
     super(MultiHeadAttention, self).__init__(name=name)
     self.num_heads = params.heads
     self.qk_depth = params.query_key_dim // params.heads
-    self.v_depth = params.value_dim // params.heads
+    self.v_depth = params.value_dim // params.heads  # pyrefly: ignore[unsupported-operation]
     self.v_dim = params.value_dim
 
     self.w_q = tf.layers.Dense(params.query_key_dim, name='q')
@@ -165,7 +165,7 @@ class EncoderLayer(tf.Module):
     self.ffn = None
     if params.internal_dim > 0:
       self.ffn = PWFeedForward(
-          dim=params.mha_output_dim,
+          dim=params.mha_output_dim,  # pyrefly: ignore[bad-argument-type]
           internal_dim=params.internal_dim,
           activation=params.activation_fn,
           name='fc')
@@ -203,7 +203,7 @@ class DecoderLayer(tf.Module):
     self.ffn = None
     if params.internal_dim > 0:
       self.ffn = PWFeedForward(
-          dim=params.mha_output_dim, internal_dim=params.internal_dim,
+          dim=params.mha_output_dim, internal_dim=params.internal_dim,  # pyrefly: ignore[bad-argument-type]
           name='fc')
 
     self.layer_norm_1 = tf.keras.layers.LayerNormalization(epsilon=1e-6)

@@ -117,7 +117,7 @@ class ApplyAugmentations(beam.DoFn):
       for _ in range(n_augmentations):
         structured_ap = aug_lib.StructuredAP.build(ap_data.ap_text,
                                                    ap_data.labeled_char_spans)
-        aug_seq = rng.choice(
+        aug_seq = rng.choice(  # pyrefly: ignore[no-matching-overload]
             augmentation_config.augmentation_sequences,
             p=augmentation_config.augmentation_sample_probabilities)
 
@@ -172,7 +172,7 @@ class ProcessAPData(beam.DoFn):
 
         if cur_ap_data.is_rated:
           cur_ap_data.labeled_char_spans = process_rating_labels(
-              note_ratings, section)
+              note_ratings, section)  # pyrefly: ignore[bad-argument-type]
         else:
           cur_ap_data.partition = Partition.NONRATED
           cur_ap_data.labeled_char_spans = annotate_ap(cur_ap_data.ap_text)

@@ -55,4 +55,4 @@ class SklearnLinearModel(makita_model.MakitaModel):
     Returns:
       The protected model.
     """
-    return self._model
+    return self._model  # pyrefly: ignore[bad-return]

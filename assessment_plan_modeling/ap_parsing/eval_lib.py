@@ -215,7 +215,7 @@ def _get_action_item_metrics(
                                                truth_token_overlaps):
     if overlap.overlap:
       truth_action_item_labels.append(truth_labeled_token_span.action_item_type)
-      pred_action_item_labels.append(predicted_labeled_token_spans[
+      pred_action_item_labels.append(predicted_labeled_token_spans[  # pyrefly: ignore[bad-index]
           overlap.matched_pred_index].action_item_type)
 
   pred_action_item_labels = np.array(pred_action_item_labels)

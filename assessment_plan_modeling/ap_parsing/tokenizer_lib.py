@@ -66,7 +66,7 @@ def tokenize(text):
     match_text = match.group()
     char_start, char_end = match.start(), match.end()  # [start, end)
     try:
-      tokens.append(Token(char_start, char_end, TokenType[kind], match_text))
+      tokens.append(Token(char_start, char_end, TokenType[kind], match_text))  # pyrefly: ignore[bad-index]
     except KeyError as error:
       raise KeyError("type %s is not a valid token type" % kind) from error
   return tokens

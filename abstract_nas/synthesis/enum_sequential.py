@@ -189,11 +189,11 @@ class EnumerativeSequentialSynthesizer(AbstractSequentialSynthesizer):
     """Synthesizes a subgraph satisfying all the properties."""
     prefix = f"gen{self.generation}/"
     if self.max_delta > 0:
-      max_len = self.num_ops + self.max_delta
+      max_len = self.num_ops + self.max_delta  # pyrefly: ignore[unsupported-operation]
     else:
       max_len = self.max_len
     if self.min_delta > 0:
-      min_len = max(0, self.num_ops - self.min_delta)
+      min_len = max(0, self.num_ops - self.min_delta)  # pyrefly: ignore[unsupported-operation]
     else:
       min_len = self.min_len
     subg_enum = self.subg_enumerator(prefix, max_len, min_len,
@@ -516,9 +516,9 @@ class EnumerativeSequentialSynthesizer(AbstractSequentialSynthesizer):
     kwarg_defaults = cls.make_default_kwargs(kwarg_defaults, full)
 
     if op_types is None:
-      op_types = OpType
+      op_types = OpType  # pyrefly: ignore[bad-assignment]
 
-    for op_type in op_types:
+    for op_type in op_types:  # pyrefly: ignore[not-iterable]
 
       name = f"{prefix}{op_type.name.lower()}"
       inputs = ["inputs"]
@@ -565,7 +565,7 @@ class EnumerativeSequentialSynthesizer(AbstractSequentialSynthesizer):
         op_kwargs_dict, input_kwargs_dict = cls.all_kwargs_for_op_type(
             kwarg_defaults, full, op_type)
         for op_kwargs, input_kwargs in cls.kwargs_for_op_to_product(
-            op_kwargs_dict, input_kwargs_dict):
+            op_kwargs_dict, input_kwargs_dict):  # pyrefly: ignore[bad-argument-type]
           yield new_op(
               name,
               op_type,

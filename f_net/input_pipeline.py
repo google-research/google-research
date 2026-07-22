@@ -136,10 +136,10 @@ def glue_inputs(dataset_name,
       dataset_name=dataset_name,
       split=split,
       batch_size=batch_size,
-      data_dir=data_dir,
+      data_dir=data_dir,  # pyrefly: ignore[bad-argument-type]
       shuffle_files=training,
-      shuffle_buffer_size=1024 if training else None,
-      batch_shuffle_size=128 if training else None,
+      shuffle_buffer_size=1024 if training else None,  # pyrefly: ignore[bad-argument-type]
+      batch_shuffle_size=128 if training else None,  # pyrefly: ignore[bad-argument-type]
       preprocess_fun=preprocess,
       repeat=training)
 
@@ -271,7 +271,7 @@ def c4_masked_lm_inputs(
   it = _c4_data_unbatched(tokenizer, max_seq_length)
   examples = []
   while True:
-    example = next(it)
+    example = next(it)  # pyrefly: ignore[bad-argument-type]
 
     num_tokens = np.sum(example["input_ids"] != pad_id).item()
     prediction_mask = np.all(example["input_ids"] != ignore_ids, axis=0)

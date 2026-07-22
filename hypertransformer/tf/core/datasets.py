@@ -127,7 +127,7 @@ def crop_and_resize(images,
           box_ind=tf.range(tf.shape(images)[0]),
           extrapolation_value=extrapolation_value)
     if squeeze:
-      r = r[0]
+      r = r[0]  # pyrefly: ignore[bad-index]
     return r
 
   args = [images]
@@ -320,7 +320,7 @@ class AugmentationConfig:
     normalized = image / 128.0 - 1
     v_mean = tf.reduce_mean(normalized, axis=(1, 2), keepdims=True)
     mult, shift = (ALPHA_MAX - ALPHA_MIN) / 2, (ALPHA_MAX + ALPHA_MIN) / 2
-    alpha = mult * self.alpha.value + shift
+    alpha = mult * self.alpha.value + shift  # pyrefly: ignore[unsupported-operation]
     output = tf.math.tanh((normalized - v_mean) * alpha) / alpha
     output += v_mean
     return 255.0 * self._normalize(output)
@@ -349,12 +349,12 @@ class AugmentationConfig:
   def _aug_resize(self, images):
     """Resizes the image."""
     size = int(images.shape[1])
-    re_size = size * (1 - MAX_RESIZE / 2 + MAX_RESIZE * self.size.value / 2)
+    re_size = size * (1 - MAX_RESIZE / 2 + MAX_RESIZE * self.size.value / 2)  # pyrefly: ignore[unsupported-operation]
     images = tf.image.resize(images, [re_size, re_size])
     return tf.image.resize_with_crop_or_pad(images, size, size)
 
   def _aug_rotate_90(self, images):
-    num_rotations = tf.cast(tf.math.floor(self.rotate_90_times.value + 2.0),
+    num_rotations = tf.cast(tf.math.floor(self.rotate_90_times.value + 2.0),  # pyrefly: ignore[unsupported-operation]
                             tf.int32)
     return tf.image.rot90(images, k=num_rotations)
 

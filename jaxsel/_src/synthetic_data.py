@@ -58,7 +58,7 @@ def _generate_image(grid_size, num_paths, num_classes):
   special_path = np.random.choice(paths)
   special_path_color = special_path.colors[0]
 
-  start_circle = geometry.FilledCircle(start_point, START_COLOR_ID,
+  start_circle = geometry.FilledCircle(start_point, START_COLOR_ID,  # pyrefly: ignore[bad-argument-type]
                                        special_path_color)
   end_circle = geometry.FilledCircle(special_path.points[-1], label_color,
                                      label_color)

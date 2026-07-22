@@ -90,7 +90,7 @@ def main(unused_argv):
 
     kwargs = {'reference_workdir': FLAGS.reference_dir,
               'eval_in_train_job': FLAGS.eval_in_train_job}
-    loop = training_loop.TrainingLoop(FLAGS.base_dir, strategy, **kwargs)
+    loop = training_loop.TrainingLoop(FLAGS.base_dir, strategy, **kwargs)  # pyrefly: ignore[missing-argument]
 
     try:
       loop.run(FLAGS.task)

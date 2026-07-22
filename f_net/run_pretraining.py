@@ -128,7 +128,7 @@ def _compute_loss_and_metrics(
   }
 
   metrics = model.apply({"params": params}, rngs={"dropout": rng}, **inputs)
-  return metrics["loss"], metrics
+  return metrics["loss"], metrics  # pyrefly: ignore[bad-index, bad-return]
 
 
 def _compute_eval_stats(params, batch,
@@ -157,7 +157,7 @@ def _compute_eval_stats(params, batch,
       "deterministic": True
   }
 
-  return model.apply({"params": params}, **inputs)
+  return model.apply({"params": params}, **inputs)  # pyrefly: ignore[bad-return]
 
 
 def _compute_loss_and_accuracy_metrics(
@@ -332,9 +332,9 @@ def train_and_evaluate(config, workdir,
     train_metrics = common_utils.get_metrics(train_metrics)
     train_summary = _compute_loss_and_accuracy_metrics(train_metrics)
     # Add training specific metrics.
-    train_summary["unclipped_grad_l2_norm"] = jnp.sqrt(
+    train_summary["unclipped_grad_l2_norm"] = jnp.sqrt(  # pyrefly: ignore[unsupported-operation]
         jnp.sum(train_metrics["unclipped_grad_l2_sum"]))
-    train_summary["clipped_grad_l2_norm"] = jnp.sqrt(
+    train_summary["clipped_grad_l2_norm"] = jnp.sqrt(  # pyrefly: ignore[unsupported-operation]
         jnp.sum(train_metrics["clipped_grad_l2_sum"]))
     train_summary["learning_rate"] = learning_rate_fn(step)
 
