@@ -1,0 +1,25 @@
+{
+  "_comment": "Runtime config. Merged over built-in defaults; env vars (MAX_TOKENS, MAX_RUN_DURATION_S, MAX_LLM_CALL_PER_RUN, CONTEXT_WINDOW, ...) win. Limits are anti-runaway backstops, not a quality budget.",
+  "generation": {
+    "max_tokens": 16384,
+    "max_tokens_ceiling": 65536,
+    "max_tokens_escalation_factor": 2
+  },
+  "limits": {
+    "per_call_timeout_s": 1800,
+    "run_wall_clock_s": 3600,
+    "max_rounds": 100,
+    "max_transient_retries": 10,
+    "max_truncation_escalations": 3,
+    "max_regenerate_retries": 3
+  },
+  "backoff": { "base_delay_s": 1.0, "max_delay_s": 30.0, "jitter": true },
+  "recovery": {
+    "compaction_enabled": true,
+    "compaction_keep_recent_tool_results": 4,
+    "context_window": 131072,
+    "compaction_buffer_tokens": 4096,
+    "proactive_compaction": true
+  },
+  "reader": { "max_tokens": 8192 }
+}

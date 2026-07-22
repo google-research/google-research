@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# uv
+# (uv.lock is committed; the venv is not)
+
+# Node / Bun
+node_modules/
+tui/dist/
+
+# Env / secrets
+.env
+.env.local
+
+# Run artifacts
+logs/
+runs/
+
+# Editor
+.vscode/
+.idea/
+
+# External reference codebases (not vendored)
+references/
+
+# Session handoff state
+.remember/
+
+# Ad-hoc scratch / input notes (folder + README tracked; contents ignored)
+/scratch/*
+!/scratch/README.md
+
+# the research paper has its own git repo
+manuscript/
+
+# local, machine-specific compose override (reuse on-box weights)
+deploy/docker-compose.override.yml

@@ -1,0 +1,11 @@
+# FinanceGym default pipeline parameters.
+#
+# Stage parameters are added here as needed; modules otherwise use their own
+# argparse defaults. This file holds the canonical values pinned for benchmark
+# reproducibility.
+
+llm:
+  # LLM used at every Gemini call site in the pipeline and at the judge.
+  # Configurable via the FINANCEGYM_MODEL env var; not pinned to a version.
+  # For reproducibility, set FINANCEGYM_MODEL to a fixed model id.
+  model: gemini-flash-latest

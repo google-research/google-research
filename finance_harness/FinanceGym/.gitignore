@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+dist/
+build/
+.Python
+*.so
+
+# Virtualenvs
+.venv/
+/venv/
+/env/
+.python-version
+
+# Tooling caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+.DS_Store
+
+# Local config + secrets
+.env
+.env.*
+configs/local.yaml
+
+# Data and runtime artifacts (never tracked here) — except the published public benchmark
+data/*
+!data/benchmark_400_public.jsonl
+!data/README.md
+output/
+logs/
+*.warc
+*.warc.gz
+embeddings.bin
+corpus.db
+faiss_*.idx
+texts.jsonl
+metadata.jsonl

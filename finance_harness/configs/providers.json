@@ -1,0 +1,4 @@
+{
+  "_comment": "Backbone/reader profiles are defined in financeharness/providers/profiles.py (the source of truth): vllm + vllm-reader (OSS backbone + reader, over an OpenAI-compatible endpoint) and gemini. This file only selects the active default and may override or add profiles (file wins per-name); per-profile base_url is also overridable via FH_<NAME>_BASE_URL.",
+  "default": "vllm"
+}

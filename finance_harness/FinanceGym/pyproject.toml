@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "financegym"
+version = "0.1.0.dev0"
+description = "Point-in-time agentic finance research benchmark with a public retrieval environment and a rubric judge."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "CC-BY-NC-4.0" }
+authors = [{ name = "FinanceHarness contributors" }]
+keywords = ["finance", "benchmark", "agentic-research", "agents", "evaluation", "retrieval"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: Free for non-commercial use",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "google-genai>=1.0",
+    "pyyaml>=6.0",
+    "tqdm>=4.65",
+    "pydantic>=2.5",
+    "fastapi>=0.110",
+    "uvicorn>=0.27",
+    "numpy>=1.26",
+    "requests>=2.31",
+    "trafilatura>=1.12",
+    "htmldate>=1.8",
+    "warcio>=1.7",
+    "pulp>=2.8",
+]
+
+[project.optional-dependencies]
+faiss-cpu = ["faiss-cpu>=1.8"]
+faiss-gpu = ["faiss-gpu-cu12>=1.8"]
+dev = [
+    "ruff>=0.5",
+]
+
+[project.urls]
+Repository  = "https://github.com/google-research/google-research/tree/master/google_research/finance_harness"
+
+
+[tool.setuptools.packages.find]
+include = ["financegym*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]
+ignore = ["E501"]  # line length handled by formatter

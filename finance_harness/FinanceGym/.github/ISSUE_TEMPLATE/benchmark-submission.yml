@@ -1,0 +1,65 @@
+name: Benchmark Submission
+description: Submit your agent's reports for grading on the FinanceGym leaderboard.
+title: "Submission: <agent-name>"
+labels: ["submission"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for submitting to **FinanceGym**! Please read
+        [docs/participate.md](../blob/main/docs/participate.md) first.
+        Maintainers will run the judge over your `answers.jsonl` and post the result to the
+        [leaderboard](../blob/main/docs/leaderboard.md). The rubric is never shared.
+  - type: input
+    id: agent
+    attributes:
+      label: Agent name
+      placeholder: my-research-agent
+    validations:
+      required: true
+  - type: input
+    id: org
+    attributes:
+      label: Organization / author
+      placeholder: Example Lab
+    validations:
+      required: true
+  - type: input
+    id: base_model
+    attributes:
+      label: Base model
+      description: The backbone model your agent used.
+      placeholder: the backbone model your agent used, e.g. gemini-flash-latest
+    validations:
+      required: true
+  - type: input
+    id: answers_link
+    attributes:
+      label: Link to answers.jsonl
+      description: A release asset, gist, or cloud link. Or attach the file in a comment if small.
+      placeholder: https://...
+    validations:
+      required: true
+  - type: input
+    id: contact
+    attributes:
+      label: Contact
+      placeholder: you@example.com
+    validations:
+      required: true
+  - type: checkboxes
+    id: compliance
+    attributes:
+      label: Point-in-time compliance
+      options:
+        - label: My agent enforced `max_date = cutoff` on every retrieval (no future information).
+          required: true
+        - label: My `answers.jsonl` contains `question`, `cutoff`, and `report` per line, and no rubric.
+          required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes (optional)
+      placeholder: Harness, worker count, retrieval depth, anything notable.
+    validations:
+      required: false

@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+title: "FinanceGym: A Point-in-Time Financial Deep-Research Benchmark"
+abstract: >-
+  FinanceGym is the benchmark and retrieval-environment toolkit of the FinanceHarness
+  project. It provides an end-to-end pipeline for constructing a finance deep-research
+  benchmark from a public news corpus, a point-in-time search environment exposed via a
+  small REST API, and a 5-tier rubric judge with bootstrap-CI aggregation.
+authors:
+  - name: FinanceHarness contributors
+type: software
+license: Apache-2.0
+repository-code: "https://github.com/FinanceHarness/FinanceGym"
+preferred-citation:
+  type: article
+  title: "FinanceHarness: Agentic Finance Research"
+  authors:
+    - name: Anonymous
+  year: 2026
