@@ -44,7 +44,7 @@ def add_canary_tasks(
     task_names.append(canary_task_name)
     seqio.TaskRegistry.add(
         name=canary_task_name,
-        source=seqio.TFExampleDataSource(
+        source=seqio.TFExampleDataSource(  # pyrefly: ignore[bad-argument-type]
             reader_cls=tf.data.TFRecordDataset,
             split_to_filepattern={
                 'train': constants.CANARY_TFDS_DATA_PATTERN.format(
@@ -102,7 +102,7 @@ def add_canary_tasks(
 # Translation task from German to English
 seqio.TaskRegistry.add(
     name='wmt_t2t_de_en_v003',
-    source=seqio.TfdsDataSource(tfds_name='wmt_t2t_translate/de-en:1.0.0'),
+    source=seqio.TfdsDataSource(tfds_name='wmt_t2t_translate/de-en:1.0.0'),  # pyrefly: ignore[bad-argument-type]
     preprocessors=[
         functools.partial(
             preprocessors.translate,

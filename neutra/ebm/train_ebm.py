@@ -28,7 +28,7 @@ import tensorflow_probability as tfp
 USE_LOCAL_FUN_MC = True
 
 if USE_LOCAL_FUN_MC:
-  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported
+  from fun_mc import using_tensorflow as fun_mc  # pylint: disable=reimported  # pyrefly: ignore[missing-import]
 
 from neutra.ebm import ebm_util
 # pylint: enable=g-import-not-at-top
@@ -399,7 +399,7 @@ def train_p(q, u, x_pos, step_size, opt_p):
 
     def kernel(hmc_state, step_size, step):
       """HMC kernel."""
-      hmc_state, hmc_extra = fun_mc.hamiltonian_monte_carlo_step(
+      hmc_state, hmc_extra = fun_mc.hamiltonian_monte_carlo_step(  # pyrefly: ignore[missing-attribute]
           hmc_state,
           step_size=step_size,
           num_integrator_steps=FLAGS.mcmc_leapfrog_steps,
@@ -410,13 +410,13 @@ def train_p(q, u, x_pos, step_size, opt_p):
           tf.exp(tf.minimum(0., hmc_extra.log_accept_ratio)))
 
       if FLAGS.mcmc_adapt_step_size:
-        step_size = fun_mc.sign_adaptation(
+        step_size = fun_mc.sign_adaptation(  # pyrefly: ignore[missing-attribute]
             step_size, output=mean_p_accept, set_point=0.9)
 
       return (hmc_state, step_size, step + 1), hmc_extra
 
-    hmc_state, is_accepted = fun_mc.trace(
-        state=(fun_mc.hamiltonian_monte_carlo_init(x_neg_q,
+    hmc_state, is_accepted = fun_mc.trace(  # pyrefly: ignore[missing-attribute]
+        state=(fun_mc.hamiltonian_monte_carlo_init(x_neg_q,  # pyrefly: ignore[missing-attribute]
                                                    log_prob_non_transformed),
                step_size, 0),
         fn=kernel,
@@ -606,7 +606,7 @@ def main(unused_args):
 
   global_step_var = tf.Variable(0, trainable=False)
   checkpoint = tf.train.Checkpoint(
-      opt_p=opt_p, opt_q=opt_q, u=u, q=q, global_step_var=global_step_var)
+      opt_p=opt_p, opt_q=opt_q, u=u, q=q, global_step_var=global_step_var)  # pyrefly: ignore[unbound-name]
 
   checkpoint_path = os.path.join(checkpoint_dir, 'checkpoint')
   if tf.io.gfile.exists(checkpoint_path + '.index'):
@@ -736,7 +736,7 @@ def main(unused_args):
                   [FLAGS.batch_size, N_WH, N_WH, N_CH]),
               os.path.join(samples_dir, f'x_neg_t_{t}_{global_step}.png'))
 
-        stats_callback(global_step, entropy,
+        stats_callback(global_step, entropy,  # pyrefly: ignore[unbound-name]
                        ebm_util.nearby_difference(x_neg_q))
 
         stat_i.append(global_step)
@@ -809,10 +809,10 @@ def main(unused_args):
             # Pre-update pre-HMC, pre-update post-HMC, post-update post-HMC
             (f'E_neg=[{neg_e_q:10.4f} {neg_e_p:10.4f} ' +
              f'{neg_e_p_updated:10.4f} {neg_e_p_updated - neg_e_p:10.4f}]'),
-            f'mle={tf.reduce_mean(mle_loss):8.4f}',
+            f'mle={tf.reduce_mean(mle_loss):8.4f}',  # pyrefly: ignore[unbound-name]
             f'H={entropy:8.4f}',
-            f'norm_grads_ebm={norm_grads_ebm:8.4f}',
-            f'norm_grads_mle={norm_grads_mle:8.4f}',
+            f'norm_grads_ebm={norm_grads_ebm:8.4f}',  # pyrefly: ignore[unbound-name]
+            f'norm_grads_mle={norm_grads_mle:8.4f}',  # pyrefly: ignore[unbound-name]
             f'pd(x_pos)={ebm_util.nearby_difference(x_pos):8.4f}',
             f'pd(x_neg_q)={ebm_util.nearby_difference(x_neg_q):8.4f}',
             f'pd(x_neg_p)={ebm_util.nearby_difference(x_neg_p):8.4f}',

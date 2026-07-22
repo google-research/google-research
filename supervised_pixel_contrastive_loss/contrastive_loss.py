@@ -171,9 +171,9 @@ def compute_contrastive_loss(logits,
   Returns:
     A scalar tensor with contrastive loss
   """
-  validity_mask = 1 - ignore_mask
-  positive_mask *= validity_mask
-  negative_mask *= validity_mask
+  validity_mask = 1 - ignore_mask  # pyrefly: ignore[unsupported-operation]
+  positive_mask *= validity_mask  # pyrefly: ignore[bad-assignment, unsupported-operation]
+  negative_mask *= validity_mask  # pyrefly: ignore[bad-assignment, unsupported-operation]
 
   exp_logits = tf.exp(logits) * validity_mask
 
@@ -265,7 +265,7 @@ def supervised_pixel_contrastive_loss(features_orig,
         features=features_aug, labels=labels_aug,
         ignore_labels=ignore_labels, temperature=temperature)
 
-    return within_image_loss_orig + within_image_loss_aug
+    return within_image_loss_orig + within_image_loss_aug  # pyrefly: ignore[unsupported-operation]
 
   batch_size = labels_orig.get_shape().as_list()[0]
   indices = tf.range(start=0, limit=batch_size, dtype=tf.int32)
@@ -333,7 +333,7 @@ def cross_image_supervised_pixel_contrastive_loss(
 
   logits = tf.matmul(features, features, transpose_b=True) / temperature
   positive_mask, negative_mask = generate_positive_and_negative_masks(labels)
-  negative_mask *= same_image_mask
+  negative_mask *= same_image_mask  # pyrefly: ignore[unsupported-operation]
   ignore_mask = generate_ignore_mask(labels, ignore_labels)
 
   return compute_contrastive_loss(

@@ -261,7 +261,7 @@ def get_step_fn(sde, model, optimizer, train, optimize_fn=None,
       states = state.model_state
       (loss, new_model_state), grad = grad_fn(step_rng, params, states, batch)
       grad = jax.lax.pmean(grad, axis_name='batch')
-      new_params, new_opt_state = optimize_fn(state, grad, optimizer)
+      new_params, new_opt_state = optimize_fn(state, grad, optimizer)  # pyrefly: ignore[not-callable]
       new_params_ema = jax.tree.map(
           lambda p_ema, p: p_ema * state.ema_rate + p * (1. - state.ema_rate),
           params, new_params)

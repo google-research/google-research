@@ -138,7 +138,7 @@ class GridSphere(abc.ABC):
         )
       return interpolated
 
-    return gridder
+    return gridder  # pyrefly: ignore[bad-return]
 
 
 @dataclasses.dataclass

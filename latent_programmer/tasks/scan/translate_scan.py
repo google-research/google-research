@@ -99,7 +99,7 @@ def translate(input_tokens, add_separators):
 
   # Handle all rules except for those involving sequences of output tokens.
   new_seq = []  # type: List[Union[str, List[str]]]
-  window_iterator = get_window_iterator(seq, 3)
+  window_iterator = get_window_iterator(seq, 3)  # pyrefly: ignore[bad-argument-type]
   for x, y, z in window_iterator:
     triple = (U_VAR if x in U_VAR_SET else x, y, z)
     matched = False
@@ -107,7 +107,7 @@ def translate(input_tokens, add_separators):
     for i in range(3):
       tuple_to_match = triple[:3-i]  # Try progressively shorter tuples.
       if tuple_to_match in U_MAP:
-        tuple_result = [translate_u(x) if e is U_VAR else e
+        tuple_result = [translate_u(x) if e is U_VAR else e  # pyrefly: ignore[bad-argument-type]
                         for e in U_MAP[tuple_to_match]]
         new_seq.extend(tuple_result)
         for _ in range(len(tuple_to_match) - 1):
@@ -141,13 +141,13 @@ def translate(input_tokens, add_separators):
   window_iterator = get_window_iterator(seq, 2)
   for x, y in window_iterator:
     if y == 'twice':
-      add_output_tokens(new_seq, x)
-      add_output_tokens(new_seq, x)
+      add_output_tokens(new_seq, x)  # pyrefly: ignore[bad-argument-type]
+      add_output_tokens(new_seq, x)  # pyrefly: ignore[bad-argument-type]
       next(window_iterator)
     elif y == 'thrice':
-      add_output_tokens(new_seq, x)
-      add_output_tokens(new_seq, x)
-      add_output_tokens(new_seq, x)
+      add_output_tokens(new_seq, x)  # pyrefly: ignore[bad-argument-type]
+      add_output_tokens(new_seq, x)  # pyrefly: ignore[bad-argument-type]
+      add_output_tokens(new_seq, x)  # pyrefly: ignore[bad-argument-type]
       next(window_iterator)
     else:
       add_unknown(new_seq, x)

@@ -54,7 +54,7 @@ class JaxMatrix(sd.Matrix):
     )
 
   @property
-  def shape(self):
+  def shape(self):  # pyrefly: ignore[bad-override]
     return self._jax_arr.shape
 
 
@@ -126,11 +126,11 @@ class _JaxEngine(sd.ComputeEngine):
 
   def unsorted_segment_sum(self, data, segment_ids,
                            num_segments):
-    return jax.ops.segment_sum(data, segment_ids, num_segments)
+    return jax.ops.segment_sum(data, segment_ids, num_segments)  # pyrefly: ignore[bad-argument-type]
 
   def unsorted_segment_max(self, data, segment_ids,
                            num_segments):
-    return jax.ops.segment_max(data, segment_ids, num_segments)
+    return jax.ops.segment_max(data, segment_ids, num_segments)  # pyrefly: ignore[bad-argument-type]
 
   def concat(self, tensors, axis):
     return jnp.concatenate(tensors, axis=axis)
@@ -177,7 +177,7 @@ class _JaxEngine(sd.ComputeEngine):
   def qr(self, a):
     return jnp.linalg.qr(a)
 
-  def random_normal(self, shape, dtype = 'float32'):
+  def random_normal(self, shape, dtype = 'float32'):  # pyrefly: ignore[bad-override]
     return jax.random.normal(jax.random.PRNGKey(0), shape, dtype=dtype)
 
   def sign(self, tensor):

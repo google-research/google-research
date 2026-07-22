@@ -181,7 +181,7 @@ def _get_type(instance):
                       f'{enum_value_type}, which is not allowed. Enum values '
                       'must be numbers or strings.')
 
-  return (scalar_type, is_list)
+  return (scalar_type, is_list)  # pyrefly: ignore[bad-return]
 
 
 def _make_converter(scalar_type,
@@ -252,7 +252,7 @@ def _make_converter(scalar_type,
           f'Expected a numeric type, but found {value} with type {type(value)}.'
       )
 
-    return scalar_type(value)
+    return scalar_type(value)  # pyrefly: ignore[bad-argument-type]
 
   def converter(value):
     """Converts a value to the target type, if compatible.
@@ -341,9 +341,9 @@ def field(abbrev, default):
   if is_list:
     # Lists are mutable, so we generate a factory method to produce a copy of
     # the list to avoid different instances of the class mutating each other.
-    kwargs['factory'] = lambda: copy.copy(default)
+    kwargs['factory'] = lambda: copy.copy(default)  # pyrefly: ignore[bad-assignment]
   else:
-    kwargs['default'] = default
+    kwargs['default'] = default  # pyrefly: ignore[bad-assignment]
   return attr.ib(**kwargs)  # pytype: disable=duplicate-keyword-argument
 
 
@@ -410,7 +410,7 @@ def _serialize_value(value,
     modified_field_info.is_list = False
     # Manually string-ify the list, since default str(list) adds whitespace.
     return ('[' + ','.join(
-        [str(_serialize_value(v, modified_field_info)) for v in list_value]) +
+        [str(_serialize_value(v, modified_field_info)) for v in list_value]) +  # pyrefly: ignore[not-iterable]
             ']')
   scalar_value = value  # type: _ValidScalarInstanceType  # pytype: disable=annotation-type-mismatch
   if issubclass(field_info.scalar_type, enum.Enum):
@@ -419,10 +419,10 @@ def _serialize_value(value,
   elif field_info.scalar_type == bool:
     bool_value = scalar_value  # type: bool  # pytype: disable=annotation-type-mismatch
     # use 0/1 instead of True/False for more compact serialization.
-    return str(int(bool_value))
+    return str(int(bool_value))  # pyrefly: ignore[bad-argument-type]
   elif issubclass(field_info.scalar_type, six.string_types):
     str_value = scalar_value  # type: str
-    if any(char in str_value for char in ',=[]"'):
+    if any(char in str_value for char in ',=[]"'):  # pyrefly: ignore[not-iterable]
       return f'"{str_value}"'
   return str(value)
 
@@ -574,7 +574,7 @@ def _build_hparams_map(hparams_class):
         '@hparam.s')
 
   hparams_map = {}
-  for attribute in attr.fields(hparams_class.__class__):
+  for attribute in attr.fields(hparams_class.__class__):  # pyrefly: ignore[bad-argument-type]
     path = [attribute.name]
     default = attribute.default
     # pytype: disable=invalid-annotation
@@ -699,7 +699,7 @@ def s(wrapped, *attrs_args,
             raise RuntimeError(f'Error trying to assign value {value} to field '
                                f'{error_field}.')
 
-  wrapped.__hparams_class__ = True
+  wrapped.__hparams_class__ = True  # pyrefly: ignore[missing-attribute]
   setattr(
       wrapped, _SERIALIZED_ARG,
       attr.ib(
@@ -708,9 +708,9 @@ def s(wrapped, *attrs_args,
           kw_only=False,
           validator=attr.validators.instance_of(six.string_types),
           repr=False))
-  wrapped.__attrs_post_init__ = attrs_post_init
-  wrapped.__setattr__ = setattr_impl
-  wrapped.serialize = serialize
-  wrapped.parse = parse
+  wrapped.__attrs_post_init__ = attrs_post_init  # pyrefly: ignore[missing-attribute]
+  wrapped.__setattr__ = setattr_impl  # pyrefly: ignore[bad-assignment]
+  wrapped.serialize = serialize  # pyrefly: ignore[missing-attribute]
+  wrapped.parse = parse  # pyrefly: ignore[missing-attribute]
   wrapped = attr.s(wrapped, *attrs_args, **attrs_kwargs)  # pytype: disable=wrong-arg-types  # attr-stubs
   return wrapped

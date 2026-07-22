@@ -156,13 +156,13 @@ def load_tfrecord_dataset_sequence(
   # interleaves samples across the shards. Instead, we'll sample windows on
   # shards independently using interleave.
   def interleave_func(shard):
-    dataset = tf.data.TFRecordDataset(
+    dataset = tf.data.TFRecordDataset(  # pyrefly: ignore[bad-instantiation]
         shard, buffer_size=buffer_size_per_shard).cache().repeat()
     dataset = dataset.window(seq_len, shift=1, stride=1, drop_remainder=True)
     return dataset.flat_map(
         lambda window: window.batch(seq_len, drop_remainder=True))
 
-  dataset = tf.data.Dataset.from_tensor_slices(path_to_shards).repeat()
+  dataset = tf.data.Dataset.from_tensor_slices(path_to_shards).repeat()  # pyrefly: ignore[bad-argument-type]
   num_parallel_calls = None if deterministic else len(path_to_shards)
   dataset = dataset.interleave(interleave_func,
                                deterministic=deterministic,
@@ -250,7 +250,7 @@ def create_sequence_datasets(dataset_path,
 
   train_dataset = _make_dataset(train_shards)
   if num_eval_shards > 0:
-    eval_dataset = _make_dataset(eval_shards)
+    eval_dataset = _make_dataset(eval_shards)  # pyrefly: ignore[unbound-name]
   else:
     eval_dataset = None
 

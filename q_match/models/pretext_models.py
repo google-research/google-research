@@ -110,12 +110,12 @@ class Pretext(nn.Module):
 
     additional_outputs = []
     if self.algorithm == 'dino_pretext+supervised_training':
-      protos = dino_projection(z)
+      protos = dino_projection(z)  # pyrefly: ignore[unbound-name]
       additional_outputs.append({'protos': protos})
 
     if self.algorithm == 'simsiam_pretext+supervised_training':
-      siam_proj = simsiam_projection(z)
-      siam_pred = simsiam_prediction(siam_proj)
+      siam_proj = simsiam_projection(z)  # pyrefly: ignore[unbound-name]
+      siam_pred = simsiam_prediction(siam_proj)  # pyrefly: ignore[unbound-name]
       additional_outputs.append({'siam_proj': siam_proj})
       additional_outputs.append({'siam_pred': siam_pred})
 
@@ -314,12 +314,12 @@ class ResnetPretext(nn.Module):
 
     additional_outputs = []
     if self.algorithm == 'dino_pretext+supervised_training':
-      protos = dino_projection(z)
+      protos = dino_projection(z)  # pyrefly: ignore[unbound-name]
       additional_outputs.append({'protos': protos})
 
     if self.algorithm == 'simsiam_pretext+supervised_training':
-      siam_proj = simsiam_projection(z)
-      siam_pred = simsiam_prediction(siam_proj)
+      siam_proj = simsiam_projection(z)  # pyrefly: ignore[unbound-name]
+      siam_pred = simsiam_prediction(siam_proj)  # pyrefly: ignore[unbound-name]
       additional_outputs.append({'siam_proj': siam_proj})
       additional_outputs.append({'siam_pred': siam_pred})
 

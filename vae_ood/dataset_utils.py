@@ -307,51 +307,51 @@ def get_dataset(name,
   if name == 'noise':
     n_channels = 1 if mode == 'grayscale' else 3
     ds_train = tf.data.Dataset.from_generator(
-        noise_generator,
+        noise_generator,  # pyrefly: ignore[bad-argument-type]
         args=['train', mode],
         output_types=tf.int32,
         output_shapes=(None, None, n_channels))
     ds_val = tf.data.Dataset.from_generator(
-        noise_generator,
+        noise_generator,  # pyrefly: ignore[bad-argument-type]
         args=['val', mode],
         output_types=tf.int32,
         output_shapes=(None, None, n_channels))
     ds_test = tf.data.Dataset.from_generator(
-        noise_generator,
+        noise_generator,  # pyrefly: ignore[bad-argument-type]
         args=['test', mode],
         output_types=tf.int32,
         output_shapes=(None, None, n_channels))
     n_examples = 1024
   elif name.startswith('gtsrb'):
     ds_train = tf.data.Dataset.from_generator(
-        gtsrb_generator,
+        gtsrb_generator,  # pyrefly: ignore[bad-argument-type]
         args=['train'],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     ds_val = tf.data.Dataset.from_generator(
-        gtsrb_generator,
+        gtsrb_generator,  # pyrefly: ignore[bad-argument-type]
         args=['val'],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     ds_test = tf.data.Dataset.from_generator(
-        gtsrb_generator,
+        gtsrb_generator,  # pyrefly: ignore[bad-argument-type]
         args=['test'],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     n_examples = 1024
   elif name == 'compcars':
     ds_train = tf.data.Dataset.from_generator(
-        compcars_generator,
+        compcars_generator,  # pyrefly: ignore[bad-argument-type]
         args=['train'],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     ds_val = tf.data.Dataset.from_generator(
-        compcars_generator,
+        compcars_generator,  # pyrefly: ignore[bad-argument-type]
         args=['val'],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     ds_test = tf.data.Dataset.from_generator(
-        compcars_generator,
+        compcars_generator,  # pyrefly: ignore[bad-argument-type]
         args=['test'],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
@@ -360,17 +360,17 @@ def get_dataset(name,
     n_examples = 1024
     cls = int(name.split('-')[1])
     ds_train = tf.data.Dataset.from_generator(
-        cifar10_class_generator,
+        cifar10_class_generator,  # pyrefly: ignore[bad-argument-type]
         args=['train', cls],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     ds_val = tf.data.Dataset.from_generator(
-        cifar10_class_generator,
+        cifar10_class_generator,  # pyrefly: ignore[bad-argument-type]
         args=['val', cls],
         output_types=tf.int32,
         output_shapes=(None, None, 3))
     ds_test = tf.data.Dataset.from_generator(
-        cifar10_class_generator,
+        cifar10_class_generator,  # pyrefly: ignore[bad-argument-type]
         args=['test', cls],
         output_types=tf.int32,
         output_shapes=(None, None, 3))

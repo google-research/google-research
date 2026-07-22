@@ -186,5 +186,5 @@ def load_env(env_name, seed,
 
   env = tf_py_environment.TFPyEnvironment(env)
 
-  return env, state_env
+  return env, state_env  # pyrefly: ignore[bad-return]
 

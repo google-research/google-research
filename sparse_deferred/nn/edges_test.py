@@ -147,7 +147,7 @@ class EdgesTest(tf.test.TestCase):
     dense_layer_fn_2 = tf.keras.layers.Dense(32)
 
     # Map through fully-connected layer. (dense_layer_fn : Tensor -> Tensor).
-    edge_features = dense_layer_fn(edge_features)
+    edge_features = dense_layer_fn(edge_features)  # pyrefly: ignore[not-callable]
 
     # Node reads from edges.
     node_features = edges.combine_node_features(
@@ -155,7 +155,7 @@ class EdgesTest(tf.test.TestCase):
         node_layer=edges.concat_features)
 
     # Map through another fully-connected layer.
-    node_features = dense_layer_fn_2(node_features)
+    node_features = dense_layer_fn_2(node_features)  # pyrefly: ignore[not-callable]
 
     # You can re-insert the node features into the graph.
     graph = _GRAPH.update(nodes={'n': {'f': node_features}})

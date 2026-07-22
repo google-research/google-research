@@ -62,7 +62,7 @@ def get_config():
 
   config.depth = _DEPTH.value
   config.widths = [
-      int(round(float(w) * _DIM.value)) for w in _WIDTHS_RATIO.value
+      int(round(float(w) * _DIM.value)) for w in _WIDTHS_RATIO.value  # pyrefly: ignore[not-iterable]
   ]
 
   # As defined in the `models` module.

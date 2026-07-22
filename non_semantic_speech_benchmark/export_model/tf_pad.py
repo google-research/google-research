@@ -36,7 +36,7 @@ def tf_pad(samples, padding,
   if samples.shape.ndims != 2:
     raise ValueError(f'tensor must be rank 2: {samples.shape}')
   if mode == 'SYMMETRIC':
-    return tf_pad_symmetric(samples, padding)
+    return tf_pad_symmetric(samples, padding)  # pyrefly: ignore[bad-argument-type]
   else:
     return tf.pad(samples, [(0, 0), (0, padding)], mode=mode)
 

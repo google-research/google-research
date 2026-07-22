@@ -135,7 +135,7 @@ def graph_struct_from_tf_example(
         if v[1] not in num_nodes_map:
           num_nodes_map[v[1]] = 0
 
-  return GraphStruct.new(nodes=nodes, edges=edges, schema=schema).add_pooling(
+  return GraphStruct.new(nodes=nodes, edges=edges, schema=schema).add_pooling(  # pyrefly: ignore[bad-argument-type]
       engine,
       graph_features,
       excluded_node_sets=['_readout'],
@@ -197,7 +197,7 @@ def graph_struct_from_graph_tensor(
       for es_name, es in graph_tensor.edge_sets.items()
   }
 
-  return GraphStruct.new(nodes=nodes, edges=edges, schema=schema).add_pooling(
+  return GraphStruct.new(nodes=nodes, edges=edges, schema=schema).add_pooling(  # pyrefly: ignore[bad-argument-type]
       engine or sdtf_engine(), _convert_dict(graph_tensor.context.features)
   )
 
@@ -298,7 +298,7 @@ def graph_struct_to_tf_example(
       prefix = 'context/'
     else:
       prefix = f'{_SST_PREFIX_NODES}{node_set_name}.'
-      node_size = graph.get_num_nodes(engine, node_set_name)
+      node_size = graph.get_num_nodes(engine, node_set_name)  # pyrefly: ignore[bad-argument-type]
       (
           example.features.feature[f'{prefix}#size'].int64_list.value.append(
               node_size
@@ -467,7 +467,7 @@ def graph_struct_from_tf_example_dict(
         if v[1] not in num_nodes_map:
           num_nodes_map[v[1]] = 0
 
-  return GraphStruct.new(nodes=nodes, edges=edges, schema=schema).add_pooling(
+  return GraphStruct.new(nodes=nodes, edges=edges, schema=schema).add_pooling(  # pyrefly: ignore[bad-argument-type]
       engine,
       graph_features,
       excluded_node_sets=['_readout'],

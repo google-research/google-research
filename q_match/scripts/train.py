@@ -279,10 +279,10 @@ def train(writer, trial_num=0):
   # eval tasks
   downstream_classification_results = eval_test_dataset(
       eval_model,
-      finetune_params,
-      finetune_state,
-      linear_params,
-      linear_state,
+      finetune_params,  # pyrefly: ignore[unbound-name]
+      finetune_state,  # pyrefly: ignore[unbound-name]
+      linear_params,  # pyrefly: ignore[unbound-name]
+      linear_state,  # pyrefly: ignore[unbound-name]
       dataset.get_test_epoch_iterator(),
       linear_over_features=linear_over_features,
       eval_task=eval_task,

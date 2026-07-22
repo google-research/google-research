@@ -206,7 +206,7 @@ class MunchausenIQNAgent(rainbow_agent.RainbowAgent):
       network: tf.keras.Model, the network instantiated by the Keras model.
     """
     network = self.network(self.num_actions, self.quantile_embedding_dim,
-                           name=name)
+                           name=name)  # pyrefly: ignore[bad-keyword-argument]
     return network
 
   def _build_networks(self):

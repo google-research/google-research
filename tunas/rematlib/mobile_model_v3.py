@@ -58,7 +58,7 @@ def _compute_filters_for_multiplier(
   """Convert a FilterMultiplier to an integer (or int Tensor) filter size."""
   if isinstance(input_filters_or_mask, int):
     input_filters = input_filters_or_mask
-    return search_space_utils.scale_filters(
+    return search_space_utils.scale_filters(  # pyrefly: ignore[bad-return]
         input_filters, multiplier.scale, filters_base)
   elif isinstance(input_filters_or_mask, tf.Tensor):
     input_filters = tf.reduce_sum(tf.cast(input_filters_or_mask, tf.int32))
@@ -113,7 +113,7 @@ def _oneof_filters_to_int_or_mask(
   scaled_choices = []  # type: List[Union[int, tf.Tensor]]
   for choice in choices:
     scaled_choices.append(
-        _compute_filters(choice, input_filters_or_mask, filters_base))
+        _compute_filters(choice, input_filters_or_mask, filters_base))  # pyrefly: ignore[bad-argument-type]
 
   # Compute the largest possible number of input filters as an integer.
   if input_filters_or_mask is None or isinstance(input_filters_or_mask, int):
@@ -127,7 +127,7 @@ def _oneof_filters_to_int_or_mask(
   for choice in choices:
     # Note: current_filters should always be an integer (rather than a Tensor)
     # because `max_input_filters` is an integer.
-    current_filters = _compute_filters(choice, max_input_filters, filters_base)
+    current_filters = _compute_filters(choice, max_input_filters, filters_base)  # pyrefly: ignore[bad-argument-type]
     max_output_filters = max(max_output_filters, current_filters)
 
   # Return an integer (if possible) or a mask (if we can't infer the exact

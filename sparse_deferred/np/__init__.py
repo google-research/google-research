@@ -47,7 +47,7 @@ class NumpyMatrix(sd.Matrix):
         first_dims + [-1])
 
   @property
-  def shape(self):
+  def shape(self):  # pyrefly: ignore[bad-override]
     return self._np_arr.shape
 
 
@@ -86,7 +86,7 @@ class _NumpyEngine(sd.ComputeEngine):
     return np.sum(arrays, axis=0)
 
   def shape(self, array):
-    return np.shape(array)
+    return np.shape(array)  # pyrefly: ignore[bad-return]
 
   def eye(self, num_rows, dtype='float32'):
     return np.eye(num_rows, dtype=dtype)
@@ -159,7 +159,7 @@ class _NumpyEngine(sd.ComputeEngine):
     return np.maximum(x, y)
 
   def range(self, up_to, dtype = 'float32'):
-    return np.arange(up_to, dtype=dtype)
+    return np.arange(up_to, dtype=dtype)  # pyrefly: ignore[no-matching-overload]
 
   def one_hot(self, tensor, num_classes):
     onehot = np.zeros((tensor.shape[0], num_classes), dtype='float32')
@@ -184,8 +184,8 @@ class _NumpyEngine(sd.ComputeEngine):
   def qr(self, a):
     return np.linalg.qr(a)
 
-  def random_normal(self, shape, dtype = 'float32'):
-    return np.random.normal(size=shape, dtype=dtype)
+  def random_normal(self, shape, dtype = 'float32'):  # pyrefly: ignore[bad-override]
+    return np.random.normal(size=shape, dtype=dtype)  # pyrefly: ignore[no-matching-overload]
 
   def sign(self, tensor):
     return np.sign(tensor)

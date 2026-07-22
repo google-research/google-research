@@ -76,8 +76,8 @@ def serialize_entire_program_example(task):
                          for e in task.examples]
   example_outputs_strs = [dsl.result_to_str(e.output) for e in task.examples]
   feature = {
-      'inputs': _bytes_feature(example_inputs_strs),
-      'outputs': _bytes_feature(example_outputs_strs),
+      'inputs': _bytes_feature(example_inputs_strs),  # pyrefly: ignore[bad-argument-type]
+      'outputs': _bytes_feature(example_outputs_strs),  # pyrefly: ignore[bad-argument-type]
       'program': _bytes_feature([str(task.program)]),
   }
   # Create a Features message using tf.train.Example.
@@ -147,7 +147,7 @@ def _corrupt(next_parts, outputs):
             else:
               raise ValueError(f'Unhandled perturbation kind: {kind}')
 
-      corrupted = [dsl.result_to_str(r) for r in changed]
+      corrupted = [dsl.result_to_str(r) for r in changed]  # pyrefly: ignore[bad-argument-type]
 
     elif technique == 'new_random':
       random_new_inputs = old_sample_random.random_inputs(
@@ -191,9 +191,9 @@ def serialize_decomposition_examples(task):
     corrupted_next_part = _corrupt(next_part, outputs=example_outputs_strs)
     program_part_string = str(statement)
     feature = {
-        'inputs': _bytes_feature(example_inputs_strs),
-        'outputs': _bytes_feature(example_outputs_strs),
-        'next_part': _bytes_feature(next_part),
+        'inputs': _bytes_feature(example_inputs_strs),  # pyrefly: ignore[bad-argument-type]
+        'outputs': _bytes_feature(example_outputs_strs),  # pyrefly: ignore[bad-argument-type]
+        'next_part': _bytes_feature(next_part),  # pyrefly: ignore[bad-argument-type]
         'corrupted_next_part': _bytes_feature(corrupted_next_part),
         'program_part': _bytes_feature([program_part_string]),
     }
@@ -270,7 +270,7 @@ def generate_tasks_for_experiment(
           is_train=True,
           canonical_variable_order=canonical_variable_order,
           experiment=experiment,
-          operations=dsl.OPERATIONS_ONLY_SCAN,
+          operations=dsl.OPERATIONS_ONLY_SCAN,  # pyrefly: ignore[bad-argument-type]
           lambdas=dsl.LAMBDAS,
       )
       tasks.append(task)

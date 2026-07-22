@@ -80,9 +80,9 @@ def get_config():
 
   config.depth = _DEPTH.value
   print(_DIM.value)
-  print([int(round(float(w) * _DIM.value)) for w in _WIDTHS_RATIO.value])
+  print([int(round(float(w) * _DIM.value)) for w in _WIDTHS_RATIO.value])  # pyrefly: ignore[not-iterable]
   config.widths = [
-      int(round(float(w) * _DIM.value)) for w in _WIDTHS_RATIO.value
+      int(round(float(w) * _DIM.value)) for w in _WIDTHS_RATIO.value  # pyrefly: ignore[not-iterable]
   ]
 
   config.router_only_scale = _ROUTER_ONLY_SCALE.value

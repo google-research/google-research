@@ -98,7 +98,7 @@ class POIBasedRoutingQueryEngine(query_engine.QueryEngine):
     else:
       raise ValueError("No dataset split specified.")
 
-    poi_query, query_text = rng.choices(queries, weights=weights)[0]
+    poi_query, query_text = rng.choices(queries, weights=weights)[0]  # pyrefly: ignore[bad-argument-type, not-iterable]
     return (
         {"pois": poi_query, "linear": ""},
         query_text,
@@ -218,11 +218,11 @@ class POIBasedTouringQueryEngine(POIBasedRoutingQueryEngine):
 
     # Sample a query.
     if split == 0:
-      poi_queries, weights = self.train_poi_queries
+      poi_queries, weights = self.train_poi_queries  # pyrefly: ignore[missing-attribute]
     elif split == 1:
-      poi_queries, weights = self.val_poi_queries
+      poi_queries, weights = self.val_poi_queries  # pyrefly: ignore[missing-attribute]
     elif split == 2:
-      poi_queries, weights = self.test_poi_queries
+      poi_queries, weights = self.test_poi_queries  # pyrefly: ignore[missing-attribute]
     else:
       raise ValueError("No dataset split specified.")
 

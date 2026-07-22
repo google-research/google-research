@@ -67,7 +67,7 @@ class AttentionPPOPolicy(ppo_policy.PPOPolicy):
         # If value_prediction is not computed in agent.train it needs to be
         # computed and saved here.
         (policy_info['value_prediction'],
-         new_policy_state['value_network_state']) = self.apply_value_network(
+         new_policy_state['value_network_state']) = self.apply_value_network(  # pyrefly: ignore[bad-assignment]
              time_step.observation,
              time_step.step_type,
              value_state=policy_state['value_network_state'],
@@ -182,11 +182,11 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
       )
 
       # Wrap policy info to be comptabile with new spec
-      policy_info = list(policy_info)
+      policy_info = list(policy_info)  # pyrefly: ignore[bad-argument-type]
       for a in range(len(policy_info)):
         if not self.inactive_agent_ids or a not in self.inactive_agent_ids:
-          policy_info[a] = {'dist_params': policy_info[a]}
-        policy_info[a].update({'attention_weights': attention_weights[a]})
+          policy_info[a] = {'dist_params': policy_info[a]}  # pyrefly: ignore[unsupported-operation]
+        policy_info[a].update({'attention_weights': attention_weights[a]})  # pyrefly: ignore[missing-attribute]
 
       # Fake logits for fixed agents.
       if self.inactive_agent_ids and self.learning_agents:
@@ -194,7 +194,7 @@ class AttentionMultiagentPPOPolicy(multiagent_ppo_policy.MultiagentPPOPolicy):
           policy_info[a] = {
               'dist_params': {
                   'logits':
-                      tf.zeros_like(policy_info[self.learning_agents[0]]
+                      tf.zeros_like(policy_info[self.learning_agents[0]]  # pyrefly: ignore[bad-index]
                                     ['dist_params']['logits'])
               }
           }

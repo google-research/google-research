@@ -102,13 +102,13 @@ class SimulateTopicsAPIFn(beam.DoFn):
 
     return [
         build_topics_simulator_output(user_id, epoch_top_topics,  # pytype: disable=wrong-arg-types  # typed-numpy
-                                      website_1_topics, website_2_topics)
+                                      website_1_topics, website_2_topics)  # pyrefly: ignore[bad-argument-type]
     ]
 
 
 def extract_top_k_topics(rng, topic_profile,
                          top_k,
-                         all_topics):
+                         all_topics):  # pyrefly: ignore[bad-specialization]
   """Extract the top-k topics from a given topic profile.
 
   Chooses the top_k highest weight topics from the topic profile, breaking ties
@@ -154,9 +154,9 @@ def extract_top_k_topics(rng, topic_profile,
     return np.array(list(chosen_topics))
 
 
-def sample_topic(rng, user_topics,
+def sample_topic(rng, user_topics,  # pyrefly: ignore[bad-specialization]
                  prob_random_choice,
-                 all_topics):
+                 all_topics):  # pyrefly: ignore[bad-specialization]
   """Sample a topic for one user on one epoch following the Topics API.
 
   With probability prob_random_choice, output a uniformly random element of
@@ -221,9 +221,9 @@ def extract_topic_profiles(example,
 
 
 def build_topics_simulator_output(
-    user_id, epoch_top_topics,
-    website_1_topics,
-    website_2_topics):
+    user_id, epoch_top_topics,  # pyrefly: ignore[bad-specialization]
+    website_1_topics,  # pyrefly: ignore[bad-specialization]
+    website_2_topics):  # pyrefly: ignore[bad-specialization]
   """Encodes a user's top topics over several epochs and sampled topics for websites as a tf.train.Example.
 
   Let `T` be the number of epochs. This function produces a tf.train.Example

@@ -134,7 +134,7 @@ def mechanize(
 
     # Add weight decay to raw gradients, note that this is othogonal to any
     # weight decay applied to inner_optimizer updates.
-    s_sum = jnp.sum(state.s)
+    s_sum = jnp.sum(state.s)  # pyrefly: ignore[bad-argument-type]
     grad_norm = tree_norm(updates)
     param_norm = tree_norm(params)
 
@@ -171,9 +171,9 @@ def mechanize(
         0.999999,
     ])
 
-    m = jnp.maximum(betas * state.m, jnp.abs(h) + eps)
-    v = (betas**2) * state.v + h**2
-    r = betas * state.r + h * state.s
+    m = jnp.maximum(betas * state.m, jnp.abs(h) + eps)  # pyrefly: ignore[unsupported-operation]
+    v = (betas**2) * state.v + h**2  # pyrefly: ignore[unsupported-operation]
+    r = betas * state.r + h * state.s  # pyrefly: ignore[unsupported-operation]
     rc = jnp.maximum(0.0, r)
     wealth = (s_init / jnp.size(betas)) * m + rc
     s = wealth / (jnp.sqrt(v) + eps)
@@ -197,4 +197,4 @@ def mechanize(
         x0=new_x0,
     )
 
-  return optax.GradientTransformation(init_fn, update_fn)
+  return optax.GradientTransformation(init_fn, update_fn)  # pyrefly: ignore[bad-argument-type]

@@ -628,14 +628,14 @@ def main(argv):
     logging.info('Skipping smiles inserts')
 
   logging.info('Starting main inserts')
-  dataset = tf.data.TFRecordDataset(gfile.glob(FLAGS.input_tfrecord))
+  dataset = tf.data.TFRecordDataset(gfile.glob(FLAGS.input_tfrecord))  # pyrefly: ignore[bad-instantiation]
   if FLAGS.mutate:
     bond_lengths = bond_length_distribution.AllAtomPairLengthDistributions()
     bond_lengths.add_from_sparse_dataframe_file(
         FLAGS.bond_lengths_csv,
         bond_length_distribution.STANDARD_UNBONDED_RIGHT_TAIL_MASS,
         bond_length_distribution.STANDARD_SIG_DIGITS)
-    db.bulk_insert((mutate_conformer(raw.numpy(), bond_lengths, smiles_id_dict)
+    db.bulk_insert((mutate_conformer(raw.numpy(), bond_lengths, smiles_id_dict)  # pyrefly: ignore[unbound-name]
                     for raw in dataset),
                    batch_size=10000)
   else:

@@ -78,7 +78,7 @@ class ExpandableEmbedding(tf.keras.layers.Embedding):
     # shape = [1, max_buckets, embd_dim]
     available_embeddings = self.embeddings[None, Ellipsis]
 
-    expanded_embeddings = tf.squeeze(tfa_image.interpolate_spline(
+    expanded_embeddings = tf.squeeze(tfa_image.interpolate_spline(  # pyrefly: ignore[not-callable]
         train_points=available_buckets,
         train_values=available_embeddings,
         query_points=query_buckets,
@@ -177,9 +177,9 @@ class TemporalEmbeddings(tf.keras.layers.Layer):
         target_buckets=t,
         )
 
-    position_embeddings = self.layernorm(position_embeddings)
+    position_embeddings = self.layernorm(position_embeddings)  # pyrefly: ignore[not-callable]
     embeddings = inputs + position_embeddings
-    embeddings = self.dropout(embeddings, training=training)
+    embeddings = self.dropout(embeddings, training=training)  # pyrefly: ignore[not-callable]
 
     return embeddings
 
@@ -307,9 +307,9 @@ class SpectroTemporalEmbeddings(tf.keras.layers.Layer):
         spectoral_position_embeddings +
         temporal_position_embeddings
         )
-    position_embeddings = self.layernorm(position_embeddings)
+    position_embeddings = self.layernorm(position_embeddings)  # pyrefly: ignore[not-callable]
     embeddings = inputs + position_embeddings
-    embeddings = self.dropout(embeddings, training=training)
+    embeddings = self.dropout(embeddings, training=training)  # pyrefly: ignore[not-callable]
 
     return embeddings
 
@@ -461,9 +461,9 @@ class SpatioTemporalEmbeddings(tf.keras.layers.Layer):
         horizontal_position_embeddings
         )
 
-    position_embeddings = self.layernorm(position_embeddings)
+    position_embeddings = self.layernorm(position_embeddings)  # pyrefly: ignore[not-callable]
     embeddings = inputs + position_embeddings
-    embeddings = self.dropout(embeddings, training=training)
+    embeddings = self.dropout(embeddings, training=training)  # pyrefly: ignore[not-callable]
 
     return embeddings
 
@@ -487,10 +487,10 @@ class DenseReLUDense(tf.keras.layers.Layer):
            hidden_states,
            training=False):
 
-    h = self.wi(hidden_states)
+    h = self.wi(hidden_states)  # pyrefly: ignore[not-callable]
     h = self.act(h)
-    h = self.dropout(h, training=training)
-    h = self.wo(h)
+    h = self.dropout(h, training=training)  # pyrefly: ignore[not-callable]
+    h = self.wo(h)  # pyrefly: ignore[not-callable]
     return h
 
 
@@ -508,7 +508,7 @@ class DenseGeLUDense(DenseReLUDense):
                                          use_bias=use_bias,
                                          dropout_rate=dropout_rate,
                                          name=name)
-    self.act = tf.keras.activations.gelu
+    self.act = tf.keras.activations.gelu  # pyrefly: ignore[bad-assignment]
 
 
 class DenseSwishDense(DenseReLUDense):
@@ -525,7 +525,7 @@ class DenseSwishDense(DenseReLUDense):
                                           use_bias=use_bias,
                                           dropout_rate=dropout_rate,
                                           name=name)
-    self.act = tf.keras.activations.swish
+    self.act = tf.keras.activations.swish  # pyrefly: ignore[bad-assignment]
 
 
 class DenseGeGLUDense(tf.keras.layers.Layer):
@@ -548,11 +548,11 @@ class DenseGeGLUDense(tf.keras.layers.Layer):
            hidden_states,
            training=False):
 
-    h_g = self.act(self.wi_0(hidden_states))
-    h_l = self.wi_1(hidden_states)
+    h_g = self.act(self.wi_0(hidden_states))  # pyrefly: ignore[not-callable]
+    h_l = self.wi_1(hidden_states)  # pyrefly: ignore[not-callable]
     h = h_g * h_l
-    h = self.dropout(h, training=training)
-    h = self.wo(h)
+    h = self.dropout(h, training=training)  # pyrefly: ignore[not-callable]
+    h = self.wo(h)  # pyrefly: ignore[not-callable]
     return h
 
 
@@ -608,11 +608,11 @@ class FeedForward(tf.keras.layers.Layer):
 
     res_inputs = hidden_states
     if self.pre_norm:
-      hidden_states = self.layer_norm(hidden_states)
-    y = self.mlp(hidden_states, training=training)
-    layer_output = res_inputs + self.dropout(y, training=training)
+      hidden_states = self.layer_norm(hidden_states)  # pyrefly: ignore[not-callable]
+    y = self.mlp(hidden_states, training=training)  # pyrefly: ignore[not-callable]
+    layer_output = res_inputs + self.dropout(y, training=training)  # pyrefly: ignore[not-callable]
     if not self.pre_norm:
-      layer_output = self.layer_norm(layer_output)
+      layer_output = self.layer_norm(layer_output)  # pyrefly: ignore[not-callable]
     return layer_output
 
 
@@ -666,9 +666,9 @@ class MultiHeadAttention(tf.keras.layers.Layer):
 
     bs = get_shape(query)[0]
 
-    q = self.q(query)  # (bs, qlen, inner_dim)
-    k = self.k(key)  # (bs, klen, inner_dim)
-    v = self.v(value)  # (bs, klen, inner_dim)
+    q = self.q(query)  # (bs, qlen, inner_dim)  # pyrefly: ignore[not-callable]
+    k = self.k(key)  # (bs, klen, inner_dim)  # pyrefly: ignore[not-callable]
+    v = self.v(value)  # (bs, klen, inner_dim)  # pyrefly: ignore[not-callable]
 
     q = self._split_heads(q, bs)  # (bs, n_heads, qlen, dim_per_head)
     k = self._split_heads(k, bs)  # (bs, n_heads, klen, dim_per_head)
@@ -687,14 +687,14 @@ class MultiHeadAttention(tf.keras.layers.Layer):
     # (bs, n_heads, seq_len, seq_len)
     attention_weights = tf.nn.softmax(scores, axis=-1)
     # (bs, n_heads, seq_len, seq_len)
-    attention_weights = self.dropout(attention_weights, training=training)
+    attention_weights = self.dropout(attention_weights, training=training)  # pyrefly: ignore[not-callable]
     # (bs, n_heads, seq_len, dim_per_head)
     hidden_states = tf.matmul(attention_weights, v)
 
     # (bs, seq_len, dim)
     hidden_states = self._join_heads(hidden_states, bs)
     # (bs, seq_len, out_dim)
-    hidden_states = self.o(hidden_states)
+    hidden_states = self.o(hidden_states)  # pyrefly: ignore[not-callable]
 
     outputs = {
         "hidden_states": hidden_states,
@@ -756,10 +756,10 @@ class TransformerEncoderLayer(tf.keras.layers.Layer):
 
     # apply layer_norm on inputs if pre_norm
     if self.pre_norm:
-      inputs = self.layer_norm(inputs)
+      inputs = self.layer_norm(inputs)  # pyrefly: ignore[not-callable]
 
     # apply multi-head attention module
-    attention_outputs = self.mha(
+    attention_outputs = self.mha(  # pyrefly: ignore[not-callable]
         query=inputs,
         key=inputs,
         value=inputs,
@@ -770,14 +770,14 @@ class TransformerEncoderLayer(tf.keras.layers.Layer):
     hidden_states = attention_outputs["hidden_states"]
 
     # apply residual + dropout
-    hidden_states = res_inputs + self.dropout(hidden_states, training=training)
+    hidden_states = res_inputs + self.dropout(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # apply layer_norm if not pre_norm
     if not self.pre_norm:
-      hidden_states = self.layer_norm(hidden_states)
+      hidden_states = self.layer_norm(hidden_states)  # pyrefly: ignore[not-callable]
 
     # apply Feed Forward layer
-    hidden_states = self.feed_forward(hidden_states, training=training)
+    hidden_states = self.feed_forward(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # update hidden states
     attention_outputs["hidden_states"] = hidden_states
@@ -866,8 +866,8 @@ class TransformerEncoder(tf.keras.layers.Layer):
       all_attentions = all_attentions + (layer_outputs["attention_weights"],)
 
     if self.pre_norm:
-      hidden_states = self.final_layer_norm(hidden_states)
-      hidden_states = self.dropout(hidden_states, training=training)
+      hidden_states = self.final_layer_norm(hidden_states)  # pyrefly: ignore[not-callable]
+      hidden_states = self.dropout(hidden_states, training=training)  # pyrefly: ignore[not-callable]
 
     # Add last layer
     all_hidden_states = all_hidden_states + (hidden_states,)

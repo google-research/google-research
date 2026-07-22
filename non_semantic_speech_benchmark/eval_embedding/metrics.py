@@ -122,7 +122,7 @@ def calculate_auc(labels,
         average='macro',
         sample_weight=sample_weight,
         multi_class=multi_class,
-        labels=range(predictions.shape[1]))
+        labels=range(predictions.shape[1]))  # pyrefly: ignore[bad-index]
 
 
 def dprime_from_auc(auc):

@@ -103,10 +103,10 @@ class DatasetSplit(enum.Enum):
       throughout training.
   """
 
-  FULL: str = 'full'
-  WEAK: str = 'weak'
-  MIXED_SMALL: str = 'mixed_small'
-  MIXED: str = 'mixed'
+  FULL: str = 'full'  # pyrefly: ignore[invalid-annotation]
+  WEAK: str = 'weak'  # pyrefly: ignore[invalid-annotation]
+  MIXED_SMALL: str = 'mixed_small'  # pyrefly: ignore[invalid-annotation]
+  MIXED: str = 'mixed'  # pyrefly: ignore[invalid-annotation]
 
 
 def create_dataset(
@@ -146,7 +146,7 @@ def create_dataset(
   builder = tfds.builder(path)
 
   env = create_environment(game)
-  num_actions = env.action_space.n
+  num_actions = env.action_space.n  # pyrefly: ignore[missing-attribute]
 
   splits = []
 
@@ -209,7 +209,7 @@ def create_dataset(
     # meaning the distribution of checkpoints will change towards the
     # end of this combined dataset. For our use case, this probably
     # isn't too much of a problem.
-    dataset = tf.data.Dataset.sample_from_datasets(datasets)
+    dataset = tf.data.Dataset.sample_from_datasets(datasets)  # pyrefly: ignore[bad-argument-type]
   else:
     dataset = tfds.load(
         path, split=tfds_split, read_config=read_config, shuffle_files=True
@@ -269,4 +269,4 @@ def create_environment(game):
 
 
 def get_num_actions(game):
-  return create_environment(game).action_space.n
+  return create_environment(game).action_space.n  # pyrefly: ignore[missing-attribute]

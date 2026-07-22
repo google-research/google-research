@@ -49,7 +49,7 @@ def get_canaries(freq: Optional[int]) -> Mapping[str, int]:
   canary_freq = collections.defaultdict()
   for path in glob.glob(
       os.path.join(constants.CANARY_TFDS_PATH, 'train_*tfrecord*')):
-    train_dataset = tf.data.TFRecordDataset(path)
+    train_dataset = tf.data.TFRecordDataset(path)  # pyrefly: ignore[bad-instantiation]
     for record in train_dataset:
       parsed_record = tf.io.parse_single_example(record, feature_description)
       parsed_freq = parsed_record['num_repetitions'].numpy()
@@ -115,11 +115,11 @@ def compute_exposures(
       perplexities_reference=perplexities[1])
 
   # Compute the average exposure
-  result['exposure_extrapolation'] = {
+  result['exposure_extrapolation'] = {  # pyrefly: ignore[bad-assignment]
       int(freq): np.mean(exposures_extr[freq]) for freq in perplexities[0]
   }
   if parse_individual_exposures:
-    result['list_exposures_extrapolation'] = {
+    result['list_exposures_extrapolation'] = {  # pyrefly: ignore[bad-assignment]
         int(freq): exposures_extr[freq].tolist() for freq in perplexities[0]
     }
 
@@ -127,12 +127,12 @@ def compute_exposures(
       perplexities=perplexities[0],
       perplexities_reference=perplexities[1])
 
-  result['exposure_interpolation'] = {
+  result['exposure_interpolation'] = {  # pyrefly: ignore[bad-assignment]
       int(freq): np.mean(exposures_inter[freq]) for freq in perplexities[0]
   }
 
   if parse_individual_exposures:
-    result['list_exposures_interpolation'] = {
+    result['list_exposures_interpolation'] = {  # pyrefly: ignore[bad-assignment]
         int(freq): exposures_inter[freq].tolist() for freq in perplexities[0]
     }
 

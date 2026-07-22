@@ -195,7 +195,7 @@ class TFRecordConverter:
       features.add_segment(
           category_token_ids,
           segment_id=self._config.model.category_attribute_type_id,
-          label_ids=np.zeros_like(category_token_ids))
+          label_ids=np.zeros_like(category_token_ids))  # pyrefly: ignore[bad-argument-type]
       features.add_sep(segment_id=self._config.model.category_attribute_type_id)
 
     # Adds attribute key tokens followed by a [SEP].
@@ -206,7 +206,7 @@ class TFRecordConverter:
       features.add_segment(
           attribute_key_token_ids,
           segment_id=self._config.model.category_attribute_type_id,
-          label_ids=np.zeros_like(attribute_key_token_ids))
+          label_ids=np.zeros_like(attribute_key_token_ids))  # pyrefly: ignore[bad-argument-type]
       features.add_sep(segment_id=self._config.model.category_attribute_type_id)
 
     # Adds paragraph tokens followed by a [SEP].
@@ -218,7 +218,7 @@ class TFRecordConverter:
       features.add_segment(
           token_ids,
           segment_id=self._config.model.paragraph_type_id,
-          label_ids=label_ids)
+          label_ids=label_ids)  # pyrefly: ignore[bad-argument-type]
     features.add_sep(segment_id=1)
 
     features.pad()
@@ -425,7 +425,7 @@ class EtcTFRecordConverter:
     features.add_segment(self._config.etc.category_global_token_id,
                          category_token_ids,
                          self._config.etc.category_token_type_id,
-                         np.zeros_like(category_token_ids))
+                         np.zeros_like(category_token_ids))  # pyrefly: ignore[bad-argument-type]
 
     # Adds attribute key tokens followed.
     attribute_key_tokens, _ = self._tokenizer.tokenize(example.attribute_key)
@@ -434,7 +434,7 @@ class EtcTFRecordConverter:
     features.add_segment(self._config.etc.attribute_global_token_id,
                          attribute_key_token_ids,
                          self._config.etc.attribute_token_type_id,
-                         np.zeros_like(attribute_key_token_ids))
+                         np.zeros_like(attribute_key_token_ids))  # pyrefly: ignore[bad-argument-type]
 
     # Adds paragraph tokens
     for paragraph in example.paragraphs:
@@ -449,7 +449,7 @@ class EtcTFRecordConverter:
       else:
         long_token_type_id = self._config.etc.other_token_type_id
       features.add_segment(self._config.etc.paragraph_global_token_id,
-                           long_token_ids, long_token_type_id, long_label_ids)
+                           long_token_ids, long_token_type_id, long_label_ids)  # pyrefly: ignore[bad-argument-type]
 
     features.pad()
 

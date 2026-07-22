@@ -144,7 +144,7 @@ def eval_and_report():
       tf.summary.scalar('auc', auc_score, step=int(step))
       tf.summary.scalar('dprime', dprime_score, step=int(step))
       if FLAGS.calculate_equal_error_rate:
-        tf.summary.scalar('eer', eer_score, step=int(step))
+        tf.summary.scalar('eer', eer_score, step=int(step))  # pyrefly: ignore[unbound-name]
     logging.info('Done with eval step: %s in %.2f secs.', step, time.time() - s)
 
 

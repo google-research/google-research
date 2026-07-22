@@ -308,7 +308,7 @@ class EvalLoader(loading.BaseLoader):
       sample_rate = DEFAULT_SR
       n_audio_secs = self._num_frames / ref_fps
       num_audio_samples = int(sample_rate * n_audio_secs)
-      params_factory['num_samples'] = num_audio_samples
+      params_factory['num_samples'] = num_audio_samples  # pyrefly: ignore[bad-assignment]
       params_factory['audio_stride'] = self._audio_stride
 
     else:
@@ -324,13 +324,13 @@ class EvalLoader(loading.BaseLoader):
       params_factory['max_num_words'] = self._max_num_words
 
     if self._mode == 'test':
-      params_factory['num_test_clips'] = self._num_windows_test
+      params_factory['num_test_clips'] = self._num_windows_test  # pyrefly: ignore[bad-assignment]
       if dataset_id in VID_CLS_DS:
         params_factory['multi_crop'] = self._multi_crop
 
     # add augmentation-related parameters
     if self._is_training and dataset_id not in AUD_CLS_DS:
-      params_factory.update({
+      params_factory.update({  # pyrefly: ignore[no-matching-overload]
           'crop_resize_style': 'Inception',
           'min_area_ratio': self._min_area_ratio,
           'max_area_ratio': self._max_area_ratio,
@@ -340,7 +340,7 @@ class EvalLoader(loading.BaseLoader):
 
     factory_args = {'subset': subset}
     if dataset_id in CLS_DS:
-      factory_args['split'] = split
+      factory_args['split'] = split  # pyrefly: ignore[bad-assignment]
 
     factory_class = ds_fctr.get_ds_factory(
         dataset_name=dataset_id,
@@ -402,8 +402,8 @@ class EvalLoader(loading.BaseLoader):
             )
         ])
 
-    split = '0' if split is None else str(split)
-    name = dataset_id + '@' + split
+    split = '0' if split is None else str(split)  # pyrefly: ignore[bad-assignment]
+    name = dataset_id + '@' + split  # pyrefly: ignore[unsupported-operation]
 
     super(EvalLoader, self).__init__(
         dmvr_factory=ds_factory,
@@ -538,7 +538,7 @@ class VisionEvalLoader(loading.BaseLoader):
       self._multi_crop = input_params.multi_crop
       self._num_windows_test = input_params.num_windows_test
 
-    with tf.name_scope('input_{}_test'.format(dataset_id)):
+    with tf.name_scope('input_{}_test'.format(dataset_id)):  # pyrefly: ignore[bad-instantiation]
       params_factory = {
           'is_training': False,
           'min_resize': self._frame_size,
@@ -626,7 +626,7 @@ class AudioFineTuneLoader(loading.BaseLoader):
         'audio_stride': self._audio_stride,
     }
 
-    with tf.name_scope('input_{}_train'.format(dataset_id)):
+    with tf.name_scope('input_{}_train'.format(dataset_id)):  # pyrefly: ignore[bad-instantiation]
       # Get the factory.
       factory_args = {'subset': 'train'}
       factory_class = ds_fctr.get_ds_factory(

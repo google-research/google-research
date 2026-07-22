@@ -47,7 +47,7 @@ def batch_dataset(
     A tf.data.Dataset instance
   """
   datasets = tuple([ds.shard(batch_size, i) for i in range(batch_size)])
-  return tf.data.Dataset.zip(tuple(datasets)).map(
+  return tf.data.Dataset.zip(tuple(datasets)).map(  # pyrefly: ignore[bad-argument-type]
       functools.partial(
           graph_struct.combine_graph_structs,
           sdtf.engine,
@@ -71,7 +71,7 @@ class InMemoryDB(graph_struct.InMemoryDB):
     return super().finalize(to_device_fn=to_device_fn)
 
   @classmethod
-  def from_file(cls, filename):
+  def from_file(cls, filename):  # pyrefly: ignore[bad-override]
     db = InMemoryDB()
     db.load_from_file(filename, to_device_fn=tf.convert_to_tensor)
     return db

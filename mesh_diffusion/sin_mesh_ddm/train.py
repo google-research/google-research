@@ -180,11 +180,11 @@ def create_train_state(
 
 @flax.struct.dataclass
 class Metrics(metrics.Collection):
-  loss: metrics.Average.from_output('loss')
-  mean_grads: metrics.Average.from_output('mean_grads')
-  max_grads: metrics.Average.from_output('max_grads')
-  mean_updates: metrics.Average.from_output('mean_updates')
-  max_updates: metrics.Average.from_output('max_updates')
+  loss: metrics.Average.from_output('loss')  # pyrefly: ignore[invalid-annotation]
+  mean_grads: metrics.Average.from_output('mean_grads')  # pyrefly: ignore[invalid-annotation]
+  max_grads: metrics.Average.from_output('max_grads')  # pyrefly: ignore[invalid-annotation]
+  mean_updates: metrics.Average.from_output('mean_updates')  # pyrefly: ignore[invalid-annotation]
+  max_updates: metrics.Average.from_output('max_updates')  # pyrefly: ignore[invalid-annotation]
 
 
 def encode_signal(encoder: nn.Module, params: Any, enc_data: Any):
@@ -227,7 +227,7 @@ def train_step(
     if isinstance(eps_pred, tuple):
       eps_pred, vq_loss = eps_pred
       diff = jnp.abs(eps_pred - epst)
-      loss = jnp.mean(diff) + vq_loss
+      loss = jnp.mean(diff) + vq_loss  # pyrefly: ignore[unsupported-operation]
     else:
       diff = jnp.abs(eps_pred - epst)
       loss = jnp.mean(diff)
@@ -252,7 +252,7 @@ def train_step(
   u_max = jnp.max(uravel)
   u_mean = jnp.mean(uravel)
 
-  new_state = state.replace(
+  new_state = state.replace(  # pyrefly: ignore[missing-attribute]
       step=state.step + 1,
       params=new_params,
       opt_state=new_opt_state,
@@ -306,7 +306,7 @@ def train_step_z0(
 
       loss = jnp.mean(diff) / jnp.mean(jnp.abs(z0))
 
-      loss = loss + vq_loss
+      loss = loss + vq_loss  # pyrefly: ignore[unsupported-operation]
     else:
       diff = jnp.abs(z0 - z0_pred)
 
@@ -332,7 +332,7 @@ def train_step_z0(
   u_max = jnp.max(uravel)
   u_mean = jnp.mean(uravel)
 
-  new_state = state.replace(
+  new_state = state.replace(  # pyrefly: ignore[missing-attribute]
       step=state.step + 1, params=new_params, opt_state=new_opt_state, key=key
   )
 
@@ -439,7 +439,7 @@ def sample_latents(
         noise,
     )
     if inpaint_data is not None:
-      zt, key = df.encode_inpaint_mask(
+      zt, key = df.encode_inpaint_mask(  # pyrefly: ignore[bad-assignment]
           zt,
           inpaint_data[0],
           inpaint_data[1],
@@ -512,7 +512,7 @@ def sample_latents_z0(
         noise,
     )
     if inpaint_data is not None:
-      zt, key = df.encode_inpaint_mask(
+      zt, key = df.encode_inpaint_mask(  # pyrefly: ignore[bad-assignment]
           zt,
           inpaint_data[0],
           inpaint_data[1],
@@ -575,7 +575,7 @@ def reconstruct(
 
   for l in range(latents.shape[0]):
     tr[l, data_i[l, :], data_j[l, :], :] = pix_recon[l, ...]
-  return tr
+  return tr  # pyrefly: ignore[bad-return]
 
 
 def visualize_labels(decoder_data: Any, labels: Array) -> Array:
@@ -619,7 +619,7 @@ def visualize_labels(decoder_data: Any, labels: Array) -> Array:
 
   for l in range(labels.shape[0]):
     tr[l, data_i[l, :], data_j[l, :], :] = pix_colors[l, ...]
-  return tr
+  return tr  # pyrefly: ignore[bad-return]
 
 
 def get_rng(seed: Union[None, int, Tuple[int, int]]) -> np.ndarray:
@@ -667,8 +667,8 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
     workdir: Working directory for checkpoints and TF summaries. If this
       contains checkpoint training will be resumed from the latest checkpoint.
   """
-  workdir = epath.Path(workdir)
-  workdir.mkdir(parents=True, exist_ok=True)
+  workdir = epath.Path(workdir)  # pyrefly: ignore[bad-assignment]
+  workdir.mkdir(parents=True, exist_ok=True)  # pyrefly: ignore[missing-attribute]
 
   key = get_rng(config.seed)
   logging.info('Using random seed %s.', key)
@@ -717,7 +717,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
   )
 
   # Set up checkpointing of the model and the input pipeline.
-  checkpoint_dir = workdir / 'checkpoints'
+  checkpoint_dir = workdir / 'checkpoints'  # pyrefly: ignore[unsupported-operation]
   ckpt = checkpoint.MultihostCheckpoint(
       os.fspath(checkpoint_dir), max_to_keep=2
   )
@@ -836,7 +836,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
                   ring_vals[:, node_inds[s], ...],
               )
           )
-          gtest_latents[(l * bs) : (l + 1) * bs, node_inds[s], ...] = (
+          gtest_latents[(l * bs) : (l + 1) * bs, node_inds[s], ...] = (  # pyrefly: ignore[unbound-name]
               np.asarray(l_mean)
           )
 
@@ -857,7 +857,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
       latents[(l * bs) : (l + 1) * bs, node_inds[s], ...] = np.asarray(l_mean)
 
     if config.obj_labels or config.spec:
-      geom_nodes[(l * bs) : (l + 1) * bs, ...] = np.asarray(
+      geom_nodes[(l * bs) : (l + 1) * bs, ...] = np.asarray(  # pyrefly: ignore[unbound-name]
           input_pipeline.get_nodes(geom_batch)
       )
 
@@ -875,21 +875,21 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
   logging.info('Precomputing latents... Done.')
 
   if (not config.obj_labels) and (not config.spec):
-    geom_data = tf.data.Dataset.zip((geom_data, geom_latents))
+    geom_data = tf.data.Dataset.zip((geom_data, geom_latents))  # pyrefly: ignore[bad-argument-type]
 
     if config.inpaint_labels:
       inpaint_labels = input_pipeline.load_and_map_mask(
-          config, np.reshape(gtest_nodes, (-1, 3)), inpaint=True
+          config, np.reshape(gtest_nodes, (-1, 3)), inpaint=True  # pyrefly: ignore[unbound-name]
       )
       inpaint_labels = np.reshape(
           inpaint_labels, (num_test_samples, config.num_verts)
       )
 
-      inpaint_labels = tf.data.Dataset.from_tensor_slices(inpaint_labels)
-      gtest_latents = tf.data.Dataset.from_tensor_slices(gtest_latents)
+      inpaint_labels = tf.data.Dataset.from_tensor_slices(inpaint_labels)  # pyrefly: ignore[bad-argument-type]
+      gtest_latents = tf.data.Dataset.from_tensor_slices(gtest_latents)  # pyrefly: ignore[bad-argument-type, unbound-name]
 
       gtest_data = tf.data.Dataset.zip(
-          (gtest_data, gtest_latents, inpaint_labels)
+          (gtest_data, gtest_latents, inpaint_labels)  # pyrefly: ignore[bad-argument-type]
       )
   else:
 
@@ -897,10 +897,10 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
 
     if config.obj_labels:
       geom_labels = input_pipeline.load_and_map_mask(
-          config, np.reshape(geom_nodes, (-1, 3))
+          config, np.reshape(geom_nodes, (-1, 3))  # pyrefly: ignore[unbound-name]
       )
       gtest_labels = input_pipeline.load_and_map_mask(
-          config, np.reshape(gtest_nodes, (-1, 3))
+          config, np.reshape(gtest_nodes, (-1, 3))  # pyrefly: ignore[unbound-name]
       )
 
       geom_labels = np.reshape(
@@ -913,10 +913,10 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
     elif config.spec:
 
       geom_labels = input_pipeline.load_and_map_spec(
-          config, np.reshape(geom_nodes, (-1, 3))
+          config, np.reshape(geom_nodes, (-1, 3))  # pyrefly: ignore[unbound-name]
       )
       gtest_labels = input_pipeline.load_and_map_spec(
-          config, np.reshape(gtest_nodes, (-1, 3))
+          config, np.reshape(gtest_nodes, (-1, 3))  # pyrefly: ignore[unbound-name]
       )
 
       geom_labels = np.reshape(
@@ -928,8 +928,8 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
           (num_test_samples, config.num_verts, config.spec_features),
       )
 
-    geom_labels = tf.data.Dataset.from_tensor_slices(geom_labels)
-    gtest_labels = tf.data.Dataset.from_tensor_slices(gtest_labels)
+    geom_labels = tf.data.Dataset.from_tensor_slices(geom_labels)  # pyrefly: ignore[bad-argument-type, unbound-name]
+    gtest_labels = tf.data.Dataset.from_tensor_slices(gtest_labels)  # pyrefly: ignore[bad-argument-type, unbound-name]
 
     if config.inpaint_labels:
       inpaint_labels = input_pipeline.load_and_map_mask(
@@ -939,18 +939,18 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
           inpaint_labels, (num_test_samples, config.num_verts)
       )
 
-      inpaint_labels = tf.data.Dataset.from_tensor_slices(inpaint_labels)
-      gtest_latents = tf.data.Dataset.from_tensor_slices(gtest_latents)
+      inpaint_labels = tf.data.Dataset.from_tensor_slices(inpaint_labels)  # pyrefly: ignore[bad-argument-type]
+      gtest_latents = tf.data.Dataset.from_tensor_slices(gtest_latents)  # pyrefly: ignore[bad-argument-type, unbound-name]
 
       gtest_data = tf.data.Dataset.zip(
-          (gtest_data, gtest_labels, gtest_latents, inpaint_labels)
+          (gtest_data, gtest_labels, gtest_latents, inpaint_labels)  # pyrefly: ignore[bad-argument-type]
       )
     else:
-      gtest_data = tf.data.Dataset.zip((gtest_data, gtest_labels))
+      gtest_data = tf.data.Dataset.zip((gtest_data, gtest_labels))  # pyrefly: ignore[bad-argument-type]
 
     logging.info('Loading and mapping labels... Done.')
 
-    geom_data = tf.data.Dataset.zip((geom_data, geom_latents, geom_labels))
+    geom_data = tf.data.Dataset.zip((geom_data, geom_latents, geom_labels))  # pyrefly: ignore[bad-argument-type]
 
   geom_data = geom_data.cache()
   geom_data = geom_data.repeat(100 * num_geom_repeat)
@@ -997,7 +997,7 @@ def train_and_evaluate(config: ml_collections.ConfigDict, workdir: str):
   init_images['Init recon'] = init_recon[0, ...]
   writer.write_images(1, init_images)
   if config.obj_labels:
-    label_viz = visualize_labels(decoder_data=recon_data, labels=labels_batch)
+    label_viz = visualize_labels(decoder_data=recon_data, labels=labels_batch)  # pyrefly: ignore[unbound-name]
     label_im = {}
     label_im['Labels'] = label_viz[0, ...]
     writer.write_images(1, label_im)

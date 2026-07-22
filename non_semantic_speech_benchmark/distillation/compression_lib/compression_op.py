@@ -346,13 +346,13 @@ class CompressionOp(CompressionOpInterface):
         trainable=False)
 
     self.a_matrix_tfvar = a_matrix_tfvar
-    self.layer.alpha = self.alpha
+    self.layer.alpha = self.alpha  # pyrefly: ignore[missing-attribute]
 
   def compressed_matmul_keras(self, inputs, training=False):
     """Matmul with a convex combination of original and compressed weights."""
     if training:
-      compressed_mat = self.alpha * self.a_matrix_tfvar + (
-          1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)
+      compressed_mat = self.alpha * self.a_matrix_tfvar + (  # pyrefly: ignore[unsupported-operation]
+          1 - self.alpha) * tf.matmul(self.b_matrix_tfvar, self.c_matrix_tfvar)  # pyrefly: ignore[unsupported-operation]
       return tf.matmul(inputs, compressed_mat)
     else:
       # This prevents the TFLite converter from constant-folding the product of
@@ -376,14 +376,14 @@ class CompressionOp(CompressionOpInterface):
       is_step_within_compression_range = tf.logical_and(
           tf.greater_equal(
               tf.cast(self._global_step, tf.int32),
-              self._spec.begin_compression_step),
+              self._spec.begin_compression_step),  # pyrefly: ignore[missing-attribute]
           tf.logical_or(
               tf.less_equal(
                   tf.cast(self._global_step, tf.int32),
-                  self._spec.end_compression_step),
-              tf.less(self._spec.end_compression_step, 0)))
+                  self._spec.end_compression_step),  # pyrefly: ignore[missing-attribute]
+              tf.less(self._spec.end_compression_step, 0)))  # pyrefly: ignore[missing-attribute]
       is_compression_step = tf.less_equal(
-          tf.add(self.last_alpha_update_step, self._spec.compression_frequency),
+          tf.add(self.last_alpha_update_step, self._spec.compression_frequency),  # pyrefly: ignore[missing-attribute]
           tf.cast(self._global_step, tf.int32))
       return tf.logical_and(is_step_within_compression_range,
                             is_compression_step)
@@ -413,13 +413,13 @@ class CompressionOp(CompressionOpInterface):
     ] = tf.compat.v1.py_function(matrix_compressor.static_matrix_compressor,
                                  [a_matrix_tfvar], [tf.float32, tf.float32])
 
-    self.b_matrix_tfvar.assign(b_matrix_out)
-    self.c_matrix_tfvar.assign(c_matrix_out)
+    self.b_matrix_tfvar.assign(b_matrix_out)  # pyrefly: ignore[missing-attribute]
+    self.c_matrix_tfvar.assign(c_matrix_out)  # pyrefly: ignore[missing-attribute]
     return
 
   def _update_alpha_op(self):
-    self.alpha.assign_sub(self._spec.alpha_decrement_value, 0)
-    self.alpha.assign(tf.math.maximum(self.alpha, 0))
+    self.alpha.assign_sub(self._spec.alpha_decrement_value, 0)  # pyrefly: ignore[missing-attribute]
+    self.alpha.assign(tf.math.maximum(self.alpha, 0))  # pyrefly: ignore[missing-attribute]
     return
 
   def _compressor_and_alpha_update_op(self):
@@ -427,20 +427,20 @@ class CompressionOp(CompressionOpInterface):
 
     self._compressor_op(self.matrix_compressor, self.a_matrix_tfvar)
     self._update_alpha_op()
-    self.last_alpha_update_step.assign(tf.cast(self._global_step, tf.int32))
+    self.last_alpha_update_step.assign(tf.cast(self._global_step, tf.int32))  # pyrefly: ignore[missing-attribute]
 
   def _validate_spec(self):
     spec = self._spec
-    if spec.begin_compression_step < 0:
+    if spec.begin_compression_step < 0:  # pyrefly: ignore[missing-attribute]
       raise ValueError('Illegal value for begin_compression_step')
 
-    if spec.begin_compression_step >= spec.end_compression_step:
-      if spec.end_compression_step != -1:
+    if spec.begin_compression_step >= spec.end_compression_step:  # pyrefly: ignore[missing-attribute]
+      if spec.end_compression_step != -1:  # pyrefly: ignore[missing-attribute]
         raise ValueError(
             'Compression must begin before it can end. begin_step=%d, '
             'end_step=%d. Set end_compression_step to -1 if compression is '
             'required till training stops' %
-            (spec.begin_compression_step, spec.end_compression_step))
+            (spec.begin_compression_step, spec.end_compression_step))  # pyrefly: ignore[missing-attribute]
 
 
 class ApplyCompression(object):

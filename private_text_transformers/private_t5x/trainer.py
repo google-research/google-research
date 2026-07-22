@@ -22,7 +22,7 @@ import cached_property
 import jax
 from jax import config
 from jax import numpy as jnp
-from jax.experimental import maps
+from jax.experimental import maps  # pyrefly: ignore[missing-module-attribute]
 from t5x import metrics as t5x_metrics
 from t5x import models
 from t5x import partitioning
@@ -39,7 +39,7 @@ config.update("experimental_xmap_spmd_lowering", True)
 
 # Disable all sharding annotations in Flaxformer as they don't work with xmap.
 # TODO(bastings): See if these are still needed.
-activation_partitioning.with_sharding = lambda x, _: x
+activation_partitioning.with_sharding = lambda x, _: x  # pyrefly: ignore[bad-assignment]
 
 if TYPE_CHECKING:  # See b/163639353
   cached_property = property  # pylint: disable=invalid-name
@@ -373,7 +373,7 @@ class PrivateTrainer(t5x_trainer.Trainer):
               dp_l2_clip_norm=self._dp_l2_clip_norm,
               dp_noise_multiplier=self._dp_noise_multiplier))
       new_train_state, metrics = t5x_trainer.apply_grads(  # pytype: disable=wrong-arg-types  # jax-ndarray
-          train_state, grad_accum, metrics, learning_rate,
+          train_state, grad_accum, metrics, learning_rate,  # pyrefly: ignore[bad-argument-type]
           self._weight_metrics_computer)
       return new_train_state, metrics
 

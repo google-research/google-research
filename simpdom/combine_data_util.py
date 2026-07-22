@@ -106,7 +106,7 @@ def read_and_concat_files(input_data_path,
         if goldmine:
           concat_res += current_website_data[:cutoff]
         else:
-          concat_res["features"] += current_website_data["features"][:cutoff]
+          concat_res["features"] += current_website_data["features"][:cutoff]  # pyrefly: ignore[bad-index, unsupported-operation]
 
     with tf.gfile.Open(output_path, "w") as json_file:
       json.dump(concat_res, json_file)

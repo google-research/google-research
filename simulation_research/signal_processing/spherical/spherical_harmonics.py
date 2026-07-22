@@ -107,7 +107,7 @@ class SphericalHarmonics(object):
     return jnp.asarray((mask))
 
   def harmonics_nonpositive_order(  # pytype: disable=annotation-type-mismatch  # jnp-array
-      self, harmonics_nonnegative_order = None
+      self, harmonics_nonnegative_order = None  # pyrefly: ignore[bad-function-definition]
   ):
     """Computes the spherical harmonics of nonpositive orders.
 

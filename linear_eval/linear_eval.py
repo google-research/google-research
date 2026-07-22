@@ -173,7 +173,7 @@ def train(embeddings, labels, mask, l2_regularization=0.0,
   lbfgs_args['max_iterations'] = lbfgs_args.get('max_iterations', 1000)
   loss_args = dict(num_replicas=jax.local_device_count())
   if l2_regularization is not None:
-    loss_args['l2_regularization'] = l2_regularization
+    loss_args['l2_regularization'] = l2_regularization  # pyrefly: ignore[bad-assignment]
 
   # Handle converting inital_weights to flat format.
   embed_dim = embeddings.shape[-1]

@@ -61,15 +61,15 @@ class LFNR(vanilla_nlf.VanillaNLF):
 
     # Layer to transform key and query to same dim for conatenation
     self.key_transform = nn.DenseGeneral(
-        self.epipolar_transformer_config.qkv_params, precision=precision)
+        self.epipolar_transformer_config.qkv_params, precision=precision)  # pyrefly: ignore[bad-argument-type]
     self.query_transform = nn.DenseGeneral(
-        self.epipolar_transformer_config.qkv_params, precision=precision)
+        self.epipolar_transformer_config.qkv_params, precision=precision)  # pyrefly: ignore[bad-argument-type]
 
     # Layer to transform key and query to same dim for conatenation
     self.key_transform2 = nn.DenseGeneral(
-        self.view_transformer_config.qkv_params)
+        self.view_transformer_config.qkv_params)  # pyrefly: ignore[bad-argument-type]
     self.query_transform2 = nn.DenseGeneral(
-        self.view_transformer_config.qkv_params, precision=precision)
+        self.view_transformer_config.qkv_params, precision=precision)  # pyrefly: ignore[bad-argument-type]
 
     # Optinally have a learned embedding per camera view
     if self.epipolar_config.use_learned_embedding:
@@ -78,7 +78,7 @@ class LFNR(vanilla_nlf.VanillaNLF):
 
     if self.epipolar_config.use_conv_features:
       self.conv_layer1 = efficient_conv.SplitConvModel(  # pytype: disable=wrong-arg-types
-          features=self.epipolar_config.conv_feature_dim,
+          features=self.epipolar_config.conv_feature_dim,  # pyrefly: ignore[bad-argument-type]
           kernel_size=self.epipolar_config.ksize1,
       )
       self.feature_activation = nn.elu
@@ -215,7 +215,7 @@ class LFNR(vanilla_nlf.VanillaNLF):
 
     return out, epipolar_attn_weights
 
-  def _predict_color(self, input_q, input_k, learned_embedding, randomized):  # pylint: disable=arguments-differ
+  def _predict_color(self, input_q, input_k, learned_embedding, randomized):  # pylint: disable=arguments-differ  # pyrefly: ignore[bad-override]
     """Function to predict the color by aggreagating information form neighbouring views.
 
     Args:

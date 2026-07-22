@@ -350,7 +350,7 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
           )
           assert isinstance(path_info, tuple)
           _, path = path_info
-          cand_edge = path[1]
+          cand_edge = path[1]  # pyrefly: ignore[bad-index]
         else:
           cand_edge = None
       else:
@@ -435,10 +435,10 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
       query_data = {"linear": "", "pois": ()}
 
     # Convert to internal types
-    start = self.edge_to_internal[start]
-    end = self.edge_to_internal[end]
-    start_u, start_v = start
-    end_u, end_v = end
+    start = self.edge_to_internal[start]  # pyrefly: ignore[bad-assignment]
+    end = self.edge_to_internal[end]  # pyrefly: ignore[bad-assignment]
+    start_u, start_v = start  # pyrefly: ignore[not-iterable]
+    end_u, end_v = end  # pyrefly: ignore[not-iterable]
 
     # Remove parts of query already satisfied by start and end edges
     query_pois = query_data["pois"]
@@ -478,7 +478,7 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
             start_v,
             end_u,
         )]
-        return shortest_path_len, shortest_path
+        return shortest_path_len, shortest_path  # pyrefly: ignore[bad-return]
       else:
         return shortest_path_len
 
@@ -536,7 +536,7 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
 
       path = []
       current_node = start_v
-      for u, v in best_sat_edge_order[0] + (end,):
+      for u, v in best_sat_edge_order[0] + (end,):  # pyrefly: ignore[not-iterable]
         path += list(nx.shortest_path(graph, current_node, u, weight=cost_fn))
         current_node = v
 
@@ -566,7 +566,7 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
     else:
       return dist
 
-  def route_metrics(
+  def route_metrics(  # pyrefly: ignore[bad-override]
       self,
       query_data,
       end,
@@ -622,7 +622,7 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
       )
     else:
       best_info = self.get_shortest_path_len(
-          edgelist[0], end, query_data, return_path=True
+          edgelist[0], end, query_data, return_path=True  # pyrefly: ignore[bad-index]
       )
       if best_info is None:
         raise ValueError("No satisfactory route exists.")
@@ -637,12 +637,12 @@ class NetworkXRoadGraph(road_graph.RoadGraph):
         )
 
       best_time = self.get_shortest_path_len(
-          edgelist[0],
+          edgelist[0],  # pyrefly: ignore[bad-index]
           end,
           {"pois": query_data["pois"], "linear": ""},
       )
 
-      metrics["excess_travel_time"] = our_time - best_time
+      metrics["excess_travel_time"] = our_time - best_time  # pyrefly: ignore[unsupported-operation]
       metrics["excess_penalty"] = our_penalty - best_penalty
 
     return metrics

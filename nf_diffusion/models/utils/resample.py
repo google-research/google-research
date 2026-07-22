@@ -41,14 +41,14 @@ def gather_batch_2d(data, locations, coordinate_order='xy'):
     x_coordinate = locations[Ellipsis, 1]
 
   if data.shape[0] == 1:
-    z_coordinate = jnp.zeros_like(x_coordinate)
+    z_coordinate = jnp.zeros_like(x_coordinate)  # pyrefly: ignore[unbound-name]
   else:
     z_coordinate = jnp.arange(0, locations.shape[0])
-    for _ in x_coordinate.shape[1:]:
+    for _ in x_coordinate.shape[1:]:  # pyrefly: ignore[unbound-name]
       z_coordinate = z_coordinate[Ellipsis, jnp.newaxis]
 
   # Use Advanced indexing to gather data data.
-  return data[z_coordinate, y_coordinate, x_coordinate]
+  return data[z_coordinate, y_coordinate, x_coordinate]  # pyrefly: ignore[unbound-name]
 
 
 # TODO(guandao) unable to jit this since str is not a valid JAX type
