@@ -24,6 +24,16 @@ ABSL_DECLARE_FLAG(bool, ignore_avx512);
 
 ABSL_DECLARE_FLAG(bool, ignore_avx2);
 
+ABSL_DECLARE_FLAG(bool, ignore_neon);
+
+ABSL_DECLARE_FLAG(bool, ignore_neon_dotprod);
+
+ABSL_DECLARE_FLAG(bool, ignore_neon_i8mm);
+
+ABSL_DECLARE_FLAG(bool, ignore_sve);
+
+ABSL_DECLARE_FLAG(bool, ignore_sve2);
+
 namespace research_scann {
 namespace flags_internal {
 
@@ -33,6 +43,11 @@ extern bool should_use_avx512_vnni;
 extern bool should_use_amx;
 bool TryEnableAmx();
 
+extern bool should_use_neon;
+extern bool should_use_neon_dotprod;
+extern bool should_use_neon_i8mm;
+extern bool should_use_sve;
+extern bool should_use_sve2;
 }  // namespace flags_internal
 
 #ifdef __x86_64__
@@ -83,6 +98,24 @@ inline bool RuntimeSupportsAmx() { return false; }
 inline bool RuntimeSupportsSse4() { return false; }
 inline bool RuntimeSupportsAvx1() { return false; }
 
+#endif
+
+#ifdef __aarch64__
+inline bool RuntimeSupportsNeon() { return flags_internal::should_use_neon; }
+inline bool RuntimeSupportsNeonDotprod() {
+  return flags_internal::should_use_neon_dotprod;
+}
+inline bool RuntimeSupportsNeonI8MM() {
+  return flags_internal::should_use_neon_i8mm;
+}
+inline bool RuntimeSupportsSVE() { return flags_internal::should_use_sve; }
+inline bool RuntimeSupportsSVE2() { return flags_internal::should_use_sve2; }
+#else
+inline bool RuntimeSupportsNeon() { return false; }
+inline bool RuntimeSupportsNeonDotprod() { return false; }
+inline bool RuntimeSupportsNeonI8MM() { return false; }
+inline bool RuntimeSupportsSVE() { return false; }
+inline bool RuntimeSupportsSVE2() { return false; }
 #endif
 
 enum PlatformGeneration {
