@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2026 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +15,11 @@
 """Optimization of hyperparameters for attribution reporting API."""
 
 import dataclasses
-from absl import logging
+
 import numpy as np
+from absl import logging
+from ara_optimization import dataset_evaluation, metrics
 from scipy import optimize
-from ara_optimization import dataset_evaluation
-from ara_optimization import metrics
 
 
 @dataclasses.dataclass(frozen=True)
@@ -109,11 +108,10 @@ def optimize_ara(train_dataset,
     optimized hyperparameters.
   """
 
-  objective = ARAObjective(train_dataset, error_metrics, total_privacy_budget)
-  initial_point = objective.initial_value()
-  num_features = len(objective.dataset.value_columns)
-  num_hyperparameters = 2 * num_features
-  bounds = [[1e-10, np.inf]] * num_hyperparameters
+  objective= ARAObjective(train_dataset, error_metrics, total_privacy_budget)
+  initial_point= objective.initial_value()
+  num_features= len(objective.dataset.value_columns)
+  bounds= [[1e-10, np.inf]] * num_features + [[-np.inf, np.inf]] * num_features
 
   result = optimize.minimize(objective.evaluate_objective, x0=initial_point,
                              bounds=bounds)
