@@ -1,0 +1,8 @@
+absl-py
+numpy
+pandas
+scipy
+xarray
+zarr
+tensorflow
+gcsfs
