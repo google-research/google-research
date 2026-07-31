@@ -3,7 +3,8 @@ googledrivedownloader >= 0.4
 numpy >= 1.19.2
 scipy >= 1.5.2
 six >= 1.15.0
-torch >= 1.6.0+cu101
+torch >= 1.6.0
 torchcontrib >= 0.0.2
-torchvision >= 0.7.0+cu101
+torchvision >= 0.7.0
 tqdm >= 4.61.1
+absl-py

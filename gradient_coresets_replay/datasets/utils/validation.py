@@ -16,7 +16,7 @@
 """Train val splliting."""
 
 import os
-from continual_learning_rishabh.utils import create_if_not_exists
+from gradient_coresets_replay.utils.loggers import create_if_not_exists
 import numpy as np
 from PIL import Image
 import torch
@@ -82,15 +82,16 @@ def get_train_val(
     the training set and the validation set
   """
   dataset_length = train.data.shape[0]
-  directory = '/workdir/continual_learning_rishabh/datasets/val_permutations/'
+  directory = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'val_permutations')
   create_if_not_exists(directory)
   file_name = dataset + '.pt'
-  if os.path.exists(directory + file_name):
+  filepath = os.path.join(directory, file_name)
+  if os.path.exists(filepath):
     print('using predefined splits')
-    perm = torch.load(directory + file_name)
+    perm = torch.load(filepath)
   else:
     perm = torch.randperm(dataset_length)
-    torch.save(perm, directory + file_name)
+    torch.save(perm, filepath)
   train.data = train.data[perm]
   train.targets = np.array(train.targets)[perm]
   test_dataset = ValidationDataset(

@@ -22,7 +22,7 @@ import sys
 import typing
 import numpy as np
 import torch
-from gradient_coresets_replay.datasets import ContinualDataset
+from gradient_coresets_replay.datasets.utils.continual_dataset import ContinualDataset
 from gradient_coresets_replay.utils.conf import base_path
 
 nn = torch.nn
@@ -65,7 +65,7 @@ def create_stash(
   """
   now = datetime.datetime.now()
   model_stash = {'task_idx': 0, 'epoch_idx': 0, 'batch_idx': 0}
-  name_parts = [args.dataset, model.NAME]
+  name_parts = [args.dataset, model.name]
   if 'buffer_size' in vars(args).keys():
     name_parts.append('buf_' + str(args.buffer_size))
   name_parts.append(now.strftime('%Y%m%d_%H%M%S_%f'))
@@ -73,7 +73,7 @@ def create_stash(
   model_stash['mean_accs'] = []
   model_stash['args'] = args
   model_stash['backup_folder'] = os.path.join(
-      base_path(), 'backups', dataset.SETTING, model_stash['model_name']
+      base_path(), 'backups', dataset.setting, model_stash['model_name']
   )
   return model_stash
 
