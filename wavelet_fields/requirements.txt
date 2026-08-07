@@ -134,7 +134,7 @@ psutil==5.9.5
 ptwt==0.1.6
 ptyprocess==0.7.0
 pure-eval==0.2.2
-pyasn1==0.4.8
+pyasn1==0.6.3
 pyasn1-modules==0.2.7
 pybind11 @ file:///home/conda/feedstock_root/build_artifacts/pybind11-split_1679012409253/work
 pybind11-global @ file:///home/conda/feedstock_root/build_artifacts/pybind11-split_1679012409253/work
