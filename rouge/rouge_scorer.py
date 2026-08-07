@@ -89,7 +89,7 @@ class RougeScorer(scoring.BaseScorer):
     """Calculates rouge scores between targets and prediction.
 
     The target with the maximum f-measure is used for the final score for
-    each score type..
+    each score type.
 
     Args:
       targets: list of texts containing the targets
