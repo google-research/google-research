@@ -9,7 +9,7 @@ certifi==2022.12.7
 charset-normalizer==2.1.1
 datasets==2.8.0
 dill==0.3.6
-filelock==3.8.2
+filelock==3.20.3
 flatbuffers==22.12.6
 frozenlist==1.3.3
 fsspec==2022.11.0
