@@ -193,7 +193,10 @@ batch_size_sharder(
 cc_library(
     name = "lut16_highway",
     srcs = [":lut16_highway_batches"],
-    hdrs = ["lut16_highway.h"],
+    hdrs = [
+        "lut16_highway.h",
+        "lut16_neon.h",
+    ],
     # We build this library at -O3 even for fastbuild and dbg
     # builds.  With inlining, functions in this library generate
     # enormous stack frames in debug mode, causing stack overflows
@@ -201,7 +204,10 @@ cc_library(
     copts = [
         "-O3",
     ],
-    textual_hdrs = ["lut16_highway.inc"],
+    textual_hdrs = [
+        "lut16_highway.inc",
+        "lut16_neon.inc",
+    ],
     deps = [
         ":lut16_args",
         "//scann/oss_wrappers:scann_bits",
