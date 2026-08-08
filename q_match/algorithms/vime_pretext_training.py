@@ -167,7 +167,7 @@ class VimePretextTraining(PretextTrainingAlgo):
         features = jax.numpy.array(example['features'])
 
         if steps % 100 == 0:
-          pretext_loss, (reconstruction_loss, mask_loss, _) = self.loss(
+          pretext_loss, (reconstruction_loss, mask_loss, _) = self.loss(  # pytype: disable=wrong-arg-count
               params, state, features, mask_key)
           log_train_loss_msg = f'pretext training loss {pretext_loss}'
           logging.info(log_train_loss_msg)
@@ -181,7 +181,7 @@ class VimePretextTraining(PretextTrainingAlgo):
 
         gradients, (reconstruction_loss, mask_loss, state) = grad_fn(
             params, state, features, mask_key)
-        params, optimizer_state = self.update_model(params,
+        params, optimizer_state = self.update_model(params,  # pytype: disable=wrong-arg-count
                                                     gradients,
                                                     optimizer_state)
         self.update_rngs()
@@ -198,7 +198,7 @@ class VimePretextTraining(PretextTrainingAlgo):
         for example in pretext_validation_ds:
           features = jax.numpy.array(example['features'])
           seen = features.shape[0]
-          validation_loss += self.loss(params, state, features,
+          validation_loss += self.loss(params, state, features,  # pytype: disable=wrong-arg-count
                                        val_mask_key)[0]*seen
           val_seen += seen
           val_mask_key, _ = jax.random.split(val_mask_key)

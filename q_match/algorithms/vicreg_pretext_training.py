@@ -216,7 +216,7 @@ class VICRegPretextTraining(PretextTrainingAlgo):
         features = jax.numpy.array(example['features'])
 
         if steps % 100 == 0:
-          pretext_loss, _ = self.loss(
+          pretext_loss, _ = self.loss(  # pytype: disable=wrong-arg-count
               params, state, features,
               self.mask_key,
               )
@@ -232,7 +232,7 @@ class VICRegPretextTraining(PretextTrainingAlgo):
                                    features, self.mask_key,
                                    )
 
-        params, optimizer_state = self.update_model(params,
+        params, optimizer_state = self.update_model(params,  # pytype: disable=wrong-arg-count
                                                     gradients,
                                                     optimizer_state)
         self.update_rngs()
@@ -249,7 +249,7 @@ class VICRegPretextTraining(PretextTrainingAlgo):
         for example in pretext_validation_ds:
           features = jax.numpy.array(example['features'])
           seen = features.shape[0]
-          validation_loss += self.loss(
+          validation_loss += self.loss(  # pytype: disable=wrong-arg-count
               params,
               state,
               features,

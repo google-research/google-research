@@ -155,7 +155,7 @@ class NPairiMixPretextTraining(PretextTrainingAlgo):
         features = jax.numpy.array(example['features'])
 
         if steps % 100 == 0:
-          pretext_loss, _ = self.loss(
+          pretext_loss, _ = self.loss(  # pytype: disable=wrong-arg-count
               params,
               state,
               features,
@@ -172,7 +172,7 @@ class NPairiMixPretextTraining(PretextTrainingAlgo):
 
         gradients, state = grad_fn(params, state, features, pretext_key,
                                    temperature=self.temperature)
-        params, optimizer_state = self.update_model(params, gradients,
+        params, optimizer_state = self.update_model(params, gradients,  # pytype: disable=wrong-arg-count
                                                     optimizer_state)
         self.update_rngs()
         pretext_key, _ = jax.random.split(pretext_key)
@@ -188,7 +188,7 @@ class NPairiMixPretextTraining(PretextTrainingAlgo):
         for example in pretext_validation_ds:
           features = jax.numpy.array(example['features'])
           seen = features.shape[0]
-          validation_loss += self.loss(
+          validation_loss += self.loss(  # pytype: disable=wrong-arg-count
               params,
               state,
               features,

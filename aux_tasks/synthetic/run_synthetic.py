@@ -428,7 +428,7 @@ def _train_step(
   source_states, key = sample_states(source_states_key, main_batch_size)
   task = jax.random.choice(task_key, num_tasks, (1,))
 
-  gradient, key = compute_gradient(
+  gradient, key = compute_gradient(  # pytype: disable=wrong-keyword-args
       source_states=source_states,
       task=task,
       compute_phi=compute_phi,
@@ -601,7 +601,7 @@ def train(
         initial=initial_step,
         total=num_epochs,
     ):
-      variable_kwargs = _train_step(**fixed_train_kwargs, **variable_kwargs)
+      variable_kwargs = _train_step(**fixed_train_kwargs, **variable_kwargs)  # pytype: disable=wrong-keyword-args
 
       if step % log_period == 0:
         metrics = _eval_step(variable_kwargs['params']['phi_params'])

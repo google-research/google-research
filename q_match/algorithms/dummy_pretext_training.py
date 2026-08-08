@@ -82,7 +82,7 @@ class DummyPretextTraining(TrainingAlgo):
         features = jax.numpy.array(example['features'])
 
         if steps % 100 == 0:
-          train_loss = self.loss(params, state, features)[0]
+          train_loss = self.loss(params, state, features)[0]  # pytype: disable=wrong-arg-count
           log_train_loss_msg = f'dummy pretext training loss {train_loss}'
           logging.info(log_train_loss_msg)
 
@@ -90,7 +90,7 @@ class DummyPretextTraining(TrainingAlgo):
             self.writer.write_scalars(steps, {'pretext_train_loss': train_loss})
 
         gradients, state = grad_fn(params, state, features)
-        params, optimizer_state = self.update_model(params,
+        params, optimizer_state = self.update_model(params,  # pytype: disable=wrong-arg-count
                                                     gradients,
                                                     optimizer_state)
         self.update_rngs()

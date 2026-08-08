@@ -175,7 +175,7 @@ class SupervisedTraining(TrainingAlgo):
         targets = jax.numpy.array(example['target'])
 
         if steps % 100 == 0:
-          train_loss = self.loss(params, state, features, targets)[0]
+          train_loss = self.loss(params, state, features, targets)[0]  # pytype: disable=wrong-arg-count
           train_accuracy = compute_accuracy(params, state, features, targets,
                                             self.linear_over_features)
           log_train_loss_msg = f'training loss {train_loss}'
@@ -189,7 +189,7 @@ class SupervisedTraining(TrainingAlgo):
                                        'train_accuracy': train_accuracy})
 
         gradients, state = grad_fn(params, state, features, targets)
-        params, optimizer_state = self.update_model(params,
+        params, optimizer_state = self.update_model(params,  # pytype: disable=wrong-arg-count
                                                     gradients,
                                                     optimizer_state)
         self.update_rngs()
