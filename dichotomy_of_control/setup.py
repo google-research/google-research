@@ -28,7 +28,7 @@ setup(
         'gym==0.17.0',
         'numpy==1.23.4',
         'tensorflow-addons==0.18.0',
-        'tensorflow-gpu==2.10.0',
+        'tensorflow-gpu==2.12.0',
         'tf-agents==0.14.0',
         'transformers==4.23.1',
     ])
