@@ -45,7 +45,7 @@ setup(
         "tensorflow-gpu==2.1.0",
         "matplotlib==2.2.4",
         "scipy==1.2.2",
-        "PyYaml==5.3",
+        "PyYaml==5.4",
         "jupyter==1.0.0",
         "dec_da @ https://github.com/dizcology/DEC-DA/archive/056079d05008da27961ab90cb68c66591ba2187f.zip",
     ],
