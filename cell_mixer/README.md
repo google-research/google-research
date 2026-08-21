@@ -9,7 +9,7 @@ packages:
 pip3 install pandas anndata absl-py
 ```
 
-You will also need to install the following R/Biocinductor packages
+You will also need to install the following R/Bioconductor packages
 
 ```R
 install.packages("devtools")
