@@ -27,7 +27,7 @@ importlib-resources==5.12.0
 jax==0.4.10
 jaxlib==0.4.10
 jestimator==0.3.3
-keras==2.12.0
+keras==2.13.1
 libclang==16.0.0
 libcst==0.4.9
 Markdown==3.4.3
