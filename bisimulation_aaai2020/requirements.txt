@@ -6,5 +6,5 @@ matplotlib
 numpy >= 1.14
 pillow
 pygame
-scipy == 1.1.0
+scipy == 1.11.1
 tensorflow < 2.0
