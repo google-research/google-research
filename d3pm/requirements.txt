@@ -9,7 +9,7 @@ jax==0.3.14
 ml_collections==0.1.1
 numpy==1.23.5
 scipy==1.10.1
-tensorflow==2.8.0
+tensorflow==2.11.1
 tensorflow-datasets==4.9.2
 gin-config==0.5.0
 chex==0.1.6
