@@ -1,0 +1,155 @@
+{
+    "url": {
+        "full": "https://github.com/google-research/google-research",
+        "partial": "google-research/google-research"
+    },
+    "file_mapping": {
+        "0": {
+            "filepath": "/video_structure/README.md",
+            "entry_id": 0,
+            "language_id": "plain-text"
+        },
+        "1": {
+            "filepath": "/video_structure/__init__.py",
+            "entry_id": 6,
+            "language_id": "python"
+        },
+        "2": {
+            "filepath": "/video_structure/datasets.py",
+            "entry_id": 10,
+            "language_id": "python"
+        },
+        "3": {
+            "filepath": "/video_structure/datasets_test.py",
+            "entry_id": 28,
+            "language_id": "python"
+        },
+        "4": {
+            "filepath": "/video_structure/dynamics.py",
+            "entry_id": 40,
+            "language_id": "python"
+        },
+        "5": {
+            "filepath": "/video_structure/dynamics_test.py",
+            "entry_id": 74,
+            "language_id": "python"
+        },
+        "6": {
+            "filepath": "/video_structure/hyperparameters.py",
+            "entry_id": 100,
+            "language_id": "python"
+        },
+        "7": {
+            "filepath": "/video_structure/losses.py",
+            "entry_id": 110,
+            "language_id": "python"
+        },
+        "8": {
+            "filepath": "/video_structure/losses_test.py",
+            "entry_id": 118,
+            "language_id": "python"
+        },
+        "9": {
+            "filepath": "/video_structure/ops.py",
+            "entry_id": 126,
+            "language_id": "python"
+        },
+        "10": {
+            "filepath": "/video_structure/ops_test.py",
+            "entry_id": 140,
+            "language_id": "python"
+        },
+        "11": {
+            "filepath": "/video_structure/requirements.txt",
+            "entry_id": 150,
+            "language_id": "plain-text"
+        },
+        "12": {
+            "filepath": "/video_structure/run.sh",
+            "entry_id": 154,
+            "language_id": "shell"
+        },
+        "13": {
+            "filepath": "/video_structure/train.py",
+            "entry_id": 158,
+            "language_id": "python"
+        },
+        "14": {
+            "filepath": "/video_structure/vision.py",
+            "entry_id": 170,
+            "language_id": "python"
+        },
+        "15": {
+            "filepath": "/video_structure/vision_test.py",
+            "entry_id": 194,
+            "language_id": "python"
+        },
+        "16": {
+            "filepath": "/video_timeline_modeling/README.md",
+            "entry_id": 208,
+            "language_id": "markdown"
+        },
+        "17": {
+            "filepath": "/video_timeline_modeling/requirements.txt",
+            "entry_id": 218,
+            "language_id": "plain-text"
+        },
+        "18": {
+            "filepath": "/video_timeline_modeling/run.sh",
+            "entry_id": 222,
+            "language_id": "shell"
+        },
+        "19": {
+            "filepath": "/video_timeline_modeling/setup.py",
+            "entry_id": 226,
+            "language_id": "python"
+        },
+        "20": {
+            "filepath": "/video_timeline_modeling/vtm/__init__.py",
+            "entry_id": 230,
+            "language_id": "python"
+        },
+        "21": {
+            "filepath": "/video_timeline_modeling/vtm/dataset.py",
+            "entry_id": 234,
+            "language_id": "python"
+        },
+        "22": {
+            "filepath": "/video_timeline_modeling/vtm/eval.py",
+            "entry_id": 252,
+            "language_id": "python"
+        },
+        "23": {
+            "filepath": "/video_timeline_modeling/vtm/main.py",
+            "entry_id": 274,
+            "language_id": "python"
+        },
+        "24": {
+            "filepath": "/video_timeline_modeling/vtm/model/__init__.py",
+            "entry_id": 328,
+            "language_id": "python"
+        },
+        "25": {
+            "filepath": "/video_timeline_modeling/vtm/model/attention_head.py",
+            "entry_id": 332,
+            "language_id": "python"
+        },
+        "26": {
+            "filepath": "/video_timeline_modeling/vtm/model/encoder.py",
+            "entry_id": 340,
+            "language_id": "python"
+        },
+        "27": {
+            "filepath": "/video_timeline_modeling/vtm/model/model.py",
+            "entry_id": 348,
+            "language_id": "python"
+        },
+        "28": {
+            "filepath": "/video_timeline_modeling/vtm/test.py",
+            "entry_id": 366,
+            "language_id": "python"
+        }
+    },
+    "project_name": "google-research",
+    "split_count": 4
+}
