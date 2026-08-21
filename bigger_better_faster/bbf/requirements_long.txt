@@ -98,6 +98,6 @@ typing-extensions==4.2.0
 urllib3==1.26.9
 wandb==0.12.16
 wcwidth==0.2.5
-Werkzeug==2.1.2
+Werkzeug==3.0.1
 wrapt==1.12.1
 zipp==3.8.0
