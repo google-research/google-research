@@ -17,7 +17,7 @@ flax==0.7.2
 frozenlist==1.4.0
 fsspec==2023.10.0
 huggingface-hub==0.19.4
-idna==3.6
+idna==3.7
 importlib-metadata==7.0.0
 importlib-resources==6.1.1
 jax==0.4.13
