@@ -17,7 +17,7 @@ gym==0.23.1
 gym-minigrid==1.0.3
 gym-notices==0.0.6
 h5py==3.7.0
-idna==3.3
+idna==3.7
 importlib-metadata==4.11.4
 keras==2.9.0
 Keras-Preprocessing==1.1.2
