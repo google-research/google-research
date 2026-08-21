@@ -31,7 +31,7 @@ tensorflow-datasets==3.2.1
 tensorflow-estimator==1.15.1
 tensorflow-metadata==1.5.0
 termcolor==1.1.0
-tqdm==4.62.3
+tqdm==4.66.3
 typing-extensions==4.0.1
 urllib3==1.26.7
 Werkzeug==2.0.2
