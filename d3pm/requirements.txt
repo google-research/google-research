@@ -1,5 +1,5 @@
 dill==0.3.6
-Pillow==9.5.0
+Pillow==10.3.0
 protobuf==3.20.*
 absl-py==1.4.0
 clu==0.0.9
