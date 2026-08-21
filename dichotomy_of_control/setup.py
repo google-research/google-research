@@ -30,5 +30,5 @@ setup(
         'tensorflow-addons==0.18.0',
         'tensorflow-gpu==2.10.0',
         'tf-agents==0.14.0',
-        'transformers==4.23.1',
+        'transformers==4.38.0',
     ])
