@@ -1,7 +1,7 @@
 absl-py==1.0.0
 astunparse==1.6.3
 cachetools==5.1.0
-certifi==2022.5.18.1
+certifi==2023.7.22
 charset-normalizer==2.0.12
 cloudpickle==2.1.0
 cycler==0.11.0
