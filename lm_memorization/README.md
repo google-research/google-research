@@ -1,4 +1,4 @@
-#Quantifying Memorization Across Neural Language Models
+# Quantifying Memorization Across Neural Language Models
 
 Large language models (LMs) have been shown to memorize parts of their training data, and when prompted appropriately, they will emit the memorized training data verbatim.
 This is undesirable because memorization violates privacy (exposing user data), degrades utility (repeated easy-to-memorize text is often low quality), and hurts fairness (some texts are memorized over others).
@@ -122,12 +122,10 @@ print(vocab.decode(encoded_sequence))
 
 ## Citation
 ```
-@article{lm-memorization,
+@inproceedings{carlini2022quantifying,
   title={Quantifying Memorization Across Neural Language Models},
-  author={Carlini, Nicholas and Ippolito, Daphne and Jagielski, Matthew and Lee, Katherine and Tram\`er, Florian and Zhang, Chiyuan
-},
-  journal={arXiv:2202.07646},
-  url={https://arxiv.org/abs/2202.07646},
+  author={Carlini, Nicholas and Ippolito, Daphne and Jagielski, Matthew and Lee, Katherine and Tramer, Florian and Zhang, Chiyuan},
+  booktitle={The Eleventh International Conference on Learning Representations},
   year={2022}
 }
 ```
