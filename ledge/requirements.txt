@@ -3,5 +3,5 @@ Keras-Preprocessing==1.1.2
 matplotlib==3.3.3
 numpy==1.19.4
 Pillow==8.0.1
-tensorflow==2.4.0
+tensorflow==2.11.1
 tf-slim==1.1.0
