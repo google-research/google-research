@@ -44,7 +44,7 @@ pandas==1.4.3
 Pillow==9.2.0
 portalocker==2.5.1
 promise==2.3
-protobuf==3.19.4
+protobuf==3.19.5
 psutil==5.9.1
 py-cpuinfo==8.0.0
 pyasn1==0.4.8
