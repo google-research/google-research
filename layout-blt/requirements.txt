@@ -36,7 +36,7 @@ matplotlib==3.4.3
 ml-collections==0.1.0
 msgpack==1.0.2
 numpy==1.19.2
-oauthlib==3.1.1
+oauthlib==3.2.2
 opt-einsum==3.3.0
 optax==0.0.9
 packaging==21.0
