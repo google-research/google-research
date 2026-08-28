@@ -137,7 +137,7 @@ class ISPRS(fids_dataset.FIDSDataset):
     split_dir = self._get_split_dir(split)
 
     if feature_name in ['image', 'image_raw']:
-      # Convert RGB (Potsdam) and IRG (Vaihingen) to RG[(R+B)/2].
+      # Convert RGB (Potsdam) and IRG (Vaihingen) to RG[(R+G)/2].
       img_raw = utils.load_png(f'{split_dir}/top/{curr_id}')
       if feature_name == 'image_raw':
         return img_raw, True
