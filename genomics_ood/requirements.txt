@@ -2,5 +2,5 @@ pyyaml>=5.1
 absl-py>=0.7.1
 scikit-learn
 numpy==1.13.3
-tensorflow==1.10.0
+tensorflow==2.11.1
 
