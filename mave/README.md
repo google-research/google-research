@@ -119,7 +119,7 @@ author = {Yang, Li and Wang, Qifan and Yu, Zac and Kulkarni, Anand and Sanghai, 
 booktitle = {Proceedings of the Fifteenth ACM International Conference on Web Search and Data Mining},
 year = {2022},
 pages = {1256–1265},
-series = {WSDM '22}
+series = {WSDM '22},
 url = {https://doi.org/10.1145/3488560.3498377},
 doi = {10.1145/3488560.3498377},
 }
