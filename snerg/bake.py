@@ -259,6 +259,13 @@ def main(unused_argv):
     post_psnr, post_ssim = post_image_metrics[0], post_image_metrics[1]
     gc.collect()
 
+    # Export the backed scene raw data
+    export.export_snerg_scene_raw(out_dir, atlas_t.numpy(),
+                              atlas_block_indices_t.numpy(),
+                              refined_viewdir_mlp_params, render_params,
+                              atlas_params, scene_params, test_dataset.h,
+                              test_dataset.w, test_dataset.focal)
+
     # Export the baked scene so we can view it in the web-viewer.
     export.export_snerg_scene(out_dir, atlas_t.numpy(),
                               atlas_block_indices_t.numpy(),

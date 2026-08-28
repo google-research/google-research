@@ -48,7 +48,7 @@ pip install -r requirements.txt
 [Optional] Install GPU and TPU support for Jax
 ```
 # Remember to change cuda101 to your CUDA version, e.g. cuda110 for CUDA 11.0.
-pip install --upgrade jax jaxlib==0.1.69+cuda101 -f https://storage.googleapis.com/jax-releases/jax_releases.html
+pip install --upgrade jax jaxlib==0.1.69+cuda101 -f https://storage.googleapis.com/jax-releases/jax_cuda_releases.html
 ```
 
 You can now test that everything installed correctly by training for a few

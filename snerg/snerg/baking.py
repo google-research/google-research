@@ -85,7 +85,7 @@ def render_voxel_block(mlp_model, mlp_params, block_coordinates_world,
       (actual_num_rays + batch_size - 1) // batch_size)
 
   origins = block_coordinates_world.reshape((-1, 3)).copy()
-  origins.resize((rounded_num_rays, 3))
+  origins.resize((rounded_num_rays, 3), refcheck=False)
   origins = origins.reshape((-1, num_devices, batch_size // num_devices, 3))
 
   rgb_and_features = np.zeros(
