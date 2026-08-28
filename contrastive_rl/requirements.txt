@@ -49,7 +49,7 @@ Keras-Preprocessing==1.1.2
 kiwisolver==1.4.2
 labmaze==1.0.5
 libclang==14.0.1
-lxml==4.9.0
+lxml==4.9.1
 Mako==1.2.0
 Markdown==3.3.7
 MarkupSafe==2.1.1
