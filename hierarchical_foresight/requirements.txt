@@ -49,7 +49,7 @@ opencv-python==4.1.0.25
 Pillow==6.1.0
 pkg-resources==0.0.0
 promise==2.2.1
-protobuf==3.9.0
+protobuf==3.18.3
 psutil==5.6.3
 pyasn1==0.4.5
 pyasn1-modules==0.2.5
