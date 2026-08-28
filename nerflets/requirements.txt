@@ -8,7 +8,7 @@ matplotlib==3.5.0
 imageio==2.10.4
 imageio-ffmpeg==0.4.5
 torch_optimizer==0.3.0
-setuptools==58.2.0
+setuptools==65.5.1
 configargparse==1.5.3
 
 # for mesh
