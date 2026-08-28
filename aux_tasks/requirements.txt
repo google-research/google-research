@@ -3,7 +3,7 @@ ale-py==0.7.5
 astunparse==1.6.3
 cached-property==1.5.2
 cachetools==5.2.0
-certifi==2022.5.18.1
+certifi==2023.7.22
 charset-normalizer==2.0.12
 chex==0.1.3
 cloudpickle==2.1.0
