@@ -2,7 +2,7 @@ absl-py==0.9.0
 astor==0.8.1
 atari-py==0.2.6
 cachetools==4.0.0
-certifi==2019.11.28
+certifi==2023.7.22
 cffi==1.14.0
 chardet==3.0.4
 Click==7.0
