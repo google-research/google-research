@@ -51,7 +51,7 @@ To run evaluation on real raw photographs outside of Darmstadt and HDR+ datasets
 
 Shot and read noise levels are sometimes included in image metadata, and may go by different names, so we recommend refering to the specification for your camera's metadata. The shot noise level is a measurement of how much variance is proportional to the input signal, and the read noise level is a measurement of how much variance is independent of the image. We calculate an approximation of variance using the input noisy image as `variance = shot_noise * noisy_img + read_noise`, and pass it as an additional input both during training and evaluation.
 
-If shot and read noise levels are not provided in your camera's metadata, it is possible to empirically measure these noise levels by calibrating your sensor or inferring from a single image. Here is a great overview of [shot and read noise](http://people.csail.mit.edu/hasinoff/pubs/hasinoff-photon-2012-preprint.pdf), and here is an example [noise calibration script](https://android.googlesource.com/platform/cts/+/master/apps/CameraITS/tests/dng_noise_model/dng_noise_model.py).
+If shot and read noise levels are not provided in your camera's metadata, it is possible to empirically measure these noise levels by calibrating your sensor or inferring from a single image. Here is a great overview of [shot and read noise](http://people.csail.mit.edu/hasinoff/pubs/hasinoff-photon-2012-preprint.pdf), and here is an example [noise calibration script](https://android.googlesource.com/platform/cts/+/806b430/apps/CameraITS/tests/dng_noise_model/dng_noise_model.py).
 
 ## Unprocessing Images in Other Training Pipelines
 
