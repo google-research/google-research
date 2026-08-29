@@ -77,7 +77,8 @@ def convert_video(video_file_path, output_folder):
 
 
 def main(unused_argv):
-  convert_video(FLAGS.video_file, FLAGS.output_folder)
+    convert_video(FLAGS.video_path, FLAGS.output_path)
+
 
 
 if __name__ == '__main__':
