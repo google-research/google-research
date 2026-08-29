@@ -23,6 +23,8 @@ import time
 
 from data_loader import TSFDataLoader
 import models
+import models.cnn
+import models.full_linear
 import numpy as np
 import pandas as pd
 import tensorflow as tf
@@ -44,7 +46,8 @@ def parse_args():
       '--model',
       type=str,
       default='tsmixer',
-      help='model name, options: [tsmixer, tsmixer_rev_in]',
+      help='model name',
+      choices=("tsmixer", "tsmixer_rev_in", "cnn", "full_linear")
   )
 
   # data loader
@@ -272,7 +275,7 @@ def main():
       'n_block': args.n_block,
       'dropout': args.dropout,
   }
-  if 'TSMixer' in args.model:
+  if 'tsmixer' in args.model:
     data['ff_dim'] = args.ff_dim
 
   df = pd.DataFrame(data)
