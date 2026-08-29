@@ -200,8 +200,8 @@ class LayoutDataset:
     self.offset_center_x = self.offset_class + self.number_classes
     self.offset_center_y = self.offset_center_x + self.resolution_w
 
-    self.offset_width = self.offset_center_y + self.resolution_w
-    self.offset_height = self.offset_width + self.resolution_h
+    self.offset_width = self.offset_center_y + self.resolution_h
+    self.offset_height = self.offset_width + self.resolution_w
     self.limit = limit
     self.shuffle = shuffle
 
