@@ -25,39 +25,46 @@ from models import tft_saf
 import tensorflow as tf
 
 
-def get_model_type(model_type, chosen_hparams,
-                   loss_form):
-  """Return a forecast model based on the type."""
-  if loss_form == "MAE":
-    training_loss_object = tf.keras.losses.MeanAbsoluteError(
-        name="training_loss")
-    self_supervised_loss_object = tf.keras.losses.MeanAbsoluteError(
-        name="self_supervised_loss")
-  elif loss_form == "MSE":
-    training_loss_object = tf.keras.losses.MeanSquaredError(
-        name="training_loss")
-    self_supervised_loss_object = tf.keras.losses.MeanSquaredError(
-        name="self_supervised_loss")
-  else:
-    raise Exception("The loss type is not supported")
+def get_model_type(model_type, chosen_hparams, loss_form):
+    """Return a forecast model based on the type."""
+    if loss_form == "MAE":
+        training_loss_object = tf.keras.losses.MeanAbsoluteError(
+            name="training_loss"
+        )
+        self_supervised_loss_object = tf.keras.losses.MeanAbsoluteError(
+            name="self_supervised_loss"
+        )
+    elif loss_form == "MSE":
+        training_loss_object = tf.keras.losses.MeanSquaredError(
+            name="training_loss"
+        )
+        self_supervised_loss_object = tf.keras.losses.MeanSquaredError(
+            name="self_supervised_loss"
+        )
+    else:
+        raise Exception("The loss type is not supported")
 
-  if model_type == "lstm_seq2seq":
-    model = lstm_seq2seq.ForecastModel(
-        loss_object=training_loss_object, hparams=chosen_hparams)
-  elif model_type == "lstm_seq2seq_saf":
-    model = lstm_seq2seq_saf.ForecastModel(
-        loss_object=training_loss_object,
-        self_supervised_loss_object=self_supervised_loss_object,
-        hparams=chosen_hparams)
-  elif model_type == "tft":
-    model = tft.ForecastModel(
-        loss_object=training_loss_object, hparams=chosen_hparams)
-  elif model_type == "tft_saf":
-    model = tft_saf.ForecastModel(
-        loss_object=training_loss_object,
-        self_supervised_loss_object=self_supervised_loss_object,
-        hparams=chosen_hparams)
-  else:
-    raise Exception("The chosen model is not supported")
+    if model_type == "lstm_seq2seq":
+        model = lstm_seq2seq.ForecastModel(
+            loss_object=training_loss_object, hparams=chosen_hparams
+        )
+    elif model_type == "lstm_seq2seq_saf":
+        model = lstm_seq2seq_saf.ForecastModel(
+            loss_object=training_loss_object,
+            self_supervised_loss_object=self_supervised_loss_object,
+            hparams=chosen_hparams,
+        )
+    elif model_type == "tft":
+        model = tft.ForecastModel(
+            loss_object=training_loss_object, hparams=chosen_hparams
+        )
+    elif model_type == "tft_saf":
+        model = tft_saf.ForecastModel(
+            loss_object=training_loss_object,
+            self_supervised_loss_object=self_supervised_loss_object,
+            hparams=chosen_hparams,
+        )
+    else:
+        raise Exception("The chosen model is not supported")
 
-  return model
+    return model
