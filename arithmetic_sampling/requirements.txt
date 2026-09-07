@@ -47,7 +47,7 @@ packaging==23.1
 promise==2.3
 protobuf==3.20.3
 psutil==5.9.5
-pyasn1==0.5.0
+pyasn1==0.6.3
 pyasn1-modules==0.3.0
 pyglove==0.3.0
 Pygments==2.15.1
