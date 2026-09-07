@@ -100,7 +100,7 @@ matplotlib==3.8.2
 matplotlib-inline==0.1.6
 mdurl==0.1.2
 mesh-tensorflow==0.1.21
-mistune==3.0.2
+mistune==3.2.1
 ml-collections==0.1.1
 ml-dtypes==0.2.0
 model-pruning-google-research==0.0.5
