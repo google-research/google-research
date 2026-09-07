@@ -39,6 +39,7 @@ cc_library(
     hdrs = ["scann_cpu_info.h"],
     deps = [
         "@com_google_absl//absl/base",
+        "@com_google_absl//absl/log:check",
     ],
 )
 
