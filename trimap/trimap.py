@@ -444,10 +444,10 @@ def transform(key,
         pca_solution = True
         if verbose:
           logging.info('applied PCA')
-        else:
-          inputs -= np.min(inputs)
-          inputs /= np.max(inputs)
-          inputs -= np.mean(inputs, axis=0)
+      else:
+        inputs -= np.min(inputs)
+        inputs /= np.max(inputs)
+        inputs -= np.mean(inputs, axis=0)
     key, use_key = random.split(key)
     triplets, weights = generate_triplets(
         key,
