@@ -155,7 +155,7 @@ pyrtools==1.0.2
 pysdf==0.1.8
 PySocks @ file:///home/conda/feedstock_root/build_artifacts/pysocks_1661604839144/work
 pysrt==1.1.2
-pytest==7.3.2
+pytest==9.0.3
 python-dateutil==2.8.2
 pytz==2023.3
 pyu2f @ file:///home/conda/feedstock_root/build_artifacts/pyu2f_1604248910016/work
