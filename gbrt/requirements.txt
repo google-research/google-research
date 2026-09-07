@@ -92,7 +92,7 @@ kiwisolver==1.4.5
 libclang==16.0.6
 libcst==1.1.0
 lingvo==0.12.7
-lxml==4.9.3
+lxml==6.1.0
 Markdown==3.5.1
 markdown-it-py==3.0.0
 MarkupSafe==2.1.3
