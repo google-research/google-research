@@ -35,8 +35,8 @@ class Simd;
 template <typename T, size_t kTensorNumElements0, size_t... kTensorNumElements>
 using SimdFor = Simd<T, kTensorNumElements0, kTensorNumElements...>;
 
-struct Zeros {};
-struct Uninitialized {};
+struct FallbackZeros {};
+struct FallbackUninitialized {};
 
 SCANN_INLINE string_view SimdName() { return "<Non-x86 Fallback>"; }
 SCANN_INLINE bool RuntimeSupportsSimd() { return true; }
@@ -73,10 +73,10 @@ class Simd<T, kNumElementsArg> {
   using IntelType = FakeIntelType<T>;
   static_assert(sizeof(IntelType) == kRegisterBytes);
 
-  Simd(Uninitialized) {}
-  Simd() : Simd(Uninitialized()) {}
+  Simd(FallbackUninitialized) {}
+  Simd() : Simd(FallbackUninitialized()) {}
 
-  SCANN_INLINE Simd(Zeros) { Clear(); }
+  SCANN_INLINE Simd(FallbackZeros) { Clear(); }
 
   SCANN_INLINE Simd(IntelType val) {
     static_assert(kNumElements == 1);
@@ -99,7 +99,7 @@ class Simd<T, kNumElementsArg> {
     }
   }
 
-  SCANN_INLINE Simd& operator=(Zeros val) {
+  SCANN_INLINE Simd& operator=(FallbackZeros val) {
     Clear();
     return *this;
   }
@@ -521,12 +521,12 @@ class Simd {
  public:
   using SimdSubArray = Simd<T, kTensorNumRegisters...>;
 
-  Simd(Uninitialized) {}
-  Simd() : Simd(Uninitialized()) {}
+  Simd(FallbackUninitialized) {}
+  Simd() : Simd(FallbackUninitialized()) {}
 
-  SCANN_INLINE Simd(Zeros) {
+  SCANN_INLINE Simd(FallbackZeros) {
     for (size_t j : Seq(kTensorNumRegisters0)) {
-      tensor_[j] = Zeros();
+      tensor_[j] = FallbackZeros();
     }
   }
 
@@ -561,6 +561,9 @@ class Simd {
  private:
   SimdSubArray tensor_[kTensorNumRegisters0];
 };
+
+using Zeros = FallbackZeros;
+using Uninitialized = FallbackUninitialized;
 
 }  // namespace fallback
 
