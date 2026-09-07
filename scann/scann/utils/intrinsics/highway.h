@@ -534,25 +534,22 @@ class Simd<T, kNumRegistersInferred> {
   }
 
   SCANN_INLINE static auto BitsFromMask(HwyType vec) {
-    constexpr size_t kLanes = hn::Lanes(hn::ScalableTag<T>());
+    const hn::ScalableTag<T> tag;
+    constexpr size_t kLanes = hn::Lanes(tag);
     static_assert(kLanes <= 64,
                   "BitsFromMask is not implemented for >64 lanes SIMD.");
 
-    constexpr bool kCanUseBitsFromMask = (HWY_TARGET == HWY_SSE4) ||
-                                         (HWY_TARGET == HWY_AVX2) ||
-                                         (HWY_TARGET_IS_NEON);
+    constexpr bool kCanUseBitsFromMask = HWY_MAX_BYTES <= 64;
     if constexpr (kCanUseBitsFromMask) {
       using ResultT = std::conditional_t<kLanes <= 32, uint32_t, uint64_t>;
-      return static_cast<ResultT>(
-          hn::detail::BitsFromMask(hn::MaskFromVec(vec)));
+      return static_cast<ResultT>(hn::BitsFromMask(tag, hn::MaskFromVec(vec)));
     } else {
-      constexpr size_t kExpectedBytesWritten =
-          (hn::Lanes(hn::ScalableTag<T>()) + 7) / 8;
+      constexpr size_t kExpectedBytesWritten = (hn::Lanes(tag) + 7) / 8;
       using ResultT =
           std::conditional_t<kExpectedBytesWritten <= 4, uint32_t, uint64_t>;
       uint8_t mask_bits[8];
-      const size_t bytes_written = hn::StoreMaskBits(
-          hn::ScalableTag<T>(), hn::MaskFromVec(vec), mask_bits);
+      const size_t bytes_written =
+          hn::StoreMaskBits(tag, hn::MaskFromVec(vec), mask_bits);
       DCHECK_EQ(bytes_written, kExpectedBytesWritten);
       ResultT result = 0;
       for (uint8_t i = 0; i < kExpectedBytesWritten; ++i) {
