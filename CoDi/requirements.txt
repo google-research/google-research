@@ -54,7 +54,7 @@ pandas==2.0.3
 Pillow==10.1.0
 pyarrow==14.0.1
 pyarrow-hotfix==0.6
-Pygments==2.17.2
+Pygments==2.20.0
 python-dateutil==2.8.2
 pytz==2023.3.post1
 PyYAML==6.0.1
