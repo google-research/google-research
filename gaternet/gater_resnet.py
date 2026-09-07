@@ -64,7 +64,7 @@ class BasicBlock(nn.Module):
     self.bn2 = nn.BatchNorm2d(out_channels)
 
     self.shortcut = nn.Sequential()
-    if in_channels != out_channels:
+    if in_channels != out_channels or stride != 1:
       self.shortcut.add_module(
           'conv',
           nn.Conv2d(
