@@ -17,7 +17,7 @@
 
 import math
 from typing import Tuple
-from continual_learning_rishabh.utils.select_subset import select_subset
+from gradient_coresets_replay.utils.select_subset import select_subset
 import numpy as np
 import torch
 from torchvision import transforms
