@@ -51,7 +51,7 @@ labmaze==1.0.5
 libclang==14.0.1
 lxml==4.9.0
 Mako==1.2.0
-Markdown==3.3.7
+Markdown==3.8.1
 MarkupSafe==2.1.1
 matplotlib==3.5.2
 mjrl @ git+https://github.com/aravindr93/mjrl@3871d93763d3b49c4741e6daeaebbc605fe140dc
