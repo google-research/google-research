@@ -264,7 +264,7 @@ def _load_dft_df_and_geometries(path, property_df):
           # ignore pymatgen warnings on He electronegativity
           with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            mol = xyz.XYZ.from_string(xyz_string).molecule
+            mol = xyz.XYZ.from_str(xyz_string).molecule
             num_electrons = mol.composition.total_electrons
             symbols = mol.composition.formula.replace(' ', '')
 
