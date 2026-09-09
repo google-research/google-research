@@ -1,0 +1,22 @@
+# ==============================================================================
+# exclusion_firms.txt
+# ------------------------------------------------------------------------------
+# List specific firms to exclude from all data sources (including usage data),
+# one firm entry per line.
+#
+# Format & Rules:
+#   - 1 firm identifier per line.
+#   - Supported identifier formats:
+#       * Anonymized firm name (e.g. 'Firm 1', 'Firm 12')
+#       * Anonymized firm number (e.g. '1', '12')
+#   - Blank lines and lines starting with '#' are ignored.
+#   - Matching is case-insensitive.
+#
+# To activate, set EXCLUDE_FIRMS = True in config.py.
+# ==============================================================================
+
+# Example:
+# Firm 1
+# 12
+
+Firm 1
