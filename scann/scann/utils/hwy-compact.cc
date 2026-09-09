@@ -31,11 +31,14 @@ namespace research_scann {
 
 constexpr size_t kNumLanes = 8;
 
-template <typename V>
-SCANN_INLINE HWY_ATTR void DCompressStore(
-    hwy::N_AVX2::Vec256<V> val_v, uint64_t mask_bits,
-    hwy::N_AVX2::Simd<V, kNumLanes, 0> tag, V* HWY_RESTRICT dst_unaligned) {
-  StoreU(hwy::N_AVX2::detail::Compress(val_v, mask_bits), tag, dst_unaligned);
+namespace hn = hwy::N_AVX2;
+
+template <typename T>
+SCANN_INLINE HWY_ATTR void DCompressStore(hn::Vec256<T> val_v,
+                                          uint8_t* mask_bits,
+                                          hn::Simd<T, kNumLanes, 0> tag,
+                                          T* HWY_RESTRICT dst_unaligned) {
+  StoreU(hn::CompressBits(val_v, mask_bits), tag, dst_unaligned);
 }
 
 SCANN_OUTLINE HWY_ATTR size_t HwyCompact(uint32_t* indices, float* values,
@@ -46,14 +49,15 @@ SCANN_OUTLINE HWY_ATTR size_t HwyCompact(uint32_t* indices, float* values,
   DCHECK_EQ(Lanes(indices_v), kNumLanes);
   DCHECK_EQ(Lanes(values_v), kNumLanes);
 
+  uint8_t mask_bits[8] = {};
+
   size_t write_idx = 0;
   for (size_t mask_idx : Seq(n_masks)) {
     const uint8_t* mask = reinterpret_cast<const uint8_t*>(&masks[mask_idx]);
     for (size_t i = 0; i < 32; i += kNumLanes) {
       const size_t read_idx = mask_idx * 32 + i;
-
-      uint64_t mask_bits = 0;
-      hwy::CopyBytes<1>(mask + i / 8, &mask_bits);
+      static_assert(kNumLanes == 8);
+      mask_bits[0] = mask[i / 8];
 
       DCompressStore(LoadU(indices_v, indices + read_idx), mask_bits, indices_v,
                      indices + write_idx);
