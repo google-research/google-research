@@ -27,6 +27,9 @@ import langdetect
 from instruction_following_eval import instructions_util
 
 
+langdetect.DetectorFactory.seed = 0
+
+
 _InstructionArgsDtype = Optional[Dict[str, Union[int, str, Sequence[str]]]]
 
 _LANGUAGES = instructions_util.LANGUAGE_CODES
@@ -1334,20 +1337,19 @@ class LetterFrequencyChecker(Instruction):
     Returns:
       A string representing the instruction description.
     """
-    if (
-        not letter
-        or len(letter) > 1
-        or ord(letter.lower()) < 97
-        or ord(letter.lower()) > 122
-    ):
+    if letter is None:
       self._letter = random.choice(list(string.ascii_letters))
     else:
       self._letter = letter.strip()
+      if len(self._letter) != 1:
+        raise ValueError('letter must be a single non-whitespace character.')
     self._letter = self._letter.lower()
 
     self._frequency = let_frequency
-    if self._frequency is None or self._frequency < 0:
+    if self._frequency is None:
       self._frequency = random.randint(1, _LETTER_FREQUENCY)
+    elif self._frequency < 0:
+      raise ValueError('let_frequency must be non-negative.')
 
     if let_relation is None:
       self._comparison_relation = random.choice(_COMPARISON_RELATION)
