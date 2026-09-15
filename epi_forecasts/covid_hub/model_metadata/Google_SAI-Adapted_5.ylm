@@ -1,0 +1,32 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_5
+paper_model_name: "*G-CADPH-CovidCAT_Ensemble"
+
+in_google_sai_ensemble: true
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: CADPH-CovidCAT_Ensemble
+original_team_citation: "White, L. & Leon, T. M. California Department of Public Health"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CADPH-CovidCAT_Ensemble.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  # Adapted from CADPH CovidCAT Ensemble description. 
+  # Source: https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CADPH-CovidCAT_Ensemble.yml
+  
+  A multi-method ensemble that aggregates forecasts from linear autoregressive processes, exponential smoothing, and machine learning regressors trained on multiple surveillance data streams.
+  
+  1. Data Stream Processing: Ingest and clean historical time series from three distinct sources: Clinical Laboratory data, Public Health Laboratory data, and Hospitalization census.
+  2. Time-Series Modeling: For each data stream, fit an Autoregressive Integrated Moving Average (ARIMA) process to capture stochastic trends and an Exponential Smoothing (ETS) state-space model to capture error, trend, and seasonality components.
+  3. Feature Construction: Create a feature matrix for predictive modeling containing current values, lagged observations, and interaction terms between the different surveillance streams.
+  4. Predictive Modeling: Train a Linear Regression model to map features to future hospitalizations using linear coefficients. Simultaneously, train an ensemble of decision trees (Random Forest) to capture non-linear dependencies and feature interactions.
+  5. Ensemble Aggregation: Align the forecast trajectories from all component models (ARIMA, ETS, Linear, Tree Ensemble) on a temporal grid.
+  6. Consensus Generation: Compute the central tendency (median) of the predictions at each time step to produce the final point forecast and derive quantiles from the ensemble distribution.

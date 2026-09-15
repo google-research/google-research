@@ -1,5 +1,35 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_2
-model_abbr: Adapted_2
-methods: "This is an attempt to replicate PSI_PROF model."
+model_id: Google_SAI-Adapted_2
+paper_model_name: G-PSI_PROF
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: PSI_PROF
+original_team_citation: "Ben-Nun, M., Riley, P., Turtle, J. & Riley, S. Consistent pattern of epidemic slowing across many geographies led to longer, flatter initial waves of the COVID-19 pandemic. PLoS Comput. Biol. 18, e1010375 (2022)."
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/PSI-PROF.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_2.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  The PROF routines perform a deterministic fit of our compartmental SIR[H]2 model to daily hospitalization incidence profiles.
+  The model includes a hospitalization compartment which is split into two sub-compartments.
+  This split ensures that the model preserves the correct generation time (Tg) and that the ratio between cumulative recovered and hospitalized individuals is determined by the infection-hospitalization-ratio.
+  The transmission-rate coefficient (beta) is a time-dependent function of 2 or more arc-tangents.
+  The model fit is inferred by an MCMC procedure. It is followed by stochastic simulations through the forecast time-window using the inferred parameter distributions and a daily cadence which is then aggregated to weekly incidence to produce the forecasts.
+  Where there is little-to-no epi signal in the data, a baseline statistical model is substituted for the mechanistic model.
+  This model is similar to the previous model 'PSI-DICE', but in an updated computational framework (https://github.com/predsci/PROF).
+  
+  1. Ingest publicly-available daily confirmed hospital admission incidence data for the target location.
+  2. Fit a compartmental SIR[H]2 model to the hospitalization data. The hospitalization compartment is split into two sub-compartments to maintain correct generation times.
+  3. Define the transmission rate (beta) within the model as a flexible, time-dependent function composed of two or more arc-tangents.
+  4. Use a Markov Chain Monte Carlo (MCMC) procedure to infer the joint posterior distribution of the model parameters, including those defining the time-varying transmission rate.
+  5. If there is a sufficient epidemiological signal in the data, generate ensemble forecast trajectories by running stochastic simulations of the compartmental model forward over the forecast time window, sampling parameters from the inferred posterior distributions. Daily simulations are aggregated to weekly incidence.
+  6. If there is little-to-no epidemiological signal in the recent data, substitute a baseline statistical model for the mechanistic model to generate forecasts.

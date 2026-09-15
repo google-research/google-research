@@ -1,0 +1,28 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_10
+paper_model_name: G-CMU-TimeSeries
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: CMU-TimeSeries
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CMU-TimeSeries.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A CDF-space-averaged ensemble combining a population-normalized autoregressive model, a covariate-assisted quantile regression model, and a regime-switching forecaster based on epidemic direction.
+  
+  1. Component 1 (Point AR): Normalize hospitalization data by population. Fit an autoregressive model on a rolling 28-day window. Generate distributions by resampling from studentized residuals of the fit.
+  2. Component 2 (Quantile Regression): Construct a feature set using lagged hospitalization counts and confirmed case counts. Train separate linear quantile regression models for each target quantile (\tau \in {0.025,..., 0.975}) on a 28-day count-scale window. Apply post-hoc sorting to ensure quantile monotonicity.
+  3. Component 3 (Directional Stratification): Calculate trend metrics to classify the epidemic trajectory into discrete states (e.g., "up", "steady", "down"). Select a pre-trained quantile regression model specific to the identified directional class to generate conditional forecasts.
+  4. Ensemble Integration: Convert the output quantiles of all three components into Cumulative Distribution Functions (CDFs).
+  5. Probabilistic Averaging: Compute the arithmetic mean of the probabilities across the CDFs (linear pooling). Invert the averaged CDF to extract the final submission quantiles.

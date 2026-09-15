@@ -1,11 +1,11 @@
 # Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_id: Google_SAI-Adapted_7
-paper_model_name: G-UMass-gbqr
+model_id: Google_SAI-Adapted_4
+paper_model_name: "*G-UMass-gbqr"
 
-in_google_sai_ensemble: false
-prompt_category: covid_hub
+in_google_sai_ensemble: true
+prompt_category: covidhub
 
 # Attribution & References
 replicated_model_name: UMass-gbqr
@@ -13,7 +13,7 @@ original_team_citation: "Ray, E. UMass Amherst. https://github.com/reichlab/idmo
 original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UMass-gbqr.yml"
 
 # Code Location & Summary
-code_filepath: flu_hub/model_py/Google_SAI-Adapted_7.py
+code_filepath: 
 methods: >
   ERA-generated model given the provided prompt
 
@@ -26,5 +26,3 @@ prompt: |
   3. Ensemble Training: Initialize a Gradient Boosting regressor (e.g., LightGBM) with the 'quantile' objective. Train separate estimators for each required quantile by minimizing the Pinball Loss.
   4. Prediction: Generate transformed quantile forecasts for the horizon.
   5. Inverse Transformation: Raise predicted values to the fourth power to return to the natural count scale.
-
-  

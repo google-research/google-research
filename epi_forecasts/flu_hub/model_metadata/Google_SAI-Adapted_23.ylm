@@ -1,0 +1,42 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_23
+paper_model_name: G-LANL_DBM_v3
+
+in_google_sai_ensemble: true
+prompt_category: literature
+
+# Attribution & References
+replicated_model_name: LANL_DBM
+original_team_citation: "Osthus D., Gattiker J. R., Priedhorsky R., Del Valle S. Y. Dynamic Bayesian Influenza Forecasting in the United States with Hierarchical Discrepancy. Bayesian Analysis. 2019 Mar;14(1):261-312. doi: 10.1214/18-BA1117."
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_23.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A hierarchical Bayesian model for forecasting weekly influenza-like illness proportions.
+  It combines a mechanistic Susceptible-Infectious-Recovered (SIR) model with two discrepancy terms to improve predictions, operating on the logit scale of the true unobserved proportion of illness.
+  The model assumes the observed proportion follows a Beta distribution.
+  The logit of the true proportion is the sum of the logit of the infectious proportion from the SIR model, a common discrepancy term across seasons, and a season-specific discrepancy term.
+  The common discrepancy is modeled as a reverse random walk.
+  The season-specific discrepancy is modeled as an autoregressive reverse random walk, constrained at the final time point, with parameters shared hierarchically across seasons.
+  Priors for the SIR model parameters are also informed by previous seasons.
+  
+  1. Model the observed weekly weighted influenza-like illness proportion for season j and week t, yj,t, using a Beta distribution: yj,t ~ Beta(\lambda \pi j,t, \lambda (1 - \pi j,t)), where \pi j,t is the true unobservable proportion and \lambda is a pre-set concentration parameter.
+  2. Model the logit of the true proportion as the sum of three components: logit(\pi j,t) = logit(Ij,t) + \mu t + \delta j,t.
+  3. Ij,t is the infectious proportion from a standard SIR model, solved numerically using the fourth-order Runge-Kutta method. The initial susceptible proportion Sj,0 is fixed at 0.9. Empirical Bayes priors are used for the SIR parameters Ij,0, \beta j, and \rho j = \gamma j / \beta j, based on fits from other seasons, with appropriate truncations.
+  4. The common discrepancy term \mu t is modeled as a reverse random walk:
+      * \mu T ~ N(0, \sigma^2 \mu T)
+      * \mu t | \mu t+1 ~ N(\mu t+1, \sigma^2 \mu) for t = T-1, ..., 1.
+      * Gamma priors are placed on the precisions \sigma^-2 \mu T and \sigma^-2 \mu.
+  5. The season-specific discrepancy term \delta j,t is constrained at \delta j,T = -logit(Ij,T) and follows an autoregressive reverse random walk:
+      * \delta j,t | \delta j,t+1 ~ N(\alpha j \delta j,t+1, \sigma^2 \delta,j) for t = T-1, ..., 1.
+  6. The autoregressive parameters \alpha j are modeled hierarchically: logit(\alpha j) ~ TN(logit(0.02), logit(0.98))(logit(0.9), \sigma^2 \alpha), with a Gamma prior on \sigma^-2 \alpha.
+  7. The season-specific discrepancy precisions \sigma^-2 \delta,j are modeled hierarchically: \sigma^-2 \delta,j ~ Gamma(a\delta, b\delta), with Gamma hyperpriors on a\delta and b\delta.
+  8. Use Markov Chain Monte Carlo (MCMC) to sample from the posterior distributions of the parameters and generate forecasts.
+  
+  The execution environment enables probabilistic programming frameworks including PyMC and PyStan for hierarchical Bayesian modeling and MCMC sampling of the posterior distributions.

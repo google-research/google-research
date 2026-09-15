@@ -1,0 +1,30 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Novel_1
+paper_model_name: "*G-DeepResearch_RegimeSwitchingDetection"
+
+in_google_sai_ensemble: true
+prompt_category: deep_research
+
+# Code Location & Summary
+code_filepath: covid_hub/model_py/Google_SAI-Novel_1.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  Implement an automated regime-switching detection and response system.
+  
+  Detection Module:
+  Apply a Bayesian Change Point (BCP) detection algorithm continuously to a sliding window of key indicator time series (e.g., hospitalization growth rate, wastewater momentum).
+  
+  Trigger Mechanism:
+  If the BCP algorithm identifies a change point with a posterior probability exceeding a predefined threshold (e.g., 0.95), an automated 'regime switch' alert must be triggered.
+  
+  Response Protocol:
+  This alert must programmatically initiate a cascade of four actions:
+  1. force immediate retraining of core predictive models;
+  2. apply a temporal decay weight to the loss function during retraining to down-weight pre-switch data;
+  3. signal the meta-ensemble to adjust weights;
+  4. apply a multiplicative factor to widen final prediction intervals.

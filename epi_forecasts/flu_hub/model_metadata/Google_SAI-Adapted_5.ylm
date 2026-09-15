@@ -1,5 +1,52 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_5
-model_abbr: Adapted_5
-methods: "This is an attempt to replicate UGuelph_CompositeCurve model."
+model_id: Google_SAI-Adapted_5
+paper_model_name: G-UGuelph_CompositeCurve
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: UGuelph_CompositeCurve
+original_team_citation: "Thomas, E. et al. University of Guelph Dynamics Training Lab. https://sites.google.com/site/mgcojocarumath/networks-and-dynamics-lab"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UGuelph-CompositeCurve.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_5.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  We produce a peak-aligned composite curve epidemic curves across past seasons and regions, normalizing the season for percent of cases each week, and then taking the median percentage across the resulting curves for each number of weeks from the peak, following the approach of Schanzer et al., Influenza and Other Respiratory Viruses 2010.
+  Then, for each state, we compute the normalized case count for the preceding four weeks, and compare against the normalized four week windows of the composite curve, following the approach of Morel et al. PLOS Computational Biology, 2023.
+  sample_method: "Each window along the curve is weighted based on its distance from the most recent window and these weights are used to select 100 windows (allowing repetition) along the curve.
+  These windows are used to produce the 100 sample trajectories by applying the subsequent scaling factors to the observed data."
+  
+  1. Construct Composite Curve:
+      a. Collect historical weekly disease incidence data for multiple past seasons and regions.
+      b. For each historical season/region, identify the week of peak incidence.
+      c. Normalize each season's curve by calculating the percentage of the total seasonal incidence that occurred in each week.
+      d. Align all the normalized seasonal curves based on their week of peak incidence (week 0 at the peak).
+      e. For each week relative to the peak (-n to +m weeks), calculate the median percentage across all aligned historical curves. This sequence of median percentages forms the "peak-aligned composite curve," representing a typical season's shape.
+  
+  2. Prepare Current State Data:
+      a. Obtain the most recent four weeks of observed disease incidence data for the target state.
+      b. This four-week window of data is used for comparison.
+  
+  3. Compare and Weight Potential Futures:
+      a. Create sliding four-week windows along the entire length of the composite curve.
+      b. Compare the pattern (shape and relative changes) of the state's most recent four-week data window to each four-week window from the composite curve. The comparison method assesses the similarity, potentially accounting for differences in scale and minor temporal shifts, inspired by time-warping approaches.
+      c. Calculate a weight for each window on the composite curve based on its similarity to the state's current four-week window. Higher similarity results in a higher weight. The weight is inversely related to the "distance" between the windows.
+  
+  4. Sample Future Trajectories:
+      a. Based on the weights calculated in step 3c, select 100 four-week windows from the composite curve. This selection is done probabilistically, where windows with higher weights are more likely to be chosen (sampling with replacement).
+      b. Each selected window represents a potential "current stage" of the epidemic within the typical season defined by the composite curve.
+  
+  5. Generate Forecasts:
+      a. For each of the 100 sampled windows:
+          i. Determine a scaling factor. This factor adjusts the magnitude of the composite curve's projections to match the level of the state's currently observed incidence data. It's derived from the ratio between the state's recent data and the corresponding values in the selected composite curve window.
+          ii. Project future weekly incidence by taking the sequence of median percentages from the composite curve, starting from the week immediately following the selected four-week window, and multiplying them by the scaling factor.
+      b. This process results in 100 plausible sample trajectories for future disease incidence in the state.
+      c. These 100 trajectories are used to generate the probabilistic forecasts for various targets (e.g., weekly incidence, peak timing, peak intensity).

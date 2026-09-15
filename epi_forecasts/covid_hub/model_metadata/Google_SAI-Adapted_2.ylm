@@ -1,0 +1,28 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_2
+paper_model_name: "*G-MOBS-GLEAM_COVID"
+
+in_google_sai_ensemble: true
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: MOBS-GLEAM_COVID
+original_team_citation: "MOBS Lab, Northeastern University - https://uploads-ssl.webflow.com/58e6558acc00ee8e4536c1f5/5e8bab44f5baae4c1c2a75d2_GLEAM_web.pdf"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/MOBS-GLEAM_COVID.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A stochastic, age-structured metapopulation model that simulates disease transmission within geographic patches and spatial spread via real-world air travel and commuting networks.
+  
+  1. Network Construction: Tessellate the target area into census-based subpopulations connected by a mobility graph weighted by daily commuter and airline flows.
+  2. Compartmental Definition: Implement an age-structured SLIR (Susceptible-Latent-Infectious-Removed) model within each subpopulation.
+  3. Stochastic Simulation: Initialize agents and simulate time steps using a Monte Carlo approach: update agent locations based on mobility fluxes, then update infection status based on local prevalence and contact matrices.
+  4. Ensemble Generation: Execute independent simulation runs to generate a distribution of possible outcomes.
+  5. Aggregation: Sum agent counts to the state level and compute quantiles across the simulations.

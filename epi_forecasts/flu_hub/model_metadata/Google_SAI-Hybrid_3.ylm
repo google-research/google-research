@@ -1,5 +1,93 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Hybrid_3
-model_abbr: Hybrid_3
-methods: "A hybrid model created by combining the core principles of two distinct parent models, CU_SIRS and UVA_Gaussian_processes."
+model_id: Google_SAI-Hybrid_3
+paper_model_name: "*G-CU_SIRS x VT_Gaussian_processes"
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CU_SIRS
+original_team_citation: "J. Shaman, & A. Karspeck,  Forecasting seasonal outbreaks of influenza, Proc. Natl. Acad. Sci. U.S.A. 109 (50) 20425-20430, https://doi.org/10.1073/pnas.1208772109 (2012)."
+
+## Model 2
+replicated_model_name: "VT_Gaussian_processes"
+original_team_citation: "Johnson, L. R., Gramacy, R. B., Cohen, J., Mordecai, E., Murdock, C., Rohr, J., Ryan, S. J., Stewart-Ibarra, A. M., & Weikel, D. (2018). PHENOMENOLOGICAL FORECASTING OF DISEASE INCIDENCE USING HETEROSKEDASTIC GAUSSIAN PROCESSES: A DENGUE CASE STUDY. The annals of applied statistics, 12(1), 27–66. https://doi.org/10.1214/17-aoas1090"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Hybrid_3.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+
+These two code solutions tackle the Influenza forecasting problem using fundamentally different modeling paradigms and principles, despite both aiming to provide probabilistic quantile forecasts.
+
+Here's a comparison explaining the main principles that differ:
+
+---
+
+### CODE 1: SIRS Model (Mechanistic, Ensemble-Based)
+
+**Main Principles:**
+
+1.  **Mechanistic Compartmental Model (SIRS):**
+    *   **Principle:** The core of this solution is a Susceptible-Infectious-Recovered-Susceptible (SIRS) epidemiological model. This model explicitly simulates the natural history of an infectious disease by tracking populations in different "compartments" (S, I, R).
+    *   **Difference:** It models the underlying biological process of influenza transmission (infection, recovery, loss of immunity) with parameters like `beta` (transmission rate), `gamma` (recovery rate), and `rho` (rate of immunity loss). This provides a biologically interpretable framework for how the epidemic evolves.
+
+2.  **Ensemble Modeling with Process Noise:**
+    *   **Principle:** Uncertainty is primarily captured by running an "ensemble" of multiple (e.g., 200) SIRS models simultaneously. Each ensemble member starts with slightly different initial conditions and epidemiological parameters, which are sampled from plausible distributions.
+    *   **Difference:** This approach explicitly introduces *stochasticity* into the simulation dynamics at each time step (e.g., Gaussian noise added to new infections and recoveries in `_advance_week`). The spread of these diverse ensemble trajectories directly quantifies the forecast uncertainty. The `INFLATION_FACTOR` further spreads out the parameter sampling.
+
+3.  **Initialization-Time Pseudo-Assimilation & Adaptive Priors:**
+    *   **Principle:** While it doesn't implement a continuous, real-time data assimilation system (like an Ensemble Kalman Filter) during the forecast horizon, it performs a robust "initialization-time pseudo-assimilation."
+    *   **Difference:** `latest_admissions_observation` (for the week before `reference_date`) is used to dynamically initialize the `I0` (initial infected population) and `admissions_per_I_rate` for each ensemble member. Crucially, the *means and ranges for sampling* key epidemiological parameters (`beta_base`, `gamma`) are *dynamically adjusted* based on the location's historical `admissions_per_ili_scaling_factor` relative to a national average. This adapts the model's intrinsic dynamics to local observations at the start of the forecast.
+
+4.  **ILI Data for Historical Augmentation (SIRS Model Initialization):**
+    *   **Principle:** `unweighted_ili` data is used to pragmatically *augment* the `Total Influenza Admissions` historical dataset where real admissions data is missing.
+    *   **Difference:** A `LinearRegression` model learns a `admissions_per_ILI_unit_factor` per location (with national fallbacks) to convert `ILI_estimate` into synthetic `Total Influenza Admissions`. This enriched historical record is then used to derive `latest_admissions_observation` and `seasonal_multipliers` which initialize the SIRS model.
+
+5.  **Seasonal Forcing as External Multiplier:**
+    *   **Principle:** Seasonality (a proxy for environmental factors like Absolute Humidity) is incorporated by deriving `seasonal_multipliers` from historical `epiweek` patterns of `Total Influenza Admissions`.
+    *   **Difference:** This multiplier directly scales the `beta_base` parameter in the SIRS equations, applying an external seasonal force to the transmission rate. Adaptive blending of local and national patterns enhances robustness.
+
+---
+
+### CODE 2: GPR Model (Statistical, Latent Variable-Based)
+
+**Main Principles:**
+
+1.  **Gaussian Process Regression (GPR):**
+    *   **Principle:** This solution uses a non-parametric Bayesian regression model (GPR). It models the transformed influenza incidence (using `sqrt(x+1)-1`) directly as a Gaussian process, where any set of output values has a joint Gaussian distribution.
+    *   **Difference:** It's a statistical learning approach, not a mechanistic simulation. It doesn't attempt to model the underlying biological process but rather learns complex statistical relationships and patterns in the data to make predictions.
+
+2.  **Explicit Feature Engineering:**
+    *   **Principle:** The model relies on carefully engineered features to capture relevant information.
+    *   **Difference:** Four specific features are constructed: `x1` (week within season), `x2` (sinusoidal representation of x1 for cyclic behavior), `x3` (transformed incidence from the last week of the *previous* season for inter-season carry-over), and `x4` (a *categorical latent variable* representing season severity: mild, moderate, severe). These features serve as inputs to the GPR.
+
+3.  **Heteroskedasticity & Latent Variable Data Assimilation:**
+    *   **Principle:** The model explicitly accounts for differing levels of noise (heteroskedasticity) and utilizes a sophisticated method to infer the current season's characteristic.
+    *   **Difference:** Beyond the GPR's inherent noise, *additional, category-specific noise components* (`eta_sq`) are learned from the residuals, meaning the forecast uncertainty changes based on the inferred season severity. Furthermore, it employs a unique *latent variable data assimilation scheme*: it optimizes a continuous `x4_latent_val` (severity) by minimizing the negative log-likelihood of *past observed data within the current season*. This allows the model to "learn" the current season's severity in real-time from recent observations, and then use this inferred severity (and its corresponding `eta_sq` noise) to inform future predictions. Monte Carlo samples are drawn, weighted by the likelihood of each severity hypothesis.
+
+4.  **ILI Data for Full Historical Augmentation (GPR Training Data):**
+    *   **Principle:** Similar to Code 1, ILI data (`ilitotal`) is used to generate synthetic `Total Influenza Admissions` for missing historical entries.
+    *   **Difference:** This augmented dataset (containing both real and synthetic admissions, with real prioritized) becomes the *entire training data* for the GPR model. The transformation from ILI to admissions is robustly learned per location using hierarchical linear/ratio regressions. This means ILI data directly expands the observations the GPR learns from.
+
+5.  **Seasonality as Internal Feature:**
+    *   **Principle:** Seasonality is an inherent part of the GPR's input space.
+    *   **Difference:** Instead of an external multiplier, `x1` and `x2` features directly encode the seasonal pattern. The GPR's RBF kernel then learns complex, potentially non-linear, relationships between these seasonal features and the transformed incidence, making seasonality an integral part of the model's learned function.
+
+---
+
+### Summary of Key Differences:
+
+*   **Model Philosophy:** Code 1 uses a **mechanistic, simulation-based** approach (SIRS), while Code 2 uses a **statistical, data-driven** approach (GPR).
+*   **Uncertainty Handling:** Code 1 captures uncertainty through **ensemble parameter/state sampling and explicit process noise** during simulation. Code 2 captures uncertainty through **GPR's predictive variance, explicit severity-dependent heteroskedasticity, and Monte Carlo sampling guided by latent variable optimization.**
+*   **Data Assimilation:** Code 1 uses a **"one-shot" initialization-time assimilation** with adaptive priors. Code 2 employs a **more sophisticated "latent variable assimilation"** where observed data within the current season actively infers the most probable season severity.
+*   **Role of ILI Data:** Both augment historical data with ILI, but Code 1 primarily uses this for SIRS initialization and seasonal pattern derivation, while Code 2 integrates it directly into the GPR's training features and to inform its heteroskedasticity estimation.
+*   **Seasonality:** Code 1 applies an **external seasonal multiplier** to transmission rates. Code 2 encodes seasonality as **internal features** for the GPR to learn from.
+*   **Severity Prediction:** Code 1's severity emerges from its dynamics. Code 2 **explicitly models, learns thresholds for, and infers a latent season severity variable (`x4`)** which dynamically affects the forecast trajectory and its uncertainty.

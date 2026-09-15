@@ -1,5 +1,28 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_4
-model_abbr: Adapted_4
-methods: "This is an attempt to replicate UGA_flucast_Copycat model."
+model_id: Google_SAI-Adapted_4
+paper_model_name: G-UGA_flucast_Copycat
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: UGA_flucast_Copycat
+original_team_citation: "Fox, S. J. UGA_flucast. https://thefoxlab.wordpress.com/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UGA_flucast-Copycat.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_4.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  Matches seasonal growth rate trends against historic growth rate curves to identify the closest matches.
+  Makes forecasts based on nearest neighbor trajectories.
+  
+  1. Calculate current seasonal growth rate trends from available data.
+  2. Compare these current growth rate trends against a database of historic growth rate curves.
+  3. Identify the historic growth rate curves that are the "closest matches" to the current trends.
+  4. Generate forecasts by projecting forward based on the trajectories of these identified nearest neighbor historic curves.

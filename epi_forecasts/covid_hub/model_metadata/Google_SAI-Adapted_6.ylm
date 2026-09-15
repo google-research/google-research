@@ -5,7 +5,7 @@ model_id: Google_SAI-Adapted_6
 paper_model_name: G-UMass-ar6_pooled
 
 in_google_sai_ensemble: false
-prompt_category: covid_hub
+prompt_category: covidhub
 
 # Attribution & References
 replicated_model_name: UMass-ar6_pooled
@@ -13,7 +13,7 @@ original_team_citation: "Ray, E. UMass Amherst. https://github.com/reichlab/idmo
 original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UMass-ar6_pooled.yml"
 
 # Code Location & Summary
-code_filepath: flu_hub/model_py/Google_SAI-Adapted_6.py
+code_filepath: 
 methods: >
   ERA-generated model given the provided prompt
 
@@ -26,4 +26,3 @@ prompt: |
   3. Local Variance Estimation: Calculate residuals for each specific location using the global coefficients and compute location-specific error variance.
   4. Recursive Forecasting: Iterate the AR equation forward, adding noise sampled for each step.
   5. Inversion: Apply the inverse transformation to the generated trajectories.
-

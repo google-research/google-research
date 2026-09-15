@@ -1,0 +1,37 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_13
+paper_model_name: G-CMU_climate_baseline
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: CMU_climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_13.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+Using data from 2022 onwards, the climatological model uses samples from the 7 weeks centered around the target week and reference week to form the quantiles for the target week, as one might use climate information to form a meteorological forecast.
+To get more variation at some potential issue of generalization, one can form quantiles after aggregating across geographic values as well as years (after converting to a rate based case count).
+This model uses a simple average of the geo-specific quantiles and the geo-aggregated quantiles.
+
+1.  **Data Selection:** Use weekly flu hospitalization data, including only data from the 2022-2023 flu season onwards.
+2.  **Define Sample Window:** For a given target week, establish a 7-week window centered on that week number (target week number ± 3 weeks).
+3.  **Calculate Geo-Specific Quantiles:**
+    a.  For each geographic location, collect the historical hospitalization counts that fall within the 7-week window identified in Step 2, across all included seasons.
+    b.  From this location-specific set of historical values, calculate the required forecast quantiles.
+4.  **Calculate Geo-Aggregated Quantiles:**
+    a.  Convert the historical hospitalization counts to rates (e.g., cases per 100,000 population) for all locations and included seasons.
+    b.  Pool all historical rates from all locations that fall within the 7-week window identified in Step 2.
+    c.  Calculate the required forecast quantiles from this aggregated set of rates.
+    d.  Convert these rate-based quantiles back to counts for each specific geographic location using its population.
+5.  **Combine Forecasts:** For each location and each quantile level, the final forecast value is the simple average of the value from the Geo-Specific calculation (Step 3b) and the value from the Geo-Aggregated calculation (Step 4d).
+

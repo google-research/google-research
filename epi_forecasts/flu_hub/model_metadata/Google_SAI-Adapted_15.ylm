@@ -1,0 +1,33 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_15
+paper_model_name: G-UMass_KCDE
+
+in_google_sai_ensemble: false
+prompt_category: literature
+
+# Attribution & References
+original_team_citation: "Ray, E. L., Sakrejda, K., Lauer, S. A., Johansson, M. A., & Reich, N. G. (2017). Infectious disease prediction with kernel conditional density estimation. Statistics in medicine, 36(30), 4908–4929. https://doi.org/10.1002/sim.7488"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_15.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  This semi-parametric method predicts infectious disease incidence by first estimating separate probability distributions for incidence in individual future weeks.
+  These estimations are based on recent past incidence values and the time of year, using a flexible, data-driven weighting of historical observations.
+  These individual weekly predictive distributions are then linked together using a statistical model to capture the dependence between incidence levels across different weeks.
+  This combined model allows for the creation of a joint probability distribution over the entire forecast period, enabling predictions not only for specific weeks but also for characteristics of the entire season, such as the week of peak incidence and the intensity of that peak.
+  
+  1. Estimate Weekly Conditional Densities: For each desired future week (prediction horizon h), estimate the conditional probability density of disease incidence. This density is conditioned on observed incidence from a few recent past time points and the current time within the season. This estimation uses a kernel-based approach.
+      * The kernel function is a product of two components:
+          * A periodic kernel to account for seasonality, based on the time of year.
+          * A multivariate kernel (e.g., log-normal for continuous data, or a discretized version for count data) for the incidence values, allowing for a fully parameterized bandwidth matrix to capture relationships between predictor lags and the prediction target.
+      * Select bandwidth parameters for the kernels by maximizing a cross-validated log-likelihood score on the training data.
+  2. Model Joint Dependence with Copulas: Combine the marginal conditional densities for each week (from Step 1) into a joint predictive distribution for the entire sequence of future weeks in the season. This is done using an isotropic normal copula function, whose parameters are estimated to capture the temporal dependence between weekly incidence levels, typically after the kernel parameters are fixed.
+  3. Derive Target Predictions:
+  * Incidence at horizon h: Use the marginal density from Step 1 directly.
+  * Timing of Peak Week & Peak Intensity: Sample trajectories from the joint distribution constructed in Step 2. Use Monte Carlo integration on these samples to estimate the probability distribution for the week number with the highest incidence and the distribution of the incidence value in that peak week. Binned incidence is used for peak intensity predictions.

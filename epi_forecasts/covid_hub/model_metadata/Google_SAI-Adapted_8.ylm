@@ -1,0 +1,27 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_8
+paper_model_name: G-Metaculus-cp
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: Metaculus-cp
+original_team_citation: "Beck, R. & Bosse, Nikos. Metaculus. https://www.metaculus.com/questions/30049/us-covid-hospitalization-forecasts-2024-25/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/Metaculus-cp.yaml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  An aggregation model that compiles probabilistic forecasts submitted by a crowd of human forecasters and computes a consensus distribution.
+  
+  1. Elicitation: Distribute forecasting questions (targets and horizons) to the forecaster community.
+  2. Collection: Aggregate individual user submissions, which are full probability distributions.
+  3. Consensus Algorithm: Apply a weighting algorithm (e.g., Recency-Weighted Median or accuracy-weighted "Metaculus Prediction") to combine individual distributions into a single consensus PDF.
+  4. Extraction: Derive the specific reporting quantiles directly from the consensus Probability Density Function.

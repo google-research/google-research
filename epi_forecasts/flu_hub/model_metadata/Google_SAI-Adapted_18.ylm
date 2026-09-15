@@ -1,21 +1,19 @@
 # Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_id: Google_SAI-Adapted_9
-paper_model_name: "*G-Cornell_JHU-hierarchSIR"
+model_id: Google_SAI-Adapted_18
+paper_model_name: G-Cornell_JHU-hierarchSIR_v3
 
-in_google_sai_ensemble: true
+in_google_sai_ensemble: false
 prompt_category: flusight_hub
 
 # Attribution & References
 replicated_model_name: Cornell_JHU-hierarchSIR
-original_team_citation: "Data Assimilation Substitutes for Biological Complexity in Hybrid Influenza Forecasting Models
-Tijs W. Alleman, Tim Van Wesemael, Neha Shanker, Matthew S. Mietchen, Sara Loo, Oluwafeyisore Ajagbe, Jan M. Baetens, Joseph Lemaitre, Alison L. Hill, Shaun A. Truelove, Ana I. Bento
-medRxiv 2026.05.19.26353597; doi: https://doi.org/10.64898/2026.05.19.26353597"
+original_team_citation: "Alleman, T. W., Van Wesemael, T., Shanker, N., Mietchen, S. M., Loo, S., Ajagbe, O., Baetens, J. M., Lemaitre, J., Hill, A. L., Truelove, S. A., & Bento, A. I. (2026). Data assimilation substitutes for biological complexity in hybrid influenza forecasting models (Version 2). medRxiv. https://doi.org/10.64898/2026.05.19.26353597"
 original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/Cornell_JHU-hierarchSIR.yml"
 
 # Code Location & Summary
-code_filepath: flu_hub/model_py/Google_SAI-Adapted_9.py
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_18.py
 methods: >
   ERA-generated model given the provided prompt
 

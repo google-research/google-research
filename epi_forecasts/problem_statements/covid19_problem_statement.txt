@@ -1,0 +1,5 @@
+Target variable: Total COVID-19 Admissions (replaces Total Influenza Admissions).
+Forecast Hub: CDC CovidHub Forecast Hub (replaces FluSight).
+No auxiliary historical data: The COVID-19 prompt does not include ILINet augmentation data or data-augmentation strategies. The model relies solely on the primary training data (train_x, train_y) and the reference/example data.
+Simpler dataset: No ilinet_* DataFrames are provided.
+Shared function signature, output format, evaluation metric (WIS), and key considerations as the influenza canonical prompt.

@@ -1,0 +1,28 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_11
+paper_model_name: G-JHU_CSSE-CSSE_Ensemble
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: JHU_CSSE-CSSE_Ensemble
+original_team_citation: "Gardner, L. et al. The Center for Systems Science and Engineering at Johns Hopkins University."
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/JHU_CSSE-CSSE_Ensemble.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A hierarchical ensemble blending state-level ARIMA models with regional and national-level Long Short-Term Memory (LSTM) networks.
+  
+  1. Hierarchical Aggregation: Aggregate state-level data to form Regional (HHS regions) and National time series.
+  2. Local Modeling: Fit independent ARIMA models to each state's series to generate local base forecasts.
+  3. Regional/National Modeling: Train LSTM networks on the regional and national datasets to capture broader spatial dynamics.
+  4. Disaggregation: Map the regional and national forecasts down to the state level (e.g., via population weighting or historical ratios).
+  5. Ensemble Weighting: Compute the final forecast for each state by taking a weighted combination of its specific ARIMA result and the disaggregated LSTM predictions.

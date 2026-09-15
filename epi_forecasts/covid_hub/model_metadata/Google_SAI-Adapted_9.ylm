@@ -1,0 +1,28 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_9
+paper_model_name: G-UGA_flucast-INFLAenza
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: UGA_flucast-INFLAenza
+original_team_citation: "Fox, S. J., Case, B. & Salcedo, M. UGA_flucast. https://thefoxlab.wordpress.com/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UGA_flucast-INFLAenza.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A spatial time-series model using Integrated Nested Laplace Approximation (INLA) to perform Bayesian inference on a latent field with spatial (BYM) and temporal (Random Walk) components.
+  
+  1. Graph Definition: Construct the adjacency matrix representing the neighbor relationships between all US states.
+  2. Model Specification: Define the additive linear predictor, including a Random Walk component for temporal trends, a Besag-York-Mollié (BYM) component for spatial smoothing, and harmonic terms for seasonality.
+  3. Bayesian Inference: Use the R-INLA package to deterministically approximate the posterior marginals of the latent field and hyperparameters.
+  4. Sampling: Draw joint samples from the approximated posterior distribution.
+  5. Forecast Construction: Project the sampled latent field components forward, apply the inverse link function (exponentiation), and compute quantiles.

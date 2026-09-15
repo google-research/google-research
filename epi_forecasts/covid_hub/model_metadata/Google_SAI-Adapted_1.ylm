@@ -1,0 +1,28 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_1
+paper_model_name: "*G-UM-DeepOutbreak"
+
+in_google_sai_ensemble: true
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: UM-DeepOutbreak
+original_team_citation: "Rodriguez, A., Tabassum, A., Cui, J., Xie, J., Ho, J., Agarwal, P., Adhikari, B. and Prakash, B.A., 2021, May. Deepcovid: An operational deep learning-driven framework for explainable real-time covid-19 forecasting. In Proceedings of the AAAI Conference on Artificial Intelligence (Vol. 35, No. 17, pp. 15393-15400). https://ojs.aaai.org/index.php/AAAI/article/view/17808"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UM-DeepOutbreak.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A sequence-to-sequence deep neural network with self-attention mechanisms, trained in a multi-task setting and calibrated using adaptive conformal inference.
+  
+  1. Tensor Construction: Prepare 3D tensors of input sequences (hospitalizations, search trends, covariates).
+  2. Seq2Seq Encoding: Pass sequences through Recurrent Neural Network (RNN/GRU) layers and a Self-Attention module to encode historical context into a latent vector.
+  3. Multi-Task Training: Train the network by minimizing a global loss function that aggregates error across all geographic regions simultaneously, allowing weight sharing.
+  4. Decoding: Use the decoder to autoregressively generate point forecast sequences.
+  5. Conformal Calibration: Apply Adaptive Conformal Inference (ACI) to the output. Calculate residuals on a hold-out set and dynamically adjust the width of the prediction intervals based on recent coverage error to guarantee valid uncertainty.

@@ -1,0 +1,27 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_3
+paper_model_name: "*G-NEU_ISI-AdaptiveEnsemble"
+
+in_google_sai_ensemble: true
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: NEU_ISI-AdaptiveEnsemble
+original_team_citation: "Fiandrino, S. et al. MOBS Lab at Northeastern University and ISI Foundation."
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/NEU_ISI-AdaptiveEnsemble.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A meta-ensemble that filters and aggregates long-term scenario projections by rejecting trajectories that diverge significantly from recent ground-truth data.
+  
+  1. Ingestion: Load the set of long-term projection trajectories from the Scenario Modeling Hub.
+  2. Validation: Calculate the likelihood of the recent observed data given each scenario trajectory.
+  3. Filtering/Pruning: Apply an adaptive rejection scheme to discard scenario runs with likelihood scores below a defined threshold (or keep the top matches).
+  4. Aggregation: Construct the final forecast distribution by aggregating the remaining, empirically validated scenario trajectories.

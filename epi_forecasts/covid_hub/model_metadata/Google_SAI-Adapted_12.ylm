@@ -1,0 +1,27 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_12
+paper_model_name: G-CMU-climate_baseline
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: CMU-climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A climatological baseline model that projects future trajectories based on the historical mean and variance of the target variable for the specific time of year.
+  
+  1. Temporal Alignment: Aggregate all available historical hospitalization data and align observations by a seasonal index (e.g., Day of Year or Epidemiological Week).
+  2. Statistical Profiling: For each seasonal index in the forecast horizon, calculate the central tendency (mean/median) and dispersion (standard deviation/interquartile range) of the historical observations.
+  3. Projection: Populate the forecast trajectory using the calculated historical central tendencies for the corresponding future dates.
+  4. Uncertainty Construction: Generate prediction intervals by applying the historical dispersion parameters to the point forecast, assuming a distribution shape consistent with the historical variance.

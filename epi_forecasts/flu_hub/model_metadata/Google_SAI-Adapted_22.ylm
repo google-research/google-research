@@ -1,19 +1,19 @@
 # Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_id: Google_SAI-Adapted_8
-paper_model_name: G-NU-PGF_FLUH
+model_id: Google_SAI-Adapted_22
+paper_model_name: G-NU-PGF_FLUH_v2
 
-in_google_sai_ensemble: false
+in_google_sai_ensemble: true
 prompt_category: flusight_hub
 
 # Attribution & References
 replicated_model_name: NU-PGF_FLUH
-original_team_citation: "St-Onge, G. et al. Branching Process Collective at Northeastern University. https://github.com/dimitri-lopez/FluSight-forecast-hub"
+original_team_citation: "St-Onge, G. et al. Branching process collective at Northeastern University. https://github.com/dimitri-lopez/FluSight-forecast-hub"
 original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/NU-PGF_FLUH.yml"
 
 # Code Location & Summary
-code_filepath: flu_hub/model_py/Google_SAI-Adapted_8.py
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_22.py
 methods: >
   ERA-generated model given the provided prompt
 
