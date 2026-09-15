@@ -65,7 +65,7 @@ SCANN_OUTLINE HWY_ATTR size_t HwyCompact(uint32_t* indices, float* values,
       DCompressStore(LoadU(values_v, values + read_idx), mask_bits, values_v,
                      values + write_idx);
 
-      write_idx += hwy::PopCount(mask_bits);
+      write_idx += hwy::PopCount(mask_bits[0]);
     }
   }
 
