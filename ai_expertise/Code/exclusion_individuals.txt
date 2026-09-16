@@ -1,0 +1,17 @@
+# ==============================================================================
+# exclusion_individuals.txt
+# ------------------------------------------------------------------------------
+# List individual practitioner identifiers (anonymized UUIDs) to exclude from
+# all data sources, one entry per line.
+#
+# Format & Rules:
+#   - 1 anonymized UUID per line (e.g. 4b0bb4d8-06c4-5dbb-8f16-5958097cf714)
+#   - Blank lines and lines starting with '#' are ignored.
+#   - Matching is case-insensitive.
+#
+# To activate, set EXCLUDE_INDIVIDUALS = True in config.py.
+# ==============================================================================
+
+# Excluded practitioner UUIDs:
+4b0bb4d8-06c4-5dbb-8f16-5958097cf714
+2c5d386c-5010-5e09-9b3a-26efaa3472ce
