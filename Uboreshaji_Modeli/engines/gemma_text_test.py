@@ -164,6 +164,113 @@ class GemmaTextEngineTest(absltest.TestCase):
           transformed["labels"][0], [-100, -100, -100, -100, -100, 203, 204]
       )
 
+  def test_gemma_text_transform_explicit_model_id(self):
+    """Verifies explicit model_id is preferred over processor.name_or_path."""
+
+    class DummyProcessor:
+      name_or_path = "google/gemma-3-4b-it"
+      chat_template = "{{ messages }}"
+
+    dummy_processor = DummyProcessor()
+
+    transform = gemma_text.GemmaTextTransform(
+        processor=dummy_processor,
+        max_length=128,
+        cfg=None,
+        model_id="/tmp/explicit_model_id",
+    )
+
+    self.assertEqual(transform._model_id, "/tmp/explicit_model_id")
+
+  def test_gemma_text_transform_pickling(self):
+    """Verifies __getstate__/__setstate__ round-trip via deepcopy."""
+    import copy  # pylint: disable=g-import-not-at-top
+
+    class DummyProcessor:
+      name_or_path = "google/gemma-3-4b-it"
+      chat_template = "{{ messages }}"
+
+    dummy_processor = DummyProcessor()
+
+    transform = gemma_text.GemmaTextTransform(
+        processor=dummy_processor,
+        max_length=128,
+        cfg=None,
+    )
+
+    # Verify _model_id is set from processor.name_or_path
+    self.assertEqual(transform._model_id, "google/gemma-3-4b-it")
+
+    # Test __getstate__ strips processor
+    state = transform.__getstate__()
+    self.assertIsNone(state["processor"])
+
+    # Test __setstate__ via deepcopy
+    with mock.patch.object(
+        transformers.AutoTokenizer, "from_pretrained", autospec=True
+    ) as mock_from_pretrained:
+      mock_tok = mock.create_autospec(
+          transformers.PreTrainedTokenizer, instance=True
+      )
+      mock_tok.pad_token = None
+      mock_tok.eos_token = "<eos>"
+      mock_tok.chat_template = None
+      mock_from_pretrained.return_value = mock_tok
+
+      cloned = copy.deepcopy(transform)
+
+      mock_from_pretrained.assert_called_once_with("google/gemma-3-4b-it")
+      self.assertEqual(cloned.processor, mock_tok)
+      # Verify chat_template was restored from the saved copy
+      self.assertEqual(cloned.processor.chat_template, "{{ messages }}")
+      # Verify pad_token was set to eos_token
+      self.assertEqual(cloned.processor.pad_token, "<eos>")
+
+  def test__post_load_processor_pad_token(self):
+    """Verifies pad_token logic in _post_load_processor."""
+
+    # Case 1: pad_token is None
+    mock_tok_none = mock.Mock()
+    mock_tok_none.pad_token = None
+    mock_tok_none.eos_token = "<eos>"
+    mock_tok_none.chat_template = None
+
+    transform_none = gemma_text.GemmaTextTransform(
+        processor=mock_tok_none, max_length=128, cfg=None
+    )
+    transform_none._post_load_processor()
+    self.assertEqual(mock_tok_none.pad_token, "<eos>")
+
+    # Case 2: pad_token is already set
+    mock_tok_set = mock.Mock()
+    mock_tok_set.pad_token = "<pad>"
+    mock_tok_set.eos_token = "<eos>"
+    mock_tok_set.chat_template = None
+
+    transform_set = gemma_text.GemmaTextTransform(
+        processor=mock_tok_set, max_length=128, cfg=None
+    )
+    transform_set._post_load_processor()
+    self.assertEqual(mock_tok_set.pad_token, "<pad>")
+
+  def test_get_transform_fn_saves_processor_locally(self):
+    """Verifies processor.save_pretrained is called for DataLoader worker pre-caching."""
+    mock_tok = mock.create_autospec(
+        transformers.PreTrainedTokenizer, instance=True
+    )
+    mock_tok.name_or_path = "mock-id"
+
+    cfg = ml_collections.ConfigDict(
+        {"model_flavor": config.ModelFlavor.GEMMA_3_TEXT, "max_seq_length": 64}
+    )
+
+    transform = self.engine.get_transform_fn(
+        mock_tok, [], [], {}, cfg=cfg,
+    )
+
+    mock_tok.save_pretrained.assert_called_once()
+    self.assertIsInstance(transform, gemma_text.GemmaTextTransform)
+
 
 if __name__ == "__main__":
   absltest.main()
