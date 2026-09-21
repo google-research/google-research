@@ -40,6 +40,19 @@ def _is_global_master() -> bool:
   return not dist.is_initialized() or dist.get_rank() == 0
 
 
+# TODO: b/564444176 - Consider alternatives for this function.
+def _get_warmup_steps(cfg: ml_collections.ConfigDict) -> int:
+  """Calculates warmup steps from config."""
+  warmup_steps = cfg.training.get("warmup_steps")
+  if warmup_steps is not None:
+    return int(warmup_steps)
+
+  warmup_ratio = cfg.training.get("warmup_ratio", 0.0)
+  max_steps = cfg.training.get("max_steps", -1)
+  total_steps = max_steps if max_steps > 0 else 1000
+  return int(warmup_ratio * total_steps)
+
+
 class DetectionTrainer(trainers_base.TrainerStrategy):
   """Strategy for training object detection models using composed components."""
 
@@ -123,10 +136,12 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
         remove_unused_columns=False,
         push_to_hub=False,
         dataloader_pin_memory=(device.type != "tpu"),
-        dataloader_num_workers=cfg.training.get("dataloader_num_workers", 4),
+        dataloader_num_workers=cfg.training.get(
+            "dataloader_num_workers",
+            0,
+        ),
         gradient_accumulation_steps=cfg.training.gradient_accumulation_steps,
         report_to="tensorboard",
-        logging_dir=str(resolved_output_path),
         seed=cfg.training.seed,
         data_seed=cfg.training.data_seed,
         gradient_checkpointing=cfg.training.gradient_checkpointing,
@@ -140,7 +155,7 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
         save_steps=cfg.training.save_steps,
         save_total_limit=cfg.training.save_total_limit,
         lr_scheduler_type=cfg.training.lr_scheduler_type,
-        warmup_ratio=cfg.training.warmup_ratio,
+        warmup_steps=_get_warmup_steps(cfg),
         max_grad_norm=cfg.training.max_grad_norm,
         max_steps=cfg.training.max_steps,
     )

@@ -59,11 +59,22 @@ class TrainerTest(absltest.TestCase):
     self.assertAlmostEqual(giou[0, 0].item(), 1.0)
 
   def test_custom_trainer_compute_loss(self):
-    model = unittest.mock.MagicMock()
-    model.return_value = {"logits": torch.randn(1, 10, 2)}
+    class DummyOutputs:
+      def __init__(self):
+        self.logits = torch.randn(1, 10, 2)
+        self.pred_boxes = torch.randn(1, 10, 4)
+
+    class DummyModel(torch.nn.Module):
+      def forward(self, **kwargs):
+        return DummyOutputs()
+
+    model = DummyModel()
 
     criterion = SimpleMockCriterion()
-    args = unittest.mock.MagicMock()
+
+    class DummyArgs:
+      pass
+    args = DummyArgs()
 
     with unittest.mock.patch(
         "transformers.Trainer.__init__",
@@ -73,7 +84,7 @@ class TrainerTest(absltest.TestCase):
       custom_trainer = trainer.CustomTrainer(
           model=model,
           args=args,
-          criterion=criterion,  # pytype: disable=wrong-arg-types
+          criterion=criterion,
           weight_dict={"loss_sigmoid_focal": 1.0},
       )
 
@@ -89,6 +100,8 @@ class TrainerTest(absltest.TestCase):
             "boxes": torch.tensor([[0, 0, 1, 1]]),
         }],
         "pixel_values": torch.randn(1, 3, 960, 960),
+        "input_ids": torch.zeros(1, 10, dtype=torch.long),
+        "attention_mask": torch.zeros(1, 10, dtype=torch.long),
     }
 
     loss = custom_trainer.compute_loss(model, inputs)
@@ -96,10 +109,49 @@ class TrainerTest(absltest.TestCase):
     self.assertIn("labels", inputs)
     self.assertLen(custom_trainer._loss_components_buffer, 1)
 
+  def test_custom_trainer_run_forward(self):
+    class DummyOutputs:
+      def __init__(self):
+        self.logits = torch.randn(1, 10, 2)
+        self.pred_boxes = torch.randn(1, 10, 4)
+
+    class DummyModel(torch.nn.Module):
+      def forward(self, **kwargs):
+        return DummyOutputs()
+
+    model = DummyModel()
+
+    class DummyArgs:
+      pass
+    args = DummyArgs()
+
+    with unittest.mock.patch(
+        "transformers.Trainer.__init__",
+        return_value=None,
+        autospec=True,
+    ):
+      custom_trainer = trainer.CustomTrainer(
+          model=model,
+          args=args,
+      )
+
+    inputs = {
+        "pixel_values": torch.randn(1, 3, 960, 960),
+        "input_ids": torch.zeros(1, 10, dtype=torch.long),
+        "attention_mask": torch.zeros(1, 10, dtype=torch.long),
+    }
+
+    outputs = custom_trainer._run_forward(model, inputs)
+    self.assertIn("logits", outputs)
+    self.assertIn("pred_boxes", outputs)
+
   def test_custom_trainer_logging(self):
-    model = unittest.mock.MagicMock()
+    model = torch.nn.Module()
     criterion = SimpleMockCriterion()
-    args = unittest.mock.MagicMock()
+
+    class DummyArgs:
+      pass
+    args = DummyArgs()
 
     with unittest.mock.patch(
         "transformers.Trainer.__init__",
@@ -113,16 +165,16 @@ class TrainerTest(absltest.TestCase):
           weight_dict={"loss_sigmoid_focal": 1.0},
       )
 
-    # Manually trigger compute_loss to fill buffer
-    inputs = {
-        "labels": [{
-            "class_labels": torch.tensor([0]),
-            "boxes": torch.tensor([[0, 0, 1, 1]]),
-        }],
-        "pixel_values": torch.randn(1, 3, 960, 960),
-    }
-    custom_trainer.compute_loss(model, inputs)
-    custom_trainer.compute_loss(model, inputs)  # Add another to test averaging
+    # Manually set attributes that __init__ would have set
+    custom_trainer.model = model
+    custom_trainer.args = args
+    custom_trainer.criterion = criterion
+    custom_trainer.weight_dict = {"loss_sigmoid_focal": 1.0}
+    # Populate the buffer directly with known values to test averaging.
+    custom_trainer._loss_components_buffer = [
+        {"loss_sigmoid_focal": torch.tensor(2.0)},
+        {"loss_sigmoid_focal": torch.tensor(4.0)},
+    ]
 
     logs = {"loss": 1.0}
     start_time = 123.45
@@ -131,8 +183,75 @@ class TrainerTest(absltest.TestCase):
       mock_log.assert_called_once_with(logs, start_time)
 
     self.assertIn("train_loss_sigmoid_focal", logs)
-    self.assertEqual(logs["train_loss_sigmoid_focal"], 1.0)
+    # Average of 2.0 and 4.0
+    self.assertEqual(logs["train_loss_sigmoid_focal"], 3.0)
     self.assertEmpty(custom_trainer._loss_components_buffer)
+
+  def test_custom_trainer_tpu_monkey_patch(self):
+    from accelerate.utils import operations  # pylint: disable=g-import-not-at-top
+    import accelerate.accelerator as acc_mod  # pylint: disable=g-import-not-at-top
+
+    original_operations_gather = operations.gather
+    original_acc_mod_gather = getattr(acc_mod, "gather", None)
+
+    # Mock dist
+    self.enter_context(
+        unittest.mock.patch(
+            "torch.distributed.is_initialized", return_value=True
+        )
+    )
+    self.enter_context(
+        unittest.mock.patch(
+            "torch.distributed.get_backend", return_value="tpu_dist"
+        )
+    )
+    self.enter_context(
+        unittest.mock.patch("torch.distributed.get_world_size", return_value=2)
+    )
+    mock_all_gather = self.enter_context(
+        unittest.mock.patch("torch.distributed.all_gather")
+    )
+
+    try:
+      model = torch.nn.Module()
+
+      class DummyArgs:
+        pass
+      args = DummyArgs()
+      criterion = SimpleMockCriterion()
+
+      with unittest.mock.patch(
+          "transformers.Trainer.__init__", return_value=None
+      ):
+        _ = trainer.CustomTrainer(
+            model=model,
+            args=args,
+            criterion=criterion,
+            weight_dict={"loss_sigmoid_focal": 1.0},
+        )
+
+      # Verify patched
+      self.assertNotEqual(operations.gather, original_operations_gather)
+
+      # Test standard patched function
+      tensor = torch.tensor([1, 2])
+      def fake_all_gather(output_tensors, t):
+        output_tensors[0] = t.clone()
+        output_tensors[1] = t.clone() * 2
+
+      mock_all_gather.side_effect = fake_all_gather
+
+      result = operations.gather(tensor)
+
+      # Verify result
+      expected = torch.tensor([1, 2, 2, 4])
+      torch.testing.assert_close(result, expected)
+
+    finally:
+      # Restore
+      operations.gather = original_operations_gather
+      if original_acc_mod_gather is not None:
+        acc_mod.gather = original_acc_mod_gather
 
 
 if __name__ == "__main__":
