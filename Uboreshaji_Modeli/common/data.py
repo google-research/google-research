@@ -27,6 +27,56 @@ import ml_collections
 from PIL import Image
 
 
+class PicklableProcessorMixin:
+  """Mixin to make Transforms with unpicklable processors picklable.
+
+  Uses ``__getstate__``/``__setstate__`` to re-load the processor from
+  disk in each DataLoader worker process, since the processor's native
+  backends do not survive Python pickling.
+  """
+  _model_id: str | None = None
+
+  def __getstate__(self):
+    state = self.__dict__.copy()
+    state["processor"] = None
+    return state
+
+  def __setstate__(self, state):
+    self.__dict__.update(state)
+    if hasattr(self, "_model_id") and self._model_id:
+      self.processor = self._load_processor(self._model_id)
+      self._post_load_processor()
+
+  def _load_processor(self, model_id):
+    """Loads the processor. Can be overridden by subclasses."""
+    import transformers  # pylint: disable=g-import-not-at-top
+    return transformers.AutoProcessor.from_pretrained(model_id)
+
+  def _post_load_processor(self):
+    """Hook for subclasses to run logic after loading."""
+
+
+def stage_processor_locally(
+    processor, prefix = "local_processor_"
+):
+  """Saves a processor to a local temporary directory.
+
+  Args:
+    processor: The processor to save.
+    prefix: Prefix for the temporary directory.
+
+  Returns:
+    The path to the local temporary directory. Caller is responsible for
+    cleaning up this directory (e.g., using shutil.rmtree) when it is no
+    longer needed.
+  """
+  import tempfile  # pylint: disable=g-import-not-at-top
+
+  temp_dir = tempfile.mkdtemp(prefix=prefix)
+  processor.save_pretrained(temp_dir)
+  return temp_dir
+
+
 def _load_coco_json(json_path):
   """Loads a COCO-style JSON annotation file using epath."""
   with json_path.open("r") as f:
@@ -201,10 +251,79 @@ def convert_coco_folder_to_hf(
 
 
 
+@dataclasses.dataclass
+class DataCollatorSpeechSeq2SeqWithPadding:
+  """Data collator that will dynamically pad the inputs received."""
+
+  processor: Any
+  padding: bool | str = True
+  max_length: int | None = None
+
+  def __call__(self, features):
+    input_features = [
+        {"input_features": feature["input_features"]} for feature in features
+    ]
+    batch = self.processor.feature_extractor.pad(
+        input_features, return_tensors="pt"
+    )
+
+    label_features = [{"input_ids": feature["labels"]} for feature in features]
+    labels_batch = self.processor.tokenizer.pad(
+        label_features,
+        padding=self.padding,
+        max_length=self.max_length,
+        return_tensors="pt",
+    )
+
+    labels = labels_batch["input_ids"].masked_fill(
+        labels_batch.attention_mask.ne(1), -100
+    )
+
+    batch["labels"] = labels
+
+    return batch
+
+
+@dataclasses.dataclass
+class DataCollatorCTCWithPadding:
+  """Data collator that will dynamically pad the inputs received for CTC."""
+
+  processor: Any
+  padding: bool | str = True
+  max_length: int | None = None
+
+  def __call__(self, features):
+    input_features = [
+        {"input_values": feature["input_values"]} for feature in features
+    ]
+    label_features = [{"input_ids": feature["labels"]} for feature in features]
+
+    batch = self.processor.feature_extractor.pad(
+        input_features,
+        padding=self.padding,
+        return_tensors="pt",
+    )
+
+    labels_batch = self.processor.tokenizer.pad(
+        label_features,
+        padding=self.padding,
+        max_length=self.max_length,
+        return_tensors="pt",
+    )
+
+    labels = labels_batch["input_ids"].masked_fill(
+        labels_batch.attention_mask.ne(1), -100
+    )
+    batch["labels"] = labels
+
+    return batch
 
 
 def get_dataset(cfg):
   """Loads and prepares the dataset."""
+  import os  # pylint: disable=g-import-not-at-top
+  dataset_path = cfg.dataset.dataset_path
+
   world_size = int(os.environ.get("WORLD_SIZE", 1))
 
   # Ensure HuggingFace datasets cache is writable inside Borg containers.
@@ -215,8 +334,6 @@ def get_dataset(cfg):
   os.makedirs(hf_cache_dir, exist_ok=True)
   os.environ["HF_DATASETS_CACHE"] = hf_cache_dir
 
-  if world_size > 1 and str(dataset_path).startswith("/cns"):
-    return _get_dataset_distributed(cfg)
 
   # Try loading as a pre-saved HuggingFace Dataset first
   try:
