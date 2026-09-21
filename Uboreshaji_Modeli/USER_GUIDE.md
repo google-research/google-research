@@ -18,9 +18,22 @@ via CLI flags. The actual orchestration is handled by the universal
 4.  Loads datasets (and applies local caching/streaming locks).
 5.  Resolves the pluggable task `TrainerStrategy` and delegates execution.
 
+## 2. General Fine-Tuning Recipe
+
+To fine-tune a model using the `Uboreshaji_Modeli` framework, follow these
+general steps:
+
+1.  **Select/Prepare your Dataset**: Ensure your dataset is formatted correctly for the target modality (e.g., COCO JSON for detection, Hugging Face `datasets` with chat history for Text SFT).
+2.  **Configure Hyperparameters**: Open the relevant config file in the `configs/` directory (e.g., `gemma4_config.py`). Adjust key knobs:
+    *   `cfg.training.learning_rate`: Start small (e.g., `2e-5`).
+    *   `cfg.training.batch_size`: Per-device batch size.
+    *   `cfg.training.gradient_accumulation_steps`: Increase to simulate larger batches.
+    *   `cfg.training.use_lora`: Enable for Parameter-Efficient Tuning.
+3.  **Launch**: Execute the training script using the modality-specific commands below.
+
 --------------------------------------------------------------------------------
 
-## 2. Supported Modalities & Launch Command Guide
+## 3. Supported Modalities & Launch Command Guide
 
 ### A. Object Detection (OWL-v2)
 
@@ -81,7 +94,7 @@ SFT using dynamic padding.
 
 --------------------------------------------------------------------------------
 
-## 3. Optimization Config Guidelines
+## 4. Optimization Config Guidelines
 
 The composed strategies leverage advanced performance and memory optimizations:
 
@@ -117,6 +130,24 @@ OutOfMemory (OOM) errors.
     before any PyTorch context is initialized, enabling PyTorch to allocate
     segments dynamically and preventing up to 40% of fragmentation OOMs.
 
+### 💎 Detection Formats & Token Economy
+
+When fine-tuning Gemma VLMs for detection, the format of the output string
+matters significantly for memory efficiency, especially in images with many
+objects.
+
+*   **JSON Format (`cfg.detection_format = 'json'`)**: Native to Gemini/Gemma.
+    Verbose. Each bracket, quote, and coordinate consumes tokens (~15-20 tokens
+    per object). Best for standard scenes.
+*   **Loc Format (`cfg.detection_format = 'loc'`)**: Highly compact. The
+    framework injects `<locYYYY>` as **special custom tokens** (1 token per
+    coordinate). This reduces footprint to ~6 tokens per object (4 locations +
+    label + separator).
+
+> [!TIP]
+> If your dataset has "crowded" scenes with hundreds of objects, use `loc`
+> format to drastically reduce sequence length and prevent Activation OOMs.
+
 ### 💎 Parameter-Efficient Adapters (PEFT/LoRA)
 
 Configured via `cfg.training.use_lora = True`:
@@ -131,7 +162,7 @@ Configured via `cfg.training.use_lora = True`:
 
 --------------------------------------------------------------------------------
 
-## 4. TPU Execution (PyTorch/XLA Integration)
+## 5. TPU Execution (PyTorch/XLA Integration)
 
 The framework supports dynamic execution routing to TPUs via PyTorch/XLA.
 
@@ -157,7 +188,7 @@ python main.py \
 
 --------------------------------------------------------------------------------
 
-## 5. Known Limitations & TPU-Specific Caveats
+## 6. Known Limitations & TPU-Specific Caveats
 
 ### ⚠️ Dynamic Audio Dataset Loading (Freezes on TPUs, Works on GPUs)
 

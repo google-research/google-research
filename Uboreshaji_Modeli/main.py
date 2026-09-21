@@ -18,7 +18,9 @@
 import json
 import os
 import sys
-from typing import Sequence
+
+os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
+from typing import Sequence  # pylint: disable=g-import-not-at-top
 
 from absl import app
 from absl import flags
