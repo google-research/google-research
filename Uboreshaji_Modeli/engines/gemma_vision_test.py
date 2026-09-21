@@ -533,7 +533,7 @@ class GemmaEngineTest(parameterized.TestCase):
 
     model, processor = self.engine.load_model_and_processor(
         model_id="dummy_model_id",
-        device=tpu_device,  # pytype: disable=wrong-arg-types
+        device=tpu_device,
         cfg=ml_collections.ConfigDict({
             "training": {
                 "precision": "bf16",
@@ -546,6 +546,143 @@ class GemmaEngineTest(parameterized.TestCase):
     self.assertEqual(model, mock_model)
     self.assertEqual(processor, mock_processor)
     mock_model.to.assert_called_once_with(tpu_device)
+
+  def test_gemma_vision_transform_explicit_model_id(self):
+    """Verifies explicit model_id is preferred over processor.name_or_path."""
+
+    class DummyProcessor:
+      name_or_path = "google/gemma-3-4b-it"
+
+    dummy_processor = DummyProcessor()
+
+    transform = gemma_vision.GemmaVisionTransform(
+        processor=dummy_processor,
+        class_names=["cat", "dog"],
+        prompt_text="Detect objects",
+        detection_format="json",
+        do_pan_and_scan=False,
+        cfg=None,
+        model_id="/tmp/explicit_model_id",
+    )
+
+    self.assertEqual(transform._model_id, "/tmp/explicit_model_id")
+
+  def test_gemma_vision_transform_pickling(self):
+    import copy  # pylint: disable=g-import-not-at-top
+
+    class DummyProcessor:
+      name_or_path = "google/gemma-3-4b-it"
+
+    dummy_processor = DummyProcessor()
+
+    transform = gemma_vision.GemmaVisionTransform(
+        processor=dummy_processor,
+        class_names=["cat", "dog"],
+        prompt_text="Detect objects",
+        detection_format="json",
+        do_pan_and_scan=False,
+        cfg=None,
+    )
+
+    # Test __getstate__
+    state = transform.__getstate__()
+    self.assertIsNone(state["processor"])
+
+    with mock.patch.object(
+        transformers.AutoProcessor, "from_pretrained", autospec=True
+    ) as mock_from_pretrained:
+      class DummyTokenizer:
+        padding_side = "left"
+
+        def add_tokens(self, tokens):
+          pass
+
+      class DummyReloadedProcessor:
+        def __init__(self):
+          self.tokenizer = DummyTokenizer()
+
+      reloaded_processor = DummyReloadedProcessor()
+      mock_from_pretrained.return_value = reloaded_processor
+
+      cloned = copy.deepcopy(transform)
+
+      mock_from_pretrained.assert_called_once_with("google/gemma-3-4b-it")
+      self.assertEqual(cloned.processor, reloaded_processor)
+
+  def test_gemma_vision_transform_pickling_loc_format(self):
+    import copy  # pylint: disable=g-import-not-at-top
+
+    class DummyProcessor:
+      name_or_path = "google/gemma-3-4b-it"
+
+    dummy_processor = DummyProcessor()
+
+    transform = gemma_vision.GemmaVisionTransform(
+        processor=dummy_processor,
+        class_names=["cat", "dog"],
+        prompt_text="Detect objects",
+        detection_format="loc",
+        do_pan_and_scan=False,
+        cfg=None,
+    )
+
+    with mock.patch.object(
+        transformers.AutoProcessor, "from_pretrained", autospec=True
+    ) as mock_from_pretrained:
+
+      mock_tokenizer = mock.Mock()
+      mock_tokenizer.padding_side = "left"
+
+      class DummyReloadedProcessor:
+        def __init__(self):
+          self.tokenizer = mock_tokenizer
+
+      reloaded_processor = DummyReloadedProcessor()
+      mock_from_pretrained.return_value = reloaded_processor
+
+      cloned = copy.deepcopy(transform)
+
+      mock_from_pretrained.assert_called_once_with("google/gemma-3-4b-it")
+      self.assertEqual(cloned.processor, reloaded_processor)
+
+      # Verify loc tokens were added
+      mock_tokenizer.add_tokens.assert_called_once()
+      args, _ = mock_tokenizer.add_tokens.call_args
+      self.assertLen(args[0], 1024)
+      self.assertEqual(args[0][0], "<loc0000>")
+      self.assertEqual(args[0][-1], "<loc1023>")
+
+      # Verify padding side
+      self.assertEqual(mock_tokenizer.padding_side, "right")
+
+  def test_get_transform_fn_saves_processor_locally(self):
+    """Verifies processor.save_pretrained is called for DataLoader worker pre-caching."""
+    engine = gemma_vision.GemmaVisionPreprocessor()
+
+    class DummyProcessor:
+      name_or_path = "google/gemma-3-4b-it"
+
+      def save_pretrained(self, path):
+        self.saved_path = path
+
+    processor = DummyProcessor()
+
+    dataset_features = {
+        "objects": {
+            "category": mock.Mock(
+                feature=mock.Mock(names=["cat", "dog"]),
+            ),
+        },
+    }
+
+    cfg = ml_collections.ConfigDict({"detection_format": "json"})
+
+    transform = engine.get_transform_fn(
+        processor, cfg=cfg, is_train=False, dataset_features=dataset_features,
+    )
+
+    self.assertIsNotNone(processor.saved_path)
+    self.assertIsInstance(transform, gemma_vision.GemmaVisionTransform)
 
 
 if __name__ == "__main__":

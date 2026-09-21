@@ -16,6 +16,7 @@
 """Tests for OWL-v2 engine."""
 
 import types
+from unittest import mock
 
 from absl.testing import absltest
 from absl.testing import parameterized
@@ -92,6 +93,7 @@ class Owlv2EngineTest(parameterized.TestCase):
         }
       # Image-only call made per example inside transform_fn.
       return {"pixel_values": torch.ones((1, 3, 960, 960))}
+    mock_processor.save_pretrained = lambda path: None
 
     text_inputs = ["leaf", "stem"]
     dataset_id2label = ["background", "leaf", "stem", "discard"]
@@ -162,6 +164,7 @@ class Owlv2EngineTest(parameterized.TestCase):
             "attention_mask": torch.tensor([[1, 1, 1]]),
         }
       return {"pixel_values": torch.ones((1, 3, 960, 960))}
+    mock_processor.save_pretrained = lambda path: None
 
     # "unknown" label is not in model_label2id, so all objects are filtered out.
     tf = self.engine.get_transform_fn(
@@ -300,6 +303,91 @@ class Owlv2EngineTest(parameterized.TestCase):
         ValueError, "Unsupported matcher type: unsupported_type"
     ):
       self.engine.get_criterion(5, cfg, torch.device("cpu"))
+
+  def test_owlv2_transform_explicit_model_id(self):
+    """Verifies explicit model_id is preferred over processor.name_or_path."""
+
+    class DummyProcessor:
+      name_or_path = "google/owlvit-base-patch32"
+
+    dummy_processor = DummyProcessor()
+
+    transform = owl.Owlv2Transform(
+        processor=dummy_processor,
+        dataset_id2label=["a", "b"],
+        model_label2id={"a": 0, "b": 1},
+        aug=None,
+        shared_input_ids=torch.zeros(1),
+        shared_attention_mask=torch.zeros(1),
+        model_id="/tmp/explicit_model_id",
+    )
+
+    self.assertEqual(transform._model_id, "/tmp/explicit_model_id")
+
+  def test_owlv2_transform_pickling(self):
+    import copy  # pylint: disable=g-import-not-at-top
+
+    class DummyProcessor:
+      name_or_path = "google/owlvit-base-patch32"
+
+    dummy_processor = DummyProcessor()
+
+    transform = owl.Owlv2Transform(
+        processor=dummy_processor,
+        dataset_id2label=["a", "b"],
+        model_label2id={"a": 0, "b": 1},
+        aug=None,
+        shared_input_ids=torch.zeros(1),
+        shared_attention_mask=torch.zeros(1),
+    )
+
+    # Test __getstate__
+    state = transform.__getstate__()
+    self.assertIsNone(state["processor"])
+
+    with mock.patch(
+        "transformers.Owlv2Processor.from_pretrained", autospec=True
+    ) as mock_from_pretrained:
+      class DummyReloadedProcessor:
+        pass
+
+      reloaded_processor = DummyReloadedProcessor()
+      mock_from_pretrained.return_value = reloaded_processor
+
+      cloned = copy.deepcopy(transform)
+
+      mock_from_pretrained.assert_called_once_with("google/owlvit-base-patch32")
+      self.assertEqual(cloned.processor, reloaded_processor)
+
+  def test_get_transform_fn_saves_processor_locally(self):
+    """Verifies processor.save_pretrained is called for DataLoader worker pre-caching."""
+    preprocessor = owl.Owlv2Preprocessor()
+
+    class DummyProcessor:
+      name_or_path = "google/owlvit-base-patch32"
+
+      def __call__(self, text, **kwargs):
+        return {
+            "input_ids": torch.zeros(1, 16),
+            "attention_mask": torch.ones(1, 16),
+        }
+
+      def save_pretrained(self, path):
+        self.saved_path = path
+
+    processor = DummyProcessor()
+
+    transform = preprocessor.get_transform_fn(
+        processor,
+        cfg=None,
+        is_train=False,
+        text_inputs=["detect cat"],
+        dataset_id2label=["cat"],
+        model_label2id={"cat": 0},
+    )
+
+    self.assertIsNotNone(processor.saved_path)
+    self.assertIsInstance(transform, owl.Owlv2Transform)
 
 
 if __name__ == "__main__":

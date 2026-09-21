@@ -27,12 +27,22 @@ from torch import nn
 import transformers
 
 from Uboreshaji_Modeli.common import config as common_config
+from Uboreshaji_Modeli.common import data
 from Uboreshaji_Modeli.common import gemma_box_utils
 from . import base
 
 
-class GemmaVisionTransform:
-  """Picklable transform callable for Gemma Vision data loader workers."""
+class GemmaVisionTransform(data.PicklableProcessorMixin):
+  """Picklable transform callable for Gemma Vision data loader workers.
+
+  Uses ``__getstate__``/``__setstate__`` to re-load the processor from
+  disk in each DataLoader worker process, since the processor's native
+  backends do not survive Python pickling.
+
+  On reload, custom ``<loc>`` tokens are re-added to the tokenizer
+  when ``detection_format == 'loc'``, matching the setup in
+  ``GemmaVisionEngine.load_model_and_processor``.
+  """
 
   def __init__(
       self,
@@ -42,6 +52,7 @@ class GemmaVisionTransform:
       detection_format,
       do_pan_and_scan,
       cfg,
+      model_id = None,
   ):
     self.processor = processor
     self.class_names = class_names
@@ -49,6 +60,14 @@ class GemmaVisionTransform:
     self.detection_format = detection_format
     self.do_pan_and_scan = do_pan_and_scan
     self.cfg = cfg
+    self._model_id = model_id or getattr(processor, "name_or_path", None)
+
+  def _post_load_processor(self):
+    if self.detection_format == "loc":
+      loc_tokens = [f"<loc{i:04d}>" for i in range(1024)]
+      num_added = self.processor.tokenizer.add_tokens(loc_tokens)
+      logging.debug("Added %d new loc tokens to vocabulary.", num_added)
+    self.processor.tokenizer.padding_side = "right"
 
   def __call__(
       self,
@@ -263,6 +282,12 @@ class GemmaVisionPreprocessor(base.DataPreprocessor):
     detection_format = cfg.get("detection_format", "loc") if cfg else "loc"
     do_pan_and_scan = cfg.get("do_pan_and_scan", False) if cfg else False
 
+    # Save processor locally so DataLoader workers can load without
+    # remote access.
+    temp_dir = data.stage_processor_locally(
+        processor, prefix="local_vision_processor_"
+    )
+
     return GemmaVisionTransform(
         processor=processor,
         class_names=class_names,
@@ -270,6 +295,7 @@ class GemmaVisionPreprocessor(base.DataPreprocessor):
         detection_format=detection_format,
         do_pan_and_scan=do_pan_and_scan,
         cfg=cfg,
+        model_id=temp_dir,
     )
 
   def get_collate_fn(

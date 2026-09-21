@@ -27,6 +27,7 @@ import transformers
 
 from Uboreshaji_Modeli.common import box_utils
 from Uboreshaji_Modeli.common import config as base_config
+from Uboreshaji_Modeli.common import data
 from Uboreshaji_Modeli.common import losses
 from Uboreshaji_Modeli.common import matcher
 from Uboreshaji_Modeli.engines import base
@@ -55,8 +56,13 @@ def normalize_annotation_for_owlv2(
   )
 
 
-class Owlv2Transform:
-  """Picklable transform callable for OWL-v2 data loader workers."""
+class Owlv2Transform(data.PicklableProcessorMixin):
+  """Picklable transform callable for OWL-v2 data loader workers.
+
+  Uses ``__getstate__``/``__setstate__`` to re-load the processor from
+  disk in each DataLoader worker process, since the processor's native
+  backends do not survive Python pickling.
+  """
 
   def __init__(
       self,
@@ -66,6 +72,7 @@ class Owlv2Transform:
       aug,
       shared_input_ids,
       shared_attention_mask,
+      model_id = None,
   ):
     self.processor = processor
     self.dataset_id2label = dataset_id2label
@@ -73,6 +80,10 @@ class Owlv2Transform:
     self.aug = aug
     self.shared_input_ids = shared_input_ids
     self.shared_attention_mask = shared_attention_mask
+    self._model_id = model_id or getattr(processor, "name_or_path", None)
+
+  def _load_processor(self, model_id):
+    return Owlv2Processor.from_pretrained(model_id)
 
   def __call__(
       self, examples
@@ -213,6 +224,11 @@ class Owlv2Preprocessor(base.DataPreprocessor):
     shared_input_ids = text_encoding["input_ids"].squeeze(0)
     shared_attention_mask = text_encoding["attention_mask"].squeeze(0)
 
+    # Save processor locally so DataLoader workers can load it.
+    temp_dir = data.stage_processor_locally(
+        processor, prefix="local_owl_processor_"
+    )
+
     return Owlv2Transform(
         processor=processor,
         dataset_id2label=dataset_id2label,
@@ -220,6 +236,7 @@ class Owlv2Preprocessor(base.DataPreprocessor):
         aug=aug,
         shared_input_ids=shared_input_ids,
         shared_attention_mask=shared_attention_mask,
+        model_id=temp_dir,
     )
 
   def get_collate_fn(
