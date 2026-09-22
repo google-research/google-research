@@ -18,12 +18,12 @@
 
 from Uboreshaji_Modeli.common import config
 from Uboreshaji_Modeli.trainers import base
-from Uboreshaji_Modeli.trainers import detection
 
 
 def get_trainer(task_type):
   """Returns the trainer strategy for the given task type."""
   if task_type == config.TaskType.DETECTION:
+    from Uboreshaji_Modeli.trainers import detection  # pylint: disable=g-import-not-at-top
     return detection.DetectionTrainer()
 
 

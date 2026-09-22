@@ -196,5 +196,120 @@ class GetDatasetTest(absltest.TestCase):
       self.assertEqual(result, "mocked_dataset")
 
 
+
+class PicklableProcessorMixinTest(absltest.TestCase):
+
+  def test_getstate_clears_processor(self):
+    class DummyTransform(data.PicklableProcessorMixin):
+
+      def __init__(self, processor):
+        self.processor = processor
+        self.other_attr = "value"
+
+    transform = DummyTransform(processor="heavy_processor")
+    state = transform.__getstate__()
+
+    self.assertIsNone(state["processor"])
+    self.assertEqual(state["other_attr"], "value")
+
+  def test_getstate_direct(self):
+    transform = data.PicklableProcessorMixin()
+    transform.processor = "heavy_processor"
+    transform.other_attr = "value"
+    state = transform.__getstate__()
+
+    self.assertIsNone(state["processor"])
+    self.assertEqual(state["other_attr"], "value")
+
+  def test_setstate_loads_processor(self):
+    class DummyTransform(data.PicklableProcessorMixin):
+
+      def __init__(self, model_id):
+        self._model_id = model_id
+        self.processor = None
+        self.post_load_called = False
+
+      def _post_load_processor(self):
+        self.post_load_called = True
+
+    transform = DummyTransform(model_id="fake_model_id")
+    state = {
+        "_model_id": "fake_model_id",
+        "processor": None,
+        "post_load_called": False,
+    }
+
+    with mock.patch.object(
+        transform,
+        "_load_processor",
+        return_value="loaded_processor",
+        autospec=True,
+    ) as mock_load:
+      transform.__setstate__(state)
+
+      mock_load.assert_called_once_with("fake_model_id")
+      self.assertEqual(transform.processor, "loaded_processor")
+      self.assertTrue(transform.post_load_called)
+
+  def test_setstate_skips_loading_if_no_model_id(self):
+    class DummyTransform(data.PicklableProcessorMixin):
+
+      def __init__(self):
+        self._model_id = None
+        self.processor = None
+
+    transform = DummyTransform()
+    state = {"_model_id": None, "processor": None}
+
+    with mock.patch.object(
+        transform, "_load_processor", autospec=True
+    ) as mock_load:
+      transform.__setstate__(state)
+
+      mock_load.assert_not_called()
+      self.assertIsNone(transform.processor)
+
+  def test_default_load_processor(self):
+    transform = data.PicklableProcessorMixin()
+
+    mock_transformers = mock.Mock()
+    mock_transformers.AutoProcessor.from_pretrained.return_value = (
+        "loaded_processor"
+    )
+
+    with mock.patch.dict("sys.modules", {"transformers": mock_transformers}):
+      result = transform._load_processor("fake_model_id")
+
+      mock_transformers.AutoProcessor.from_pretrained.assert_called_once_with(
+          "fake_model_id"
+      )
+      self.assertEqual(result, "loaded_processor")
+
+
+class StageProcessorLocallyTest(absltest.TestCase):
+
+  def test_stages_processor(self):
+    mock_processor = mock.Mock()
+
+    with mock.patch("tempfile.mkdtemp", return_value="/tmp/fake_dir"):
+      result = data.stage_processor_locally(mock_processor)
+
+      self.assertEqual(result, "/tmp/fake_dir")
+      mock_processor.save_pretrained.assert_called_once_with("/tmp/fake_dir")
+
+  def test_stages_processor_real_dir(self):
+    mock_processor = mock.Mock()
+    result_dir = data.stage_processor_locally(
+        mock_processor, prefix="test_stage_"
+    )
+
+    self.assertTrue(os.path.exists(result_dir))
+    self.assertIn("test_stage_", result_dir)
+    mock_processor.save_pretrained.assert_called_once_with(result_dir)
+
+    # Clean up
+    import shutil  # pylint: disable=g-import-not-at-top
+    shutil.rmtree(result_dir)
+
 if __name__ == "__main__":
   absltest.main()

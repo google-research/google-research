@@ -1,5 +1,40 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Novel_1
-model_abbr: Novel_1
-methods: "This model employs a two-level stacking ensemble for probabilistic quantile forecasting. Level-0 integrates three heuristic time series models: one for seasonality and momentum, another for smoothed trend and persistence, and a third for local epidemiological growth with spatial influences, utilizing Ridge regression and generating Negative Binomial forecasts. These are then combined through horizon-dependent weighted averages, further enhanced by data augmentation converting historical ILI into synthetic hospital admissions using per-location Ridge regression to expand the training context."
+model_id: Google_SAI-Novel_1
+paper_model_name: "*G-multi-layer-SE"
+
+in_google_sai_ensemble: true
+prompt_category: deep_research
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Novel_1.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  The "Superhuman" strategy is a Multi-Layered Stacking Ensemble (Level-1) built from a portfolio of diverse, SOTA hybrid models (Level-0) designed to solve the Proxy-Target Data Asymmetry and Spatio-Temporal dynamics challenges.
+  The ensemble uses a trained meta-forecaster to learn the optimal, time-varying fusion weights for superior probabilistic forecasting.
+  
+  1. Level-0 Component Design: Proxy-Target Transfer (MT-PatchTST):
+      * Architecture: Implement the Multi-Task PatchTST (MT-PatchTST), a time-series Transformer with Patching (segmenting the time series into subseries-level patches, e.g., 7-day patches) and Channel-Independence (a single shared Transformer encoder applied independently to each variable).
+      * Implementation:
+          * Pre-training (Self-Supervised): Train the PatchTST backbone on the full ~20-season ILINet dataset using a masked-patch "infilling" task to learn fundamental seasonal dynamics.
+          * Fine-Tuning (Multi-Task): Fine-tune the pre-trained backbone on the <5 years of paired ILINet and NHSN data, using two output heads to simultaneously predict ILINet (auxiliary task) and the 23 NHSN quantiles (target task).
+  2. Level-0 Component Design: Hybrid State-Space (DSSM-Integrator):
+      * Architecture: Implement the Deep State Space Model (DSSM) Integrator, which models ILINet and NHSN as two different observations ($NN_{g1}$ and $NN_{g2}$) of the same underlying, unobserved latent "flu state" ($l_t$). The latent state's dynamics ($l_t = f(l_{t-1})$) are governed by an RNN ($RNN_f$).
+      * Implementation (Two-Period Training):
+          * Period 1 (2000-2020): Train the model on ILINet data only, learning the dynamics ($RNN_f$) and the ILI emission function ($NN_{g1}$).
+          * Period 2 (2021-Present): Continue training on both data streams, learning the NHSN emission function ($NN_{g2}$) from the paired data while refining the dynamics ($RNN_f$).
+  3. Level-0 Component Design: Spatio-Temporal (HeatGNN-Flu):
+      * Architecture: Implement the HeatGNN-Flu model, a hybrid GNN framework that uses a dynamic graph.
+      * Implementation: The GNN is trained to learn embeddings that predict the parameters of a local SIR model (e.g., the local transmission rate \beta_i(t)) for each jurisdiction. The message-passing function uses these epidemiology-informed embeddings to model heterogeneous spread.
+  4. Generative Probabilistic Decoders:
+      * Couple each Level-0 model's feature vector ($h_t$) with a SOTA generative decoder (e.g., Conditional Diffusion Model/TimeGrad or Mixture Density Network/MDN).
+      * TimeGrad Sampling: For Diffusion Models, generate the final quantiles by running the reverse diffusion process 10,000 times to create an empirical distribution, and then sort and select the 23 required quantiles from this distribution.
+      * MDN Parameter Output: For MDNs, the network's final layer must output the parameters (mean \mu, standard deviation \sigma, and weight w) for a Gaussian Mixture Model (GMM), from which the 23 quantiles can be analytically derived.
+  5. Level-1 Stacking Ensemble Training:
+      * Generate a Level-1 training dataset by using a time-series cross-validation scheme to produce out-of-sample forecasts (the 23 quantiles) from all Level-0 component models.
+      * Train the Level-1 meta-forecaster on this dataset, using the Level-0 forecasts as input features and the true NHSN target values as labels.
+      * The objective is to train a model to learn the optimal weighted combination to combine the diverse component forecasts, making the L1 output mathematically superior to a simple average.

@@ -32,11 +32,17 @@ from . import decoders
 
 
 # TODO: b/517531260 - Refactor MMS preprocessor to be for all audio tasks.
-class MmsTransform:
-  """Picklable transform callable for MMS data loader workers."""
+class MmsTransform(data.PicklableProcessorMixin):
+  """Picklable transform callable for MMS data loader workers.
 
-  def __init__(self, processor):
+  Uses ``__getstate__``/``__setstate__`` to re-load the processor from
+  disk in each DataLoader worker process, since the processor's native
+  backends do not survive Python pickling.
+  """
+
+  def __init__(self, processor, model_id = None):
     self.processor = processor
+    self._model_id = model_id or getattr(processor, "name_or_path", None)
 
   def __call__(
       self,
@@ -113,7 +119,11 @@ class MmsPreprocessor(base.DataPreprocessor):
     """Returns a transform function converting audiowave signals to MMS inputs."""
     del self  # Unused.
 
-    return MmsTransform(processor=processor)
+    temp_dir = data.stage_processor_locally(
+        processor, prefix="local_mms_processor_"
+    )
+
+    return MmsTransform(processor=processor, model_id=temp_dir)
 
   def get_collate_fn(
       self,

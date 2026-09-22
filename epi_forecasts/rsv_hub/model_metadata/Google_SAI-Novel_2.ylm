@@ -1,0 +1,13 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Novel_2
+paper_model_name: "*G-general_instruction"
+
+in_google_sai_ensemble: true
+prompt_category: unconstrained
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  Unconstrained ERA-generated model.

@@ -1,0 +1,41 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Hybrid_3
+paper_model_name: "*G-CEPH_Rtrend_covid-CMU_climate_baseline"
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CEPH-Rtrend_covid
+original_team_citation: "Ajelli, M. et al. CEPH Lab at Indiana University. https://ceph-lab.github.io/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CEPH-Rtrend_covid.yml"
+
+## Model 2
+replicated_model_name: CMU-climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+# Code Location & Summary
+code_filepath: covid_hub/model_py/Google_SAI-Hybrid_3.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+  These two code solutions represent fundamentally different approaches to time series forecasting, particularly in the context of epidemiological modeling.
+  
+  CODE 1: Mechanistic/Epidemiological Renewal Equation Model with MCMC
+  - Renewal equation for disease transmission dynamics (Rt, GI).
+  - Bayesian Inference for Rt (MCMC).
+  - Stochastic Simulation for Forecasting (Monte Carlo).
+  - Lowpass filtering and daily resolution interpolation.
+  
+  CODE 2: Climatological/Historical Averaging Model
+  - Empirical/Climatological forecasting using historical analogs for the target week.
+  - Ensemble of quantiles (geo-specific and geo-aggregated).
+  - Direct empirical quantile calculation.
+  - Population normalization and smoothing factor.

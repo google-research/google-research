@@ -1,5 +1,28 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_1
-model_abbr: Adapted_1
-methods: "This is an attempt to replicate CFA_Pyrenew_Pyrenew_H_Flu model."
+model_id: Google_SAI-Adapted_1
+paper_model_name: G-CFA_Pyrenew_Pyrenew_H_Flu
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: CFA_Pyrenew_Pyrenew_H_Flu
+original_team_citation: "Bayer, D. M. et al. Center for Forecasting and Outbreak Analytics (CFA/CDC) Pyrenew team. https://github.com/cdcgov/pyrenew-hew"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/CFA_Pyrenew-Pyrenew_H_Flu.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_1.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  Simple renewal model fit only to the target signal.
+  Used to benchmark related multi-signal models the same framework with additional observables.
+  
+  1. Model Latent Infections: Estimates daily latent infections using a renewal equation. The time-varying reproduction number (Rt) is modeled as a latent random walk on the log scale, evolving weekly. A fixed generation interval distribution is used.
+  2. Estimate Latent Hospitalizations: Calculates daily latent hospitalizations by convolving the daily latent infections with a fixed hospitalization interval distribution (delay from infection to hospital admission) and multiplying by a latent infection-to-hospitalization rate (IHR).
+  3. Observation Model: Links the modeled daily latent hospitalizations to the observed weekly hospital admissions data. Daily latent hospitalizations are aggregated to the weekly level (MMWR epi-weeks). A Negative Binomial distribution is used as the observation model to account for overdispersion in the hospitalization counts.
+  4. Parameter Inference: Fits the model parameters, including those for the Rt random walk, initial infection levels, the IHR, and the Negative Binomial dispersion, to the observed hospitalization data using a Bayesian statistical framework.

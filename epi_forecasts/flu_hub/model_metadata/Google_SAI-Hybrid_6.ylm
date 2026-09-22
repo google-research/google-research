@@ -1,0 +1,110 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Hybrid_6
+paper_model_name: "*G-LANL_DBM x UMass_Flusion"
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: LANL_DBM
+original_team_citation: "Osthus D., Gattiker J. R., Priedhorsky R., Del Valle S. Y. Dynamic Bayesian Influenza Forecasting in the United States with Hierarchical Discrepancy. Bayesian Analysis. 2019 Mar;14(1):261-312. doi: 10.1214/18-BA1117."
+
+## Model 2
+replicated_model_name: UMass_Flusion
+original_team_citation: "Ray E. L., Wang Y., Wolfinger R. D., Reich N. G. Flusion: Integrating multiple data sources for accurate influenza predictions. Epidemics. 2025 Mar;50:100810. doi: 10.1016/j.epidem.2024.100810. Epub 2024 Dec 25. PMID: 39818098; PMCID: PMC12367328."
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UMass-flusion.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Hybrid_6.py
+methods: >
+  ERA-generated model given the provided prompt
+
+
+# Full ERA Prompt Text
+prompt: |
+We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+
+These two code solutions tackle the problem of Influenza forecasting with distinct philosophical and methodological approaches, primarily differing in their core modeling paradigms, target transformations, and how they achieve probabilistic forecasts.
+
+Here's a comparison of their main principles:
+
+---
+
+### CODE 1: Mechanistic-Statistical Hybrid (SIR Model with Discrepancy Modeling)
+
+**Main Principles:**
+
+1.  **Core Modeling Paradigm: Hybrid Mechanistic-Statistical**
+    *   **Mechanistic SIR Model Base:** The fundamental component is a Susceptible-Infectious-Recovered (SIR) epidemiological model. This model attempts to capture the *underlying biological dynamics* of influenza transmission (e.g., how the proportion of infected individuals changes over time).
+    *   **Statistical Discrepancy Modeling:** Recognizes that a simple SIR model is unlikely to perfectly fit real-world data due to unobserved factors, stochasticity, and model simplifications. Therefore, it explicitly models the *residuals* or *discrepancies* between the SIR model's output and the observed data using a statistical machine learning model (HistGradientBoostingRegressor). This is a "model-assisted" approach where the mechanistic model provides a strong, interpretable baseline, and the statistical model corrects its shortcomings.
+
+2.  **Target Transformation:**
+    *   **Logit Transformation of Proportion:** The `Total Influenza Admissions` (counts) are first converted to `admissions_per_100k`, then normalized to `admissions_proportion` (clamped to a small epsilon range), and finally transformed using the `logit` function. This maps the bounded proportion `[0,1]` to an unbounded scale `(-inf, inf)`, which often makes the data more amenable to linear or tree-based models and simplifies the assumption of Gaussian errors.
+
+3.  **Discrepancy Modeling Detail (Hierarchical Aspect):**
+    *   **Explicit Decomposition of Error:** The total error (residual) from the SIR model is conceptually broken down into two components:
+        *   **Common Discrepancy (`μ_t` proxy):** An Exponentially Weighted Moving Average (EWMA) of the *global median* of SIR residuals across all locations. This aims to capture system-wide, slowly evolving biases or trends not specific to any single location/season, representing a form of "common drift." It is dynamically updated during forecasting.
+        *   **Season-Specific Discrepancy (`δ_j,t` approximation):** This is modeled implicitly by the `HistGradientBoostingRegressor` using features like lagged `season_specific_residual` (residual after removing `μ_t`), `season_end_proximity`, and `relative_season_week`. This captures location- and season-specific deviations and autoregressive patterns.
+    *   **Hierarchical Learning:** A single `HistGradientBoostingRegressor` is trained across all locations and seasons, utilizing encoded categorical features (`location_encoded`, `season_year_encoded`). This allows the model to learn shared patterns and generalize better, especially to locations or seasons with less data, as information is pooled.
+
+4.  **Probabilistic Forecasts:**
+    *   **Mean Prediction + Dynamically Predicted Standard Deviation:** The `HistGradientBoostingRegressor` directly predicts the *mean* of the `logit_admissions_proportion`. A separate `LinearRegression` model is trained on the absolute residuals of the HGB to predict the *standard deviation* (heteroscedasticity). This standard deviation is dynamically adjusted and blended with a global fallback.
+    *   **Sampling and Quantiles:** Forecasts are generated by sampling from a `Normal` distribution defined by the predicted mean and standard deviation in the logit space. These samples are then transformed back to `Total Influenza Admissions`, and quantiles are derived from these samples.
+    *   **Strict Monotonicity:** Explicitly enforces monotonicity on the final quantile predictions.
+
+5.  **Robustness and Data Integration:**
+    *   **Robust SIR Fitting:** Employs extensive error handling, adaptive initial guesses, and tightened bounds for `scipy.optimize.curve_fit` to make SIR parameter estimation more reliable. Includes robust fallbacks (season-specific median, then global median) if SIR fitting or simulation fails for a particular location/season.
+    *   **ILINet Augmentation:** Uses `LinearRegression` (with robust checks and fallbacks) to learn a scaling factor between ILINet `ili_per_100k` and actual `admissions_per_100k`, generating `synthetic_admissions` to augment the training data before the earliest NHSN records.
+
+---
+
+### CODE 2: Purely Statistical Ensemble (Transformed Time Series with Ensembling)
+
+**Main Principles:**
+
+1.  **Core Modeling Paradigm: Purely Statistical Ensemble**
+    *   **No Explicit Mechanistic Model:** This solution does not incorporate an epidemiological model like SIR. Instead, it relies entirely on identifying and modeling statistical patterns, trends, and seasonalities present in the historical data through feature engineering and ensemble methods.
+    *   **Ensemble of Diverse Models:** Combines predictions from three different models: two `LGBMRegressor` models (trained on different feature sets) and one `HuberRegressor` for an autoregressive (AR) component. This diversity is intended to capture different aspects of the data and improve overall robustness and accuracy.
+
+2.  **Target Transformation:**
+    *   **4th Root Transformation + Location-Specific Standardization:** `Total Influenza Admissions` are converted to `value_rate` (per 100k), then transformed using a `4th root` (`np.power(value_rate, 1/4)`). This transformation is common for count data to stabilize variance and make distributions more Gaussian-like. Further, this 4th-rooted value is *standardized per location* using `(value_4rt / p95_loc) - mean_loc`, aiming to make the time series more comparable and stationary across different locations.
+
+3.  **Ensemble & Feature Engineering for Discrepancy:**
+    *   **Implicit Discrepancy Modeling through Feature Sets:** Instead of explicit discrepancy components, various engineered features are used to capture different aspects of the time series:
+        *   **Extensive Lagged Features:** Up to `lag_12` (previous 1 to 12 weeks of the transformed target signal).
+        *   **Rolling Statistics:** Moving averages and standard deviations.
+        *   **Trend and Curvature:** Features derived from differences in lagged values to capture rate of change and acceleration.
+        *   **Seasonal & Calendar Features:** `sin_week`, `cos_week`, `time_until_christmas` (a novel feature capturing proximity to a key holiday).
+        *   **LGBM Models (Change Prediction):** Two `LGBMRegressor` models are trained to predict the *change* in the standardized 4th-root transformed value (`X_t - X_{t-1}`). One uses a `Full Feature Set` (including current "level" features like `last_observed_std_value` and lags), while the other uses a `No Level Features` set (excluding such level-based features), encouraging it to focus purely on relative changes and seasonal patterns.
+        *   **AR Model (Level Prediction):** A `HuberRegressor` (robust linear model) is used for an AR(8) component, directly predicting the *level* of the standardized 4th-root transformed value based on its own lags and temporal covariates.
+
+4.  **Probabilistic Forecasts:**
+    *   **Quantile Regression (LGBM):** The two `LGBMRegressor` models are trained directly as `quantile` regressors (using `objective='quantile'`) for each specific quantile (e.g., 0.025, 0.5, 0.975). Each quantile model consists of multiple bagged LGBM instances (trained on bootstrapped seasons) for robustness.
+    *   **AR Model with Innovation Variance:** For the AR model, it predicts the *median* value. The probabilistic spread is derived by assuming `Normal` residuals whose standard deviation (innovation variance) is estimated *per location* from training residuals and scaled by `sqrt(steps_ahead)` for multi-step forecasts.
+    *   **Ensemble Averaging:** The quantile predictions from all three models (two LGBM, one AR) are then *averaged* to produce the final ensemble quantile forecasts.
+
+5.  **Robustness and Data Integration:**
+    *   **HuberRegressor:** Used for linear transformations and the AR model due to its robustness to outliers compared to standard Ordinary Least Squares.
+    *   **Bagging:** The LGBM quantile models are bagged across `season_id` to improve stability and reduce variance.
+    *   **ILINet Augmentation:** Uses `HuberRegressor` to learn a linear transformation (slope and intercept) between ILINet `ili_value` and NHSN `value_rate`. `synthetic_nhs_rate` data is generated and combined, but crucially, ILINet data is *cut off at a specific date* (`2022-10-15`).
+    *   **Recursive Forecasting with Deque:** Employs a `collections.deque` for efficiently managing lagged features during multi-step ahead recursive forecasting. The deque is updated with the ensemble's *median* prediction at each step.
+
+---
+
+### Key Differences Summarized:
+
+| Feature                   | Code 1 (Mechanistic-Statistical Hybrid)                                        | Code 2 (Purely Statistical Ensemble)                                         |
+| :------------------------ | :----------------------------------------------------------------------------- | :--------------------------------------------------------------------------- |
+| **Core Paradigm**         | SIR model as a mechanistic base + Statistical model (HGB) for residuals/discrepancy. | Purely statistical, ensemble of diverse models (LGBM, AR) without an explicit epidemiological core. |
+| **Target Transformation** | `Logit` transformation of `admissions_proportion` (0-1).                      | `4th root` of `admissions_rate` then location-specific `standardization`.    |
+| **Discrepancy Modeling**  | Explicit `μ_t` (global EWMA residual) and implicit `δ_j,t` (lagged residuals, features in HGB). Structured. | Implicitly handled by different models in ensemble (LGBM on change, AR on level) and diverse feature engineering. |
+| **Probabilistic Forecasts**| HGB point prediction + `LinearRegression` for Std. dev.; Samples from `Normal` distribution; Transforms back. | `LGBMRegressor` directly predicts quantiles; AR quantiles from `Normal` with location-specific, scaled `std` of residuals; Ensemble averages quantiles. |
+| **Ensemble Strategy**     | One primary HGB model learns from all data. SIR parameters fit per location/season (not an ensemble in the same sense). | An ensemble of 3 distinct models (2 LGBM with different features, 1 AR) whose quantile outputs are averaged. LGBM models are bagged. |
+| **Recursive Forecasting** | Uses a `prediction_tracker` dictionary to store past predictions for lags. `mu_t` is updated dynamically. | Uses a `collections.deque` for efficient rolling window of past predictions for lags. Updates deque with ensemble's median. |
+| **ILINet Integration**    | Learns a `LinearRegression` scaling factor. Uses all available ILINet data to augment historical records. | Learns a `HuberRegressor` linear mapping. Explicitly cuts off ILINet data at `2022-10-15`. |
+| **Robustness**            | Extensive error handling for SIR fitting, adaptive initial guesses, multiple fallback levels. | `HuberRegressor` for linear fits, bagging for LGBM, specific clipping for `OverflowError`. |
+
+In essence, Code 1 attempts to combine scientific understanding of disease dynamics with statistical learning to correct for deviations, offering a potentially more interpretable model. Code 2, on the other hand, is a data-driven powerhouse, focusing on robust transformations, extensive feature engineering, and combining the strengths of multiple statistical models to achieve high predictive accuracy without explicit epidemiological assumptions.

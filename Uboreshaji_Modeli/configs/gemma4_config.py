@@ -66,6 +66,9 @@ def get_config():
 
   cfg.platform.hardware = "h100=8"
   cfg.platform.tmp_ram_fs_gb = 200
+  cfg.platform.env_vars = {
+      "PYTORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
+  }
   cfg.training.batch_size = 1
   cfg.training.num_train_epochs = 1
   cfg.training.gradient_accumulation_steps = 16

@@ -1,0 +1,28 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_7
+paper_model_name: G-CFA-EpiAutoGP
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: CFA-EpiAutoGP
+original_team_citation: "Bayer, D. et al. Center for Forecasting and Outbreak Analysis (CFA/CDC). https://github.com/CDCgov/NowcastAutoGP"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CFA-EpiAutoGP.yaml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A non-parametric statistical model using Gaussian Process regression to infer the underlying structure of the epidemic curve without rigid mechanistic assumptions.
+  
+  1. Kernel Specification: Define a covariance kernel function (e.g., Matérn or Spectral Mixture) that dictates the smoothness and periodicity of the modeled function.
+  2. Hyperparameter Optimization: Maximize the marginal likelihood of the Gaussian Process given the historical hospitalization data to solve for optimal kernel hyperparameters (length-scale, amplitude).
+  3. Posterior Conditioning: Condition the GP prior on the training data to derive the posterior distribution of functions.
+  4. Function Sampling: Draw function samples from the posterior predictive distribution for the forecast horizon.
+  5. Transformation: If data was log-transformed, exponentiate the samples to return to the count scale and compute quantiles.

@@ -1,0 +1,12 @@
+Target variable: Total RSV Admissions (replaces Total Influenza Admissions).
+Forecast Hub: CDC RSVHub Forecast Hub.
+
+Core challenge --- Extreme Data Sparsity: For most states, the RSV target is only available from late 2024 onward, making this the most data-constrained of the three tasks. The prompt explicitly frames data sparsity as the central challenge and emphasizes "transfer of knowledge" from auxiliary datasets.
+Richer auxiliary data: In addition to the ~20-year ILINet history, the RSV prompt provides:
+- Total COVID-19 Admissions and Total Influenza Admissions columns in train_x (longer history than the RSV target).
+- Weekly percentage of ED visits due to RSV from the NSSP dataset (available from 2022 onward, but not for all locations, e.g., Puerto Rico and Missouri are missing).
+
+Data-augmentation strategies (replacing the ILINet-focused strategies in the flu prompt):
+- Strategy 1 --- Transfer Learning from NSSP: Learn a mapping between the NSSP signal and the RSV target in their overlap period, then apply it to create a synthetic history.
+- Strategy 2 --- Multi-Target Modeling: Use the COVID-19, flu, and NSSP columns as features and learn cross-correlations to inform RSV forecasts.
+Shared function signature, output format, evaluation metric (WIS), and key considerations as the influenza canonical prompt.

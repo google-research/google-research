@@ -1,0 +1,61 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Hybrid_1
+paper_model_name: "*G-CMU_TimeSeries-UMass_gbqr"
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CMU-TimeSeries
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CMU-TimeSeries.yml"
+
+## Model 2
+replicated_model_name: UMass_gbqr
+original_team_citation: "Ray, E. UMass Amherst. https://github.com/reichlab/idmodels"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UMass-gbqr.yml"
+
+# Code Location & Summary
+code_filepath: covid_hub/model_py/Google_SAI-Hybrid_1.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+  These two code solutions tackle the problem of forecasting COVID-19 hospitalizations using distinct methodological approaches: Code 1 employs a classical statistical time-series method (Quantile Regression with an Autoregressive structure), while Code 2 leverages a modern machine learning ensemble technique (Gradient Boosting Quantile Regression with LightGBM).
+  
+  Here's a comparison highlighting their main differing principles:
+  
+  ### CODE 1: Quantile Regression with AR Lags (Statsmodels QuantReg)
+  
+  Main Principles:
+  1. Classical Statistical Time Series (AR Model):
+      * Autoregressive (AR) Structure: The core idea is that future values are a linear function of past values of the series itself. The model explicitly creates lagged features (lag_1, lag_2, etc.) directly from the target variable's history.
+      * Iterative (Recursive) Forecasting: For multi-step-ahead predictions (horizons 0, 1, 2, 3), the model uses its own median prediction for the previous time step as an input for the next.
+      * Linear Model (Quantile Regression): statsmodels.regression.quantile_regression.QuantReg is used.
+  
+  2. Explicit Data Normalization and Smoothing:
+      * Population Normalization: Total COVID-19 Admissions are explicitly divided by population.
+      * Rolling Mean Smoothing: A smoothing window is applied.
+  
+  3. Minimal Feature Set: Primarily lagged values of smoothed, normalized admissions and an intercept.
+  
+  4. Training Data Windowing: Filters training data to a recent window (e.g., 28 days).
+  
+  5. Robustness and Post-processing: Non-negativity, Monotonicity (Quantile Sorting), Rounding.
+  
+  ### CODE 2: Gradient Boosting Quantile Regression (LightGBM)
+  
+  Main Principles:
+  1. Machine Learning Ensemble (Gradient Boosting Trees): LightGBM with quantile objective function. Direct multi-horizon forecasting.
+  2. Rich Feature Engineering: Datetime features, log population as a covariate, lagged raw data.
+  3. Data Structuring for ML Forecasting: Extended training data via tabular supervised learning format.
+  4. Categorical Feature Handling: Direct categorical features.
+  5. Robustness and Post-processing: Non-negativity, Rounding, Monotonicity sorting.
+  
+  Summary of Differences:
+  Code 1 is statistical/linear/iterative; Code 2 is GBDT/non-linear/direct multi-horizon.

@@ -1,5 +1,30 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_9
-model_abbr: Adapted_9
-methods: "This is an attempt to replicate Cornell_JHU-hierarchSIR model."
+model_id: Google_SAI-Adapted_9
+paper_model_name: "*G-Cornell_JHU-hierarchSIR"
+
+in_google_sai_ensemble: true
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: Cornell_JHU-hierarchSIR
+original_team_citation: "Data Assimilation Substitutes for Biological Complexity in Hybrid Influenza Forecasting Models
+Tijs W. Alleman, Tim Van Wesemael, Neha Shanker, Matthew S. Mietchen, Sara Loo, Oluwafeyisore Ajagbe, Jan M. Baetens, Joseph Lemaitre, Alison L. Hill, Shaun A. Truelove, Ana I. Bento
+medRxiv 2026.05.19.26353597; doi: https://doi.org/10.64898/2026.05.19.26353597"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/Cornell_JHU-hierarchSIR.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_9.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  An SIR model with unknown case ascertainment, basic reproduction number, population immunity and a splined effective reproduction number is used to model seasonal influenza dynamics in a given season.
+  Across-season trends ('hyperparameters') in the SIR model's parameters are derived by wrapping it in an across-season Bayesian hierarchical model.
+  Hyperparameters are used as priors when forecasting the current season.
+  Disease model integrated in C++ and bound to Python with pybind11, Bayesian hierarchical posterior probability coded in raw Python and sampled using the ensemble sampler of Goodman and Weare available in emcee (motivation: computationally inefficient but amazingly robust).
+  Workflow automatically pulls NHSN HRD data through a timed GH actions and deploys it on a local runner (Dell Optiplex 3050 Micro running Ubuntu Server).
+  Average time from data pull to forecast ready: 3 hours.
+  The environment enables scipy.interpolate for spline modeling and emcee for Bayesian posterior sampling with an ensemble MCMC sampler.

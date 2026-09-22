@@ -164,7 +164,7 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
         engine=mock_engine,
         dataset=mock_dataset,
         cfg=cfg,
-        device=device,  # pytype: disable=wrong-arg-types
+        device=device,
         model=mock_model,
         processor=mock_processor,
         output_path=mock_output_path,
@@ -199,11 +199,70 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
           engine=mock_engine,
           dataset=mock_dataset,
           cfg=cfg,
-          device=tpu_device,  # pytype: disable=wrong-arg-types
+          device=tpu_device,
           model=mock_model,
           processor=mock_processor,
           output_path=mock_output_path,
       )
+
+
+class CustomSFTTrainerTest(absltest.TestCase):
+
+  def test_tpu_monkey_patch(self):
+    from accelerate.utils import operations  # pylint: disable=g-import-not-at-top
+    import accelerate.accelerator as acc_mod  # pylint: disable=g-import-not-at-top
+
+    original_operations_gather = operations.gather
+    original_acc_mod_gather = getattr(acc_mod, "gather", None)
+
+    # Mock dist
+    self.enter_context(
+        unittest.mock.patch(
+            "torch.distributed.is_initialized", return_value=True
+        )
+    )
+    self.enter_context(
+        unittest.mock.patch(
+            "torch.distributed.get_backend", return_value="tpu_dist"
+        )
+    )
+    self.enter_context(
+        unittest.mock.patch("torch.distributed.get_world_size", return_value=2)
+    )
+    mock_all_gather = self.enter_context(
+        unittest.mock.patch("torch.distributed.all_gather")
+    )
+
+    try:
+      model = torch.nn.Module()
+
+      with unittest.mock.patch("trl.SFTTrainer.__init__", return_value=None):
+        _ = sft_trainer.CustomSFTTrainer(
+            model=model,
+        )
+
+      # Verify patched
+      self.assertNotEqual(operations.gather, original_operations_gather)
+
+      # Test standard patched function
+      tensor = torch.tensor([1, 2])
+      def fake_all_gather(output_tensors, t):
+        output_tensors[0] = t.clone()
+        output_tensors[1] = t.clone() * 2
+
+      mock_all_gather.side_effect = fake_all_gather
+
+      result = operations.gather(tensor)
+
+      # Verify result
+      expected = torch.tensor([1, 2, 2, 4])
+      torch.testing.assert_close(result, expected)
+
+    finally:
+      # Restore
+      operations.gather = original_operations_gather
+      if original_acc_mod_gather is not None:
+        acc_mod.gather = original_acc_mod_gather
 
 
 if __name__ == "__main__":

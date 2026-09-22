@@ -1,0 +1,40 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Hybrid_2
+paper_model_name: "*G-CMU_climate_baseline-UMass_ar6_pooled"
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CMU-climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+## Model 2
+replicated_model_name: UMass_ar6_pooled
+original_team_citation: "Ray, E. UMass Amherst. https://github.com/reichlab/idmodels"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UMass-ar6_pooled.yml"
+
+# Code Location & Summary
+code_filepath: covid_hub/model_py/Google_SAI-Hybrid_2.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  We have up until now done experiments with two major types of codes, that are described in detail below. We also have created a hybrid model that performs well on a short period of time. PLEASE MODIFY THE ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES ON THE ENTIRE SEASON.
+  
+  Code 1: Climatological Model
+  - Non-parametric, historical quantile lookup.
+  - Explicit seasonal focus (week of year).
+  - Geo-specific and geo-aggregated ensemble.
+  - Rate-based normalization.
+  
+  Code 2: Autoregressive (AR) Model
+  - Parametric, time-series forecasting (AR(6)).
+  - Autocorrelation focus (lags).
+  - Shared AR parameters across locations, location-specific error variances.
+  - Fourth-root data transformation.

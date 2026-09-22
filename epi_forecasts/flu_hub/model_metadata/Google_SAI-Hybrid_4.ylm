@@ -1,5 +1,98 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Hybrid_4
-model_abbr: Hybrid_4
-methods: "A hybrid model created by combining the core principles of two distinct parent models, CMU_climate_baseline and UGuelph_CompositeCurve."
+model_id: Google_SAI-Hybrid_4
+paper_model_name: G-CMU_climate_baseline x UGuelph_CompositeCurve
+
+in_google_sai_ensemble: false
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CMU_climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+## Model 2
+replicated_model_name: UGuelph_CompositeCurve
+original_team_citation: "Thomas, E. et al. University of Guelph Dynamics Training Lab. https://sites.google.com/site/mgcojocarumath/networks-and-dynamics-lab"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UGuelph-CompositeCurve.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Hybrid_4.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+
+These two code solutions approach the Influenza forecasting task using fundamentally different epidemiological modeling principles, data utilization strategies, and methods for generating probabilistic forecasts.
+
+Here's a comparison of their main differing principles:
+
+---
+
+## **CODE 1: Climatological/Analogue Forecasting with Empirical Quantiles**
+
+**Main Principles:**
+
+1.  **Core Forecasting Paradigm: Climatological/Analogue Model**
+    *   **Principle:** This approach is a form of climatological or analogue forecasting. It assumes that future events will resemble past events that occurred under similar conditions. Specifically, it forecasts by looking at historical observations from the same time of year (ISO week) and location, and directly uses the distribution of these past observations.
+    *   **Mechanism:** For a given target week, it collects `Total Influenza Admissions` data from a **cyclic window** (e.g., +/- 3 weeks) around that ISO week across all relevant historical years.
+
+2.  **Data Utilization: Direct Historical Observation Sampling from a Global Dataset**
+    *   **Principle:** The model relies *directly* on historical `Total Influenza Admissions` data. It explicitly states that `train_x` and `train_y` (which represent the current training fold's data) are *not* used for historical sampling. Instead, it accesses a globally available `dataset` containing all historical influenza admissions data from a specific start date ('2022-09-01' onwards).
+    *   **Mechanism:** It filters this global `dataset` to create `historical_data_2022_onwards`, and then samples from this filtered data based on the target week.
+
+3.  **Seasonality Modeling: ISO Week-based Cyclic Window**
+    *   **Principle:** Seasonality is handled by matching the `target_epiweek` (ISO week number) of the forecast with corresponding `epiweek`s in historical data. It accounts for the cyclic nature of weeks (e.g., week 53 wrapping to week 1, or week 1 wrapping to week 52/53) using the `get_cyclic_weeks` helper function.
+    *   **Mechanism:** For each unique `target_epiweek` in the test set, it defines a 7-week window (e.g., `current_target_epiweek +/- 3 weeks`) and retrieves all historical observations falling within these ISO weeks, adjusted for yearly `max_week` variations.
+
+4.  **Probabilistic Forecasting Mechanism: Empirical Quantiles**
+    *   **Principle:** Probabilistic forecasts (quantiles) are generated directly from the empirical distribution of the collected historical `Total Influenza Admissions` observations within the defined sampling window. No complex statistical models or simulations are used to generate the distribution itself.
+    *   **Mechanism:** It calculates `np.quantile` on the historical `Total Influenza Admissions` (for geo-specific) and `rate_per_100k` (for geo-aggregated) values.
+
+5.  **Spatial Awareness: Blending Geo-Specific and Geo-Aggregated Forecasts**
+    *   **Principle:** To enhance robustness, especially for locations with sparse historical data, the model combines location-specific forecasts with forecasts derived from a broader geographical aggregation (e.g., national).
+    *   **Mechanism:** It calculates quantiles for a `location` based on its own historical data (`geo_specific_quantiles_df`) and also calculates quantiles from the *entire aggregated historical dataset* (converted to counts via population, `geo_aggregated_count_quantiles_df`). These two sources are then averaged using `np.nanmean`.
+
+---
+
+## **CODE 2: Epidemic Curve Pattern Matching with Stochastic Simulation**
+
+**Main Principles:**
+
+1.  **Core Forecasting Paradigm: Epidemic Curve Pattern Matching with Stochastic Simulation**
+    *   **Principle:** This approach is more complex, following established epidemiological forecasting methodologies (Schanzer et al., Morel et al.). It involves building a generalized "template" of an epidemic season (a composite curve) and then finding the best match between the *recent observed trajectory* of the current season and segments of this composite curve. Based on these matches, it then simulates multiple future trajectories.
+    *   **Mechanism:** It constructs a `composite_curve` by aligning past seasons by their peak week. It then compares the current state's recent 4-week pattern to 4-week windows on this composite curve, weighting matches by similarity (Euclidean distance with an exponential kernel), and then samples 100 trajectories.
+
+2.  **Data Utilization: Data Augmentation via Transformation Learning**
+    *   **Principle:** `train_x` and `train_y` are *crucial* for learning a transformation, not for direct sampling of the target variable. The model aims to extend the historical record of `Total Influenza Admissions` by scaling raw `ILINet` (Influenza-like Illness network) data using observed relationships between `ILINet` and actual admissions.
+    *   **Mechanism:** The `_prepare_augmented_data` function learns median scaling factors (hierarchically: location-season, location-wide, global) between `Total Influenza Admissions` (from `train_x`/`train_y`) and `ilitotal` (from `ilinet_state`). These factors are then applied to historical `ilitotal` data to create `synthetic_admissions`, effectively augmenting the historical dataset used to build the composite curve.
+
+3.  **Seasonality Modeling: Peak-Aligned Epidemic Curves**
+    *   **Principle:** Seasonality is handled by normalizing and aligning historical seasons not by absolute ISO week, but by their *peak incidence*. This creates a "generic" epidemic shape that can be applied regardless of when a season actually started or peaked in a given year.
+    *   **Mechanism:** The `_build_composite_curve` function identifies the peak week for each `(location, season)` group, normalizes weekly admissions to a percentage of the seasonal total, and then calculates `weeks_from_peak`. The median percentage for each `weeks_from_peak` forms the `composite_curve`.
+
+4.  **Probabilistic Forecasting Mechanism: Stochastic Simulation of Trajectories**
+    *   **Principle:** Instead of directly calculating quantiles from past observations, this method generates 100 possible future trajectories. This allows for a more dynamic and nuanced representation of uncertainty.
+    *   **Mechanism:** After finding similarity weights for different segments of the `composite_curve`, it `np.random.choice` to probabilistically select 100 starting points on the composite curve. For each sampled point, it scales the subsequent weeks of the composite curve by an estimated total seasonal admissions (derived from current actual counts and the matched composite window sum) to create a full future trajectory. Quantiles are then calculated from these 100 simulated trajectories for each forecast horizon.
+
+5.  **Integration of Auxiliary Data: Central to Model Strategy**
+    *   **Principle:** External data, specifically `ilinet_state` (raw ILI percentages), is an integral part of the model. It's not just an optional feature but a core component for extending and enriching the historical training data.
+    *   **Mechanism:** The `_prepare_augmented_data` function explicitly merges and transforms `ilinet_state` data using learned scaling factors from the `train_x`/`train_y` data to generate `synthetic_admissions`. This combined `full_historical_data` (actual + synthetic) is then used to build the `composite_curve`.
+
+---
+
+### **Summary of Main Differences:**
+
+| Feature                      | CODE 1 (Climatological/Analogue)                                    | CODE 2 (Epidemic Curve Pattern Matching/Stochastic Simulation)                                   |
+| :--------------------------- | :------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------- |
+| **Core Method**              | Directly samples from past observations of the target variable.     | Builds a generalized epidemic curve, matches current pattern to it, and simulates trajectories.    |
+| **Historical Data Source**   | Global `dataset` (pre-loaded `Total Influenza Admissions` after 2022). `train_x`/`train_y` are ignored for historical sampling. | `train_x`/`train_y` used to learn scaling factors for external `ilinet_state` data, which then augments the historical record. |
+| **Seasonality Handling**     | ISO week-based cyclic window (e.g., week 10 in 2023 vs. week 10 in 2022). | Peak-aligned epidemic curves (aligns seasons by their peak, ignoring absolute calendar week). |
+| **Probabilistic Forecast**   | Direct empirical quantiles from historical data.                   | Stochastic simulation of 100 trajectories, then calculates quantiles from simulated paths.          |
+| **Auxiliary Data (`ILINet`)**| Not used by the `fit_and_predict_fn`.                             | Central to data augmentation; scaled and integrated into historical data.                      |
+| **Complexity**               | Simpler, direct statistical method.                                 | More complex, multi-stage, incorporating pattern matching, scaling, and simulation.             |
+

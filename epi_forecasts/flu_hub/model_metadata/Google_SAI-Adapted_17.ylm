@@ -1,0 +1,29 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_17
+paper_model_name: G-PSI-PROF_MOA_v2
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: PSI-PROF_MOA
+original_team_citation: "Ben-Nun, M., Riley, P., Turtle, J., & Riley, S. (2022). Consistent pattern of epidemic slowing across many geographies led to longer, flatter initial waves of the COVID-19 pandemic. PLOS Computational Biology, 18(8), Article e1010375. https://doi.org/10.1371/journal.pcbi.1010375"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/PSI-PROF_MOA.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_17.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  The PROF routines perform a deterministic fit of our compartmental SIR[H]2 (including vaccinated compartments for Susceptibles and Infectious) model to weekly hospitalization incidence profiles.
+  The model includes a hospitalization compartment which is split into two sub-compartments.
+  This split ensures that the model preserves the correct generation time (Tg) and that the ratio between cumulative recovered and hospitalized individuals is determined by the infection-hospitalization-ratio.
+  The transmission-rate coefficient (Beta) is a time-dependent function of 2 or more arc-tangents.
+  The actual data is augmented with 'future' data from a Method Of Analogs (MOA).
+  The MOA data receives a reduced fitting-weight compared to actual data. The model fit is inferred by an MCMC procedure.
+  It is followed by stochastic simulations through the forecast time-window using the inferred parameter distributions and a daily cadence which is then aggregated to weekly incidence to produce the forecasts.
+  Where there is little-to-no epi signal in the data, a baseline statistical model is substituted for the mechanistic model.

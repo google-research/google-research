@@ -1,0 +1,43 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_14
+paper_model_name: G-CMU_timeseries
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: CMU_timeseries
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/CMU-TimeSeries.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_14.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A basic quantile auto-regression fit using lagged values of influenza-related hospitalization counts (normalized by population).
+  The data are whitened so that the historical flusurv and ILI data can be used to augment the number of training examples.
+  The model is fit jointly across all 50 US states, the District of Columbia, Puerto Rico, and the Virgin Islands, using a window of data 7 weeks centered on the forecast date, including all past years.
+  Each of the 23 quantiles is learned using a separate quantile regression with nonnegativity and quantile sorting constraints applied post hoc.
+  All data signals are available as indicators through the Delphi Epidata API (https://cmu-delphi.github.io/delphi-epidata).
+  This model is averaged with both a climatological model and a simple linear model, with the weight on the windowed seasonal model above being ~6 times that of either the linear or climatological model.
+  
+  1. Data Acquisition: Obtain influenza-related hospitalization counts (e.g., FluSurv-NET from NHSN) and ILI-like data (e.g., percentage of ED visits from NSSP) for all US states, DC, Puerto Rico, and the Virgin Islands from the Delphi Epidata API.
+  2. Data Preprocessing:
+      * Normalize the influenza-related hospitalization counts by population for each location.
+      * Apply a whitening process to the historical time series data to enable the use of both hospitalization and ILI data sources to increase training data size.
+  3. Windowed Quantile Auto-Regression:
+      * For each location and forecast date, select training data from all available past years, restricted to a 7-week window centered on the current week of the year.
+      * Fit quantile auto-regression models using lagged values of the preprocessed data as predictors.
+      * Train separate models for each of the 23 required quantiles (0.01, 0.025, 0.05, ..., 0.95, 0.975, 0.99). The models are fit jointly across all locations.
+      * Apply post hoc adjustments to ensure forecast quantiles are non-negative and monotonically increasing.
+  4. Baseline Model Generation:
+      * Generate quantile forecasts using a climatological model based on historical data patterns.
+      * Generate quantile forecasts using a simple linear regression model.
+  5. Ensemble Averaging:
+      * Combine the quantile forecasts from the three models: the Windowed Quantile Auto-Regression, the Climatological model, and the Linear model.
+      * The final ensemble forecast is a weighted average, where the Windowed Quantile Auto-Regression model output receives approximately six times the weight of the Climatological model's output, and also six times the weight of the Linear model's output.

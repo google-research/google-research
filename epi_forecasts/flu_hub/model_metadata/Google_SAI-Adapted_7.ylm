@@ -1,5 +1,30 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_7
-model_abbr: Adapted_7
-methods: "This is an attempt to replicate UMass-gbqr model."
+model_id: Google_SAI-Adapted_7
+paper_model_name: G-UMass-gbqr
+
+in_google_sai_ensemble: false
+prompt_category: covid_hub
+
+# Attribution & References
+replicated_model_name: UMass-gbqr
+original_team_citation: "Ray, E. UMass Amherst. https://github.com/reichlab/idmodels"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UMass-gbqr.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_7.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A gradient boosting quantile regression model that utilizes extensive feature engineering, including lagged values and time-index covariates, to minimize the pinball loss function.
+  
+  1. Variance Stabilization: Apply a fourth-root transformation to the raw hospitalization counts.
+  2. Feature Engineering: Construct a feature matrix including autoregressive lags, demographic constants, cyclical calendar features (sin/cos of day-of-year), and the integer forecast horizon.
+  3. Ensemble Training: Initialize a Gradient Boosting regressor (e.g., LightGBM) with the 'quantile' objective. Train separate estimators for each required quantile by minimizing the Pinball Loss.
+  4. Prediction: Generate transformed quantile forecasts for the horizon.
+  5. Inverse Transformation: Raise predicted values to the fourth power to return to the natural count scale.
+
+  

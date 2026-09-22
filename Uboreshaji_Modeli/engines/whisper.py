@@ -30,16 +30,27 @@ from . import base
 from . import decoders
 
 
-class WhisperTransform:
-  """Picklable transform callable for Whisper data loader workers."""
+class WhisperTransform(data.PicklableProcessorMixin):
+  """Picklable transform callable for Whisper data loader workers.
+
+  Uses ``__getstate__``/``__setstate__`` to re-load the processor from
+  disk in each DataLoader worker process, since the processor's native
+  backends do not survive Python pickling.
+  """
 
   def __init__(
       self,
       processor,
       cfg,
+      model_id = None,
   ):
     self.processor = processor
     self.cfg = cfg
+    self._model_id = model_id or getattr(processor, "name_or_path", None)
+
+  def _load_processor(self, model_id):
+
+    return transformers.WhisperProcessor.from_pretrained(model_id)
 
   def __call__(
       self,
@@ -119,9 +130,14 @@ class WhisperPreprocessor(base.DataPreprocessor):
     """Returns a transform function converting examples to Whisper SFT inputs."""
     del self  # Unused.
 
+    temp_dir = data.stage_processor_locally(
+        processor, prefix="local_whisper_processor_"
+    )
+
     return WhisperTransform(
         processor=processor,
         cfg=cfg,
+        model_id=temp_dir,
     )
 
   def get_collate_fn(

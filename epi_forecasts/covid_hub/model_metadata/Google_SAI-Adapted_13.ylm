@@ -1,0 +1,29 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_13
+paper_model_name: G-CEPH-Rtrend_covid
+
+in_google_sai_ensemble: false
+prompt_category: covidhub
+
+# Attribution & References
+replicated_model_name: CEPH-Rtrend_covid
+original_team_citation: "Ajelli, M. et al. CEPH Lab at Indiana University. https://ceph-lab.github.io/"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/CEPH-Rtrend_covid.yml"
+
+# Code Location & Summary
+code_filepath: 
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A semi-mechanistic renewal model that estimates the posterior distribution of the effective reproduction number (Rt) via MCMC and projects it forward based on recent trends.
+  
+  1. Signal Processing: Apply a low-pass filter to smooth the hospitalization time series and interpolate to a daily resolution to match the generation interval time-step.
+  2. Bayesian Inference: Define a likelihood function dependent on the convolution of past incidence, the generation interval, and Rt. Use the Metropolis-Hastings MCMC algorithm to sample the posterior distribution of Rt given the data and an informed prior.
+  3. Trend Estimation: Extract Rt estimates from the most recent 21-day window. Fit a trend line (e.g., linear regression on log space) to this window to characterize the current trajectory.
+  4. Forward Simulation: Project Rt into the forecast horizon by continuing the identified trend.
+  5. Incidence Calculation: Input the projected Rt trajectory into the renewal equation to iteratively simulate future daily hospitalizations.
+  6. Quantile Extraction: Aggregate the simulated trajectories to compute the required probability quantiles.

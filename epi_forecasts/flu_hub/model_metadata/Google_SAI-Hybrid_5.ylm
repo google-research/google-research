@@ -1,5 +1,109 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Hybrid_5
-model_abbr: Hybrid_5
-methods: "A hybrid model created by combining the core principles of two distinct parent models, CU_SIRS and CMU_climate_baseline."
+model_id: Google_SAI-Hybrid_5
+paper_model_name: G-CU_SIRS x CMU_climate_baseline
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CU_SIRS
+original_team_citation: "J. Shaman, & A. Karspeck,  Forecasting seasonal outbreaks of influenza, Proc. Natl. Acad. Sci. U.S.A. 109 (50) 20425-20430, https://doi.org/10.1073/pnas.1208772109 (2012)."
+
+## Model 2
+replicated_model_name: CMU_climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Hybrid_5.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+
+These two code solutions represent fundamentally different approaches to the influenza forecasting task, embodying distinct modeling paradigms and principles.
+
+Here's a comparison highlighting their main differences:
+
+---
+
+### CODE 1: Mechanistic SIRS Ensemble Model with Adaptive Parameterization and Pseudo-Assimilation
+
+**Main Principles:**
+
+1.  **Mechanistic Compartmental Modeling (SIRS):**
+    *   **Principle:** The core of this solution is a Susceptible-Infectious-Recovered-Susceptible (SIRS) epidemiological model. This model attempts to represent the underlying biological and sociological processes of disease transmission. Individuals move between compartments (S, I, R) based on defined rates (`beta_base`, `gamma`, `rho`).
+    *   **Implementation:** The `SIRSModel` class explicitly tracks `S`, `I`, `R` states. `_advance_week` simulates the transitions between these states over time.
+
+2.  **Ensemble Forecasting:**
+    *   **Principle:** Instead of a single deterministic forecast, an *ensemble* of 200 SIRS models is run. Each member has slightly different initial conditions and parameter values, sampled from probabilistic distributions. The spread of these ensemble trajectories quantifies forecast uncertainty.
+    *   **Implementation:** `N_ensemble = 200` `SIRSModel` instances are created. `np.percentile` is used on the collection of ensemble predictions at each horizon to generate quantile forecasts.
+
+3.  **Stochasticity and Noise:**
+    *   **Principle:** The model explicitly incorporates stochasticity (random noise) into the disease dynamics to account for unmodeled variability and inherent randomness in real-world epidemics.
+    *   **Implementation:** Gaussian noise is added to `new_infections` and `recoveries` within the `_advance_week` method, with a minimum noise floor (`MIN_INFECTION_NOISE_FLOOR`) to ensure diversity even at low incidence. `noise_factor` is also perturbed per ensemble member.
+
+4.  **Adaptive Parameterization and Initialization-Time Pseudo-Assimilation:**
+    *   **Principle:** The model's epidemiological parameters and initial states are not fixed but are *dynamically adapted* at the start of each forecast based on recent observations and historical patterns. This acts as a form of "data assimilation" at the forecast initiation point, nudging the ensemble towards the observed reality.
+    *   **Implementation:**
+        *   **`admissions_per_ILI_unit_factors`:** Learned per location using linear regression (or fallback to national average) to scale Google Flu Trends-like ILI estimates to actual admissions. This factor is crucial for parameter adaptation.
+        *   **Dynamic `beta_base` and `gamma` Priors:** The *mean* and *ranges* for sampling `beta_base` (transmissibility) and `gamma` (recovery rate) are adjusted for each location based on its `admissions_per_ili_scaling_factor` relative to the national average. Locations with higher `admissions_per_ili` rates will sample higher `beta_base` and lower `gamma` means, reflecting more intense local dynamics.
+        *   **`I0` (Initial Infected) Perturbation:** The initial infected population (`I0`) is derived from the `latest_admissions_observation`. If observations are zero or very low, `I0` is aggressively perturbed to ensure the ensemble can simulate outbreak initiation. If observations are meaningful, `I0`'s standard deviation scales proportionally, balancing observation-driven certainty with necessary ensemble spread.
+        *   **`INFLATION_FACTOR`:** Used to inflate the standard deviations of sampled parameters and initial states, maintaining ensemble spread (a common technique in ensemble Kalman filters to prevent filter collapse).
+        *   **`seasonal_multipliers`:** Derived from historical epiweek patterns (local blended with national, adaptive blending weight) to act as a proxy for environmental drivers like absolute humidity, influencing `beta_t`.
+
+5.  **Robustness for Sparse Data and Edge Cases:**
+    *   **Principle:** The code includes numerous safeguards to handle locations with limited historical data, zero observations, or small populations gracefully.
+    *   **Implementation:** Fallbacks to national averages for ILI-to-admissions factors, adaptive blending of local and national seasonal patterns, minimum infected seeds, minimum susceptible populations, and clipping of parameters to plausible ranges.
+
+---
+
+### CODE 2: Empirical Climatological Forecasting
+
+**Main Principles:**
+
+1.  **Purely Empirical/Climatological Approach:**
+    *   **Principle:** This solution makes forecasts directly from historical observations without relying on an explicit mechanistic model of disease transmission. It assumes that future influenza activity for a given week will statistically resemble past activity for the same week (and surrounding weeks) in historical data.
+    *   **Implementation:** There is no SIRS model or similar dynamic system. Forecasts are derived by sampling from historical `Total Influenza Admissions` or `rate_per_100k`.
+
+2.  **Target-Week-Specific Climatology with Cyclic Window:**
+    *   **Principle:** Forecasts are highly specialized for the *exact target epiweek*. It considers historical data not just for that specific week, but also for a symmetric window of surrounding weeks, cyclically wrapping around year boundaries to capture continuous seasonal patterns.
+    *   **Implementation:** The `get_cyclic_weeks` function defines a 7-week window around the `current_target_epiweek`. `max_week_by_historical_year` correctly handles 52- or 53-week ISO years. Historical data is filtered precisely to these `(year, epiweek)` tuples.
+
+3.  **Direct Empirical Quantile Calculation:**
+    *   **Principle:** Probabilistic forecasts (quantiles) are computed directly from the empirical distribution of historical observations within the defined sample window, rather than from model simulations or parametric assumptions.
+    *   **Implementation:** `np.quantile` is applied directly to collections of historical `Total Influenza Admissions` (for geo-specific) or `rate_per_100k` (for geo-aggregated) within the relevant sample window.
+
+4.  **Blending Geo-Specific and Geo-Aggregated Information:**
+    *   **Principle:** To address data sparsity for individual locations and leverage broader trends, the model blends location-specific historical patterns with more robust, geo-aggregated (e.g., national) patterns.
+    *   **Implementation:**
+        *   `calculated_quantiles_per_location`: Quantiles from historical *admissions counts* for the *specific location* being forecasted.
+        *   `geo_aggregated_rate_quantiles_arr`: Quantiles from historical *rates per 100k* across *all locations* within the sample window. These rates are then converted back to counts using the *specific location's population*.
+        *   These two sets of quantiles are combined using `np.nanmean`, effectively allowing the geo-aggregated prediction to fill in or weigh heavily where local data is sparse or absent.
+
+5.  **Data Source and Scope:**
+    *   **Principle:** The model relies on a broad, consistent historical dataset, independent of the `train_x`/`train_y` provided in a particular competition fold. This ensures access to a full climatology.
+    *   **Implementation:** It explicitly accesses a `global dataset` (assumed pre-loaded) and filters it from `'2022-09-01'` onwards, rather than using `train_x`/`train_y` for its historical sampling.
+
+---
+
+### Summary of Key Differences:
+
+| Feature                   | CODE 1: Mechanistic SIRS Ensemble Model                                | CODE 2: Empirical Climatological Forecasting                             |
+| :------------------------ | :--------------------------------------------------------------------- | :----------------------------------------------------------------------- |
+| **Modeling Paradigm**     | **Mechanistic:** Simulates underlying disease transmission (SIRS).     | **Empirical:** Looks up and aggregates historical observations directly.  |
+| **Forecast Generation**   | Forward simulation of an ensemble of SIRS models.                      | Statistical summary (quantiles) of historical data in a time window.     |
+| **Uncertainty Quant.**    | Modeled via ensemble spread, stochastic noise, perturbed parameters.   | Derived from the natural variability in historical observations.         |
+| **Parameter Learning**    | Extensive: Learns ILI-to-admissions factor, seasonal multipliers. **Dynamically adjusts SIRS parameter means/ranges (beta, gamma) based on location-specific historical activity.** | None: Assumes historical distributions directly represent future.           |
+| **Data Assimilation**     | **Initialization-time pseudo-assimilation:** Uses latest observation to inform initial states (`I0`) and adapt prior parameter distributions (`beta`, `gamma`) for the ensemble. | None: No adjustment of a dynamic model's state or parameters based on observations. |
+| **Seasonality**           | Integrated into `beta` via `seasonal_multipliers` (proxy for AH).     | **Central:** Defined by `target_epiweek` and a cyclic historical window. |
+| **Handling Sparse Data**  | Blends local/national patterns; robust `I0` seeding for zero obs.      | Blends geo-specific and geo-aggregated empirical quantiles.              |
+| **Data Source for History**| Primarily `train_x`/`train_y` augmented with `ilinet_state` for the *current fold*. | Relies on a `globally available 'dataset'` filtered from a fixed historical start date. |
+| **Computational Cost**    | Potentially higher due to multiple simulations of a dynamic model.    | Generally lower, as it's primarily data aggregation and lookup.          |
+
+In essence, Code 1 attempts to *understand and simulate the disease process* with learned, adaptive parameters and inherent noise to project into the future, while Code 2 simply *finds analogous historical situations* and uses their observed outcomes as predictions, without positing a generative mechanism.

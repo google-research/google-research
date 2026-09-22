@@ -1,0 +1,26 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Novel_2
+paper_model_name: G-DeepResearch_CounterfactualSimulation
+
+in_google_sai_ensemble: false
+prompt_category: deep_research
+
+# Code Location & Summary
+code_filepath: covid_hub/model_py/Google_SAI-Novel_2.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  Implement an unconditional uncertainty quantification module using Monte Carlo simulation.
+  
+  Scenario Definition:
+  Define a set of key uncertain future drivers (e.g., 'New_Variant_Emerge', 'Holiday_Mobility_Change') and assign a probability distribution to each.
+  
+  Simulation Loop:
+  Execute N (e.g., 10,000) simulation runs. In each run, sample a complete future trajectory for all defined drivers, creating one plausible future scenario. Feed this specific vector of future covariates into the pre-trained Causal Spatio-Temporal Graph Transformer (Pillar 1) to generate a single median forecast trajectory conditioned on that scenario.
+  
+  Aggregation:
+  Collect the N median forecast trajectories. The final submitted forecast quantiles (0.025, 0.5, 0.975) must be the empirical quantiles calculated across this aggregated distribution of N trajectories for each forecast date.

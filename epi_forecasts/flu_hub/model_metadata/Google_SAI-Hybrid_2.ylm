@@ -1,5 +1,76 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Hybrid_2
-model_abbr: Hybrid_2
-methods: "A hybrid model created by combining the core principles of two distinct parent models, CMU_climate_baseline and UGA_flucast_Copycat."
+model_id: Google_SAI-Hybrid_2
+paper_model_name: *G-CMU_climate_baseline x UGA_flucast_Copycat
+
+in_google_sai_ensemble: true
+prompt_category: recombination
+
+# Attribution & References
+## Model 1
+replicated_model_name: CMU_climate_baseline
+original_team_citation: "Brooks, L. et al. Carnegie Mellon Delphi Group. https://github.com/cmu-delphi/exploration-tooling/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/CMU-climate_baseline.yml"
+
+## Model 2
+replicated_model_name: UGA_flucast_Copycat
+original_team_citation: "Fox, S. J. UGA_flucast. https://thefoxlab.wordpress.com/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UGA_flucast-Copycat.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Hybrid_2.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+We have up until now done experiments with two major types of codes, that are described in detail below. PLEASE CREATE AN ALGORITHM THAT USES THE BEST PARTS OF BOTH STRATEGIES TO CREATE A HYBRID STRATEGY THAT IS TRULY WONDERFUL AND SCORES HIGHER THAN EITHER OF THE INDIVIDUAL STRATEGIES.
+
+Both code solutions aim to forecast Influenza admissions, but they employ fundamentally different methodologies and principles. Code 1 uses a more straightforward, empirical climatological approach, while Code 2 implements a more sophisticated, model-based nearest-neighbor trajectory matching system that integrates multiple data sources and learns relationships between them.
+
+Here's a comparison of their main differing principles:
+
+---
+
+### Comparison Table
+
+| Feature / Principle     | CODE 1: Climatological Quantiles                               | CODE 2: Nearest Neighbor Trajectory Matching                |
+| :---------------------- | :------------------------------------------------------------- | :---------------------------------------------------------- |
+| **Core Methodology**    | Empirical Quantile Forecasting (Climatology)                   | Dynamic Nearest Neighbor Trajectory Matching                |
+| **Data Sources Used**   | Primarily `Total Influenza Admissions` (from `dataset`)      | `Total Influenza Admissions` (from `dataset`), **and** `ILI (Influenza-like Illness)` data (from `ilinet_state`, `ilinet`) |
+| **"Learning" Component**| **None explicit**. Relies purely on historical aggregation.    | **Explicit Machine Learning** (`HuberRegressor`) to transform ILI to synthetic admissions. |
+| **Time Series State**   | Defined by `target_epiweek` (static calendar week).            | Defined by a `LOOKBACK_WEEKS` long *normalized log growth rate trend* vector, and `season_week`. |
+| **Seasonality Handling**| **Direct calendrical lookup** using `target_epiweek` and a cyclic window. | **Indirect**, via `season_week` as a penalty term in KNN distance, ensuring matched trends are from similar times of the year. |
+| **Data Augmentation**   | None (uses raw historical admissions directly).                | **Significant:** Synthesizes `Total Influenza Admissions` from ILI data using a learned transformation model. |
+| **Forecasting Logic**   | Aggregate historical values for the *same target week* and calculate quantiles. | Find historical periods with *similar recent growth patterns* (trends), scale their *future trajectories*, and ensemble for quantiles. |
+| **Input for Matching**  | Implicitly the `target_epiweek` itself.                        | An explicit `LOOKBACK_WEEKS` window of *normalized log growth rates* of recent per-capita admissions. |
+| **Output Derivation**   | `np.quantile` directly on historical counts/rates.             | `np.percentile` on an ensemble of scaled *future trajectories* from neighbors. |
+| **Robustness**          | `np.nanmean` for combining, `fillna(0)`, `clip(lower=0)`.      | `PSEUDO_COUNT_FOR_ADMISSIONS`, `PSEUDO_RATE_FOR_ILI`, `HuberRegressor` for robust regression, `EPSILON_STABILITY`, filtering 'flat' trends, `MAX_SCALING_FACTOR`. |
+
+---
+
+### Explanation of Main Principles that Differ:
+
+1.  **Core Forecasting Methodology (Climatology vs. Dynamic Trajectory Matching):**
+    *   **Code 1 (Climatological):** This solution operates on the principle of **historical climatology**. For a given target week, it aggregates all past `Total Influenza Admissions` data from similar calendar weeks (within a defined cyclic window) and directly calculates quantiles from this empirical distribution. It essentially answers the question: "Given this target week, what has historically happened in terms of admissions?" It assumes that future patterns for a given week will resemble past patterns for that same week.
+    *   **Code 2 (Nearest Neighbor Trajectory Matching):** This solution takes a more dynamic, **pattern-matching approach**. It looks at the *recent growth rate trend* of `Total Influenza Admissions` (the "current state") and searches through an extensive historical library to find past periods that exhibited *similar growth rate trends*. Once similar historical trends (neighbors) are found, their subsequent future trajectories are scaled and averaged to form the forecast. This answers the question: "Given how the flu admissions have been changing recently, what happened historically after similar changes?"
+
+2.  **Data Sources and Augmentation:**
+    *   **Code 1:** Primarily relies on a single data source: `Total Influenza Admissions`. While it combines geo-specific and geo-aggregated data, it doesn't integrate external epidemiological indicators. It uses `dataset` directly for historical sampling.
+    *   **Code 2:** Significantly **augments its historical data** by incorporating `ILI (Influenza-like Illness)` rates (from `ilinet_state` and `ilinet`). It then **learns a transformation** to convert these ILI rates into "synthetic `Total Influenza Admissions`" equivalents. This allows Code 2 to build a much richer and potentially longer historical library, especially for locations or periods where actual admissions data might be sparse but ILI data is available. This is crucial for finding more relevant nearest neighbors.
+
+3.  **"Learning" Component:**
+    *   **Code 1:** Contains **no explicit machine learning or statistical modeling component**. It is purely a data aggregation and empirical quantile calculation method. The "fit" part of `fit_and_predict_fn` simply involves preparing the historical data, but not training a parametric model.
+    *   **Code 2:** Includes a clear **machine learning component**: it trains a `HuberRegressor` (a robust linear regression model) to learn the relationship between per-capita ILI rates and per-capita `Total Influenza Admissions`. This model is trained both globally and for specific locations with sufficient overlap data. This learned transformation is then used to create the synthetic admissions data.
+
+4.  **Representation of Time Series "State" for Matching:**
+    *   **Code 1:** The "state" for which a forecast is made is primarily defined by the `target_epiweek`. The model implicitly assumes that the `target_epiweek` itself is a sufficient descriptor for historical similarity.
+    *   **Code 2:** The "state" is represented by a **multi-dimensional vector of recent growth rates**. Specifically, it calculates `LOOKBACK_WEEKS` of normalized log-transformed week-over-week differences of per-capita admissions. This captures the *recent dynamics* or *trend* of the epidemic curve. Additionally, the `season_week` (an epidemiological week number) is included as a penalty term in the distance metric, influencing the search for neighbors.
+
+5.  **Handling of Seasonality:**
+    *   **Code 1:** Addresses seasonality **directly** by restricting the historical data search to a narrow, cyclic window around the `target_epiweek`. This is a calendar-based approach. The `get_cyclic_weeks` function is central to this.
+    *   **Code 2:** Incorporates seasonality **indirectly** into its nearest neighbor search. While the primary matching is on growth rate trends, a penalty term based on the circular distance between `season_week` values (epidemiological week) is added to the overall similarity metric. This ensures that matched trends not only look similar in shape but also occur at epidemiologically similar times of the year.
+
+In summary, Code 1 is a more static, data-driven approach that relies on the direct observation of past events for the exact time of year. Code 2 is a more dynamic, model-driven approach that learns relationships from multiple data sources and uses recent trends to find analogous situations in the past, effectively "predicting by analogy" based on how the epidemic curve is currently evolving.
+

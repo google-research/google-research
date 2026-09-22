@@ -1,5 +1,24 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_8
-model_abbr: Adapted_8
-methods: "This is an attempt to replicate NU-PGF_FLUH model."
+model_id: Google_SAI-Adapted_8
+paper_model_name: G-NU-PGF_FLUH
+
+in_google_sai_ensemble: false
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: NU-PGF_FLUH
+original_team_citation: "St-Onge, G. et al. Branching Process Collective at Northeastern University. https://github.com/dimitri-lopez/FluSight-forecast-hub"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/NU-PGF_FLUH.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_8.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A branching process model analytically solved with probability generating functions (PGFs), enabling Bayesian inference of the time-varying reproduction number and mechanistic modeling of immunity.
+  The branching process approximates the full stochastic evolution of a discrete-time, single-population, SLIR compartmental model, extended to evaluate weekly hospitalizations resulting from infections.
+  Enabled packages that may be useful for this approach include SymPy for symbolic manipulation of probability generating functions, and PyMC for Bayesian inference of the time-varying reproduction number and latent epidemic states.

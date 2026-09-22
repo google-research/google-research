@@ -1,0 +1,60 @@
+# Model Identifiers
+team_name: Google Science AI
+team_abbr: Google_SAI
+model_id: Google_SAI-Adapted_11
+paper_model_name: "*G-UMass_Flusion"
+
+in_google_sai_ensemble: true
+prompt_category: flusight_hub, literature
+
+# Attribution & References
+replicated_model_name: UMass_Flusion
+original_team_citation: "Ray E. L., Wang Y., Wolfinger R. D., Reich N. G. Flusion: Integrating multiple data sources for accurate influenza predictions. Epidemics. 2025 Mar;50:100810. doi: 10.1016/j.epidem.2024.100810. Epub 2024 Dec 25. PMID: 39818098; PMCID: PMC12367328."
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UMass-flusion.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_11.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  An ensemble forecasting approach for weekly influenza hospital admissions, integrating three distinct data sources: the target hospital admission counts, historical hospitalization rates from a sentinel network, and influenza-like illness data combined with test positivity.
+  The method combines predictions from three component models: two tree-based quantile regression models trained jointly on all data sources and locations, differing in their feature sets, and an autoregressive time series model with a holiday effect covariate trained only on the target hospitalization data across all locations.
+  Data are preprocessed through rate conversion, a power transformation, and standardization.
+  The final ensemble forecast is produced by averaging the quantile predictions from the component models.
+  
+  1. Data Acquisition and Preparation:
+      * Obtain weekly state and national level data for:
+          * NHSN influenza hospital admissions (the primary target).
+          * FluSurv-NET hospitalization rates.
+          * ILI+ (ILI data combined with influenza test positivity rates).
+      * Adjust FluSurv-NET and ILI+ historical data to improve consistency over time, if applicable.
+  
+  2. Data Standardization: For each data source, location, and time point:
+      * Convert NHSN counts to rates per 100,000 population.
+      * Apply a fourth-root transformation to stabilize variance.
+      * Center and scale the data by dividing by the 95th percentile and subtracting the mean for each location and data source.
+  
+  3. Component Model 1: Tree-Based Quantile Regression (Full Features):
+      * Train separate tree-based models to predict each required quantile of the change in the standardized signal from the last observed value.
+      * Use data from all three sources (NHSN, FluSurv-NET, ILI+) and all locations (state, regional, national).
+      * Include features such as: data source, location, week of season, time until Christmas, forecast horizon, and various measures of the recent local level, trend, and curvature of the standardized signal.
+      * Employ bagging by averaging predictions from models trained on random subsets of seasons.
+  
+  4. Component Model 2: Tree-Based Quantile Regression (No Level Features):
+      * Similar to Component Model 1, but exclude features that directly measure the local level of the signal (e.g., most recent value, rolling means, intercepts of polynomial fits).
+  
+  5. Component Model 3: Autoregressive with Covariates:
+      * Fit an autoregressive model of order 8 to the standardized NHSN data only, jointly across all locations.
+      * Share autoregressive coefficients across locations.
+      * Include a covariate representing proximity to Christmas week.
+      * Estimate separate innovation variance parameters for each location.
+      * Generate multi-step ahead forecasts by iterating one-step-ahead predictions.
+  
+  6. Ensemble Formation:
+      * For each forecast target (location, horizon) and each required quantile level, average the predicted quantile values obtained from the three component models.
+      * Invert the standardization steps (mean/scaling, fourth root, population adjustment) to obtain forecasts on the original scale of hospital admission counts.
+  
+  7. Prediction Generation:
+      * Generate predictions for the current week and the next three weeks.

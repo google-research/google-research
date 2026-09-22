@@ -1,5 +1,29 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_6
-model_abbr: Adapted_6
-methods: "This is an attempt to replicate UMass-ar6_pooled model."
+model_id: Google_SAI-Adapted_6
+paper_model_name: G-UMass-ar6_pooled
+
+in_google_sai_ensemble: false
+prompt_category: covid_hub
+
+# Attribution & References
+replicated_model_name: UMass-ar6_pooled
+original_team_citation: "Ray, E. UMass Amherst. https://github.com/reichlab/idmodels"
+original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/UMass-ar6_pooled.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_6.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A pooled autoregressive model of order 6 where coefficients are shared globally across all locations, while variance is estimated locally.
+  
+  1. Transformation: Apply a variance-stabilizing fourth-root transformation to all data.
+  2. Global Estimation: Stack data from all locations and estimate a single set of AR(6) coefficients minimizing the global squared error.
+  3. Local Variance Estimation: Calculate residuals for each specific location using the global coefficients and compute location-specific error variance.
+  4. Recursive Forecasting: Iterate the AR equation forward, adding noise sampled for each step.
+  5. Inversion: Apply the inverse transformation to the generated trajectories.
+

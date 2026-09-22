@@ -1,5 +1,30 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Adapted_3
-model_abbr: Adapted_3
-methods: "This is an attempt to replicate UGA_flucast-INFLAenza model."
+model_id: Google_SAI-Adapted_3
+paper_model_name: "*G-UGA_flucast-INFLAenza"
+
+in_google_sai_ensemble: true
+prompt_category: flusight_hub
+
+# Attribution & References
+replicated_model_name: UGA_flucast-INFLAenza
+original_team_citation: "Fox, S. J., Case, B. & Salcedo, M. UGA_flucast. https://thefoxlab.wordpress.com/"
+original_metadata_url: "https://github.com/cdcepi/FluSight-forecast-hub/blob/main/model-metadata/UGA_flucast-INFLAenza.yml"
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Adapted_3.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  A spatial time-series model for estimating influenza activity. The model is structured to jointly fit several components: seasonality terms to capture regular patterns in flu incidence, state-specific connectivity to account for spatial dependencies and interactions between different locations, and a random walk component to model temporal trends and random fluctuations.
+  Estimation of the model parameters is performed using a Bayesian statistical approach.
+  
+  1. Employ a spatial time-series framework to analyze and forecast influenza trends across different states.
+  2. Incorporate components into the model to represent the characteristic seasonal variations inherent in influenza outbreaks.
+  3. Include parameters that reflect the degree of connection and potential for transmission between different states.
+  4. Utilize a random walk process to account for underlying temporal evolution and stochastic elements in the data.
+  5. Jointly estimate all model parameters, including those for seasonality, inter-state connectivity, and the random walk, using a unified Bayesian inference method designed for hierarchical models.
+  6. Generate probabilistic forecasts of future influenza activity based on the fitted model.

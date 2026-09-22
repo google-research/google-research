@@ -53,6 +53,10 @@ class CustomTrainer(transformers.Trainer):
     self._loss_components_buffer = []
     self._eval_loss_components_buffer = []
 
+
+  def create_model_card(self, *args, **kwargs):
+    """No-op: model card generation requires HuggingFace Hub templates."""
+
   def _run_forward(self, model, inputs):
     """Unified forward pass; returns raw logits for processing."""
     pixel_values = inputs["pixel_values"]

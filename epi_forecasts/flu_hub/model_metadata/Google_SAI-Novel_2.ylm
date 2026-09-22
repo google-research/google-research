@@ -1,5 +1,33 @@
+# Model Identifiers
 team_name: Google Science AI
 team_abbr: Google_SAI
-model_name: Novel_2
-model_abbr: Novel_2
-methods: "This model employs a pre-trained 1D Convolutional Neural Network (CNN) encoder to capture patterns in historical time series data. The encoder is initially pre-trained on state-level ILINet data using a masked reconstruction task, and then fine-tuned on actual influenza admission counts. A key feature is its dynamic data augmentation, which transforms historical ILINet data into synthetic admission counts via per-location linear regression, expanding the training context for the fine-tuning phase. The model directly predicts probabilistic quantiles for multiple forecast horizons using a dedicated quantile regression head and a pinball loss function, ensuring proper handling of missing future observations."
+model_id: Google_SAI-Novel_2
+paper_model_name: G-Time_Series_to_Vision_Transfer_Learning
+
+in_google_sai_ensemble: false
+prompt_category: deep_research
+
+# Code Location & Summary
+code_filepath: flu_hub/model_py/Google_SAI-Novel_2.py
+methods: >
+  ERA-generated model given the provided prompt
+
+# Full ERA Prompt Text
+prompt: |
+  This method proposes a transfer learning approach that reframes time-series forecasting as a computer vision task. First, the long history of ILINet data is converted into a large dataset of images, where each image represents a single flu season for a specific location. A standard computer vision model is then pre-trained on this image dataset using a **masked-image-modeling** task to learn the fundamental patterns of seasonal epidemics. Finally, this pre-trained vision model is fine-tuned on the limited available data for the actual target (`Total Influenza Admissions`) to generate the final quantile forecasts.
+
+  1.  **Image Dataset Generation:** For each location and each flu season in the historical ILINet dataset, generate a 2D image representation of the time series. A simple approach is to create a line plot for each season and save it as a fixed-size, normalized image (e.g., 224x224 pixels). More advanced techniques like Gramian Angular Fields (GAF) can also be used.
+
+  2.  **Pre-train the Vision Model:**
+      a. **Check for Existing Model:** On the first execution, check if a pre-trained model file (e.g., `pretrained_vision_model.pth`) already exists. If it does, load the saved weights and skip to Step 3.
+      b. **Define Pre-training Task:** Select a standard computer vision architecture (e.g., a ResNet or a small Vision Transformer). The pre-training task will be **masked image modeling**. For each image in the dataset from Step 1, randomly mask out a portion of the time series (e.g., the last 4 weeks of the season's plot). The model's objective will be to reconstruct the masked portion of the image.
+      c. **Execute Pre-training:** Train the model on this reconstruction task until it can accurately in-paint the missing parts of the seasonal curves. This forces the model to learn the underlying dynamics of a typical flu season.
+      d. **Save the Pre-trained Model:** After training is complete, save the model's weights to a file (e.g., `pretrained_vision_model.pth`) so it can be reused in subsequent runs without retraining.
+
+  3.  **Create Target Images:** Generate images for the few available seasons of the actual `Total Influenza Admissions` data using the *exact same image generation method* as in Step 1.
+
+  4.  **Fine-Tune for Quantile Forecasting:**
+      a. **Load Pre-trained Model:** Load the weights from the saved `pretrained_vision_model.pth` file.
+      b. **Adapt for Quantile Regression:** Replace the model's final layer with a new output layer designed for quantile regression (e.g., a dense layer with 23 outputs for the required quantiles, trained with a pinball/quantile loss function).
+      c. **Execute Fine-Tuning:** Fine-tune this new model on the small set of images representing the actual `Total Influenza Admissions` data from Step 3, using a very low learning rate to adapt the learned features to the new target.
+

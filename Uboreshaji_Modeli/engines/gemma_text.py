@@ -25,22 +25,46 @@ from torch import nn
 import transformers
 
 from Uboreshaji_Modeli.common import config
+from Uboreshaji_Modeli.common import data
 from . import base
 from . import decoders
 
 
-class GemmaTextTransform:
-  """Picklable transform callable for Gemma Text data loader workers."""
+class GemmaTextTransform(data.PicklableProcessorMixin):
+  """Picklable transform callable for Gemma Text data loader workers.
+
+  When used with ``dataloader_num_workers > 0``, PyTorch pickles this
+  object into each worker process.  The HuggingFace tokenizer wraps a
+  SentencePiece Rust backend that does not survive Python pickling.
+
+  To work around this, ``__getstate__`` strips the live tokenizer and
+  stores its ``model_id`` path, and ``__setstate__`` re-loads a fresh
+  tokenizer from disk in the new worker process.
+  """
 
   def __init__(
       self,
       processor,
       max_length,
       cfg,
+      model_id = None,
   ):
     self.processor = processor
     self.max_length = max_length
     self.cfg = cfg
+    self._model_id = model_id or getattr(processor, "name_or_path", None)
+    # Preserve the chat_template so it survives pickle round-trips
+    # across DataLoader worker processes (num_workers > 0).
+    self._chat_template = getattr(processor, "chat_template", None)
+
+  def _load_processor(self, model_id):
+    return transformers.AutoTokenizer.from_pretrained(model_id)
+
+  def _post_load_processor(self):
+    if self.processor.pad_token is None:
+      self.processor.pad_token = self.processor.eos_token
+    if self._chat_template is not None:
+      self.processor.chat_template = self._chat_template
 
   def __call__(
       self,
@@ -180,11 +204,15 @@ class GemmaTextPreprocessor(base.DataPreprocessor):
     """Returns a transform function converting batch examples to Gemma text SFT inputs."""
     del self  # Unused.
     max_length = cfg.get("max_seq_length", 512) if cfg else 512
+    temp_dir = data.stage_processor_locally(
+        processor, prefix="local_tokenizer_"
+    )
 
     return GemmaTextTransform(
         processor=processor,
         max_length=max_length,
         cfg=cfg,
+        model_id=temp_dir,
     )
 
   def get_collate_fn(
