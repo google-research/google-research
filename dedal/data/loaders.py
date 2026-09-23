@@ -87,7 +87,7 @@ class TFRecordsLoader:
 class TFDSLoader:
   """A wrapper around tfds.load to make it a loader."""
 
-  def __init__(self, name = gin.REQUIRED, data_dir = None):  # pyrefly: ignore[bad-function-definition]
+  def __init__(self, name = gin.REQUIRED, data_dir = None):
     self._name = name
     self._data_dir = data_dir
 
@@ -162,7 +162,7 @@ class DedalLoaderDataSource(seqio.FunctionDataSource):
 
   def __init__(
       self,
-      loader_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+      loader_cls = gin.REQUIRED,
       splits = ('train', 'validation', 'test'),
   ):
 
@@ -188,9 +188,9 @@ class SeqIOLoader:
 
   def __init__(
       self,
-      mixture_or_task_name = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
-      task_feature_lengths = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
-      feature_converter_factory = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+      mixture_or_task_name = gin.REQUIRED,
+      task_feature_lengths = gin.REQUIRED,
+      feature_converter_factory = gin.REQUIRED,
       seed = None,
       train_key = 'train',
   ):

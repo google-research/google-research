@@ -54,7 +54,7 @@ class DatasetBuilder(abc.ABC):
                ds_transformations = (),
                transformations = (),
                batched_transformations = (),
-               labels = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               labels = gin.REQUIRED,
                metadata = (),
                sequence_key = 'sequence',
                repeat = None,
@@ -213,8 +213,8 @@ class MultiDatasetBuilder:
 
   def __init__(
       self,
-      builders = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
-      switch = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+      builders = gin.REQUIRED,
+      switch = gin.REQUIRED,
       split = None):
     self.builders = builders
     self.switch = switch

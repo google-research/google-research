@@ -189,7 +189,7 @@ class CropOrPad(Transform):
   """Crops or left/right pads a sequence with the same token."""
 
   def __init__(self,
-               size = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               size = gin.REQUIRED,
                random = True,
                right = True,
                token = None,

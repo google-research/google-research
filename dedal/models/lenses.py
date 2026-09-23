@@ -75,7 +75,7 @@ class MLP(tf.keras.Sequential):
   """A generic multi-layer perceptron."""
 
   def __init__(self,
-               output_size = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               output_size = gin.REQUIRED,
                output_activation = None,
                output_dropout = 0.0,
                pre_pooling_layer_norm = False,
@@ -124,7 +124,7 @@ class NetSurfP2(tf.keras.Model):
   """NetSurfP-2.0 output head ala Klausen et al. 2009."""
 
   def __init__(self,
-               output_size = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               output_size = gin.REQUIRED,
                output_layer_norm = False,
                cnn_layer_norm = False,
                cnn_filters = (),

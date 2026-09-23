@@ -343,8 +343,8 @@ class ContextualGapPenalties(tf.keras.Model):
   """
 
   def __init__(self,
-               gap_open_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
-               gap_extend_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               gap_open_cls = gin.REQUIRED,
+               gap_extend_cls = gin.REQUIRED,
                **kwargs):
     super().__init__(**kwargs)
     self._gap_open = gap_open_cls()
@@ -380,7 +380,7 @@ class ContextualSharedGapPenalties(tf.keras.layers.Layer):
   """
 
   def __init__(self,
-               gap_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               gap_cls = gin.REQUIRED,
                gap_open_bias_init = tf.initializers.Constant(11.0),
                gap_open_bias_trainable = True,
                **kwargs):

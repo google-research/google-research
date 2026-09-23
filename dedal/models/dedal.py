@@ -83,9 +83,9 @@ class Dedal(tf.keras.Model):
   """Main architecture for the aligner. This is shared among all our models."""
 
   def __init__(self,
-               encoder_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
-               aligner_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
-               heads_cls = gin.REQUIRED,  # pyrefly: ignore[bad-function-definition]
+               encoder_cls = gin.REQUIRED,
+               aligner_cls = gin.REQUIRED,
+               heads_cls = gin.REQUIRED,
                process_negatives = True,
                switch = None,
                backprop = None,
