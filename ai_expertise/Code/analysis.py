@@ -484,7 +484,25 @@ def analyze_firm_summary(df_subject, df_subject_unfiltered):
     tot_tt2_ctrl = firms['c_tt2_ctrl'].sum()
     tot_tt2_cri_treat = firms['c_tt2_cri_treat'].sum()
     tot_tt2_cri_ctrl = firms['c_tt2_cri_ctrl'].sum()
-    tot_cheaters = firms['n_cheating'].sum() if 'n_cheating' in firms.columns else 0
+    if 'cheating' in df_rand.columns:
+        cheater_mask = (df_rand['included'] == 1) & (pd.to_numeric(df_rand['cheating'], errors='coerce').fillna(0) == 1)
+        if EXCLUDE_INDIVIDUALS:
+            excl_ind = load_exclusion_list(EXCLUSION_INDIVIDUALS_FILE)
+            cheater_mask &= ~df_rand[UNIQUE_ID_VAR].astype(str).str.lower().str.strip().isin(excl_ind)
+        if EXCLUDE_FIRMS:
+            excl_firms = load_exclusion_list(EXCLUSION_FIRMS_FILE)
+            _, _, firm_excl_emails, _ = get_firm_exclusion_mappings(
+                df_rand, excl_firms, unique_id_var=UNIQUE_ID_VAR, firm_var=FIRM_VAR
+            )
+            cheater_mask &= ~df_rand[UNIQUE_ID_VAR].astype(str).str.lower().str.strip().isin(firm_excl_emails)
+        c_sen_trt = int((cheater_mask & (df_rand['senior'] == 1) & (df_rand[TREATMENT_VAR] == 1)).sum())
+        c_sen_ctl = int((cheater_mask & (df_rand['senior'] == 1) & (df_rand[TREATMENT_VAR] == 0)).sum())
+        c_jun_trt = int((cheater_mask & (df_rand['junior'] == 1) & (df_rand[TREATMENT_VAR] == 1)).sum())
+        c_jun_ctl = int((cheater_mask & (df_rand['junior'] == 1) & (df_rand[TREATMENT_VAR] == 0)).sum())
+        tot_cheaters = int(cheater_mask.sum())
+    else:
+        c_sen_trt = c_sen_ctl = c_jun_trt = c_jun_ctl = 0
+        tot_cheaters = 0
 
     macros["firm_summary_tot_rec"] = f"{tot_rec:.0f}"
     macros["firm_summary_tot_rand_n"] = f"{tot_rand:.0f}"
@@ -496,7 +514,11 @@ def analyze_firm_summary(df_subject, df_subject_unfiltered):
     macros["firm_summary_tot_tt1_c_n"] = f"{tot_tt1_ctrl:.0f}"
     macros["firm_summary_tot_tt2_c_n"] = f"{tot_tt2_ctrl:.0f}"
     macros["firm_summary_tot_tt2_cri_c_n"] = f"{tot_tt2_cri_ctrl:.0f}"
-    macros["firm_summary_tot_cheaters"] = f"{tot_cheaters:.0f}"
+    macros["firm_summary_tot_cheaters"] = f"{tot_cheaters:d}"
+    macros["cheater_senior_treated"] = f"{c_sen_trt:d}"
+    macros["cheater_senior_control"] = f"{c_sen_ctl:d}"
+    macros["cheater_junior_treated"] = f"{c_jun_trt:d}"
+    macros["cheater_junior_control"] = f"{c_jun_ctl:d}"
 
     firm_rows = firms.to_dict('records')
     exp_mean = df_rand['exp'].mean()
@@ -522,7 +544,56 @@ def analyze_firm_summary(df_subject, df_subject_unfiltered):
 
     with open('Jsons/firm_summary.json', 'w') as f:
         json.dump(out_data, f, cls=NpEncoder)
-    return macros
+
+    ret_macros = dict(macros)
+    ret_macros["firm_summary_tot_ctrl_n"] = f"{tot_ctrl:.0f}"
+    ret_macros["firm_summary_tot_tt1_n"] = f"{(tot_tt1_ctrl + tot_tt1_treat):.0f}"
+    ret_macros["firm_summary_tot_tt1_tot_n"] = f"{(tot_tt1_ctrl + tot_tt1_treat):.0f}"
+    ret_macros["firm_summary_tot_tt2_n"] = f"{(tot_tt2_ctrl + tot_tt2_treat):.0f}"
+    ret_macros["firm_summary_tot_tt2_tot_n"] = f"{(tot_tt2_ctrl + tot_tt2_treat):.0f}"
+    ret_macros["firm_summary_tot_tt2_cri_n"] = f"{(tot_tt2_cri_ctrl + tot_tt2_cri_treat):.0f}"
+    ret_macros["firm_summary_tot_tt2_cri_tot_n"] = f"{(tot_tt2_cri_ctrl + tot_tt2_cri_treat):.0f}"
+
+    for i, r in enumerate(firm_rows):
+        f_idx = i + 1
+        rec_n = int(round(r.get('n_recruited', 0)))
+        rand_n = int(round(r.get('n_randomized', 0)))
+        trt_n = int(round(r.get('n_treated', 0)))
+        ctl_n = rand_n - trt_n
+        sen_n = int(round(r.get('n_senior', 0)))
+        tt1_c = int(round(r.get('c_tt1_ctrl', 0)))
+        tt1_t = int(round(r.get('c_tt1_treat', 0)))
+        tt1_tot = tt1_c + tt1_t
+        tt2_c = int(round(r.get('c_tt2_ctrl', 0)))
+        tt2_t = int(round(r.get('c_tt2_treat', 0)))
+        tt2_tot = tt2_c + tt2_t
+        cri_c = int(round(r.get('c_tt2_cri_ctrl', 0)))
+        cri_t = int(round(r.get('c_tt2_cri_treat', 0)))
+        cri_tot = cri_c + cri_t
+
+        for pfx in [f"firm_summary_firm{f_idx}", f"firm_summary_f{f_idx}"]:
+            ret_macros[f"{pfx}_rec"] = f"{rec_n:d}"
+            ret_macros[f"{pfx}_rec_n"] = f"{rec_n:d}"
+            ret_macros[f"{pfx}_rand_n"] = f"{rand_n:d}"
+            ret_macros[f"{pfx}_rand"] = f"{rand_n:d}"
+            ret_macros[f"{pfx}_treated_n"] = f"{trt_n:d}"
+            ret_macros[f"{pfx}_ctrl_n"] = f"{ctl_n:d}"
+            ret_macros[f"{pfx}_senior"] = f"{sen_n:d}"
+            ret_macros[f"{pfx}_senior_n"] = f"{sen_n:d}"
+            ret_macros[f"{pfx}_tt1_c_n"] = f"{tt1_c:d}"
+            ret_macros[f"{pfx}_tt1_t_n"] = f"{tt1_t:d}"
+            ret_macros[f"{pfx}_tt1_n"] = f"{tt1_tot:d}"
+            ret_macros[f"{pfx}_tt1_tot_n"] = f"{tt1_tot:d}"
+            ret_macros[f"{pfx}_tt2_c_n"] = f"{tt2_c:d}"
+            ret_macros[f"{pfx}_tt2_t_n"] = f"{tt2_t:d}"
+            ret_macros[f"{pfx}_tt2_n"] = f"{tt2_tot:d}"
+            ret_macros[f"{pfx}_tt2_tot_n"] = f"{tt2_tot:d}"
+            ret_macros[f"{pfx}_tt2_cri_c_n"] = f"{cri_c:d}"
+            ret_macros[f"{pfx}_tt2_cri_t_n"] = f"{cri_t:d}"
+            ret_macros[f"{pfx}_tt2_cri_n"] = f"{cri_tot:d}"
+            ret_macros[f"{pfx}_tt2_cri_tot_n"] = f"{cri_tot:d}"
+
+    return ret_macros
 
 
 def analyze_attrition(df_subject, df_subject_unfiltered):
@@ -1545,13 +1616,87 @@ def analyze_leave_one_firm_out(df_raw_clean):
     with open('Jsons/fig_leave_one_firm_out.json', 'w') as f:
         json.dump(out_records, f, cls=NpEncoder)
 
-    return {}
+    loo_macros = {}
+    grp_aliases = [('all', ['all']), ('jun', ['junior', 'jun']), ('sen', ['senior', 'sen'])]
+    for item in out_records:
+        f_num = item.get('firm_num')
+        row_key = 'full' if f_num is None else f"firm{f_num}"
+        if f_num is not None:
+            loo_macros[f"loo_{row_key}_num"] = str(f_num)
+        for k, g_list in grp_aliases:
+            eff = item.get('estimates', {}).get(k, {})
+            c = eff.get('c')
+            if c is None or pd.isna(c):
+                continue
+            ci_l = eff.get('ci_l', np.nan)
+            ci_u = eff.get('ci_u', np.nan)
+            p = eff.get('p', np.nan)
+            s = eff.get('s', '')
+            for g in g_list:
+                loo_macros[f"loo_{row_key}_{g}_coef"] = f"{c:.2f}"
+                loo_macros[f"loo_{row_key}_{g}_ci_min"] = f"{ci_l:.2f}"
+                loo_macros[f"loo_{row_key}_{g}_ci_max"] = f"{ci_u:.2f}"
+                loo_macros[f"loo_{row_key}_{g}_ci_l"] = f"{ci_l:.2f}"
+                loo_macros[f"loo_{row_key}_{g}_ci_u"] = f"{ci_u:.2f}"
+                loo_macros[f"loo_{row_key}_{g}_pval"] = f"{p:.2f}"
+                loo_macros[f"loo_{row_key}_{g}_stars"] = s
+
+    firm_records = [r for r in out_records if r.get('firm_num') is not None]
+    if firm_records:
+        for k, g_list in grp_aliases:
+            valid = [r for r in firm_records if r.get('estimates', {}).get(k, {}).get('c') is not None and not pd.isna(r['estimates'][k]['c'])]
+            if not valid:
+                continue
+            min_c_rec = min(valid, key=lambda r: r['estimates'][k]['c'])
+            max_c_rec = max(valid, key=lambda r: r['estimates'][k]['c'])
+            min_cil_rec = min(valid, key=lambda r: r['estimates'][k]['ci_l'])
+            max_cil_rec = max(valid, key=lambda r: r['estimates'][k]['ci_l'])
+            min_ciu_rec = min(valid, key=lambda r: r['estimates'][k]['ci_u'])
+            max_ciu_rec = max(valid, key=lambda r: r['estimates'][k]['ci_u'])
+            for g in g_list:
+                loo_macros[f"loo_{g}_min_coef"] = f"{min_c_rec['estimates'][k]['c']:.2f}"
+                loo_macros[f"loo_{g}_min_coef_firm"] = str(min_c_rec['firm_num'])
+                loo_macros[f"loo_{g}_min_coef_ci_min"] = f"{min_c_rec['estimates'][k]['ci_l']:.2f}"
+                loo_macros[f"loo_{g}_min_coef_ci_max"] = f"{min_c_rec['estimates'][k]['ci_u']:.2f}"
+                loo_macros[f"loo_{g}_min_coef_pval"] = f"{min_c_rec['estimates'][k]['p']:.2f}"
+                loo_macros[f"loo_{g}_min_coef_stars"] = min_c_rec['estimates'][k]['s']
+                loo_macros[f"loo_{g}_coef_min"] = f"{min_c_rec['estimates'][k]['c']:.2f}"
+                loo_macros[f"loo_{g}_coef_min_firm"] = str(min_c_rec['firm_num'])
+
+                loo_macros[f"loo_{g}_max_coef"] = f"{max_c_rec['estimates'][k]['c']:.2f}"
+                loo_macros[f"loo_{g}_max_coef_firm"] = str(max_c_rec['firm_num'])
+                loo_macros[f"loo_{g}_max_coef_ci_min"] = f"{max_c_rec['estimates'][k]['ci_l']:.2f}"
+                loo_macros[f"loo_{g}_max_coef_ci_max"] = f"{max_c_rec['estimates'][k]['ci_u']:.2f}"
+                loo_macros[f"loo_{g}_max_coef_pval"] = f"{max_c_rec['estimates'][k]['p']:.2f}"
+                loo_macros[f"loo_{g}_max_coef_stars"] = max_c_rec['estimates'][k]['s']
+                loo_macros[f"loo_{g}_coef_max"] = f"{max_c_rec['estimates'][k]['c']:.2f}"
+                loo_macros[f"loo_{g}_coef_max_firm"] = str(max_c_rec['firm_num'])
+
+                loo_macros[f"loo_{g}_min_ci_min"] = f"{min_cil_rec['estimates'][k]['ci_l']:.2f}"
+                loo_macros[f"loo_{g}_min_ci_min_firm"] = str(min_cil_rec['firm_num'])
+                loo_macros[f"loo_{g}_ci_min_min"] = f"{min_cil_rec['estimates'][k]['ci_l']:.2f}"
+                loo_macros[f"loo_{g}_ci_min_min_firm"] = str(min_cil_rec['firm_num'])
+                loo_macros[f"loo_{g}_max_ci_min"] = f"{max_cil_rec['estimates'][k]['ci_l']:.2f}"
+                loo_macros[f"loo_{g}_max_ci_min_firm"] = str(max_cil_rec['firm_num'])
+                loo_macros[f"loo_{g}_ci_min_max"] = f"{max_cil_rec['estimates'][k]['ci_l']:.2f}"
+                loo_macros[f"loo_{g}_ci_min_max_firm"] = str(max_cil_rec['firm_num'])
+
+                loo_macros[f"loo_{g}_min_ci_max"] = f"{min_ciu_rec['estimates'][k]['ci_u']:.2f}"
+                loo_macros[f"loo_{g}_min_ci_max_firm"] = str(min_ciu_rec['firm_num'])
+                loo_macros[f"loo_{g}_ci_max_min"] = f"{min_ciu_rec['estimates'][k]['ci_u']:.2f}"
+                loo_macros[f"loo_{g}_ci_max_min_firm"] = str(min_ciu_rec['firm_num'])
+                loo_macros[f"loo_{g}_max_ci_max"] = f"{max_ciu_rec['estimates'][k]['ci_u']:.2f}"
+                loo_macros[f"loo_{g}_max_ci_max_firm"] = str(max_ciu_rec['firm_num'])
+                loo_macros[f"loo_{g}_ci_max_max"] = f"{max_ciu_rec['estimates'][k]['ci_u']:.2f}"
+                loo_macros[f"loo_{g}_ci_max_max_firm"] = str(max_ciu_rec['firm_num'])
+
+    return loo_macros
 
 
 def analyze_sensitivity(df_raw_clean):
     """
-    Evaluates robustness of treatment effects across alternative junior/midlevel/senior
-    experience thresholds ((3, 7), (4, 8), (5, 9)).
+    Evaluates robustness of treatment effects across alternative junior/senior
+    experience thresholds (Exp < 3, 5, 7, 9, 11).
     Outputs: Jsons/fig_sensitivity.json (Figure A3: Sensitivity Analysis).
     """
     df_plot = df_raw_clean.copy()
@@ -1572,18 +1717,20 @@ def analyze_sensitivity(df_raw_clean):
             df_plot['exp'] = np.where(df_plot['senior'] == 1, 7.0, 3.0)
 
     EXP_COL = 'exp'
-    THRESHOLDS_3 = [(3, 7), (4, 8), (5, 9)]
+    THRESHOLDS = [3, 5, 7, 9, 11]
 
     panels = [
-        {"title": "Drafting: 10-day task", "vars": ['tt1_sum_rat_drades'] + RATER_OUTCOMES.get('tt1_drades', []), "weight": "wls_weight_tt1_drades_human"},
-        {"title": "Drafting: 90-day task", "vars": ['tt2_sum_rat_drades'] + RATER_OUTCOMES.get('tt2_drades', []), "weight": "wls_weight_tt2_drades_human"},
-        {"title": "Redlining: 90-day task", "vars": ['tt2_sum_rat_cri'] + RATER_OUTCOMES.get('tt2_cri', []), "weight": "wls_weight_tt2_cri_human"}
+        {"title": "Drafting: 10-day task", "short": "10dayD", "vars": ['tt1_sum_rat_drades'] + RATER_OUTCOMES.get('tt1_drades', []), "weight": "wls_weight_tt1_drades_human"},
+        {"title": "Drafting: 90-day task", "short": "90dayD", "vars": ['tt2_sum_rat_drades'] + RATER_OUTCOMES.get('tt2_drades', []), "weight": "wls_weight_tt2_drades_human"},
+        {"title": "Redlining: 90-day task", "short": "90dayR", "vars": ['tt2_sum_rat_cri'] + RATER_OUTCOMES.get('tt2_cri', []), "weight": "wls_weight_tt2_cri_human"}
     ]
 
-    sens3_results = {p['title']: {'seniors': [], 'midlevels': [], 'juniors': []} for p in panels}
+    sens_results = {p['title']: {'seniors': [], 'juniors': []} for p in panels}
+    sens_macros = {}
 
     for panel in panels:
         out_title = panel['title']
+        t_short = panel['short']
         w_col = panel['weight']
 
         sub_cols_raw = panel['vars'][1:]
@@ -1609,17 +1756,15 @@ def analyze_sensitivity(df_raw_clean):
         cla_matches = [s for s in sub_vars if 'cla' in s.lower()]
         ref_sub = cla_matches[0] if cla_matches else sub_vars[-1]
 
-        for (jun_t, sen_t) in THRESHOLDS_3:
+        for t in THRESHOLDS:
             df_thresh = df_melt.copy()
-            df_thresh['senior_dummy'] = (df_thresh[EXP_COL] >= sen_t).astype(int)
-            df_thresh['junior_dummy'] = (df_thresh[EXP_COL] < jun_t).astype(int)
-            df_thresh['midlevel_dummy'] = ((df_thresh[EXP_COL] >= jun_t) & (df_thresh[EXP_COL] < sen_t)).astype(int)
+            df_thresh['junior_dummy'] = (df_thresh[EXP_COL] < t).astype(int)
+            df_thresh['senior_dummy'] = (df_thresh[EXP_COL] >= t).astype(int)
             
-            df_thresh['treat_x_senior'] = df_thresh[TREATMENT_VAR] * df_thresh['senior_dummy']
             df_thresh['treat_x_junior'] = df_thresh[TREATMENT_VAR] * df_thresh['junior_dummy']
-            df_thresh['treat_x_midlevel'] = df_thresh[TREATMENT_VAR] * df_thresh['midlevel_dummy']
+            df_thresh['treat_x_senior'] = df_thresh[TREATMENT_VAR] * df_thresh['senior_dummy']
 
-            formula = f"score ~ junior_dummy + midlevel_dummy + senior_dummy + treat_x_junior + treat_x_midlevel + treat_x_senior - 1 + C({FIRM_VAR}, Treatment(reference='{largest_firm}')) + C(subcomponent, Treatment(reference='{ref_sub}'))"
+            formula = f"score ~ junior_dummy + senior_dummy + treat_x_junior + treat_x_senior - 1 + C({FIRM_VAR}, Treatment(reference='{largest_firm}')) + C(subcomponent, Treatment(reference='{ref_sub}'))"
 
             if w_col:
                 model = smf.wls(formula, data=df_thresh, weights=df_thresh[w_col]).fit(cov_type='cluster', cov_kwds={'groups': df_thresh[UNIQUE_ID_VAR]})
@@ -1630,30 +1775,47 @@ def analyze_sensitivity(df_raw_clean):
             if not np.isnan(coef_jun):
                 ci_jun = model.conf_int(alpha=0.05).loc['treat_x_junior']
                 p_jun = model.pvalues['treat_x_junior']
-                sens3_results[out_title]['juniors'].append({'x_jun': jun_t, 'x_sen': sen_t, 'y': float(coef_jun), 'ci_lower': float(ci_jun[0]), 'ci_upper': float(ci_jun[1]), 'p': float(p_jun)})
+                s_jun = "***" if p_jun < 0.01 else "**" if p_jun < 0.05 else "*" if p_jun < 0.10 else ""
+                sens_results[out_title]['juniors'].append({'x': t, 'y': float(coef_jun), 'ci_lower': float(ci_jun[0]), 'ci_upper': float(ci_jun[1]), 'p': float(p_jun), 's': s_jun})
+                for g_alias in ['junior', 'jun']:
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}"] = f"{coef_jun:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_coef"] = f"{coef_jun:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_ci_min"] = f"{ci_jun[0]:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_ci_max"] = f"{ci_jun[1]:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_pval"] = f"{p_jun:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_stars"] = s_jun
             else:
-                sens3_results[out_title]['juniors'].append({'x_jun': jun_t, 'x_sen': sen_t, 'y': np.nan, 'ci_lower': np.nan, 'ci_upper': np.nan, 'p': 1.0})
-
-            coef_mid = model.params.get('treat_x_midlevel', np.nan)
-            if not np.isnan(coef_mid):
-                ci_mid = model.conf_int(alpha=0.05).loc['treat_x_midlevel']
-                p_mid = model.pvalues['treat_x_midlevel']
-                sens3_results[out_title]['midlevels'].append({'x_jun': jun_t, 'x_sen': sen_t, 'y': float(coef_mid), 'ci_lower': float(ci_mid[0]), 'ci_upper': float(ci_mid[1]), 'p': float(p_mid)})
-            else:
-                sens3_results[out_title]['midlevels'].append({'x_jun': jun_t, 'x_sen': sen_t, 'y': np.nan, 'ci_lower': np.nan, 'ci_upper': np.nan, 'p': 1.0})
+                sens_results[out_title]['juniors'].append({'x': t, 'y': np.nan, 'ci_lower': np.nan, 'ci_upper': np.nan, 'p': 1.0, 's': ''})
 
             coef_sen = model.params.get('treat_x_senior', np.nan)
             if not np.isnan(coef_sen):
                 ci_sen = model.conf_int(alpha=0.05).loc['treat_x_senior']
                 p_sen = model.pvalues['treat_x_senior']
-                sens3_results[out_title]['seniors'].append({'x_jun': jun_t, 'x_sen': sen_t, 'y': float(coef_sen), 'ci_lower': float(ci_sen[0]), 'ci_upper': float(ci_sen[1]), 'p': float(p_sen)})
+                s_sen = "***" if p_sen < 0.01 else "**" if p_sen < 0.05 else "*" if p_sen < 0.10 else ""
+                sens_results[out_title]['seniors'].append({'x': t, 'y': float(coef_sen), 'ci_lower': float(ci_sen[0]), 'ci_upper': float(ci_sen[1]), 'p': float(p_sen), 's': s_sen})
+                for g_alias in ['senior', 'sen']:
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}"] = f"{coef_sen:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_coef"] = f"{coef_sen:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_ci_min"] = f"{ci_sen[0]:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_ci_max"] = f"{ci_sen[1]:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_pval"] = f"{p_sen:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_exp{t}_stars"] = s_sen
             else:
-                sens3_results[out_title]['seniors'].append({'x_jun': jun_t, 'x_sen': sen_t, 'y': np.nan, 'ci_lower': np.nan, 'ci_upper': np.nan, 'p': 1.0})
+                sens_results[out_title]['seniors'].append({'x': t, 'y': np.nan, 'ci_lower': np.nan, 'ci_upper': np.nan, 'p': 1.0, 's': ''})
+
+        for g_key, g_aliases in [('juniors', ['junior', 'jun']), ('seniors', ['senior', 'sen'])]:
+            valid_pts = [pt for pt in sens_results[out_title][g_key] if not np.isnan(pt['y'])]
+            if valid_pts:
+                min_pt = min(valid_pts, key=lambda pt: pt['y'])
+                max_pt = max(valid_pts, key=lambda pt: pt['y'])
+                for g_alias in g_aliases:
+                    sens_macros[f"sens_{t_short}_{g_alias}_min_coef"] = f"{min_pt['y']:.2f}"
+                    sens_macros[f"sens_{t_short}_{g_alias}_max_coef"] = f"{max_pt['y']:.2f}"
 
     with open('Jsons/fig_sensitivity.json', 'w') as f:
-        json.dump(sens3_results, f, cls=NpEncoder)
+        json.dump(sens_results, f, cls=NpEncoder)
 
-    return {}
+    return sens_macros
 
 
 # ==============================================================================

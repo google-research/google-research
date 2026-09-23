@@ -39,7 +39,7 @@ def render(github_pat=None):
     fig, ax = plt.subplots(figsize=(10, 8.5))
 
     styles = {
-        'all': {'color': '#333333', 'fmt': 's', 'offset': 0.24, 'label': 'All (Included)', 'lw': 2.2, 'ms': 6.5},
+        'all': {'color': '#333333', 'fmt': 's', 'offset': 0.24, 'label': 'Full sample', 'lw': 2.2, 'ms': 6.5},
         'jun': {'color': '#1f77b4', 'fmt': '^', 'offset': 0.0, 'label': 'Juniors (<7 yrs)', 'lw': 1.6, 'ms': 6.5},
         'sen': {'color': '#ff7f0e', 'fmt': 'D', 'offset': -0.24, 'label': 'Seniors (≥7 yrs)', 'lw': 1.6, 'ms': 6.0}
     }

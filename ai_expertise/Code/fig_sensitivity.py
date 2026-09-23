@@ -5,9 +5,9 @@
 #
 # Figure Architecture:
 #   Plots OLS point estimates and 95% confidence intervals across alternative
-#   experience threshold triplets (<3/3-6/>=7, <4/4-7/>=8, <5/5-8/>=9) for
-#   Juniors (blue), Midlevels (green), and Seniors (orange) across 10-day drafting,
-#   90-day drafting, and 90-day redlining exercises.
+#   experience thresholds (Exp < 3, 5, 7, 9, 11) for Juniors (blue squares) and
+#   Seniors (orange circles) across 10-day drafting, 90-day drafting, and
+#   90-day redlining exercises.
 #
 # Inputs:
 #   - Jsons/fig_sensitivity.json
@@ -39,8 +39,8 @@ def render(github_pat=None):
     with open('Jsons/fig_sensitivity.json', 'r') as f:
         data = json.load(f)
 
-    fig, axes = plt.subplots(1, 3, figsize=(18, 8), sharey=True)
-    group_labels_3 = [('juniors', 'Juniors'), ('midlevels', 'Midlevels'), ('seniors', 'Seniors')]
+    fig, axes = plt.subplots(1, 2, figsize=(13.5, 7.5), sharey=True)
+    group_labels = [('juniors', 'Juniors'), ('seniors', 'Seniors')]
     
     panel_titles = [
         "Drafting: 10-day task",
@@ -48,11 +48,12 @@ def render(github_pat=None):
         "Redlining: 90-day task"
     ]
 
-    for i, (group_key, group_title) in enumerate(group_labels_3):
+    for i, (group_key, group_title) in enumerate(group_labels):
         ax = axes[i]
         current_y = 0
         y_ticks = []
         y_labels = []
+        exp_rows_y = []
 
         for out_title in reversed(panel_titles):
             if out_title not in data:
@@ -61,7 +62,9 @@ def render(github_pat=None):
 
             for d in reversed(pts):
                 y_ticks.append(current_y)
-                y_labels.append(f"<{d['x_jun']} / {d['x_jun']}-{d['x_sen']-1} / >={d['x_sen']}")
+                x_cut = d.get('x', d.get('x_jun'))
+                y_labels.append(f"Exp < {x_cut}")
+                exp_rows_y.append(current_y)
 
                 y_val = d.get('y')
                 if y_val is not None and not np.isnan(y_val):
@@ -70,39 +73,40 @@ def render(github_pat=None):
                     if group_key == 'juniors':
                         color = '#1f77b4'
                         marker = 's'
-                    elif group_key == 'seniors':
+                    else:
                         color = '#ff7f0e'
                         marker = 'o'
-                    else:
-                        color = '#2ca02c'
-                        marker = '^'
 
-                    ax.errorbar(y_val, current_y, xerr=[[err_low], [err_high]], fmt=marker, color=color, ecolor=color, capsize=4, elinewidth=2)
+                    ax.errorbar(y_val, current_y, xerr=[[err_low], [err_high]], fmt=marker, color=color, ecolor=color, capsize=4, elinewidth=2, zorder=3)
 
                     txt = get_stars_sens(d.get('p'))
                     if txt:
-                        ax.text(y_val, current_y + 0.25, txt, ha='center', va='bottom', fontsize=10, fontweight='bold', color=color)
+                        ax.text(y_val, current_y + 0.25, txt, ha='center', va='bottom', fontsize=10, fontweight='bold', color=color, zorder=4)
                 current_y += 1
 
             y_ticks.append(current_y)
             y_labels.append(out_title)
             current_y += 1.5
 
-        ax.set_title(group_title, fontsize=14, fontweight='bold')
-        ax.set_xlabel('Treatment Effect (Weighted OLS Coeff)', fontsize=12)
-        ax.axvline(0, color='black', linestyle='--', linewidth=1)
+        for ry in exp_rows_y:
+            ax.axhline(ry, color='#dddddd', linestyle='-', linewidth=0.8, zorder=1)
+
+        ax.set_title(group_title, fontsize=14, fontweight='bold', color='#333333')
+        ax.set_xlabel('Treatment Effect (Weighted OLS Coeff)', fontsize=11, color='#333333')
+        ax.axvline(0, color='black', linestyle='--', linewidth=1, zorder=2)
         ax.set_yticks(y_ticks)
+        ax.tick_params(axis='y', length=0)
 
         if i == 0:
-            ax.set_yticklabels(y_labels, fontsize=10)
+            ax.set_yticklabels(y_labels, fontsize=10, color='#333333')
             for tick in ax.get_yticklabels():
-                if '<' not in tick.get_text() and '>=' not in tick.get_text() and '/' not in tick.get_text():
+                if 'Exp <' not in tick.get_text():
                     tick.set_fontweight('bold')
-                    tick.set_fontsize(12)
+                    tick.set_fontsize(11.5)
         else:
             ax.tick_params(labelleft=False)
 
-        ax.grid(axis='x', linestyle=':', alpha=0.6)
+        ax.grid(axis='x', linestyle=':', alpha=0.5)
 
     plt.tight_layout()
     plt.subplots_adjust(wspace=0.05)
