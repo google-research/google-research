@@ -166,7 +166,7 @@ safetensors==0.4.1
 scikit-learn==1.3.2
 scipy==1.11.4
 Send2Trash==1.8.2
-sentencepiece==0.1.99
+sentencepiece==0.2.1
 seqio-nightly==0.0.17.dev20231010
 six==1.16.0
 sniffio==1.3.0
