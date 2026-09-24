@@ -27,7 +27,7 @@ setup(
     py_modules=['ebp'],
     install_requires=[
         'dm-sonnet==1.23',
-        'tensorflow==1.13.1',
+        'tensorflow==2.11.1',
         'numpy',
         'tqdm',
         'scipy',
