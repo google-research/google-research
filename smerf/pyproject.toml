@@ -24,7 +24,7 @@ dependencies = [
     "opencv-python==4.9.0.80",
     "optax==0.2.1",
     "orbax==0.1.9",
-    "pillow==10.2.0",
+    "pillow==12.2.0",
     "pycolmap @ git+https://github.com/rmbrualla/pycolmap.git",
     "scikit-image==0.23.2",
     "scipy==1.11.0",
