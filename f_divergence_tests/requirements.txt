@@ -20,7 +20,7 @@ optax==0.2.6
 orbax-checkpoint==0.11.31
 protobuf==6.33.2
 psutil==7.1.3
-Pygments==2.19.2
+Pygments==2.20.0
 PyYAML==6.0.3
 rich==14.2.0
 scipy==1.16.3
