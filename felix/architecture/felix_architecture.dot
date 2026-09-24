@@ -1,0 +1,39 @@
+digraph Felix {
+  rankdir=LR;
+  node [shape=box, fontsize=12];
+
+  Inputs [label="{Inputs|input_word_ids\ninput_mask\ninput_type_ids\n(edit_tags if training)}"];
+  BertEncoder [label="BertEncoder\n(outputs sequence hidden states)"];
+  TagDense [label="Dense(num_classes)\n-> tag_logits"];
+
+  // Pointing subgraph
+  subgraph cluster_pointing {
+    label = "Pointing (optional)";
+    style = dashed;
+    TagEmbedding [label="Embedding(num_classes, tag_dim)"];
+    PositionEmbedding [label="PositionEmbedding(seq_length)"];
+    Concat [label="Concat(bert_output, tag_embedding, position_embedding)"];
+    EditDense [label="Dense(hidden_size, gelu)\n-> edit_tagged_sequence_output"];
+    OptionalTransformer [label="(query_transformer x TransformerEncoderBlock)\napplied to intermediate_query_embeddings"];
+    QueryDense [label="Dense(query_size)\n-> query_embeddings"];
+    KeyDense [label="Dense(query_size)\n-> key_embeddings"];
+    Attention [label="Attention: query · key^T\n-> pointing_logits (seq_len x seq_len)"];
+  }
+
+  Outputs [label="{Outputs|tag_logits\n(pointing_logits if use_pointing)}"];
+
+  Inputs -> BertEncoder;
+  BertEncoder -> TagDense;
+  TagDense -> Outputs [label="tag_logits"];
+
+  // Pointing flow
+  TagDense -> TagEmbedding [label="edit_tags (argmax in eval)\nor ground-truth in training"];
+  TagEmbedding -> PositionEmbedding -> Concat;
+  BertEncoder -> Concat;
+  Concat -> EditDense -> OptionalTransformer -> QueryDense -> Attention;
+  EditDense -> KeyDense -> Attention;
+  Attention -> Outputs [label="pointing_logits"];
+
+  // Styling
+  Inputs -> BertEncoder [color=black];
+}
