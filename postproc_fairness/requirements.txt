@@ -25,7 +25,7 @@ opt-einsum==3.3.0
 packaging==23.2
 pandas==2.1.1
 protobuf==4.24.4
-pyasn1==0.5.0
+pyasn1==0.6.3
 pyasn1-modules==0.3.0
 python-dateutil==2.8.2
 pytz==2023.3.post1
