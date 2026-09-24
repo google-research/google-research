@@ -138,7 +138,7 @@ protobuf==3.19.6
 psutil==5.9.6
 ptyprocess==0.7.0
 pure-eval==0.2.2
-pyasn1==0.5.1
+pyasn1==0.6.3
 pyasn1-modules==0.3.0
 pycparser==2.21
 pyglove==0.4.3
