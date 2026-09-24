@@ -52,7 +52,7 @@ promise==2.3
 protobuf==3.19.6
 psutil==5.9.4
 pudb==2022.1.3
-pyasn1==0.4.8
+pyasn1==0.6.3
 pyasn1-modules==0.2.8
 Pygments==2.14.0
 pyparsing==3.0.9
