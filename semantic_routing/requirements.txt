@@ -51,7 +51,7 @@ jupyter_client==8.6.3
 jupyter_core==5.7.2
 jupyter_server==2.14.2
 jupyter_server_terminals==0.5.3
-jupyterlab==4.2.5
+jupyterlab==4.5.7
 jupyterlab_pygments==0.3.0
 jupyterlab_server==2.27.3
 jupyterlab_widgets==3.0.13
