@@ -13,7 +13,7 @@ absl-py
 numpy
 scipy
 pandas
-gdown==4.4.0
+gdown==5.2.2
 protobuf~=3.19.0
 git+https://github.com/kevinzakka/torchkit.git@v0.0.2
 git+https://github.com/kevinzakka/x-magical.git@v0.0.2
