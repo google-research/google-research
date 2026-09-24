@@ -106,7 +106,7 @@ parso @ file:///home/conda/feedstock_root/build_artifacts/parso_1712320355065/wo
 peft==0.11.1
 pexpect @ file:///home/conda/feedstock_root/build_artifacts/pexpect_1706113125309/work
 pickleshare @ file:///home/conda/feedstock_root/build_artifacts/pickleshare_1602536217715/work
-pillow==11.0.0
+pillow==12.2.0
 platformdirs @ file:///home/conda/feedstock_root/build_artifacts/platformdirs_1715777629804/work
 prompt_toolkit @ file:///home/conda/feedstock_root/build_artifacts/prompt-toolkit_1718047967974/work
 proto-plus==1.23.0
