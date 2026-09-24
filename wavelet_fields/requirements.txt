@@ -76,7 +76,7 @@ Markdown @ file:///home/conda/feedstock_root/build_artifacts/markdown_1679584000
 MarkupSafe @ file:///home/conda/feedstock_root/build_artifacts/markupsafe_1685769052690/work
 matplotlib==3.5.3
 matplotlib-inline==0.1.6
-mistune==2.0.5
+mistune==3.2.1
 moderngl==5.8.2
 moviepy==1.0.3
 mpmath==1.3.0
