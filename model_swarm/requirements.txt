@@ -116,7 +116,7 @@ ptyprocess @ file:///home/conda/feedstock_root/build_artifacts/ptyprocess_160941
 pure_eval @ file:///home/conda/feedstock_root/build_artifacts/pure_eval_1721585709575/work
 pyarrow==16.1.0
 pyarrow-hotfix==0.6
-pyasn1==0.6.0
+pyasn1==0.6.3
 pyasn1_modules==0.4.0
 pydantic==2.7.1
 pydantic_core==2.18.2
