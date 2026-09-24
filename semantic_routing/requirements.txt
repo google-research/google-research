@@ -92,7 +92,7 @@ psutil==6.1.0
 ptyprocess==0.7.0
 pure_eval==0.2.3
 pycparser==2.22
-Pygments==2.18.0
+Pygments==2.20.0
 pyparsing==3.2.0
 python-dateutil==2.9.0.post0
 python-json-logger==2.0.7
