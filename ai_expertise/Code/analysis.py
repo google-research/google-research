@@ -34,6 +34,7 @@
 #   - Jsons/fig_raters.json          (Figures A1 & A2: Inter-rater agreement scatter plots)
 #   - Jsons/fig_human_llm_subscales.json (Subscale concordance across evaluator modalities)
 #   - Jsons/fig_usage_alt.json       (Figure A4: 14-day daily moving average active user series)
+#   - Jsons/fig_genai_usage_bar.json (Self-reported GenAI usage outside InFlow by month & arm, 95% CIs)
 #   - Jsons/additional_analysis.json (Tables 5, 7, A3, A4: Variance regressions & correlations)
 # ==============================================================================
 
@@ -2088,6 +2089,65 @@ def analyze_usage(df_main):
     return {}
 
 
+def categorize_gai_series(series):
+    """
+    Maps raw monthly survey GenAI usage scores into the three usage categories:
+      - "No reported usage": 1 or 2 (< 2.5)
+      - "Occasional usage":  3      ([2.5, 3.5))
+      - "Regular usage":     4      (>= 3.5)
+    Averaged multi-responses are assigned using the same cutoffs.
+    """
+    s_num = pd.to_numeric(series, errors='coerce')
+    cat = pd.Series(index=series.index, dtype='object')
+    cat[s_num < 2.5] = 'No reported usage'
+    cat[(s_num >= 2.5) & (s_num < 3.5)] = 'Occasional usage'
+    cat[s_num >= 3.5] = 'Regular usage'
+    return cat
+
+
+def analyze_genai_usage(df_subject):
+    """
+    Tabulates self-reported generative AI usage outside of InFlow from the three
+    monthly surveys (ms1_gai, ms2_gai, ms3_gai) for included participants: the
+    percentage of respondents in each usage category by month and treatment arm,
+    with 95% normal-approximation (Wald) confidence intervals
+    p +/- 1.96 * sqrt(p(1-p)/n), where n is the number of respondents in that
+    arm and month.
+    Outputs: Jsons/fig_genai_usage_bar.json (GenAI usage bar chart).
+    """
+    categories = ['No reported usage', 'Occasional usage', 'Regular usage']
+    month_specs = [('ms1_gai', 'Month 1'), ('ms2_gai', 'Month 2'), ('ms3_gai', 'Month 3')]
+
+    months = []
+    for col, month_label in month_specs:
+        if col not in df_subject.columns:
+            continue
+        cat_series = categorize_gai_series(df_subject[col])
+        month_out = {'var': col, 'label': month_label}
+        for arm_key, arm_val in [('ctrl', 0), ('treat', 1)]:
+            valid = cat_series[df_subject[TREATMENT_VAR] == arm_val].dropna()
+            n = len(valid)
+            counts = valid.value_counts()
+            arm_out = {'n': n, 'count': [], 'pct': [], 'se': [], 'ci_l': [], 'ci_u': []}
+            for cat_name in categories:
+                k = int(counts.get(cat_name, 0))
+                p = k / n if n > 0 else 0.0
+                se = np.sqrt(p * (1.0 - p) / n) if n > 0 else 0.0
+                arm_out['count'].append(k)
+                arm_out['pct'].append(p * 100.0)
+                arm_out['se'].append(se * 100.0)
+                arm_out['ci_l'].append((p - 1.96 * se) * 100.0)
+                arm_out['ci_u'].append((p + 1.96 * se) * 100.0)
+            month_out[arm_key] = arm_out
+        months.append(month_out)
+
+    out_data = {'categories': categories, 'months': months}
+    with open('Jsons/fig_genai_usage_bar.json', 'w') as f:
+        json.dump(out_data, f, cls=NpEncoder)
+
+    return {}
+
+
 # ==============================================================================
 # 10. CORRELATIONS & DISTRIBUTIONAL VARIANCE REGRESSIONS
 # ==============================================================================
@@ -2435,6 +2495,7 @@ def run_all(github_pat=None):
     macros.update(analyze_sensitivity(df_raw))
     macros.update(analyze_raters(df_raw))
     macros.update(analyze_usage(df_subject))
+    macros.update(analyze_genai_usage(df_subject))
     macros.update(analyze_additional(df_raw, df_cb))
     
     print("Analysis complete. Data exported to Jsons/ directory.")

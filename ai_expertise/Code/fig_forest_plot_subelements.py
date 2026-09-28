@@ -95,7 +95,7 @@ def render(github_pat=None):
         ax.axvline(0, color='black', linestyle='--', alpha=0.7)
         ax.set_yticks(y_pos)
         if panel_idx == 0:
-            ax.set_yticklabels(labels, fontsize=10)
+            ax.set_yticklabels(labels, fontsize=12)
         ax.set_title(title, fontweight='bold')
         ax.set_xlabel("Treatment Effect (Std. Dev.)")
         ax.grid(axis='x', linestyle=':', alpha=0.6)
