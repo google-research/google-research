@@ -21,6 +21,7 @@
 
 import json
 import matplotlib.pyplot as plt
+import seaborn as sns
 from config import GITHUB_CONFIG
 from utils import upload_plot
 
@@ -33,10 +34,15 @@ def render(github_pat=None):
     with open('Jsons/fig_forest.json', 'r') as f:
         data = json.load(f)
 
+    # Set the plot theme explicitly so the figure does not depend on global style
+    # state left behind by previously executed figure scripts.
+    sns.set_theme(style="whitegrid")
+    plt.rcParams['axes.edgecolor'] = 'black'
+
     fig, axes = plt.subplots(1, 3, figsize=(15, 6), sharey=True)
     
     styles = {
-        'all': {'color': '#333333', 'fmt': 's', 'offset': 0.25, 'label': 'All (Included)', 'lw': 2.5, 'ms': 7},
+        'all': {'color': '#333333', 'fmt': 's', 'offset': 0.25, 'label': 'Full Sample', 'lw': 2.5, 'ms': 7},
         'jun': {'color': '#1f77b4', 'fmt': '^', 'offset': 0.0, 'label': 'Juniors (<7 yrs)', 'lw': 1.5, 'ms': 7},
         'sen': {'color': '#ff7f0e', 'fmt': 'D', 'offset': -0.25, 'label': 'Seniors (≥7 yrs)', 'lw': 1.5, 'ms': 6}
     }
@@ -90,12 +96,13 @@ def render(github_pat=None):
         ax.set_yticks(y_pos)
         if panel_idx == 0:
             ax.set_yticklabels(labels, fontsize=10)
-            ax.legend(loc='lower left', bbox_to_anchor=(0.0, -0.22), ncol=3, fontsize=9)
         ax.set_title(title, fontweight='bold')
         ax.set_xlabel("Treatment Effect (Std. Dev.)")
         ax.grid(axis='x', linestyle=':', alpha=0.6)
 
     plt.tight_layout()
+    # Legend is added after tight_layout so that its (larger) size does not shrink the panels.
+    axes[0].legend(loc='lower left', bbox_to_anchor=(0.0, -0.22), ncol=3, fontsize=13, markerscale=1.3)
     upload_plot(fig, 'forest_plot_subelements.png', github_pat, GITHUB_CONFIG)
     plt.close(fig)
 

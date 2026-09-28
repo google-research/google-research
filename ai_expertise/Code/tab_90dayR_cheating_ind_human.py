@@ -1,7 +1,7 @@
 # ==============================================================================
 # tab_90dayR_cheating_ind_human.py
 # ------------------------------------------------------------------------------
-# Generates Table A6: Impact of 90-Day AI Access on Non-AI-Assisted Redlining
+# Generates Table A6: Impact of 90-Day AI Access on AI-Unassisted Redlining
 # Performance: Controlling for Suspected Non-Adherence Using Expert Ratings.
 #
 # Econometric Specification:
@@ -57,9 +57,9 @@ def render(github_pat=None):
         models[i+1] = MockModel(m)
     
     num_cols = len(models)
-    caption = "Impact of 90-Day AI Access on Non-AI-Assisted Redlining Performance: Controlling for Suspected Non-Adherence Using Expert Ratings"
+    caption = "Impact of 90-Day AI Access on AI-Unassisted Redlining Performance: Controlling for Suspected Non-Adherence Using Expert Ratings"
     label = "apxtab:cheating_human"
-    notes = r"Table reports intent-to-treat estimates using OLS regressions for 90-day redlining quality evaluated by expert raters. All models report rating-level disaggregated regressions using standard errors clustered at the individual level. Models (1) and (2) report estimates on the full active sample. Models (3) and (4) control for suspected non-adherence, while Models (5) and (6) exclude participants with suspected non-adherence. Non-adherence is flagged by Gemini on the basis of the prompt we provide in Appendix \ref{apx:nonadhereprompt}. All outcome subcomponents are standardized to mean zero and unit variance using the control group calculated locally within the full active sample. All models incorporate firm fixed effects and sub-indicator fixed effects, and are weighted by $w_i=1/n_i$, where $n_i$ is the number of ratings individual $i$ receives so that each individual carries equal total weight. $^* p<0.10$, $^{**} p<0.05$, $^{***} p<0.01$."
+    notes = r"Table reports intent-to-treat estimates using OLS regressions for 90-day redlining quality evaluated by expert raters. All models report rating-level disaggregated regressions using standard errors clustered at the individual level. Models (1) and (2) report estimates on the full active sample. Models (3) and (4) control for suspected non-adherence, while Models (5) and (6) exclude participants with suspected non-adherence. Non-adherence is flagged by Gemini on the basis of the prompt we provide in the Supplementary Materials. All outcome subcomponents are standardized to mean zero and unit variance using the control group calculated locally within the full active sample. All models incorporate firm fixed effects and subscale fixed effects, and are weighted by $w_i=1/n_i$, where $n_i$ is the number of ratings individual $i$ receives so that each individual carries equal total weight. The hypothesis tests in the bottom panel report one-sided $p$-values. $^* p<0.10$, $^{**} p<0.05$, $^{***} p<0.01$."
     
     latex = r"\begin{sidewaystable}[htbp]" + "\n" + r"\centering" + "\n" + r"\begin{threeparttable}" + "\n"
     latex += rf"\caption{{{caption}}}\label{{{label}}}\vspace{{0.5cm}}" + "\n"
@@ -76,7 +76,7 @@ def render(github_pat=None):
         ('group_binary', 'Treatment'),
         ('treat_x_junior', r'Treat $\times$ Junior'),
         ('treat_x_senior', r'Treat $\times$ Senior'),
-        ('cheating', 'Reported AI Use'),
+        ('cheating', 'Flagged for possible AI use'),
         ('junior', 'Junior'),
         ('senior', 'Senior'),
         ('Intercept', 'Constant')
@@ -101,7 +101,7 @@ def render(github_pat=None):
     fe_rows = [
         ("Rating-level Disaggregated", ["Yes"] * num_cols),
         ("Firm FE", ["Yes"] * num_cols),
-        ("Sub-indicator FE", ["Yes"] * num_cols)
+        ("Subscale FE", ["Yes"] * num_cols)
     ]
     for f_lbl, f_vals in fe_rows:
         latex += f"    {f_lbl} & " + " & ".join([rf"\multicolumn{{1}}{{c}}{{{x}}}" for x in f_vals]) + r" \\" + "\n"

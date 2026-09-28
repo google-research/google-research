@@ -247,7 +247,7 @@ def get_f_test_results(res, test_string, h0_inequality):
     Parameters:
         res: Fitted regression results object.
         test_string (str): Linear restriction (e.g., 'treat_x_junior = treat_x_senior').
-        h0_inequality (str): String indicating direction of alternative ('>' vs '<').
+        h0_inequality (str): String indicating direction of null hypothesis ('\\geq' / '>' vs '\\leq' / '<').
 
     Returns:
         tuple: (f_value, one_sided_p_value)
@@ -257,10 +257,10 @@ def get_f_test_results(res, test_string, h0_inequality):
         t_val = t_res.tvalue.item() if hasattr(t_res.tvalue, 'item') else float(t_res.tvalue)
         df_res = res.df_resid
         
-        if "<" in h0_inequality:
-            p_val = stats.t.cdf(t_val, df_res)
-        elif ">" in h0_inequality:
+        if r"\leq" in h0_inequality or r"\le" in h0_inequality or "<=" in h0_inequality or "<" in h0_inequality:
             p_val = stats.t.sf(t_val, df_res)
+        elif r"\geq" in h0_inequality or r"\ge" in h0_inequality or ">=" in h0_inequality or ">" in h0_inequality:
+            p_val = stats.t.cdf(t_val, df_res)
         else:
             p_val = t_res.pvalue.item() if hasattr(t_res.pvalue, 'item') else float(t_res.pvalue)
             

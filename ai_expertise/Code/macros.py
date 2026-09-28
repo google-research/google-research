@@ -86,12 +86,17 @@ def build_macros():
                 if 'pvalue' in f_val:
                     tval = f_val['tvalue']
                     df = m.get('df_resid', 100)
+                    # TimeOnTask (firm-FE table) reports two-sided equality tests, so its
+                    # F macros store the two-sided p-value shown in the table.
+                    is_two_sided = (m_name == 'TimeOnTask')
                     is_reversed = (
-                        m_name in ['TimeOnTask', 'TimeOnTask_noFFE']
+                        m_name == 'TimeOnTask_noFFE'
                         or (m_name in ['Patent', 'Patent_noFFE'] and i == 6)
                         or (m_name == 'Speed' and i in [2, 6, 10])
                     )
-                    if is_reversed:
+                    if is_two_sided:
+                        pval = f_val['pvalue']
+                    elif is_reversed:
                         if mapped_key in ['F1', 'F2', 'F3', 'F4']:
                             pval = stats.t.cdf(tval, df)
                         else:

@@ -53,33 +53,34 @@ def render(github_pat=None):
         return ""
         
     def build_table(title, label, outcomes):
-        num_cols = len(outcomes) * len(subgroups)
-        
         latex = "\\begin{table}[H]\n"
+        latex += "\\singlespacing\n"
         latex += "\\centering\n"
         latex += "\\begin{threeparttable}\n"
         latex += f"\\caption{{{title}}}\n"
         latex += f"\\label{{{label}}}\n"
-        latex += "\\setlength{\\tabcolsep}{4pt}\n"
+        latex += "\\setlength{\\tabcolsep}{0pt}\n"
         latex += "\\small\n\n"
         
-        col_str = "l *" + str(num_cols) + "{S[table-format=-1.2, input-symbols={()}, table-space-text-post={$^{***}$}]}"
-        latex += f"\\begin{{tabular}}{{{col_str}}}\n"
+        s_col = "S[table-format=-1.2, input-symbols={()}, table-space-text-post={$^{***}$}]"
+        group_spec = f"*{{{len(subgroups)}}}{{{s_col}}}"
+        col_str = "l @{\\extracolsep{\\fill}} " + " @{\\extracolsep{0pt}} c @{\\extracolsep{\\fill}} ".join([group_spec] * len(outcomes)) + " @{}"
+        latex += f"\\begin{{tabular*}}{{\\textwidth}}{{{col_str}}}\n"
         latex += "\\toprule\n"
         
         # Main headers
-        latex += " & " + " & ".join([f"\\multicolumn{{3}}{{c}}{{{name}}}" for _, name in outcomes]) + " \\\\\n"
+        latex += " & " + " & & ".join([f"\\multicolumn{{3}}{{c}}{{{name}}}" for _, name in outcomes]) + " \\\\\n"
         
         # Cmidrules
         cmd_rules = []
         for i in range(len(outcomes)):
-            start = 2 + i * 3
-            end = start + 2
-            cmd_rules.append(f"\\cmidrule(lr){{{start}-{end}}}")
+            start = 2 + i * (len(subgroups) + 1)
+            end = start + len(subgroups) - 1
+            cmd_rules.append(f"\\cmidrule{{{start}-{end}}}")
         latex += " ".join(cmd_rules) + "\n"
         
         # Subheaders
-        latex += " & " + " & ".join([f"\\multicolumn{{1}}{{c}}{{{sub_name}}}" for _ in outcomes for _, sub_name in subgroups]) + " \\\\\n"
+        latex += " & " + " & & ".join([" & ".join([f"\\multicolumn{{1}}{{c}}{{{sub_name}}}" for _, sub_name in subgroups]) for _ in outcomes]) + " \\\\\n"
         
         # N=...
         def get_n(out_key, sg_key):
@@ -88,7 +89,7 @@ def render(github_pat=None):
                 raise ValueError(f"Missing observation count for outcome={out_key}, subgroup={sg_key}")
             return str(int(obs))
                 
-        latex += " & " + " & ".join([f"\\multicolumn{{1}}{{c}}{{(N={get_n(out_key, sg_key)})}}" for out_key, _ in outcomes for sg_key, _ in subgroups]) + " \\\\\n"
+        latex += " & " + " & & ".join([" & ".join([f"\\multicolumn{{1}}{{c}}{{(N={get_n(out_key, sg_key)})}}" for sg_key, _ in subgroups]) for out_key, _ in outcomes]) + " \\\\\n"
         latex += "\\midrule\n"
         
         rows = [
@@ -103,8 +104,9 @@ def render(github_pat=None):
         for row_label, stat_key in rows:
             # Coef / stat row
             latex += f"{row_label} & "
-            row_coefs = []
+            group_coefs = []
             for out_key, _ in outcomes:
+                row_coefs = []
                 for sg_key, _ in subgroups:
                     res = results.get(sg_key, {}).get(out_key, {}).get(stat_key, {})
                     if stat_key == 'Levene':
@@ -119,12 +121,14 @@ def render(github_pat=None):
                     else:
                         stars = format_stars(pval)
                         row_coefs.append(f"{val:.2f}{stars}")
-            latex += " & ".join(row_coefs) + " \\\\\n"
+                group_coefs.append(" & ".join(row_coefs))
+            latex += " & & ".join(group_coefs) + " \\\\\n"
             
             # SE / pval row
             latex += " & "
-            row_ses = []
+            group_ses = []
             for out_key, _ in outcomes:
+                row_ses = []
                 for sg_key, _ in subgroups:
                     res = results.get(sg_key, {}).get(out_key, {}).get(stat_key, {})
                     if stat_key == 'Levene':
@@ -136,12 +140,13 @@ def render(github_pat=None):
                         row_ses.append("")
                     else:
                         row_ses.append(f"({val:.2f})")
-            latex += " & ".join(row_ses) + " \\\\\n"
+                group_ses.append(" & ".join(row_ses))
+            latex += " & & ".join(group_ses) + " \\\\\n"
             
         latex += "\\bottomrule\n"
-        latex += "\\end{tabular}\n"
+        latex += "\\end{tabular*}\n"
         latex += "\\begin{tablenotes}[flushleft]\n"
-        latex += "\\scriptsize \\raggedright\n"
+        latex += "\\scriptsize\n"
         latex += "\\item[]\\hspace{-\\labelsep}\\textit{Notes:} This table presents intent-to-treat estimates on distributional changes and variance equality using rating-level observations, weighted by the inverse of the number of ratings per subject. Summary outcome variables are standardized to mean zero and unit variance using the control group. Cutoffs for quintiles are determined using the full valid sample for each respective outcome. Coefficients indicate the change in probability of falling into a specific quintile. All models include firm fixed effects and report HC1 robust standard errors in parentheses. The Levene statistic tests the null hypothesis of equal variances between treatment and control groups (centered at the median), with corresponding p-values in parentheses. The full sample includes all participants properly randomized. Juniors are defined as having $<7$ years of experience. $^{*}$ $p<0.10$, $^{**}$ $p<0.05$, $^{***}$ $p<0.01$.\n"
         latex += "\\end{tablenotes}\n"
         latex += "\\end{threeparttable}\n"

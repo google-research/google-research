@@ -34,6 +34,11 @@ def render(github_pat=None):
     with open('Jsons/fig_fisher.json', 'r') as f:
         data = json.load(f)
     
+    # Set the plot theme explicitly so the figure does not depend on global style
+    # state left behind by previously executed figure scripts.
+    sns.set_theme(style="whitegrid")
+    plt.rcParams['axes.edgecolor'] = 'black'
+    
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
     
     plot_configs = [

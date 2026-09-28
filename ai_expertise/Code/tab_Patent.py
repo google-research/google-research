@@ -64,7 +64,7 @@ def render(github_pat=None):
     num_cols = len(models)
     caption = "Impact of AI Access on Patent Drafting Performance at 90 Days"
     label = "tab:Patent"
-    notes = "Table reports intent-to-treat estimates using OLS regressions for on-the-job patent metrics collected during the 90-day post-task survey. All estimations conducted at the subject level with robust (HC1) standard errors. Columns (2), (4), (6), (8), and (10) report split specifications with no global intercept. Unless otherwise indicated in column titles, all outcomes are standardized with mean 0 and standard deviation of 1 using the control group distribution. $^* p<0.10$, $^{{**}} p<0.05$, $^{{***}} p<0.01$." + "\n" 
+    notes = "Table reports intent-to-treat estimates using OLS regressions for on-the-job patent metrics collected during the 90-day post-task survey. All estimations conducted at the subject level with robust (HC1) standard errors. Columns (2), (4), (6), (8), and (10) report split specifications with no global intercept. Unless otherwise indicated in column titles, all outcomes are standardized with mean 0 and standard deviation of 1 using the control group distribution. The hypothesis tests in the bottom panel report one-sided $p$-values; values in square brackets in column (6) indicate that the inequality direction in each null hypothesis is reversed for time to completion. $^* p<0.10$, $^{{**}} p<0.05$, $^{{***}} p<0.01$." + "\n" 
     
     latex = r"\begin{sidewaystable}[htbp]" + "\n" + r"\centering" + "\n" + r"\begin{threeparttable}" + "\n"
     latex += rf"\caption{{{caption}}}\label{{{label}}}\vspace{{0.5cm}}" + "\n"
@@ -105,7 +105,7 @@ def render(github_pat=None):
         if has_val: latex += r_str + r" \\" + "\n" + s_str + r" \\" + "\n"
 
     latex += r"     & " + " & ".join(["{}"]*num_cols) + r" \\[-1ex]" + "\n"
-    latex += build_f_test_rows(models, [2, 4, 6, 8, 10], num_cols, 'Patent', {})
+    latex += build_f_test_rows(models, [2, 4, 6, 8, 10], num_cols, 'Patent', {}, reverse_cols=[6])
     latex += r"\midrule" + "\n"
     fe_rows = [
         ("Firm FE", ["Yes"] * num_cols),

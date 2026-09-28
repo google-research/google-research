@@ -99,11 +99,11 @@ def render(github_pat=None):
 
     latex += r"\midrule" + "\n"
     fe_rows = [
-        ("Subject-level Average", ["Yes", "No", "No", "No", "No", "No", "No", "No"]),
-        ("Rating-level Disaggregated", ["No", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes"]),
+        ("Subject-level average", ["Yes", "No", "No", "No", "No", "No", "No", "No"]),
+        ("Rating-level disaggregated", ["No", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes", "Yes"]),
         ("Firm FE", ["Yes", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes"]),
         ("Sub-indicator FE", ["No", "Yes", "No", "Yes", "Yes", "Yes", "Yes", "Yes"]),
-        (r"Firm $\times$ Sub-ind. FE", ["No", "No", "Yes", "No", "No", "No", "No", "No"])
+        (r"Firm $\times$ sub-indicator FE", ["No", "No", "Yes", "No", "No", "No", "No", "No"])
     ]
     for f_lbl, f_vals in fe_rows:
         latex += f"    {f_lbl} & " + " & ".join([rf"\multicolumn{{1}}{{c}}{{{x}}}" for x in f_vals]) + r" \\" + "\n"
@@ -117,7 +117,7 @@ def render(github_pat=None):
     latex += obs_r + r" \\" + "\n" + r2_r + r" \\" + "\n"
     latex += r"\bottomrule" + "\n" + r"\end{tabular}" + "\n"
     latex += r"\begin{tablenotes}[flushleft]" + "\n" + r"\scriptsize" + "\n"
-    latex += rf"\item[]\hspace{{-\labelsep}}\textit{{Notes:}} Table reports intent-to-treat estimates using OLS regressions. Model (1) reports effects on the subject-level average of subcomponents using robust (HC1) standard errors. Models (2)-(8) report rating-level disaggregated regressions using standard errors clustered at the individual level. Pooled models (7)–(8) control for rater type. All outcome subcomponents are standardized to mean zero and unit variance using the control group calculated locally within the full active sample. Models (1), (2), and (4)-(8) incorporate firm fixed effects, with Models (2) and (4)-(8) also including sub-indicator fixed effects. Model (3) incorporates firm $\times$ sub-indicator fixed effects. Models are weighted by $w_i=1/n_i$, where $n_i$ is the number of ratings individual $i$ receives so that each individual carries equal total weight. $^* p<0.10$, $^{{**}} p<0.05$, $^{{***}} p<0.01$." + "\n"
+    latex += rf"\item[]\hspace{{-\labelsep}}\textit{{Notes:}} Table reports intent-to-treat estimates using OLS regressions. Model (1) reports effects on the subject-level average of subcomponents using robust (HC1) standard errors. Models (2)-(8) report rating-level disaggregated regressions using standard errors clustered at the individual level. Pooled models (7)–(8) control for rater type. All outcome subcomponents are standardized to mean zero and unit variance using the control group calculated locally within the full active sample. Models (1), (2), and (4)-(8) incorporate firm fixed effects, with Models (2) and (4)-(8) also including sub-indicator fixed effects. Model (3) incorporates firm $\times$ sub-indicator fixed effects. Models are weighted by $w_i=1/n_i$, where $n_i$ is the number of ratings individual $i$ receives so that each individual carries equal total weight. The hypothesis tests in the bottom panel report one-sided $p$-values. $^* p<0.10$, $^{{**}} p<0.05$, $^{{***}} p<0.01$." + "\n"
     latex += r"\end{tablenotes}" + "\n" + r"\end{threeparttable}" + "\n" + r"\end{sidewaystable}"
     
     push_to_github("90dayD_combined_main.tex", latex, github_pat, GITHUB_CONFIG)
