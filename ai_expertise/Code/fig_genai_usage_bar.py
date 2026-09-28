@@ -15,8 +15,9 @@
 #   - Within each month group, plots the percentage of respondents in each
 #     usage category with overlaid semi-transparent bars for Control (blue)
 #     and Treatment (orange), offset by 75% of a bar width (25% overlap).
-#   - Error bars show 95% normal-approximation (Wald) confidence intervals,
-#     p +/- 1.96*sqrt(p(1-p)/n), truncated at 0% for display.
+#   - Error bars on the Treatment bars show 95% normal-approximation (Wald)
+#     confidence intervals, p +/- 1.96*sqrt(p(1-p)/n), truncated at 0% for
+#     display. Control bars are shown without error bars.
 #
 # Inputs:
 #   - Jsons/fig_genai_usage_bar.json
@@ -101,26 +102,24 @@ def render(github_pat=None):
         ax.bar(st['x'], pcts, width=bar_width, color=st['color'], alpha=0.55, label=st['label'], zorder=3)
         ax.bar(st['x'], pcts, width=bar_width, facecolor='none', edgecolor=st['color'], linewidth=2.2, zorder=st['edge_z'])
 
-    # 95% confidence intervals (Wald), truncated to the 0-100% range for display
-    ci_tops = []
-    for arm_key, st in arm_styles.items():
-        pcts = np.array(arms[arm_key]['pct'], dtype=float)
-        ci_l = np.clip(np.array(arms[arm_key]['ci_l'], dtype=float), 0.0, 100.0)
-        ci_u = np.clip(np.array(arms[arm_key]['ci_u'], dtype=float), 0.0, 100.0)
-        ci_tops.extend(ci_u.tolist())
-        ax.errorbar(
-            st['x'], pcts,
-            yerr=[pcts - ci_l, ci_u - pcts],
-            fmt='none', ecolor='#222222', elinewidth=1.4,
-            capsize=4, capthick=1.4, zorder=6
-        )
+    # 95% confidence intervals (Wald) for the Treatment bars only, truncated to
+    # the 0-100% range for display
+    treat_pcts = np.array(arms['treat']['pct'], dtype=float)
+    treat_ci_l = np.clip(np.array(arms['treat']['ci_l'], dtype=float), 0.0, 100.0)
+    treat_ci_u = np.clip(np.array(arms['treat']['ci_u'], dtype=float), 0.0, 100.0)
+    ax.errorbar(
+        arm_styles['treat']['x'], treat_pcts,
+        yerr=[treat_pcts - treat_ci_l, treat_ci_u - treat_pcts],
+        fmt='none', ecolor='#222222', elinewidth=1.4,
+        capsize=4, capthick=1.4, zorder=6
+    )
 
     # Vertical dashed separators between month groups
     for sep_x in separator_positions:
         ax.axvline(sep_x, color='#888888', linestyle='--', linewidth=1.2, alpha=0.7, zorder=2)
 
-    # Headroom above the tallest confidence interval for the month header boxes
-    max_top = max(ci_tops, default=0.0)
+    # Headroom above the tallest plotted element (bar or Treatment CI) for the month header boxes
+    max_top = max(treat_ci_u.tolist() + arms['ctrl']['pct'] + arms['treat']['pct'], default=0.0)
     y_max = max(75.0, np.ceil(max_top * 1.22 / 5.0) * 5.0)
     ax.set_ylim(0, y_max)
     ax.set_xlim(x_positions[0] - 0.95, x_positions[-1] + 0.95)
