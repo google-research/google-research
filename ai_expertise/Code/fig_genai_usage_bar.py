@@ -1,7 +1,7 @@
 # ==============================================================================
 # fig_genai_usage_bar.py
 # ------------------------------------------------------------------------------
-# Generates the bar chart of self-reported generative AI usage outside of InFlow
+# Generates the bar chart of self-reported generative AI usage outside of the study-provided AI tool
 # in the Month 1, Month 2, and Month 3 monthly surveys (ms1_gai, ms2_gai,
 # ms3_gai) for included participants, by treatment arm.
 #

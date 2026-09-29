@@ -1,7 +1,7 @@
 # ==============================================================================
 # utils.py
 # ------------------------------------------------------------------------------
-# General Utility Functions & API Helpers for InFlow Replication Pipeline
+# General Utility Functions & API Helpers for the Replication Pipeline
 # "Artificial Intelligence in High-Skill Knowledge Work: Evidence from Patent
 #  Drafting and Prosecution"
 # ------------------------------------------------------------------------------

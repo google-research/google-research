@@ -1,4 +1,4 @@
-# InFlow Replication Package: Data Codebook & Documentation
+# Replication Package: Data Codebook & Documentation
 
 This directory contains the canonical datasets used in the empirical analysis for the study:
 **"Does AI Assistance Enhance or Erode Expertise? Evidence from a Three-Month Field Experiment in Patent Drafting"**
@@ -25,7 +25,7 @@ The empirical pipeline uses three primary datasets:
 * **`Firm name` / `firm_name`**: Anonymized firm name identifier.
 * **`Group` / `group`**: Experimental arm assignment:
   * `Group 1`: Control group (practitioners completed tasks without AI tool access).
-  * `Group 2`: Treatment group (practitioners had access to the InFlow generative AI copilot).
+  * `Group 2`: Treatment group (practitioners had access to the study-provided AI tool).
 * **`Group_binary` / `group_binary`**: Binary indicator equal to `1` for Treatment (`Group 2`) and `0` for Control (`Group 1`).
 * **`Included` / `included`**: Analysis sample indicator (`1` = verified patent practitioner who completed the baseline instruments and consent).
 

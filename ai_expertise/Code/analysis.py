@@ -1,7 +1,7 @@
 # ==============================================================================
 # analysis.py
 # ------------------------------------------------------------------------------
-# Core Statistical & Econometric Engine for InFlow Replication Pipeline
+# Core Statistical & Econometric Engine for the Replication Pipeline
 # "Artificial Intelligence in High-Skill Knowledge Work: Evidence from Patent
 #  Drafting and Prosecution"
 # ------------------------------------------------------------------------------
@@ -34,7 +34,7 @@
 #   - Jsons/fig_raters.json          (Figures A1 & A2: Inter-rater agreement scatter plots)
 #   - Jsons/fig_human_llm_subscales.json (Subscale concordance across evaluator modalities)
 #   - Jsons/fig_usage_alt.json       (Figure A4: 14-day daily moving average active user series)
-#   - Jsons/fig_genai_usage_bar.json (Self-reported GenAI usage outside InFlow by month & arm, 95% CIs)
+#   - Jsons/fig_genai_usage_bar.json (Self-reported GenAI usage outside the study-provided AI tool by month & arm, 95% CIs)
 #   - Jsons/additional_analysis.json (Tables 5, 7, A3, A4: Variance regressions & correlations)
 # ==============================================================================
 
@@ -2107,7 +2107,7 @@ def categorize_gai_series(series):
 
 def analyze_genai_usage(df_subject):
     """
-    Tabulates self-reported generative AI usage outside of InFlow from the three
+    Tabulates self-reported generative AI usage outside of the study-provided AI tool from the three
     monthly surveys (ms1_gai, ms2_gai, ms3_gai) for included participants: the
     percentage of respondents in each usage category by month and treatment arm,
     with 95% normal-approximation (Wald) confidence intervals

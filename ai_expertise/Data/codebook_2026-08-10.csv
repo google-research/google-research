@@ -52,7 +52,7 @@ TT2_How much time (in hours and minutes) did you spend on the CRITIQUE task?,tt2
 TT2_How easy or difficult overall did you find the CRITIQUE task?,tt2_sur_cri_sat1,90-day task survey - ease overall (redlining),AY,Float,
 TT2_How challenging did you find it to understand the draft on the CRITIQUE task?,tt2_sur_cri_sat2,90-day task survey - ease of comprehension (redlining),AZ,Likert,easier
 TT2_How challenging did you find it to identify mistakes in the draft on the CRITIQUE task?,tt2_sur_cri_sat3,90-day task survey - ease of finding errors (redlining),BA,Likert,easier
-"MS1_Outside of InFlow, how would you describe your current use of generative AI tools (e.g., ChatGPT/ Gemini/ Claude, or specialized AI tools for lawyers, such as Harvey AI, Ironclad)",ms1_gai,Monthly survey (1st) - use of GenAI,BB,Likert,easier
+"MS1_Outside of the study-provided AI tool, how would you describe your current use of generative AI tools (e.g., ChatGPT/ Gemini/ Claude, or specialized AI tools for lawyers, such as Harvey AI, Ironclad)",ms1_gai,Monthly survey (1st) - use of GenAI,BB,Likert,easier
 "MS1_On average, approximately how many hours did you spend working on a non-provisional utility patent draft application of normal complexity this past month (from start to inventor submission)",ms1_thismonth_time,"Monthly survey (1st) - time spent on patent drafting, this month",BC,Likert,more frequent use
 "MS1_Compared to last month, how has the average time you spent on each patent draft (from start to inventor submission) changed",ms1_compared_time,"Monthly survey (1st) - time trend on patent drafting, this month compared to last",BD,Int,
 "MS1_Compared to last month, how would you rate the quality of patent drafts created (at inventor submission stage)",ms1_compared_quality,"Monthly survey (1st) - quality trend on patent drafting, this month compared to last",BE,Likert,time increased
@@ -61,7 +61,7 @@ TT2_How challenging did you find it to identify mistakes in the draft on the CRI
 "MS1_Overall, how has your job satisfaction changed over the past month",ms1_compared_satisfaction,"Monthly survey (1st) - satisfaction trend on patent drafting, this month compared to last",BH,Likert,higher proficiency
 "MS1_In the past month, how many hours per week on average did you receive on-the-job training or mentorship from senior attorneys or partners",ms1_thismonth_training,"Monthly survey (1st) - time spent on training/mentoring, this month",BI,Likert,more satisfied
 MS1_[OPTIONAL]: In what ways has the mentorship you receive (formal or informal) changed over the past month,ms1_qual,Monthly survey (1st) - qualitative responses,BJ,Int,
-"MS2_Outside of InFlow, how would you describe your current use of generative AI tools (e.g., ChatGPT/ Gemini/ Claude, or specialized AI tools for lawyers, such as Harvey AI, Ironclad)",ms2_gai,Monthly survey (2nd) - use of GenAI,BK,,
+"MS2_Outside of the study-provided AI tool, how would you describe your current use of generative AI tools (e.g., ChatGPT/ Gemini/ Claude, or specialized AI tools for lawyers, such as Harvey AI, Ironclad)",ms2_gai,Monthly survey (2nd) - use of GenAI,BK,,
 "MS2_On average, approximately how many hours did you spend working on a non-provisional utility patent draft application of normal complexity this past month (from start to inventor submission)",ms2_thismonth_time,"Monthly survey (2nd) - time spent on patent drafting, this month",BL,Likert,more frequent use
 "MS2_Compared to last month, how has the average time you spent on each patent draft (from start to inventor submission) changed",ms2_compared_time,"Monthly survey (2nd) - time trend on patent drafting, this month compared to last",BM,Int,
 "MS2_Compared to last month, how would you rate the quality of patent drafts created (at inventor submission stage)",ms2_compared_quality,"Monthly survey (2nd) - quality trend on patent drafting, this month compared to last",BN,Likert,time increased
@@ -70,7 +70,7 @@ MS1_[OPTIONAL]: In what ways has the mentorship you receive (formal or informal)
 "MS2_Overall, how has your job satisfaction changed over the past month",ms2_compared_satisfaction,"Monthly survey (2nd) - satisfaction trend on patent drafting, this month compared to last",BQ,Likert,higher proficiency
 "MS2_In the past month, how many hours per week on average did you receive on-the-job training or mentorship from senior attorneys or partners",ms2_thismonth_training,"Monthly survey (2nd) - time spent on training/mentoring, this month",BR,Likert,more satisfied
 MS2_[OPTIONAL]: In what ways has the mentorship you receive (formal or informal) changed over the past month,ms2_qual,Monthly survey (2nd) - qualitative responses,BS,Int,
-"MS3_Outside of InFlow, how would you describe your current use of generative AI tools (e.g., ChatGPT/ Gemini/ Claude, or specialized AI tools for lawyers, such as Harvey AI, Ironclad)",ms3_gai,Monthly survey (3rd) - use of GenAI,BT,,
+"MS3_Outside of the study-provided AI tool, how would you describe your current use of generative AI tools (e.g., ChatGPT/ Gemini/ Claude, or specialized AI tools for lawyers, such as Harvey AI, Ironclad)",ms3_gai,Monthly survey (3rd) - use of GenAI,BT,,
 "MS3_On average, approximately how many hours did you spend working on a non-provisional utility patent draft application of normal complexity this past month (from start to inventor submission)",ms3_thismonth_time,"Monthly survey (3rd) - time spent on patent drafting, this month",BU,Likert,more frequent use
 "MS3_Compared to last month, how has the average time you spent on each patent draft (from start to inventor submission) changed",ms3_compared_time,"Monthly survey (3rd) - time trend on patent drafting, this month compared to last",BV,Int,
 "MS3_Compared to last month, how would you rate the quality of patent drafts created (at inventor submission stage)",ms3_compared_quality,"Monthly survey (3rd) - quality trend on patent drafting, this month compared to last",BW,Likert,time increased
@@ -118,7 +118,7 @@ TT2_Average drafting strategic ambiguity,tt2_sum_dra_str,Strategic Ambiguity,DL,
 TT2_Average drafting completeness and alignment,tt2_sum_dra_com,Completeness and Alignment,DM,Likert,higher score
 TT2_Average drafting clarity,tt2_sum_dra_cla,Clarity,DN,Likert,higher score
 PS_Which tasks do you remember completing?,ps_recallq,,DO,Likert,higher score
-PS_Which tasks did you use InFlow (or another AI assistant) on?,ps_aiusedq,,DP,,
+PS_Which tasks did you use the study-provided AI tool (or another AI assistant) on?,ps_aiusedq,,DP,,
 PS_Recall score,ps_recall,Share of tasks remembers completing (of all completed),DQ,,
 PS_Admits using AI for critique task,ps_aiused,Marked used AI to complete redlining task,DR,Float,
 MS1_date,ms1_date,Date of first monthly survey submission,DS,Dummy,

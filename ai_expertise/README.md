@@ -23,7 +23,7 @@ This document combines the full replication guide and data codebook into a singl
    - [4.2 Evaluator Scoring Dataset (`TTs_raters_2026-08-10.csv`)](#42-evaluator-scoring-dataset-tts_raters_2026-08-10csv)
    - [4.3 Metadata Codebook Schema (`codebook_2026-08-10.csv`)](#43-metadata-codebook-schema-codebook_2026-08-10csv)
    - [4.4 Longitudinal Tasking Hub (`Participant-level tasking hub.csv`)](#44-longitudinal-tasking-hub-participant-level-tasking-hubcsv)
-   - [4.5 AI Copilot Telemetry & Adoption Data (`All usage measures - Merged.csv`)](#45-ai-copilot-telemetry--adoption-data-all-usage-measures---mergedcsv)
+   - [4.5 Study-Provided AI Tool Telemetry & Adoption Data (`All usage measures - Merged.csv`)](#45-study-provided-ai-tool-telemetry--adoption-data-all-usage-measures---mergedcsv)
    - [4.6 Telemetry Domain Mapping Key (`All usage measures - Domain Key.csv`)](#46-telemetry-domain-mapping-key-all-usage-measures---domain-keycsv)
    - [4.7 Traceability Keys & Exclusion Files](#47-traceability-keys--exclusion-files)
 5. [End-to-End Empirical Pipeline: Step-by-Step Execution](#5-end-to-end-empirical-pipeline-step-by-step-execution)
@@ -187,7 +187,7 @@ Canonical Datasets Overview:
 - **`Name` / `name`**: Anonymized practitioner name (deterministic UUIDv5 hash).
 - **`Group` / `group`**: Experimental arm assignment string:
   - `Group 1`: Control group (completed tasks using standard tools without AI assistance).
-  - `Group 2`: Treatment group (granted access to the InFlow generative AI copilot).
+  - `Group 2`: Treatment group (granted access to the study-provided AI tool).
 - **`Group_binary` / `group_binary`**: Numeric treatment indicator ($1 = \text{Treatment / Group 2}$, $0 = \text{Control / Group 1}$).
 - **`Included` / `included`**: Analysis sample indicator ($1.0 = \text{verified patent practitioner with baseline consent}$; $0.0 = \text{ineligible / non-consenting}$).
 
@@ -316,9 +316,9 @@ Administrative metrics tracking real-world patent prosecution and drafting behav
 
 ---
 
-### 4.5 InFlow Telemetry & Adoption Data (`All usage measures - Merged.csv`)
+### 4.5 Study-Provided AI Tool Telemetry & Adoption Data (`All usage measures - Merged.csv`)
 
-[`All usage measures - Merged.csv`](file:///usr/local/google/home/joshuabmartin/InFlow%202/data/All%20usage%20measures%20-%20Merged.csv) ($N = 431$ weekly records) tracks real-time practitioner interactions with the InFlow AI copilot:
+[`All usage measures - Merged.csv`](file:///usr/local/google/home/joshuabmartin/InFlow%202/data/All%20usage%20measures%20-%20Merged.csv) ($N = 431$ weekly records) tracks real-time practitioner interactions with the study-provided AI tool:
 
 - **`Week Beginning`**: Monday calendar date of the tracking week (YYYY-MM-DD format).
 - **`userDomain`**: Anonymized domain identifier (e.g. `firm_1_domain`, `firm_9_domain`).
@@ -497,7 +497,7 @@ $$Y_{ij} = \beta_0 + \beta_1 \text{Treated}_i + \beta_2 \text{Junior}_i + \beta_
 
 where:
 - $Y_{ij}$ is the standardized outcome metric for practitioner $i$ in firm $j$.
-- $\text{Treated}_i \in \{0, 1\}$ indicates random assignment to the InFlow generative AI copilot treatment arm (`group_binary`).
+- $\text{Treated}_i \in \{0, 1\}$ indicates random assignment to the treatment arm with access to the study-provided AI tool (`group_binary`).
 - $\text{Junior}_i \in \{0, 1\}$ indicates experience $< 7$ years (`junior`).
 - $\beta_1$ estimates the treatment effect among senior practitioners ($\ge 7$ years experience).
 - $\beta_1 + \beta_3$ estimates the treatment effect among junior practitioners.
