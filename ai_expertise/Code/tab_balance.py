@@ -53,7 +53,7 @@ Variable & \multicolumn{2}{c}{N} & \multicolumn{2}{c}{Mean} & \multicolumn{2}{c}
 \end{tabular}
 \begin{tablenotes}[flushleft]
 \scriptsize
-\item[]\hspace{-\labelsep}\textit{Notes:} Comparison of treatment and control means using two-sided Welch's t-tests. Standard errors are reported in parentheses below the means and differences. "Understanding of study" and "Confidence in ability" were both collected during the onboarding process, prior to granting access to InFlow. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.
+\item[]\hspace{-\labelsep}\textit{Notes:} Comparison of treatment and control means using two-sided Welch's t-tests. Standard errors are reported in parentheses below the means and differences. "Understanding of study" and "Confidence in ability" were both collected during the onboarding process, prior to granting access to the study-provided AI tool. * p$<$0.10, ** p$<$0.05, *** p$<$0.01.
 \end{tablenotes}
 \end{threeparttable}
 \end{table}"""

@@ -71,7 +71,7 @@ def render(github_pat=None):
 \end{{tabular}}
 \begin{{tablenotes}}[flushleft]
 \scriptsize
-\item[]\hspace{{-\labelsep}}\textit{{Notes:}} Robust standard errors in parentheses. "Understanding of study" and "Confidence in ability" were both collected during the onboarding process, prior to granting access to InFlow. To include the full sample of randomized participants (\stat{{firm_summary_tot_rand_n}}), missing responses for these two covariates were imputed using their sample means. An "Onboarding response" indicator variable is included which equals 1 if the participant provided responses to these questions, and 0 otherwise. Firm 3 completed the experimental protocol before the redlining exercise was finalized, thus is excluded from the final column of this table. $^* p < 0.10$, $^{{**}} p < 0.05$, $^{{***}} p < 0.01$.
+\item[]\hspace{{-\labelsep}}\textit{{Notes:}} Robust standard errors in parentheses. "Understanding of study" and "Confidence in ability" were both collected during the onboarding process, prior to granting access to the study-provided AI tool. To include the full sample of randomized participants (\stat{{firm_summary_tot_rand_n}}), missing responses for these two covariates were imputed using their sample means. An "Onboarding response" indicator variable is included which equals 1 if the participant provided responses to these questions, and 0 otherwise. Firm 3 completed the experimental protocol before the redlining exercise was finalized, thus is excluded from the final column of this table. $^* p < 0.10$, $^{{**}} p < 0.05$, $^{{***}} p < 0.01$.
 \end{{tablenotes}}
 \end{{threeparttable}}
 \end{{table}}"""
