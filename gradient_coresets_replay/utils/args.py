@@ -16,8 +16,10 @@
 """Argument Parser."""
 
 import argparse
-from continual_learning_rishabh.datasets import NAMES as DATASET_NAMES
-from continual_learning_rishabh.models import get_all_models
+from gradient_coresets_replay.datasets import NAMES as DATASET_NAMES
+
+def get_all_models():
+  return ['gcr']
 
 
 def add_experiment_args(parser):
