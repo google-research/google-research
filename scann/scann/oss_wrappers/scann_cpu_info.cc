@@ -14,17 +14,26 @@
 
 
 #include "scann/oss_wrappers/scann_cpu_info.h"
+#include "absl/log/check.h"
+#include <cstdint>
+#include <string>
 
 #include "absl/base/call_once.h"
 #if defined(PLATFORM_IS_X86)
 #include <mutex>
 #endif
 #if defined(PLATFORM_IS_ARM64) && !defined(__APPLE__) && !defined(__OpenBSD__)
-#include <sys/auxv.h>
-#ifndef HWCAP_CPUID
-#define HWCAP_CPUID (1 << 11)
-#endif
+#include <asm/hwcap.h>
 #include <fstream>
+#include <sstream>
+#include <sys/auxv.h>
+
+constexpr unsigned long SCANN_HWCAP_ASIMD = 1UL << 1;
+constexpr unsigned long SCANN_HWCAP_CPUID = 1UL << 11;
+constexpr unsigned long SCANN_HWCAP_ASIMDDP = 1UL << 20;
+constexpr unsigned long SCANN_HWCAP_SVE = 1UL << 22;
+constexpr unsigned long SCANN_HWCAP2_SVE2 = 1UL << 1;
+constexpr unsigned long SCANN_HWCAP2_I8MM = 1UL << 13;
 #endif
 
 #ifdef PLATFORM_IS_X86
@@ -126,7 +135,7 @@ class CPUIDInfo {
     CHECK(cpuid == nullptr) << __func__ << " ran more than once";
     cpuid = new CPUIDInfo;
 
-    uint32 eax, ebx, ecx, edx;
+    uint32_t eax, ebx, ecx, edx;
 
     GETCPUID(eax, ebx, ecx, edx, 0, 0);
     cpuid->vendor_str_.append(reinterpret_cast<char *>(&ebx), 4);
@@ -154,15 +163,15 @@ class CPUIDInfo {
     cpuid->have_ssse3_ = (ecx >> 9) & 0x1;
     cpuid->have_hypervisor_ = (ecx >> 31) & 1;
 
-    const uint64 xcr0_xmm_mask = 0x2;
-    const uint64 xcr0_ymm_mask = 0x4;
-    const uint64 xcr0_maskreg_mask = 0x20;
-    const uint64 xcr0_zmm0_15_mask = 0x40;
-    const uint64 xcr0_zmm16_31_mask = 0x80;
+    const uint64_t xcr0_xmm_mask = 0x2;
+    const uint64_t xcr0_ymm_mask = 0x4;
+    const uint64_t xcr0_maskreg_mask = 0x20;
+    const uint64_t xcr0_zmm0_15_mask = 0x40;
+    const uint64_t xcr0_zmm16_31_mask = 0x80;
 
-    const uint64 xcr0_avx_mask = xcr0_xmm_mask | xcr0_ymm_mask;
-    const uint64 xcr0_avx512_mask = xcr0_avx_mask | xcr0_maskreg_mask |
-                                    xcr0_zmm0_15_mask | xcr0_zmm16_31_mask;
+    const uint64_t xcr0_avx_mask = xcr0_xmm_mask | xcr0_ymm_mask;
+    const uint64_t xcr0_avx512_mask = xcr0_avx_mask | xcr0_maskreg_mask |
+                                      xcr0_zmm0_15_mask | xcr0_zmm16_31_mask;
 
     const bool have_avx =
 
@@ -183,7 +192,7 @@ class CPUIDInfo {
     cpuid->have_f16c_ = have_avx && ((ecx >> 29) & 0x1);
 
     GETCPUID(eax, ebx, ecx, edx, 7, 0);
-    const uint32 kMaxNumSubLeaves = eax;
+    const uint32_t kMaxNumSubLeaves = eax;
 
     cpuid->have_adx_ = (ebx >> 19) & 0x1;
     cpuid->have_avx2_ = have_avx && ((ebx >> 5) & 0x1);
@@ -327,7 +336,7 @@ class CPUIDInfo {
     return false;
   }
 
-  string vendor_str() const { return vendor_str_; }
+  std::string vendor_str() const { return vendor_str_; }
   int family() const { return family_; }
   int model_num() { return model_num_; }
 
@@ -379,7 +388,7 @@ class CPUIDInfo {
   int have_sse4_2_ : 1;
   int have_ssse3_ : 1;
   int have_hypervisor_ : 1;
-  string vendor_str_;
+  std::string vendor_str_;
   int family_;
   int model_num_;
 };
@@ -405,6 +414,14 @@ class CPUIDInfo {
       : implementer_(0),
         variant_(0),
         cpunum_(0),
+        have_cpuid_(0),
+        // Neon/ASIMD is mandatory from Armv8.0-A, but we still check HWCAP
+        // explicitly below.
+        have_neon_(1),
+        have_dotprod_(0),
+        have_i8mm_(0),
+        have_sve_(0),
+        have_sve2_(0),
         is_arm_neoverse_v1_(0),
         is_arm_neoverse_n1_(0) {}
 
@@ -413,12 +430,39 @@ class CPUIDInfo {
 
     cpuid = new CPUIDInfo;
 
-    if (!(getauxval(AT_HWCAP) & HWCAP_CPUID)) {
+    const unsigned long hwcap = getauxval(AT_HWCAP);
+    const unsigned long hwcap2 = getauxval(AT_HWCAP2);
+
+    cpuid->have_cpuid_ = (hwcap & SCANN_HWCAP_CPUID) != 0;
+    cpuid->have_neon_ = (hwcap & SCANN_HWCAP_ASIMD) != 0;
+    cpuid->have_dotprod_ = (hwcap & SCANN_HWCAP_ASIMDDP) != 0;
+    cpuid->have_sve_ = (hwcap & SCANN_HWCAP_SVE) != 0;
+    cpuid->have_i8mm_ = (hwcap2 & SCANN_HWCAP2_I8MM) != 0;
+    cpuid->have_sve2_ = (hwcap2 & SCANN_HWCAP2_SVE2) != 0;
+
+    // Dependency: I8MM requires the DotProd extension.
+    if (!cpuid->have_dotprod_) {
+      cpuid->have_i8mm_ = 0;
+    }
+
+    // Dependency: SVE requires both DotProd and I8MM.
+    if (!(cpuid->have_dotprod_ && cpuid->have_i8mm_)) {
+      cpuid->have_sve_ = 0;
+    }
+
+    // Dependency: SVE2 requires SVE.
+    if (!cpuid->have_sve_) {
+      cpuid->have_sve2_ = 0;
+    }
+
+    // Reading MIDR_EL1 requires the kernel to expose CPUID via AT_HWCAP.
+    // Bail out if the capability bit is absent (e.g., older kernels).
+    if (!cpuid->have_cpuid_) {
       return;
     }
 
     int present_cpu = -1;
-#ifndef PLATFORM_WINDOWS
+#if defined(__linux__)
     std::ifstream CPUspresent;
     CPUspresent.open("/sys/devices/system/cpu/present", std::ios::in);
     if (CPUspresent.is_open()) {
@@ -442,7 +486,7 @@ class CPUIDInfo {
       return;
     }
 
-#ifndef PLATFORM_WINDOWS
+#if defined(__linux__)
     std::stringstream str;
     str << "/sys/devices/system/cpu/cpu" << present_cpu
         << "/regs/identification/midr_el1";
@@ -450,7 +494,7 @@ class CPUIDInfo {
     if (midr_el1_file.is_open()) {
       std::string line;
       if (static_cast<bool>(getline(midr_el1_file, line))) {
-        uint32 midr_el1 = std::stoul(line, nullptr, 16);
+        uint32_t midr_el1 = std::stoul(line, nullptr, 16);
 
         cpuid->implementer_ = (midr_el1 >> 24) & 0xFF;
         cpuid->variant_ = (midr_el1 >> 20) & 0xF;
@@ -472,6 +516,24 @@ class CPUIDInfo {
 #endif
   }
 
+  static bool TestFeature(CPUFeature feature) {
+    InitCPUIDInfo();
+    switch (feature) {
+      case ARM_NEON:
+        return cpuid && cpuid->have_neon_;
+      case ARM_DOTPROD:
+        return cpuid && cpuid->have_dotprod_;
+      case ARM_I8MM:
+        return cpuid && cpuid->have_i8mm_;
+      case ARM_SVE:
+        return cpuid && cpuid->have_sve_;
+      case ARM_SVE2:
+        return cpuid && cpuid->have_sve2_;
+      default:
+        return false;
+    }
+  }
+
   int implementer() const { return implementer_; }
   int cpunum() const { return cpunum_; }
 
@@ -489,8 +551,15 @@ class CPUIDInfo {
   int implementer_;
   int variant_;
   int cpunum_;
-  int is_arm_neoverse_v1_;
-  int is_arm_neoverse_n1_;
+  int have_cpuid_ : 1;
+  int have_neon_ : 1;
+  int have_crc32_ : 1;
+  int have_dotprod_ : 1;
+  int have_i8mm_ : 1;
+  int have_sve_ : 1;
+  int have_sve2_ : 1;
+  int is_arm_neoverse_v1_ : 1;
+  int is_arm_neoverse_n1_ : 1;
 };
 
 absl::once_flag cpuid_once_flag;
@@ -504,7 +573,8 @@ void InitCPUIDInfo() {
 }  // namespace
 
 bool TestCPUFeature(CPUFeature feature) {
-#ifdef PLATFORM_IS_X86
+#if defined(PLATFORM_IS_X86) || (defined(PLATFORM_IS_ARM64) &&                 \
+                                 !defined(__APPLE__) && !defined(__OpenBSD__))
   return CPUIDInfo::TestFeature(feature);
 #else
   return false;
@@ -555,7 +625,7 @@ int CPUModelNum() {
 int CPUIDNumSMT() {
 #ifdef PLATFORM_IS_X86
 
-  uint32 eax, ebx, ecx, edx;
+  uint32_t eax, ebx, ecx, edx;
 
   GETCPUID(eax, ebx, ecx, edx, 0, 0);
   if (eax >= 11) {

@@ -19,6 +19,14 @@
 
 #include <string>
 
+#if !defined(PLATFORM_IS_X86) && defined(__x86_64__)
+#define PLATFORM_IS_X86 1
+#endif
+
+#if !defined(PLATFORM_IS_ARM64) && defined(__aarch64__)
+#define PLATFORM_IS_ARM64 1
+#endif
+
 #if defined(_MSC_VER)
 
 #include <intrin.h>
@@ -96,6 +104,13 @@ enum CPUFeature {
   AMX_FP16 = 45,
   AVX_NE_CONVERT = 46,
   AVX_VNNI_INT8 = 47,
+
+  // Arm/AArch64 features.
+  ARM_NEON = 100,
+  ARM_DOTPROD = 101,
+  ARM_I8MM = 102,
+  ARM_SVE = 103,
+  ARM_SVE2 = 104,
 };
 
 enum Aarch64CPU {
