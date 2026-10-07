@@ -19,6 +19,10 @@
 #include "scann/utils/common.h"
 #include "scann/utils/intrinsics/attributes.h"
 
+#if defined(__aarch64__) && !defined(SCANN_FORCE_HIGHWAY_LUT16)
+#include "scann/hashes/internal/lut16_neon.h"
+#endif
+
 HWY_BEFORE_NAMESPACE();
 
 namespace research_scann {
@@ -73,6 +77,10 @@ SCANN_HIGHWAY_INLINE void ConvertToFloatMultiplyAndStore(const int32_t* dist32,
 
 SCANN_HIGHWAY_INLINE uint32_t
 ComputePushMask(const int16_t* HWY_RESTRICT dist16, const int16_t threshold) {
+#if defined(__aarch64__) && !defined(SCANN_FORCE_HIGHWAY_LUT16)
+  return research_scann::asymmetric_hashing_internal::neon::ComputePushMask(
+      dist16, threshold);
+#else
   const hn::ScalableTag<int16_t> d16;
   using V16 = decltype(hn::Zero(d16));
   const size_t N = hn::Lanes(d16);
@@ -93,6 +101,7 @@ ComputePushMask(const int16_t* HWY_RESTRICT dist16, const int16_t threshold) {
     ret |= (uint32_t)mask_bits[i] << (i * 8);
   }
   return ret;
+#endif
 }
 
 SCANN_HIGHWAY_INLINE void ExpandConvertToFloatAndStore(
