@@ -8,7 +8,7 @@ async-timeout @ file:///home/conda/feedstock_root/build_artifacts/async-timeout_
 attrs @ file:///home/conda/feedstock_root/build_artifacts/attrs_1683424013410/work
 backcall==0.2.0
 beautifulsoup4==4.12.2
-bleach==6.0.0
+bleach==6.4.0
 blessings==1.7
 blinker @ file:///home/conda/feedstock_root/build_artifacts/blinker_1681349778161/work
 brotlipy @ file:///home/conda/feedstock_root/build_artifacts/brotlipy_1666764652625/work
