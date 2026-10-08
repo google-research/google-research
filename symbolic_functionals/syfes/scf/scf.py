@@ -116,6 +116,8 @@ def run_scf_for_mol(atom,
     ks = dft.RKS(mol)
   else:
     ks = dft.UKS(mol)
+  # Keep density-based grid pruning, which pyscf 2.13 disabled by default.
+  ks.small_rho_cutoff = 1e-7
 
   ks.xc = xc
   if xc_fun is not None:

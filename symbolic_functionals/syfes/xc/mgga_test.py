@@ -46,6 +46,8 @@ class XCMGGATest(parameterized.TestCase):
         verbose=1)
 
     ks = pyscf.dft.RKS(mol)
+    # Keep density-based grid pruning, which pyscf 2.13 disabled by default.
+    ks.small_rho_cutoff = 1e-7
     ks.xc = 'pbe,pbe'
     ks.kernel()
 
