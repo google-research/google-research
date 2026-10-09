@@ -235,7 +235,7 @@ def _load_dft_df_and_geometries(path, property_df):
   """
   # NOTE(htm): importing pymatgen in the beginning causes issues for colab
   # adhoc import
-  from pymatgen.io import xyz  # pylint: disable=g-import-not-at-top,import-outside-toplevel
+  from pymatgen_core.io import xyz  # pylint: disable=g-import-not-at-top,import-outside-toplevel
 
   # construct dft_df based on property_df and Geometries folder
   # update num_electrons and spin_singlet in property_df
