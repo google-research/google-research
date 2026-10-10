@@ -1,0 +1,9 @@
+absl-py>=2.0.0
+earthengine-api>=0.1.390
+geopandas>=0.14.0
+google-auth>=2.20.0
+matplotlib>=3.7.0
+numpy>=1.24.0
+pandas>=2.0.0
+Pillow>=10.0.0
+scipy>=1.10.0
