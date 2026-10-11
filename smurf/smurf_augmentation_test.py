@@ -29,6 +29,34 @@ tf.compat.v1.enable_eager_execution()
 
 class SMURFAugmentationTest(absltest.TestCase):
 
+  def test_random_gaussian_noise_when_enabled_returns_image_tensor(self):
+    tf.random.set_seed(123)
+    images = tf.ones((2, 4, 5, 3), dtype=tf.float32)
+    augmented = smurf_augmentation.random_gaussian_noise(
+        images, probability=1.0, min_bound=0.25, max_bound=0.5)
+    self.assertIsInstance(augmented, tf.Tensor)
+    self.assertEqual(augmented.shape, images.shape)
+    self.assertEqual(augmented.dtype, images.dtype)
+    self.assertGreater(float(tf.reduce_max(tf.abs(augmented - images))), 0.0)
+
+  def test_random_gaussian_noise_when_disabled_preserves_images(self):
+    images = tf.ones((2, 4, 5, 3), dtype=tf.float32)
+    augmented = smurf_augmentation.random_gaussian_noise(
+        images, probability=0.0, min_bound=0.25, max_bound=0.5)
+    np.testing.assert_array_equal(augmented.numpy(), images.numpy())
+
+  def test_random_gaussian_noise_works_inside_tf_function(self):
+    @tf.function
+    def augment(images, probability):
+      return smurf_augmentation.random_gaussian_noise(
+          images, probability=probability, min_bound=0.0, max_bound=0.0)
+
+    images = tf.ones((2, 4, 5, 3), dtype=tf.float32)
+    for probability in (0.0, 1.0):
+      augmented = augment(images, tf.constant(probability))
+      self.assertEqual(augmented.shape, images.shape)
+      np.testing.assert_array_equal(augmented.numpy(), images.numpy())
+
   def _check_images_and_flow(self, images, flow):
     # Check that the image2 warped by flow1 into image1 has lower pixelwise
     # error than the unwarped image
