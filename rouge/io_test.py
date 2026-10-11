@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tempfile
+from pathlib import Path
 
 from absl.testing import absltest
 from rouge_score import io
@@ -74,6 +75,69 @@ class IoTest(absltest.TestCase):
       ids = tuple((line.split(",")[0] for line in csv_lines))
       self.assertEqual(ids[0], "id")
       self.assertLen(csv_lines, 5)
+
+  def testGlobPairsFilesByMatchingWildcardIdentifiers(self):
+    # Lexical sort produces a different order for 1, 10, ..., 2 if only
+    # one side zero-pads ids. The files must be matched by actual id.
+    with tempfile.TemporaryDirectory() as directory:
+      for number in range(1, 13):
+        line = "unique%d token%d only%d\n" % (number, number, number)
+        (Path(directory) / ("doc%d.targets" % number)).write_text(line)
+        (Path(directory) / ("doc%d.decodes" % number)).write_text(line)
+      out = Path(directory) / "scores.csv"
+      io.compute_scores_and_write_to_csv(
+          str(Path(directory) / "*.targets"),
+          str(Path(directory) / "*.decodes"),
+          str(out),
+          rouge_scorer.RougeScorer(["rouge1"], False), None)
+      rows = out.read_text().splitlines()
+      self.assertLen(rows, 13)
+      self.assertTrue(all(float(row.split(",")[-1]) == 1.0
+                          for row in rows[1:]))
+
+  def testRejectsSameCountButMismatchedWildcardIdentifiers(self):
+    with tempfile.TemporaryDirectory() as directory:
+      for number in range(1, 13):
+        line = "unique%d token%d only%d\n" % (number, number, number)
+        (Path(directory) / ("ref_%d.txt" % number)).write_text(line)
+        (Path(directory) / ("out_%02d.txt" % number)).write_text(line)
+      out = Path(directory) / "scores.csv"
+      with self.assertRaisesRegex(ValueError, "matching wildcard"):
+        io.compute_scores_and_write_to_csv(
+            str(Path(directory) / "ref_*.txt"),
+            str(Path(directory) / "out_*.txt"),
+            str(out),
+            rouge_scorer.RougeScorer(["rouge1"], False), None)
+      self.assertFalse(out.exists())
+
+  def testRejectsDifferentIdsWithEqualFileCounts(self):
+    with tempfile.TemporaryDirectory() as directory:
+      for target, prediction in zip(("a", "b"), ("a", "c")):
+        (Path(directory) / (target + ".targets")).write_text("same\n")
+        (Path(directory) / (prediction + ".decodes")).write_text("same\n")
+      with self.assertRaisesRegex(ValueError, "matching wildcard"):
+        io.compute_scores_and_write_to_csv(
+            str(Path(directory) / "*.targets"),
+            str(Path(directory) / "*.decodes"),
+            str(Path(directory) / "scores.csv"),
+            rouge_scorer.RougeScorer(["rouge1"], False), None)
+
+  def testWildcardKeysAlsoSupportQuestionMarksAndClasses(self):
+    with tempfile.TemporaryDirectory() as directory:
+      for number in (1, 2):
+        line = "word%d match%d\n" % (number, number)
+        (Path(directory) / ("ref_%d.targets" % number)).write_text(line)
+        (Path(directory) / ("out_%d.decodes" % number)).write_text(line)
+      output_file = Path(directory) / "scored.csv"
+      io.compute_scores_and_write_to_csv(
+          str(Path(directory) / "ref_[12].targets"),
+          str(Path(directory) / "out_?.decodes"),
+          str(output_file),
+          rouge_scorer.RougeScorer(["rouge1"], False), None)
+      scores = output_file.read_text().splitlines()[1:]
+      self.assertLen(scores, 2)
+      self.assertTrue(all(float(row.split(",")[-1]) == 1.0
+                          for row in scores))
 
   def testAssertsOnInvalidInputFiles(self):
     scorer = rouge_scorer.RougeScorer(["rouge1"], False)
