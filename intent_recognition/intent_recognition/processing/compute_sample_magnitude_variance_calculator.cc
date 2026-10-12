@@ -24,8 +24,8 @@
 
 #include "mediapipe/framework/calculator_framework.h"
 #include "absl/status/status.h"
+#include "third_party/gloop/util/math/mathutil.h"
 #include "intent_recognition/processing/compute_sample_magnitude_variance_calculator.pb.h"
-
 
 namespace ambient_sensing {
 
