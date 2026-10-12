@@ -222,7 +222,7 @@ class ResNet(nn.Module):
     for i in range(len(sizes) - 2):
       projector_layers.append(nn.Linear(sizes[i], sizes[i + 1], bias=False))
       projector_layers.append(nn.BatchNorm1d(sizes[i + 1]))
-      projector_layers.append(nn.F.relu(inplace=True))
+      projector_layers.append(nn.ReLU(inplace=True))
     projector_layers.append(nn.Linear(sizes[-2], sizes[-1], bias=False))
     self.projector = nn.Sequential(*projector_layers)
 
@@ -231,7 +231,7 @@ class ResNet(nn.Module):
     self._features = nn.Sequential(
         self.conv1,
         self.bn1,
-        nn.F.relu(),
+        nn.ReLU(),
         self.layer1,
         self.layer2,
         self.layer3,
