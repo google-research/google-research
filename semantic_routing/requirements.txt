@@ -49,7 +49,7 @@ jupyter-events==0.10.0
 jupyter-lsp==2.2.5
 jupyter_client==8.6.3
 jupyter_core==5.7.2
-jupyter_server==2.14.2
+jupyter_server==2.20.0
 jupyter_server_terminals==0.5.3
 jupyterlab==4.2.5
 jupyterlab_pygments==0.3.0
