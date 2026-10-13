@@ -9,7 +9,7 @@ paper:
 
 * To run the code, `conda` distribution must be installed on your computer. The
 code in this repository was tested with `conda 4.9.1`.
-* To access the released datasets, `gsutil` must be installed on your computer. Follow the installation instructions at [https://cloud.google.com/storage/docs/gsutil_install](https://cloud.google.com/storage/docs/gsutil_install).
+* To access the released datasets, `gcloud storage` must be installed on your computer. Follow the installation instructions at [https://cloud.google.com/sdk/docs/install](https://cloud.google.com/sdk/docs/install).
 
 **Setup**
 
@@ -94,7 +94,11 @@ The binary `run_model_evaluation.py`, takes four paths as arguments:
   * "abbreviation": the abbreviation
   * "equivalent_expansions": a pipe-separated list of all expansions to be considered clinically equivalent.
 
-Run `$ sh deciphering_clinical_abbreviations/run_model_evaluation.sh` to run model eval with the synthetic snippets and corresponding model outputs downloaded with gsutil. Note: You may need to ensure the initialization files are loaded for the shell by including an interactive flag (-i for bash). Most shell sessions should load these files automatically.
+Run `$ sh deciphering_clinical_abbreviations/run_model_evaluation.sh` to run
+model eval with the synthetic snippets and corresponding model outputs
+downloaded with gcloud storage. Note: You may need to ensure the initialization
+files are loaded for the shell by including an interactive flag (-i for bash).
+Most shell sessions should load these files automatically.
 
 ## Generating C4-WSRS
 
