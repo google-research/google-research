@@ -4,7 +4,7 @@ SHELL ["/bin/bash", "-c"]
 
 RUN apt-get update && apt-get install -y git
 
-# Install Google Cloud SDK to use gsutil
+# Install Google Cloud SDK to use gcloud storage
 RUN curl https://sdk.cloud.google.com > install.sh
 RUN bash install.sh --disable-prompts --install-dir=/root
 
