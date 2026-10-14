@@ -1,5 +1,4 @@
 crcmod
-gsutil
 image
 matplotlib
 numpy
