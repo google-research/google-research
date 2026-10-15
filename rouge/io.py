@@ -20,6 +20,7 @@ from __future__ import division
 from __future__ import print_function
 
 import glob
+import re
 
 from absl import logging
 import six
@@ -56,14 +57,99 @@ def compute_scores_and_write_to_csv(target_filepattern,
                      (len(target_filenames), target_filepattern,
                       len(prediction_filenames), prediction_filepattern))
 
-  scores = _compute_scores(target_filenames, prediction_filenames, scorer,
-                           delimiter)
+  # The two input patterns identify corresponding files through the same
+  # wildcard value, not their unrelated lexical ordering.
+  pairs = _pair_files_by_wildcard(
+      target_filepattern, prediction_filepattern,
+      target_filenames, prediction_filenames)
+  scores = _compute_scores([target for target, _ in pairs],
+                           [prediction for _, prediction in pairs],
+                           scorer, delimiter)
   if aggregator:
     for score in scores:
       aggregator.add_scores(score)
     _write_aggregates_to_csv(output_filename, aggregator.aggregate())
   else:
     _write_scores_to_csv(output_filename, scores)
+
+
+def _wildcard_pattern(filepattern):
+  """Builds a regex to capture the wildcard portions of a glob pattern.
+
+  A key may include multiple wildcard segments, including those in parent
+  directories. Bracket and question-mark globs are also supported.
+  """
+  regex_parts = []
+  index = 0
+  while index < len(filepattern):
+    character = filepattern[index]
+    if character == "*":
+      regex_parts.append("(.*?)")
+    elif character == "?":
+      regex_parts.append("(.)")
+    elif character == "[":
+      end = index + 1
+      if end < len(filepattern) and filepattern[end] == "!":
+        end += 1
+      if end < len(filepattern) and filepattern[end] == "]":
+        end += 1
+      while end < len(filepattern) and filepattern[end] != "]":
+        end += 1
+      if end == len(filepattern):
+        regex_parts.append(re.escape(character))
+      else:
+        contents = filepattern[index + 1:end].replace("\\\\", r"\\")
+        if contents.startswith("!"):
+          contents = "^" + contents[1:]
+        elif contents.startswith("^"):
+          contents = "\\" + contents
+        regex_parts.append("([" + contents + "])")
+        index = end
+    else:
+      regex_parts.append(re.escape(character))
+    index += 1
+  return re.compile("^" + "".join(regex_parts) + "$")
+
+
+def _pair_files_by_wildcard(target_pattern, prediction_pattern,
+                            target_filenames, prediction_filenames):
+  """Pairs files using the portions matched by corresponding glob wildcards.
+
+  Unlike independently sorting the two lists, this fails rather than silently
+  evaluating unrelated documents if the naming schemes disagree.
+  """
+  if not glob.has_magic(target_pattern) or not glob.has_magic(prediction_pattern):
+    # Preserve legacy behavior for two explicitly named single files.
+    if len(target_filenames) == len(prediction_filenames) == 1:
+      return [(target_filenames[0], prediction_filenames[0])]
+    raise ValueError("Both file patterns must contain matching wildcards.")
+
+  def key_to_file(filepattern, filenames):
+    matcher = _wildcard_pattern(filepattern)
+    mapping = {}
+    for filename in filenames:
+      match = matcher.fullmatch(filename)
+      if match is None:
+        raise ValueError("File %r does not match pattern %r." %
+                         (filename, filepattern))
+      identifier = match.groups()
+      if identifier in mapping:
+        raise ValueError("Duplicate wildcard identifier %r for %r and %r." %
+                         (identifier, mapping[identifier], filename))
+      mapping[identifier] = filename
+    return mapping
+
+  targets = key_to_file(target_pattern, target_filenames)
+  predictions = key_to_file(prediction_pattern, prediction_filenames)
+  if targets.keys() != predictions.keys():
+    missing_predictions = sorted(set(targets) - set(predictions))
+    missing_targets = sorted(set(predictions) - set(targets))
+    raise ValueError(
+        "Target and prediction files must have matching wildcard "
+        "identifiers. No predictions for: %s; no targets for: %s." %
+        (missing_predictions, missing_targets))
+
+  return [(targets[key], predictions[key]) for key in sorted(targets)]
 
 
 def _glob(filepattern):
@@ -105,7 +191,7 @@ def _compute_scores(target_filenames, prediction_filenames, scorer, delimiter):
 
   scores = []
   for target_filename, prediction_filename in zip(
-      sorted(target_filenames), sorted(prediction_filenames)):
+      target_filenames, prediction_filenames):
     logging.info("Reading targets from %s.", target_filename)
     logging.info("Reading predictions from %s.", prediction_filename)
     targets = _record_gen(target_filename, delimiter)
