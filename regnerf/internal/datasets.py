@@ -1129,7 +1129,7 @@ class LLFF(Dataset):
       position = cam2world @ t
       lookat = cam2world @ [0, 0, -focal, 1.]
       z_axis = position - lookat
-    random_poses.append(viewmatrix(z_axis, up, position))
+      random_poses.append(viewmatrix(z_axis, up, position))
     self.random_poses = np.stack(random_poses, axis=0)
 
   def _generate_random_rays(self, config):
