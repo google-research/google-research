@@ -16,6 +16,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
@@ -29,11 +30,11 @@
 #include <utility>
 #include <vector>
 
-#include "random_handler.h"
 #include "absl/container/flat_hash_map.h"
 #include "absl/container/flat_hash_set.h"
 #include "absl/strings/numbers.h"
-#include "util/math/mathutil.h"
+#include "third_party/gloop/util/math/mathutil.h"
+#include "random_handler.h"
 
 constexpr int distance_exponent = 2;
 constexpr int distance_multiplier = 1;
