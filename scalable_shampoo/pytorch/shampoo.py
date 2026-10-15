@@ -378,7 +378,11 @@ class Shampoo(optim.Optimizer):
           wd_update = graft_grad
 
         if hps.nesterov:
-          momentum_update.mul_(group['momentum']).add_(wd_update)
+          # Do not modify the running momentum buffer when computing the
+          # Nesterov look-ahead direction; the next step needs the unmodified
+          # exponential moving average.
+          momentum_update = momentum_update.mul(group['momentum']).add(
+              wd_update)
 
         # Final update
         p.data.add_(momentum_update, alpha=-lr)
