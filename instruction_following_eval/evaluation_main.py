@@ -48,6 +48,7 @@ def main(argv):
   inputs = evaluation_lib.read_prompt_list(_INPUT_DATA.value)
   prompt_to_response = evaluation_lib.read_prompt_to_response_dict(
       _INPUT_RESPONSE_DATA.value)
+  evaluation_lib.validate_prompt_coverage(inputs, prompt_to_response)
 
   # get instruction following results
   for func, output_file_name in [
