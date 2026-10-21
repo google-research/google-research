@@ -22,6 +22,18 @@ code for **GEM-15** (15m resolution):
    analyses, error distribution plots, qualitative multi-dataset comparisons, 3D
    digital twin visualizations, and environmental application figures.
 
+## Dataset Access
+
+* **Earth Engine App**: Explore the elevation layers interactively through the
+  [GEM-15 Earth Engine App](https://climate-and-sustainability.projects.earthengine.app/view/gem-15).
+* **Earth Engine Catalog**: View metadata and Earth Engine access snippets in
+  the [Earth Engine Catalog (`projects/climate-and-sustainability/assets/gem-15_v1`)](https://developers.google.com/earth-engine/datasets/catalog/projects_climate-and-sustainability_assets_gem-15_v1).
+* **Cloud Storage (GCS) COGs**: Access Cloud-Optimized GeoTIFFs (COGs) via
+  [Google Cloud Storage](https://storage.googleapis.com/climate-and-sustainability/gem-15)
+  (`gs://climate-and-sustainability/gem-15`).
+* **STAC Catalog**: Ingest the static STAC catalog from the
+  [STAC Catalog root (`catalog.json`)](https://storage.googleapis.com/climate-and-sustainability/gem-15/stac/catalog.json).
+
 ## Setup
 
 Install Python dependencies:
