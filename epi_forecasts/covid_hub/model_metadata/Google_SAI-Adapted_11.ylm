@@ -13,7 +13,7 @@ original_team_citation: "Gardner, L. et al. The Center for Systems Science and E
 original_metadata_url: "https://github.com/CDCgov/covid19-forecast-hub/blob/main/model-metadata/JHU_CSSE-CSSE_Ensemble.yml"
 
 # Code Location & Summary
-code_filepath: 
+code_filepath: covid_hub/model_py/Google_SAI-Adapted_11.py
 methods: >
   ERA-generated model given the provided prompt
 

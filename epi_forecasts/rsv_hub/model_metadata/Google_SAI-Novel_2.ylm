@@ -8,6 +8,6 @@ in_google_sai_ensemble: true
 prompt_category: unconstrained
 
 # Code Location & Summary
-code_filepath: 
+code_filepath: rsv_hub/model_py/Google_SAI-Novel_2.py
 methods: >
   Unconstrained ERA-generated model.

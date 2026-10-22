@@ -17,6 +17,7 @@
 
 
 HORIZONS = [0, 1, 2, 3]
+TARGET_STR = 'Total COVID-19 Admissions'
 
 
 QUANTILES = [

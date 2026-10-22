@@ -18,6 +18,7 @@
 
 
 HORIZONS = [-1, 0, 1, 2, 3]
+TARGET_STR = 'Total RSV Admissions'
 
 
 QUANTILES = [

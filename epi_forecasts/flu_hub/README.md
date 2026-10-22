@@ -19,17 +19,17 @@ directories:
 | `G-CMU_timeseries` | `Google_SAI-Adapted_14` | No | [`Google_SAI-Adapted_14.ylm`](model_metadata/Google_SAI-Adapted_14.ylm) | [`model_py/Google_SAI-Adapted_14.py`](model_py/Google_SAI-Adapted_14.py) | [`model_output/Google_SAI-Adapted_14/`](model_output/Google_SAI-Adapted_14) |
 | `G-UMass_KCDE` | `Google_SAI-Adapted_15` | No | [`Google_SAI-Adapted_15.ylm`](model_metadata/Google_SAI-Adapted_15.ylm) | [`model_py/Google_SAI-Adapted_15.py`](model_py/Google_SAI-Adapted_15.py) | [`model_output/Google_SAI-Adapted_15/`](model_output/Google_SAI-Adapted_15) |
 | `G-CU_SIRS` | `Google_SAI-Adapted_16` | No | [`Google_SAI-Adapted_16.ylm`](model_metadata/Google_SAI-Adapted_16.ylm) | [`model_py/Google_SAI-Adapted_16.py`](model_py/Google_SAI-Adapted_16.py) | [`model_output/Google_SAI-Adapted_16/`](model_output/Google_SAI-Adapted_16) |
-| `G-PSI-PROF_MOA_v2` | `Google_SAI-Adapted_17` | No | [`Google_SAI-Adapted_17.ylm`](model_metadata/Google_SAI-Adapted_17.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_17/`](model_output/Google_SAI-Adapted_17) |
-| `G-Cornell_JHU-hierarchSIR_v3` | `Google_SAI-Adapted_18` | No | [`Google_SAI-Adapted_18.ylm`](model_metadata/Google_SAI-Adapted_18.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_18/`](model_output/Google_SAI-Adapted_18) |
-| `G-LANL_DBM_v2` | `Google_SAI-Adapted_19` | No | [`Google_SAI-Adapted_19.ylm`](model_metadata/Google_SAI-Adapted_19.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_19/`](model_output/Google_SAI-Adapted_19) |
+| `G-PSI-PROF_MOA_v2` | `Google_SAI-Adapted_17` | No | [`Google_SAI-Adapted_17.ylm`](model_metadata/Google_SAI-Adapted_17.ylm) | [`model_py/Google_SAI-Adapted_17.py`](model_py/Google_SAI-Adapted_17.py) | [`model_output/Google_SAI-Adapted_17/`](model_output/Google_SAI-Adapted_17) |
+| `G-Cornell_JHU-hierarchSIR_v3` | `Google_SAI-Adapted_18` | No | [`Google_SAI-Adapted_18.ylm`](model_metadata/Google_SAI-Adapted_18.ylm) | [`model_py/Google_SAI-Adapted_18.py`](model_py/Google_SAI-Adapted_18.py) | [`model_output/Google_SAI-Adapted_18/`](model_output/Google_SAI-Adapted_18) |
+| `G-LANL_DBM_v2` | `Google_SAI-Adapted_19` | No | [`Google_SAI-Adapted_19.ylm`](model_metadata/Google_SAI-Adapted_19.ylm) | [`model_py/Google_SAI-Adapted_19.py`](model_py/Google_SAI-Adapted_19.py) | [`model_output/Google_SAI-Adapted_19/`](model_output/Google_SAI-Adapted_19) |
 | `G-PSI_PROF` | `Google_SAI-Adapted_2` | No | [`Google_SAI-Adapted_2.ylm`](model_metadata/Google_SAI-Adapted_2.ylm) | [`model_py/Google_SAI-Adapted_2.py`](model_py/Google_SAI-Adapted_2.py) | [`model_output/Google_SAI-Adapted_2/`](model_output/Google_SAI-Adapted_2) |
-| `G-NU-PGF_FLUH_v4` | `Google_SAI-Adapted_20` | No | [`Google_SAI-Adapted_20.ylm`](model_metadata/Google_SAI-Adapted_20.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_20/`](model_output/Google_SAI-Adapted_20) |
-| `G-NU-PGF_FLUH_v3` | `Google_SAI-Adapted_21` | **Yes** | [`Google_SAI-Adapted_21.ylm`](model_metadata/Google_SAI-Adapted_21.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_21/`](model_output/Google_SAI-Adapted_21) |
-| `G-NU-PGF_FLUH_v2` | `Google_SAI-Adapted_22` | **Yes** | [`Google_SAI-Adapted_22.ylm`](model_metadata/Google_SAI-Adapted_22.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_22/`](model_output/Google_SAI-Adapted_22) |
-| `G-LANL_DBM_v3` | `Google_SAI-Adapted_23` | **Yes** | [`Google_SAI-Adapted_23.ylm`](model_metadata/Google_SAI-Adapted_23.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_23/`](model_output/Google_SAI-Adapted_23) |
-| `G-LANL_DBM` | `Google_SAI-Adapted_24` | No | [`Google_SAI-Adapted_24.ylm`](model_metadata/Google_SAI-Adapted_24.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_24/`](model_output/Google_SAI-Adapted_24) |
-| `G-Cornell_JHU-hierarchSIR_v4` | `Google_SAI-Adapted_25` | No | [`Google_SAI-Adapted_25.ylm`](model_metadata/Google_SAI-Adapted_25.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_25/`](model_output/Google_SAI-Adapted_25) |
-| `G-Cornell_JHU-hierarchSIR_v2` | `Google_SAI-Adapted_26` | No | [`Google_SAI-Adapted_26.ylm`](model_metadata/Google_SAI-Adapted_26.ylm) | `model_py/` | [`model_output/Google_SAI-Adapted_26/`](model_output/Google_SAI-Adapted_26) |
+| `G-NU-PGF_FLUH_v4` | `Google_SAI-Adapted_20` | No | [`Google_SAI-Adapted_20.ylm`](model_metadata/Google_SAI-Adapted_20.ylm) | [`model_py/Google_SAI-Adapted_20.py`](model_py/Google_SAI-Adapted_20.py) | [`model_output/Google_SAI-Adapted_20/`](model_output/Google_SAI-Adapted_20) |
+| `G-NU-PGF_FLUH_v3` | `Google_SAI-Adapted_21` | **Yes** | [`Google_SAI-Adapted_21.ylm`](model_metadata/Google_SAI-Adapted_21.ylm) | [`model_py/Google_SAI-Adapted_21.py`](model_py/Google_SAI-Adapted_21.py) | [`model_output/Google_SAI-Adapted_21/`](model_output/Google_SAI-Adapted_21) |
+| `G-NU-PGF_FLUH_v2` | `Google_SAI-Adapted_22` | **Yes** | [`Google_SAI-Adapted_22.ylm`](model_metadata/Google_SAI-Adapted_22.ylm) | [`model_py/Google_SAI-Adapted_22.py`](model_py/Google_SAI-Adapted_22.py) | [`model_output/Google_SAI-Adapted_22/`](model_output/Google_SAI-Adapted_22) |
+| `G-LANL_DBM_v3` | `Google_SAI-Adapted_23` | **Yes** | [`Google_SAI-Adapted_23.ylm`](model_metadata/Google_SAI-Adapted_23.ylm) | [`model_py/Google_SAI-Adapted_23.py`](model_py/Google_SAI-Adapted_23.py) | [`model_output/Google_SAI-Adapted_23/`](model_output/Google_SAI-Adapted_23) |
+| `G-LANL_DBM` | `Google_SAI-Adapted_24` | No | [`Google_SAI-Adapted_24.ylm`](model_metadata/Google_SAI-Adapted_24.ylm) | [`model_py/Google_SAI-Adapted_24.py`](model_py/Google_SAI-Adapted_24.py) | [`model_output/Google_SAI-Adapted_24/`](model_output/Google_SAI-Adapted_24) |
+| `G-Cornell_JHU-hierarchSIR_v4` | `Google_SAI-Adapted_25` | No | [`Google_SAI-Adapted_25.ylm`](model_metadata/Google_SAI-Adapted_25.ylm) | [`model_py/Google_SAI-Adapted_25.py`](model_py/Google_SAI-Adapted_25.py) | [`model_output/Google_SAI-Adapted_25/`](model_output/Google_SAI-Adapted_25) |
+| `G-Cornell_JHU-hierarchSIR_v2` | `Google_SAI-Adapted_26` | No | [`Google_SAI-Adapted_26.ylm`](model_metadata/Google_SAI-Adapted_26.ylm) | [`model_py/Google_SAI-Adapted_26.py`](model_py/Google_SAI-Adapted_26.py) | [`model_output/Google_SAI-Adapted_26/`](model_output/Google_SAI-Adapted_26) |
 | `*G-UGA_flucast-INFLAenza` | `Google_SAI-Adapted_3` | **Yes** | [`Google_SAI-Adapted_3.ylm`](model_metadata/Google_SAI-Adapted_3.ylm) | [`model_py/Google_SAI-Adapted_3.py`](model_py/Google_SAI-Adapted_3.py) | [`model_output/Google_SAI-Adapted_3/`](model_output/Google_SAI-Adapted_3) |
 | `G-UGA_flucast_Copycat` | `Google_SAI-Adapted_4` | No | [`Google_SAI-Adapted_4.ylm`](model_metadata/Google_SAI-Adapted_4.ylm) | [`model_py/Google_SAI-Adapted_4.py`](model_py/Google_SAI-Adapted_4.py) | [`model_output/Google_SAI-Adapted_4/`](model_output/Google_SAI-Adapted_4) |
 | `G-UGuelph_CompositeCurve` | `Google_SAI-Adapted_5` | No | [`Google_SAI-Adapted_5.ylm`](model_metadata/Google_SAI-Adapted_5.ylm) | [`model_py/Google_SAI-Adapted_5.py`](model_py/Google_SAI-Adapted_5.py) | [`model_output/Google_SAI-Adapted_5/`](model_output/Google_SAI-Adapted_5) |
@@ -42,12 +42,17 @@ directories:
 | `G-CU_SIRS x UVA_Gaussian_processes` | `Google_SAI-Hybrid_3` | **Yes** | [`Google_SAI-Hybrid_3.ylm`](model_metadata/Google_SAI-Hybrid_3.ylm) | [`model_py/Google_SAI-Hybrid_3.py`](model_py/Google_SAI-Hybrid_3.py) | [`model_output/Google_SAI-Hybrid_3/`](model_output/Google_SAI-Hybrid_3) |
 | `G-CMU_climate_baseline x UGuelph_CompositeCurve` | `Google_SAI-Hybrid_4` | No | [`Google_SAI-Hybrid_4.ylm`](model_metadata/Google_SAI-Hybrid_4.ylm) | [`model_py/Google_SAI-Hybrid_4.py`](model_py/Google_SAI-Hybrid_4.py) | [`model_output/Google_SAI-Hybrid_4/`](model_output/Google_SAI-Hybrid_4) |
 | `G-CU_SIRS x CMU_climate_baseline` | `Google_SAI-Hybrid_5` | **Yes** | [`Google_SAI-Hybrid_5.ylm`](model_metadata/Google_SAI-Hybrid_5.ylm) | [`model_py/Google_SAI-Hybrid_5.py`](model_py/Google_SAI-Hybrid_5.py) | [`model_output/Google_SAI-Hybrid_5/`](model_output/Google_SAI-Hybrid_5) |
-| `*G-LANL_DBM x UMass_Flusion` | `Google_SAI-Hybrid_6` | **Yes** | [`Google_SAI-Hybrid_6.ylm`](model_metadata/Google_SAI-Hybrid_6.ylm) | `model_py/` | [`model_output/Google_SAI-Hybrid_6/`](model_output/Google_SAI-Hybrid_6) |
+| `*G-LANL_DBM x UMass_Flusion` | `Google_SAI-Hybrid_6` | **Yes** | [`Google_SAI-Hybrid_6.ylm`](model_metadata/Google_SAI-Hybrid_6.ylm) | [`model_py/Google_SAI-Hybrid_6.py`](model_py/Google_SAI-Hybrid_6.py) | [`model_output/Google_SAI-Hybrid_6/`](model_output/Google_SAI-Hybrid_6) |
 | `*G-multi-layer-SE` | `Google_SAI-Novel_1` | **Yes** | [`Google_SAI-Novel_1.ylm`](model_metadata/Google_SAI-Novel_1.ylm) | [`model_py/Google_SAI-Novel_1.py`](model_py/Google_SAI-Novel_1.py) | [`model_output/Google_SAI-Novel_1/`](model_output/Google_SAI-Novel_1) |
 | `G-Time_Series_to_Vision_Transfer_Learning` | `Google_SAI-Novel_2` | No | [`Google_SAI-Novel_2.ylm`](model_metadata/Google_SAI-Novel_2.ylm) | [`model_py/Google_SAI-Novel_2.py`](model_py/Google_SAI-Novel_2.py) | [`model_output/Google_SAI-Novel_2/`](model_output/Google_SAI-Novel_2) |
 
-> **Note:** Code scripts are not yet available for all models. Links will be
-> added as they become available.
+> **Note:** Early season submissions (2025-12-13 through 2026-01-10) for
+> `Google_SAI-Hybrid_6` (`*G-LANL_DBM x UMass_Flusion`) were submitted under the
+> legacy identifier `Google_SAI-Novel_6`. The model code is identical; both
+> [`model_py/Google_SAI-Hybrid_6.py`](model_py/Google_SAI-Hybrid_6.py) and
+> [`model_py/Google_SAI-Novel_6.py`](model_py/Google_SAI-Novel_6.py), along with
+> their corresponding `model_output/` directories, are retained for historical
+> completeness.
 
 ## References & Acknowledgments
 
