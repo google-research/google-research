@@ -31,7 +31,6 @@
 """Functional tests for molecule parsing ops."""
 import os
 from typing import List, Tuple
-import unittest
 
 from google.protobuf import text_format
 import numpy as np
@@ -352,4 +351,4 @@ class MoleculeParserOpTest(tf.test.TestCase):
 
 if __name__ == '__main__':
   tf.disable_eager_execution()
-  unittest.main()
+  absltest.main()
