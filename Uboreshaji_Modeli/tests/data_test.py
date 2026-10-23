@@ -178,6 +178,25 @@ class GetDatasetTest(absltest.TestCase):
     with self.assertRaises(FileNotFoundError):
       data.get_dataset(cfg)
 
+  def test_bagz_returns_non_empty_train_shards(self):
+    root = self.create_tempdir()
+    shard = root.create_file("x-train-00000-of-00002.bagz", content="x")
+    root.create_file("x-train-00001-of-00002.bagz")  # Empty: skipped.
+    root.create_file("x-test-00000-of-00001.bagz", content="x")
+    cfg = ml_collections.ConfigDict({
+        "dataset": {
+            "format": "bagz",
+            "dataset_path": root.full_path,
+            "train_split": "train",
+        }
+    })
+    with mock.patch("grain.python.BagDataSource") as source:
+      self.assertIs(data.get_dataset(cfg), source.return_value)
+    source.assert_called_once_with([shard.full_path])
+    cfg.dataset.train_split = "val"
+    with self.assertRaises(FileNotFoundError):
+      data.get_dataset(cfg)
+
   def test_parquet_fallback_streaming(self):
     temp_dir = self.create_tempdir().full_path
     cfg = ml_collections.ConfigDict()

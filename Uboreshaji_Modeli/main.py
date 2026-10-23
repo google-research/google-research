@@ -61,6 +61,8 @@ flags.DEFINE_bool(
 flags.mark_flags_as_mutual_exclusive([_CONFIG, _CONFIG_JSON], required=True)
 
 
+
+
 def main(argv):
   """Runs fine-tuning experiments.
 
@@ -115,6 +117,12 @@ def main(argv):
       output_path=str(output_path),
   )
 
+
+  logging.flush()
+  # Hard-exit so C++ threads (ffmpeg, NCCL) can't hang Borg task shutdown.
+  # torchrun workers must return: the elastic agent waits for their result.
+  if "TORCHELASTIC_RUN_ID" not in os.environ:
+    os._exit(0)  # pylint: disable=protected-access
 
 
 

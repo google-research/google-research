@@ -86,20 +86,17 @@ def _collate_fn(
   audios = [example["audio"]["array"] for example in examples]
 
   device_type = cfg.training.get("device", "cuda") if cfg else "cuda"
+  # Transformers v5 processors reject a top-level `max_length`.
   if device_type == "tpu":
-    padding = "max_length"
     max_length = cfg.get("max_seq_length", 512) if cfg else 512
+    kwargs = {
+        "padding": "max_length",
+        "text_kwargs": {"max_length": max_length},
+    }
   else:
-    padding = True
-    max_length = None
+    kwargs = {"padding": True}
 
-  batch = processor(
-      text=texts,
-      audio=audios,
-      return_tensors="pt",
-      padding=padding,
-      max_length=max_length,
-  )
+  batch = processor(text=texts, audio=audios, return_tensors="pt", **kwargs)
   # Detach and clone to avoid issues with in-place operations
   batch = {
       k: v.detach().clone() if isinstance(v, torch.Tensor) else v
@@ -279,6 +276,10 @@ class GemmaAudioEngine(base.ModelEngine):
     """
     del self, kwargs  # Unused.
     processor = transformers.AutoProcessor.from_pretrained(model_id)
-    model = transformers.AutoModelForMultimodalLM.from_pretrained(model_id)
+    processor.tokenizer.padding_side = "right"
+    # Gemma 3n trains with eager attention.
+    model = transformers.AutoModelForMultimodalLM.from_pretrained(
+        model_id, attn_implementation="eager"
+    )
     model.to(device)
     return model, processor

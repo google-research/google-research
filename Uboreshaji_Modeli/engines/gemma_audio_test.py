@@ -40,6 +40,14 @@ class GemmaAudioEngineTest(absltest.TestCase):
         },
     )
 
+  @mock.patch.object(gemma_audio, "transformers")
+  def test_load_model_and_processor(self, mock_tf):
+    model, processor = self.engine.load_model_and_processor("id", "cpu")
+    load = mock_tf.AutoModelForMultimodalLM.from_pretrained
+    load.assert_called_once_with("id", attn_implementation="eager")
+    model.to.assert_called_once_with("cpu")
+    self.assertEqual(processor.tokenizer.padding_side, "right")
+
   def test_get_transform_fn(self):
     mock_processor = mock.Mock()
 
@@ -249,7 +257,6 @@ class GemmaAudioEngineTest(absltest.TestCase):
         audio=[examples[0]["audio"]["array"]],
         return_tensors="pt",
         padding=True,
-        max_length=None,
     )
 
     self.assertIn("labels", batch)
@@ -287,7 +294,7 @@ class GemmaAudioEngineTest(absltest.TestCase):
         audio=[examples[0]["audio"]["array"]],
         return_tensors="pt",
         padding="max_length",
-        max_length=1024,
+        text_kwargs={"max_length": 1024},
     )
 
 

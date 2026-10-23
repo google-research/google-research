@@ -40,6 +40,7 @@ class FakeModelEngine(engines_base.ModelEngine):
     return torch.nn.Module(), object()
 
   def get_transform_fn(self, *args, **kwargs):
+    self.transform_kwargs = kwargs
     return lambda x: x
 
   def get_collate_fn(self, *args, **kwargs):
@@ -174,7 +175,14 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
     captured_kwargs = mock_sft_config_class.call_args.kwargs
     self.assertEqual(captured_kwargs.get("bf16"), expected_bf16)
     self.assertEqual(captured_kwargs.get("fp16"), expected_fp16)
-    mock_trainer_instance.train.assert_called_once()
+    mock_trainer_instance.train.assert_called_once_with(
+        resume_from_checkpoint=False
+    )
+    self.assertTrue(mock_engine.transform_kwargs["is_train"])
+    self.assertIs(
+        mock_custom_sft_trainer_class.call_args.kwargs["train_dataset"],
+        mock_dataset["train"],
+    )
 
   def test_tpu_device_raises_error_on_fp16(self):
     trainer_strategy = sft.GemmaSFTTrainerStrategy()
@@ -263,6 +271,25 @@ class CustomSFTTrainerTest(absltest.TestCase):
       operations.gather = original_operations_gather
       if original_acc_mod_gather is not None:
         acc_mod.gather = original_acc_mod_gather
+
+
+class OnRank0Test(absltest.TestCase):
+
+  def test_other_ranks_receive_broadcast_result(self):
+    dist = sft.dist
+    self.enter_context(
+        unittest.mock.patch.object(dist, "is_initialized", return_value=True)
+    )
+    self.enter_context(
+        unittest.mock.patch.object(dist, "get_rank", return_value=1)
+    )
+    broadcast = self.enter_context(
+        unittest.mock.patch.object(dist, "broadcast_object_list")
+    )
+    fn = unittest.mock.Mock()
+    sft._on_rank0(fn)
+    fn.assert_not_called()
+    broadcast.assert_called_once_with([None], src=0)
 
 
 if __name__ == "__main__":
