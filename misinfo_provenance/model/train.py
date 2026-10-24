@@ -74,11 +74,11 @@ _BLOCK_LOCAL_DIMS = flags.DEFINE_integer(
 _CONV_OUTPUT_LAYER = flags.DEFINE_string('conv_output_layer',
                                          'conv4_block5_out',
                                          'Local Feat Out Layer.')
-_CONV_OUTPUT_LAYER = flags.DEFINE_string('conv_output_layer',
-                                         'conv4_block5_out',
-                                         'Local Feat Out Layer.')
-_DATASET_LENGHT = flags.DEFINE_integer('dataset_lenght', 10000,
-                                       'Dataset Lenght.')
+_DATASET_LENGTH = flags.DEFINE_integer('dataset_length', 10000,
+                                        'Dataset length.')
+# The flag was originally spelled 'dataset_lenght'; keep it accepted so
+# existing command lines continue to work.
+flags.DEFINE_alias('dataset_lenght', 'dataset_length')
 _EPOCHS = flags.DEFINE_integer('epochs', 10, 'Epochs.')
 
 N_CLASSES = 1000
@@ -293,7 +293,7 @@ def main(argv):
 
   # Training Parameters
   global_batch_size = _BATCH_SIZE.value
-  max_iters = _EPOCHS.value * _DATASET_LENGHT.value // global_batch_size
+  max_iters = _EPOCHS.value * _DATASET_LENGTH.value // global_batch_size
   num_eval_batches = int(50000 // global_batch_size)
   eval_interval = 3200  # 0.5epoch
   retrieval_eval_interval = eval_interval
