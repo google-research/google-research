@@ -17,10 +17,37 @@
 
 import collections
 import dataclasses
+import inspect
 import json
 from typing import Dict, Optional, Sequence, Union
 
 from instruction_following_eval import instructions_registry
+
+# Checkers that take the prompt under evaluation as one of their arguments.
+_PROMPT_ARGUMENTS = ("prompt", "prompt_to_repeat")
+
+
+def _with_prompt_kwargs(instruction, kwargs, prompt):
+  """Returns `kwargs` with the prompt filled in for prompt arguments.
+
+  A few checkers, such as `RepeatPromptThenAnswer`, require the prompt itself
+  and raise from `build_description` when it is missing, so it has to be
+  supplied before the first call rather than in a second pass.
+
+  Args:
+    instruction: The instruction checker being built.
+    kwargs: The keyword arguments read from the input data.
+    prompt: The prompt being evaluated.
+
+  Returns:
+    A new dict of keyword arguments.
+  """
+  prompt_kwargs = dict(kwargs)
+  parameters = inspect.signature(instruction.build_description).parameters
+  for name in _PROMPT_ARGUMENTS:
+    if name in parameters and name not in prompt_kwargs:
+      prompt_kwargs[name] = prompt
+  return prompt_kwargs
 
 
 @dataclasses.dataclass
@@ -85,10 +112,9 @@ def test_instruction_following_strict(
     instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
     instruction = instruction_cls(instruction_id)
 
-    instruction.build_description(**inp.kwargs[index])  # pyrefly: ignore[bad-argument-type]
-    args = instruction.get_instruction_args()
-    if args and "prompt" in args:
-      instruction.build_description(prompt=inp.prompt)  # pyrefly: ignore[unexpected-keyword]
+    instruction.build_description(
+        **_with_prompt_kwargs(instruction, inp.kwargs[index], inp.prompt)
+    )
 
     if response.strip() and instruction.check_following(response):
       is_following_list.append(True)
@@ -135,10 +161,9 @@ def test_instruction_following_loose(
     instruction_cls = instructions_registry.INSTRUCTION_DICT[instruction_id]
     instruction = instruction_cls(instruction_id)
 
-    instruction.build_description(**inp.kwargs[index])  # pyrefly: ignore[bad-argument-type]
-    args = instruction.get_instruction_args()
-    if args and "prompt" in args:
-      instruction.build_description(prompt=inp.prompt)  # pyrefly: ignore[unexpected-keyword]
+    instruction.build_description(
+        **_with_prompt_kwargs(instruction, inp.kwargs[index], inp.prompt)
+    )
 
     is_following = False
     for r in all_responses:
