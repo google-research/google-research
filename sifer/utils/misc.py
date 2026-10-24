@@ -19,7 +19,6 @@ import hashlib
 import os
 import random
 import sys
-import zipfile
 from absl import logging
 import numpy as np
 import tensorflow as tf
