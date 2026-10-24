@@ -18,13 +18,17 @@ import collections
 import json
 import random
 import re
-import string
 from typing import Dict, Optional, Sequence, Union
 
 from absl import logging
 import langdetect
 
 from instruction_following_eval import instructions_util
+
+# langdetect's detector is seeded from the system entropy by default, so the
+# verdict for a short or mixed response changes from run to run. Fixing the
+# seed makes the language checkers deterministic.
+langdetect.DetectorFactory.seed = 0
 
 
 _InstructionArgsDtype = Optional[Dict[str, Union[int, str, Sequence[str]]]]
@@ -1322,8 +1326,9 @@ class LetterFrequencyChecker(Instruction):
     """Build the instruction description.
 
     Args:
-      letter: A string representing a letter that is expected in the response.
-      let_frequency: An integer specifying the number of times `keyword` is
+      letter: A single character that is expected in the response. It does not
+        have to be an ASCII letter, so marks such as "#" are supported.
+      let_frequency: An integer specifying the number of times `letter` is
         expected to appear in the response.
       let_relation: A string in (`less than`, `at least`), defining the
         relational operator for comparison. Two relational comparisons are
@@ -1333,31 +1338,31 @@ class LetterFrequencyChecker(Instruction):
 
     Returns:
       A string representing the instruction description.
+
+    Raises:
+      ValueError: If `letter`, `let_frequency` or `let_relation` is missing or
+        not valid for this checker.
     """
-    if (
-        not letter
-        or len(letter) > 1
-        or ord(letter.lower()) < 97
-        or ord(letter.lower()) > 122
-    ):
-      self._letter = random.choice(list(string.ascii_letters))
-    else:
-      self._letter = letter.strip()
-    self._letter = self._letter.lower()
+    if not isinstance(letter, str) or len(letter) != 1 or letter.isspace():
+      raise ValueError(
+          "The letter for 'keywords:letter_frequency' must be a single "
+          f"non-whitespace character, but {letter!r} is given."
+      )
+    self._letter = letter.lower()
 
+    if not isinstance(let_frequency, int) or let_frequency < 0:
+      raise ValueError(
+          "The frequency for 'keywords:letter_frequency' must be a "
+          f"non-negative integer, but {let_frequency!r} is given."
+      )
     self._frequency = let_frequency
-    if self._frequency is None or self._frequency < 0:
-      self._frequency = random.randint(1, _LETTER_FREQUENCY)
 
-    if let_relation is None:
-      self._comparison_relation = random.choice(_COMPARISON_RELATION)
-    elif let_relation not in _COMPARISON_RELATION:
+    if let_relation not in _COMPARISON_RELATION:
       raise ValueError(
           "The supported relation for comparison must be in "
           f"{_COMPARISON_RELATION}, but {let_relation} is given."
       )
-    else:
-      self._comparison_relation = let_relation
+    self._comparison_relation = let_relation
 
     self._description_pattern = (
         "In your response, the letter {letter} should appear {let_relation}"
