@@ -23,7 +23,7 @@ from six.moves import urllib
 
 from gradient_coresets_replay.datasets import ContinualDataset
 from gradient_coresets_replay.datasets import get_dataset
-from gradient_coresets_replay.models.gcr import GCR
+from gradient_coresets_replay.utils.gcr import GCR
 from gradient_coresets_replay.utils import training
 from gradient_coresets_replay.utils.conf import set_random_seed
 
@@ -96,9 +96,10 @@ def main(_):
   model = GCR(
       backbone,
       loss,
+      args,
       dataset.get_transform(),
       dataset.get_barlow_transform(),
-      int(dataset.N_CLASSES_PER_TASK * dataset.N_TASKS),
+      int(dataset.n_classes_per_task * dataset.n_tasks),
   )
   print(args)
   if args.imbalanced:
