@@ -93,6 +93,30 @@ class TestTrimap(absltest.TestCase):
     n_random_triplets = inputs.shape[0] * n_random
     npt.assert_equal(triplets.shape, [n_knn_triplets + n_random_triplets, 3])
 
+  def test_transform_is_independent_of_verbose_flag(self):
+    """Preprocessing must not depend on whether progress is logged.
+
+    The min-max rescaling and centering step is meant to run when PCA is not
+    applied. It was attached to the `if verbose:` block instead, so
+    verbose=False rescaled the PCA-reduced inputs while verbose=True did not,
+    which made the embedding depend on a logging flag.
+    """
+    key = random.PRNGKey(42)
+    key, use_key = random.split(key)
+    # dim > _DIM_PCA so the PCA branch of the preprocessing is taken.
+    inputs = np.array(random.normal(use_key, shape=(80, 128)), dtype=np.float32)
+    kwargs = dict(
+        n_dims=2,
+        n_inliers=5,
+        n_outliers=3,
+        n_random=2,
+        n_iters=1,
+        apply_pca=True,
+    )
+    quiet = trimap.transform(key, inputs.copy(), verbose=False, **kwargs)
+    loud = trimap.transform(key, inputs.copy(), verbose=True, **kwargs)
+    npt.assert_allclose(np.array(quiet), np.array(loud), rtol=1e-5, atol=1e-6)
+
   def test_transform(self):
     key = random.PRNGKey(42)
     key, use_key = random.split(key)
