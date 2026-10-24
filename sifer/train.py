@@ -68,11 +68,6 @@ def main(_):
   sys.stdout = misc.Tee(os.path.join(args.output_dir, 'out.txt'))
   sys.stderr = misc.Tee(os.path.join(args.output_dir, 'err.txt'))
 
-  # download data and weights
-  print('downloading files ...')
-  misc.download_files()
-  print('downloading done')
-
   print('Args:')
   for k, v in sorted(vars(args).items()):
     print('\t{}: {}'.format(k, v))
