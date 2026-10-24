@@ -739,7 +739,6 @@ def matrix_inverse_pth_root_eigh(
   mm = functools.partial(jnp.matmul, precision=precision)
   inv_e = jnp.where(e == 0.0, 0.0,
                     jnp.power(jnp.maximum(e, ridge_epsilon), alpha))
-  val = mm(mm(u, jnp.diag(inv_e)), u.T)
   root = u * jnp.sqrt(inv_e)
   val = mm(root, root.T)
   recovered_e = mm(u.T, mm(regularized_input, u))
