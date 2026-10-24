@@ -19,8 +19,33 @@ import numpy as np
 
 
 def sample_log_float(rng, low, high):
-  """Sample a float value logrithmically between `low` and `high`."""
-  return float(np.exp(rng.uniform(np.log(float(low)), np.log(float(high)))))
+  """Sample a float value logrithmically between `low` and `high`.
+
+  Args:
+    rng: A NumPy random number generator or `RandomState`.
+    low: One end of the range. Must be strictly positive.
+    high: The other end of the range. Must be strictly positive.
+
+  Returns:
+    A float in the closed interval [min(low, high), max(low, high)].
+
+  Raises:
+    ValueError: If `low` or `high` is not strictly positive.
+  """
+  low = float(low)
+  high = float(high)
+  if low <= 0.0 or high <= 0.0:
+    raise ValueError(
+        "sample_log_float requires strictly positive bounds, but got "
+        f"low={low!r}, high={high!r}."
+    )
+  log_low, log_high = np.log(low), np.log(high)
+  if log_low > log_high:
+    # Accept the bounds in either order. The legacy `RandomState.uniform`
+    # silently samples the interval when they are reversed, but
+    # `Generator.uniform` raises "high - low < 0".
+    log_low, log_high = log_high, log_low
+  return float(np.exp(rng.uniform(log_low, log_high)))
 
 
 def sample_bool(rng, p):

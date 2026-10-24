@@ -211,7 +211,7 @@ def sample_adam8p_wide_grid(seed):
       "l1": utils.sample_log_float(rng, 1e-8, 1e1),
       "l2": utils.sample_log_float(rng, 1e-8, 1e1),
       "linear_decay": utils.sample_log_float(rng, 1e-7, 1e-4),
-      "exponential_decay": utils.sample_log_float(rng, 1e-3, 1e-6),
+      "exponential_decay": utils.sample_log_float(rng, 1e-6, 1e-3),
   }
   return cfg
 
@@ -234,7 +234,7 @@ def sample_adam6p_wide_grid(seed):
       "beta2": 1 - utils.sample_log_float(rng, 1e-6, 1e0),
       "epsilon": utils.sample_log_float(rng, 1e-10, 1e3),
       "linear_decay": utils.sample_log_float(rng, 1e-7, 1e-4),
-      "exponential_decay": utils.sample_log_float(rng, 1e-3, 1e-6),
+      "exponential_decay": utils.sample_log_float(rng, 1e-6, 1e-3),
   }
   return cfg
 
