@@ -18,6 +18,7 @@
 from absl.testing import absltest
 from absl.testing import parameterized
 from instruction_following_eval import instructions
+from langdetect import DetectorFactory
 
 
 # pylint:disable=g-complex-comprehension
@@ -1272,6 +1273,75 @@ I love it too much. I'll just have to make sure to eat it in moderation.
       'detectable_format:multiple_sections': instructions.SectionChecker,
       'detectable_format:json_format': instructions.JsonFormat,
   }
+
+  def test_letter_frequency_accepts_non_alphabetic_character(self):
+    """A mark such as "#" is scored directly instead of a random letter.
+
+    Prompts 1122 and 1129 ask for "#" and "!" respectively. The checker used
+    to reject these and substitute a random ASCII letter, so the requirement
+    changed from run to run and never matched the prompt.
+    """
+    instruction_id = 'keywords:letter_frequency'
+    instruction = instructions.LetterFrequencyChecker(instruction_id)
+    description = instruction.build_description(
+        letter='#',
+        let_frequency=4,
+        let_relation='at least',
+    )
+    self.assertIn('#', description)
+    self.assertTrue(instruction.check_following('# # # # tags here'))
+    self.assertFalse(instruction.check_following('# # only two'))
+
+  def test_letter_frequency_description_is_reproducible(self):
+    """Repeated builds of the same kwargs give an identical description."""
+    instruction_id = 'keywords:letter_frequency'
+    descriptions = set()
+    for _ in range(25):
+      instruction = instructions.LetterFrequencyChecker(instruction_id)
+      descriptions.add(
+          instruction.build_description(
+              letter='#', let_frequency=4, let_relation='at least'
+          )
+      )
+    self.assertLen(descriptions, 1)
+
+  def test_letter_frequency_rejects_invalid_arguments(self):
+    """Invalid arguments raise instead of being replaced by random values."""
+    instruction_id = 'keywords:letter_frequency'
+    invalid_kwargs = [
+        dict(letter=None, let_frequency=4, let_relation='at least'),
+        dict(letter='', let_frequency=4, let_relation='at least'),
+        dict(letter='ab', let_frequency=4, let_relation='at least'),
+        dict(letter=' ', let_frequency=4, let_relation='at least'),
+        dict(letter='a', let_frequency=None, let_relation='at least'),
+        dict(letter='a', let_frequency=-1, let_relation='at least'),
+        dict(letter='a', let_frequency=4, let_relation=None),
+        dict(letter='a', let_frequency=4, let_relation='more than'),
+    ]
+    for kwargs in invalid_kwargs:
+      instruction = instructions.LetterFrequencyChecker(instruction_id)
+      with self.subTest(f'test {kwargs}'):
+        with self.assertRaises(ValueError):
+          instruction.build_description(**kwargs)
+
+  def test_langdetect_seed_is_fixed(self):
+    """langdetect is randomized unless a seed is set."""
+    self.assertIsNotNone(DetectorFactory.seed)
+
+  def test_response_language_check_is_reproducible(self):
+    """The same response must get the same verdict on every run.
+
+    langdetect's verdict is unstable on short responses when it is unseeded;
+    "ok thanks" came back as English on 295 of 300 runs and not English on
+    the other 5.
+    """
+    instruction_id = 'language:response_language'
+    verdicts = set()
+    for _ in range(200):
+      instruction = instructions.ResponseLanguageChecker(instruction_id)
+      instruction.build_description(language='en')
+      verdicts.add(instruction.check_following('ok thanks'))
+    self.assertLen(verdicts, 1)
 
   def test_get_instruction_args(self):
     """Test getting instruction args."""
