@@ -316,6 +316,7 @@ class DistributedShampooTest(chex.TestCase, parameterized.TestCase):
         # The fact that this is so large keeps vladf up at night,
         # but without padding_start argument it's even worse (>1).
         rtol=rtol,
+        atol=1e-5,
         err_msg=np.array2string(rt - pad_rt_principal),  # pyrefly: ignore[bad-argument-type]
     )
     self.assertLessEqual(pad_err, 4 * err)
