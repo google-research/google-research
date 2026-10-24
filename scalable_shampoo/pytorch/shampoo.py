@@ -78,10 +78,12 @@ class Graft:
     pass
 
   def precondition_gradient(self, grad):
-    return grad
+    # Return a copy: callers scale this tensor in place, and returning `grad`
+    # would modify the parameter's `.grad` buffer.
+    return grad.clone()
 
   def update_momentum(self, update, unused_beta1):
-    return update
+    return update.clone()
 
 
 class SGDGraft(Graft):
@@ -276,7 +278,9 @@ class Preconditioner:
     Returns:
       A preconditioned gradient.
     """
-    if not self.preconditioners: return grad
+    # Return a copy: the caller scales this tensor in place, so returning the
+    # parameter's own `.grad` would corrupt it.
+    if not self.preconditioners: return grad.clone()
     reshaped_grad = torch.reshape(grad, self._transformed_shape)
     partitioned_grads = self._partitioner.partition(reshaped_grad)
     preconditioned_partitioned_grads = []
@@ -378,7 +382,11 @@ class Shampoo(optim.Optimizer):
           wd_update = graft_grad
 
         if hps.nesterov:
-          momentum_update.mul_(group['momentum']).add_(wd_update)
+          # Out of place: `momentum_update` may alias a momentum buffer that
+          # was already updated above, and torch.optim.SGD's Nesterov form
+          # leaves the buffer alone here.
+          momentum_update = momentum_update.mul(group['momentum']).add_(
+              wd_update)
 
         # Final update
         p.data.add_(momentum_update, alpha=-lr)
