@@ -19,22 +19,57 @@ import os
 from os import path
 from absl import flags
 import flax
-import flax.optim
 import jax
 import jax.numpy as jnp
 import jax.scipy as jsp
 import numpy as np
+import optax
 from PIL import Image
 import yaml
+from flax.training import train_state
 from snerg.nerf import datasets
 
 BASE_DIR = "snerg"
 INTERNAL = False
 
 
-@flax.struct.dataclass
-class TrainState:
-  optimizer: flax.optim.Optimizer
+# `flax.optim` was removed from Flax in 0.3, so this project now uses
+# `flax.training.train_state.TrainState` with an Optax optimizer. The optimizer
+# target was always the whole `variables` dict returned by `model.init`, and
+# that is what `TrainState.params` holds here, so `model.apply(state.params,
+# ...)` keeps working unchanged. `apply_fn` and `tx` are static fields, so the
+# existing `jax.tree.map(lambda x: x[0], state)` calls in `train.py` and the
+# `flax.jax_utils.replicate` calls are unaffected.
+TrainState = train_state.TrainState
+
+
+def create_train_state(model, variables, learning_rate):
+  """Builds a `TrainState` with an Adam optimizer.
+
+  Args:
+    model: A linen module; its `apply` is stored on the state.
+    variables: The `variables` dict returned by `model.init`.
+    learning_rate: The initial learning rate.
+
+  Returns:
+    A `TrainState`. The learning rate is injected so that it can be updated
+    per step with `update_learning_rate`, which is how this code base drives
+    its learning-rate decay: `learning_rate_decay` computes a rate per step and
+    passes it into each `train_step`.
+  """
+  optimizer = optax.inject_hyperparams(optax.adam)(learning_rate=learning_rate)
+  return TrainState.create(apply_fn=model.apply, params=variables,
+                           tx=optimizer)
+
+
+def update_learning_rate(state, learning_rate):
+  """Returns `state` with the optimizer's learning rate set to `learning_rate`."""
+  # `InjectStatefulHyperparamsState` is a named tuple, so it is rebuilt with
+  # `_replace`; the hyperparameter mapping itself is a plain dict of arrays.
+  hyperparams = dict(state.opt_state.hyperparams)
+  hyperparams["learning_rate"] = learning_rate
+  return state.replace(opt_state=state.opt_state._replace(
+      hyperparams=hyperparams))
 
 
 @flax.struct.dataclass

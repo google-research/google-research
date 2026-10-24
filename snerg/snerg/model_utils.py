@@ -32,7 +32,7 @@ def extract_snerg_mlps(optimized_model, scene_params):
   model.
 
   Args:
-    optimized_model: A trained SNeRG model (from state.optimizer.target)
+    optimized_model: A trained SNeRG model (from state.params)
     scene_params: A dict for scene specific params (bbox, rotation, resolution).
 
   Returns:

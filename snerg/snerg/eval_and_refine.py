@@ -275,17 +275,16 @@ def refine_view_dependence_mlp(rgbs,
       loss = ((final_rgb - ref[Ellipsis, :3])**2).mean()
       return loss
 
-    loss, grad = jax.value_and_grad(loss_fn)(state.optimizer.target)
+    loss, grad = jax.value_and_grad(loss_fn)(state.params)
     grad = jax.lax.pmean(grad, axis_name="batch")
     loss = jax.lax.psum(loss, axis_name="batch")
 
-    new_optimizer = state.optimizer.apply_gradient(grad, learning_rate=lr)
-    new_state = state.replace(optimizer=new_optimizer)
+    new_state = utils.update_learning_rate(state, lr).apply_gradients(grads=grad)
     return new_state, loss
 
   optimized_viewdir_params = viewdir_mlp_params
-  optimizer = flax.optim.Adam(learning_rate).create(optimized_viewdir_params)
-  state = utils.TrainState(optimizer=optimizer)
+  state = utils.create_train_state(viewdir_mlp_model, optimized_viewdir_params,
+                                   learning_rate)
   train_pstep = jax.pmap(
       functools.partial(train_step, viewdir_mlp_model),
       axis_name="batch",
@@ -304,4 +303,4 @@ def refine_view_dependence_mlp(rgbs,
       state, _ = train_pstep(state, refs[i], rgbs[i], directions[i],
                              batch_aware_learning_rate)
 
-  return flax.jax_utils.unreplicate(state.optimizer.target)
+  return flax.jax_utils.unreplicate(state.params)
