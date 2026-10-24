@@ -650,15 +650,15 @@ def evaluate_for_target_entity_names(
     groundtruth_num += len(matched_pairs) + len(unmatched_groundtruth)
     extractions_num += len(matched_pairs) + len(unmatched_extractions)
 
-  if extractions_num == 0:
-    pre = rec = f1 = 0
-  elif groundtruth_num == 0:
+  if groundtruth_num == 0:
     # When there is no groundtruth for the entity name, the result is set as -1,
     # and this should be skipped in the final report. This happens when some
-    # entity names do not appear in certain templates.
-    pre = 0
-    rec = 1
-    f1 = 0
+    # entity names do not appear in certain templates. This has to be checked
+    # before `extractions_num`, because an entity name that is absent from the
+    # template has nothing to score whether or not the model returned anything.
+    pre = rec = f1 = -1
+  elif extractions_num == 0:
+    pre = rec = f1 = 0
   elif correct_num == 0:
     pre = rec = f1 = 0
   else:
@@ -724,6 +724,10 @@ def evaluate(model_extractions,
   # Macro precision, recall, f1-score
   def avg(lst):
     lst = [x for x in lst if x != -1]
+    if not lst:
+      # Every entity name was absent from the groundtruth, so none of them
+      # contribute to this average.
+      return -1
     return sum(lst) / len(lst)
 
   all_results['macro_precision'] = avg(macro_precision)
