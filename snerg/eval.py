@@ -19,7 +19,6 @@ from os import path
 
 from absl import app
 from absl import flags
-import flax
 from flax.metrics import tensorboard
 from flax.training import checkpoints
 import jax
@@ -56,9 +55,8 @@ def main(unused_argv):
   dataset = datasets.get_dataset("test", FLAGS)
   rng, key = random.split(rng)
   model, init_variables = models.get_model(key, dataset.peek(), FLAGS)
-  optimizer = flax.optim.Adam(FLAGS.lr_init).create(init_variables)
-  state = utils.TrainState(optimizer=optimizer)
-  del optimizer, init_variables
+  state = utils.create_train_state(model, init_variables, FLAGS.lr_init)
+  del init_variables
 
 
   # Rendering is forced to be deterministic even if training was randomized, as
@@ -87,7 +85,7 @@ def main(unused_argv):
         path.join(FLAGS.train_dir, "eval"))
   while True:
     state = checkpoints.restore_checkpoint(FLAGS.train_dir, state)
-    step = int(state.optimizer.state.step)
+    step = int(state.step)
     if step <= last_step:
       continue
     if FLAGS.save_output and (not utils.isdir(out_dir)):
@@ -101,7 +99,7 @@ def main(unused_argv):
       batch = next(dataset)
       (pred_color, pred_disp, pred_acc, pred_features,
        pred_specular) = utils.render_image(
-           functools.partial(render_pfn, state.optimizer.target),
+           functools.partial(render_pfn, state.params),
            batch["rays"],
            rng,
            FLAGS.dataset == "llff",

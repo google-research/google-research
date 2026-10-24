@@ -102,7 +102,7 @@ def train_step(model, rng, state, batch, lr):
             sparsity_c), stats
 
   (_, stats), grad = (
-      jax.value_and_grad(loss_fn, has_aux=True)(state.optimizer.target))
+      jax.value_and_grad(loss_fn, has_aux=True)(state.params))
   grad = jax.lax.pmean(grad, axis_name="batch")
   stats = jax.lax.pmean(stats, axis_name="batch")
 
@@ -119,8 +119,7 @@ def train_step(model, rng, state, batch, lr):
     mult = jnp.minimum(1, FLAGS.grad_max_norm / (1e-7 + grad_norm))
     grad = jax.tree_util.tree_map(lambda z: mult * z, grad)
 
-  new_optimizer = state.optimizer.apply_gradient(grad, learning_rate=lr)
-  new_state = state.replace(optimizer=new_optimizer)
+  new_state = utils.update_learning_rate(state, lr).apply_gradients(grads=grad)
   return new_state, stats, rng
 
 
@@ -143,9 +142,8 @@ def main(unused_argv):
 
   rng, key = random.split(rng)
   model, variables = models.get_model(key, dataset.peek(), FLAGS)
-  optimizer = flax.optim.Adam(FLAGS.lr_init).create(variables)
-  state = utils.TrainState(optimizer=optimizer)
-  del optimizer, variables
+  state = utils.create_train_state(model, variables, FLAGS.lr_init)
+  del variables
 
   learning_rate_fn = functools.partial(
       utils.learning_rate_decay,
@@ -181,7 +179,7 @@ def main(unused_argv):
     utils.makedirs(FLAGS.train_dir)
   state = checkpoints.restore_checkpoint(FLAGS.train_dir, state)
   # Resume training a the step of the last checkpoint.
-  init_step = state.optimizer.state.step + 1
+  init_step = state.step + 1
   state = flax.jax_utils.replicate(state)
 
   if jax.process_index() == 0:
@@ -249,7 +247,7 @@ def main(unused_argv):
       # training.
       t_eval_start = time.time()
       eval_variables = jax.device_get(jax.tree.map(lambda x: x[0],
-                                                   state)).optimizer.target
+                                                   state)).params
       test_case = next(test_dataset)
       (pred_color, pred_disp, pred_acc, pred_features,
        pred_specular) = utils.render_image(

@@ -1,7 +1,8 @@
 numpy>=1.16.4
 jax>=0.2.6
 jaxlib>=0.1.69
-flax>=0.2.2
+flax>=0.3.4
+optax>=0.1.0
 opencv-python>=4.4.0
 Pillow>=7.2.0
 pyyaml>=5.3.1
