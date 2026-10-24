@@ -243,7 +243,7 @@ class _Decoder(object):
       x = self._encdec_attn_postprocess(x, y, training)
     with tf.variable_scope("ffn"):
       y = self._ffn_layer(self._ffn_preprocess(x), training)
-      x += self._ffn_postprocess(x, y, training)
+      x = self._ffn_postprocess(x, y, training)
     return x
 
 

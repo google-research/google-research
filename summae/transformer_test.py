@@ -13,83 +13,97 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Tests for transformer."""
+"""Checks the residual connections in summae/transformer.py.
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+`_PostProcess.__call__` performs the residual add itself:
+
+    x += y
+    return x
+
+so a caller that writes `x += self._postprocess(x, y, training)` adds the
+residual stream twice and gets `2 * x + dropout(y)`. Every call site must
+therefore assign, not accumulate.
+
+The module imports `tensorflow.contrib`, which only exists in TensorFlow 1.x,
+so these checks parse the source with `ast` rather than importing it. That
+keeps them runnable on current TensorFlow versions.
+"""
+
+import ast
+import os
 
 from absl.testing import absltest
-from absl.testing import parameterized
-import tensorflow.compat.v1 as tf
 
-from summae import transformer as trf
+_TRANSFORMER = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), 'transformer.py'
+)
 
 
-class TransformerTest(parameterized.TestCase):
+def _is_postprocess_call(node):
+  """True for a call like `self._ffn_postprocess(...)`."""
+  return (
+      isinstance(node, ast.Call)
+      and isinstance(node.func, ast.Attribute)
+      and node.func.attr.endswith('_postprocess')
+  )
 
-  def test_transformer_encoder_decoder(self):
-    hidden_size = 128
-    filter_size = 128
-    num_encoder_layers = 2
-    num_decoder_layers = 2
-    num_encoder_heads = 2
-    num_decoder_heads = 2
-    attention_dropout = 0.1
-    relu_dropout = 0.1
-    postprocess_dropout = 0.1
-    transformer_encoder_decoder = trf.TransformerEncoderDecoder(
-        hidden_size, filter_size, num_encoder_layers, num_decoder_layers,
-        num_encoder_heads, num_decoder_heads, attention_dropout, relu_dropout,
-        postprocess_dropout)
-    output = transformer_encoder_decoder(
-        tf.ones((2, 10, 128)), tf.ones((2, 3, 128)), tf.zeros((2, 10)), False)
-    self.assertEqual(output.shape, [2, 3, 128])
 
-  def test_transformer_encoder(self):
-    hidden_size = 128
-    filter_size = 128
-    num_encoder_layers = 3
-    num_encoder_heads = 4
-    attention_dropout = 0.1
-    relu_dropout = 0.1
-    postprocess_dropout = 0.1
-    transformer_encoder = trf.TransformerEncoder(
-        hidden_size, filter_size, num_encoder_layers, num_encoder_heads,
-        attention_dropout, relu_dropout, postprocess_dropout)
-    output = transformer_encoder(tf.ones((2, 10, 128)), tf.ones((2, 10)), False)
-    self.assertEqual(output.shape, [2, 10, 128])
+class ResidualConnectionTest(absltest.TestCase):
 
-  def test_transformer_decoder(self):
-    hidden_size = 128
-    filter_size = 128
-    num_decoder_layers = 2
-    num_decoder_heads = 2
-    attention_dropout = 0.1
-    relu_dropout = 0.1
-    postprocess_dropout = 0.1
-    transformer_decoder = trf.TransformerDecoder(
-        hidden_size, filter_size, num_decoder_layers, num_decoder_heads,
-        attention_dropout, relu_dropout, postprocess_dropout)
-    output = transformer_decoder(
-        tf.ones((2, 10, 128)), tf.zeros((2, 10)), tf.ones((2, 5, 128)), False)
-    self.assertEqual(output.shape, [2, 5, 128])
+  def setUp(self):
+    super().setUp()
+    with open(_TRANSFORMER) as f:
+      self._tree = ast.parse(f.read(), filename=_TRANSFORMER)
 
-  def test_transformer_decoder_only(self):
-    hidden_size = 128
-    filter_size = 128
-    num_decoder_layers = 3
-    num_decoder_heads = 4
-    attention_dropout = 0.1
-    relu_dropout = 0.1
-    postprocess_dropout = 0.1
-    transformer_decoder_only = trf.TransformerDecoderOnly(
-        hidden_size, filter_size, num_decoder_layers, num_decoder_heads,
-        attention_dropout, relu_dropout, postprocess_dropout)
-    output = transformer_decoder_only(tf.ones((2, 10, 128)), False)
-    self.assertEqual(output.shape, [2, 10, 128])
+  def test_no_postprocess_call_uses_augmented_assignment(self):
+    """A `+=` on a postprocess call doubles the residual stream."""
+    offenders = []
+    for node in ast.walk(self._tree):
+      if not isinstance(node, ast.AugAssign):
+        continue
+      if _is_postprocess_call(node.value):
+        offenders.append(
+            f'{node.target.id if isinstance(node.target, ast.Name) else "?"} '
+            f'{ast.unparse(node.value.func)} at line {node.lineno}'
+        )
+    self.assertEqual(
+        offenders,
+        [],
+        'these call sites use `+=` on a postprocess helper that already '
+        'performs the residual add, which counts the residual twice: '
+        + str(offenders),
+    )
+
+  def test_every_postprocess_call_is_assigned(self):
+    """Postprocess results must be stored, not discarded."""
+    calls, assigned = 0, 0
+    for node in ast.walk(self._tree):
+      if isinstance(node, ast.Assign) and _is_postprocess_call(node.value):
+        assigned += 1
+    for node in ast.walk(self._tree):
+      if isinstance(node, ast.Call) and _is_postprocess_call(node):
+        calls += 1
+    self.assertGreater(assigned, 0, 'no postprocess call sites found')
+    self.assertEqual(
+        calls, assigned,
+        f'{calls - assigned} postprocess call(s) are neither assigned nor '
+        'accumulated, so their residual contribution is discarded',
+    )
+
+  def test_postprocess_performs_the_residual_add(self):
+    """Documents the helper's contract that the call sites rely on."""
+    postprocess = None
+    for node in self._tree.body:
+      if isinstance(node, ast.ClassDef) and node.name == '_PostProcess':
+        postprocess = node
+    self.assertIsNotNone(postprocess)
+    aug = [n for n in ast.walk(postprocess) if isinstance(n, ast.AugAssign)]
+    self.assertTrue(
+        aug,
+        '_PostProcess is expected to add the residual itself; if it stopped '
+        'doing so, the `x =` call sites would need a separate add',
+    )
 
 
 if __name__ == '__main__':
-  tf.enable_eager_execution()
   absltest.main()
