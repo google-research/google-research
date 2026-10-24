@@ -34,6 +34,32 @@ from uflow.data import sintel
 # pylint:disable=g-long-lambda
 
 
+def combine_train_datasets(train_datasets):
+  """Combines the per-format training datasets into a single dataset.
+
+  `make_train_iterator` accepts a `train_on` string listing several datasets,
+  e.g. 'chairs:/path;kitti:/other/path'. Every one of them has to be trained
+  on; taking only the first silently discarded the rest.
+
+  Args:
+    train_datasets: A non-empty list of `tf.data.Dataset`, all producing the
+      same element structure.
+
+  Returns:
+    A single `tf.data.Dataset`. When more than one dataset is given, elements
+    are drawn from them at random, weighted uniformly.
+
+  Raises:
+    ValueError: If `train_datasets` is empty.
+  """
+  if not train_datasets:
+    raise ValueError('No training datasets were built from `train_on`.')
+  if len(train_datasets) == 1:
+    return train_datasets[0]
+  return tf.data.experimental.sample_from_datasets(
+      train_datasets, stop_on_empty_dataset=False)
+
+
 def make_train_iterator(
     train_on,
     height,
@@ -192,7 +218,7 @@ def make_train_iterator(
     else:
       return lambda imgs: (tf.ensure_shape(imgs, imgs_shape), {})
 
-  train_ds = train_datasets[0]
+  train_ds = combine_train_datasets(train_datasets)
   # Perform data augmentation
   # This cannot handle occlusions at the moment.
   if apply_augmentation:
