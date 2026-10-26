@@ -55,19 +55,18 @@ class TrainStreamTest(absltest.TestCase):
         )
     )
 
-  def test_train_source_skips_empty_shards(self):
+  def test_split_source_skips_empty_shards(self):
     root = self.create_tempdir()
     shard = root.create_file("x-train-00000-of-00002.bagz", content="x")
     root.create_file("x-train-00001-of-00002.bagz")
-    cfg = ml_collections.ConfigDict({
-        "dataset": {"dataset_path": root.full_path, "train_split": "train"}
-    })
+    cfg = ml_collections.ConfigDict(
+        {"dataset": {"dataset_path": root.full_path}}
+    )
     with mock.patch.object(bagz_data.grain, "BagDataSource") as source:
-      self.assertIs(bagz_data.train_source(cfg), source.return_value)
+      self.assertIs(bagz_data.split_source(cfg, "train"), source.return_value)
     source.assert_called_once_with([shard.full_path])
-    cfg.dataset.train_split = "val"
     with self.assertRaises(FileNotFoundError):
-      bagz_data.train_source(cfg)
+      bagz_data.split_source(cfg, "val")
 
   def test_resume_continues_where_fresh_stream_is_after_start_step(self):
     fresh = _take(3 * 2 + 4, batch_size=2, grad_accum=3)
@@ -91,6 +90,26 @@ class TrainStreamTest(absltest.TestCase):
     ):
       _take(1, batch_size=1, grad_accum=1)
     super_init.assert_called_once_with()
+
+  def test_eval_ranks_get_equal_disjoint_repeatable_batches(self):
+    def batches(rank):
+      stream = bagz_data.eval_stream(
+          _records(10),
+          _collate,
+          seed=3,
+          num_records=7,
+          batch_size=2,
+          rank=rank,
+          world_size=2,
+      )
+      first, second = list(stream), list(stream)
+      self.assertEqual(first, second)
+      return [b["input_ids"] for b in first]
+
+    rank0, rank1 = batches(0), batches(1)
+    self.assertLen(rank0, 1)
+    self.assertLen(rank1, 1)
+    self.assertEmpty(set(rank0[0]) & set(rank1[0]))
 
 
 if __name__ == "__main__":

@@ -21,6 +21,7 @@ from typing import Any, Callable
 
 from absl import logging
 import ml_collections
+import peft
 import torch
 from torch import nn
 import transformers
@@ -274,12 +275,25 @@ class GemmaAudioEngine(base.ModelEngine):
       AutoModelForCausalLM model on the device, and processor is the
       AutoProcessor instance.
     """
-    del self, kwargs  # Unused.
+    del self  # Unused.
+    cfg = kwargs.get("cfg")
     processor = transformers.AutoProcessor.from_pretrained(model_id)
     processor.tokenizer.padding_side = "right"
     # Gemma 3n trains with eager attention.
     model = transformers.AutoModelForMultimodalLM.from_pretrained(
         model_id, attn_implementation="eager"
     )
+    if cfg and cfg.training.get("use_lora", False):
+      lora = cfg.training.lora
+      model = peft.get_peft_model(
+          model,
+          peft.LoraConfig(
+              task_type="CAUSAL_LM",
+              r=lora.r,
+              lora_alpha=lora.alpha,
+              lora_dropout=lora.dropout,
+              target_modules=list(lora.target_modules),
+          ),
+      )
     model.to(device)
     return model, processor

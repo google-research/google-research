@@ -48,6 +48,28 @@ class GemmaAudioEngineTest(absltest.TestCase):
     model.to.assert_called_once_with("cpu")
     self.assertEqual(processor.tokenizer.padding_side, "right")
 
+  @mock.patch.object(gemma_audio, "peft")
+  @mock.patch.object(gemma_audio, "transformers")
+  def test_load_model_and_processor_with_lora(self, mock_tf, mock_peft):
+    lora = {"r": 8, "alpha": 16, "dropout": 0.0, "target_modules": ("q",)}
+    cfg = ml_collections.ConfigDict(
+        {"training": {"use_lora": True, "lora": lora}}
+    )
+    model, _ = self.engine.load_model_and_processor("id", "cpu", cfg=cfg)
+    mock_peft.LoraConfig.assert_called_once_with(
+        task_type="CAUSAL_LM",
+        r=8,
+        lora_alpha=16,
+        lora_dropout=0.0,
+        target_modules=["q"],
+    )
+    mock_peft.get_peft_model.assert_called_once_with(
+        mock_tf.AutoModelForMultimodalLM.from_pretrained.return_value,
+        mock_peft.LoraConfig.return_value,
+    )
+    self.assertIs(model, mock_peft.get_peft_model.return_value)
+    model.to.assert_called_once_with("cpu")
+
   def test_get_transform_fn(self):
     mock_processor = mock.Mock()
 

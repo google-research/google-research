@@ -213,6 +213,45 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
           output_path=mock_output_path,
       )
 
+  def test_bagz_eval_uses_unwrapped_eval_stream(self):
+    cfg = self._make_config()
+    cfg.dataset.update(
+        format="bagz", eval_split="validation", eval_num_records=8
+    )
+    cfg.training.eval_steps = 5
+    cfg.eval = {"eval_batch_size": 2}
+    self.enter_context(
+        unittest.mock.patch.object(
+            sft.bagz_data, "split_source", return_value=[b""] * 8
+        )
+    )
+    mock_config = self.enter_context(
+        unittest.mock.patch.object(trl, "SFTConfig", autospec=True)
+    )
+    mock_trainer = self.enter_context(
+        unittest.mock.patch.object(
+            sft_trainer, "CustomSFTTrainer", autospec=True
+        )
+    )
+
+    sft.GemmaSFTTrainerStrategy().train(
+        engine=FakeModelEngine(),
+        dataset=[b""] * 8,
+        cfg=cfg,
+        device=MockCpuDevice(),
+        model=torch.nn.Module(),
+        processor=object(),
+        output_path="/tmp/dummy_output",
+    )
+
+    self.assertEqual(mock_config.call_args.kwargs["eval_strategy"], "steps")
+    self.assertEqual(mock_config.call_args.kwargs["eval_steps"], 5)
+    eval_dataset = mock_trainer.call_args.kwargs["eval_dataset"]
+    self.assertIsNotNone(eval_dataset)
+    self.assertIs(
+        mock_trainer.return_value.get_eval_dataloader(), eval_dataset
+    )
+
 
 class CustomSFTTrainerTest(absltest.TestCase):
 

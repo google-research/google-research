@@ -324,7 +324,7 @@ class DataCollatorCTCWithPadding:
 def get_dataset(cfg):
   """Loads and prepares the dataset."""
   if cfg.dataset.get("format") == "bagz":
-    return bagz_data.train_source(cfg)
+    return bagz_data.split_source(cfg, cfg.dataset.train_split)
   import os  # pylint: disable=g-import-not-at-top
   dataset_path = cfg.dataset.dataset_path
 
