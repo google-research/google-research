@@ -24,8 +24,7 @@ import tensorflow as tf
 class SequentialAttention(tf.Module):
   """SequentialAttention module."""
 
-  def __init__(
-      self,
+  def __init__(self,
       num_candidates,
       num_candidates_to_select,
       num_candidates_to_select_per_step=1,
@@ -72,18 +71,22 @@ class SequentialAttention(tf.Module):
       )
 
   @tf.Module.with_name_scope
-  def __call__(self, training_percentage):
-    """Calculates attention weights for all candidates.
-
+  def _get_current_step(self, training_percentage):
+    """Calculates current step information based on training progress.
+    
+    Extracts and encapsulates the logic for determining the current feature
+    selection step and related flags.
+    
     Args:
       training_percentage: Percentage of training process that has been done.
-        This input argument should be between 0 and 1 and should be montonically
+        This input argument should be between 0 and 1 and should be monotonically
         increasing.
-
+    
     Returns:
-      A vector of attention weights of size self._num_candidates. All the
-      weights
-      are between 0 and 1 and sum to 1.
+      A tuple of (curr_index, should_train, should_select):
+        - curr_index: Current step index, clamped to [0, num_steps-1]
+        - should_train: Boolean flag indicating if in warm-up phase
+        - should_select: Boolean flag indicating if new features should be selected
     """
     percentage = (training_percentage - self._start_percentage) / (
         self._stop_percentage - self._start_percentage
@@ -97,10 +100,36 @@ class SequentialAttention(tf.Module):
 
     num_selected = tf.math.reduce_sum(self.selected_features)
     should_select = tf.greater_equal(curr_index, num_selected)
+    
+    return curr_index, should_train, should_select
+
+  @tf.Module.with_name_scope
+  def __call__(self, training_percentage):
+    """Calculates attention weights for all candidates.
+
+    Args:
+      training_percentage: Percentage of training process that has been done.
+        This input argument should be between 0 and 1 and should be montonically
+        increasing.
+
+    Returns:
+      A vector of attention weights of size self._num_candidates. All the
+      weights
+      are between 0 and 1 and sum to 1.
+    """
+    # Get current step information
+    curr_index, should_train, should_select = self._get_current_step(
+        training_percentage
+    )
+
+    # Compute softmax weights once for unselected candidates
+    # This will be used for both feature selection (top-k) and the final output
+    candidates_mask = 1.0 - self.selected_features
+    softmax = self._softmax_with_mask(self._attention_weights, candidates_mask)
+    
+    # Select top-k features from the computed softmax
     _, new_indices = tf.math.top_k(
-        self._softmax_with_mask(
-            self._attention_weights, 1.0 - self.selected_features
-        ),
+        softmax,
         k=self._num_candidates_to_select_per_step,
     )
     new_indices = self._k_hot_mask(new_indices, self._num_candidates)
@@ -122,8 +151,12 @@ class SequentialAttention(tf.Module):
     reset_op = self._attention_weights.assign(new_weights)
 
     with tf.control_dependencies([select_op, reset_op]):
-      candidates = 1.0 - self.selected_features
-      softmax = self._softmax_with_mask(self._attention_weights, candidates)
+      # Return attention weights based on training phase:
+      # - In warm-up phase: return all ones (all features participate)
+      # - In selection phase: return softmax + hardened selections
+      #   The addition combines:
+      #   - softmax: soft weights [0-1] for unselected features
+      #   - selected_features: hard mask [0 or 1] for selected features
       return tf.cond(
           should_train,
           lambda: tf.ones(self._num_candidates),
