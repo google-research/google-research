@@ -41,11 +41,8 @@ _DIVERGENCE_CLASS = flags.DEFINE_enum(
     enum_values=[
         'drmmd',
         'kl_divergence',
-        'reverse_kl',
-        'jensen_shannon',
         'total_variation',
         'pearson_chi_squared',
-        'squared_hellinger',
         'hockey_stick',
     ],
     help='Divergence to use as a statistic for two sample test.',
@@ -167,11 +164,8 @@ _DEBUG_LOGGING = flags.DEFINE_bool(
 DIVERGENCE_MAP = {
     'hockey_stick': likelihood_ratio.SymmetricHockeyStick,
     'kl_divergence': likelihood_ratio.SymmetricKLDivergence,
-    'reverse_kl': likelihood_ratio.SymmetricReverseKL,
-    'jensen_shannon': likelihood_ratio.SymmetricJensenShannon,
     'total_variation': likelihood_ratio.SymmetricTotalVariation,
     'pearson_chi_squared': likelihood_ratio.SymmetricPearsonChiSquared,
-    'squared_hellinger': likelihood_ratio.SymmetricSquaredHellinger,
 }
 
 

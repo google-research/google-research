@@ -15,13 +15,38 @@
 
 """Implements f-divergence estimators based on the likelihood ratio."""
 
+import jax
 import jax.numpy as jnp
+import jax.scipy.linalg as jsl
 from f_divergence_tests import testing_typing
 from f_divergence_tests.divergence import kernel as kernel_module
 
 
+def regularized_cho_factor(
+    k_xx, lmbda
+):
+  """Computes the Cholesky factorization of `k_xx + m * lmbda * I`.
+
+  Args:
+    k_xx: Kernel matrix of the denominator distribution x, shape `[m, m]`.
+    lmbda: Positive regularization parameter.
+
+  Returns:
+    A `(factor, lower)` tuple as returned by `jax.scipy.linalg.cho_factor`,
+    where `factor` has shape `[m, m]`.
+
+  Example:
+    ```python
+    k_xx = jnp.eye(4, dtype=jnp.float32)
+    cho_x = regularized_cho_factor(k_xx, lmbda=0.1)
+    ```
+  """
+  m = k_xx.shape[0]
+  return jsl.cho_factor(k_xx + m * lmbda * jnp.eye(m, dtype=k_xx.dtype))
+
+
 class LikelihoodRatioEstimator(kernel_module.KernelDivergence):
-  """Estimates the likelihood ratio between two distributions using samples.
+  """Estimates the likelihood ratio dP_y/dP_x between two distributions.
 
   Estimates the likelihood ratio function between two distributions using
   samples based on the estimator proposed in https://arxiv.org/abs/2409.14980
@@ -36,6 +61,11 @@ class LikelihoodRatioEstimator(kernel_module.KernelDivergence):
   """
 
   def __init__(self, lmbda):
+    """Initializes the instance.
+
+    Args:
+      lmbda: Positive regularization parameter.
+    """
     super().__init__(has_vectorized_kernel=False)
     self.lmbda = lmbda
 
@@ -44,39 +74,39 @@ class LikelihoodRatioEstimator(kernel_module.KernelDivergence):
       k_zx,
       k_zy,
       k_xx,
-      inv_k_xx,
+      cho_factor_k_xx,
       k_xy,
   ):
-    """Estimates the likelihood ratio between two distributions using samples.
+    """Estimates the likelihood ratio dP_y/dP_x at query points z.
 
-    Uses DrMMD's estimator for the likelihood ratio using expression (71) in
-    their paper.
+    Uses DrMMD's estimator for the likelihood ratio (expression (71) in
+    https://arxiv.org/abs/2409.14980), where the x-distribution is the
+    denominator and the result estimates dP_y/dP_x at z.
 
     Args:
-      k_zx: Kernel matrix of the first distribution.
-      k_zy: Kernel matrix of the second distribution.
-      k_xx: Kernel matrix of the first distribution.
-      inv_k_xx: Inverse of the kernel matrix of the first distribution.
-      k_xy: Kernel matrix of the interpolation.
+      k_zx: Kernel matrix between queries z and denominator x, shape `[n_z, m]`.
+      k_zy: Kernel matrix between queries z and numerator y, shape `[n_z, n]`.
+      k_xx: Kernel matrix of the denominator distribution x, shape `[m, m]`.
+      cho_factor_k_xx: Cholesky factor from `regularized_cho_factor(k_xx,
+        self.lmbda)`.
+      k_xy: Cross-kernel matrix between x and y, shape `[m, n]`.
 
     Returns:
-      The likelihood ratio between the two distributions.
+      Estimated likelihood ratio dP_y/dP_x at z, shape `[n_z]`.
     """
     first_term = k_zy.mean(axis=1) - k_zx.mean(axis=1)
-    second_term = -(k_zx @ inv_k_xx @ k_xy).mean(axis=1)
-    third_term = k_zx @ inv_k_xx @ k_xx.mean(axis=1)
-
+    second_term = -(k_zx @ jsl.cho_solve(cho_factor_k_xx, k_xy.mean(axis=1)))
+    third_term = k_zx @ jsl.cho_solve(cho_factor_k_xx, k_xx.mean(axis=1))
     chi_square_vals = (
-        (first_term + second_term + third_term).squeeze()
+        (first_term + second_term + third_term)
         / self.lmbda
-        * 2
-        * (1 + self.lmbda)
+        * 2.0
+        * (1.0 + self.lmbda)
     )
-    likelihood_vals = chi_square_vals + 1
-    return likelihood_vals
+    return chi_square_vals + 1.0
 
 
-class DrMMDSymmetric(kernel_module.KernelDivergence):
+class DrMMDSymmetric(LikelihoodRatioEstimator):
   """Computes the De-regularized maximum mean discrepancy.
 
   De-regularized maximum mean discrepancy (DrMMD) is introduced in
@@ -86,32 +116,54 @@ class DrMMDSymmetric(kernel_module.KernelDivergence):
     lmbda: Regularization parameter. As lmbda goes to zero, DrMMD approaches the
       chi-squared divergence. As lmbda goes to infinity, DrMMD approaches the
       MMD.
+    symmetric: Whether `__call__` takes the maximum over both directions.
   """
 
-  def __init__(self, lmbda):
-    super().__init__(has_vectorized_kernel=False)
-    self.lmbda = lmbda
+  symmetric: bool = True
 
-  def _drmmd(
+  def directional(
       self, k_xx, k_yy, k_xy
   ):
-    _, m = k_yy.shape[0], k_xx.shape[0]
-    inv_k_xx = jnp.linalg.inv(k_xx + m * self.lmbda * jnp.eye(k_xx.shape[0]))
+    """Estimates directional DrMMD D(P_y || P_x) with x as the denominator.
 
-    part1 = k_yy.mean() + k_xx.mean() - 2 * k_xy.mean()
-    part2 = -(k_xy.T @ inv_k_xx @ k_xy).mean()
-    part3 = (k_xx.T @ inv_k_xx @ k_xy).mean() * 2
-    part4 = -(k_xx.T @ inv_k_xx @ k_xx).mean()
+    Args:
+      k_xx: Kernel matrix of the denominator distribution x, shape `[m, m]`.
+      k_yy: Kernel matrix of the numerator distribution y, shape `[n, n]`.
+      k_xy: Cross-kernel matrix between x and y, shape `[m, n]`.
 
-    return (part1 + part2 + part3 + part4) / self.lmbda * (1 + self.lmbda)
+    Returns:
+      Scalar directional DrMMD estimate.
+    """
+    cho_x = regularized_cho_factor(k_xx, self.lmbda)
+    k_xx_mean = k_xx.mean(axis=1)
+    k_xy_mean = k_xy.mean(axis=1)
+    sol_xy = jsl.cho_solve(cho_x, k_xy_mean)
+    sol_xx = jsl.cho_solve(cho_x, k_xx_mean)
+
+    part1 = k_yy.mean() + k_xx.mean() - 2.0 * k_xy.mean()
+    part2 = -(k_xy_mean @ sol_xy)
+    part3 = (k_xx_mean @ sol_xy) * 2.0
+    part4 = -(k_xx_mean @ sol_xx)
+
+    return (part1 + part2 + part3 + part4) / self.lmbda * (1.0 + self.lmbda)
 
   def __call__(
       self, k_xx, k_yy, k_xy
   ):
-    p_vs_q = self._drmmd(k_xx, k_yy, k_xy)
-    q_vs_p = self._drmmd(k_yy, k_xx, k_xy.T)
+    """Estimates DrMMD between two distributions.
 
-    return jnp.maximum(p_vs_q, q_vs_p)
+    Args:
+      k_xx: Kernel matrix of the first distribution, shape `[m, m]`.
+      k_yy: Kernel matrix of the second distribution, shape `[n, n]`.
+      k_xy: Cross-kernel matrix between the two distributions, shape `[m, n]`.
+
+    Returns:
+      Scalar DrMMD estimate.
+    """
+    d = self.directional(k_xx, k_yy, k_xy)
+    if not self.symmetric:
+      return d
+    return jnp.maximum(d, self.directional(k_yy, k_xx, k_xy.T))
 
 
 class KernelFDivergence(LikelihoodRatioEstimator):
@@ -119,61 +171,86 @@ class KernelFDivergence(LikelihoodRatioEstimator):
 
   This class is a base class for kernel f-divergence estimators. It is a wrapper
   around the likelihood ratio estimator that computes the f-divergence from the
-  likelihood ratio using the following identity:
-    D_f(P||Q) = E_x[f'(dP/dQ(x))] - E_y[f_star(f'(dP/dQ(y)))]
-  where f_star is the convex conjugate of f and f' is the first derivative of
-  the f function.
+  likelihood ratio using the variational identity:
+    D_f(P_y || P_x) = E_y[g(r(y))] - E_x[f_star(g(r(x)))]
+  where r = dP_y/dP_x, f_star is the convex conjugate of f, and g = f' is the
+  first derivative of the f function.
 
   Attributes:
-    ratio_postprocess_fn: first derivative of the f function defining the
-      f-divergence.Function that maps the likelihood ratio to the divergence.
+    lmbda: Regularization parameter.
+    ratio_postprocess_fn: First derivative of the f function defining the
+      f-divergence. Function that maps the likelihood ratio to the divergence.
     conjugate_fn: Function that maps the divergence to the convex conjugate.
+    symmetric: Class attribute indicating whether `__call__` takes the maximum
+      over both directions; overridden by symmetric variants.
   """
 
+  symmetric: bool = False
+
   def __init__(self, lmbda, ratio_postprocess_fn, conjugate_fn):
+    """Initializes the instance.
+
+    Args:
+      lmbda: Positive regularization parameter.
+      ratio_postprocess_fn: First derivative `g = f'` of the f-divergence
+        generator.
+      conjugate_fn: Convex conjugate `f*` of the f-divergence generator.
+    """
     super().__init__(lmbda)
     self.ratio_postprocess_fn = ratio_postprocess_fn
     self.conjugate_fn = conjugate_fn
+
+  def directional(
+      self, k_xx, k_yy, k_xy
+  ):
+    """Estimates D_f(P_y || P_x) = E_y[g(r(y))] - E_x[f*(g(r(x)))], r = dP_y/dP_x.
+
+    Args:
+      k_xx: Kernel matrix of the denominator distribution x, shape `[m, m]`.
+      k_yy: Kernel matrix of the numerator distribution y, shape `[n, n]`.
+      k_xy: Cross-kernel matrix between x and y, shape `[m, n]`.
+
+    Returns:
+      Scalar directional f-divergence estimate `D_f(P_y || P_x)`.
+    """
+    cho_x = regularized_cho_factor(k_xx, self.lmbda)
+    r_x = self.likelihood_ratio_yx_on_z(k_xx, k_xy, k_xx, cho_x, k_xy)
+    r_y = self.likelihood_ratio_yx_on_z(k_xy.T, k_yy, k_xx, cho_x, k_xy)
+    g = self.ratio_postprocess_fn
+    return jnp.mean(g(r_y)) - jnp.mean(self.conjugate_fn(g(r_x)))
 
   def __call__(
       self, k_xx, k_yy, k_xy
   ):
     """Estimates f-divergence from variational form and likelihood ratio.
 
-    Specifically, it estimates the f-divergence from formula (1) in paper:
-                sum_x g(x) - sum_y f_star(g(x))
-    with g=ratio_postprocess_fn and f_star=conjugate_fn.
-
     Args:
-      k_xx: Kernel matrix of the first distribution.
-      k_yy: Kernel matrix of the second distribution.
-      k_xy: Kernel matrix of the cross distributions.
+      k_xx: Kernel matrix of the first distribution, shape `[m, m]`.
+      k_yy: Kernel matrix of the second distribution, shape `[n, n]`.
+      k_xy: Kernel matrix of the cross distributions, shape `[m, n]`.
 
     Returns:
-      The f-divergence between the two distributions.
+      The f-divergence between the two distributions (directional if
+      `self.symmetric` is False, or the maximum of both directions if True).
     """
-    _, m = k_yy.shape[0], k_xx.shape[0]
-
-    inv_k_xx = jnp.linalg.inv(k_xx + m * self.lmbda * jnp.eye(m))
-
-    dq_dp_x = self.likelihood_ratio_yx_on_z(
-        k_zx=k_xx, k_zy=k_xy, k_xx=k_xx, inv_k_xx=inv_k_xx, k_xy=k_xy
-    )
-    dq_dp_y = self.likelihood_ratio_yx_on_z(
-        k_zx=k_xy.T, k_zy=k_yy, k_xx=k_xx, inv_k_xx=inv_k_xx, k_xy=k_xy
-    )
-    divergence_q_p = jnp.mean(self.ratio_postprocess_fn(dq_dp_y)) - jnp.mean(
-        self.conjugate_fn(self.ratio_postprocess_fn(dq_dp_x))
-    )
-
-    return divergence_q_p
+    d = self.directional(k_xx, k_yy, k_xy)
+    if not self.symmetric:
+      return d
+    return jnp.maximum(d, self.directional(k_yy, k_xx, k_xy.T))
 
 
 class HockeyStickKernelFDivergence(KernelFDivergence):
   """Hockey-stick divergence from variational form and likelihood ratio."""
 
   def __init__(self, lmbda, order = 1.0):
-    g = lambda x: x > order
+    """Initializes the instance.
+
+    Args:
+      lmbda: Positive regularization parameter.
+      order: Order `e^eps` of the hockey-stick divergence (default 1.0, which
+        corresponds to total variation).
+    """
+    g = lambda r: (r > order).astype(r.dtype)
     f_star = lambda u: jnp.where(
         (u <= 1) & (u >= 0),  # Condition: evaluated for each element
         u * order,  # Value if condition is True
@@ -190,45 +267,6 @@ class KullbackLeiblerFDivergence(KernelFDivergence):
     g = lambda r: 1.0 + jnp.log(r)
     # Corresponds to f*(u) = exp(u - 1)
     f_star = lambda u: jnp.exp(u - 1.0)
-    super().__init__(lmbda, ratio_postprocess_fn=g, conjugate_fn=f_star)
-
-
-class ReverseKLFDivergence(KernelFDivergence):
-  """Reverse KL divergence from variational form."""
-
-  def __init__(self, lmbda):
-    # Corresponds to g*(x) = 1 - 1/r
-    g = lambda r: 1.0 - (1.0 / r)
-    # Corresponds to f*(u) = -log(1 - u) for u < 1
-    f_star = lambda u: jnp.where(u < 1.0, -jnp.log(1.0 - u), jnp.inf)
-    super().__init__(lmbda, ratio_postprocess_fn=g, conjugate_fn=f_star)
-
-
-class JeffreysFDivergence(KernelFDivergence):
-  """Jeffreys (symmetrized KL) divergence from variational form."""
-
-  def __init__(self, lmbda):
-    # Corresponds to g*(x) = log(r) + (r-1)/r
-    g = lambda r: jnp.log(r) + (r - 1.0) / r
-
-    # f*(u) does not have a simple closed-form expression from the table.
-    def f_star(u):
-      raise NotImplementedError(
-          "The convex conjugate for Jeffreys divergence is not available "
-          "in a simple closed form."
-      )
-
-    super().__init__(lmbda, ratio_postprocess_fn=g, conjugate_fn=f_star)
-
-
-class JensenShannonFDivergence(KernelFDivergence):
-  """Jensen-Shannon divergence from variational form."""
-
-  def __init__(self, lmbda):
-    # Corresponds to g*(x) = log(2r / (r+1))
-    g = lambda r: jnp.log(2.0 * r / (r + 1.0))
-    # Corresponds to f*(u) = log(1 + exp(u)) - log(2)
-    f_star = lambda u: jnp.log(1.0 + jnp.exp(u)) - jnp.log(2.0)
     super().__init__(lmbda, ratio_postprocess_fn=g, conjugate_fn=f_star)
 
 
@@ -254,38 +292,34 @@ class PearsonChiSquaredFDivergence(KernelFDivergence):
     super().__init__(lmbda, ratio_postprocess_fn=g, conjugate_fn=f_star)
 
 
-class SquaredHellingerFDivergence(KernelFDivergence):
-  """Squared Hellinger distance from variational form."""
-
-  def __init__(self, lmbda):
-    # Corresponds to g*(x) = (sqrt(r)-1)/sqrt(r) = 1 - 1/sqrt(r)
-    g = lambda r: 1.0 - 1.0 / jnp.sqrt(r)
-    # Corresponds to f*(u) = u / (1-u) for u < 1
-    f_star = lambda u: jnp.where(u < 1.0, u / (1.0 - u), jnp.inf)
-    super().__init__(lmbda, ratio_postprocess_fn=g, conjugate_fn=f_star)
-
-
 def symmetric_estimator_factory(class_):
+  """Returns a symmetric subclass of `class_` with `symmetric = True`.
+
+  Args:
+    class_: A `KernelFDivergence` subclass.
+
+  Returns:
+    A subclass of `class_` with `symmetric = True` and `__name__` set to
+    `f"Symmetric{class_.__name__}"`.
+
+  Example:
+    ```python
+    SymmetricKL = symmetric_estimator_factory(KullbackLeiblerFDivergence)
+    estimator = SymmetricKL(lmbda=0.1)
+    ```
+  """
 
   class SymmetricEstimator(class_):
+    symmetric = True
 
-    def __call__(self, k_xx, k_yy, k_xy):
-      dq_dp = super().__call__(k_xx, k_yy, k_xy)  # pytype: disable=attribute-error
-      dp_dq = super().__call__(k_yy, k_xx, k_xy.T)  # pytype: disable=attribute-error
-      return jnp.maximum(dp_dq, dq_dp)
-
+  SymmetricEstimator.__name__ = f"Symmetric{class_.__name__}"
+  SymmetricEstimator.__qualname__ = f"Symmetric{class_.__name__}"
   return SymmetricEstimator
 
 
 SymmetricHockeyStick = symmetric_estimator_factory(HockeyStickKernelFDivergence)
 SymmetricKLDivergence = symmetric_estimator_factory(KullbackLeiblerFDivergence)
-SymmetricReverseKL = symmetric_estimator_factory(ReverseKLFDivergence)
-SymmetricJensenShannon = symmetric_estimator_factory(JensenShannonFDivergence)
 SymmetricTotalVariation = symmetric_estimator_factory(TotalVariationFDivergence)
 SymmetricPearsonChiSquared = symmetric_estimator_factory(
     PearsonChiSquaredFDivergence
 )
-SymmetricSquaredHellinger = symmetric_estimator_factory(
-    SquaredHellingerFDivergence
-)
-
