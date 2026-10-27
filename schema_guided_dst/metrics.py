@@ -44,8 +44,9 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-from fuzzywuzzy import fuzz
+
 import numpy as np
+from thefuzz import fuzz
 
 F1Scores = collections.namedtuple("F1Scores", ["f1", "precision", "recall"])
 
