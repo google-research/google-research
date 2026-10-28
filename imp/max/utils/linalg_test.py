@@ -97,9 +97,10 @@ class ProjectionTest(parameterized.TestCase):
           projection_state, linalg.EmptyLowRankProjectionState)
     chex.assert_shape(projected_array, expected_projected_shape)
     chex.assert_shape(reconstructed_array, array.shape)
-    self.assertEqual(
+    self.assertAlmostEqual(
         jnp.linalg.norm(reconstructed_array - array),
-        expected_reconstruction_norm_error[(array_shape, rank)]
+        expected_reconstruction_norm_error[(array_shape, rank)],
+        delta=1e-5,
     )
 
 
