@@ -584,7 +584,7 @@ def main(argv):
     ############################################################################
     LOGGER.debug("DONE WITH THE PRODUCTION")
     output_file.close()
-    with utils.log_duration(LOGGER, "main", "gsutil transfer"):
+    with utils.log_duration(LOGGER, "main", "gcloud storage transfer"):
       command = [
           "/root/google-cloud-sdk/bin/gcloud",
           "storage",
