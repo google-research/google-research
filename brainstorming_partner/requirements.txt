@@ -1,0 +1,11 @@
+# Python dependencies for running outside of Blaze; run.sh installs them into
+# a virtual environment. Keep in sync with `dependencies` in pyproject.toml.
+absl-py>=2.0.0  # Command-line flags and logging.
+fastapi>=0.100.0  # Web framework for the HTTP and WebSocket endpoints.
+google-api-core>=2.15.0  # Client options and error types for Google APIs.
+google-cloud-speech>=2.25.0  # Speech-to-Text V1 and V2 clients.
+google-genai>=1.0.0  # Gemini client, used through Vertex AI.
+httpx>=0.24.0  # HTTP client; also required by FastAPI's TestClient.
+pydantic>=2.0.0  # Schema for structured Gemini responses.
+uvicorn>=0.20.0  # ASGI server that runs the FastAPI app.
+websockets>=11.0  # WebSocket protocol support for uvicorn.

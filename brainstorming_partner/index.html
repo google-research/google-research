@@ -1,0 +1,1527 @@
+<!--
+   Copyright 2026 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brainstorming Coworker</title>
+    <style>
+        /* ==========================================================================
+           1. Theme Variables & Design Tokens (Earth-Tone Palette)
+           ========================================================================== */
+        :root {
+            --bg-page: #f7f4ee;
+            --bg-container: #faf7f2;
+            --bg-card: #ffffff;
+            --bg-card-alt: #fcfaf7;
+            --bg-circle: #f0ebe1;
+
+            --text-main: #2c2420;
+            --text-dark: #1f1815;
+            --text-muted: #786c62;
+            --text-placeholder: #a0988e;
+
+            --color-earth-primary: #a85a32;
+            --color-earth-primary-hover: #8c4a27;
+            --color-earth-secondary: #786c62;
+            --color-earth-accent: #c4724e;
+            --color-earth-bg-light: #f7efe6;
+
+            --color-success: #5a7862;
+            --color-success-bg: #edf2ee;
+            --color-warning: #b8860b;
+            --color-warning-bg: #faf4e6;
+            --color-danger: #a84632;
+            --color-danger-bg: #f7eae6;
+
+            --border-color: #e6dfd3;
+            --border-muted: #ece6da;
+            --border-circle: #e2dacd;
+
+            --shadow-subtle: 0 2px 8px rgba(44, 36, 32, 0.04);
+            --shadow-card: 0 4px 16px rgba(44, 36, 32, 0.05);
+        }
+
+        /* ==========================================================================
+           2. Reset & Layout
+           ========================================================================== */
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            margin: 0;
+            padding: 40px 20px;
+            background-color: var(--bg-page);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .main-wrapper {
+            width: 100%;
+            max-width: 680px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .container {
+            background: var(--bg-container);
+            padding: 40px 32px;
+            border-radius: 24px;
+            box-shadow: var(--shadow-card);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        /* ==========================================================================
+           3. Status Icon & Header
+           ========================================================================== */
+        .status-icon-wrapper {
+            position: relative;
+            margin-bottom: 20px;
+            user-select: none;
+            background: transparent;
+        }
+
+        .status-icon-circle {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background-color: var(--bg-circle);
+            border: 1px solid var(--border-circle);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-main);
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow-subtle);
+            cursor: default;
+        }
+
+        .status-icon-wrapper.interactable,
+        .status-icon-wrapper.interactable .status-icon-circle {
+            cursor: pointer;
+        }
+
+        .status-icon-wrapper.interactable:hover .status-icon-circle {
+            transform: scale(1.06);
+            background-color: #ebe4d8;
+        }
+
+        .status-icon-circle svg {
+            width: 32px;
+            height: 32px;
+            transition: color 0.3s ease, stroke 0.3s ease;
+        }
+
+        @keyframes dazzle-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(196, 114, 78, 0.7); }
+            70% { box-shadow: 0 0 0 20px rgba(196, 114, 78, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(196, 114, 78, 0); }
+        }
+
+        @keyframes dazzle-mic {
+            0%, 100% { filter: brightness(1); }
+            50% { filter: brightness(1.3) drop-shadow(0 0 2px var(--color-earth-primary)); opacity: 0.7; }
+        }
+
+        .status-icon-wrapper.active .status-icon-circle {
+            background-color: var(--color-earth-bg-light);
+            border-color: var(--color-earth-accent);
+            color: var(--color-earth-primary);
+            animation: dazzle-pulse 1.5s infinite;
+        }
+
+        .status-icon-wrapper.active svg {
+            animation: dazzle-mic 1.5s ease-in-out infinite;
+        }
+
+        .status-header {
+            margin-bottom: 20px;
+        }
+
+        .partner-title {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-dark);
+            margin: 0 0 6px 0;
+            letter-spacing: -0.01em;
+        }
+
+        .status-subtitle {
+            font-size: 1.05rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+
+        /* ==========================================================================
+           4. AI Suggestion Hero Card (With Dismiss Button)
+           ========================================================================== */
+        .hero-suggestion-section {
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .hero-suggestion-card {
+            position: relative;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 28px 36px 28px 32px;
+            box-shadow: var(--shadow-card);
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .hero-dismiss-btn {
+            position: absolute;
+            top: 10px;
+            right: 12px;
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.4rem;
+            line-height: 1;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 50%;
+            transition: color 0.2s ease, background-color 0.2s ease;
+        }
+
+        .hero-dismiss-btn:hover {
+            color: var(--text-dark);
+            background-color: #ede6da;
+        }
+
+        .hero-suggestion-text {
+            font-family: "Georgia", "Garamond", "Baskerville", "Times New Roman", serif;
+            font-size: 1.35rem;
+            line-height: 1.55;
+            color: var(--text-dark);
+            font-style: italic;
+            margin: 0;
+        }
+
+        /* ==========================================================================
+           5. Timeline Section (Static Styling - Orange AI Suggestions, Grey Summaries)
+           ========================================================================== */
+        .timeline-section {
+            width: 100%;
+            margin-top: 10px;
+            text-align: left;
+        }
+
+        .timeline-header {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0 0 14px 0;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-muted);
+        }
+
+        .timeline-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .empty-timeline {
+            padding: 20px;
+            background-color: var(--bg-card-alt);
+            border: 1px dashed var(--border-color);
+            border-radius: 14px;
+            color: var(--text-placeholder);
+            font-style: italic;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+
+        /* AI Suggestions (Orange / Terracotta) */
+        .suggestion-card {
+            padding: 16px 20px;
+            border-radius: 14px;
+            background-color: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--color-earth-primary);
+            box-shadow: var(--shadow-subtle);
+        }
+
+        /* Human Conversation Summaries (Muted Grey / Taupe) */
+        .summary-card {
+            padding: 16px 20px;
+            border-radius: 14px;
+            background-color: var(--bg-card-alt);
+            border: 1px solid var(--border-color);
+            border-left: 4px solid var(--color-earth-secondary);
+            box-shadow: var(--shadow-subtle);
+            color: var(--text-muted);
+        }
+
+        .current-summary-card {
+            padding: 16px 20px;
+            border-radius: 14px;
+            background-color: var(--color-earth-bg-light);
+            border: 1px dashed var(--color-earth-accent);
+            border-left: 4px solid var(--color-earth-primary);
+        }
+
+        .suggestion-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .suggestion-title {
+            font-weight: 700;
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .summary-card .suggestion-title {
+            color: var(--text-muted);
+        }
+
+        .suggestion-time {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            background: #ede6da;
+            padding: 3px 10px;
+            border-radius: 12px;
+        }
+
+        .suggestion-body, .summary-body {
+            font-size: 1rem;
+            line-height: 1.45;
+            white-space: pre-wrap;
+        }
+
+        .suggestion-body {
+            color: var(--text-main);
+        }
+
+        .summary-body {
+            color: var(--text-muted);
+        }
+
+        /* ==========================================================================
+           6. External Details Section
+           ========================================================================== */
+        .details-toggle-container {
+            margin-top: 4px;
+            margin-bottom: 4px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-details {
+            background-color: transparent;
+            color: var(--text-muted);
+            border: 1px solid var(--border-color);
+            padding: 6px 18px;
+            border-radius: 16px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-details:hover {
+            background-color: #ede6da;
+            color: var(--text-dark);
+        }
+
+        .details-section {
+            background: var(--bg-container);
+            padding: 28px 32px;
+            border-radius: 20px;
+            box-shadow: var(--shadow-subtle);
+            border: 1px solid var(--border-color);
+        }
+
+        .api-status-bar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .api-status-card {
+            flex: 1 1 180px;
+            padding: 14px;
+            border-radius: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .api-status-title {
+            font-weight: 700;
+            font-size: 0.9rem;
+            color: var(--text-dark);
+        }
+
+        .api-status-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            word-break: break-all;
+        }
+
+        .status-badge, .session-state-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            text-transform: uppercase;
+            border: 1px solid transparent;
+        }
+
+        .session-state-badge {
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .connecting, .pending {
+            color: var(--color-warning);
+            border-color: #f2e3c6;
+        }
+
+        .ready, .disconnected {
+            color: var(--text-muted);
+            border-color: #dfd7c9;
+        }
+
+        .active, .live {
+            color: var(--color-success);
+            border-color: #c9dbc9;
+        }
+
+        .error {
+            color: var(--color-danger);
+            border-color: #f0c9c4;
+        }
+
+        .section-header-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
+
+        .section-header-bar strong {
+            font-size: 0.95rem;
+            color: var(--text-main);
+        }
+
+        .copy-btn {
+            padding: 4px 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            background-color: #ede6da;
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .copy-btn:hover {
+            background-color: #dfd7c9;
+        }
+
+        .copy-btn.copied {
+            background-color: var(--color-success-bg);
+            color: var(--color-success);
+        }
+
+        .console-box {
+            padding: 14px;
+            background-color: #24201d;
+            color: #8bbf9f;
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+            font-size: 0.85rem;
+            border-radius: 10px;
+            min-height: 110px;
+            max-height: 180px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            border: 1px solid #3c342f;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-top: 18px;
+            padding-top: 18px;
+            border-top: 1px dashed var(--border-color);
+        }
+
+        .metric-label {
+            margin: 0;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .metric-value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--color-earth-primary);
+        }
+    </style>
+</head>
+<body>
+    <!-- Chime played when the AI coworker has a new suggestion. -->
+    <audio id="chimeSound" src="/audio/notification.ogg" preload="auto"></audio>
+    <!-- Hidden count of audio bytes the server has received, for debugging. -->
+    <span id="totalBytes" style="display:none;">0</span>
+
+    <div class="main-wrapper">
+        <div class="container">
+            <!-- 1. Status Icon -->
+            <div class="status-icon-wrapper" id="statusIconWrapper">
+                <div class="status-icon-circle" id="statusIconCircle">
+                    <svg id="statusSvg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- 2. Status Header -->
+            <div class="status-header">
+                <h1 class="partner-title">Brainstorming Partner</h1>
+                <div class="status-subtitle" id="statusSubtitle">Connecting...</div>
+            </div>
+
+            <!-- 3. Current AI Suggestion (Hero Card with Dismiss Button) -->
+            <div class="hero-suggestion-section" id="heroSuggestionSection" style="display: none;">
+                <div class="hero-suggestion-card">
+                    <button class="hero-dismiss-btn" id="heroDismissBtn" aria-label="Dismiss suggestion">&times;</button>
+                    <p class="hero-suggestion-text" id="heroSuggestionText"></p>
+                </div>
+            </div>
+
+            <!-- 4. Timeline -->
+            <div class="timeline-section">
+                <div class="timeline-header">Timeline</div>
+                <div id="timelineContainer" class="timeline-list">
+                    <div class="empty-timeline">waiting to begin</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. Show Details Button & Section (External) -->
+        <div class="details-toggle-container">
+            <button id="detailsButton" class="btn-details">Show Details</button>
+            <button id="newSessionButton" class="btn-details">New Session</button>
+        </div>
+
+        <div id="detailsSection" class="details-section" style="display: none;">
+            <div class="api-status-bar">
+                <div class="api-status-card" id="connectionStatusCard">
+                    <div>
+                        <div class="api-status-title">
+                            Backend State
+                            <span id="sessionStateBadge" class="session-state-badge connecting">Connecting</span>
+                        </div>
+                        <div id="connectionEndpointLabel" class="api-status-sub">Disconnected</div>
+                    </div>
+                </div>
+
+                <div class="api-status-card" id="sttStatusCard">
+                    <div>
+                        <div class="api-status-title">Speech-to-Text API</div>
+                        <div id="sttModelLabel" class="api-status-sub">Model: Speech-to-Text v1</div>
+                    </div>
+                    <span id="sttStatusBadge" class="status-badge pending">Pending</span>
+                </div>
+
+                <div class="api-status-card" id="geminiStatusCard">
+                    <div>
+                        <div class="api-status-title">Brainstorming Partner API</div>
+                        <div id="geminiModelLabel" class="api-status-sub">Model: gemini-2.5-flash</div>
+                    </div>
+                    <span id="geminiStatusBadge" class="status-badge pending">Pending</span>
+                </div>
+            </div>
+            
+            <div class="section-header-bar">
+                <strong>Transcript:</strong>
+                <button class="copy-btn" onclick="copyToClipboard('transcript', this)">Copy</button>
+            </div>
+            <div id="transcript" class="console-box">Pending...</div>
+
+            <div class="metrics-grid">
+                <div>
+                    <p class="metric-label">Last Chunk Size</p>
+                    <span id="lastChunkSize" class="metric-value">0 B</span>
+                </div>
+                <div>
+                    <p class="metric-label">STT API Latency</p>
+                    <span id="sttLatency" class="metric-value">0 ms</span>
+                </div>
+                <div>
+                    <p class="metric-label">Gemini Latency</p>
+                    <span id="geminiLatency" class="metric-value">0 ms</span>
+                </div>
+                <div>
+                    <p class="metric-label">End-to-End Latency</p>
+                    <span id="e2eLatency" class="metric-value">0 ms</span>
+                </div>
+            </div>
+
+            <div class="section-header-bar">
+                <strong>Client Debug Log:</strong>
+                <button class="copy-btn" onclick="copyToClipboard('logBox', this)">Copy</button>
+            </div>
+            <div id="logBox" class="console-box"></div>
+        </div>
+    </div>
+
+    <script>
+        /* ==========================================================================
+           1. Application State & SVG Definitions
+           ========================================================================== */
+        const state = {
+            sessionState: 'Connecting', // Connecting, Ready, Active, Error
+            sessionStarted: false,
+            isPaused: false,
+            // Set when an error interrupts listening, so it resumes after reconnecting.
+            wasListeningBeforeError: false,
+            // Health of the WebSocket connection and each backend API.
+            wsLive: false,
+            sttLive: false,
+            geminiLive: false,
+            // Latest timeline data from the server, kept for re-rendering.
+            cachedHistory: [],
+            cachedCurrentSummary: '',
+            cachedCurrentSummaryRange: '',
+            // Suggestion shown in the hero card until the user dismisses it.
+            currentHeroSuggestion: '',
+            sessionStartTime: null,
+            // Time (performance.now()) and size of the last audio chunk sent.
+            lastChunkTime: 0,
+            lastChunkSize: 0,
+            mediaRecorder: null,
+            audioStream: null,
+            websocket: null,
+            // Timer that periodically restarts the MediaRecorder.
+            recorderInterval: null,
+        };
+
+        // Status icon artwork for each session state.
+        const SVG_ICONS = {
+            listening: '<path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+            paused: '<line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/>',
+            connecting: '<path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>',
+            error: '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>'
+        };
+
+        /* ==========================================================================
+           2. DOM Elements Cache
+           ========================================================================== */
+        const DOM = {
+            statusIconWrapper: document.getElementById('statusIconWrapper'),
+            statusSvg: document.getElementById('statusSvg'),
+            statusSubtitle: document.getElementById('statusSubtitle'),
+            heroSuggestionSection: document.getElementById('heroSuggestionSection'),
+            heroSuggestionText: document.getElementById('heroSuggestionText'),
+            heroDismissBtn: document.getElementById('heroDismissBtn'),
+            timelineContainer: document.getElementById('timelineContainer'),
+            detailsButton: document.getElementById('detailsButton'),
+            newSessionButton: document.getElementById('newSessionButton'),
+            detailsSection: document.getElementById('detailsSection'),
+            sessionStateBadge: document.getElementById('sessionStateBadge'),
+            connectionEndpointLabel: document.getElementById('connectionEndpointLabel'),
+            sttStatusBadge: document.getElementById('sttStatusBadge'),
+            sttModelLabel: document.getElementById('sttModelLabel'),
+            geminiStatusBadge: document.getElementById('geminiStatusBadge'),
+            geminiModelLabel: document.getElementById('geminiModelLabel'),
+            transcriptDiv: document.getElementById('transcript'),
+            lastChunkSizeSpan: document.getElementById('lastChunkSize'),
+            sttLatencySpan: document.getElementById('sttLatency'),
+            geminiLatencySpan: document.getElementById('geminiLatency'),
+            e2eLatencySpan: document.getElementById('e2eLatency'),
+            logBox: document.getElementById('logBox'),
+            chimeSound: document.getElementById('chimeSound'),
+            totalBytesSpan: document.getElementById('totalBytes'),
+        };
+
+        /* ==========================================================================
+           3. UI & State Sync Controllers
+           ========================================================================== */
+        // Updates the session state and its badge, then redraws the status icon.
+        function setSessionState(newState) {
+            const oldState = state.sessionState;
+            state.sessionState = newState;
+
+            if (DOM.sessionStateBadge) {
+                DOM.sessionStateBadge.textContent = newState;
+                DOM.sessionStateBadge.className = `session-state-badge ${newState.toLowerCase()}`;
+            }
+
+            updateStatusDisplay();
+
+            if (oldState !== newState) {
+                appendLog(`State transition: ${oldState} -> ${newState}`);
+            }
+        }
+
+        // Renders the status icon, tooltip, and subtitle for the session state.
+        function updateStatusDisplay() {
+            DOM.statusIconWrapper.classList.remove('active', 'connecting', 'ready', 'error', 'interactable');
+
+            if (state.sessionState === 'Connecting') {
+                DOM.statusSubtitle.textContent = 'Connecting...';
+                DOM.statusIconWrapper.classList.add('connecting');
+                DOM.statusSvg.innerHTML = SVG_ICONS.connecting;
+                DOM.statusIconWrapper.title = '';
+            } else if (state.sessionState === 'Error') {
+                DOM.statusSubtitle.textContent = 'Connection error occurred';
+                DOM.statusIconWrapper.classList.add('error');
+                DOM.statusSvg.innerHTML = SVG_ICONS.error;
+                DOM.statusIconWrapper.title = '';
+            } else if (state.sessionState === 'Ready') {
+                DOM.statusSubtitle.textContent = state.sessionStarted ? 'Click the icon above to continue' : 'Click the icon above to begin';
+                DOM.statusIconWrapper.classList.add('ready', 'interactable');
+                DOM.statusSvg.innerHTML = SVG_ICONS.paused;
+                DOM.statusIconWrapper.title = state.sessionStarted ? 'Click to continue' : 'Click to begin';
+            } else if (state.sessionState === 'Active') {
+                DOM.statusIconWrapper.classList.add('active', 'interactable');
+                DOM.statusSvg.innerHTML = SVG_ICONS.listening;
+                DOM.statusIconWrapper.title = 'Click to pause';
+                DOM.statusSubtitle.textContent = state.currentHeroSuggestion ? 'Speaking' : 'Listening quietly';
+            }
+        }
+
+        // Derives the session state from connection and API health, resuming
+        // listening if an error interrupted it.
+        function syncControlsAndState() {
+            const allLive = state.wsLive && state.sttLive && state.geminiLive;
+            if (!allLive) {
+                if (state.sessionState !== 'Error') {
+                    setSessionState('Connecting');
+                }
+            } else {
+                if (state.wasListeningBeforeError) {
+                    resumeListeningAutomatically();
+                } else if (state.sessionState === 'Connecting' || state.sessionState === 'Error') {
+                    setSessionState(state.sessionStarted && !state.isPaused ? 'Active' : 'Ready');
+                }
+            }
+            updateEmptyTimelineText();
+        }
+
+        // Shows the "waiting to begin" placeholder when the timeline is empty.
+        function updateEmptyTimelineText() {
+            const emptyEl = DOM.timelineContainer.querySelector('.empty-timeline');
+            if (emptyEl) {
+                emptyEl.textContent = 'waiting to begin';
+            } else if (!DOM.timelineContainer.children.length) {
+                DOM.timelineContainer.innerHTML = '<div class="empty-timeline">waiting to begin</div>';
+            }
+        }
+
+        // Updates the Speech-to-Text badge; an outage puts the session in Error.
+        function updateSttApiState(isLive, model) {
+            state.sttLive = isLive;
+            if (model && DOM.sttModelLabel) {
+                DOM.sttModelLabel.textContent = `Model: ${model}`;
+            }
+            if (DOM.sttStatusBadge) {
+                DOM.sttStatusBadge.textContent = isLive ? 'Live' : 'Error';
+                DOM.sttStatusBadge.className = `status-badge ${isLive ? 'live' : 'error'}`;
+            }
+            if (!isLive) {
+                if (state.sessionState === 'Active' || (state.sessionStarted && !state.isPaused)) {
+                    state.wasListeningBeforeError = true;
+                }
+                if (state.sessionState !== 'Error') {
+                    setSessionState('Error');
+                }
+            }
+            syncControlsAndState();
+        }
+
+        // Updates the Gemini badge; an outage puts the session in Error.
+        function updateGeminiApiState(isLive, model) {
+            state.geminiLive = isLive;
+            if (model && DOM.geminiModelLabel) {
+                DOM.geminiModelLabel.textContent = `Model: ${model}`;
+            }
+            if (DOM.geminiStatusBadge) {
+                DOM.geminiStatusBadge.textContent = isLive ? 'Live' : 'Error';
+                DOM.geminiStatusBadge.className = `status-badge ${isLive ? 'live' : 'error'}`;
+            }
+            if (!isLive) {
+                if (state.sessionState === 'Active' || (state.sessionStarted && !state.isPaused)) {
+                    state.wasListeningBeforeError = true;
+                }
+                if (state.sessionState !== 'Error') {
+                    setSessionState('Error');
+                }
+            }
+            syncControlsAndState();
+        }
+
+        /* ==========================================================================
+           4. API & WebSocket Communication
+           ========================================================================== */
+        // Connection-monitoring timers and timestamps.
+        let reconnectTimer = null;
+        let heartbeatInterval = null;
+        let lastPongRecvTime = Date.now();
+        let lastApiCheckTime = Date.now();
+        let apiStatusCheckPromise = null;
+
+        // Fetches API health from /api/status, and sends RESUME if the server's
+        // background tasks stopped during an active session. Concurrent calls
+        // share the in-flight request.
+        async function checkApiStatus() {
+            lastApiCheckTime = Date.now();
+            if (apiStatusCheckPromise) {
+                return apiStatusCheckPromise;
+            }
+            apiStatusCheckPromise = (async () => {
+                try {
+                    const sessionId = getSessionId();
+                    const url = sessionId ? `/api/status?session_id=${sessionId}` : '/api/status';
+                    const response = await fetch(url);
+                    const data = await response.json();
+
+                    if (data.stt) {
+                        const isLive = (data.stt.status === 'live');
+                        appendLog(`Speech-to-Text API: ${isLive ? 'Success' : 'Error'}`);
+                        updateSttApiState(isLive, data.stt.model);
+                    }
+
+                    if (data.gemini) {
+                        const isLive = (data.gemini.status === 'live');
+                        appendLog(`Brainstorming Partner API: ${isLive ? 'Success' : 'Error'}`);
+                        updateGeminiApiState(isLive, data.gemini.model);
+                    }
+
+                    if (data.session && state.sessionState === 'Active' && !state.isPaused) {
+                        if (!data.session.stt_task_running || !data.session.gemini_task_running) {
+                            appendLog('Background AI tasks stopped running on server. Re-syncing session...');
+                            if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+                                state.websocket.send('RESUME');
+                            }
+                        }
+                    }
+                } catch (err) {
+                    appendLog('Speech-to-Text API: Error');
+                    appendLog('Brainstorming Partner API: Error');
+                    updateSttApiState(false);
+                    updateGeminiApiState(false);
+                } finally {
+                    apiStatusCheckPromise = null;
+                }
+            })();
+            return apiStatusCheckPromise;
+        }
+
+        // Returns the ID from a /session/<id> URL, or '' if there is none.
+        function getSessionId() {
+            const pathParts = window.location.pathname.split('/');
+            return (pathParts.length >= 3 && pathParts[pathParts.length - 2] === 'session') ? pathParts[pathParts.length - 1] : '';
+        }
+
+        // Every 2s while connected: sends PING, reconnects if pongs stop or the
+        // send buffer stalls, re-checks API health every 30s, and restarts the
+        // recorder if audio stops flowing.
+        function startHeartbeat() {
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+            lastPongRecvTime = Date.now();
+            lastApiCheckTime = Date.now();
+            heartbeatInterval = setInterval(() => {
+                if (!state.websocket) return;
+
+                if (state.websocket.readyState === WebSocket.OPEN) {
+                    const now = Date.now();
+                    // If no pong received within 10 seconds while OPEN, TCP connection dropped silently (e.g. Wi-Fi killed)
+                    if (now - lastPongRecvTime > 10000) {
+                        appendLog('Connection timeout: no heartbeat response from server. Reconnecting...');
+                        handleConnectionDrop('Heartbeat timeout');
+                        return;
+                    }
+
+                    // Check if send buffer is stalled (> 1MB unacknowledged audio data)
+                    if (state.websocket.bufferedAmount > 1000000) {
+                        appendLog('WebSocket send buffer stalled (network frozen). Reconnecting...');
+                        handleConnectionDrop('Send buffer stalled');
+                        return;
+                    }
+
+                    // Periodically (every 30 seconds) verify API health and running status
+                    if (now - lastApiCheckTime > 30000) {
+                        lastApiCheckTime = now;
+                        checkApiStatus();
+                    }
+
+                    // Check if active audio stream stopped producing data (>6 seconds without audio chunk)
+                    if (state.sessionState === 'Active' && !state.isPaused && state.lastChunkTime > 0) {
+                        if (performance.now() - state.lastChunkTime > 6000) {
+                            appendLog('Audio stream stalled (no audio chunks for >6s). Restarting audio stream...');
+                            state.lastChunkTime = performance.now();
+                            restartAudioStream();
+                        }
+                    }
+
+                    try {
+                        state.websocket.send('PING');
+                    } catch (e) {
+                        appendLog(`Failed to send heartbeat: ${e.message}`);
+                        handleConnectionDrop('Send PING failed');
+                    }
+                } else if (state.websocket.readyState === WebSocket.CLOSED || state.websocket.readyState === WebSocket.CLOSING) {
+                    if (!reconnectTimer) {
+                        scheduleWebSocketReconnect(1000);
+                    }
+                }
+            }, 2000);
+        }
+
+        // Stops the connection heartbeat.
+        function stopHeartbeat() {
+            if (heartbeatInterval) {
+                clearInterval(heartbeatInterval);
+                heartbeatInterval = null;
+            }
+        }
+
+        // Tears down a broken WebSocket, marks the APIs down, and reconnects.
+        function handleConnectionDrop(reason) {
+            if (state.sessionState === 'Active' || (state.sessionStarted && !state.isPaused) || state.wasListeningBeforeError) {
+                state.wasListeningBeforeError = true;
+            }
+            state.wsLive = false;
+            stopHeartbeat();
+            if (DOM.connectionEndpointLabel) {
+                DOM.connectionEndpointLabel.textContent = `Disconnected (${reason || 'Connection lost'})`;
+            }
+            if (DOM.sessionStateBadge) {
+                DOM.sessionStateBadge.textContent = 'Disconnected';
+                DOM.sessionStateBadge.className = 'session-state-badge disconnected';
+            }
+            updateSttApiState(false);
+            updateGeminiApiState(false);
+            if (state.websocket) {
+                try {
+                    state.websocket.onopen = null;
+                    state.websocket.onmessage = null;
+                    state.websocket.onerror = null;
+                    state.websocket.onclose = null;
+                    state.websocket.close();
+                } catch (e) {}
+                state.websocket = null;
+            }
+            scheduleWebSocketReconnect(1500);
+        }
+
+        // Reconnects after delayMs, replacing any pending reconnect.
+        function scheduleWebSocketReconnect(delayMs = 1500) {
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+            }
+            state.wsLive = false;
+            if (DOM.connectionEndpointLabel) {
+                DOM.connectionEndpointLabel.textContent = 'Disconnected (reconnecting...)';
+            }
+            syncControlsAndState();
+            appendLog(`WebSocket disconnected. Reconnecting in ${(delayMs / 1000).toFixed(1)}s...`);
+            reconnectTimer = setTimeout(() => {
+                reconnectTimer = null;
+                initWebSocket();
+            }, delayMs);
+        }
+
+        // Opens the session's WebSocket and handles messages from the server.
+        function initWebSocket() {
+            if (reconnectTimer) {
+                clearTimeout(reconnectTimer);
+                reconnectTimer = null;
+            }
+
+            if (state.websocket) {
+                state.websocket.onopen = null;
+                state.websocket.onmessage = null;
+                state.websocket.onerror = null;
+                state.websocket.onclose = null;
+                try {
+                    if (state.websocket.readyState === WebSocket.OPEN || state.websocket.readyState === WebSocket.CONNECTING) {
+                        state.websocket.close();
+                    }
+                } catch (e) {}
+                state.websocket = null;
+            }
+
+            if (!navigator.onLine) {
+                appendLog('Network is currently offline. Waiting for connection...');
+                if (DOM.connectionEndpointLabel) {
+                    DOM.connectionEndpointLabel.textContent = 'Disconnected (offline)';
+                }
+                if (DOM.sessionStateBadge) {
+                    DOM.sessionStateBadge.textContent = 'Offline';
+                    DOM.sessionStateBadge.className = 'session-state-badge disconnected';
+                }
+                scheduleWebSocketReconnect(2000);
+                return;
+            }
+
+            const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const sessionId = getSessionId();
+            const wsUrl = sessionId ? `${protocol}//${window.location.host}/ws/${sessionId}` : `${protocol}//${window.location.host}/ws`;
+            
+            DOM.connectionEndpointLabel.textContent = `${wsUrl} (Connecting...)`;
+            appendLog(`Connecting to WebSocket at ${wsUrl}...`);
+
+            try {
+                state.websocket = new WebSocket(wsUrl);
+            } catch (err) {
+                appendLog(`WebSocket error: ${err.message || err}`);
+                scheduleWebSocketReconnect(1500);
+                return;
+            }
+
+            state.websocket.onopen = () => {
+                appendLog('WebSocket opened. Sending PING test...');
+                lastPongRecvTime = Date.now();
+                startHeartbeat();
+                if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+                    state.websocket.send('PING');
+                }
+            };
+
+            state.websocket.onmessage = (event) => {
+                const clientRecvTime = performance.now();
+                let data;
+                try {
+                    data = JSON.parse(event.data);
+                } catch (e) {
+                    return;
+                }
+
+                if (data.type === 'pong' || data.ws_status === 'live') {
+                    lastPongRecvTime = Date.now();
+                    const wasAlreadyLive = state.wsLive;
+                    state.wsLive = true;
+                    DOM.connectionEndpointLabel.textContent = `${wsUrl} (Connected)`;
+                    if (!wasAlreadyLive) {
+                        appendLog('WebSocket connection verified working (Live).');
+                        checkApiStatus();
+                        
+                        // Automatically restart listening if reconnected after an error or active session
+                        if (state.wasListeningBeforeError || state.sessionState === 'Active' || (state.sessionStarted && !state.isPaused)) {
+                            resumeListeningAutomatically();
+                        }
+                    }
+                    syncControlsAndState();
+                    return;
+                }
+
+                // Existing transcript or history means this is a resumed session;
+                // wait for the user to continue unless recovering from an error.
+                if (!state.sessionStarted && ((data.transcript && data.transcript.trim() !== '') || (data.history && data.history.length > 0))) {
+                    state.sessionStarted = true;
+                    if (!state.wasListeningBeforeError) {
+                        state.isPaused = true;
+                        setSessionState('Ready');
+                        syncControlsAndState();
+                    }
+                }
+
+                if (data.total_bytes !== undefined && DOM.totalBytesSpan) {
+                    DOM.totalBytesSpan.textContent = data.total_bytes;
+                }
+
+                // Transcript update from Speech-to-Text.
+                if (data.transcript !== undefined) {
+                    if (!state.sttLive) {
+                        updateSttApiState(true);
+                    }
+                    if (data.is_final) {
+                        appendLog('Speech-to-Text API: Success');
+                    }
+                    const e2eMs = state.lastChunkTime ? Math.round(clientRecvTime - state.lastChunkTime) : 0;
+                    DOM.sttLatencySpan.textContent = data.stt_latency_ms !== undefined ? `${data.stt_latency_ms} ms` : 'N/A';
+                    DOM.e2eLatencySpan.textContent = `${e2eMs} ms`;
+                    if (data.last_chunk_bytes !== undefined) {
+                        DOM.lastChunkSizeSpan.textContent = `${data.last_chunk_bytes} B`;
+                    }
+                    DOM.transcriptDiv.textContent = data.transcript;
+                    DOM.transcriptDiv.scrollTop = DOM.transcriptDiv.scrollHeight;
+                }
+
+                // Gemini update: chime for a new suggestion and redraw the timeline.
+                if (data.gemini_summary !== undefined || data.history !== undefined || data.current_summary !== undefined) {
+                    if (data.gemini_summary !== undefined) {
+                        appendLog('Brainstorming Partner API: Success');
+                        updateGeminiApiState(true);
+                    }
+                    DOM.geminiLatencySpan.textContent = data.gemini_latency_ms !== undefined ? `${data.gemini_latency_ms} ms` : 'N/A';
+                    
+                    if (data.should_interrupt && data.interrupt_text) {
+                        state.currentHeroSuggestion = data.interrupt_text;
+                        DOM.chimeSound.currentTime = 0;
+                        DOM.chimeSound.play().catch(err => console.log('Chime playback error:', err));
+                    }
+
+                    updateTimeline(data.history, data.current_summary ?? data.gemini_summary, data.current_summary_range);
+                }
+
+                if (data.gemini_error !== undefined) {
+                    appendLog('Brainstorming Partner API: Error');
+                    updateGeminiApiState(false);
+                }
+
+                if (data.stt_warning !== undefined) {
+                    appendLog(`Speech-to-Text API Warning: ${data.stt_warning}`);
+                }
+
+                // STT failed after all retries; show the error and suggested fix.
+                if (data.error !== undefined) {
+                    appendLog(`Speech-to-Text API: Error - ${data.error}`);
+                    updateSttApiState(false);
+                    const errorSpan = document.createElement('span');
+                    errorSpan.style.color = 'red';
+                    errorSpan.textContent = `Error: ${data.error}`;
+                    if (data.suggestion) {
+                        errorSpan.appendChild(document.createElement('br'));
+                        errorSpan.appendChild(document.createTextNode(`Suggestion: ${data.suggestion}`));
+                    }
+                    DOM.transcriptDiv.replaceChildren(errorSpan);
+                }
+            };
+
+            state.websocket.onclose = (event) => {
+                appendLog(`WebSocket closed (code: ${event.code || 'unknown'}). Reconnecting...`);
+                handleConnectionDrop('Connection closed');
+            };
+
+            state.websocket.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                appendLog('WebSocket error encountered.');
+                handleConnectionDrop('Connection error');
+            };
+        }
+
+        /* ==========================================================================
+           5. Audio Recording & Session Control
+           ========================================================================== */
+        // Restarts listening after a reconnect if an error interrupted it.
+        async function resumeListeningAutomatically() {
+            if (state.sessionState === 'Active' && state.mediaRecorder && state.mediaRecorder.state === 'recording') {
+                return;
+            }
+            state.wasListeningBeforeError = false;
+            state.isPaused = false;
+            state.sessionStarted = true;
+            appendLog('Reconnected after error: Automatically starting listening again...');
+            if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+                state.websocket.send('RESUME');
+            }
+            try {
+                await startAudioStream();
+                setSessionState('Active');
+                syncControlsAndState();
+                appendLog('Agent is now listening again.');
+            } catch (err) {
+                appendLog(`Failed to automatically start listening: ${err.message || err}`);
+                setSessionState('Ready');
+                syncControlsAndState();
+            }
+        }
+
+        // Starts a new MediaRecorder on the microphone stream that sends a
+        // WebM/Opus chunk to the server every 100 ms.
+        function restartAudioStream() {
+            state.lastChunkTime = performance.now();
+            if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                try {
+                    state.mediaRecorder.stop();
+                } catch (e) {}
+            }
+            if (state.audioStream && state.audioStream.active) {
+                try {
+                    state.mediaRecorder = new MediaRecorder(state.audioStream, { mimeType: 'audio/webm;codecs=opus' });
+                } catch (e) {
+                    state.mediaRecorder = new MediaRecorder(state.audioStream);
+                }
+
+                state.mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0 && state.websocket && state.websocket.readyState === WebSocket.OPEN && !state.isPaused) {
+                        state.lastChunkTime = performance.now();
+                        state.lastChunkSize = event.data.size;
+                        DOM.lastChunkSizeSpan.textContent = `${state.lastChunkSize} B`;
+                        try {
+                            state.websocket.send(event.data);
+                        } catch (err) {
+                            appendLog(`WebSocket send error: ${err.message}`);
+                            handleConnectionDrop('Send failed');
+                        }
+                    }
+                };
+                state.mediaRecorder.start(100);
+            }
+        }
+
+        // Opens the microphone if needed and starts recording.
+        async function startAudioStream() {
+            if (!state.audioStream || !state.audioStream.active) {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    const port = window.location.port ? `:${window.location.port}` : '';
+                    throw new Error(
+                        `Browser blocked microphone access on insecure origin ${window.location.origin}. ` +
+                        `Open http://localhost${port}${window.location.pathname} or use HTTPS instead.`
+                    );
+                }
+                state.audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            }
+            restartAudioStream();
+            
+            // Auto-rotate the recorder slightly before the server's 240s limit to bypass WebM timecode gaps
+            if (state.recorderInterval) clearInterval(state.recorderInterval);
+            state.recorderInterval = setInterval(() => {
+                if (!state.isPaused && state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                    appendLog("Auto-rotating MediaRecorder to prevent STT timeout");
+                    state.isPaused = true;
+                    stopAudioStream();
+                    if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+                        state.websocket.send('PAUSE');
+                    }
+                    
+                    setTimeout(async () => {
+                        state.isPaused = false;
+                        if (state.websocket && state.websocket.readyState === WebSocket.OPEN) {
+                            state.websocket.send('RESUME');
+                        }
+                        try {
+                            await startAudioStream();
+                        } catch (err) {
+                            appendLog(`Failed to restart audio on rotation: ${err.message}`);
+                        }
+                    }, 500);
+                }
+            }, 230000);
+        }
+
+        // Stops recording and releases the microphone.
+        function stopAudioStream() {
+            if (state.recorderInterval) {
+                clearInterval(state.recorderInterval);
+                state.recorderInterval = null;
+            }
+            if (state.mediaRecorder && state.mediaRecorder.state !== 'inactive') {
+                state.mediaRecorder.stop();
+            }
+            if (state.audioStream) {
+                state.audioStream.getTracks().forEach(track => track.stop());
+                state.audioStream = null;
+            }
+        }
+
+        // Handles clicks on the status icon: start, pause, or resume listening.
+        async function toggleSession() {
+            if (!state.websocket || state.websocket.readyState !== WebSocket.OPEN) {
+                alert('WebSocket connection is not ready.');
+                return;
+            }
+            if (state.sessionState === 'Error' || state.sessionState === 'Connecting') {
+                return;
+            }
+
+            if (state.sessionState === 'Active') {
+                state.isPaused = true;
+                state.wasListeningBeforeError = false;
+                stopAudioStream();
+                if (state.websocket.readyState === WebSocket.OPEN) {
+                    state.websocket.send('PAUSE');
+                }
+                setSessionState('Ready');
+                syncControlsAndState();
+                appendLog('User event: Session paused.');
+                return;
+            }
+
+            if (state.sessionState === 'Ready') {
+                state.wasListeningBeforeError = false;
+                if (state.isPaused || state.sessionStarted) {
+                    state.isPaused = false;
+                    state.websocket.send('RESUME');
+                    try {
+                        await startAudioStream();
+                        setSessionState('Active');
+                        syncControlsAndState();
+                        appendLog('User event: Session resumed.');
+                    } catch (err) {
+                        appendLog(`Error resuming audio stream: ${err.message}`);
+                        setSessionState('Error');
+                    }
+                } else {
+                    try {
+                        await startAudioStream();
+                        DOM.transcriptDiv.textContent = 'Listening...';
+                        state.sessionStarted = true;
+                        state.isPaused = false;
+                        setSessionState('Active');
+                        syncControlsAndState();
+                        appendLog('User event: Session started.');
+                    } catch (err) {
+                        alert('Could not access microphone: ' + err.message);
+                        setSessionState('Error');
+                    }
+                }
+            }
+        }
+
+        /* ==========================================================================
+           6. Timeline Renderer (Static Cards: Terracotta AI Suggestions, Grey Summaries)
+           ========================================================================== */
+        // Builds a timeline card with a title, optional time, and body text.
+        function createTimelineCard({ containerClass, titleText, titleColor, timeText, bodyClass = 'suggestion-body', bodyText }) {
+            const card = document.createElement('div');
+            card.className = containerClass;
+
+            const header = document.createElement('div');
+            header.className = 'suggestion-header';
+
+            const title = document.createElement('div');
+            title.className = 'suggestion-title';
+            if (titleColor) title.style.color = titleColor;
+            title.textContent = titleText;
+            header.appendChild(title);
+
+            if (timeText) {
+                const timeSpan = document.createElement('span');
+                timeSpan.className = 'suggestion-time';
+                timeSpan.textContent = timeText;
+                header.appendChild(timeSpan);
+            }
+
+            const body = document.createElement('div');
+            body.className = bodyClass;
+            body.textContent = bodyText;
+
+            card.appendChild(header);
+            card.appendChild(body);
+            return card;
+        }
+
+        // Redraws the hero suggestion and the timeline (newest first).
+        function updateTimeline(history, currentSummary, currentSummaryRange) {
+            if (history !== undefined && history !== null) state.cachedHistory = history;
+            if (currentSummary !== undefined) {
+                state.cachedCurrentSummary = currentSummary;
+                state.cachedCurrentSummaryRange = currentSummaryRange || '';
+            }
+
+            const activeHistory = state.cachedHistory;
+            const activeSummary = state.cachedCurrentSummary;
+            const activeRange = state.cachedCurrentSummaryRange;
+
+            let latestSuggestion = state.currentHeroSuggestion;
+            if (activeHistory && activeHistory.length > 0) {
+                for (let i = activeHistory.length - 1; i >= 0; i--) {
+                    if (activeHistory[i].suggestion) {
+                        latestSuggestion = activeHistory[i].suggestion;
+                        break;
+                    }
+                }
+            }
+
+            if (latestSuggestion) {
+                DOM.heroSuggestionText.textContent = latestSuggestion;
+                DOM.heroSuggestionSection.style.display = 'block';
+            } else {
+                DOM.heroSuggestionSection.style.display = 'none';
+            }
+
+            updateStatusDisplay();
+
+            DOM.timelineContainer.replaceChildren();
+            const fragment = document.createDocumentFragment();
+
+            if (activeSummary) {
+                fragment.appendChild(createTimelineCard({
+                    containerClass: 'current-summary-card',
+                    titleText: 'Conversation Summary (ongoing)',
+                    titleColor: 'var(--color-earth-primary)',
+                    timeText: activeRange,
+                    bodyText: activeSummary,
+                }));
+            }
+
+            if (activeHistory && activeHistory.length > 0) {
+                for (let i = activeHistory.length - 1; i >= 0; i--) {
+                    const item = activeHistory[i];
+                    if (item.system_event) continue;
+
+                    if (item.suggestion) {
+                        fragment.appendChild(createTimelineCard({
+                            containerClass: 'suggestion-card',
+                            titleText: 'Brainstorming Partner',
+                            timeText: item.timestamp || '',
+                            bodyText: item.suggestion,
+                        }));
+                    }
+
+                    if (item.summary) {
+                        fragment.appendChild(createTimelineCard({
+                            containerClass: 'summary-card',
+                            titleText: 'Conversation Summary',
+                            timeText: item.timestamp_range || '',
+                            bodyClass: 'summary-body',
+                            bodyText: item.summary,
+                        }));
+                    }
+                }
+            }
+
+            if (!fragment.children.length) {
+                const emptyDiv = document.createElement('div');
+                emptyDiv.className = 'empty-timeline';
+                emptyDiv.textContent = 'waiting to begin';
+                fragment.appendChild(emptyDiv);
+            }
+
+            DOM.timelineContainer.appendChild(fragment);
+        }
+
+        /* ==========================================================================
+           7. Utilities & Initialization
+           ========================================================================== */
+        // Appends a timestamped line to the client debug log.
+        function appendLog(text) {
+            console.log(text);
+            const localTime = new Date().toLocaleTimeString();
+            DOM.logBox.textContent += `[${localTime}] ${text}\n`;
+            DOM.logBox.scrollTop = DOM.logBox.scrollHeight;
+        }
+
+        // Copies an element's text and briefly shows "Copied!" on the button.
+        function copyToClipboard(elementId, btnElement) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            const textToCopy = el.textContent || '';
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(textToCopy).then(() => {
+                    const origText = btnElement.textContent;
+                    btnElement.textContent = 'Copied!';
+                    btnElement.classList.add('copied');
+                    setTimeout(() => {
+                        btnElement.textContent = origText;
+                        btnElement.classList.remove('copied');
+                    }, 1500);
+                });
+            }
+        }
+
+        // On load: connect to the server and wire up the controls.
+        document.addEventListener('DOMContentLoaded', () => {
+            // Browsers treat http://0.0.0.0 as an insecure context and hide
+            // navigator.mediaDevices; redirect to http://localhost so microphone
+            // access works.
+            if (window.location.hostname === '0.0.0.0') {
+                window.location.replace(window.location.href.replace('//0.0.0.0', '//localhost'));
+                return;
+            }
+            appendLog('Client initialized.');
+            const sessionId = getSessionId();
+            if (sessionId) {
+                appendLog(`Session ID: ${sessionId}`);
+            }
+            setSessionState('Connecting');
+            initWebSocket();
+            checkApiStatus();
+
+            window.addEventListener('offline', () => {
+                appendLog('Network offline (Wi-Fi/internet disconnected).');
+                handleConnectionDrop('Network offline');
+            });
+
+            window.addEventListener('online', () => {
+                appendLog('Network online (restored). Reconnecting WebSocket...');
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+                initWebSocket();
+            });
+
+            DOM.statusIconWrapper.addEventListener('click', toggleSession);
+
+            DOM.heroDismissBtn.addEventListener('click', () => {
+                state.currentHeroSuggestion = '';
+                DOM.heroSuggestionSection.style.display = 'none';
+                updateStatusDisplay();
+            });
+
+            DOM.newSessionButton.addEventListener('click', () => {
+                stopHeartbeat();
+                if (reconnectTimer) {
+                    clearTimeout(reconnectTimer);
+                    reconnectTimer = null;
+                }
+                stopAudioStream();
+                if (state.websocket) {
+                    state.websocket.onopen = null;
+                    state.websocket.onmessage = null;
+                    state.websocket.onerror = null;
+                    state.websocket.onclose = null;
+                    try {
+                        if (state.websocket.readyState === WebSocket.OPEN || state.websocket.readyState === WebSocket.CONNECTING) {
+                            state.websocket.close(1000, 'New session requested');
+                        }
+                    } catch (e) {}
+                    state.websocket = null;
+                }
+                window.location.href = '/';
+            });
+
+            DOM.detailsButton.addEventListener('click', () => {
+                const isHidden = (DOM.detailsSection.style.display === 'none');
+                DOM.detailsSection.style.display = isHidden ? 'block' : 'none';
+                DOM.detailsButton.textContent = isHidden ? 'Hide Details' : 'Show Details';
+            });
+        });
+    </script>
+</body>
+</html>

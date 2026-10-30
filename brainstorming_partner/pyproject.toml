@@ -1,0 +1,29 @@
+# Standard Python packaging metadata, e.g. for `pip install .`. run.sh installs
+# from requirements.txt instead, so keep the two dependency lists in sync.
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "brainstorming-partner"
+version = "0.1.0"
+description = "Audio Stream Transcriber & AI Brainstorming Coworker"
+readme = "README.md"
+requires-python = ">=3.10"
+# See requirements.txt for what each dependency is used for.
+dependencies = [
+    "absl-py>=2.0.0",
+    "fastapi>=0.100.0",
+    "google-api-core>=2.15.0",
+    "google-cloud-speech>=2.25.0",
+    "google-genai>=1.0.0",
+    "httpx>=0.24.0",
+    "pydantic>=2.0.0",
+    "uvicorn>=0.20.0",
+    "websockets>=11.0",
+]
+
+# The sources are top-level modules in this directory, not a package.
+[tool.setuptools]
+py-modules = ["agent", "server", "test_apis"]
