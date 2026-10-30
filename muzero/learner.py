@@ -40,6 +40,25 @@ from muzero import network
 log_keys = []  # array of strings with names of values logged by compute_loss
 
 
+Settings = collections.namedtuple(
+    'Settings', 'strategy inference_devices training_strategy encode decode'
+)
+
+
+def init_learner(num_training_tpus):
+  """Performs common learner initialization."""
+  settings = utils.init_learner_multi_host(num_training_tpus)
+  if len(settings.hosts) != 1:
+    raise ValueError(f'Invalid number of hosts: {len(settings.hosts)}')
+  return Settings(
+      settings.strategy,
+      settings.hosts[0][1],
+      settings.training_strategy,
+      settings.encode,
+      settings.decode,
+  )
+
+
 def scale_gradient(t, scale):
   return scale * t + (1 - scale) * tf.stop_gradient(t)
 
@@ -317,7 +336,7 @@ def learner_loop(env_descriptor,
   """
   logging.info('Starting learner loop')
   validate_config()
-  settings = utils.init_learner(config.num_training_tpus)
+  settings = init_learner(config.num_training_tpus)
   strategy, inference_devices, training_strategy, encode, decode = settings
   tf_function = noop_decorator if config.debug else tf.function
   parametric_action_distribution = get_parametric_distribution_for_action_space(
