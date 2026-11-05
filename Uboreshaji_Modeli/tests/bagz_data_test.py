@@ -68,6 +68,14 @@ class TrainStreamTest(absltest.TestCase):
     with self.assertRaises(FileNotFoundError):
       bagz_data.split_source(cfg, "val")
 
+  def test_missing_bagz_support_raises_clear_error(self):
+    cfg = ml_collections.ConfigDict({"dataset": {"dataset_path": "/unused"}})
+    with (
+        mock.patch.object(bagz_data, "_parse_tf_example", None),
+        self.assertRaisesRegex(ImportError, "Parquet or Hugging Face"),
+    ):
+      bagz_data.split_source(cfg, "train")
+
   def test_resume_continues_where_fresh_stream_is_after_start_step(self):
     fresh = _take(3 * 2 + 4, batch_size=2, grad_accum=3)
     resumed = _take(4, batch_size=2, grad_accum=3, start_step=2)

@@ -23,7 +23,6 @@ from typing import Any
 from absl import logging
 from etils import epath
 import grain.python as grain
-from grain.python import fast_proto
 import ml_collections
 from torch.utils import data as torch_data
 import transformers
@@ -34,11 +33,25 @@ _SAMPLE_RATE = 16000
 # Shared by the train and eval streams: HF fast tokenizers are not thread-safe.
 _COLLATE_LOCK = threading.Lock()
 
+# Parses a serialized tf.Example into a dict of feature lists. Bagz input is
+# only supported where this is available.
+_parse_tf_example = None
+
+
+def _require_bagz_support():
+  """Raises a clear error if Bagz shards cannot be read in this build."""
+  if _parse_tf_example is None or not hasattr(grain, "BagDataSource"):
+    raise ImportError(
+        "Bagz input (dataset.format = 'bagz') is only supported inside"
+        " Google. Use the Parquet or Hugging Face dataset input instead."
+    )
+
 
 def split_source(
     cfg, split
 ):
   """Returns the non-empty `*-<split>-*.bagz` shards as one source."""
+  _require_bagz_support()
   root = epath.Path(cfg.dataset.dataset_path)
   pattern = f"*-{split}-*.bagz"
   shards = [str(p) for p in sorted(root.glob(pattern)) if p.stat().length]
@@ -58,7 +71,8 @@ def _locked(collate_fn):
 
 def _example(record):
   """Decodes a serialized ASR tf.Example into an SFT chat example."""
-  features = fast_proto.parse_tf_example_grain_dict(record)
+  _require_bagz_support()
+  features = _parse_tf_example(record)
   audio = audio_utils.get_audio_array(
       features["audio/bytes"][0], target_sr=_SAMPLE_RATE
   )
