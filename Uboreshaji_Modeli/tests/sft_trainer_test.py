@@ -23,9 +23,11 @@ import ml_collections
 import torch
 import trl
 
+from Uboreshaji_Modeli.common import config
+from Uboreshaji_Modeli.common import sft_trainer
 from Uboreshaji_Modeli.engines import base as engines_base
-from Uboreshaji_Modeli.google.common import sft_trainer
-from Uboreshaji_Modeli.google.trainers import sft
+from Uboreshaji_Modeli.trainers import factory as trainers_factory
+from Uboreshaji_Modeli.trainers import sft
 
 
 class FakeCriterion(torch.nn.Module):
@@ -255,61 +257,34 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
 
 class CustomSFTTrainerTest(absltest.TestCase):
 
-  def test_tpu_monkey_patch(self):
-    from accelerate.utils import operations  # pylint: disable=g-import-not-at-top
-    import accelerate.accelerator as acc_mod  # pylint: disable=g-import-not-at-top
+  def test_patch_hf_quantizer_delegates_from_base_model(self):
+    base_model = torch.nn.Module()
+    sentinel_quantizer = object()
+    base_model.hf_quantizer = sentinel_quantizer
 
-    original_operations_gather = operations.gather
-    original_acc_mod_gather = getattr(acc_mod, "gather", None)
+    class FakePeftModel(torch.nn.Module):
 
-    # Mock dist
-    self.enter_context(
-        unittest.mock.patch(
-            "torch.distributed.is_initialized", return_value=True
-        )
-    )
-    self.enter_context(
-        unittest.mock.patch(
-            "torch.distributed.get_backend", return_value="tpu_dist"
-        )
-    )
-    self.enter_context(
-        unittest.mock.patch("torch.distributed.get_world_size", return_value=2)
-    )
-    mock_all_gather = self.enter_context(
-        unittest.mock.patch("torch.distributed.all_gather")
-    )
+      def get_base_model(self):
+        return base_model
 
-    try:
-      model = torch.nn.Module()
+    peft_model = FakePeftModel()
+    with unittest.mock.patch("trl.SFTTrainer.__init__", return_value=None):
+      trainer = sft_trainer.CustomSFTTrainer(model=peft_model)
 
-      with unittest.mock.patch("trl.SFTTrainer.__init__", return_value=None):
-        _ = sft_trainer.CustomSFTTrainer(
-            model=model,
-        )
+    self.assertIs(peft_model.hf_quantizer, sentinel_quantizer)
+    self.assertIsNone(trainer.create_model_card())
 
-      # Verify patched
-      self.assertNotEqual(operations.gather, original_operations_gather)
 
-      # Test standard patched function
-      tensor = torch.tensor([1, 2])
-      def fake_all_gather(output_tensors, t):
-        output_tensors[0] = t.clone()
-        output_tensors[1] = t.clone() * 2
 
-      mock_all_gather.side_effect = fake_all_gather
+class TrainerFactoryTest(parameterized.TestCase):
 
-      result = operations.gather(tensor)
-
-      # Verify result
-      expected = torch.tensor([1, 2, 2, 4])
-      torch.testing.assert_close(result, expected)
-
-    finally:
-      # Restore
-      operations.gather = original_operations_gather
-      if original_acc_mod_gather is not None:
-        acc_mod.gather = original_acc_mod_gather
+  @parameterized.named_parameters(
+      ("asr", config.TaskType.ASR),
+      ("ctc_asr", config.TaskType.CTC_ASR),
+  )
+  def test_get_sft_trainer_strategy(self, task_type):
+    strategy = trainers_factory.get_trainer(task_type)
+    self.assertIsInstance(strategy, sft.GemmaSFTTrainerStrategy)
 
 
 class OnRank0Test(absltest.TestCase):

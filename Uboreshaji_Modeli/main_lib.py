@@ -24,6 +24,7 @@ import torch
 import torch.distributed as dist
 
 from Uboreshaji_Modeli.common import data
+from Uboreshaji_Modeli.common import distributed_training
 from Uboreshaji_Modeli.engines import factory as engines_factory
 from Uboreshaji_Modeli.trainers import factory as trainers_factory
 
@@ -99,6 +100,7 @@ def run_training(
   else:
     cfg.run_timestamp = ""
 
+  distributed_training.init_distributed(seed=cfg.training.seed)
 
   if dist.is_initialized():
     objects = [cfg.run_timestamp]

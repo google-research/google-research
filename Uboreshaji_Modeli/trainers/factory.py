@@ -26,5 +26,10 @@ def get_trainer(task_type):
     from Uboreshaji_Modeli.trainers import detection  # pylint: disable=g-import-not-at-top
     return detection.DetectionTrainer()
 
+  # Modality strategies dynamically loaded to avoid eager SFT dependencies.
+  sft_task_types = [config.TaskType.ASR, config.TaskType.CTC_ASR]
+  if task_type in sft_task_types:
+    from Uboreshaji_Modeli.trainers import sft  # pylint: disable=g-import-not-at-top
+    return sft.GemmaSFTTrainerStrategy()
 
   raise ValueError(f"Unsupported task type: {task_type}")
