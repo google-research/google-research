@@ -25,5 +25,34 @@ def get_engine(model_flavor):
   if model_flavor == config.ModelFlavor.OWL_V2_TORCH:
     return owl.Owlv2Engine()
 
+  # Modality engines dynamically loaded to avoid eager model dependencies.
+  # pylint: disable=g-import-not-at-top
+  if model_flavor == config.ModelFlavor.WHISPER:
+    from . import whisper
+
+    return whisper.WhisperEngine()
+  if model_flavor == config.ModelFlavor.GEMMA_3N_ASR:
+    from . import gemma_audio
+
+    return gemma_audio.GemmaAudioEngine()
+  if model_flavor == config.ModelFlavor.MMS:
+    from . import mms
+
+    return mms.MmsEngine()
+  if (
+      model_flavor == config.ModelFlavor.GEMMA_3
+      or model_flavor == config.ModelFlavor.GEMMA_4
+  ):
+    from . import gemma_vision
+
+    return gemma_vision.GemmaVisionEngine()
+  if (
+      model_flavor == config.ModelFlavor.GEMMA_3_TEXT
+      or model_flavor == config.ModelFlavor.GEMMA_4_TEXT
+  ):
+    from . import gemma_text
+
+    return gemma_text.GemmaTextEngine()
+  # pylint: enable=g-import-not-at-top
 
   raise ValueError(f"Unsupported model flavor: {model_flavor}")

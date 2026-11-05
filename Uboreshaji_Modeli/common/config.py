@@ -24,6 +24,13 @@ from Uboreshaji_Modeli.common import config_utils
 
 class ModelFlavor(str, enum.Enum):
   OWL_V2_TORCH = "OWL_V2_TORCH"
+  GEMMA_3 = "GEMMA_3"
+  GEMMA_3_TEXT = "GEMMA_3_TEXT"
+  GEMMA_4 = "GEMMA_4"
+  GEMMA_4_TEXT = "GEMMA_4_TEXT"
+  WHISPER = "WHISPER"
+  MMS = "MMS"
+  GEMMA_3N_ASR = "GEMMA_3N_ASR"
 
 
 class Precision(str, enum.Enum):
@@ -39,6 +46,12 @@ class TaskModality(str, enum.Enum):
 
 class TaskType(str, enum.Enum):
   DETECTION = "DETECTION"
+  VISION_DETECTION = "VISION_DETECTION"
+  VISION_SEGMENTATION = "VISION_SEGMENTATION"
+  TEXT_SFT = "TEXT_SFT"
+  ASR = "ASR"
+  AST = "AST"
+  CTC_ASR = "CTC_ASR"
 
 
 class MatcherType(str, enum.Enum):
@@ -151,3 +164,27 @@ def get_detection_base_config():
   return config
 
 
+def get_asr_base_config():
+  """Returns the base configuration for ASR/speech experiments."""
+  config = get_base_config()
+  config.experiment_name = "asr_finetune"
+  config.task_modality = TaskModality.AUDIO
+  config.task_type = TaskType.ASR
+  config.model_flavor = ModelFlavor.WHISPER
+  config.dataset.load_from_hub = True
+  config.training.audio_sample_rate = 16000
+  return config
+
+
+def get_text_sft_base_config():
+  """Returns the base configuration for Text SFT experiments."""
+  config = get_base_config()
+  config.experiment_name = "text_sft_finetune"
+  config.task_modality = TaskModality.TEXT
+  config.task_type = TaskType.TEXT_SFT
+  config.model_flavor = ModelFlavor.GEMMA_3_TEXT
+  config.dataset.load_from_hub = True
+  config.training.max_seq_length = 1024
+  config.training.use_lora = True
+  config.training.merge_lora_on_save = False
+  return config

@@ -15,6 +15,18 @@
 
 """Universal, modality-agnostic orchestration for Uboreshaji Modeli SFT."""
 
+import datetime
+import os
+
+from absl import logging
+import ml_collections
+import torch
+import torch.distributed as dist
+
+from Uboreshaji_Modeli.common import data
+from Uboreshaji_Modeli.engines import factory as engines_factory
+from Uboreshaji_Modeli.trainers import factory as trainers_factory
+
 
 
 
@@ -80,9 +92,22 @@ def run_training(
         # If it failed on a GPU or other device, let it fail fast.
         raise
 
+  local_rank = int(os.environ.get("LOCAL_RANK", 0))
+  if local_rank == 0:
+    if not hasattr(cfg, "run_timestamp") or not cfg.run_timestamp:
+      cfg.run_timestamp = now_fn().strftime("%Y%m%d_%H%M%S")
+  else:
+    cfg.run_timestamp = ""
+
+
+  if dist.is_initialized():
+    objects = [cfg.run_timestamp]
+    dist.broadcast_object_list(objects, src=0)
+    cfg.run_timestamp = objects[0]
 
   engine = engine_factory(cfg.model_flavor)
 
+  model_id = cfg.model_id
 
   logging.info("Loading model and processor from: %s", model_id)
   model, processor = engine.load_model_and_processor(

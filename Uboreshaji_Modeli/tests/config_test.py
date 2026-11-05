@@ -76,6 +76,23 @@ class GetBaseConfigTest(parameterized.TestCase):
     self.assertFalse(hasattr(cfg, "matcher"))
     self.assertFalse(hasattr(cfg, "detection"))
 
+  def test_get_asr_base_config(self):
+    cfg = config.get_asr_base_config()
+    with self.subTest(name="test_task_modality"):
+      self.assertEqual(cfg.task_modality, config.TaskModality.AUDIO)
+    with self.subTest(name="test_load_from_hub"):
+      self.assertTrue(cfg.dataset.load_from_hub)
+
+  def test_get_text_sft_base_config(self):
+    cfg = config.get_text_sft_base_config()
+    with self.subTest(name="test_task_modality"):
+      self.assertEqual(cfg.task_modality, config.TaskModality.TEXT)
+    with self.subTest(name="test_load_from_hub"):
+      self.assertTrue(cfg.dataset.load_from_hub)
+    with self.subTest(name="test_use_lora"):
+      self.assertTrue(cfg.training.use_lora)
+    with self.subTest(name="test_merge_lora_on_save"):
+      self.assertFalse(cfg.training.merge_lora_on_save)
 
 
 class DerivePathsTest(absltest.TestCase):
