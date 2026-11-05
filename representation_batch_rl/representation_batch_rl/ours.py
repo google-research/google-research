@@ -19,8 +19,6 @@ import typing
 
 from dm_env import specs as dm_env_specs
 import numpy as np
-from seed_rl.agents.policy_gradient.modules import popart
-from seed_rl.agents.policy_gradient.modules import running_statistics
 import tensorflow as tf
 import tensorflow_probability as tfp
 from tf_agents.specs.tensor_spec import TensorSpec
@@ -29,6 +27,8 @@ from representation_batch_rl.batch_rl import critic as criticCL
 from representation_batch_rl.batch_rl.encoders import ConvStack
 from representation_batch_rl.batch_rl.encoders import ImageEncoder
 from representation_batch_rl.batch_rl.encoders import make_impala_cnn_network
+from representation_batch_rl.representation_batch_rl import popart
+from representation_batch_rl.representation_batch_rl import running_statistics
 from representation_batch_rl.representation_batch_rl import tf_utils
 
 tfd = tfp.distributions
