@@ -13,8 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Gemma 3n E2B LoRA ASR fine-tuning on Bagz shards of one language.
+"""Gemma 3n E2B LoRA ASR fine-tuning on one WAXAL language.
 
+Reads the WAXAL Parquet files from the google/WaxalNLP Hugging Face dataset.
 Global batch size is batch_size * gradient_accumulation_steps * num_gpus = 8.
 Select the language with `--dataset_uri=<lang>` (default `aka`).
 """
@@ -36,9 +37,10 @@ def get_config():
   cfg.model_id = "google/gemma-3n-E2B-it"
   cfg.output_dir = "/path/to/output"
 
-  # Shards: <dataset_base>/<lang>/<lang>-<split>-NNNNN-of-MMMMM.bagz.
-  cfg.dataset.format = "bagz"
-  cfg.dataset.dataset_base = "/path/to/bagz_datasets/ASR"
+  # WAXAL Parquet files, laid out as in google/WaxalNLP:
+  # <dataset_base>/<lang>/<lang>-<split>-NNNNN.parquet.
+  cfg.dataset.format = "parquet"
+  cfg.dataset.dataset_base = "/path/to/WaxalNLP/data/ASR"
   cfg.dataset.dataset_uri = "aka"
   cfg.dataset.dataset_version = "bagz"
   cfg.dataset.train_split = "train"
@@ -75,4 +77,5 @@ def get_config():
 
   cfg.platform.hardware = "h100=1"
 
+  config_utils.derive_paths(cfg)
   return cfg

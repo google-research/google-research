@@ -162,5 +162,32 @@ class DerivePathsTest(absltest.TestCase):
     )
     self.assertEqual(cfg.model_id, "/custom/mbase/mname")
 
+
+class PublicConfigsDerivePathsTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      ("gemma_asr_lora", "configs/gemma_asr_lora_config.py"),
+      ("gemma_audio", "configs/gemma_audio_config.py"),
+      ("mms_asr", "configs/mms_asr_config.py"),
+      ("whisper_asr", "configs/whisper_asr_config.py"),
+  )
+  def test_public_asr_configs_populate_dataset_path(self, rel_config_path):
+    import pathlib  # pylint: disable=g-import-not-at-top
+
+    pkg_dir = pathlib.Path(__file__).parent.parent
+    cfg = config_utils.load_config(str(pkg_dir / rel_config_path))
+    self.assertNotEmpty(cfg.dataset.dataset_path)
+    self.assertNotEmpty(cfg.model_id)
+
+  def test_gemma_asr_lora_config_derives_language_subdir(self):
+    import pathlib  # pylint: disable=g-import-not-at-top
+
+    pkg_dir = pathlib.Path(__file__).parent.parent
+    cfg = config_utils.load_config(
+        str(pkg_dir / "configs/gemma_asr_lora_config.py")
+    )
+    self.assertTrue(cfg.dataset.dataset_path.endswith("/aka"))
+
+
 if __name__ == "__main__":
   absltest.main()

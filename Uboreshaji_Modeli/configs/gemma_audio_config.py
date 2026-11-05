@@ -47,4 +47,5 @@ def get_config():
 
   cfg.prompt = "Transpose the following audio to text:"
 
+  config_utils.derive_paths(cfg)
   return cfg

@@ -45,4 +45,5 @@ def get_config():
   cfg.training.learning_rate = 1e-5
   cfg.training.audio_sample_rate = 16000
 
+  config_utils.derive_paths(cfg)
   return cfg

@@ -49,4 +49,5 @@ def get_config():
   cfg.training.freeze_feature_extractor = True
   cfg.training.freeze_base_model = False
 
+  config_utils.derive_paths(cfg)
   return cfg
