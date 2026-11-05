@@ -16,9 +16,11 @@
 """CPU device coverage for the PyTorch Shampoo optimizer."""
 
 import unittest
+from unittest import mock
 
 import torch
 
+import matrix_functions
 import shampoo
 
 
@@ -40,6 +42,32 @@ class ShampooCpuTest(unittest.TestCase):
         self.assertEqual(
             parameter.device, optimizer.state[parameter]['momentum'].device)
         self.assertFalse(torch.equal(parameter.detach(), initial))
+
+  def test_cpu_step_runs_matrix_preconditioning(self):
+    parameter = torch.nn.Parameter(torch.ones(32, 32))
+    parameter.grad = torch.ones_like(parameter)
+    optimizer = shampoo.Shampoo([parameter], lr=0.01)
+
+    with mock.patch.object(
+        matrix_functions,
+        'ComputePower',
+        wraps=matrix_functions.ComputePower) as compute_power:
+      with mock.patch.object(
+          matrix_functions,
+          'PowerIter',
+          wraps=matrix_functions.PowerIter) as power_iter:
+        optimizer.step()
+
+    state = optimizer.state[parameter]
+    preconditioner = state[shampoo.PRECONDITIONER]
+    self.assertEqual((32, 32), tuple(preconditioner._transformed_shape))
+    self.assertEqual(2, compute_power.call_count)
+    self.assertEqual(2, power_iter.call_count)
+    self.assertEqual('cpu', parameter.device.type)
+    self.assertEqual(parameter.device, state[shampoo.MOMENTUM].device)
+    for tensor in preconditioner.statistics + preconditioner.preconditioners:
+      self.assertEqual(parameter.device, tensor.device)
+      self.assertEqual('cpu', tensor.device.type)
 
 
 if __name__ == '__main__':
