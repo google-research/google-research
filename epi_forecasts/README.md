@@ -16,9 +16,10 @@ Metadata, forecasts, and model code are organized by pathogen target:
 
 Each pathogen directory contains a `README.md` mapping model names to their
 corresponding model metadata files (`model_metadata/*.ylm`), model code
-(`model_py/`), and predictions (`model_output/`).
-All forecasts are provided in a standardized CSV format, consistent with the
-requirements of CDC's forecasting hubs.
+(`model_py/`), and predictions (`model_output/`). The Python model code in each
+`model_py/` directory was generated autonomously by ERA and is archived here as
+produced. All forecasts are provided in a standardized CSV format, consistent
+with the requirements of CDC's forecasting hubs.
 
 The metadata files (`model_metadata/*.ylm`) in `covid_hub` and `flu_hub` contain
 the full prompt (specific instruction) text used to seed Empirical Research
@@ -71,3 +72,6 @@ our paper:
       url={https://arxiv.org/abs/2605.16238},
 }
 ```
+
+> **Performance Analysis:** Forecast scoring, evaluation figures, and hub comparison code are available at [sarahmart/epi-hub-analysis](https://github.com/sarahmart/epi-hub-analysis).
+
