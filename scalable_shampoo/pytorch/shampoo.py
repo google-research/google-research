@@ -78,7 +78,7 @@ class Graft:
     pass
 
   def precondition_gradient(self, grad):
-    return grad
+    return grad.clone()
 
   def update_momentum(self, update, unused_beta1):
     return update
