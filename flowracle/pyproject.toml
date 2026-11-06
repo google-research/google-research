@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "flowracle"
+description = "Physics-informed probabilistic seasonal streamflow forecasting across California's snow-fed basins"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "Apache-2.0"}
+authors = [{name = "Ignacio Lopez-Gomez", email = "ilopezgp@google.com"}]
+classifiers = [
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Atmospheric Science",
+    "Topic :: Scientific/Engineering :: Hydrology",
+]
+version = "0.1.0"
+
+dependencies = [
+    "numpy>=1.26.0",
+    "pandas>=2.0.0",
+    "scipy>=1.11.0",
+    "scikit-learn>=1.3.0",
+    "xgboost>=2.0.0",
+    "xarray>=2023.12.0",
+    "zarr>=2.16.0,<3.0.0",
+    "dask>=2023.12.0",
+    "netCDF4>=1.6.0",
+    "matplotlib>=3.8.0",
+]
+
+[project.urls]
+homepage = "https://github.com/google-research/google-research/tree/master/flowracle"
+repository = "https://github.com/google-research/google-research/tree/master/flowracle"
+
+[project.optional-dependencies]
+dataloader = [
+    "jax>=0.4.25",
+    "chex",
+    "fiddle",
+    "jax_datetime",
+    "coordax @ git+https://github.com/neuralgcm/coordax.git",
+    "terrax @ git+https://github.com/neuralgcm/terrax.git",
+]
+preprocessing = [
+    "requests>=2.31.0",
+    "beautifulsoup4>=4.12.0",
+    "lxml>=4.9.0",
+    "rioxarray>=0.15.0",
+    "rasterio>=1.3.0",
+    "tqdm>=4.66.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["flowracle*"]

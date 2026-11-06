@@ -1,0 +1,16 @@
+numpy>=1.26.0
+pandas>=2.0.0
+scipy>=1.11.0
+scikit-learn>=1.3.0
+xgboost>=2.0.0
+xarray>=2023.12.0
+zarr>=2.16.0,<3.0.0
+dask>=2023.12.0
+netCDF4>=1.6.0
+matplotlib>=3.8.0
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.0
+rioxarray>=0.15.0
+rasterio>=1.3.0
+tqdm>=4.66.0
