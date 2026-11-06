@@ -16,7 +16,7 @@
 """Gemma 3n E2B LoRA ASR fine-tuning on one WAXAL language.
 
 Reads the WAXAL Parquet files from the google/WaxalNLP Hugging Face dataset.
-Global batch size is batch_size * gradient_accumulation_steps * num_gpus = 8.
+Global batch size is batch_size * gradient_accumulation_steps * num_gpus = 16.
 Select the language with `--dataset_uri=<lang>` (default `aka`).
 """
 
@@ -50,7 +50,7 @@ def get_config():
 
 
   cfg.training.batch_size = 4
-  cfg.training.gradient_accumulation_steps = 2
+  cfg.training.gradient_accumulation_steps = 4
   cfg.training.max_steps = 5000
   cfg.training.learning_rate = 1e-4
   cfg.training.logging_steps = 10

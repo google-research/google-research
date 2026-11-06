@@ -188,6 +188,16 @@ class PublicConfigsDerivePathsTest(parameterized.TestCase):
     )
     self.assertTrue(cfg.dataset.dataset_path.endswith("/aka"))
 
+  def test_gemma_asr_lora_config_effective_batch_size(self):
+    import pathlib  # pylint: disable=g-import-not-at-top
+
+    pkg_dir = pathlib.Path(__file__).parent.parent
+    cfg = config_utils.load_config(
+        str(pkg_dir / "configs/gemma_asr_lora_config.py")
+    )
+    self.assertEqual(cfg.training.batch_size, 4)
+    self.assertEqual(cfg.training.gradient_accumulation_steps, 4)
+
 
 if __name__ == "__main__":
   absltest.main()
