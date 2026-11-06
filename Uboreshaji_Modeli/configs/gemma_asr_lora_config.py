@@ -17,7 +17,8 @@
 
 Reads the WAXAL Parquet files from the google/WaxalNLP Hugging Face dataset.
 Global batch size is batch_size * gradient_accumulation_steps * num_gpus = 16.
-Select the language with `--dataset_uri=<lang>` (default `aka`).
+Select the language directory with
+`--dataset_path=/path/to/WaxalNLP/data/ASR/<lang>` (default `aka`).
 """
 
 import ml_collections

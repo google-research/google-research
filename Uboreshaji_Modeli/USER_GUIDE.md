@@ -29,7 +29,8 @@ general steps:
     *   `cfg.training.batch_size`: Per-device batch size.
     *   `cfg.training.gradient_accumulation_steps`: Increase to simulate larger batches.
     *   `cfg.training.use_lora`: Enable for Parameter-Efficient Tuning.
-3.  **Launch**: Execute the training script using the modality-specific commands below.
+3.  **Launch**: From the `google-research/` parent directory, execute the
+    training module using the modality-specific commands below.
 
 --------------------------------------------------------------------------------
 
@@ -42,8 +43,8 @@ Runs the set criterion Hungarian loss trainer loop.
 *   **Local run:**
 
     ```bash
-    python main.py \
-      --config=configs/example_config.py \
+    python -m Uboreshaji_Modeli.main \
+      --config=Uboreshaji_Modeli/example_config.py \
       --model_id="google/owlv2-base-patch16-ensemble" \
       --dataset_path="/path/to/my/hf_dataset" \
       --output_dir="/tmp/outputs"
@@ -58,8 +59,8 @@ or outline segmentation polygons.
 *   **Local / Single-GPU run:**
 
     ```bash
-    python main.py \
-      --config=configs/gemma_config.py \
+    python -m Uboreshaji_Modeli.main \
+      --config=Uboreshaji_Modeli/configs/gemma_config.py \
       --output_dir="/tmp/outputs"
     ```
 
@@ -72,8 +73,8 @@ tokens to compute SFT training loss strictly on the assistant output tokens.
 *   **Local / Distributed run:**
 
     ```bash
-    python main.py \
-      --config=configs/gemma_text_sft_config.py \
+    python -m Uboreshaji_Modeli.main \
+      --config=Uboreshaji_Modeli/configs/gemma_text_sft_config.py \
       --output_dir="/tmp/outputs"
     ```
 
@@ -86,8 +87,8 @@ SFT using dynamic padding.
 *   **Local run:**
 
     ```bash
-    python main.py \
-      --config=configs/mms_asr_config.py \
+    python -m Uboreshaji_Modeli.main \
+      --config=Uboreshaji_Modeli/configs/mms_asr_config.py \
       --output_dir="/tmp/outputs"
     ```
 
@@ -180,8 +181,8 @@ cfg.training.device = "tpu"
 For open-source TPU environments (e.g. Cloud TPU VMs):
 
 ```bash
-python main.py \
-  --config=configs/gemma_text_sft_config.py \
+python -m Uboreshaji_Modeli.main \
+  --config=Uboreshaji_Modeli/configs/gemma_text_sft_config.py \
   --output_dir="/tmp/outputs"
 ```
 

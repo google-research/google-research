@@ -94,6 +94,50 @@ cd google-research
 This automatically sets up a virtual environment, installs dependencies, and
 runs all unit and integration tests.
 
+### 2. Reproducing WAXAL Gemma 3n 2B ASR Fine-Tuning
+
+*   **Prerequisites**: Python 3.11+,
+    `pip install -r Uboreshaji_Modeli/requirements.txt`, `ffmpeg` available on
+    `PATH` (used to decode raw audio bytes), an NVIDIA H100 (80 GB) GPU (for
+    rank-1024 LoRA), and a Hugging Face access token (`HF_TOKEN`) after
+    accepting the gated
+    [`google/gemma-3n-E2B-it`](https://huggingface.co/google/gemma-3n-E2B-it)
+    model license.
+
+*   **Download labeled WAXAL ASR shards**: Download a language's labeled Parquet
+    shards from
+    [`google/WaxalNLP`](https://huggingface.co/datasets/google/WaxalNLP) while
+    skipping unlabeled audio:
+
+    ```bash
+    hf download google/WaxalNLP --repo-type dataset \
+      --include "data/ASR/aka/*" --exclude "*-unlabeled-*" \
+      --local-dir /path/to/WaxalNLP
+    ```
+
+*   **Speaker-disjoint splits**: The `data/ASR/<lang>/` Parquet directories on
+    Hugging Face are already speaker-disjoint for 6 languages (`aka`, `amh`,
+    `orm`, `sid`, `tir`, `wal`) and can be passed directly to `--dataset_path`.
+    For the remaining 13 ASR languages (`ach`, `dag`, `dga`, `ewe`, `ful`,
+    `kpo`, `lin`, `lug`, `mas`, `mlg`, `nyn`, `sna`, `sog`), follow the
+    [`ASR_v2` speaker-disjoint split instructions](https://huggingface.co/datasets/google/WaxalNLP#asr-v2-splits-speaker-disjoint)
+    (`data/ASR_v2/metadata/split_map/<lang>.csv`) on the dataset card before
+    pointing `--dataset_path` to the re-partitioned files.
+
+*   **Launch (from the `google-research/` parent directory)**:
+
+    ```bash
+    python -m Uboreshaji_Modeli.main \
+      --config=Uboreshaji_Modeli/configs/gemma_asr_lora_config.py \
+      --dataset_path=/path/to/WaxalNLP/data/ASR/aka \
+      --output_dir=/path/to/output/waxal_gemma3n_aka
+    ```
+
+*   **Other speech baselines**: `configs/whisper_asr_config.py` and
+    `configs/mms_asr_config.py` are provided as template configurations that can
+    be adapted with the Whisper-large-v3 and MMS-1B hyperparameters in the WAXAL
+    paper.
+
 
 For exhaustive configuration details across vision, text, and speech, see the
 [USER_GUIDE.md](USER_GUIDE.md).

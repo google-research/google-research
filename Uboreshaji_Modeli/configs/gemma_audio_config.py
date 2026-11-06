@@ -13,7 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Configuration for Gemma 3n ASR fine-tuning."""
+"""Reference template configuration for Gemma 3n full-model ASR fine-tuning.
+
+Illustrates how to wire the `GEMMA_3N_ASR` engine (`TaskType.ASR`). For the
+WAXAL Gemma 3n 2B LoRA ASR setup, use `configs/gemma_asr_lora_config.py`; when
+reproducing other benchmarks (such as Section 4.1 of the WAXAL paper), pass
+`--dataset_path`, `--model_id`, and adapt hyperparameters accordingly.
+"""
 
 import ml_collections
 from Uboreshaji_Modeli.common import config
@@ -45,7 +51,7 @@ def get_config():
   cfg.training.learning_rate = 1e-5
   cfg.training.audio_sample_rate = 16000
 
-  cfg.prompt = "Transpose the following audio to text:"
+  cfg.prompt = "Please transcribe this audio."
 
   config_utils.derive_paths(cfg)
   return cfg
