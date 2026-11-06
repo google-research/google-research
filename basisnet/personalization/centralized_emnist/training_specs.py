@@ -28,13 +28,16 @@
 # limitations under the License.
 """Configuration classes for creating and running federated training tasks."""
 
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import attr
 import tensorflow as tf
 import tensorflow_federated as tff
 
-ModelFnType = Callable[[], tff.learning.models.VariableModel]
+ModelFnType = Union[
+    tff.learning.models.FunctionalModel,
+    Callable[[], tff.learning.models.FunctionalModel],
+]
 ValidationFnType = Optional[Callable[[Any, int], Dict[str, float]]]
 TestFnType = EvaluationFnType = Optional[Callable[[Any], Dict[str, float]]]
 
