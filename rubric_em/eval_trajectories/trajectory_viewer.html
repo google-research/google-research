@@ -1,0 +1,194 @@
+<!--
+   Copyright 2026 The Google Research Authors.
+  
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+  
+       http://www.apache.org/licenses/LICENSE-2.0
+  
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+-->
+
+<!--
+Copyright 2026 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    https://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>RubricEM · Eval Trajectory Viewer</title>
+<style>
+  :root{
+    --bg:#0f1220; --panel:#171a2b; --ink:#e6e8f0; --muted:#9aa2c0; --line:#2a2f4a;
+    --plan:#7aa2ff; --research:#48c78e; --review:#f2a154; --answer:#c792ea; --tool:#ffd166; --think:#8b93b8;
+  }
+  @media (prefers-color-scheme: light){
+    :root{--bg:#f6f7fb;--panel:#fff;--ink:#1a1d29;--muted:#5b627e;--line:#e3e6f0;
+          --plan:#2b5cff;--research:#0e9f6e;--review:#b45309;--answer:#7c3aed;--tool:#a16207;--think:#6b7280;}
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:14px/1.6 -apple-system,Segoe UI,Roboto,Helvetica,Arial,"PingFang SC","Microsoft YaHei",sans-serif;background:var(--bg);color:var(--ink)}
+  header{position:sticky;top:0;z-index:5;background:var(--panel);border-bottom:1px solid var(--line);padding:12px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+  header h1{font-size:16px;margin:0;font-weight:700;letter-spacing:.2px}
+  header .sub{color:var(--muted);font-size:12px}
+  .controls{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+  button,select,input[type=file]{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer}
+  button:hover{border-color:var(--plan)}
+  #idx{width:70px}
+  main{max-width:1000px;margin:0 auto;padding:22px 18px 80px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:16px}
+  .q{font-size:15px;font-weight:600}
+  .meta{color:var(--muted);font-size:12px;margin-top:6px;display:flex;gap:16px;flex-wrap:wrap}
+  .stage{border-left:3px solid var(--line);padding:2px 0 2px 12px;margin:14px 0}
+  .stage h3{margin:0 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:1px}
+  .plan{border-color:var(--plan)} .plan h3{color:var(--plan)}
+  .research{border-color:var(--research)} .research h3{color:var(--research)}
+  .review{border-color:var(--review)} .review h3{color:var(--review)}
+  .answer{border-color:var(--answer)} .answer h3{color:var(--answer)}
+  pre{white-space:pre-wrap;word-wrap:break-word;margin:0;font:13px/1.55 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .think{color:var(--think);font-style:italic}
+  .tag{opacity:.55;font-weight:700}
+  .toolcall{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin:8px 0}
+  .toolcall .tn{color:var(--tool);font-weight:700}
+  .toolcall .qy{color:var(--research)}
+  .toolcall .err{color:#ef4444}
+  details summary{cursor:pointer;color:var(--muted)}
+  .empty{color:var(--muted);text-align:center;padding:60px 0}
+  .pill{display:inline-block;background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:1px 9px;font-size:11px;color:var(--muted)}
+  kbd{background:var(--bg);border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;padding:0 5px;font-size:11px}
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>RubricEM · Eval Trajectory Viewer</h1>
+    <div class="sub">Load an eval <code>answers.jsonl</code> (e.g. from your own eval run, or the released eval logs).</div>
+  </div>
+  <div class="controls">
+    <input type="file" id="file" accept=".jsonl,.json,.txt"/>
+    <button id="prev">◀ Prev</button>
+    <input type="number" id="idx" min="1" value="1"/>
+    <span class="sub" id="count">/ 0</span>
+    <button id="next">Next ▶</button>
+  </div>
+</header>
+<main>
+  <div id="view"><div class="empty">Drop or choose a <b>.jsonl</b> file to begin. Navigate with the buttons or <kbd>←</kbd>/<kbd>→</kbd>.</div></div>
+</main>
+<script>
+const S = {data:[], i:0};
+const esc = s => (s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+
+// Split a raw generated_text trajectory into semantic stages by scaffold tags.
+function segment(text){
+  if(!text) return [];
+  const segs=[];
+  // ordered tag blocks we recognize
+  const blocks=[
+    {re:/<think>([\s\S]*?)<\/think>/g, cls:'plan', label:'think'},
+    {re:/<structured_plan>([\s\S]*?)<\/structured_plan>/g, cls:'plan', label:'structured_plan'},
+    {re:/<review>([\s\S]*?)<\/review>/g, cls:'review', label:'review'},
+    {re:/<answer>([\s\S]*?)<\/answer>/g, cls:'answer', label:'answer'},
+  ];
+  // We simply render the whole text with tag coloring (keeps chronological order & tool i/o).
+  return text;
+}
+
+// Colorize known scaffold tags inline while escaping everything else.
+function colorize(raw){
+  let t = esc(raw);
+  const colorMap={
+    'think':'think','structured_plan':'plan','deep_analysis':'plan','rubric':'plan','research_plan':'plan',
+    'call_tool':'research','tool_output':'research','review':'review','answer':'answer','writing_plan':'review'
+  };
+  // wrap opening/closing tags
+  t = t.replace(/&lt;(\/?)([a-zA-Z_]+)&gt;/g,(m,slash,name)=>{
+    const c = colorMap[name]||null;
+    const style = c? ` style="color:var(--${c==='think'?'think':c})"`:'';
+    return `<span class="tag"${style}>&lt;${slash}${name}&gt;</span>`;
+  });
+  return t;
+}
+
+function toolCallsHTML(tcs){
+  if(!Array.isArray(tcs)||!tcs.length) return '';
+  let h=`<div class="stage research"><h3>Tool calls (${tcs.length})</h3>`;
+  tcs.forEach((tc,i)=>{
+    const q = tc.query||(tc.input_params&&tc.input_params.query)||'';
+    const err = tc.error? `<div class="err">error: ${esc(String(tc.error))}</div>`:'';
+    const rt = tc.runtime? `<span class="pill">${(+tc.runtime).toFixed(1)}s</span>`:'';
+    const rawOut = tc.raw_output ?? tc.output;
+    const out = rawOut? `<details><summary>raw output</summary><pre>${esc(String(rawOut)).slice(0,4000)}</pre></details>`:'';
+    h+=`<div class="toolcall"><span class="tn">#${i+1} ${esc(tc.tool_name||'tool')}</span> ${rt}<br><span class="qy">${esc(String(q))}</span>${err}${out}</div>`;
+  });
+  return h+`</div>`;
+}
+
+function render(){
+  const v=document.getElementById('view');
+  if(!S.data.length){return;}
+  const d=S.data[S.i]||{};
+  const ft=d.full_traces||{};
+  const problem = d.problem || (d.original_data&&d.original_data.problem) || '(no problem field)';
+  const meta=[];
+  if(d.example_id!==undefined) meta.push(`id: ${esc(String(d.example_id))}`);
+  if(ft.tool_call_count!==undefined) meta.push(`tool calls: ${esc(String(ft.tool_call_count))}`);
+  if(ft.total_tokens!==undefined) meta.push(`tokens: ${esc(String(ft.total_tokens))}`);
+  if(ft.stopped_reason) meta.push(`stop: ${esc(ft.stopped_reason)}`);
+  if(d.original_data&&d.original_data.dataset_name) meta.push(`dataset: ${esc(d.original_data.dataset_name)}`);
+
+  let html = `<div class="card"><div class="q">${esc(problem)}</div><div class="meta">${meta.map(m=>`<span>${m}</span>`).join('')}</div></div>`;
+
+  // Full trajectory (tagged), colorized
+  const traj = ft.generated_text || '';
+  if(traj){
+    html += `<div class="card"><div class="stage plan"><h3>Trajectory (scaffold: plan → research → review → answer)</h3><pre>${colorize(traj)}</pre></div>`;
+    html += toolCallsHTML(ft.tool_calls);
+    html += `</div>`;
+  }
+  // Final answer (clean)
+  if(d.final_response){
+    html += `<div class="card"><div class="stage answer"><h3>Final answer</h3><pre>${esc(d.final_response)}</pre></div></div>`;
+  }
+  v.innerHTML=html;
+  document.getElementById('idx').value=S.i+1;
+  document.getElementById('count').textContent=`/ ${S.data.length}`;
+  window.scrollTo(0,0);
+}
+
+function load(text){
+  S.data = text.split(/\r?\n/).filter(l=>l.trim()).map(l=>{try{return JSON.parse(l)}catch(e){return{problem:'(parse error)',final_response:l.slice(0,500)}}});
+  S.i=0; render();
+}
+document.getElementById('file').addEventListener('change',e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>load(r.result); r.readAsText(f);
+});
+document.getElementById('prev').onclick=()=>{if(S.i>0){S.i--;render();}};
+document.getElementById('next').onclick=()=>{if(S.i<S.data.length-1){S.i++;render();}};
+document.getElementById('idx').addEventListener('change',e=>{let n=+e.target.value-1;if(n>=0&&n<S.data.length){S.i=n;render();}});
+document.addEventListener('keydown',e=>{if(e.key==='ArrowLeft')document.getElementById('prev').click();if(e.key==='ArrowRight')document.getElementById('next').click();});
+// drag & drop
+document.body.addEventListener('dragover',e=>{e.preventDefault();});
+document.body.addEventListener('drop',e=>{e.preventDefault();const f=e.dataTransfer.files[0];if(f){const r=new FileReader();r.onload=()=>load(r.result);r.readAsText(f);}});
+</script>
+</body>
+</html>

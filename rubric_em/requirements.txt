@@ -1,0 +1,12 @@
+# Direct dependencies of the RubricEM modules in this directory.
+# Several modules also import `open_instruct` from DR Tulu
+# (https://github.com/rlresearch/dr-tulu), which you install separately.
+aiohttp>=3.9
+faiss-cpu>=1.7
+google-genai>=1.0
+numpy>=1.26
+pydantic>=2.0
+sentence-transformers>=3.0
+torch>=2.1
+tqdm>=4.66
+transformers>=4.44
