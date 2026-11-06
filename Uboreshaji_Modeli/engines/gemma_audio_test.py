@@ -74,7 +74,6 @@ class GemmaAudioEngineTest(absltest.TestCase):
     mock_processor = mock.Mock()
 
     cfg = ml_collections.ConfigDict()
-    cfg.prompt = "Translate this:"
 
     transform_fn = self.engine.get_transform_fn(
         processor=mock_processor,
@@ -97,16 +96,128 @@ class GemmaAudioEngineTest(absltest.TestCase):
     self.assertLen(output["messages"], 1)
     self.assertLen(output["audio"], 1)
 
+    self.assertEqual(
+        gemma_audio._DEFAULT_SYSTEM_PROMPT,
+        "You are an assistant that transcribes speech accurately.",
+    )
+    self.assertEqual(
+        gemma_audio._DEFAULT_USER_PROMPT,
+        "Please transcribe this audio.",
+    )
+
     messages = output["messages"][0]
-    self.assertEqual(messages[0]["role"], "user")
-    self.assertEqual(messages[1]["role"], "assistant")
-    self.assertEqual(messages[1]["content"][0]["text"], "Hello world")
+    self.assertLen(messages, 3)
+    self.assertEqual(
+        messages[0],
+        {"role": "system", "content": gemma_audio._DEFAULT_SYSTEM_PROMPT},
+    )
+    self.assertEqual(messages[1]["role"], "user")
+    self.assertEqual(
+        messages[1]["content"][1],
+        {"type": "text", "text": gemma_audio._DEFAULT_USER_PROMPT},
+    )
+    self.assertEqual(messages[2]["role"], "assistant")
+    self.assertEqual(messages[2]["content"][0]["text"], "Hello world")
 
     self.assertIn("array", output["audio"][0])
     self.assertIn("sampling_rate", output["audio"][0])
 
     # Processor should NOT be called during transform.
     mock_processor.assert_not_called()
+
+  def test_get_transform_fn_custom_prompts(self):
+    mock_processor = mock.Mock()
+    cfg = ml_collections.ConfigDict()
+    cfg.system_prompt = "You are a speech translator."
+    cfg.prompt = "Translate this:"
+
+    transform_fn = self.engine.get_transform_fn(
+        processor=mock_processor,
+        text_inputs=[],
+        dataset_id2label=[],
+        model_label2id={},
+        cfg=cfg,
+    )
+
+    batch = {
+        "audio": {"array": np.zeros(16000), "sampling_rate": 16000},
+        "text": "Bonjour le monde",
+    }
+
+    output = transform_fn(batch)
+    messages = output["messages"][0]
+    self.assertLen(messages, 3)
+    self.assertEqual(
+        messages[0],
+        {"role": "system", "content": "You are a speech translator."},
+    )
+    self.assertEqual(messages[1]["role"], "user")
+    self.assertEqual(
+        messages[1]["content"][1],
+        {"type": "text", "text": "Translate this:"},
+    )
+    self.assertEqual(messages[2]["role"], "assistant")
+    self.assertEqual(messages[2]["content"][0]["text"], "Bonjour le monde")
+
+  def test_get_transform_fn_empty_system_prompt_omits_system_turn(self):
+    mock_processor = mock.Mock()
+    cfg = ml_collections.ConfigDict()
+    cfg.system_prompt = ""
+
+    transform_fn = self.engine.get_transform_fn(
+        processor=mock_processor,
+        text_inputs=[],
+        dataset_id2label=[],
+        model_label2id={},
+        cfg=cfg,
+    )
+
+    batch = {
+        "audio": {"array": np.zeros(16000), "sampling_rate": 16000},
+        "text": "Hello world",
+    }
+
+    output = transform_fn(batch)
+    messages = output["messages"][0]
+    self.assertLen(messages, 2)
+    self.assertEqual(messages[0]["role"], "user")
+    self.assertEqual(
+        messages[0]["content"][1],
+        {"type": "text", "text": gemma_audio._DEFAULT_USER_PROMPT},
+    )
+    self.assertEqual(messages[1]["role"], "assistant")
+    self.assertEqual(messages[1]["content"][0]["text"], "Hello world")
+
+  def test_get_transform_fn_none_cfg(self):
+    mock_processor = mock.Mock()
+
+    transform_fn = self.engine.get_transform_fn(
+        processor=mock_processor,
+        text_inputs=[],
+        dataset_id2label=[],
+        model_label2id={},
+        cfg=None,
+    )
+
+    batch = {
+        "audio": {"array": np.zeros(16000), "sampling_rate": 16000},
+        "text": "Hello world",
+    }
+
+    output = transform_fn(batch)
+    messages = output["messages"][0]
+    self.assertLen(messages, 3)
+    self.assertEqual(
+        messages[0],
+        {"role": "system", "content": gemma_audio._DEFAULT_SYSTEM_PROMPT},
+    )
+    self.assertEqual(messages[1]["role"], "user")
+    self.assertEqual(
+        messages[1]["content"][1],
+        {"type": "text", "text": gemma_audio._DEFAULT_USER_PROMPT},
+    )
+    self.assertEqual(messages[2]["role"], "assistant")
+    self.assertEqual(messages[2]["content"][0]["text"], "Hello world")
 
   def test_get_transform_fn_no_text(self):
     mock_processor = mock.Mock()
@@ -132,10 +243,17 @@ class GemmaAudioEngineTest(absltest.TestCase):
 
     # Verify message structure (assistant role with empty text).
     messages = output["messages"][0]
-    self.assertLen(messages, 2)
-    self.assertEqual(messages[0]["role"], "user")
-    self.assertEqual(messages[1]["role"], "assistant")
-    self.assertEqual(messages[1]["content"][0]["text"], "")
+    self.assertLen(messages, 3)
+    self.assertEqual(messages[0]["role"], "system")
+    self.assertEqual(
+        messages[0]["content"], gemma_audio._DEFAULT_SYSTEM_PROMPT
+    )
+    self.assertEqual(messages[1]["role"], "user")
+    self.assertEqual(
+        messages[1]["content"][1]["text"], gemma_audio._DEFAULT_USER_PROMPT
+    )
+    self.assertEqual(messages[2]["role"], "assistant")
+    self.assertEqual(messages[2]["content"][0]["text"], "")
 
   def test_get_transform_fn_multiple_audio_no_text(self):
     mock_processor = mock.Mock()
@@ -165,10 +283,17 @@ class GemmaAudioEngineTest(absltest.TestCase):
 
     # Verify message structure (assistant role with empty text).
     for messages in output["messages"]:
-      self.assertLen(messages, 2)
-      self.assertEqual(messages[0]["role"], "user")
-      self.assertEqual(messages[1]["role"], "assistant")
-      self.assertEqual(messages[1]["content"][0]["text"], "")
+      self.assertLen(messages, 3)
+      self.assertEqual(messages[0]["role"], "system")
+      self.assertEqual(
+          messages[0]["content"], gemma_audio._DEFAULT_SYSTEM_PROMPT
+      )
+      self.assertEqual(messages[1]["role"], "user")
+      self.assertEqual(
+          messages[1]["content"][1]["text"], gemma_audio._DEFAULT_USER_PROMPT
+      )
+      self.assertEqual(messages[2]["role"], "assistant")
+      self.assertEqual(messages[2]["content"][0]["text"], "")
 
   def test_get_transform_fn_transcription(self):
     mock_processor = mock.Mock()
@@ -189,8 +314,12 @@ class GemmaAudioEngineTest(absltest.TestCase):
     output = transform_fn(batch)
     self.assertIn("messages", output)
     messages = output["messages"][0]
+    self.assertLen(messages, 3)
+    self.assertEqual(messages[0]["role"], "system")
+    self.assertEqual(messages[1]["role"], "user")
+    self.assertEqual(messages[2]["role"], "assistant")
     self.assertEqual(
-        messages[1]["content"][0]["text"], "Hello world transcription"
+        messages[2]["content"][0]["text"], "Hello world transcription"
     )
 
   def test_get_transform_fn_sample_rate_override(self):

@@ -30,6 +30,11 @@ from Uboreshaji_Modeli.common import audio_utils
 from . import base
 from . import decoders
 
+_DEFAULT_SYSTEM_PROMPT = (
+    "You are an assistant that transcribes speech accurately."
+)
+_DEFAULT_USER_PROMPT = "Please transcribe this audio."
+
 
 def _mask_labels(labels, processor):
   """Masks padding and special tokens in labels for loss computation."""
@@ -115,9 +120,11 @@ class GemmaAudioTransform:
       self,
       prompt,
       cfg,
+      system_prompt = _DEFAULT_SYSTEM_PROMPT,
   ):
     self.prompt = prompt
     self.cfg = cfg
+    self.system_prompt = system_prompt
 
   def __call__(
       self,
@@ -169,10 +176,14 @@ class GemmaAudioTransform:
       assistant_content = [
           {"type": "text", "text": text if text else ""},
       ]
-      messages_list.append([
+      messages = []
+      if self.system_prompt:
+        messages.append({"role": "system", "content": self.system_prompt})
+      messages.extend([
           {"role": "user", "content": user_content},
           {"role": "assistant", "content": assistant_content},
       ])
+      messages_list.append(messages)
 
     return {"messages": messages_list, "audio": audio_list}
 
@@ -190,15 +201,17 @@ class GemmaAudioPreprocessor(base.DataPreprocessor):
   ):
     """Returns a transform function for Gemma audio models."""
     del self, processor  # Unused; processor is used at collation time.
-    prompt = (
-        cfg.prompt
-        if cfg and "prompt" in cfg
-        else "Transpose the following audio:"
+    prompt = cfg.prompt if cfg and "prompt" in cfg else _DEFAULT_USER_PROMPT
+    system_prompt = (
+        cfg.system_prompt
+        if cfg and "system_prompt" in cfg
+        else _DEFAULT_SYSTEM_PROMPT
     )
 
     return GemmaAudioTransform(
         prompt=prompt,
         cfg=cfg,
+        system_prompt=system_prompt,
     )
 
   def get_collate_fn(
