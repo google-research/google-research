@@ -76,6 +76,35 @@ centralized in `ee_assets_config.py`:
   Engine image assets, and configured in `ee_assets_config.py`
   (`projects/YOUR_PROJECT/assets/geoid_offsets/...`).
 
+## Quickstart Examples
+
+Two standalone example scripts in [`examples/`](examples/) demonstrate how to
+read, inspect, and visualize GEM-15 elevation layers over any WGS84 bounding
+box:
+
+* **STAC + Cloud-Optimized GeoTIFF Example** (`examples/stac_example.py`):
+  Queries the public STAC catalog (`items.ndjson`), loads and merges the
+  requested bounding box with `pystac` + `odc-stac`, saves a 6-band GeoTIFF,
+  and plots DSM, DTM, and height (`DSM - DTM`):
+
+  ```bash
+  python3 examples/stac_example.py \
+    --bbox -122.440 37.748 -122.400 37.778 \
+    --out_prefix gem15_stac_sf
+  ```
+
+* **Earth Engine Python Example** (`examples/ee_example.py`): Loads the public
+  Earth Engine collection
+  (`projects/climate-and-sustainability/assets/gem-15_v1`), computes regional
+  statistics over `--bbox`, downloads a GeoTIFF, and plots DSM, DTM, and height:
+
+  ```bash
+  python3 examples/ee_example.py \
+    --ee_project=your-cloud-project-id \
+    --bbox=-122.440,37.748,-122.400,37.778 \
+    --out_prefix=gem15_ee_sf
+  ```
+
 ## Running the Full End-to-End Validation & Plotting Pipeline
 
 To run all validation benchmarks and generate all quantitative and qualitative
