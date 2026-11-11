@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import unittest
-
 import tensorflow as tf
 
 from etcmodel.models import modeling
@@ -22,7 +20,7 @@ from mave.benchmark.models import etc_tagger
 from official.nlp import optimization
 
 
-class EtcTaggerTest(unittest.TestCase):
+class EtcTaggerTest(tf.test.TestCase):
 
   def test_etc_tagger_call(self):
     inputs = {
@@ -69,5 +67,6 @@ class EtcTaggerTest(unittest.TestCase):
     self.assertEqual(metrics['global_loss'].shape, [])
     self.assertEqual(metrics['long_loss'].shape, [])
 
+
 if __name__ == '__main__':
-  unittest.main()
+  tf.test.main()
