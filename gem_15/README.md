@@ -1,5 +1,7 @@
 # GEM-15: Global Elevation Model (15m) Validation & Benchmarking Suite
 
+> **Preprint:** *[GEM-15: Global surface and terrain elevation models (15 meters) from sub-meter optical stereo imagery](https://eartharxiv.org/repository/view/16034/)* (EarthArXiv, [doi:10.31223/X55N75](https://doi.org/10.31223/X55N75))
+
 This directory contains the validation, benchmarking, and figure generation
 code for **GEM-15** (15m resolution):
 
@@ -139,4 +141,20 @@ From the `google_research` repository root:
 
 ```bash
 python3 -m unittest gem_15/metrics_test.py
+```
+
+## Citation
+
+If you use GEM-15 or this evaluation suite in your work, please cite the
+[GEM-15 preprint](https://eartharxiv.org/repository/view/16034/):
+
+```
+@article{batchu2026gem15,
+  title={GEM-15: Global surface and terrain elevation models (15 meters) from sub-meter optical stereo imagery},
+  author={Batchu, Vishal Venkat and Neumann, Maxim and Li, Tommy and Allen, Brett and Zhang, Jie and Van Arsdale, Christopher},
+  journal={EarthArXiv},
+  year={2026},
+  doi={10.31223/X55N75},
+  url={https://eartharxiv.org/repository/view/16034/}
+}
 ```
