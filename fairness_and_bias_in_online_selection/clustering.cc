@@ -47,7 +47,6 @@ vector<SecretaryInstance> ClusteringOracle::GetSecretaryInput(
   // Path to the input dataset.
   string input_path = "";
   std::ifstream in(input_path);
-  string input;
   // Ignoring the first line.
   vector<SecretaryInstance> instance;
   int n, d;
