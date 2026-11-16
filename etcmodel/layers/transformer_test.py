@@ -16,9 +16,9 @@
 """Tests for transformer layers."""
 
 import collections
+from unittest import mock
 
 from absl.testing import parameterized
-import mock
 import numpy as np
 import tensorflow as tf
 

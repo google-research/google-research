@@ -26,8 +26,8 @@ import os
 import random
 import shutil
 import string
+from unittest import mock
 
-import mock
 import six
 from six.moves import range  # pylint: disable=redefined-builtin
 

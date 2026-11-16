@@ -16,11 +16,12 @@
 """Tests for data_prep_and_eval_beam_main."""
 
 import os
+from unittest import mock
+
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
-import mock
 
 from non_semantic_speech_benchmark import data_prep_and_eval_beam_main
 

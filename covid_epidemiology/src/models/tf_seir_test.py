@@ -18,8 +18,9 @@
 Use python3 -m models.tf_seir_test to run the tests.
 """
 import unittest
+from unittest.mock import patch
+
 from dateutil import parser
-from mock import patch
 import numpy as np
 from covid_epidemiology.src import constants
 from covid_epidemiology.src.models import tf_seir

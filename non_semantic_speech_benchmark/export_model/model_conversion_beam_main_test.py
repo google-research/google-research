@@ -16,12 +16,11 @@
 """Tests for model_conversion_beam_main."""
 
 import os
+from unittest import mock
 
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
-
-import mock
 
 from non_semantic_speech_benchmark.export_model import model_conversion_beam_main
 

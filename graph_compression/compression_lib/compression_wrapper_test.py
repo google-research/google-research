@@ -23,8 +23,9 @@ operator.
 from __future__ import absolute_import
 from __future__ import division
 
+from unittest import mock
+
 from absl.testing import absltest
-import mock
 
 from graph_compression.compression_lib import compression_op as comp_op
 from graph_compression.compression_lib import compression_wrapper

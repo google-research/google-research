@@ -15,9 +15,10 @@
 
 """Tests for two_sat.dnf_lib."""
 
+from unittest import mock
+
 from absl.testing import absltest
 from absl.testing import parameterized
-import mock
 
 from bangbang_qaoa.two_sat import dnf_lib
 

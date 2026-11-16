@@ -14,7 +14,7 @@
 # limitations under the License.
 
 """Implementation of the ModelAdapter class."""
-import mock
+from unittest import mock
 
 from task_set.tasks.losg_problems import problem_generator as pg
 import tensorflow.compat.v1 as tf

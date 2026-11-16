@@ -18,8 +18,8 @@
 Use python3 -m models.definitions.base_model_definition_test to run the tests.
 """
 import unittest
+from unittest import mock
 
-import mock
 import numpy as np
 import pandas as pd
 

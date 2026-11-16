@@ -20,9 +20,9 @@ these tests will only check that we've created the correct type of compression
 operator.
 """
 
-from absl.testing import absltest
+from unittest import mock
 
-import mock
+from absl.testing import absltest
 
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_op as comp_op
 from non_semantic_speech_benchmark.distillation.compression_lib import compression_wrapper

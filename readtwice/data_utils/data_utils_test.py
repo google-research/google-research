@@ -15,10 +15,10 @@
 
 import copy
 import os
+from unittest import mock
 
 from absl.testing import absltest
 from google.protobuf import text_format
-import mock
 import tensorflow.compat.v1 as tf
 
 from tensorflow.python.util.protobuf import compare

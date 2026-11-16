@@ -16,8 +16,9 @@
 """Tests for eval_downstream."""
 
 import os
+from unittest import mock
+
 from absl.testing import absltest
-import mock
 import numpy as np
 import tensorflow as tf
 from non_semantic_speech_benchmark.eval_embedding.sklearn import sklearn_utils

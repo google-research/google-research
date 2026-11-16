@@ -15,11 +15,12 @@
 
 """Tests for non_semantic_speech_benchmark.eval_embedding.keras.train_keras."""
 
+from unittest import mock
+
 from absl import flags
 from absl.testing import absltest
 from absl.testing import flagsaver
 from absl.testing import parameterized
-import mock
 import tensorflow as tf
 
 from non_semantic_speech_benchmark.eval_embedding.finetune import train_keras
