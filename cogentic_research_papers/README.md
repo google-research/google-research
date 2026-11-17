@@ -1,0 +1,16 @@
+# Cogentic Research Papers
+
+This directory holds research papers that were produced by Cogentic.
+
+## Papers
+
+*   [`ce_convex_games`](ce_convex_games/): *Intractability of Approximate Correlated Equilibria in Two-Player Convex Games*.
+
+## License
+
+The contents in this directory are released under the
+[Apache 2.0 license](https://github.com/google-research/google-research/blob/master/LICENSE).
+See the top-level [google-research repository](https://github.com/google-research/google-research)
+for details.
+
+*Disclaimer: This is not an official Google product.*
