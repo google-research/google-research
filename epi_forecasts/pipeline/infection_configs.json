@@ -1,0 +1,44 @@
+{
+  "covid": {
+    "target_column": "Total COVID-19 Admissions",
+    "cdc_metric_name": "wk inc covid hosp",
+    "ensemble_name": "Google_SAI-Ensemble",
+    "model_output_dir": "covid_hub/model_output",
+    "model_names_for_ensemble": [
+      "Google_SAI-Adapted_5",
+      "Google_SAI-Adapted_4",
+      "Google_SAI-Adapted_1",
+      "Google_SAI-Adapted_2",
+      "Google_SAI-Adapted_3",
+      "Google_SAI-Hybrid_3",
+      "Google_SAI-Hybrid_1",
+      "Google_SAI-Novel_1",
+      "Google_SAI-Hybrid_2"
+    ]
+  },
+  "flu": {
+    "target_column": "Total Influenza Admissions",
+    "cdc_metric_name": "wk inc flu hosp",
+    "ensemble_name": "Google_SAI-FluEns",
+    "model_output_dir": "flu_hub/model_output",
+    "model_names_for_ensemble": [
+      "Google_SAI-Hybrid_6",
+      "Google_SAI-Hybrid_1",
+      "Google_SAI-Adapted_9",
+      "Google_SAI-Adapted_3",
+      "Google_SAI-Adapted_11",
+      "Google_SAI-Hybrid_5",
+      "Google_SAI-Adapted_21"
+    ]
+  },
+  "rsv": {
+    "target_column": "Total RSV Admissions",
+    "cdc_metric_name": "wk inc rsv hosp",
+    "ensemble_name": "Google_SAI-RSVEns",
+    "model_output_dir": "rsv_hub/model_output",
+    "model_names_for_ensemble": [
+      "Google_SAI-Novel_1",
+      "Google_SAI-Novel_2"
+    ]
+  }
+}

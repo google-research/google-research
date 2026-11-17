@@ -39,6 +39,14 @@ files.
   - [COVID-19 Problem Statement](problem_statements/covid19_problem_statement.txt)
   - [RSV Problem Statement](problem_statements/rsv_problem_statement.txt)
 
+## Pipeline Utilities
+
+The [`pipeline/`](pipeline/README.md) directory contains the utility scripts
+used around the individual models, in the order they are run: input data
+preparation (`pipeline/data_prep/`), followed by the creation of the ensemble
+forecasts from the individual model submissions
+(`pipeline/create_ensemble.py`).
+
 ## References & Acknowledgments
 
 The structure and implementation of this repository are based on open-source
