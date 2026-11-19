@@ -28,8 +28,14 @@ tests (https://arxiv.org/abs/2409.14980):
 
 Non-finite hyperparameter rows (where any column of `lambda_reg * T_s / sigma_s`
 is non-finite, e.g. from an ill-conditioned Cholesky factorization or zero
-standard deviation) are masked symmetrically across all permutation columns
-including the original column, preserving permutation exchangeability under H0.
+kernel normalizer `sigma_s`) are masked symmetrically across all permutation
+columns including the original column, preserving permutation exchangeability
+under H0.
+
+Also provides fused witness density-ratio scoring
+(`FuseTest.compute_fused_witness_scores`) to estimate
+`dP_numerator / dP_denominator` at query points using softmax weights
+`w = softmax(lambda_reg * T_s^dir / sigma_s)` over valid hyperparameter rows.
 
 Note:
   All computations run in `float32` (`jax_enable_x64` is assumed off). Do not
@@ -44,6 +50,7 @@ from absl import logging
 import jax
 import jax.numpy as jnp
 from f_divergence_tests.divergence import kernel as kernel_module
+from f_divergence_tests.divergence import likelihood_ratio
 from f_divergence_tests.hypothesis_test import hypothesis_test_utils
 
 
@@ -62,6 +69,135 @@ def _make_shuffled_estimator(
     )
 
   return shuffled_estimator
+
+
+def _validate_sample_pair(
+    samples_a,
+    samples_b,
+    name_a,
+    name_b,
+):
+  """Validates a pair of equal-sized 2D sample matrices with at least 2 rows."""
+  if samples_a.ndim != 2 or samples_b.ndim != 2:
+    raise ValueError(f"{name_a} and {name_b} must be 2D arrays.")
+  if samples_a.shape[0] != samples_b.shape[0]:
+    raise ValueError(
+        f"{name_a} and {name_b} must have the same number of samples."
+    )
+  if samples_a.shape[0] < 2:
+    raise ValueError(f"{name_a} and {name_b} must have at least 2 samples.")
+  if samples_a.shape[1] != samples_b.shape[1]:
+    raise ValueError(
+        f"{name_a} and {name_b} must have the same feature dimension."
+    )
+
+
+def _kernel_normalizer(kernel_matrix, n_samples):
+  """MMD-FUSE kernel scale `||K||_F / sqrt(n * (n - 1))` (arXiv:2306.08777)."""
+  return jnp.sqrt(jnp.sum(kernel_matrix**2) / (n_samples * (n_samples - 1)))
+
+
+def _ratio_on_queries(
+    estimator,
+    numerator_samples,
+    denominator_samples,
+    query_samples,
+    kernel_matrix,
+    kernel,
+    bandwidth,
+    min_memory_kernel,
+    query_batch_size,
+):
+  """Computes directional divergence and query likelihood ratios for one row.
+
+  This helper is the single place that maps the caller's `numerator` /
+  `denominator` roles onto `LikelihoodRatioEstimator`'s `y` (numerator) and `x`
+  (denominator) roles:
+    - `x` role: `denominator_samples` (`k_xx = k_dd`)
+    - `y` role: `numerator_samples` (`k_yy = k_nn`, `k_xy = k_dn`)
+
+  Args:
+    estimator: A `LikelihoodRatioEstimator` (e.g. `KernelFDivergence` or
+      `DrMMDSymmetric`) providing `.lmbda`, `.directional(...)`, and
+      `.likelihood_ratio_yx_on_z(...)`.
+    numerator_samples: Samples from the numerator distribution, shape `[n, d]`.
+    denominator_samples: Samples from the denominator distribution, shape `[n,
+      d]`.
+    query_samples: Query samples at which to evaluate `dP_numerator /
+      dP_denominator`, shape `[q, d]`.
+    kernel_matrix: Kernel matrix over `jnp.concatenate((numerator_samples,
+      denominator_samples))`, shape `[2 * n, 2 * n]`.
+    kernel: `Kernel` enum specifying the kernel function and norm.
+    bandwidth: Scalar kernel bandwidth (`float32` array).
+    min_memory_kernel: Whether to compute pairwise distances sequentially.
+    query_batch_size: Positive batch size for evaluating queries via
+      `jax.lax.map`.
+
+  Returns:
+    A `(stat, query_ratios)` tuple where `stat` is the scalar directional
+    divergence `D(P_numerator || P_denominator)` and `query_ratios` has shape
+    `[q]`.
+  """
+  n_samples = numerator_samples.shape[0]
+  n_queries = query_samples.shape[0]
+
+  k_nn = kernel_matrix[:n_samples, :n_samples]
+  k_dd = kernel_matrix[n_samples:, n_samples:]
+  k_dn = kernel_matrix[n_samples:, :n_samples]
+
+  cho = likelihood_ratio.regularized_cho_factor(k_dd, estimator.lmbda)
+  stat = estimator.directional(k_xx=k_dd, k_yy=k_nn, k_xy=k_dn)
+
+  effective_batch_size = min(query_batch_size, n_queries)
+  num_batches = (n_queries + effective_batch_size - 1) // effective_batch_size
+  pad_len = num_batches * effective_batch_size - n_queries
+  if pad_len > 0:
+    padded_queries = jnp.pad(query_samples, ((0, pad_len), (0, 0)), mode="edge")
+  else:
+    padded_queries = query_samples
+  batched_queries = padded_queries.reshape(
+      num_batches, effective_batch_size, query_samples.shape[1]
+  )
+
+  def _score_query_batch(q_batch):
+    batch_len = q_batch.shape[0]
+    dist_qd = (
+        kernel_module.get_distances(
+            q_batch,
+            denominator_samples,
+            norm=kernel.norm.value,
+            min_memory=min_memory_kernel,
+        )
+        .reshape(batch_len, n_samples)
+        .astype(jnp.float32)
+    )
+    dist_qn = (
+        kernel_module.get_distances(
+            q_batch,
+            numerator_samples,
+            norm=kernel.norm.value,
+            min_memory=min_memory_kernel,
+        )
+        .reshape(batch_len, n_samples)
+        .astype(jnp.float32)
+    )
+    k_qd = kernel_module.get_kernel_matrix(
+        dist_qd, kernel=kernel, bandwidth=bandwidth
+    ).astype(jnp.float32)
+    k_qn = kernel_module.get_kernel_matrix(
+        dist_qn, kernel=kernel, bandwidth=bandwidth
+    ).astype(jnp.float32)
+    return estimator.likelihood_ratio_yx_on_z(
+        k_zx=k_qd,
+        k_zy=k_qn,
+        k_xx=k_dd,
+        cho_factor_k_xx=cho,
+        k_xy=k_dn,
+    )
+
+  batched_ratios = jax.lax.map(_score_query_batch, batched_queries)
+  query_ratios = batched_ratios.reshape(-1)[:n_queries]
+  return stat, query_ratios
 
 
 class PermutationTest:
@@ -261,9 +397,7 @@ class FuseTest(PermutationTest):
     )
     self.lambda_fuse_multiplier = lambda_fuse_multiplier
 
-  def _iterate_hyperparams(
-      self, pooled_samples
-  ):
+  def _iterate_hyperparams(self, pooled_samples):
     """Yields `(norm, kernel, param, bandwidth, kernel_matrix, estimator)` in a fixed order.
 
     Bandwidths are computed into a local variable per norm without mutating
@@ -328,7 +462,7 @@ class FuseTest(PermutationTest):
     """Runs the fused two-sample permutation test.
 
     Invalid hyperparameter rows (where any column of the standardized statistic
-    `lambda_reg * stat / std_dev` is non-finite) are masked out prior to the
+    `lambda_reg * stat / kernel_norm` is non-finite) are masked out prior to the
     `logsumexp` aggregation. Because the validity mask is a symmetric function
     of all permutation columns (including the original unpermuted column), the
     masked fused statistic applies the same fixed function to every column and
@@ -337,8 +471,10 @@ class FuseTest(PermutationTest):
     `result_test = False`.
 
     Args:
-      samples_x: Array of shape `(n_samples, d)` from the first distribution.
-      samples_y: Array of shape `(n_samples, d)` from the second distribution.
+      samples_x: Array of shape `(n_samples, d)` from the first distribution,
+        with `n_samples >= 2`.
+      samples_y: Array of shape `(n_samples, d)` from the second distribution,
+        with `n_samples >= 2`.
       key_seed: Integer seed for the JAX random number generator.
 
     Returns:
@@ -353,8 +489,8 @@ class FuseTest(PermutationTest):
           `"num_valid_hyperparams"`, and `"num_hyperparams"`.
 
     Raises:
-      ValueError: If `samples_x` and `samples_y` do not have the same number of
-        samples (`shape[0]`).
+      ValueError: If `samples_x` and `samples_y` are not 2D arrays with the same
+        shape and at least 2 samples.
 
     Example:
       ```python
@@ -372,10 +508,7 @@ class FuseTest(PermutationTest):
       result = test.run(samples_x, samples_y, key_seed=0)
       ```
     """
-    if samples_x.shape[0] != samples_y.shape[0]:
-      raise ValueError(
-          "samples_x and samples_y must have the same number of samples."
-      )
+    _validate_sample_pair(samples_x, samples_y, "samples_x", "samples_y")
 
     n_samples = samples_x.shape[0]
     all_samples = jnp.concatenate((samples_x, samples_y)).astype(jnp.float32)
@@ -389,7 +522,7 @@ class FuseTest(PermutationTest):
         (self.number_statistics, self.num_permutations + 1),
         dtype=jnp.float32,
     )
-    std_devs = jnp.zeros(self.number_statistics, dtype=jnp.float32)
+    kernel_norms = jnp.zeros(self.number_statistics, dtype=jnp.float32)
     lambda_reg = self.lambda_fuse_multiplier * jnp.sqrt(
         float(n_samples * (n_samples - 1.0))
     )
@@ -415,10 +548,8 @@ class FuseTest(PermutationTest):
       ):
         bandwidths_by_norm[norm_key].append(bw)
 
-      scaled_std = jnp.sqrt(
-          jnp.sum(kernel_matrix**2) / (n_samples * (n_samples - 1))
-      )
-      std_devs = std_devs.at[current_hyperparams_idx].set(scaled_std)
+      kernel_norm = _kernel_normalizer(kernel_matrix, n_samples)
+      kernel_norms = kernel_norms.at[current_hyperparams_idx].set(kernel_norm)
       if divergence_estimator.has_vectorized_kernel:
         kernel_matrix = kernel_matrix.at[
             jnp.diag_indices(kernel_matrix.shape[0])
@@ -445,7 +576,7 @@ class FuseTest(PermutationTest):
           permuted_statistics
       )
 
-    scaled = lambda_reg * all_statistics / std_devs[:, None]
+    scaled = lambda_reg * all_statistics / kernel_norms[:, None]
     valid = jnp.all(jnp.isfinite(scaled), axis=1, keepdims=True)
     num_valid = jnp.sum(valid)
     safe = jnp.where(valid, scaled, -jnp.inf)
@@ -461,8 +592,7 @@ class FuseTest(PermutationTest):
     p_val = jnp.where(num_valid > 0, jnp.mean(fused >= fused[-1]), 1.0)
     output_norm = (num_valid > 0) & (p_val <= self.significance)
     bw_info = {
-        norm_key: jnp.stack(bws)
-        for norm_key, bws in bandwidths_by_norm.items()
+        norm_key: jnp.stack(bws) for norm_key, bws in bandwidths_by_norm.items()
     }
 
     return hypothesis_test_utils.TestResult(
@@ -478,3 +608,147 @@ class FuseTest(PermutationTest):
             ),
         },
     )
+
+  @functools.partial(jax.jit, static_argnums=(0, 4))
+  def compute_fused_witness_scores(
+      self,
+      numerator_samples,
+      denominator_samples,
+      query_samples,
+      query_batch_size = 4096,
+  ):
+    """Returns the fused estimate of dP_numerator/dP_denominator at query_samples.
+
+    Weights are `softmax(lambda_reg * stat / kernel_norm)` over valid
+    hyperparameter rows, where `stat` is the directional divergence
+    `D(P_numerator || P_denominator)` computed on the original (unpermuted)
+    samples and `kernel_norm` is the MMD-FUSE kernel normalizer
+    `||K||_F / sqrt(n * (n - 1))`, matching `run`. No permutations are needed,
+    so this method takes no PRNG key.
+
+    A hyperparameter row is masked (its logit set to `-jnp.inf`, receiving zero
+    weight) if its scaled statistic `lambda_reg * stat / kernel_norm` is
+    non-finite or any of its `[q]` query likelihood ratios is non-finite. When
+    no rows are valid (`num_valid == 0`), returns all-`jnp.nan` scores of shape
+    `[q]` and zero weights of shape `[S]`.
+
+    Args:
+      numerator_samples: Fit samples from the numerator distribution (e.g.
+        `train_fit`), shape `[n, d]` with `n >= 2`.
+      denominator_samples: Fit samples from the denominator distribution (e.g.
+        `holdout_fit`), shape `[n, d]` with `n >= 2`.
+      query_samples: Query samples at which to evaluate the fused witness ratio
+        `dP_numerator / dP_denominator` (higher means more numerator-like),
+        shape `[q, d]` with `q >= 1`.
+      query_batch_size: Positive batch size for evaluating `query_samples` via
+        `jax.lax.map`.
+
+    Returns:
+      A `(scores, info)` tuple where:
+        - `scores`: Fused likelihood-ratio scores at `query_samples`, shape
+          `[q]`, dtype `float32` (all `jnp.nan` if `num_valid == 0`).
+        - `info`: Dict with `"weights"` of shape `[S]` (`float32` softmax
+          weights summing to 1 when `num_valid > 0`, or zeros when
+          `num_valid == 0`) and scalar `"num_valid"` (count of valid
+          hyperparameter rows).
+
+    Raises:
+      ValueError: If inputs are not 2D arrays with matching feature dimension,
+        `numerator_samples` and `denominator_samples` have different sample
+        counts or fewer than 2 samples, `query_samples` is empty, or
+        `query_batch_size <= 0`.
+
+    Example:
+      ```python
+      test = FuseTest(
+          divergence_class=likelihood_ratio.SymmetricHockeyStick,
+          kernels=[kernel_module.Kernel.GAUSSIAN],
+          significance=0.05,
+          number_bandwidths=3,
+          num_permutations=50,
+          min_memory_kernel=False,
+          min_memory_permutations=True,
+          divergence_sweep_hyperparams={"lmbda": [0.1, 1.0]},
+      )
+      scores, info = test.compute_fused_witness_scores(
+          numerator_samples=train_fit,
+          denominator_samples=holdout_fit,
+          query_samples=queries,
+      )
+      ```
+    """
+    _validate_sample_pair(
+        numerator_samples,
+        denominator_samples,
+        "numerator_samples",
+        "denominator_samples",
+    )
+    if query_samples.ndim != 2:
+      raise ValueError("query_samples must be a 2D array.")
+    if numerator_samples.shape[1] != query_samples.shape[1]:
+      raise ValueError(
+          "numerator_samples, denominator_samples, and query_samples must have"
+          " the same feature dimension."
+      )
+    if query_samples.shape[0] == 0:
+      raise ValueError("query_samples must have at least one sample.")
+    if query_batch_size <= 0:
+      raise ValueError("query_batch_size must be positive.")
+
+    n_samples = numerator_samples.shape[0]
+    n_queries = query_samples.shape[0]
+    numerator_f32 = numerator_samples.astype(jnp.float32)
+    denominator_f32 = denominator_samples.astype(jnp.float32)
+    query_f32 = query_samples.astype(jnp.float32)
+    pooled_samples = jnp.concatenate((numerator_f32, denominator_f32))
+
+    lambda_reg = self.lambda_fuse_multiplier * jnp.sqrt(
+        float(n_samples * (n_samples - 1.0))
+    )
+
+    logits = jnp.zeros(self.number_statistics, dtype=jnp.float32)
+    all_ratios = jnp.zeros(
+        (self.number_statistics, n_queries), dtype=jnp.float32
+    )
+
+    for current_hyperparams_idx, (
+        _,
+        kernel,
+        _,
+        bw,
+        kernel_matrix,
+        divergence_estimator,
+    ) in enumerate(self._iterate_hyperparams(pooled_samples)):
+      kernel_norm = _kernel_normalizer(kernel_matrix, n_samples)
+      stat, query_ratios = _ratio_on_queries(
+          estimator=divergence_estimator,
+          numerator_samples=numerator_f32,
+          denominator_samples=denominator_f32,
+          query_samples=query_f32,
+          kernel_matrix=kernel_matrix,
+          kernel=kernel,
+          bandwidth=bw,
+          min_memory_kernel=self.min_memory_kernel,
+          query_batch_size=query_batch_size,
+      )
+      logits = logits.at[current_hyperparams_idx].set(
+          lambda_reg * stat / kernel_norm
+      )
+      all_ratios = all_ratios.at[current_hyperparams_idx].set(query_ratios)
+
+    valid = jnp.isfinite(logits) & jnp.all(jnp.isfinite(all_ratios), axis=1)
+    num_valid = jnp.sum(valid)
+    safe_logits = jnp.where(valid, logits, -jnp.inf)
+    softmax_weights = jax.nn.softmax(safe_logits) * valid.astype(jnp.float32)
+    weights = jnp.where(
+        num_valid > 0,
+        softmax_weights,
+        jnp.zeros_like(logits),
+    )
+    safe_ratios = jnp.where(valid[:, None], all_ratios, 0.0)
+    scores = jnp.where(
+        num_valid > 0,
+        jnp.matmul(weights, safe_ratios),
+        jnp.full((n_queries,), jnp.nan, dtype=jnp.float32),
+    )
+    return scores, {"weights": weights, "num_valid": num_valid}

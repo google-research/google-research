@@ -48,20 +48,45 @@ class _NanOnTargetLambdaDivergence(likelihood_ratio.DrMMDSymmetric):
     super().__init__(lmbda=lmbda)
     self._nan_lmbda = nan_lmbda
 
-  def __call__(self, k_xx, k_yy, k_xy):
-    val = super().__call__(k_xx, k_yy, k_xy)
+  def directional(self, k_xx, k_yy, k_xy):
+    val = super().directional(k_xx, k_yy, k_xy)
     return jnp.where(jnp.isclose(self.lmbda, self._nan_lmbda), jnp.nan, val)
 
 
-class _AlwaysNanDivergence(kernel_module.KernelDivergence):
+class _NanQueryRatioOnTargetLambdaDivergence(likelihood_ratio.DrMMDSymmetric):
+  """Test-only divergence whose query ratio has a NaN when `lmbda == nan_lmbda`."""
+
+  symmetric = False
+
+  def __init__(self, lmbda, nan_lmbda = 0.01):
+    super().__init__(lmbda=lmbda)
+    self._nan_lmbda = nan_lmbda
+
+  def likelihood_ratio_yx_on_z(self, k_zx, k_zy, k_xx, cho_factor_k_xx, k_xy):
+    ratios = super().likelihood_ratio_yx_on_z(
+        k_zx, k_zy, k_xx, cho_factor_k_xx, k_xy
+    )
+    nan_first = ratios.at[0].set(jnp.nan)
+    return jnp.where(
+        jnp.isclose(self.lmbda, self._nan_lmbda), nan_first, ratios
+    )
+
+
+class _AlwaysNanDivergence(likelihood_ratio.DrMMDSymmetric):
   """Test-only divergence that always returns NaN."""
 
-  def __init__(self, lmbda = 0.1):
-    super().__init__(has_vectorized_kernel=False)
-    self.lmbda = lmbda
+  symmetric = False
 
-  def __call__(self, k_xx, k_yy, k_xy):
+  def directional(self, k_xx, k_yy, k_xy):
+    del k_xx, k_yy, k_xy
     return jnp.array(jnp.nan, dtype=jnp.float32)
+
+
+def _spearman_rho(x, y):
+  """Computes Spearman rank correlation between 1D arrays without ties."""
+  rx = np.argsort(np.argsort(x)).astype(np.float64)
+  ry = np.argsort(np.argsort(y)).astype(np.float64)
+  return float(np.corrcoef(rx, ry)[0, 1])
 
 
 class _VectorizedDummyDivergence(kernel_module.KernelDivergence):
@@ -308,7 +333,7 @@ class FuseTest(parameterized.TestCase):
     pairwise = kernel_module.get_distances(
         pooled, pooled, norm=kernel_module.Norm.L2.value, min_memory=True
     ).astype(jnp.float32)
-    expected_std_devs = jnp.stack([
+    expected_kernel_norms = jnp.stack([
         jnp.sqrt(
             jnp.sum(
                 kernel_module.get_kernel_matrix(
@@ -326,7 +351,7 @@ class FuseTest(parameterized.TestCase):
     stats_matrix = res.additional_info["statistics_matrix"]
     expected_fused = (
         jax.scipy.special.logsumexp(
-            lambda_reg * stats_matrix / expected_std_devs[:, None],
+            lambda_reg * stats_matrix / expected_kernel_norms[:, None],
             axis=0,
             b=0.5,
         )
@@ -381,10 +406,303 @@ class FuseTest(parameterized.TestCase):
       )
 
     test = self._make_standard_fuse_test(num_permutations=10)
-    x = jnp.zeros((20, 2), dtype=jnp.float32)
-    y = jnp.zeros((25, 2), dtype=jnp.float32)
+    with self.assertRaisesRegex(ValueError, "2D arrays"):
+      test.run(
+          jnp.zeros((20,), dtype=jnp.float32),
+          jnp.zeros((20, 2), dtype=jnp.float32),
+          key_seed=0,
+      )
     with self.assertRaisesRegex(ValueError, "same number of samples"):
-      test.run(x, y, key_seed=0)
+      test.run(
+          jnp.zeros((20, 2), dtype=jnp.float32),
+          jnp.zeros((25, 2), dtype=jnp.float32),
+          key_seed=0,
+      )
+    with self.assertRaisesRegex(ValueError, "at least 2 samples"):
+      test.run(
+          jnp.zeros((1, 2), dtype=jnp.float32),
+          jnp.zeros((1, 2), dtype=jnp.float32),
+          key_seed=0,
+      )
+    with self.assertRaisesRegex(ValueError, "same feature dimension"):
+      test.run(
+          jnp.zeros((20, 2), dtype=jnp.float32),
+          jnp.zeros((20, 3), dtype=jnp.float32),
+          key_seed=0,
+      )
+
+  def test_witness_scores_1d_gaussian_shift_and_orientation(self):
+    # For numerator ~ N(1, 1) and denominator ~ N(0, 1), the true density ratio
+    # dP_num/dP_den(z) = exp(z - 0.5) is strictly increasing in z.
+    # Evaluated across 20 fixed seeds (seeds 0..19, n=200, q=64 on [-1, 2]):
+    # forward Spearman rho > 0.9, and swapping numerator/denominator reverses
+    # the ranking with Spearman rho < -0.9 across all 20 seeds.
+    test = fuse.FuseTest(
+        divergence_class=likelihood_ratio.SymmetricHockeyStick,
+        kernels=[
+            kernel_module.Kernel.GAUSSIAN,
+            kernel_module.Kernel.LAPLACE,
+        ],
+        significance=0.05,
+        number_bandwidths=None,
+        bandwidths=[0.5, 1.0, 2.0],
+        num_permutations=20,
+        min_memory_kernel=False,
+        min_memory_permutations=True,
+        divergence_sweep_hyperparams={"lmbda": [0.1, 1.0]},
+    )
+    z = np.linspace(-1.0, 2.0, 64, dtype=np.float32)[:, None]
+    z_jax = jnp.asarray(z)
+    true_ratio = np.exp(z[:, 0] - 0.5)
+
+    forward_rhos = []
+    reverse_rhos = []
+    for seed in range(20):
+      rng = np.random.default_rng(3000 + seed)
+      numerator = jnp.asarray(
+          rng.normal(loc=1.0, scale=1.0, size=(200, 1)), dtype=jnp.float32
+      )
+      denominator = jnp.asarray(
+          rng.normal(loc=0.0, scale=1.0, size=(200, 1)), dtype=jnp.float32
+      )
+
+      scores_fwd, info_fwd = test.compute_fused_witness_scores(
+          numerator_samples=numerator,
+          denominator_samples=denominator,
+          query_samples=z_jax,
+      )
+      scores_rev, info_rev = test.compute_fused_witness_scores(
+          numerator_samples=denominator,
+          denominator_samples=numerator,
+          query_samples=z_jax,
+      )
+
+      rho_fwd = _spearman_rho(np.asarray(scores_fwd), true_ratio)
+      rho_rev = _spearman_rho(np.asarray(scores_rev), true_ratio)
+      forward_rhos.append(rho_fwd)
+      reverse_rhos.append(rho_rev)
+
+      self.assertEqual(scores_fwd.shape, (64,))
+      self.assertEqual(int(info_fwd["num_valid"]), test.number_statistics)
+      self.assertEqual(int(info_rev["num_valid"]), test.number_statistics)
+      weights_fwd = np.asarray(info_fwd["weights"])
+      self.assertEqual(weights_fwd.shape, (test.number_statistics,))
+      self.assertTrue(np.all(weights_fwd >= 0.0))
+      np.testing.assert_allclose(np.sum(weights_fwd), 1.0, atol=1e-5)
+
+    for seed, (rho_fwd, rho_rev) in enumerate(zip(forward_rhos, reverse_rhos)):
+      self.assertGreater(
+          rho_fwd,
+          0.9,
+          msg=f"seed={seed}, rho_fwd={rho_fwd}, min_fwd={min(forward_rhos)}",
+      )
+      self.assertLess(
+          rho_rev,
+          -0.9,
+          msg=f"seed={seed}, rho_rev={rho_rev}, max_rev={max(reverse_rhos)}",
+      )
+
+  def test_witness_scores_identical_distributions_median_near_one(self):
+    # Evaluated across 20 fixed seeds (seeds 0..19, n=100, d=2, q=80):
+    # When numerator and denominator follow the same distribution N(0, I_2),
+    # the true density ratio is identically 1.0 and the median fused witness
+    # score lies well inside [0.7, 1.3] for all 20 seeds.
+    test = self._make_standard_fuse_test(num_permutations=20)
+    medians = []
+    for seed in range(20):
+      rng = np.random.default_rng(4000 + seed)
+      numerator = jnp.asarray(rng.normal(size=(100, 2)), dtype=jnp.float32)
+      denominator = jnp.asarray(rng.normal(size=(100, 2)), dtype=jnp.float32)
+      queries = jnp.asarray(rng.normal(size=(80, 2)), dtype=jnp.float32)
+      scores, info = test.compute_fused_witness_scores(
+          numerator_samples=numerator,
+          denominator_samples=denominator,
+          query_samples=queries,
+      )
+      median_score = float(np.median(np.asarray(scores)))
+      medians.append(median_score)
+      self.assertEqual(int(info["num_valid"]), test.number_statistics)
+
+    for seed, median_score in enumerate(medians):
+      self.assertBetween(
+          median_score,
+          0.7,
+          1.3,
+          msg=(
+              f"seed={seed}, median={median_score}, min={min(medians)},"
+              f" max={max(medians)}"
+          ),
+      )
+
+  def test_witness_scores_masking_and_all_invalid_rows(self):
+    rng = np.random.default_rng(77)
+    numerator = jnp.asarray(
+        rng.normal(loc=1.0, size=(30, 2)), dtype=jnp.float32
+    )
+    denominator = jnp.asarray(
+        rng.normal(loc=0.0, size=(30, 2)), dtype=jnp.float32
+    )
+    queries = jnp.asarray(rng.normal(size=(15, 2)), dtype=jnp.float32)
+
+    with self.subTest("partial_masking_from_nonfinite_stat"):
+      test_stat_nan = fuse.FuseTest(
+          divergence_class=_NanOnTargetLambdaDivergence,
+          divergence_params={"nan_lmbda": 0.01},
+          kernels=[kernel_module.Kernel.GAUSSIAN],
+          significance=0.05,
+          number_bandwidths=2,
+          num_permutations=10,
+          min_memory_kernel=False,
+          min_memory_permutations=True,
+          divergence_sweep_hyperparams={"lmbda": [0.01, 0.1, 1.0]},
+      )
+      scores, info = test_stat_nan.compute_fused_witness_scores(
+          numerator, denominator, queries
+      )
+      weights = np.asarray(info["weights"])
+      self.assertEqual(int(info["num_valid"]), 4)
+      self.assertEqual(weights.shape, (6,))
+      self.assertTrue(np.all(weights >= 0.0))
+      np.testing.assert_allclose(np.sum(weights), 1.0, atol=1e-5)
+      # For each bandwidth, the first lambda (0.01) is masked (`weights[0::3]`).
+      np.testing.assert_array_equal(weights[0::3], 0.0)
+      self.assertGreater(
+          float(np.sum(weights[1::3]) + np.sum(weights[2::3])), 0.99
+      )
+      self.assertTrue(np.all(np.isfinite(np.asarray(scores))))
+
+    with self.subTest("partial_masking_from_nonfinite_query_ratio"):
+      test_ratio_nan = fuse.FuseTest(
+          divergence_class=_NanQueryRatioOnTargetLambdaDivergence,
+          divergence_params={"nan_lmbda": 0.01},
+          kernels=[kernel_module.Kernel.GAUSSIAN],
+          significance=0.05,
+          number_bandwidths=1,
+          num_permutations=10,
+          min_memory_kernel=False,
+          min_memory_permutations=True,
+          divergence_sweep_hyperparams={"lmbda": [0.01, 0.1]},
+      )
+      scores, info = test_ratio_nan.compute_fused_witness_scores(
+          numerator, denominator, queries
+      )
+      weights = np.asarray(info["weights"])
+      self.assertEqual(int(info["num_valid"]), 1)
+      np.testing.assert_array_equal(weights[:1], 0.0)
+      np.testing.assert_allclose(weights[1:], 1.0, atol=1e-5)
+      self.assertTrue(np.all(np.isfinite(np.asarray(scores))))
+
+    with self.subTest("all_rows_invalid"):
+      test_all_nan = fuse.FuseTest(
+          divergence_class=_AlwaysNanDivergence,
+          kernels=[kernel_module.Kernel.GAUSSIAN],
+          significance=0.05,
+          number_bandwidths=1,
+          num_permutations=10,
+          min_memory_kernel=False,
+          min_memory_permutations=False,
+          divergence_sweep_hyperparams={"lmbda": [0.1]},
+      )
+      scores, info = test_all_nan.compute_fused_witness_scores(
+          numerator, denominator, queries
+      )
+      self.assertEqual(int(info["num_valid"]), 0)
+      self.assertEqual(scores.shape, (15,))
+      self.assertTrue(np.all(np.isnan(np.asarray(scores))))
+      np.testing.assert_array_equal(
+          np.asarray(info["weights"]), np.zeros(1, dtype=np.float32)
+      )
+
+  def test_witness_scores_query_batch_size_invariance_and_no_tracer_leak(self):
+    test = fuse.FuseTest(
+        divergence_class=likelihood_ratio.SymmetricKLDivergence,
+        kernels=[kernel_module.Kernel.GAUSSIAN],
+        significance=0.05,
+        number_bandwidths=None,
+        bandwidths=[1.0],
+        num_permutations=10,
+        min_memory_kernel=True,
+        min_memory_permutations=True,
+        divergence_sweep_hyperparams={"lmbda": [0.1, 1.0]},
+    )
+    rng = np.random.default_rng(2026)
+    numerator = jnp.asarray(
+        rng.normal(loc=0.5, size=(30, 3)), dtype=jnp.float32
+    )
+    denominator = jnp.asarray(
+        rng.normal(loc=-0.5, size=(30, 3)), dtype=jnp.float32
+    )
+    # Prime number of queries q=23 to exercise non-multiple batch sizes.
+    queries = jnp.asarray(rng.normal(size=(23, 3)), dtype=jnp.float32)
+
+    with jax.checking_leaks():
+      scores_full, info_full = test.compute_fused_witness_scores(
+          numerator, denominator, queries, query_batch_size=4096
+      )
+      scores_non_mult, info_non_mult = test.compute_fused_witness_scores(
+          numerator, denominator, queries, query_batch_size=7
+      )
+      scores_one, info_one = test.compute_fused_witness_scores(
+          numerator, denominator, queries, query_batch_size=1
+      )
+
+    for scores_b, info_b in (
+        (scores_non_mult, info_non_mult),
+        (scores_one, info_one),
+    ):
+      np.testing.assert_allclose(
+          np.asarray(scores_b), np.asarray(scores_full), rtol=1e-5, atol=1e-5
+      )
+      np.testing.assert_allclose(
+          np.asarray(info_b["weights"]),
+          np.asarray(info_full["weights"]),
+          rtol=1e-5,
+          atol=1e-6,
+      )
+      self.assertEqual(int(info_b["num_valid"]), int(info_full["num_valid"]))
+
+  def test_witness_scores_validation_errors(self):
+    test = self._make_standard_fuse_test(num_permutations=10)
+    num_ok = jnp.zeros((20, 2), dtype=jnp.float32)
+    den_ok = jnp.zeros((20, 2), dtype=jnp.float32)
+    q_ok = jnp.zeros((10, 2), dtype=jnp.float32)
+
+    with self.assertRaisesRegex(ValueError, "2D arrays"):
+      test.compute_fused_witness_scores(
+          jnp.zeros((20,), dtype=jnp.float32), den_ok, q_ok
+      )
+    with self.assertRaisesRegex(ValueError, "2D array"):
+      test.compute_fused_witness_scores(
+          num_ok, den_ok, jnp.zeros((10,), dtype=jnp.float32)
+      )
+    with self.assertRaisesRegex(ValueError, "same number of samples"):
+      test.compute_fused_witness_scores(
+          num_ok, jnp.zeros((25, 2), dtype=jnp.float32), q_ok
+      )
+    with self.assertRaisesRegex(ValueError, "at least 2 samples"):
+      test.compute_fused_witness_scores(
+          jnp.zeros((1, 2), dtype=jnp.float32),
+          jnp.zeros((1, 2), dtype=jnp.float32),
+          q_ok,
+      )
+    with self.assertRaisesRegex(ValueError, "same feature dimension"):
+      test.compute_fused_witness_scores(
+          num_ok, jnp.zeros((20, 3), dtype=jnp.float32), q_ok
+      )
+    with self.assertRaisesRegex(ValueError, "same feature dimension"):
+      test.compute_fused_witness_scores(
+          num_ok, den_ok, jnp.zeros((10, 3), dtype=jnp.float32)
+      )
+    with self.assertRaisesRegex(ValueError, "at least one sample"):
+      test.compute_fused_witness_scores(
+          num_ok, den_ok, jnp.zeros((0, 2), dtype=jnp.float32)
+      )
+    with self.assertRaisesRegex(
+        ValueError, "query_batch_size must be positive"
+    ):
+      test.compute_fused_witness_scores(
+          num_ok, den_ok, q_ok, query_batch_size=0
+      )
 
   def test_large_monte_carlo_type1_error(self):
     if not _RUN_LARGE_MONTE_CARLO.value:
