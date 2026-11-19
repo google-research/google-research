@@ -92,7 +92,7 @@ class SGDGraft(Graft):
 
   def __init__(self, hps, var):
     super(SGDGraft, self).__init__(hps, var)
-    self.momentum = torch.zeros_like(var.data, device=var.get_device())
+    self.momentum = torch.zeros_like(var.data, device=var.device)
 
   def update_momentum(self, update, beta1):
     self.momentum.mul_(beta1).add_(update)
@@ -107,7 +107,7 @@ class AdagradGraft(SGDGraft):
 
   def __init__(self, hps, var):
     super(AdagradGraft, self).__init__(hps, var)
-    self.statistics = torch.zeros_like(var.data, device=var.get_device())
+    self.statistics = torch.zeros_like(var.data, device=var.device)
 
   def add_statistics(self, grad):
     self.statistics.add_(grad * grad)
@@ -226,7 +226,7 @@ class Preconditioner:
     self._partitioner = BlockPartitioner(reshaped_var, hps)
     shapes = self._partitioner.shapes_for_preconditioners()
     rank = len(self._transformed_shape)
-    device = var.get_device()
+    device = var.device
     if rank <= 1:
       self.statistics = []
       self.preconditioners = []
@@ -317,7 +317,7 @@ class Shampoo(optim.Optimizer):
   def init_var_state(self, var, state):
     """Initialize the PyTorch state of for a single variable."""
     state[STEP] = 0
-    state[MOMENTUM] = torch.zeros_like(var.data, device=var.get_device())
+    state[MOMENTUM] = torch.zeros_like(var.data, device=var.device)
     state[PRECONDITIONER] = Preconditioner(var, self.hps)
     if self.hps.graft_type == LayerwiseGrafting.ADAGRAD:
       state[GRAFT] = AdagradGraft(self.hps, var)
