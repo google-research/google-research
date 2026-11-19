@@ -4,6 +4,7 @@ This directory holds research papers that were produced by Cogentic.
 
 ## Papers
 
+*   [`vc_sample_compression`](vc_sample_compression/): *Near-Quadratic Sample Compression for All VC Classes*.
 *   [`ce_convex_games`](ce_convex_games/): *Intractability of Approximate Correlated Equilibria in Two-Player Convex Games*.
 
 ## License
