@@ -15,12 +15,29 @@
 
 """Fuse method for two-sample hypothesis tests.
 
-Implements the 'fuse' method (arXiv:2306.08777) for two-sample hypothesis
-testing, enabling efficient hyperparameter exploration without Bonferroni-like
-power loss. Extends the original MMD-based method to support diverse
-divergences.
+Implements the 'fuse' method (Schrab et al., 2023; arXiv:2306.08777) for
+two-sample hypothesis testing, enabling efficient hyperparameter exploration
+without Bonferroni-like power loss, extended to regularized f-divergence kernel
+tests (https://arxiv.org/abs/2409.14980):
+
+  lambda_reg = multiplier * sqrt(n * (n - 1))
+  T_fused = (1 / lambda_reg) * log(
+      (1 / S_valid) * sum_{valid s} exp(lambda_reg * T_s / sigma_s)
+  )
+  p = mean_b 1[T_fused^(b) >= T_fused^(orig)]
+
+Non-finite hyperparameter rows (where any column of `lambda_reg * T_s / sigma_s`
+is non-finite, e.g. from an ill-conditioned Cholesky factorization or zero
+standard deviation) are masked symmetrically across all permutation columns
+including the original column, preserving permutation exchangeability under H0.
+
+Note:
+  All computations run in `float32` (`jax_enable_x64` is assumed off). Do not
+  mutate a `FuseTest` instance after construction, as `jax.jit` with
+  `static_argnums=0` hashes `self` by object identity.
 """
 
+from collections.abc import Iterator
 import functools
 from typing import Any, Union
 from absl import logging
@@ -48,7 +65,7 @@ def _make_shuffled_estimator(
 
 
 class PermutationTest:
-  """Exact hypothesis test that uses a permutations.
+  """Exact hypothesis test that uses permutations.
 
   Attributes:
     num_permutations: Number of permutations to use.
@@ -75,19 +92,45 @@ class PermutationTest:
       batch_size_permutations = 500,
       divergence_params = None,
   ):
-    divergence_params = divergence_params or {}
+    """Initializes the PermutationTest instance.
+
+    Args:
+      divergence_class: Class of the divergence to use for the two-sample test.
+      kernel: Kernel to use.
+      significance: Significance level of the test in `(0, 1)`.
+      bandwidth: Bandwidth to use for the kernel.
+      num_permutations: Number of permutations to use.
+      min_memory_kernel: Whether to use min_memory for the kernel computation.
+      min_memory_permutations: Whether to use min_memory for the permutations.
+      batch_size_permutations: Batch size for the permutations in case of
+        min_memory_permutations.
+      divergence_params: Optional parameters of the divergence to use.
+    """
     self.num_permutations = num_permutations
     self.divergence_class = divergence_class
     self.significance = significance
-    self.divergence_params = divergence_params or {}
-    self.divergence_params = divergence_params
+    self.divergence_params = (
+        dict(divergence_params) if divergence_params else {}
+    )
     self.min_memory_kernel = min_memory_kernel
     self.min_memory_permutations = min_memory_permutations
     self.batch_size = batch_size_permutations
     self.kernel = kernel
     self.bandwidth = bandwidth
 
-  def get_permutations(self, key, n_samples):
+  def get_permutations(
+      self, key, n_samples
+  ):
+    """Generates permutation sign assignments and indices for two equal splits.
+
+    Args:
+      key: JAX PRNG key.
+      n_samples: Number of samples per distribution (`m = n = n_samples`).
+
+    Returns:
+      A `(permuted_assignments, sorted_indices)` tuple of arrays of shape
+      `[num_permutations + 1, 2 * n_samples]`.
+    """
     return hypothesis_test_utils.get_permutations(
         key, num_permutations=self.num_permutations, m=n_samples, n=n_samples
     )
@@ -96,10 +139,26 @@ class PermutationTest:
 class FuseTest(PermutationTest):
   """Fuses hypothesis tests over multiple kernels and hyperparameter settings.
 
-  This class implements the 'fuse' method for two-sample hypothesis testing,
-  enabling efficient hyperparameter exploration without Bonferroni-like power
-  loss. It extends the original MMD-based method to support diverse
-  distribution metrics from divergences.
+  Implements the 'fuse' method (arXiv:2306.08777) for two-sample hypothesis
+  testing, enabling efficient hyperparameter exploration without Bonferroni-like
+  power loss. Extends the original MMD-based method to support diverse
+  distribution metrics from regularized f-divergences (arXiv:2409.14980).
+
+  Do not mutate a `FuseTest` instance after construction: `run` is compiled with
+  `jax.jit(..., static_argnums=0)`, which hashes `self` by object identity.
+
+  Attributes:
+    hyperparam_name: Name of the swept divergence hyperparameter (or `"unused"`
+      when no sweep dictionary is provided).
+    divergence_sweep_hyperparams: Mapping from `hyperparam_name` to the list of
+      swept values.
+    select_bandwidths: Whether bandwidths are computed adaptively from pairwise
+      distances per norm.
+    number_bandwidths: Number of bandwidths evaluated per `(kernel, param)`.
+    kernels: Mapping from `Norm` to the list of `Kernel` enums using that norm.
+    number_kernels: Total number of kernels across all norms.
+    number_statistics: Total number of hyperparameter rows `S`.
+    lambda_fuse_multiplier: Multiplier for the FUSE temperature parameter.
   """
 
   def __init__(
@@ -121,7 +180,7 @@ class FuseTest(PermutationTest):
 
     Args:
       divergence_class: Class of the divergence to use for the two-sample test.
-      kernels: Kernels to use for the two-sample test.
+      kernels: Kernel or sequence of kernels to fuse over.
       significance: Significance level of the test.
       number_bandwidths: Number of bandwidths to fuse for the two-sample test.
       num_permutations: Number of permutations to use.
@@ -136,6 +195,11 @@ class FuseTest(PermutationTest):
         them.
       lambda_fuse_multiplier: Multiplier for the lambda fuse parameter. See
         https://arxiv.org/abs/2306.08777 for more details.
+
+    Raises:
+      ValueError: If more than one hyperparameter is specified in
+        `divergence_sweep_hyperparams`, or if both or neither of `bandwidths`
+        and `number_bandwidths` are specified.
     """
     super().__init__(
         divergence_class=divergence_class,
@@ -149,31 +213,37 @@ class FuseTest(PermutationTest):
         divergence_params=divergence_params,
     )
     if divergence_sweep_hyperparams:
+      if len(divergence_sweep_hyperparams) > 1:
+        raise ValueError(
+            "Only sweeping over one divergence-specific hyperparameter is"
+            " supported."
+        )
       self.hyperparam_name = list(divergence_sweep_hyperparams.keys())[0]
       num_hyperparams = len(divergence_sweep_hyperparams[self.hyperparam_name])
+      self.divergence_sweep_hyperparams = {
+          self.hyperparam_name: list(
+              divergence_sweep_hyperparams[self.hyperparam_name]
+          )
+      }
     else:
       self.hyperparam_name = "unused"
       num_hyperparams = 1
-      divergence_sweep_hyperparams = {self.hyperparam_name: [jnp.inf]}
+      self.divergence_sweep_hyperparams = {self.hyperparam_name: [jnp.inf]}
 
-    self.divergence_sweep_hyperparams = divergence_sweep_hyperparams
-
-    if len(divergence_sweep_hyperparams) > 1:
-      raise ValueError(
-          "Only sweeping over one divergence-specific hyperparameter is"
-          " supported."
-      )
-    if not isinstance(kernels, list):
+    if isinstance(kernels, kernel_module.Kernel):
       kernels = [kernels]
+    else:
+      kernels = list(kernels)
 
-    if bandwidths and number_bandwidths:
+    if bool(bandwidths) == bool(number_bandwidths):
       raise ValueError("Only specify number_bandwiths or bandwidths.")
     elif bandwidths:
-      self.bandwidths = bandwidths
+      self._fixed_bandwidths = tuple(float(b) for b in bandwidths)
       self.select_bandwidths = False
-      self.number_bandwidths = len(bandwidths)
+      self.number_bandwidths = len(self._fixed_bandwidths)
     else:
       logging.info("Selecting bandwidths")
+      self._fixed_bandwidths = None
       self.select_bandwidths = True
       self.number_bandwidths = number_bandwidths
     self.kernels = {
@@ -191,6 +261,63 @@ class FuseTest(PermutationTest):
     )
     self.lambda_fuse_multiplier = lambda_fuse_multiplier
 
+  def _iterate_hyperparams(
+      self, pooled_samples
+  ):
+    """Yields `(norm, kernel, param, bandwidth, kernel_matrix, estimator)` in a fixed order.
+
+    Bandwidths are computed into a local variable per norm without mutating
+    `self`, avoiding JAX tracer leaks under `jax.jit`.
+
+    Args:
+      pooled_samples: Pooled samples of shape `[2 * n_samples, d]`, dtype
+        `float32`.
+
+    Yields:
+      Tuples `(norm, kernel, param, bandwidth, kernel_matrix, estimator)` for
+      each hyperparameter setting in a deterministic order.
+    """
+    estimators = []
+    for param in self.divergence_sweep_hyperparams[self.hyperparam_name]:
+      params = dict(self.divergence_params)
+      if self.hyperparam_name != "unused":
+        params[self.hyperparam_name] = param
+      estimators.append((param, self.divergence_class(**params)))
+
+    for norm_l, kernels_l in self.kernels.items():
+      if not kernels_l:
+        continue
+      pairwise_matrix = kernel_module.get_distances(
+          pooled_samples,
+          pooled_samples,
+          norm=norm_l.value,
+          min_memory=self.min_memory_kernel,
+      ).astype(jnp.float32)
+      if self.select_bandwidths:
+        distances = pairwise_matrix[jnp.triu_indices(pairwise_matrix.shape[0])]
+        bandwidths = kernel_module.compute_bandwidths(
+            distances, self.number_bandwidths
+        ).astype(jnp.float32)
+      else:
+        bandwidths = jnp.asarray(self._fixed_bandwidths, dtype=jnp.float32)
+
+      for kernel in kernels_l:
+        for bw in bandwidths:
+          kernel_matrix = kernel_module.get_kernel_matrix(
+              pairwise_matrix,
+              kernel=kernel,
+              bandwidth=bw,
+          ).astype(jnp.float32)
+          for param, divergence_estimator in estimators:
+            yield (
+                norm_l,
+                kernel,
+                param,
+                bw,
+                kernel_matrix,
+                divergence_estimator,
+            )
+
   @functools.partial(jax.jit, static_argnums=0)
   def run(
       self,
@@ -198,15 +325,52 @@ class FuseTest(PermutationTest):
       samples_y,
       key_seed,
   ):
-    """Run the test.
+    """Runs the fused two-sample permutation test.
+
+    Invalid hyperparameter rows (where any column of the standardized statistic
+    `lambda_reg * stat / std_dev` is non-finite) are masked out prior to the
+    `logsumexp` aggregation. Because the validity mask is a symmetric function
+    of all permutation columns (including the original unpermuted column), the
+    masked fused statistic applies the same fixed function to every column and
+    preserves permutation exchangeability under the null hypothesis H0. If no
+    hyperparameter rows are valid, returns `p_val = 1.0` and
+    `result_test = False`.
 
     Args:
-      samples_x: Array of shape (n_samples, d).
-      samples_y: Array of shape (n_samples, d).
-      key_seed: Seed for JAX random number generator.
+      samples_x: Array of shape `(n_samples, d)` from the first distribution.
+      samples_y: Array of shape `(n_samples, d)` from the second distribution.
+      key_seed: Integer seed for the JAX random number generator.
 
     Returns:
-      A TestResult object containing the results of the test.
+      A `TestResult` containing:
+        - `all_statistics`: Fused statistics across permutations, shape
+          `(num_permutations + 1,)`, with the original sample order at `[-1]`.
+        - `p_val`: Permutation p-value in `[1 / (num_permutations + 1), 1.0]`.
+        - `result_test`: Boolean array indicating rejection at
+          `self.significance`.
+        - `additional_info`: Dict with `"statistics_matrix"` (`[S, B + 1]`),
+          `"bw"` (dict mapping norm name to its local bandwidth array),
+          `"num_valid_hyperparams"`, and `"num_hyperparams"`.
+
+    Raises:
+      ValueError: If `samples_x` and `samples_y` do not have the same number of
+        samples (`shape[0]`).
+
+    Example:
+      ```python
+      test = FuseTest(
+          divergence_class=likelihood_ratio.SymmetricHockeyStick,
+          kernels=[kernel_module.Kernel.GAUSSIAN],
+          significance=0.05,
+          number_bandwidths=3,
+          num_permutations=50,
+          min_memory_kernel=False,
+          min_memory_permutations=True,
+          batch_size_permutations=25,
+          divergence_sweep_hyperparams={"lmbda": [0.1, 1.0]},
+      )
+      result = test.run(samples_x, samples_y, key_seed=0)
+      ```
     """
     if samples_x.shape[0] != samples_y.shape[0]:
       raise ValueError(
@@ -216,105 +380,101 @@ class FuseTest(PermutationTest):
     n_samples = samples_x.shape[0]
     all_samples = jnp.concatenate((samples_x, samples_y)).astype(jnp.float32)
 
-    key = jax.random.PRNGKey(key_seed)  # You can use any seed value here
+    key = jax.random.PRNGKey(key_seed)
     key, subkey = jax.random.split(key)
 
     _, all_idx = self.get_permutations(subkey, n_samples)
 
     all_statistics = jnp.zeros(
-        (self.number_statistics, self.num_permutations + 1)
-    ).astype(jnp.float32)
-
-    current_hyperparams_idx = 0
-
-    std_devs = jnp.zeros(self.number_statistics).astype(jnp.float32)
+        (self.number_statistics, self.num_permutations + 1),
+        dtype=jnp.float32,
+    )
+    std_devs = jnp.zeros(self.number_statistics, dtype=jnp.float32)
     lambda_reg = self.lambda_fuse_multiplier * jnp.sqrt(
         float(n_samples * (n_samples - 1.0))
     )
-    for norm_l, kernels_l in self.kernels.items():
-      pairwise_matrix = kernel_module.get_distances(
-          all_samples,
-          all_samples,
-          norm=norm_l.value,
-          min_memory=self.min_memory_kernel,
-      ).astype(jnp.float32)
-      if self.select_bandwidths:
-        distances = pairwise_matrix[jnp.triu_indices(pairwise_matrix.shape[0])]
-        self.bandwidths = kernel_module.compute_bandwidths(
-            distances, self.number_bandwidths
-        ).astype(jnp.float32)
 
-      for kernel in kernels_l:
-        for param in self.divergence_sweep_hyperparams[self.hyperparam_name]:
-          if self.hyperparam_name != "unused":
-            self.divergence_params[self.hyperparam_name] = param
+    num_hyperparams = len(
+        self.divergence_sweep_hyperparams[self.hyperparam_name]
+    )
+    bandwidths_by_norm: dict[str, list[jax.Array]] = {}
+    for current_hyperparams_idx, (
+        norm_l,
+        _,
+        _,
+        bw,
+        kernel_matrix,
+        divergence_estimator,
+    ) in enumerate(self._iterate_hyperparams(all_samples)):
+      norm_key = norm_l.value
+      if norm_key not in bandwidths_by_norm:
+        bandwidths_by_norm[norm_key] = []
+      if (
+          current_hyperparams_idx % num_hyperparams == 0
+          and len(bandwidths_by_norm[norm_key]) < self.number_bandwidths
+      ):
+        bandwidths_by_norm[norm_key].append(bw)
 
-          divergence_estimator = self.divergence_class(**self.divergence_params)
+      scaled_std = jnp.sqrt(
+          jnp.sum(kernel_matrix**2) / (n_samples * (n_samples - 1))
+      )
+      std_devs = std_devs.at[current_hyperparams_idx].set(scaled_std)
+      if divergence_estimator.has_vectorized_kernel:
+        kernel_matrix = kernel_matrix.at[
+            jnp.diag_indices(kernel_matrix.shape[0])
+        ].set(0)
+        key, subkey = jax.random.split(key)
+        permuted_statistics = divergence_estimator(
+            kernel_matrix,
+            self.num_permutations,
+            subkey,
+        )
+      else:
+        shuffled_estimator_fn = functools.partial(
+            _make_shuffled_estimator(divergence_estimator, n_samples),
+            kernel_matrix=kernel_matrix,
+        )
+        if self.min_memory_permutations:
+          permuted_statistics = jax.lax.map(
+              shuffled_estimator_fn, all_idx, batch_size=self.batch_size
+          )
+        else:
+          permuted_statistics = jax.vmap(shuffled_estimator_fn)(all_idx)
 
-          for bw in self.bandwidths:
-            kernel_matrix = kernel_module.get_kernel_matrix(
-                pairwise_matrix,
-                kernel=kernel,
-                bandwidth=bw,
-            ).astype(jnp.float32)
+      all_statistics = all_statistics.at[current_hyperparams_idx].set(
+          permuted_statistics
+      )
 
-            scaled_std = jnp.sqrt(
-                jnp.sum(kernel_matrix**2) / (n_samples * (n_samples - 1))
-            )
-            std_devs = std_devs.at[current_hyperparams_idx].set(scaled_std)
-            if divergence_estimator.has_vectorized_kernel:
-              kernel_matrix = kernel_matrix.at[
-                  jnp.diag_indices(kernel_matrix.shape[0])
-              ].set(0)
-              key, subkey = jax.random.split(key)
-              permuted_statistics = divergence_estimator(
-                  kernel_matrix,
-                  self.num_permutations,
-                  subkey,
-              )
-            else:
-              shuffled_estimator_fn = _make_shuffled_estimator(
-                  divergence_estimator, n_samples
-              )
-
-              if self.min_memory_permutations:
-
-                def mapped_fn(idx):
-                  return shuffled_estimator_fn(idx, kernel_matrix)  # pylint: disable=cell-var-from-loop
-
-                permuted_statistics = jax.lax.map(
-                    mapped_fn, all_idx, batch_size=self.batch_size
-                )
-              else:
-                vestimate = jax.vmap(shuffled_estimator_fn, in_axes=0)
-                permuted_statistics = vestimate(all_idx, kernel_matrix)
-
-            all_statistics = all_statistics.at[current_hyperparams_idx].set(
-                permuted_statistics
-            )
-            current_hyperparams_idx += 1
-
-    all_statistics_norm = (
+    scaled = lambda_reg * all_statistics / std_devs[:, None]
+    valid = jnp.all(jnp.isfinite(scaled), axis=1, keepdims=True)
+    num_valid = jnp.sum(valid)
+    safe = jnp.where(valid, scaled, -jnp.inf)
+    fused = (
         jax.scipy.special.logsumexp(
-            lambda_reg * all_statistics / std_devs[:, None],
+            safe,
             axis=0,
-            b=1 / self.number_statistics,
+            b=1.0 / jnp.maximum(num_valid, 1),
         )
         / lambda_reg
-    )
+    ).flatten()
 
-    all_statistics_norm = all_statistics_norm.flatten()
-
-    original_statistic_norm = all_statistics_norm[-1]
-    p_val_norm = jnp.mean(all_statistics_norm >= original_statistic_norm)
-    output_norm = p_val_norm <= self.significance
+    p_val = jnp.where(num_valid > 0, jnp.mean(fused >= fused[-1]), 1.0)
+    output_norm = (num_valid > 0) & (p_val <= self.significance)
+    bw_info = {
+        norm_key: jnp.stack(bws)
+        for norm_key, bws in bandwidths_by_norm.items()
+    }
 
     return hypothesis_test_utils.TestResult(
-        all_statistics=all_statistics_norm,
-        p_val=p_val_norm,
+        all_statistics=fused,
+        p_val=p_val,
         result_test=output_norm,
         additional_info={
             "statistics_matrix": all_statistics,
-            "bw": self.bandwidths,
+            "bw": bw_info,
+            "num_valid_hyperparams": num_valid,
+            "num_hyperparams": jnp.asarray(
+                self.number_statistics, dtype=num_valid.dtype
+            ),
         },
     )
