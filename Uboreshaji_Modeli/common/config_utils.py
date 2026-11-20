@@ -66,10 +66,10 @@ def load_config(path):
         " 'get_base_config()' function."
     )
 
-_OWL_DEFAULTS = {
+
+_OWL_DEFAULTS = frozenset({
     "/path/to/models/owlv2",
-}
-_OWL_DEFAULTS = frozenset(_OWL_DEFAULTS)
+})
 
 
 def derive_paths(cfg):
@@ -81,22 +81,26 @@ def derive_paths(cfg):
 
   if modality == "VISION":
     if not cfg.dataset.get("dataset_path") and cfg.dataset.get("dataset_base"):
+      mid = (
+          "bagz/tfexample"
+          if cfg.dataset.get("format") == "bagz"
+          else "huggingface_dataset"
+      )
       cfg.dataset.dataset_path = (
           f"{cfg.dataset.dataset_base}/{cfg.dataset.dataset_uri}"
-          f"/huggingface_dataset/{cfg.dataset.dataset_version}/"
+          f"/{mid}/{cfg.dataset.dataset_version}/"
       )
     if (
-        not cfg.get("model_id") or cfg.get("model_id") in _OWL_DEFAULTS
-    ) and cfg.get("model_base") and cfg.get("model_name"):
+        (not cfg.get("model_id") or cfg.get("model_id") in _OWL_DEFAULTS)
+        and cfg.get("model_base")
+        and cfg.get("model_name")
+    ):
       cfg.model_id = f"{cfg.model_base}/{cfg.model_name}"
   else:
     # For TEXT and AUDIO modalities, explicit model_id and dataset_path take
     # precedence. We only derive them if they are not explicitly set, are empty,
     # or match legacy defaults.
-    if (
-        not cfg.dataset.get("dataset_path")
-        and cfg.dataset.get("dataset_uri")
-    ):
+    if not cfg.dataset.get("dataset_path") and cfg.dataset.get("dataset_uri"):
       base = cfg.dataset.get("dataset_base") or ""
       cfg.dataset.dataset_path = os.path.join(base, cfg.dataset.dataset_uri)
     if (

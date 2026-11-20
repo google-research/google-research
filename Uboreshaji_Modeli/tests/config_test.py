@@ -111,6 +111,16 @@ class DerivePathsTest(absltest.TestCase):
     )
     self.assertEqual(cfg.model_id, "/mbase/mname")
 
+  def test_vision_bagz_derives_bagz_path(self):
+    cfg = config.get_base_config()
+    cfg.task_modality = config.TaskModality.VISION
+    cfg.dataset.format = "bagz"
+    cfg.dataset.dataset_base = "/base"
+    cfg.dataset.dataset_uri = "ds"
+    cfg.dataset.dataset_version = "1.0.0"
+    config_utils.derive_paths(cfg)
+    self.assertEqual(cfg.dataset.dataset_path, "/base/ds/bagz/tfexample/1.0.0/")
+
   def test_audio_modality_preserves_explicit_model_id(self):
     cfg = config.get_base_config()
     cfg.task_modality = config.TaskModality.AUDIO

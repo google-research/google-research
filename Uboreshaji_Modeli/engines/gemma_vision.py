@@ -18,10 +18,12 @@
 import collections
 from collections.abc import Callable, Mapping, Sequence
 import os
+import threading
 from typing import Any
 
 from absl import logging
 import ml_collections
+from PIL import Image
 import torch
 from torch import nn
 import transformers
@@ -29,7 +31,10 @@ import transformers
 from Uboreshaji_Modeli.common import config as common_config
 from Uboreshaji_Modeli.common import data
 from Uboreshaji_Modeli.common import gemma_box_utils
+
 from . import base
+
+_PROCESSOR_LOCK = threading.Lock()
 
 
 class GemmaVisionTransform(data.PicklableProcessorMixin):
@@ -42,6 +47,9 @@ class GemmaVisionTransform(data.PicklableProcessorMixin):
   On reload, custom ``<loc>`` tokens are re-added to the tokenizer
   when ``detection_format == 'loc'``, matching the setup in
   ``GemmaVisionEngine.load_model_and_processor``.
+
+  `transform_example` handles one example (the Bagz path, inside the Grain
+  map); calling the transform handles a batch (the HF `datasets` path).
   """
 
   def __init__(
@@ -61,6 +69,7 @@ class GemmaVisionTransform(data.PicklableProcessorMixin):
     self.do_pan_and_scan = do_pan_and_scan
     self.cfg = cfg
     self._model_id = model_id or getattr(processor, "name_or_path", None)
+    self._marker_ids: list[int] | None = None
 
   def _post_load_processor(self):
     if self.detection_format == "loc":
@@ -68,73 +77,49 @@ class GemmaVisionTransform(data.PicklableProcessorMixin):
       num_added = self.processor.tokenizer.add_tokens(loc_tokens)
       logging.debug("Added %d new loc tokens to vocabulary.", num_added)
     self.processor.tokenizer.padding_side = "right"
+    self._marker_ids = None
 
-  def __call__(
-      self,
-      examples,
+  def transform_example(
+      self, image, objects
   ):
-    """Transforms a batch of examples into Gemma VLM inputs."""
-    logging.info(
-        "GemmaVisionTransform called with %d examples", len(examples["image"])
+    """Turns one image and its boxes into Gemma VLM inputs."""
+    image = image.convert("RGB")
+    w, h = image.size
+    detection_string = gemma_box_utils.format_objects_to_detection_string(
+        objects,
+        self.class_names,
+        image_width=w,
+        image_height=h,
+        detection_format=self.detection_format,
     )
-    all_input_ids = []
-    all_labels = []
-    all_pixel_values = []
-    all_attention_masks = []
-    all_image_position_ids = []
+    image_size = (
+        self.cfg.get("dataset", {}).get("image_size") if self.cfg else 0
+    )
+    if image_size:
+      image = image.resize((image_size, image_size))
 
-    for i, (image, objects) in enumerate(
-        zip(examples["image"], examples["objects"])
-    ):
-      logging.info("Processing example %d...", i)
-      image = image.convert("RGB")
-      w, h = image.size
-
-      logging.info("Formatting objects to detection string...")
-      detection_string = gemma_box_utils.format_objects_to_detection_string(
-          objects,
-          self.class_names,
-          image_width=w,
-          image_height=h,
-          detection_format=self.detection_format,
-      )
-      logging.info("Detection string: %s", detection_string)
-
-      if (
-          self.cfg is not None
-          and "dataset" in self.cfg
-          and "image_size" in self.cfg.dataset
-          and self.cfg.dataset.image_size
-      ):
-        logging.info("Resizing image to %d...", self.cfg.dataset.image_size)
-        image = image.resize(
-            (self.cfg.dataset.image_size, self.cfg.dataset.image_size)
-        )
-
-      messages = [
-          {
-              "role": "user",
-              "content": [
-                  {"type": "image", "image": image},
-                  {"type": "text", "text": self.prompt_text},
-              ],
-          },
-          {
-              "role": "assistant",
-              "content": [
-                  {"type": "text", "text": detection_string},
-              ],
-          },
-      ]
-
-      logging.info("Applying chat template...")
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"type": "image", "image": image},
+                {"type": "text", "text": self.prompt_text},
+            ],
+        },
+        {
+            "role": "assistant",
+            "content": [{"type": "text", "text": detection_string}],
+        },
+    ]
+    model_flavor = self.cfg.get("model_flavor") if self.cfg else None
+    marker_text = (
+        "<|turn>model\n"
+        if model_flavor == common_config.ModelFlavor.GEMMA_4
+        else "<start_of_turn>model\n"
+    )
+    with _PROCESSOR_LOCK:
       text = self.processor.apply_chat_template(
           messages, tokenize=False, add_generation_prompt=False
-      )
-      logging.info("Chat template applied.")
-
-      logging.info(
-          "Calling processor with do_pan_and_scan=%s...", self.do_pan_and_scan
       )
       inputs = self.processor(
           text=text,
@@ -143,56 +128,62 @@ class GemmaVisionTransform(data.PicklableProcessorMixin):
           padding=False,
           do_pan_and_scan=self.do_pan_and_scan,
       )
-      logging.info("Processor finished.")
-
-      input_ids = inputs["input_ids"].squeeze(0)
-      attention_mask = inputs["attention_mask"].squeeze(0)
-      pixel_values = inputs["pixel_values"]
-      if pixel_values.ndim == 5:
-        pixel_values = pixel_values.squeeze(0)
-
-      labels = input_ids.clone()
-      model_flavor = self.cfg.get("model_flavor") if self.cfg else None
-      if model_flavor == common_config.ModelFlavor.GEMMA_4:
-        assistant_token = self.processor.tokenizer.encode(
-            "<|turn>model\n", add_special_tokens=False
+      if self._marker_ids is None:
+        self._marker_ids = list(
+            self.processor.tokenizer.encode(
+                marker_text, add_special_tokens=False
+            )
         )
-      else:
-        assistant_token = self.processor.tokenizer.encode(
-            "\nmodel\n", add_special_tokens=False
-        )
-      logging.info("Searching for assistant token...")
-      for j in range(len(input_ids) - len(assistant_token) + 1):
-        if (
-            input_ids[j : j + len(assistant_token)].tolist()
-            == assistant_token
-        ):
-          prompt_len = j + len(assistant_token)
-          break
-      else:
-        prompt_len = 0
-      logging.info("Searched for assistant token. prompt_len: %d", prompt_len)
+      marker = self._marker_ids
 
-      if prompt_len > 0:
-        labels[:prompt_len] = -100
+    input_ids = inputs["input_ids"].squeeze(0)
+    max_seq_length = self.cfg.get("max_seq_length") if self.cfg else None
+    if max_seq_length and len(input_ids) > max_seq_length:
+      raise ValueError(
+          f"Example has {len(input_ids)} tokens >"
+          f" max_seq_length={max_seq_length}; records are not truncated."
+      )
+    attention_mask = inputs["attention_mask"].squeeze(0)
+    pixel_values = inputs["pixel_values"]
+    if pixel_values.ndim == 5:
+      pixel_values = pixel_values.squeeze(0)
 
-      all_input_ids.append(input_ids)
-      all_labels.append(labels)
-      all_pixel_values.append(pixel_values)
-      all_attention_masks.append(attention_mask)
-      if "image_position_ids" in inputs:
-        all_image_position_ids.append(inputs["image_position_ids"].squeeze(0))
+    ids_list = input_ids.tolist()
+    ends = [
+        i + len(marker)
+        for i in range(len(ids_list) - len(marker) + 1)
+        if marker and ids_list[i : i + len(marker)] == marker
+    ]
+    if not ends:
+      raise ValueError(f"Assistant turn marker {marker_text!r} not found.")
+    labels = input_ids.clone()
+    labels[: ends[-1]] = -100
 
-    logging.info("GemmaVisionTransform finished processing all examples.")
     result = {
-        "input_ids": all_input_ids,
-        "labels": all_labels,
-        "pixel_values": all_pixel_values,
-        "attention_mask": all_attention_masks,
+        "input_ids": input_ids,
+        "labels": labels,
+        "pixel_values": pixel_values,
+        "attention_mask": attention_mask,
     }
-    if all_image_position_ids:
-      result["image_position_ids"] = all_image_position_ids
+    for key in ("token_type_ids", "image_position_ids"):
+      if key in inputs:
+        result[key] = inputs[key].squeeze(0)
     return result
+
+  def __call__(
+      self,
+      examples,
+  ):
+    """Transforms a batch of examples into Gemma VLM inputs."""
+    results = [
+        self.transform_example(image, objects)
+        for image, objects in zip(examples["image"], examples["objects"])
+    ]
+    keys = ["input_ids", "labels", "pixel_values", "attention_mask"]
+    for key in ("token_type_ids", "image_position_ids"):
+      if any(key in r for r in results):
+        keys.append(key)
+    return {key: [r[key] for r in results if key in r] for key in keys}
 
 
 class GemmaVisionCollate:
@@ -217,14 +208,6 @@ class GemmaVisionCollate:
     pixel_values = torch.cat(
         [torch.as_tensor(item["pixel_values"]) for item in batch], dim=0
     )
-
-    image_position_ids = None
-    has_image_position_ids = "image_position_ids" in batch[0]
-    if has_image_position_ids:
-      image_position_ids = torch.stack(
-          [torch.as_tensor(item["image_position_ids"]) for item in batch],
-          dim=0,
-      )
 
     if self.is_tpu and self.static_max_len:
       max_len = self.static_max_len
@@ -254,9 +237,39 @@ class GemmaVisionCollate:
         "pixel_values": pixel_values.float(),
         "attention_mask": padded_attention,
     }
-    if has_image_position_ids:
-      result["image_position_ids"] = image_position_ids
+    if "token_type_ids" in batch[0]:
+      token_types = [torch.as_tensor(item["token_type_ids"]) for item in batch]
+      padded_types = torch.zeros(
+          (len(batch), max_len), dtype=token_types[0].dtype
+      )
+      for i, tt in enumerate(token_types):
+        seq_len = min(tt.shape[0], max_len)
+        padded_types[i, :seq_len] = tt[:seq_len]
+      result["token_type_ids"] = padded_types
+    if "image_position_ids" in batch[0]:
+      result["image_position_ids"] = torch.stack(
+          [torch.as_tensor(item["image_position_ids"]) for item in batch],
+          dim=0,
+      )
     return result
+
+
+def _make_transform(
+    processor,
+    class_names,
+    cfg,
+    model_id = None,
+):
+  c = cfg or {}
+  return GemmaVisionTransform(
+      processor=processor,
+      class_names=class_names,
+      prompt_text=c.get("prompt") or f"detect {' ; '.join(class_names)}",
+      detection_format=c.get("detection_format", "loc"),
+      do_pan_and_scan=c.get("do_pan_and_scan", False),
+      cfg=cfg,
+      model_id=model_id,
+  )
 
 
 class GemmaVisionPreprocessor(base.DataPreprocessor):
@@ -274,29 +287,30 @@ class GemmaVisionPreprocessor(base.DataPreprocessor):
     """Returns a transform function converting examples to Gemma VLM inputs."""
     del self  # Unused.
     class_names = dataset_features["objects"]["category"].feature.names
-    prompt_text = (
-        cfg.get("prompt")
-        if cfg is not None and cfg.get("prompt")
-        else f"detect {' ; '.join(class_names)}"
-    )
-    detection_format = cfg.get("detection_format", "loc") if cfg else "loc"
-    do_pan_and_scan = cfg.get("do_pan_and_scan", False) if cfg else False
 
     # Save processor locally so DataLoader workers can load without
     # remote access.
     temp_dir = data.stage_processor_locally(
         processor, prefix="local_vision_processor_"
     )
+    return _make_transform(processor, class_names, cfg, model_id=temp_dir)
 
-    return GemmaVisionTransform(
-        processor=processor,
-        class_names=class_names,
-        prompt_text=prompt_text,
-        detection_format=detection_format,
-        do_pan_and_scan=do_pan_and_scan,
-        cfg=cfg,
-        model_id=temp_dir,
-    )
+  def get_preprocess_fn(
+      self,
+      processor,
+      cfg = None,
+      *,
+      is_train = False,
+      class_names = None,
+      **kwargs,
+  ):
+    """Returns the per-example `{image, objects}` preprocessor for Gemma VLM."""
+    del self, is_train, kwargs
+    names = class_names or (cfg.dataset.get("class_names") if cfg else None)
+    if not names:
+      raise ValueError("Gemma vision requires class_names.")
+    transform = _make_transform(processor, list(names), cfg)
+    return lambda ex: transform.transform_example(ex["image"], ex["objects"])
 
   def get_collate_fn(
       self,
@@ -443,15 +457,14 @@ class GemmaVisionEngine(base.ModelEngine):
       pass
 
     processor = transformers.AutoProcessor.from_pretrained(model_id)
+    base_vocab_size = len(processor.tokenizer)
 
-    # Determine detection format from config.
     cfg = kwargs.get("cfg")
     detection_format = cfg.get("detection_format", "loc") if cfg else "loc"
-
-    # Add custom tokens for location — only needed for loc token format.
     if detection_format == "loc":
       loc_tokens = [f"<loc{i:04d}>" for i in range(1024)]
-      processor.tokenizer.add_tokens(loc_tokens)
+      num_added = processor.tokenizer.add_tokens(loc_tokens)
+      logging.info("Added %s new <loc> tokens to the vocabulary.", num_added)
 
     dtype_by_precision = {
         "bf16": torch.bfloat16,
@@ -462,7 +475,9 @@ class GemmaVisionEngine(base.ModelEngine):
 
     load_kwargs = {
         "torch_dtype": model_dtype,
-        "attn_implementation": "eager",
+        "attn_implementation": (
+            "sdpa" if torch.cuda.is_available() else "eager"
+        ),
         **(
             {"quantization_config": GemmaVisionEngine._get_torchao_config()}
             if use_torchao
@@ -476,13 +491,11 @@ class GemmaVisionEngine(base.ModelEngine):
         model_id, **load_kwargs
     )
 
-    # Resize embeddings to match new tokenizer — only for loc token format.
-    # JSON format uses the model's native vocabulary, no resize needed.
     if detection_format != "json":
-      # Disable mean_resizing to avoid covariance alloc OOMs on nearly-full
-      # GPUs. Random init is fine — these <loc> tokens are fully fine-tuned.
       model.resize_token_embeddings(
-          len(processor.tokenizer), mean_resizing=False
+          len(processor.tokenizer),
+          pad_to_multiple_of=64,
+          mean_resizing=False,
       )
 
     model.config.use_cache = False
@@ -495,17 +508,47 @@ class GemmaVisionEngine(base.ModelEngine):
     if cfg and cfg.training.get("use_lora", True):
       import peft  # pylint: disable=g-import-not-at-top
 
+      new_token_ids = list(range(base_vocab_size, len(processor.tokenizer)))
+      trainable_tokens = None
+      if new_token_ids:
+        trainable_tokens = (
+            new_token_ids
+            if getattr(model.config, "tie_word_embeddings", False)
+            else {"embed_tokens": new_token_ids, "lm_head": new_token_ids}
+        )
       peft_config = peft.LoraConfig(
           r=cfg.lora.r,
           lora_alpha=cfg.lora.alpha,
           target_modules=list(cfg.lora.target_modules),
+          exclude_modules=(
+              ".*vision_tower.*"
+              if cfg.training.get("freeze_vision_tower", False)
+              else None
+          ),
           lora_dropout=cfg.lora.dropout,
           bias="none",
           task_type="CAUSAL_LM",
-          modules_to_save=["embed_tokens", "lm_head"],
+          trainable_token_indices=trainable_tokens,
       )
       model = _unwrap_gemma4_clippable(model)
       peft_model = peft.get_peft_model(model, peft_config)  # pyrefly: ignore[bad-argument-type]
+      lora_params = sum(
+          p.numel()
+          for n, p in peft_model.named_parameters()
+          if p.requires_grad and "lora_" in n
+      )
+      if not lora_params:
+        raise ValueError(
+            "No module matched cfg.lora.target_modules="
+            f"{list(cfg.lora.target_modules)}."
+        )
+      trainable, total = peft_model.get_nb_trainable_parameters()
+      logging.info(
+          "LoRA: %d/%d trainable (%d in adapters).",
+          trainable,
+          total,
+          lora_params,
+      )
       return peft_model, processor
 
     return model, processor

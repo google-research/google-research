@@ -261,7 +261,7 @@ class GemmaEngineTest(parameterized.TestCase):
     mock_model_cls.assert_called_once_with(
         "fake-model-id",
         torch_dtype=mock.ANY,
-        attn_implementation="eager",
+        attn_implementation="sdpa",
         quantization_config=mock.ANY,
         device_map={"": 0},
     )
@@ -373,7 +373,9 @@ class GemmaEngineTest(parameterized.TestCase):
 
     with self.subTest(name="embeddings_resized"):
       mock_model.resize_token_embeddings.assert_called_once_with(
-          len(mock_processor.tokenizer), mean_resizing=False
+          len(mock_processor.tokenizer),
+          pad_to_multiple_of=64,
+          mean_resizing=False,
       )
 
   def test_freeze_vision_tower(self):
@@ -451,6 +453,7 @@ class GemmaEngineTest(parameterized.TestCase):
     mock_image = mock.create_autospec(Image.Image, instance=True)
     mock_image.convert.return_value = mock_image
     mock_image.size = (100, 100)
+    mock_processor.tokenizer.encode.return_value = [2]  # Turn marker.
     mock_processor.return_value = {
         "input_ids": torch.tensor([[1, 2, 3]]),
         "attention_mask": torch.tensor([[1, 1, 1]]),
@@ -493,6 +496,7 @@ class GemmaEngineTest(parameterized.TestCase):
     mock_image.size = (100, 100)
 
     # Mock processor to return image_position_ids (simulating Gemma 4 processor)
+    mock_processor.tokenizer.encode.return_value = [2]  # Turn marker.
     mock_processor.return_value = {
         "input_ids": torch.tensor([[1, 2, 3]]),
         "attention_mask": torch.tensor([[1, 1, 1]]),

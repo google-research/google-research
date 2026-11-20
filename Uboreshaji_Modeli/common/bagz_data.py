@@ -15,8 +15,9 @@
 
 """Grain batch streams and model-blind task decoders for Bagz shards."""
 
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
 import functools
+import io
 import json
 import threading
 from typing import Any
@@ -25,6 +26,9 @@ from absl import logging
 from etils import epath
 import grain.python as grain
 import ml_collections
+import numpy as np
+from PIL import Image
+from PIL import ImageOps
 from torch.utils import data as torch_data
 import transformers
 
@@ -114,11 +118,70 @@ def decode_text(record):
   }
 
 
+def decode_detection(
+    record,
+    class_names,
+    exclude_classes = (),
+):
+  """Decodes a detection `tf.Example` into `{image_id, image, objects}`."""
+  if not class_names:
+    raise ValueError("Detection Bagz decoding requires dataset.class_names.")
+  features = parse_tf_example(record)
+  image_id = features.get("image_info/image_id", [None])[0]
+  image = Image.open(io.BytesIO(features["image"][0]))
+  image = ImageOps.exif_transpose(image).convert("RGB")
+  size = (
+      int(features["image_info/width"][0]),
+      int(features["image_info/height"][0]),
+  )
+  if image.size != size:
+    raise ValueError(
+        f"Image {image_id}: decoded size {image.size} != recorded {size}."
+    )
+  bbox = np.asarray(features.get("annotations/bbox", ()), dtype=np.float32)
+  labels = [b.decode() for b in features.get("annotations/label", ())]
+  if bbox.size != 4 * len(labels):
+    raise ValueError(
+        f"Image {image_id}: {bbox.size} bbox values for {len(labels)} labels;"
+        " expected 4 floats per label."
+    )
+  excluded = frozenset(exclude_classes)
+  index = {name: i for i, name in enumerate(class_names)}
+  if unknown := sorted(set(labels) - index.keys() - excluded):
+    raise ValueError(
+        f"Image {image_id}: labels {unknown} not in class_names"
+        f" {list(class_names)}."
+    )
+  boxes_list = bbox.reshape(-1, 4).tolist()
+  kept = [
+      (box, index[label])
+      for box, label in zip(boxes_list, labels)
+      if label not in excluded
+  ]
+  return {
+      "image_id": int(image_id) if image_id is not None else 0,
+      "image": image,
+      "objects": {
+          "bbox": [b for b, _ in kept],
+          "category": [c for _, c in kept],
+      },
+  }
+
+
 def get_task_decoder(
     cfg,
 ):
   """Returns the model-blind Bagz record -> canonical task dict decoder."""
   task = cfg.get("task_type")
+  if task in (config.TaskType.VISION_DETECTION, config.TaskType.DETECTION):
+    names = cfg.dataset.get("class_names")
+    if not names:
+      raise ValueError("Detection Bagz requires cfg.dataset.class_names.")
+    return functools.partial(
+        decode_detection,
+        class_names=tuple(names),
+        exclude_classes=tuple(cfg.dataset.get("exclude_classes", ())),
+    )
   asr_tasks = (
       config.TaskType.ASR,
       config.TaskType.CTC_ASR,
