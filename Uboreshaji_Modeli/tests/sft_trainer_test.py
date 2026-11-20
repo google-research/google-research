@@ -41,6 +41,11 @@ class FakeModelEngine(engines_base.ModelEngine):
   def load_model_and_processor(self, model_id, device, **kwargs):
     return torch.nn.Module(), object()
 
+  def get_preprocess_fn(self, *args, is_train=False, **kwargs):
+    self.preprocess_is_train = getattr(self, "preprocess_is_train", [])
+    self.preprocess_is_train.append(is_train)
+    return lambda x: x
+
   def get_transform_fn(self, *args, **kwargs):
     self.transform_kwargs = kwargs
     return lambda x: x
@@ -217,6 +222,7 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
 
   def test_bagz_eval_uses_unwrapped_eval_stream(self):
     cfg = self._make_config()
+    cfg.task_type = config.TaskType.ASR
     cfg.dataset.update(
         format="bagz", eval_split="validation", eval_num_records=8
     )
@@ -236,8 +242,9 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
         )
     )
 
+    engine = FakeModelEngine()
     sft.GemmaSFTTrainerStrategy().train(
-        engine=FakeModelEngine(),
+        engine=engine,
         dataset=[b""] * 8,
         cfg=cfg,
         device=MockCpuDevice(),
@@ -248,6 +255,7 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
 
     self.assertEqual(mock_config.call_args.kwargs["eval_strategy"], "steps")
     self.assertEqual(mock_config.call_args.kwargs["eval_steps"], 5)
+    self.assertEqual(engine.preprocess_is_train, [True, False])
     eval_dataset = mock_trainer.call_args.kwargs["eval_dataset"]
     self.assertIsNotNone(eval_dataset)
     self.assertIs(

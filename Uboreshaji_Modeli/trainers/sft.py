@@ -246,7 +246,12 @@ class GemmaSFTTrainerStrategy(trainers_base.TrainerStrategy):
           cfg, processor=processor, pad_token_id=pad_token_id
       )
       eval_dataset = None
+      decode_fn = None
       if is_bagz:
+        decode_fn = bagz_data.get_task_decoder(cfg)
+        preprocess_fn = engine.get_preprocess_fn(
+            processor, cfg=cfg, is_train=True
+        )
         start_step = 0
         if resume_from_checkpoint:
           start_step = int(
@@ -263,6 +268,8 @@ class GemmaSFTTrainerStrategy(trainers_base.TrainerStrategy):
             start_step=start_step,
             rank=rank,
             world_size=world_size,
+            decode_fn=decode_fn,
+            preprocess_fn=preprocess_fn,
         )
         callbacks.append(train_dataset)
       if run_eval:
@@ -274,6 +281,10 @@ class GemmaSFTTrainerStrategy(trainers_base.TrainerStrategy):
             batch_size=cfg.eval.eval_batch_size,
             rank=rank,
             world_size=world_size,
+            decode_fn=decode_fn,
+            preprocess_fn=engine.get_preprocess_fn(
+                processor, cfg=cfg, is_train=False
+            ),
         )
 
       is_ctc = hasattr(engine, "is_ctc") and engine.is_ctc

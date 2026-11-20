@@ -113,6 +113,42 @@ def _collate_fn(
   return batch
 
 
+def _preprocess_example(
+    example,
+    *,
+    prompt,
+    system_prompt,
+    sampling_rate,
+):
+  """Turns one canonical `{audio, text}` example into Gemma chat messages."""
+  arr = audio_utils.get_audio_array(example["audio"], target_sr=sampling_rate)
+  if arr is None:
+    raise ValueError("Could not decode audio record.")
+  text = example.get("text")
+  if text is None:
+    text = example.get("transcription") or ""
+  messages = []
+  if system_prompt:
+    messages.append({"role": "system", "content": system_prompt})
+  messages.extend([
+      {
+          "role": "user",
+          "content": [
+              {"type": "audio", "audio": arr},
+              {"type": "text", "text": prompt},
+          ],
+      },
+      {
+          "role": "assistant",
+          "content": [{"type": "text", "text": text}],
+      },
+  ])
+  return {
+      "messages": messages,
+      "audio": {"array": arr, "sampling_rate": sampling_rate},
+  }
+
+
 class GemmaAudioTransform:
   """Picklable transform callable for Gemma Audio data loader workers."""
 
@@ -190,6 +226,34 @@ class GemmaAudioTransform:
 
 class GemmaAudioPreprocessor(base.DataPreprocessor):
   """Preprocessor for Gemma audio-speech SFT tasks."""
+
+  def get_preprocess_fn(
+      self,
+      processor,
+      cfg = None,
+      *,
+      is_train = False,
+      **kwargs,
+  ):
+    """Returns the per-example `{audio, text}` preprocessor for Gemma audio."""
+    del self, processor, is_train, kwargs
+    prompt = (cfg.get("prompt") if cfg else None) or _DEFAULT_USER_PROMPT
+    system_prompt = (
+        cfg.get("system_prompt", _DEFAULT_SYSTEM_PROMPT)
+        if cfg
+        else _DEFAULT_SYSTEM_PROMPT
+    )
+    sampling_rate = (
+        cfg.training.get("audio_sample_rate", 16000)
+        if cfg and "training" in cfg
+        else 16000
+    )
+    return functools.partial(
+        _preprocess_example,
+        prompt=prompt,
+        system_prompt=system_prompt,
+        sampling_rate=sampling_rate,
+    )
 
   def get_transform_fn(
       self,

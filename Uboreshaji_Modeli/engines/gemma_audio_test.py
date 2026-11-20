@@ -125,6 +125,30 @@ class GemmaAudioEngineTest(absltest.TestCase):
     # Processor should NOT be called during transform.
     mock_processor.assert_not_called()
 
+  def test_get_preprocess_fn_default_and_override(self):
+    fn = self.engine.get_preprocess_fn(processor=None, cfg=None)
+    out = fn({
+        "audio": {"array": np.zeros(16000), "sampling_rate": 16000},
+        "text": "Hello",
+    })
+    self.assertEqual(out["messages"][0]["role"], "system")
+    self.assertEqual(
+        out["messages"][1]["content"][1]["text"],
+        "Please transcribe this audio.",
+    )
+    self.assertEqual(out["messages"][2]["content"][0]["text"], "Hello")
+
+    cfg = ml_collections.ConfigDict(
+        {"prompt": "Translate:", "system_prompt": ""}
+    )
+    out2 = self.engine.get_preprocess_fn(processor=None, cfg=cfg)({
+        "audio": {"array": np.zeros(16000), "sampling_rate": 16000},
+        "transcription": "Bonjour",
+    })
+    self.assertLen(out2["messages"], 2)
+    self.assertEqual(out2["messages"][0]["content"][1]["text"], "Translate:")
+    self.assertEqual(out2["messages"][1]["content"][0]["text"], "Bonjour")
+
   def test_get_transform_fn_custom_prompts(self):
     mock_processor = mock.Mock()
     cfg = ml_collections.ConfigDict()

@@ -28,6 +28,17 @@ from torch import nn
 class DataPreprocessor(Protocol):
   """Protocol for data preprocessing components."""
 
+  def get_preprocess_fn(
+      self,
+      processor,
+      cfg = None,
+      *,
+      is_train = False,
+      **kwargs,
+  ):
+    """Returns the single-example canonical task dict -> features function."""
+    Ellipsis
+
   def get_transform_fn(
       self,
       processor,
@@ -177,6 +188,24 @@ class ModelEngine:
         " composed preprocessor."
     )
 
+  def get_preprocess_fn(
+      self,
+      processor,
+      cfg = None,
+      *,
+      is_train = False,
+      **kwargs,
+  ):
+    """Delegates single-example preprocessing to composed preprocessor."""
+    if self.preprocessor is not None:
+      return self.preprocessor.get_preprocess_fn(
+          processor, cfg, is_train=is_train, **kwargs
+      )
+    raise NotImplementedError(
+        "get_preprocess_fn must be overridden by subclass or delegated to a"
+        " composed preprocessor."
+    )
+
   def get_criterion(
       self,
       num_classes,
@@ -242,4 +271,3 @@ class ModelEngine:
     ):
       return self.preprocessor.get_sft_config_overrides(cfg)
     return {}
-

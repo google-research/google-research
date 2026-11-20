@@ -13,10 +13,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Bagz shards as a resumable, per-rank Grain stream of SFT batches."""
+"""Grain batch streams and model-blind task decoders for Bagz shards."""
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 import functools
+import json
 import threading
 from typing import Any
 
@@ -28,36 +29,53 @@ from torch.utils import data as torch_data
 import transformers
 
 from Uboreshaji_Modeli.common import audio_utils
+from Uboreshaji_Modeli.common import config
 
 _SAMPLE_RATE = 16000
 # Shared by the train and eval streams: HF fast tokenizers are not thread-safe.
 _COLLATE_LOCK = threading.Lock()
 
-# Parses a serialized tf.Example into a dict of feature lists. Bagz input is
-# only supported where this is available.
 _parse_tf_example = None
 
 
-def _require_bagz_support():
-  """Raises a clear error if Bagz shards cannot be read in this build."""
-  if _parse_tf_example is None or not hasattr(grain, "BagDataSource"):
+def parse_tf_example(record):
+  """Parses a serialized `tf.train.Example` into feature sequences."""
+  if _parse_tf_example is not None:
+    return _parse_tf_example(record)  # pylint: disable=not-callable
+  try:
+    from tensorflow.core.example import example_pb2  # pylint: disable=g-import-not-at-top
+  except ImportError as e:
     raise ImportError(
-        "Bagz input (dataset.format = 'bagz') is only supported inside"
-        " Google. Use the Parquet or Hugging Face dataset input instead."
-    )
+        "Reading Bagz tf.Example shards outside Google requires tensorflow"
+        " (or tensorflow-cpu); otherwise use Parquet or Hugging Face input."
+    ) from e
+  out: dict[str, Any] = {}
+  example = example_pb2.Example.FromString(record)
+  for k, feat in example.features.feature.items():
+    kind = feat.WhichOneof("kind")
+    if kind:
+      out[k] = list(getattr(feat, kind).value)
+  return out
 
 
-def split_source(
-    cfg, split
-):
-  """Returns the non-empty `*-<split>-*.bagz` shards as one source."""
-  _require_bagz_support()
+def split_source(cfg, split):
+  """Returns the non-empty `*-<split>-*.bagz` shards as one random-access source."""
+  reader_cls = getattr(grain, "BagDataSource", None)
+  if reader_cls is None:
+    try:
+      import bagz  # pylint: disable=g-import-not-at-top
+    except ImportError as e:
+      raise ImportError(
+          "Reading Bagz shards requires the `bagz` package; otherwise use"
+          " Parquet or Hugging Face input."
+      ) from e
+    reader_cls = bagz.Reader
   root = epath.Path(cfg.dataset.dataset_path)
   pattern = f"*-{split}-*.bagz"
   shards = [str(p) for p in sorted(root.glob(pattern)) if p.stat().length]
   if not shards:
     raise FileNotFoundError(f"No non-empty Bagz shards in {root / pattern}.")
-  return grain.BagDataSource(shards)
+  return reader_cls(shards)
 
 
 def _locked(collate_fn):
@@ -69,51 +87,80 @@ def _locked(collate_fn):
   return collate
 
 
-def _example(record):
-  """Decodes a serialized ASR tf.Example into an SFT chat example."""
-  _require_bagz_support()
-  features = _parse_tf_example(record)
+def decode_asr(record):
+  """Decodes a serialized ASR `tf.Example` into canonical `{audio, text}`."""
+  features = parse_tf_example(record)
   audio = audio_utils.get_audio_array(
       features["audio/bytes"][0], target_sr=_SAMPLE_RATE
   )
   if audio is None:
     raise ValueError("Could not decode Bagz audio record.")
-  messages = [
-      {
-          "role": "system",
-          "content": "You are an assistant that transcribes speech accurately.",
-      },
-      {
-          "role": "user",
-          "content": [
-              {"type": "audio", "audio": audio},
-              {"type": "text", "text": "Please transcribe this audio."},
-          ],
-      },
-      {
-          "role": "assistant",
-          "content": [{
-              "type": "text",
-              "text": features["transcription"][0].decode(),
-          }],
-      },
-  ]
   return {
-      "messages": messages,
       "audio": {"array": audio, "sampling_rate": _SAMPLE_RATE},
+      "text": features["transcription"][0].decode(),
   }
 
 
+def decode_text(record):
+  """Decodes a serialized text SFT `tf.Example` into canonical `{messages}`."""
+  features = parse_tf_example(record)
+  if "messages" in features:
+    return {"messages": json.loads(features["messages"][0].decode())}
+  return {
+      "messages": [
+          {"role": "user", "content": features["prompt"][0].decode()},
+          {"role": "assistant", "content": features["response"][0].decode()},
+      ]
+  }
+
+
+def get_task_decoder(
+    cfg,
+):
+  """Returns the model-blind Bagz record -> canonical task dict decoder."""
+  task = cfg.get("task_type")
+  asr_tasks = (
+      config.TaskType.ASR,
+      config.TaskType.CTC_ASR,
+      config.TaskType.AST,
+  )
+  if task in asr_tasks:
+    return decode_asr
+  if task == config.TaskType.TEXT_SFT:
+    return decode_text
+  raise ValueError(f"Unsupported Bagz task_type: {task!r}.")
+
+
+def _build_pipeline(
+    source,
+    slc,
+    *,
+    seed,
+    repeat,
+    batch_size,
+    drop_remainder,
+    collate_fn,
+    decode_fn = None,
+    preprocess_fn = None,
+    read_opts = None,
+):
+  """Builds the shuffled, sliced, mapped, and collated Grain stream."""
+  ds = grain.MapDataset.source(source).shuffle(seed=seed)
+  if repeat:
+    ds = ds.repeat()
+  ds = ds.slice(slc)
+  if decode_fn is not None:
+    ds = ds.map(decode_fn)
+  if preprocess_fn is not None:
+    ds = ds.map(preprocess_fn)
+  ds = ds.batch(
+      batch_size, drop_remainder=drop_remainder, batch_fn=_locked(collate_fn)
+  )
+  return ds.to_iter_dataset(read_opts) if read_opts else ds.to_iter_dataset()
+
+
 class TrainStream(torch_data.IterableDataset, transformers.TrainerCallback):
-  """Endless per-rank stream of collated batches that starts at `start_step`.
-
-  Rank r reads records `start + r, start + r + W, ...` of the shuffled,
-  repeated source, so the stream position after N optimizer steps is a pure
-  function of N: resuming skips ahead without decoding anything. Resume assumes
-  the same world size, batch size and gradient accumulation.
-
-  As a callback, it logs the trainer metrics (loss, eval_loss) on rank 0.
-  """
+  """Endless per-rank stream of collated batches that starts at `start_step`."""
 
   def __init__(
       self,
@@ -126,17 +173,24 @@ class TrainStream(torch_data.IterableDataset, transformers.TrainerCallback):
       start_step = 0,
       rank = 0,
       world_size = 1,
+      decode_fn = None,
+      preprocess_fn = None,
   ):
     super().__init__()
     start = start_step * grad_accum * batch_size * world_size
-    self._dataset = (
-        grain.MapDataset.source(source)
-        .shuffle(seed=seed)
-        .repeat()
-        .slice(slice(start + rank, None, world_size))
-        .map(_example)
-        .batch(batch_size, drop_remainder=True, batch_fn=_locked(collate_fn))
-        .to_iter_dataset(grain.ReadOptions(prefetch_buffer_size=2 * grad_accum))
+    # NOMUTANTS -- prefetch depth only; batch contents and order are unchanged.
+    read_opts = grain.ReadOptions(prefetch_buffer_size=max(16, 2 * grad_accum))
+    self._dataset = _build_pipeline(
+        source,
+        slice(start + rank, None, world_size),
+        seed=seed,
+        repeat=True,
+        batch_size=batch_size,
+        drop_remainder=True,
+        collate_fn=collate_fn,
+        decode_fn=decode_fn,
+        preprocess_fn=preprocess_fn,
+        read_opts=read_opts,
     )
     self._rank = rank
 
@@ -157,29 +211,23 @@ def eval_stream(
     batch_size,
     rank = 0,
     world_size = 1,
+    decode_fn = None,
+    preprocess_fn = None,
 ):
-  """Fixed subset of `num_records` shuffled records as prefetched batches.
-
-  Every rank gets the same number of full batches, so no rank waits on another.
-
-  Args:
-    source: Random-access source of serialized records.
-    collate_fn: Turns a list of examples into a model batch.
-    seed: Shuffle seed.
-    num_records: Size of the subset before trimming to full batches.
-    batch_size: Per-rank batch size.
-    rank: This process's rank.
-    world_size: Number of ranks.
-
-  Returns:
-    A dataset of this rank's batches.
-  """
-  end = num_records // (world_size * batch_size) * world_size * batch_size
-  return (
-      grain.MapDataset.source(source)
-      .shuffle(seed=seed)
-      .slice(slice(rank, end, world_size))
-      .map(_example)
-      .batch(batch_size, batch_fn=_locked(collate_fn))
-      .to_iter_dataset()
+  """Fixed subset of `num_records` shuffled records as prefetched batches."""
+  n = min(num_records, len(source))
+  end = (
+      n // (world_size * batch_size) * world_size * batch_size
+      or n // world_size * world_size
+  )
+  return _build_pipeline(
+      source,
+      slice(rank, end, world_size),
+      seed=seed,
+      repeat=False,
+      batch_size=batch_size,
+      drop_remainder=False,
+      collate_fn=collate_fn,
+      decode_fn=decode_fn,
+      preprocess_fn=preprocess_fn,
   )
