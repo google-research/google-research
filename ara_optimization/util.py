@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2026 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,7 +14,6 @@
 
 """Helper functions for ARA evaluations."""
 
-from collections.abc import Sequence
 import numpy as np
 import pandas as pd
 from ara_optimization import metrics
@@ -29,23 +27,24 @@ def randomized_round(x):
 def randomized_snap_row(value, max_value,
                         contribution_cap):
   """Round input to bounded discrete range.
-
   The input is discretized to one of contribution_cap + 1 possible values that
   are evenly spaced between 0 and max_value, inclusive. That is, the inputs are
   rounded to the nearest integer multiple of (max_value / contribution_cap) that
   is between 0 and max_value.
-
+  
   Args:
     value: the series of inputs to round
     max_value: the largest possible value after rounding
     contribution_cap: the granularity of the discretization
-
+    
   Returns:
     the discretized series of values.
   """
-  value = value.clip(lower=0, upper=max_value)
-  value = value * (contribution_cap / max_value)
-  value = randomized_round(value)
+  if max_value == 0:
+    return pd.Series(0.0, index=value.index)
+  value= value.clip(lower=0, upper= max_value)
+  value= value * (contribution_cap / max_value)
+  value= randomized_round(value)
   return value * max_value / contribution_cap
 
 
