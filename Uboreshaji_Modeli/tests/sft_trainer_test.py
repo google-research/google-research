@@ -262,6 +262,101 @@ class GemmaSFTTrainerStrategyTest(parameterized.TestCase):
         mock_trainer.return_value.get_eval_dataloader(), eval_dataset
     )
 
+  def test_fsdp_forwarded_only_when_multi_worker(self):
+    cfg = self._make_config()
+    cfg.training.fsdp = True
+    cfg.training.fsdp_config = {"state_dict_type": "FULL_STATE_DICT"}
+    ds = {"train": FakeDatasetSplit()}
+    mock_config = self.enter_context(
+        unittest.mock.patch.object(trl, "SFTConfig", autospec=True)
+    )
+    self.enter_context(
+        unittest.mock.patch.object(
+            sft_trainer, "CustomSFTTrainer", autospec=True
+        )
+    )
+
+    sft.GemmaSFTTrainerStrategy().train(
+        engine=FakeModelEngine(),
+        dataset=ds,
+        cfg=cfg,
+        device=MockCpuDevice(),
+        model=torch.nn.Module(),
+        processor=object(),
+        output_path=self.create_tempdir().full_path,
+    )
+    self.assertNotIn("fsdp", mock_config.call_args.kwargs)
+
+    self.enter_context(
+        unittest.mock.patch.object(
+            sft.dist, "is_initialized", return_value=True
+        )
+    )
+    self.enter_context(
+        unittest.mock.patch.object(sft.dist, "get_rank", return_value=0)
+    )
+    self.enter_context(
+        unittest.mock.patch.object(sft.dist, "get_world_size", return_value=8)
+    )
+    self.enter_context(
+        unittest.mock.patch.object(sft.dist, "broadcast_object_list")
+    )
+    self.enter_context(unittest.mock.patch.object(sft.dist, "barrier"))
+    mock_cleanup = self.enter_context(
+        unittest.mock.patch.object(
+            sft.distributed_training, "cleanup_distributed", autospec=True
+        )
+    )
+    model = torch.nn.Sequential(torch.nn.Linear(2, 2))
+    model._no_split_modules = {"Linear", "SiglipTextEmbeddings"}
+    sft.GemmaSFTTrainerStrategy().train(
+        engine=FakeModelEngine(),
+        dataset=ds,
+        cfg=cfg,
+        device=MockCpuDevice(),
+        model=model,
+        processor=object(),
+        output_path=self.create_tempdir().full_path,
+    )
+    mock_cleanup.assert_called_once()
+    self.assertTrue(mock_config.call_args.kwargs["fsdp"])
+    self.assertEqual(model._no_split_modules, ["Linear"])
+    self.assertEqual(
+        mock_config.call_args.kwargs["fsdp_config"],
+        {"state_dict_type": "FULL_STATE_DICT"},
+    )
+
+  def test_skips_cleanup_distributed_on_exception(self):
+    cfg = self._make_config()
+    ds = {"train": FakeDatasetSplit()}
+    mock_trainer_cls = self.enter_context(
+        unittest.mock.patch.object(
+            sft.sft_trainer, "CustomSFTTrainer", autospec=True
+        )
+    )
+    mock_trainer_cls.return_value.train.side_effect = RuntimeError("OOM")
+    self.enter_context(
+        unittest.mock.patch.object(
+            sft.trl, "SFTConfig", return_value=unittest.mock.MagicMock()
+        )
+    )
+    mock_cleanup = self.enter_context(
+        unittest.mock.patch.object(
+            sft.distributed_training, "cleanup_distributed", autospec=True
+        )
+    )
+    with self.assertRaises(RuntimeError):
+      sft.GemmaSFTTrainerStrategy().train(
+          engine=FakeModelEngine(),
+          dataset=ds,
+          cfg=cfg,
+          device=MockCpuDevice(),
+          model=torch.nn.Module(),
+          processor=object(),
+          output_path=self.create_tempdir().full_path,
+      )
+    mock_cleanup.assert_not_called()
+
 
 class CustomSFTTrainerTest(absltest.TestCase):
 

@@ -20,6 +20,7 @@ import datetime
 import json
 import os
 import pathlib
+import sys
 from typing import Any
 
 from absl import logging
@@ -222,6 +223,26 @@ class GemmaSFTTrainerStrategy(trainers_base.TrainerStrategy):
       )
       if optim is not None:
         sft_config_args["optim"] = optim
+      if (
+          cfg.training.get("fsdp")
+          and dist.is_initialized()
+          and dist.get_world_size() > 1
+      ):
+        present_cls = {type(m).__name__ for m in model.modules()}
+        if no_split := getattr(model, "_no_split_modules", None):
+          setattr(
+              model,
+              "_no_split_modules",
+              [c for c in no_split if c in present_cls],
+          )
+        sft_config_args["fsdp"] = cfg.training.fsdp
+        fsdp_cfg = cfg.training.get("fsdp_config")
+        if fsdp_cfg is not None:
+          sft_config_args["fsdp_config"] = (
+              fsdp_cfg.to_dict()
+              if hasattr(fsdp_cfg, "to_dict")
+              else dict(fsdp_cfg)
+          )
       run_eval = is_bagz and cfg.dataset.get("eval_num_records")
       if is_bagz:
         # The stream resumes itself; stop TRL peeking at the first batch.
@@ -353,4 +374,5 @@ class GemmaSFTTrainerStrategy(trainers_base.TrainerStrategy):
 
 
     finally:
-      distributed_training.cleanup_distributed()
+      if sys.exc_info()[0] is None:
+        distributed_training.cleanup_distributed()

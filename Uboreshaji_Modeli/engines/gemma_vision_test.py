@@ -688,6 +688,33 @@ class GemmaEngineTest(parameterized.TestCase):
     self.assertIsNotNone(processor.saved_path)
     self.assertIsInstance(transform, gemma_vision.GemmaVisionTransform)
 
+  @mock.patch.dict("os.environ", {"WORLD_SIZE": "8", "LOCAL_RANK": "3"})
+  @mock.patch("torch.cuda.is_available", return_value=True)
+  @mock.patch("transformers.AutoModelForImageTextToText.from_pretrained")
+  @mock.patch("transformers.AutoProcessor.from_pretrained")
+  def test_load_model_skips_device_map_under_fsdp(
+      self, mock_processor_class, mock_model_class, unused_mock_cuda
+  ):
+    mock_model = mock.create_autospec(torch.nn.Module, instance=True)
+    mock_model.config = mock.Mock()
+    mock_model_class.return_value = mock_model
+    mock_processor = mock.create_autospec(
+        transformers.ProcessorMixin, instance=True
+    )
+    mock_processor.tokenizer = mock.create_autospec(
+        transformers.PreTrainedTokenizer, instance=True
+    )
+    mock_processor_class.return_value = mock_processor
+    self.engine.load_model_and_processor(
+        model_id="dummy_model_id",
+        device=torch.device("cpu"),
+        cfg=ml_collections.ConfigDict({
+            "training": {"use_lora": False, "fsdp": True},
+            "detection_format": "json",
+        }),
+    )
+    self.assertNotIn("device_map", mock_model_class.call_args.kwargs)
+
 
 if __name__ == "__main__":
   absltest.main()

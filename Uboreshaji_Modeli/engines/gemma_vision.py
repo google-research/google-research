@@ -484,7 +484,9 @@ class GemmaVisionEngine(base.ModelEngine):
             else {}
         ),
     }
-    if torch.cuda.is_available():
+    world_size = int(os.environ.get("WORLD_SIZE", 1))
+    use_fsdp = bool(cfg and cfg.training.get("fsdp") and world_size > 1)
+    if torch.cuda.is_available() and not use_fsdp:
       load_kwargs["device_map"] = {"": local_rank}
 
     model = transformers.AutoModelForImageTextToText.from_pretrained(
