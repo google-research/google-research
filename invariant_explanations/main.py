@@ -15,15 +15,17 @@
 
 """Main file used for approxNN project."""
 
+from typing import Sequence
 import warnings
 
 from absl import app
 from absl import flags
 
-from invariant_explanations import config
-from invariant_explanations import other
-from invariant_explanations import plotting
-from invariant_explanations import utils
+import config
+import other
+import plotting
+import utils
+
 
 FLAGS = flags.FLAGS
 
@@ -113,7 +115,6 @@ warnings.simplefilter('ignore')
 
 
 def main(argv):
-  del argv
 
   # Update config file defaults if the arguments are passed in via the cmd line.
   config.cfg.set_config_paths({
@@ -141,11 +142,11 @@ def main(argv):
 
   # utils.analyze_accuracies_of_base_models()
 
-  utils.process_and_resave_cnn_zoo_data(
-      config.cfg.RANDOM_SEED,
-      other.get_model_wireframe(),
-      config.cfg.COVARIATES_SETTINGS,
-  )
+  # utils.process_and_resave_cnn_zoo_data(
+  #     config.cfg.RANDOM_SEED,
+  #     other.get_model_wireframe(),
+  #     config.cfg.COVARIATES_SETTINGS,
+  # )
 
   # utils.train_meta_model_over_different_setups(config.cfg.RANDOM_SEED)
 

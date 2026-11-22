@@ -14,8 +14,6 @@
 # limitations under the License.
 
 """Utilities used for approxNN project."""
-# pylint: skip-file
-
 import time
 import gc
 import itertools
@@ -39,12 +37,14 @@ from tensorflow.io import gfile
 import tensorflow_datasets as tfds
 from tqdm import tqdm
 
-from invariant_explanations import config
-from invariant_explanations import explanation_utils
-from invariant_explanations import other
-from invariant_explanations import utils
+import config
+import explanation_utils
+import other
+import utils
 
 logging.set_verbosity(logging.INFO)
+
+from debug import ipsh
 
 FLAGS = flags.FLAGS
 
@@ -164,11 +164,11 @@ def update_matplotlib_defaults():
   plt.rc('figure', titlesize=BIGGER_SIZE)  # fontsize of the figure title
 
 
-def save_paper_figures(file_name):
+def save_paper_figures(file_name, dpi=200):
   # plt.subplots_adjust(hspace=0.4, wspace=0.4)
   plt.savefig(
       gfile.GFile(os.path.join(config.cfg.PLOTS_DIR_PATH, file_name), 'wb'),
-      dpi=400,
+      dpi=dpi,
       bbox_inches="tight",
   )
 
@@ -496,6 +496,7 @@ def plot_hparam_ite_comparison(treatment_effect_tracker):
     for ax_idx, ax in enumerate(g.axes.flatten()):
       ax.set_xlabel('Hyperparameters')
       if target_type == 'y_pred':
+        ax.set_title('Prediction')
         if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
       else:
         explan_type = ax.get_title().split('=')[1][1:]
@@ -519,6 +520,90 @@ def plot_hparam_ite_comparison(treatment_effect_tracker):
 
 def plot_bucket_ite_comparison(treatment_effect_tracker):
   """Compare ITE values for diff-performance models."""
+
+
+  def tmp_joint_y_e_plotter(filtered, config):
+    unique_hparam_types = filtered['hparam_type'].unique()
+    unique_explan_types = filtered['explan_type'].unique()
+
+    num_rows = len(unique_hparam_types)
+    num_cols = len(unique_explan_types) + 1
+
+    fig, axes = plt.subplots(num_rows, num_cols, sharex=True, sharey='row')
+    if axes.ndim == 1:  # if only 1 row (i.e., 1 hparam)
+      axes = np.expand_dims(axes, 0)  # to support row, col indexing below.
+
+    for row_idx in range(num_rows):
+      for col_idx in range(num_cols):
+        ax = axes[row_idx, col_idx]
+        hparam_type = unique_hparam_types[row_idx]
+
+        if col_idx == 0:
+          y = 'y_pred_ite'
+          data = filtered.where(
+              (filtered['hparam_type'] == hparam_type)
+          ).dropna()
+          col_title = 'Prediction'
+        else:
+          y = 'explan_ite'
+          explan_type = unique_explan_types[col_idx - 1]
+          data = filtered.where(
+              (filtered['hparam_type'] == hparam_type) &
+              (treatment_effect_tracker['explan_type'] == explan_type)
+          ).dropna()
+          explan_type = config.EXPLAN_NAME_CONVERTER[explan_type]
+          col_title = explan_type
+
+        sns.violinplot(
+            x='range_accuracy',
+            y=y,
+            hue='h1_h2_str',
+            data=data,
+            ax=ax,
+            linewidth=0.4,
+            legend=False
+        )
+
+        if col_idx == 0:
+          ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
+        elif col_idx == 1:
+          ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+        else:
+          ax.set_ylabel('')
+
+        if row_idx == 0:
+          ax.set_title(col_title)
+        if row_idx == len(unique_hparam_types) - 1:
+          ax.set_xlabel('Test Accuracy', fontsize=14)
+          labels = ax.get_xticklabels()
+          for label in labels:
+            range_accuracy = label.get_text()
+            range_percentile = config.RANGE_ACCURACY_CONVERTER[range_accuracy]
+            label.set_text(range_percentile)
+          ax.set_xticklabels(labels, rotation=30)
+        else:
+          ax.set_xlabel('')
+          ax.set_xticklabels('')
+
+        if col_idx == 2:
+          if num_rows > 1:
+            ax.legend(
+                loc='upper center',
+                bbox_to_anchor=(0.5, 1.18),
+                ncol=len(data['h1_h2_str'].unique()),
+                title='',
+            )
+          else:
+            ax.legend(
+                loc='upper left',
+                ncol=1,
+                title=hparam_type,
+            )
+        else:
+          ax.legend().set_visible(False)
+    return fig, axes
+
+
   # unique_hparam_types = treatment_effect_tracker['hparam_type'].unique()
   # for hparam_type in unique_hparam_types:
   for hparam_type in ['config.optimizer']:
@@ -529,55 +614,72 @@ def plot_bucket_ite_comparison(treatment_effect_tracker):
         (treatment_effect_tracker['kernel_type'] == kernel_type) &
         (treatment_effect_tracker['range_accuracy'] != not_range_accuracy)
     ).dropna()
-    for target_type in ['y_pred', 'explan']:
-      g = sns.catplot(
-          x='range_accuracy',
-          y='%s_ite' % target_type,
-          hue='h1_h2_str',
-          col=None if target_type == 'y_pred' else 'explan_type',
-          data=filtered,
-          kind='violin',
-          sharey='row',
-          legend=False,
-          # height=3,
-          linewidth=0.6,
-      )
-      if target_type == 'y_pred':
-        g.fig.set_size_inches(4, 4)
-      else:
-        g.fig.set_size_inches(16, 4)
-      for ax_idx, ax in enumerate(g.axes[0]):
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=30)
-        if ax_idx == 0 and target_type == 'explan':
-          ax.legend(
-              loc='upper left',
-              ncol=1,
-              title=hparam_type,
-          )
 
-      for ax_idx, ax in enumerate(g.axes.flatten()):
-        ax.set_xlabel('Test Accuracy', fontsize=14)
-        if target_type == 'y_pred':
-          if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
-        else:
-          explan_type = ax.get_title().split('=')[1][1:]
-          explan_type = config.EXPLAN_NAME_CONVERTER[explan_type]
-          ax.set_title(explan_type)
-          if ax_idx == 0: ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
+    # ############################################################################
+    # # plot ITE_Y and ITE_E separately
+    # ############################################################################
+    # for target_type in ['y_pred', 'explan']:
+    #   g = sns.catplot(
+    #       x='range_accuracy',
+    #       y='%s_ite' % target_type,
+    #       hue='h1_h2_str',
+    #       col=None if target_type == 'y_pred' else 'explan_type',
+    #       data=filtered,
+    #       kind='violin',
+    #       sharey='row',
+    #       legend=False,
+    #       # height=3,
+    #       linewidth=0.6,
+    #   )
+    #   if target_type == 'y_pred':
+    #     g.fig.set_size_inches(4, 4)
+    #   else:
+    #     g.fig.set_size_inches(16, 4)
+    #   for ax_idx, ax in enumerate(g.axes[0]):
+    #     ax.set_xticklabels(ax.get_xticklabels(), rotation=30)
+    #     if ax_idx == 0 and target_type == 'explan':
+    #       ax.legend(
+    #           loc='upper left',
+    #           ncol=1,
+    #           title=hparam_type,
+    #       )
 
-      for ax_idx, ax in enumerate(g.axes.flatten()):
-        labels = ax.get_xticklabels()
-        for label in labels:
-          range_accuracy = label.get_text()
-          range_percentile = config.RANGE_ACCURACY_CONVERTER[range_accuracy]
-          label.set_text(range_percentile)
-        ax.set_xticklabels(labels)
+    #   for ax_idx, ax in enumerate(g.axes.flatten()):
+    #     ax.set_xlabel('Test Accuracy', fontsize=14)
+    #     if target_type == 'y_pred':
+    #       ax.set_title('Prediction')
+    #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
+    #     else:
+    #       explan_type = ax.get_title().split('=')[1][1:]
+    #       explan_type = config.EXPLAN_NAME_CONVERTER[explan_type]
+    #       ax.set_title(explan_type)
+    #       if ax_idx == 0: ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
 
-      plt.subplots_adjust(hspace=0.1, wspace=0.1)
-      save_paper_figures(
-          'bucket_ite_comparison_%s_%s_%s_%s.png' %
-          (config.cfg.DATASET, target_type, kernel_type, hparam_type)
-      )
+    #   for ax_idx, ax in enumerate(g.axes.flatten()):
+    #     labels = ax.get_xticklabels()
+    #     for label in labels:
+    #       range_accuracy = label.get_text()
+    #       range_percentile = config.RANGE_ACCURACY_CONVERTER[range_accuracy]
+    #       label.set_text(range_percentile)
+    #     ax.set_xticklabels(labels)
+
+    #   plt.subplots_adjust(hspace=0.1, wspace=0.1)
+    #   save_paper_figures(
+    #       'bucket_ite_comparison_%s_%s_%s_%s.png' %
+    #       (config.cfg.DATASET, kernel_type, hparam_type, target_type)
+    #   )
+
+    ############################################################################
+    # repeat for one hparams in 1 fig
+    ############################################################################
+    fig, axes = tmp_joint_y_e_plotter(filtered, config)
+    plt.plot([0.27, 0.27], [0.10, 0.88], color='lightgray', lw=2,
+      transform=plt.gcf().transFigure, clip_on=False)
+    fig.set_size_inches(24, 4)
+    save_paper_figures(
+        'bucket_ite_comparison_%s_%s_%s_all.png' %
+        (config.cfg.DATASET, kernel_type, hparam_type)
+    )
 
   ##############################################################################
   # repeat for all hparams in 1 fig
@@ -590,71 +692,7 @@ def plot_bucket_ite_comparison(treatment_effect_tracker):
       (treatment_effect_tracker['range_accuracy'] != not_range_accuracy)
   ).dropna()
 
-  unique_hparam_types = treatment_effect_tracker['hparam_type'].unique()
-  unique_explan_types = treatment_effect_tracker['explan_type'].unique()
-
-  num_rows = len(unique_hparam_types)
-  num_cols = len(unique_explan_types) + 1
-
-  fig, axes = plt.subplots(num_rows, num_cols, sharex=True, sharey='row')
-
-  for row_idx in range(num_rows):
-    for col_idx in range(num_cols):
-      ax = axes[row_idx, col_idx]
-      hparam_type = unique_hparam_types[row_idx]
-
-      if col_idx == 0:
-        y = 'y_pred_ite'
-        data = filtered.where(
-            (filtered['hparam_type'] == hparam_type)
-        ).dropna()
-      else:
-        y = 'explan_ite'
-        explan_type = unique_explan_types[col_idx - 1]
-        data = filtered.where(
-            (filtered['hparam_type'] == hparam_type) &
-            (treatment_effect_tracker['explan_type'] == explan_type)
-        ).dropna()
-
-      sns.violinplot(
-          x='range_accuracy',
-          y=y,
-          hue='h1_h2_str',
-          data=data,
-          ax=ax,
-          linewidth=0.4,
-          legend=False
-      )
-
-      if col_idx == 0:
-        ax.set_ylabel(r'$ITE_{Y}(x)$', fontsize=14)
-      elif col_idx == 1:
-        ax.set_ylabel(r'$ITE_{E}(x)$', fontsize=14)
-      else:
-        ax.set_ylabel('')
-
-      if row_idx == len(unique_hparam_types) - 1:
-        ax.set_xlabel('Test Accuracy', fontsize=14)
-        labels = ax.get_xticklabels()
-        for label in labels:
-          range_accuracy = label.get_text()
-          range_percentile = config.RANGE_ACCURACY_CONVERTER[range_accuracy]
-          label.set_text(range_percentile)
-        ax.set_xticklabels(labels, rotation=30)
-      else:
-        ax.set_xlabel('')
-        ax.set_xticklabels('')
-
-      if col_idx == 2:
-        ax.legend(
-            loc='upper center',
-            bbox_to_anchor=(0.5, 1.18),
-            ncol=len(data['h1_h2_str'].unique()),
-            title='',
-        )
-      else:
-        ax.legend().set_visible(False)
-
+  fig, axes = tmp_joint_y_e_plotter(filtered, config)
   plt.plot([0.27, 0.27], [0.10, 0.88], color='lightgray', lw=2,
       transform=plt.gcf().transFigure, clip_on=False)
   fig.set_size_inches(24, 32)
@@ -797,7 +835,7 @@ def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracke
     for col_idx in range(len(axes[0])):
       for row_idx in range(len(axes)):
         ax = axes[row_idx, col_idx]
-        ax.plot(lims, lims, 'k--', alpha=0.0) # 0.3
+        ax.plot(lims, lims, 'k--', alpha=0.3) # 0.3
         ax.set_aspect('equal')
 
     # Inspired by: https://stackoverflow.com/a/25814386
@@ -838,49 +876,49 @@ def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracke
     save_paper_figures('y_vs_e_ite_scattering_%s_%s.png' % (config.cfg.DATASET, suffix))
 
 
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
-    for j, explan_type in enumerate(unique_explan_types):
-      corrs_pearson = []
-      corrs_spearman = []
-      for i, range_accuracy in enumerate(unique_range_accuracies):
-        filtered = treatment_effect_tracker.where(
-            (treatment_effect_tracker['range_accuracy'] == range_accuracy) &
-            (treatment_effect_tracker['explan_type'] == explan_type)
-        ).dropna()
-        x = filtered[x_key]
-        y = filtered[y_key]
-        corrs_pearson.append(scipy.stats.pearsonr(x, y)[0])
-        corrs_spearman.append(scipy.stats.spearmanr(x, y)[0])
-      ax1.plot(unique_range_accuracies, corrs_pearson, label=explan_type)
-      ax2.plot(unique_range_accuracies, corrs_spearman, label=explan_type)
-      if append_corr:
-        # potential bug: what if missing elems are from the start or middle?
-        if len(corrs_pearson) < 8:
-          corrs_pearson.extend([np.nan] * (8 - len(corrs_pearson)))
-        if len(corrs_spearman) < 8:
-          corrs_spearman.extend([np.nan] * (8 - len(corrs_spearman)))
-        corrs_pearson_all[explan_type].append(corrs_pearson)
-        corrs_spearman_all[explan_type].append(corrs_spearman)
+    # fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 6), sharey=True)
+    # for j, explan_type in enumerate(unique_explan_types):
+    #   corrs_pearson = []
+    #   corrs_spearman = []
+    #   for i, range_accuracy in enumerate(unique_range_accuracies):
+    #     filtered = treatment_effect_tracker.where(
+    #         (treatment_effect_tracker['range_accuracy'] == range_accuracy) &
+    #         (treatment_effect_tracker['explan_type'] == explan_type)
+    #     ).dropna()
+    #     x = filtered[x_key]
+    #     y = filtered[y_key]
+    #     corrs_pearson.append(scipy.stats.pearsonr(x, y)[0])
+    #     corrs_spearman.append(scipy.stats.spearmanr(x, y)[0])
+    #   ax1.plot(unique_range_accuracies, corrs_pearson, label=explan_type)
+    #   ax2.plot(unique_range_accuracies, corrs_spearman, label=explan_type)
+    #   if append_corr:
+    #     # potential bug: what if missing elems are from the start or middle?
+    #     if len(corrs_pearson) < 8:
+    #       corrs_pearson.extend([np.nan] * (8 - len(corrs_pearson)))
+    #     if len(corrs_spearman) < 8:
+    #       corrs_spearman.extend([np.nan] * (8 - len(corrs_spearman)))
+    #     corrs_pearson_all[explan_type].append(corrs_pearson)
+    #     corrs_spearman_all[explan_type].append(corrs_spearman)
 
-        with utils.file_handler(
-            config.cfg.EXP_DIR_PATH,
-            'corr_pearson_bands_%s.npy' % config.MEDIATION_TYPE,
-            'wb',
-        ) as f:
-          pickle.dump(corrs_pearson_all, f, protocol=4)
+    #     with utils.file_handler(
+    #         config.cfg.EXP_DIR_PATH,
+    #         'corr_pearson_bands_%s.npy' % config.MEDIATION_TYPE,
+    #         'wb',
+    #     ) as f:
+    #       pickle.dump(corrs_pearson_all, f, protocol=4)
 
-        with utils.file_handler(
-            config.cfg.EXP_DIR_PATH,
-            'corr_spearman_bands_%s.npy' % config.MEDIATION_TYPE,
-            'wb',
-        ) as f:
-          pickle.dump(corrs_spearman_all, f, protocol=4)
-    ax2.legend()
-    ax1.set_title('Pearson Corr.')
-    ax2.set_title('Spearman Rank Corr.')
-    # fig.tight_layout()
-    plt.subplots_adjust(hspace=0.1, wspace=0.1)
-    save_paper_figures('fig_8_%s_corr_%s.png' % (config.cfg.DATASET, suffix))
+    #     with utils.file_handler(
+    #         config.cfg.EXP_DIR_PATH,
+    #         'corr_spearman_bands_%s.npy' % config.MEDIATION_TYPE,
+    #         'wb',
+    #     ) as f:
+    #       pickle.dump(corrs_spearman_all, f, protocol=4)
+    # ax2.legend()
+    # ax1.set_title('Pearson Corr.')
+    # ax2.set_title('Spearman Rank Corr.')
+    # # fig.tight_layout()
+    # plt.subplots_adjust(hspace=0.1, wspace=0.1)
+    # save_paper_figures('fig_8_%s_corr_%s.png' % (config.cfg.DATASET, suffix))
 
   plot_and_save_fig_7(
       treatment_effect_tracker,
@@ -897,30 +935,30 @@ def plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracke
       append_corr=False,
   )
 
-  # similar to Fig 7 but at for each hparam
-  unique_hparam_types = treatment_effect_tracker['hparam_type'].unique()
-  for hparam_type in tqdm(unique_hparam_types):
-    filtered = treatment_effect_tracker.where(
-        (treatment_effect_tracker['hparam_type'] == hparam_type)
-    ).dropna()
-    hue = 'h1_h2_str'
-    style = 'h1_h2_str'
-    hue_order=config.MARKER_COLORS[:len(filtered[hue].unique())]
-    style_order=config.MARKER_SHAPES[:len(filtered[style].unique())]
-    plot_and_save_fig_7(
-        filtered,
-        hue=hue,
-        hue_order=hue_order,
-        style=style,
-        style_order=style_order,
-        x_key='y_pred_ite',
-        y_key='explan_ite',
-        x_label=r'$ITE_{Y}(x)$',
-        y_label=r'$ITE_{E}(x)$',
-        suffix='%s_%s' % (kernel_type, hparam_type),
-        plot_averages=True,
-        append_corr=True,
-    )
+  # # similar to Fig 7 but at for each hparam
+  # unique_hparam_types = treatment_effect_tracker['hparam_type'].unique()
+  # for hparam_type in tqdm(unique_hparam_types):
+  #   filtered = treatment_effect_tracker.where(
+  #       (treatment_effect_tracker['hparam_type'] == hparam_type)
+  #   ).dropna()
+  #   hue = 'h1_h2_str'
+  #   style = 'h1_h2_str'
+  #   hue_order=config.MARKER_COLORS[:len(filtered[hue].unique())]
+  #   style_order=config.MARKER_SHAPES[:len(filtered[style].unique())]
+  #   plot_and_save_fig_7(
+  #       filtered,
+  #       hue=hue,
+  #       hue_order=hue_order,
+  #       style=style,
+  #       style_order=style_order,
+  #       x_key='y_pred_ite',
+  #       y_key='explan_ite',
+  #       x_label=r'$ITE_{Y}(x)$',
+  #       y_label=r'$ITE_{E}(x)$',
+  #       suffix='%s_%s' % (kernel_type, hparam_type),
+  #       plot_averages=True,
+  #       append_corr=True,
+  #   )
 
   # # similar to Fig 7 but at for each hparam x each individual level
   # num_samples = 10
@@ -1249,18 +1287,18 @@ def plot_paper_figures():
   if config.cfg.DATASET == 'cifar10':
     accuracy_ranges = [
       [0.0, 1.0],     #  0 - 100%
-      # [0.056, 0.154], #  0 - 20%
-      # [0.155, 0.253], #  20 - 40%
-      # [0.253, 0.330], #  40 - 60%
-      # [0.330, 0.385], #  60 - 80%
-      # [0.385, 0.461], #  80 - 90%
-      # [0.461, 0.501], #  90 - 95%
-      # [0.501, 0.521], #  95 - 99%
-      # [0.521, 0.575], #  99 - 100%
+      [0.056, 0.154], #  0 - 20%
+      [0.155, 0.253], #  20 - 40%
+      [0.253, 0.330], #  40 - 60%
+      [0.330, 0.385], #  60 - 80%
+      [0.385, 0.461], #  80 - 90%
+      [0.461, 0.501], #  90 - 95%
+      [0.501, 0.521], #  95 - 99%
+      [0.521, 0.575], #  99 - 100%
     ]
     if config.MEDIATION_TYPE == 'mediated':
-      # saved_data_path = '2022.05.12_00.50.41__'  # 100 base models; mediated Y
-      saved_data_path = '2022.08.01_22.42.01__'  # 100 base models; mediated Y
+      saved_data_path = '2022.05.12_00.50.41__'  # 100 base models; mediated Y
+      # saved_data_path = '2022.08.01_22.42.01__'  # 100 base models; mediated Y
     elif config.MEDIATION_TYPE == 'unmediated':
       saved_data_path = '2022.05.18_01.48.03__'  # 100 base models; unmediated Y
   elif config.cfg.DATASET == 'svhn_cropped':
@@ -1317,7 +1355,7 @@ def plot_paper_figures():
       for kernel_type in config.ALLOWABLE_TREATMENT_KERNELS:
         # Overwrite
         dir_path = (
-            '/Users/amirhk/dev/invariant_explanations/_experiments/'
+            '/Users/amirhk/dev/invariant_explanations/_saved/'
             f'{saved_data_path}'
             f'dataset_{config.cfg.DATASET}_'
             'explanation_type_ig_'
@@ -1382,10 +1420,10 @@ def plot_paper_figures():
   latexify(40, 16, font_scale=1.2, large_fonts=True)
 
   # plot_vanilla_ite_values()
-  # plot_kernel_ite_comparison(treatment_effect_tracker)
-  # plot_hparam_ite_comparison(treatment_effect_tracker)
-  # plot_bucket_ite_comparison(treatment_effect_tracker)
-  plot_baseline_ite_comparison(treatment_effect_tracker)
-  # plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracker_all)
-  # plot_y_vs_e_ite_corr_bands(treatment_effect_tracker)
+  plot_kernel_ite_comparison(treatment_effect_tracker)
+  plot_hparam_ite_comparison(treatment_effect_tracker)
+  plot_bucket_ite_comparison(treatment_effect_tracker)
+  # plot_baseline_ite_comparison(treatment_effect_tracker)
+  plot_y_vs_e_ite_scattering(treatment_effect_tracker, treatment_effect_tracker_all)
+  plot_y_vs_e_ite_corr_bands(treatment_effect_tracker)
 
