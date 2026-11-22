@@ -4,4 +4,4 @@ numpy==1.21.6
 scikit-learn==1.0.2
 tqdm==4.64.1
 absl-py==1.4.0
-gdown==4.7.1
+gdown==5.2.2
