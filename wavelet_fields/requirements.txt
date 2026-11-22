@@ -141,7 +141,7 @@ pybind11-global @ file:///home/conda/feedstock_root/build_artifacts/pybind11-spl
 pycparser @ file:///home/conda/feedstock_root/build_artifacts/pycparser_1636257122734/work
 PyEXR==0.3.10
 pyglet==2.0.10
-Pygments==2.15.1
+Pygments==2.20.0
 PyJWT @ file:///home/conda/feedstock_root/build_artifacts/pyjwt_1683676063469/work
 PyMCubes==0.1.4
 PyOpenGL==3.1.0
