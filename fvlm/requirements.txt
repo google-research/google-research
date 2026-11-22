@@ -3,7 +3,7 @@ numpy>=1.16.4
 jax>=0.4.4
 jaxlib>=0.4.4
 flax>=0.6.4
-Pillow==9.5.0
+Pillow==10.3.0
 torch>=2.0.0
 torchvision>=0.15.1
 opencv-python>=4.7.0.72
