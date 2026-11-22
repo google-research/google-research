@@ -64,6 +64,12 @@ void RetrainAndReindexFixup(UntypedSingleMachineSearcherBase* result,
                             const shared_ptr<Dataset>& dataset,
                             bool retraining_requires_dataset = false);
 
+template <typename T>
+StatusOrSearcherUntyped RetrainAndReindexSearcherImpl(
+    UntypedSingleMachineSearcherBase* untyped_searcher,
+    absl::Mutex* searcher_pointer_mutex, ScannConfig config,
+    shared_ptr<ThreadPool> parallelization_pool);
+
 class UntypedSingleMachineSearcherBase {
  public:
   SCANN_DECLARE_IMMOBILE_CLASS(UntypedSingleMachineSearcherBase);
