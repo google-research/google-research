@@ -28,33 +28,65 @@ class DiscreteBisimulation(metric.Metric):
   See Ferns et al., 2004: "Metrics for Finite Markov Decision Processes"
   """
 
-  def _state_matches_class(self, s1, c):
+  def _check_equivalence(self, s1, equivalence_classes, state_to_class):
     """Determines whether state s1 belongs in equivalence class c.
 
     Args:
       s1: int, index of state in question.
-      c: list, equivalence class to check.
+      c: list of lists, equivalence classes to check.
+      state_to_class: list of ints, mapping from state to equivalence class.
 
     Returns:
-      bool, whether the state matches its equivalence class.
+      bool, whether the state has been moved to a new equivalence class.
     """
-    if len(c) == 1 and s1 == c[0]:
-      # If it's already a singleton, we know it's ok.
-      return True
-    for s2 in c:
-      if s1 == s2:
+
+    for c in equivalence_classes:
+      update = True
+      if not c:
         continue
-      for a in range(self.num_actions):
-        # First check disagreement on rewards.
+      if s1 in c:
+        continue
+      s2 = c[0] #we only need to check against one state in the equivalence class
+      for a in range(self.env.num_actions):
         if self.env.rewards[s1, a] != self.env.rewards[s2, a]:
-          return False
-        # Check disagreement on transitions. Stochastic case.
+          update = False
+          break
         next_state_distrib_1 = self.env.transition_probs[s1, a, :]
         next_state_distrib_2 = self.env.transition_probs[s2, a, :]
-        if next_state_distrib_1[c].sum() != next_state_distrib_2[c].sum():
-          return False
-    # If we've made it this far, s1 is still ok in c.
-    return True
+        for next_c in equivalence_classes:
+          if next_state_distrib_1[next_c].sum() != next_state_distrib_2[next_c].sum():
+            update = False
+            break
+        if not update:
+          break
+      # If we've made it this far, s1 should be moved to c
+      if update:
+        self._update_classes(s1, s2, equivalence_classes, state_to_class)
+        return True
+      else:
+        continue
+
+    # if no class was updated, return false
+    return False
+
+  def _update_classes(self, s1, s2, equivalence_classes, state_to_class):
+    """Moves state s1 to equivalence class of s2.
+
+    Args:
+      s1: int, index of state to move.
+      s2: int, index of state belonging to the equivalence class to move to.
+      equivalence_classes: list of lists, equivalence classes.
+      state_to_class: list of ints, mapping from state to equivalence class.
+
+    """
+    equivalence_classes[state_to_class[s1]].remove(s1)
+    if not equivalence_classes[state_to_class[s1]]:
+      equivalence_classes.pop(state_to_class[s1])
+      for i, c in enumerate(state_to_class):
+        if c > state_to_class[s1]:
+          state_to_class[i] = c - 1
+    equivalence_classes[state_to_class[s2]].append(s1)
+    state_to_class[s1] = state_to_class[s2]
 
   def _compute(self, tolerance, verbose=False):
     """Compute the bisimulation relation and convert it to a discrete metric.
@@ -71,47 +103,16 @@ class DiscreteBisimulation(metric.Metric):
     iteration = 0
     start_time = time.time()
     # All states start in the same equivalence class.
-    equivalence_classes = [list(range(self.num_states))]
-    state_to_class = [0] * self.num_states
+    equivalence_classes = [[i] for i in range(self.num_states)]
+    state_to_class = [i for i in range(self.num_states)]
     while equivalence_classes_changing:
-      equivalence_classes_changing = False
-      class_removed = False
+      equivalence_classes_changing = True
       iteration += 1
       new_equivalence_classes = copy.deepcopy(equivalence_classes)
       new_state_to_class = copy.deepcopy(state_to_class)
       for s1 in range(self.num_states):
-        if self._state_matches_class(
-            s1, equivalence_classes[state_to_class[s1]]):
-          continue
-        # We must find a new class for s1.
-        equivalence_classes_changing = True
-        previous_class = new_state_to_class[s1]
-        new_state_to_class[s1] = -1
-        # Checking if there are still any elements in s1's old class.
-        potential_new_class = [
-            x for x in new_equivalence_classes[previous_class] if x != s1]
-        if potential_new_class:
-          new_equivalence_classes[previous_class] = potential_new_class
-        else:
-          # remove s1's old class from the list of new_equivalence_classes.
-          new_equivalence_classes.pop(previous_class)
-          class_removed = True
-          # Re-index the classes.
-          for i, c in enumerate(new_state_to_class):
-            if c > previous_class:
-              new_state_to_class[i] = c - 1
-        for i, c in enumerate(new_equivalence_classes):
-          if not class_removed and i == previous_class:
-            continue
-          if self._state_matches_class(s1, c):
-            new_state_to_class[s1] = i
-            new_equivalence_classes[i] += [s1]
-            break
-        if new_state_to_class[s1] < 0:
-          # If we haven't found a matching equivalence class, we create a new
-          # one.
-          new_equivalence_classes.append([s1])
-          new_state_to_class[s1] = len(new_equivalence_classes) - 1
+        if not self._check_equivalence(s1, new_equivalence_classes, new_state_to_class):
+          equivalence_classes_changing = False
       equivalence_classes = copy.deepcopy(new_equivalence_classes)
       state_to_class = copy.deepcopy(new_state_to_class)
       if iteration % 1000 == 0 and verbose:
