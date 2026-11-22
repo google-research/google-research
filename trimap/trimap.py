@@ -364,7 +364,7 @@ def update_embedding_dbd(embedding, grad, vel, gain, lr, iter_num):
       jnp.maximum(gain * _DAMP_GAIN, _MIN_GAIN))
   vel = gamma * vel - lr * gain * grad
   embedding += vel
-  return embedding, gain, vel
+  return embedding, vel, gain
 
 
 @jax.jit
