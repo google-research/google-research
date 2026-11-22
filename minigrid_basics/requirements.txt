@@ -30,7 +30,7 @@ oauthlib==3.2.0
 opt-einsum==3.3.0
 packaging==21.3
 Pillow==9.1.1
-protobuf==3.19.4
+protobuf==3.19.5
 pyasn1==0.4.8
 pyasn1-modules==0.2.8
 pyparsing==3.0.9
