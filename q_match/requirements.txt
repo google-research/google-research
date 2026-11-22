@@ -47,7 +47,7 @@ orbax==0.1.1
 packaging==23.0
 pandas==1.5.3
 parso==0.8.3
-Pillow==9.4.0
+Pillow==10.3.0
 promise==2.3
 protobuf==3.19.6
 psutil==5.9.4
