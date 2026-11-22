@@ -1,6 +1,6 @@
 cvxopt==1.2.6
 cvxpy==1.1.15
-numpy==1.19.5
+numpy==1.22.0
 pandas==1.2.4
 scikit-learn==0.24.2
 scipy==1.6.3
