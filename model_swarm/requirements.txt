@@ -153,7 +153,7 @@ torch==2.5.0
 tornado @ file:///home/conda/feedstock_root/build_artifacts/tornado_1717722887379/work
 tqdm==4.66.5
 traitlets @ file:///home/conda/feedstock_root/build_artifacts/traitlets_1713535121073/work
-transformers==4.44.2
+transformers==4.53.0
 triton==3.1.0
 trl==0.9.4
 typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1717802530399/work
