@@ -199,7 +199,7 @@ class DarcAgent(sac_agent.SacAgent):
           sa_log_probs[:, 0])
     common.generate_tensor_summaries("delta_r", delta_r,
                                      self.train_step_counter)
-    is_warmup = tf.cast(self.train_step_counter < delta_r_warmup, tf.float32)
+    is_warmup = tf.cast(self.train_step_counter < int(delta_r_warmup), tf.float32)
     tf.compat.v2.summary.scalar(
         name="is_warmup", data=is_warmup, step=self.train_step_counter)
     next_time_steps = next_time_steps._replace(reward=next_time_steps.reward +
