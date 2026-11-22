@@ -1,4 +1,4 @@
-Pillow == 9.2.0
+Pillow == 10.3.0
 absl_py == 1.4.0
 ml-collections == 0.1.1
 numpy == 1.21.6
