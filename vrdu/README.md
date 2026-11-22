@@ -64,7 +64,7 @@ sampling different training docs for the few-shot setting.
 
 
 ## Evaluation Tools
-The ```python -m``` command assumes you are in the `google_research/` directory.
+The ```python -m``` command assumes you are in the `google-research/` directory.
 
 Sample invocation of the evaluation binary (on one dataset):
 
