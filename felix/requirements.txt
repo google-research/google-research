@@ -24,7 +24,7 @@ googleapis-common-protos==1.56.4
 grpcio==1.47.0
 h5py==3.7.0
 httplib2==0.20.4
-idna==3.3
+idna==3.7
 importlib-resources==5.8.0
 joblib==1.1.0
 kaggle==1.5.12
