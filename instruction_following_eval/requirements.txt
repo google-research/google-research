@@ -1,4 +1,4 @@
-absl
+absl-py
 langdetect
 nltk
 immutabledict
