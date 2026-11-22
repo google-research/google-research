@@ -46,6 +46,6 @@ termcolor==2.3.0
 threadpoolctl==3.2.0
 typing_extensions==4.8.0
 tzdata==2023.3
-urllib3==2.0.6
+urllib3==2.0.7
 Werkzeug==3.0.0
 wrapt==1.14.1
