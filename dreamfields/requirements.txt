@@ -16,4 +16,4 @@ git+git://github.com/google-research/scenic.git
 scipy
 tensorflow>=2.7.0
 tqdm
-torch==1.7.1+cpu
+torch==2.6.0
