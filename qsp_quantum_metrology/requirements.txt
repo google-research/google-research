@@ -25,7 +25,7 @@ grpcio-status==1.48.2
 h11==0.14.0
 httpcore==0.16.3
 httpx==0.23.3
-idna==3.4
+idna==3.7
 iso8601==1.1.0
 kiwisolver==1.4.4
 lark==0.11.3
