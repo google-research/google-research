@@ -15,7 +15,7 @@ dm-tree==0.1.8
 etils==1.0.0
 flatbuffers==23.1.21
 flax==0.6.3
-fonttools==4.38.0
+fonttools==4.43.0
 gast==0.4.0
 google-auth==2.16.0
 google-auth-oauthlib==0.4.6
