@@ -65,4 +65,4 @@ Werkzeug==2.2.2
 wrapt==1.14.1
 xxhash==3.1.0
 yarl==1.8.2
-zipp==3.11.0
+zipp==3.19.1
