@@ -22,6 +22,11 @@ TF_CFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.ge
 TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))') )
 g++ -std=c++11 -shared neural_trees_ops.cc neural_trees_kernels.cc neural_trees_helpers.cc -o neural_trees_ops.so -fPIC ${TF_CFLAGS[@]} ${TF_LFLAGS[@]} -O2
 ```
+If the installation is unsuccessful due to the compiler being too old to be supported by Eigen, use `g++ -std=c++17` instead for installation:
+```bash
+g++ -std=c++17 -shared neural_trees_ops.cc neural_trees_kernels.cc neural_trees_helpers.cc -o neural_trees_ops.so -fPIC ${TF_CFLAGS[@]} ${TF_LFLAGS[@]} -O2
+```
+
 Note: On OS X, add the flag "-undefined dynamic_lookup" (without quotes) to the last command above.
 
 ## Example Usage
