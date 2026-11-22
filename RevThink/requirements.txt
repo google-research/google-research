@@ -2,7 +2,7 @@ accelerate==0.34.0
 backoff==2.2.1
 bitsandbytes==0.43.1
 datasets==3.0.0
-google-cloud-aiplatform==1.49.0
+google-cloud-aiplatform==1.133.0
 latex2sympy2==1.9.1
 matplotlib==3.9.0
 numpy==1.26.4
