@@ -54,7 +54,7 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import estimator as tf_estimator
 
-flags = tf.flags
+flags = tf.compat.v1.flags
 
 FLAGS = flags.FLAGS
 
@@ -184,7 +184,6 @@ flags.DEFINE_bool(
     "add_neutral", False,
     "Whether to add a neutral label in addition to the other labels "
     "(necessary when neutral is not part of the emotion file).")
-
 
 class InputExample(object):
   """A single training/test example for simple sequence classification."""
@@ -990,4 +989,4 @@ if __name__ == "__main__":
   flags.mark_flag_as_required("vocab_file")
   flags.mark_flag_as_required("bert_config_file")
   flags.mark_flag_as_required("output_dir")
-  tf.app.run()
+  tf.compat.v1.app.run()
