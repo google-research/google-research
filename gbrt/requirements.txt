@@ -39,7 +39,7 @@ fiddle==0.2.11
 filelock==3.13.1
 flatbuffers==1.12
 flax==0.7.4
-fonttools==4.46.0
+fonttools==4.61.0
 fqdn==1.5.1
 fsspec==2023.12.1
 future==0.18.3
