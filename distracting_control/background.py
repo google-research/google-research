@@ -180,6 +180,8 @@ class DistractingBackgroundEnv(control.Environment):
         if not self._dynamic:
           # Randomly pick a single static frame.
           file_names = [self._random_state.choice(file_names)]
+        # Sort files by index to be safe.
+        file_names.sort()
         images = [imread(os.path.join(video_path, fn)) for fn in file_names]
 
       # Pick a random starting point and steping direction.
