@@ -38,16 +38,36 @@ sigma = 1
 
 
 def hardsign(x):
-  if np.sign(x) == 1:
-    return 1
-  else:
-    return -1
+    """
+    Compute the hard sign function.
+    The hard sign function returns 1 if x is positive or 0, and -1 otherwise.
 
+    Args:
+    x (float): Input value
+
+    Returns:
+    int: 1 if x is positive or 0, -1 otherwise
+    """
+    return 1 if np.sign(x)==1 else -1
 
 # pylint: disable=redefined-outer-name
-def propofbag(x, y, z, w, r):
-  return hardsign(np.dot(x, r)) + hardsign(np.dot(y, r)) + hardsign(
-      np.dot(z, r)) + hardsign(np.dot(w, r))
+def propofbag(x, y, z, r):
+    """
+    Calculate the proportion of bag value using the hard sign function.
+
+    This function calculates the sum of hard sign values for the dot products
+    of three vectors (x, y, z) with vector r.
+
+    Args:
+    x (numpy.ndarray): First input vector
+    y (numpy.ndarray): Second input vector
+    z (numpy.ndarray): Third input vector
+    r (numpy.ndarray): Vector for dot products
+
+    Returns:
+    int: Sum of hard sign values for the dot products
+    """
+    return hardsign(np.dot(x, r)) + hardsign(np.dot(y, r)) + hardsign(np.dot(z, r))
 
 
 df = pd.DataFrame(columns=[
