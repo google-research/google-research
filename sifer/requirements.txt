@@ -5,6 +5,6 @@ numpy == 1.21.6
 scikit_learn == 1.0.2
 tensorflow == 2.15.0.post1
 torch == 1.12.1+cu113
-transformers == 4.24.0
+transformers == 4.38.0
 pandas == 1.0.5
 torchvision == 0.13.0
