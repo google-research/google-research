@@ -1,5 +1,5 @@
 matplotlib==3.4.3
-numpy==1.18.1
+numpy==1.22.0
 opencv_python==4.5.2.52
 Pillow==9.2.0
 seaborn==0.11.2
