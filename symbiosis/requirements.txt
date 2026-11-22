@@ -15,6 +15,6 @@ scikit_learn==1.5.2
 scipy==1.14.1
 tensorflow==2.18.0
 tqdm==4.67.1
-transformers==4.46.3
+transformers==4.53.0
 umap==0.1.1
 xsdata==24.11
