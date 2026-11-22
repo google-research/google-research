@@ -22,7 +22,7 @@ opt-einsum==3.3.0
 Pillow==8.4.0
 promise==2.3
 protobuf==3.19.1
-requests==2.26.0
+requests==2.31.0
 scipy==1.7.3
 six==1.16.0
 tensorboard==1.15.0
