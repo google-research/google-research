@@ -436,7 +436,7 @@ def main(unused_argv):
     )
     occupancy_grids.append((occupancy_grid_factor, occupancy_grid))
 
-  # Specfiy finest occupancy grid used during rendering.
+  # Specify finest occupancy grid used during rendering.
   occupancy_grid_index = 1  # downsampling factor = 16.
   occupancy_grid_factor = occupancy_grids[occupancy_grid_index][0]
   occupancy_grid = occupancy_grids[occupancy_grid_index][1]
