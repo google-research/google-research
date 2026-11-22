@@ -30,7 +30,7 @@ To reproduce the results for `CBD`, the first stage is run with the following co
 
 ```
 # from google-research/
-python -m class_balanced_distillation.run --config class_balanced_distillation/configs/stage_one_vanilla_seed1.py --workdir /home/user/class_balanced_distillation/data/models/
+python -m class_balanced_distillation.run --config class_balanced_distillation/configs/stage_one_vanilla_seed1.py --workdir /home/user/class_balanced_distillation/data/models/vanilla_seed1
 ```
 
 Once the training for the first stage finishes, you can run the following command for the second stage:
@@ -40,7 +40,7 @@ Once the training for the first stage finishes, you can run the following comman
 python -m class_balanced_distillation.run --config class_balanced_distillation/configs/stage_two_cbd.py --workdir /home/user/class_balanced_distillation/data/models/
 ```
 
-Make sure that the `model_dir` variable in `configs/stage_two_cbd.py` is the same as `--workdir` flag in the first stage.
+Make sure that the `model_dir` variable in `configs/stage_two_cbd.py` points to `models` folder where `vanilla_seed1` is from the first stage.
 
 
 #### Running the code for CBD_ENS on ImageNet-LT

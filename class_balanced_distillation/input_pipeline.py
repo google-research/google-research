@@ -201,6 +201,8 @@ def create_datasets(
   else:
     raise ValueError(f"Dataset {config.dataset} not supported.")
 
+  dataset_builder.download_and_prepare()
+  
   def train_split(host_id, host_count):
     return deterministic_data.get_read_instruction_for_host(
         "train",
