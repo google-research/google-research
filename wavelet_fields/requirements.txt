@@ -198,7 +198,7 @@ triton==2.1.0
 typing_extensions @ file:///home/conda/feedstock_root/build_artifacts/typing_extensions_1685704949284/work
 tzdata==2023.3
 urllib3 @ file:///home/conda/feedstock_root/build_artifacts/urllib3_1678635778344/work
-virtualenv==20.23.0
+virtualenv==20.26.6
 visdom==0.2.4
 wandb==0.15.4
 wcwidth==0.2.6
