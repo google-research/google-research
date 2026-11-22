@@ -72,4 +72,4 @@ types-python-dateutil==2.8.19.13
 types-retry==0.9.9.3
 typing_extensions==4.5.0
 tzdata==2023.3
-urllib3==1.26.15
+urllib3==1.26.18
