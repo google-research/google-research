@@ -20,7 +20,7 @@ google-pasta==0.2.0
 grpcio==1.51.1
 h5py==3.7.0
 huggingface-hub==0.11.1
-idna==3.4
+idna==3.7
 importlib-metadata==5.2.0
 joblib==1.2.0
 keras==2.11.0
