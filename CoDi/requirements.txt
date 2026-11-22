@@ -51,7 +51,7 @@ optax==0.1.7
 orbax-checkpoint==0.2.3
 packaging==23.2
 pandas==2.0.3
-Pillow==10.1.0
+Pillow==10.3.0
 pyarrow==14.0.1
 pyarrow-hotfix==0.6
 Pygments==2.17.2
