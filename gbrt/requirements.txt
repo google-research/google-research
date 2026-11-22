@@ -127,7 +127,7 @@ pandocfilters==1.5.0
 parso==0.8.3
 paxml==1.2.0
 pexpect==4.9.0
-Pillow==10.1.0
+Pillow==10.3.0
 platformdirs==4.1.0
 portalocker==2.8.2
 praxis==1.2.0
