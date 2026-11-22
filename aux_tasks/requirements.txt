@@ -40,7 +40,7 @@ keras==2.8.0
 Keras-Preprocessing==1.1.2
 kiwisolver==1.4.2
 libclang==14.0.1
-Markdown==3.3.7
+Markdown==3.8.1
 matplotlib==3.5.2
 ml-collections==0.1.1
 msgpack==1.0.4
