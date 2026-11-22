@@ -25,7 +25,7 @@ future==0.18.2
 gast==0.4.0
 gin-config==0.5.0
 gitdb==4.0.9
-GitPython==3.1.27
+GitPython==3.1.41
 google-auth==2.6.6
 google-auth-oauthlib==0.4.6
 google-pasta==0.2.0
