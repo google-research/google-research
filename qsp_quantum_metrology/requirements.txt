@@ -16,7 +16,7 @@ contourpy==1.0.7
 cycler==0.11.0
 decorator==5.1.1
 duet==0.2.8
-fonttools==4.39.4
+fonttools==4.43.0
 google-api-core==1.34.0
 google-auth==2.18.1
 googleapis-common-protos==1.59.0
