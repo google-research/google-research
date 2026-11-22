@@ -1337,8 +1337,6 @@ class LetterFrequencyChecker(Instruction):
     if (
         not letter
         or len(letter) > 1
-        or ord(letter.lower()) < 97
-        or ord(letter.lower()) > 122
     ):
       self._letter = random.choice(list(string.ascii_letters))
     else:
