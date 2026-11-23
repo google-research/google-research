@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leap-cli"
+version = "0.1.0"
+description = "LEAP: multi-agent Lean 4 theorem proving inside Claude Code, Codex or Antigravity"
+readme = "README.md"
+license = { text = "Apache-2.0" }
+requires-python = ">=3.10"
+dependencies = ["pydantic>=2"]
+
+[project.optional-dependencies]
+test = ["absl-py"]
+
+[project.urls]
+Homepage = "https://github.com/google-research/google-research/tree/master/leap_cli"
+Paper = "https://arxiv.org/abs/2606.03303"
+
+[project.scripts]
+leap = "leap.cli:main"
+state_manager_bin = "leap.cli:state_manager_bin"
+lean_verifier_tool_bin = "leap.cli:lean_verifier_tool_bin"
+lean_search_tool_bin = "leap.cli:lean_search_tool_bin"
+
+[tool.setuptools]
+packages = ["leap"]
+
+[tool.setuptools.package-data]
+leap = ["agents/*.md", "skills/*/SKILL.md", "skills/*/references/*.md", "safe_lemma_runner.sh"]

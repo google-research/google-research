@@ -1,0 +1,40 @@
+[build-system]
+requires = ["hatchling>=1.18,<2"]
+build-backend = "hatchling.build"
+[project]
+name = "leap-tools"
+version = "0.1.0"
+description = "LEAP CLI tools only: Lean verifier, Mathlib search, proof-graph state manager, plus `leap lean` setup (no agents/skills)"
+requires-python = ">=3.10"
+# absl-py: with absl, state_manager_bin and lean_verifier_tool_bin use absl flag
+# parsing (`--json_output=true`, `--nojson_output`, unknown flags rejected).
+# Without it they fall back to argparse, which has a different CLI contract.
+# Upper bounds: tested with pydantic 2.13.5 and absl-py 2.5.1. Next major
+# versions may break the API, so cap them until tested.
+dependencies = ["pydantic>=2,<3", "absl-py>=2,<3"]
+[project.scripts]
+# `leap lean` installs the pinned Lean + Mathlib; `init`/`loop` are absent here.
+leap = "leap.cli:main"
+lean_verifier_tool_bin = "leap.cli:lean_verifier_tool_bin"
+lean_search_tool_bin = "leap.cli:lean_search_tool_bin"
+state_manager_bin = "leap.cli:state_manager_bin"
+[tool.hatch.build.targets.wheel]
+bypass-selection = true
+[tool.hatch.build.targets.wheel.force-include]
+"../../leap/__init__.py" = "leap/__init__.py"
+"../../leap/cli.py" = "leap/cli.py"
+"../../leap/config.py" = "leap/config.py"
+"../../leap/lean_verifier_tool.py" = "leap/lean_verifier_tool.py"
+"../../leap/lean_search_tool.py" = "leap/lean_search_tool.py"
+"../../leap/leap_doctor.py" = "leap/leap_doctor.py"
+# state_manager_bin and its transitive imports:
+"../../leap/state_manager.py" = "leap/state_manager.py"
+"../../leap/actions.py" = "leap/actions.py"
+"../../leap/claim_terminal.py" = "leap/claim_terminal.py"
+"../../leap/dag.py" = "leap/dag.py"
+"../../leap/graph_init_guard.py" = "leap/graph_init_guard.py"
+"../../leap/lean_code_parser.py" = "leap/lean_code_parser.py"
+"../../leap/pipeline.py" = "leap/pipeline.py"
+"../../leap/plot_style.py" = "leap/plot_style.py"
+"../../leap/review_trigger.py" = "leap/review_trigger.py"
+"../../leap/workspace_manager.py" = "leap/workspace_manager.py"
