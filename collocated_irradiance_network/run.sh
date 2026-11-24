@@ -17,9 +17,15 @@
 set -e
 set -x
 
-virtualenv -p python3 .
-source ./bin/activate
+# Run from the google-research/ root so `collocated_irradiance_network` imports
+# resolve regardless of the caller's working directory.
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+
+python3 -m venv coin_venv
+source ./coin_venv/bin/activate
 
 pip install -r collocated_irradiance_network/requirements.txt
 
 python -m collocated_irradiance_network.ceres_footprint_test
+python -m collocated_irradiance_network.solar_geometry_test
+python -m collocated_irradiance_network.coin_inference_test

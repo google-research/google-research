@@ -1,2 +1,10 @@
-absl-py
-numpy>=1.21.5
+absl-py>=1.4.0
+google-cloud-storage>=2.10.0
+google-crc32c>=1.5.0
+netCDF4>=1.6.0
+numpy>=1.24.0
+pyproj>=3.5.0
+pyresample>=1.27.0
+tensorflow>=2.12.0
+xarray>=2025.1.1
+zarr>=3.0.0
