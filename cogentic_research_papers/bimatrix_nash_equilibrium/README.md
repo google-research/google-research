@@ -13,7 +13,8 @@ regret
 $$f(x^{\mathrm{out}}, y^{\mathrm{out}}) \le \frac{1}{5}.$$
 
 This establishes an exact polynomial-time $r$-approximation ($\delta = 0$) at
-$r = 1/5$—improving the previous polynomial-time barrier of $1/3 + \delta$—and
+$r = 1/5$—improving the earlier $1/3 + \delta$ barrier (Deligkas et al., 2023)
+and the recent bound of approximately $0.30954 + \delta$ (Li and Li, 2026)—and
 immediately yields a deterministic polynomial-time approximation scheme (PTAS)
 at threshold $r = 1/5$ computing a rational $(1/5 + \delta)$-approximate Nash
 equilibrium for every rational $\delta > 0$ in time

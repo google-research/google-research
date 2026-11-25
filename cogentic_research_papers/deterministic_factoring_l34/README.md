@@ -25,7 +25,7 @@ odd primes:
    - An explicit deterministic algorithm `algQnr` that, given any odd prime
      $p \ge 3$, outputs an integer $z \in \{1, \dots, p - 1\}$ with Legendre
      symbol $\bigl(\frac{z}{p}\bigr) = -1$ in worst-case bit-operation
-     complexity $\exp\!\bigl(O((\ln p)^{1/2} \ln\ln p)\bigr) = L_p[1/2, O(1)]$.
+     complexity $\exp\!\bigl(O((\ln p)^{1/2} \ln\ln p)\bigr)$.
 3. **Deterministic $(p - 1)$-exponent annihilation (Theorem 1.3):** An explicit
    deterministic subroutine `algExp` that, given any odd composite
    non-perfect-power integer $N \ge 9$, runs in worst-case time
