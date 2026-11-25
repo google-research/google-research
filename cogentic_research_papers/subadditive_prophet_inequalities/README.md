@@ -29,6 +29,19 @@ static anonymous item prices, even randomized ones, achieve better than an
 XOS valuations, static anonymous item prices cannot achieve a constant-factor
 approximation for subadditive valuations.
 
+## Concurrent Work
+
+Independently and concurrently, Dimitris Fotakis, Konstantinos Kritharidis,
+Charalampos Platanos, and Thanos Tolias
+([*Nearly Tight Bounds for Static Item Prices in Subadditive Combinatorial Auctions*](https://github.com/harrisp28/Nearly-Tight-Bounds-for-Static-Item-Pricing-in-Subadditive-Combinatorial-Auctions))
+obtained the same O(log log log m) upper bound and
+Ω(log log log m / log log log log m) lower bound for static anonymous item
+prices with subadditive buyers. To the best of our knowledge, the two papers use
+fairly disjoint sets of techniques for both the upper and the lower bound. Our
+paper additionally extends the lower bound to adaptively chosen arrival orders,
+and both bounds to revenue maximization with the simple mechanisms of Cai and
+Zhao (2017).
+
 ## Contents
 
 *   [`Subadditive_Prophet_Inequalities.pdf`](Subadditive_Prophet_Inequalities.pdf):
