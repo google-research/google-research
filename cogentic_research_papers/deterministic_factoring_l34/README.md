@@ -8,30 +8,25 @@ odd primes:
 1. **General integer factoring (Theorem 1.1):** An explicit deterministic
    algorithm `algFactor` that, given any composite integer $N \ge 4$, outputs a
    nontrivial divisor $1 < d < N$ of $N$ in worst-case bit-operation complexity
-   $O\!\bigl(\exp(3\,(\ln N)^{3/4})\bigr) = L_N[3/4, o(1)]$, where
-   $$
-   L_x(\alpha, c) := \exp\!\bigl(c\,(\ln x)^\alpha (\ln\ln x)^{1-\alpha}\bigr).
-   $$
+   $O\bigl(\exp(3\ (\ln N)^{3/4})\bigr) = L_N[3/4, o(1)]$, where
+   $$L_x(\alpha, c) := \exp\bigl(c\ (\ln x)^\alpha (\ln\ln x)^{1-\alpha}\bigr).$$
 2. **Order splitting and prime quadratic nonresidues (Theorem 1.2):**
    - An explicit deterministic algorithm `algSplit` that, given any composite
      non-perfect-power $N \ge 4$ and any even integer $\widetilde{M} \ge 2$
      divisible by $p - 1$ for every prime factor $p \mid N$, outputs a
      nontrivial divisor $1 < d < N$ of $N$ in worst-case bit-operation
      complexity
-     $$
-     \exp\!\bigl(O((\ln N)^{1/2} \ln\ln N)\bigr)
-     \cdot (\ln \widetilde{M})(\ln N)^2.
-     $$
+     $$\exp\bigl(O((\ln N)^{1/2} \ln\ln N)\bigr) \cdot (\ln \widetilde{M})(\ln N)^2.$$
    - An explicit deterministic algorithm `algQnr` that, given any odd prime
-     $p \ge 3$, outputs an integer $z \in \{1, \dots, p - 1\}$ with Legendre
-     symbol $\bigl(\frac{z}{p}\bigr) = -1$ in worst-case bit-operation
-     complexity $\exp\!\bigl(O((\ln p)^{1/2} \ln\ln p)\bigr)$.
+     $p \ge 3$, outputs an integer $z \in \lbrace 1, \dots, p - 1\rbrace$ with
+     Legendre symbol $\bigl(\frac{z}{p}\bigr) = -1$ in worst-case bit-operation
+     complexity $\exp\bigl(O((\ln p)^{1/2} \ln\ln p)\bigr)$.
 3. **Deterministic $(p - 1)$-exponent annihilation (Theorem 1.3):** An explicit
    deterministic subroutine `algExp` that, given any odd composite
    non-perfect-power integer $N \ge 9$, runs in worst-case time
-   $O\!\bigl(\exp(3\,(\ln N)^{3/4})\bigr)$ and either outputs a nontrivial
+   $O\bigl(\exp(3\ (\ln N)^{3/4})\bigr)$ and either outputs a nontrivial
    divisor of $N$ directly or outputs an even integer $\widetilde{M} \ge 2$
-   with $\ln \widetilde{M} \le \exp\!\bigl((\ln N)^{0.65}\bigr)$ and
+   with $\ln \widetilde{M} \le \exp\bigl((\ln N)^{0.65}\bigr)$ and
    $(p - 1) \mid \widetilde{M}$ for every prime factor $p \mid N$.
 
 A complete, unconditional, Mathlib-only Lean 4 (`v4.33.0`) formalization of the
@@ -45,7 +40,7 @@ There was no human interaction other than the initial prompt for Cogentic to
 generate a full proof and formalization.
 The Cogentic harness was built by Yang Cai, Vineet Gupta, Yanchen Jiang,
 Christopher Liaw, Aranyak Mehta, Grigoris Velegkas, and Di Wang (Google Research
-and Google DeepMind).
+and Google DeepMind; Yang Cai is also affiliated with Yale University).
 
 ## License and disclaimer
 

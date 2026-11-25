@@ -2,17 +2,17 @@
 
 [This paper](paper.pdf) gives an unconditional classical zero-error Las Vegas
 algorithm for the Discrete Logarithm Problem in the multiplicative group
-$\mathbb{F}_{p^n}^\times$ of any finite field of small characteristic: on every
-prime $p \ge 2$, integer $n \ge 1$, degree-$n$ monic irreducible
-$f \in \mathbb{F}_p[X]$ presenting $\mathbb{F}_{p^n} = \mathbb{F}_p[X]/(f(X))$,
-and nonzero $g, h \in \mathbb{F}_{p^n}^\times$, it either returns an integer
-$x \in \{0, \dots, p^n - 2\}$ with $g^x = h$ or returns an explicit exponent
-$E \in \{1, \dots, p^n - 1\}$ certifying $h \notin \langle g \rangle$ (with
-$g^E = 1$ and $h^E \ne 1$, without factoring $p^n - 1$), in worst-case expected
-bit complexity
+$\mathbb F_{p^n}^\times$ of any finite field of small characteristic: on every
+prime $p \ge 2$, integer $n \ge 1$, degree $n$ monic irreducible
+$f \in \mathbb F_p[X]$ presenting $\mathbb F_{p^n} = \mathbb F_p[X]/(f(X))$,
+and nonzero $g, h \in \mathbb F_{p^n}^\times$, it either returns an integer
+$x \in \lbrace 0, \dots, p^n - 2\rbrace$ with $g^x = h$ or returns an explicit
+exponent $E \in \lbrace 1, \dots, p^n - 1\rbrace$ certifying
+$h \notin \langle g \rangle$ (with $g^E = 1$ and $h^E \ne 1$, without factoring
+$p^n - 1$), in worst-case expected bit complexity
 
 $$
-\exp\!\left(\frac{2 + o(1)}{\ln\ln\ln n}\,(\ln n)^2\right) = (pn)^{o(\log n)}
+\exp\left(\frac{2 + o(1)}{\ln\ln\ln n}\ (\ln n)^2\right) = (pn)^{o(\log n)}
 $$
 
 for every fixed prime $p \ge 2$ as $n \to \infty$ (and uniformly whenever
@@ -29,7 +29,7 @@ There was no human interaction other than the initial prompt for Cogentic to
 generate a full proof and formalization.
 The Cogentic harness was built by Yang Cai, Vineet Gupta, Yanchen Jiang,
 Christopher Liaw, Aranyak Mehta, Grigoris Velegkas, and Di Wang (Google Research
-and Google DeepMind).
+and Google DeepMind; Yang Cai is also affiliated with Yale University).
 
 ## License and disclaimer
 

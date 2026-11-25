@@ -6,10 +6,10 @@ density above an explicit constant threshold:
 
 1. **Linear-density edge reconstruction (Theorem 1.1):** Every finite simple
    undirected graph $G_0$ on $n_0 \ge 4$ vertices with
-   $m = |E(G_0)| \ge 1000\, n_0$ edges is edge-reconstructible (uniquely
+   $m = |E(G_0)| \ge 1000\ n_0$ edges is edge-reconstructible (uniquely
    determined up to isomorphism by the multiset
-   $\mathcal{D}_E(G_0) = \{\!\{[G_0 - e] : e \in E(G_0)\}\!\}$ of its
-   unlabelled single-edge-deleted subgraphs).
+   $\mathcal{D}_E(G_0) = \lbrace\lbrace[G_0 - e] : e \in E(G_0)\rbrace\rbrace$
+   of its unlabelled single-edge-deleted subgraphs).
 2. **Minimum-degree corollary (Corollary 1.2):** Every finite simple undirected
    graph $G_0$ with minimum degree $\delta(G_0) \ge 2000$ is
    edge-reconstructible.
@@ -29,7 +29,7 @@ There was no human interaction other than the initial prompt for Cogentic to
 generate a full proof and formalization.
 The Cogentic harness was built by Yang Cai, Vineet Gupta, Yanchen Jiang,
 Christopher Liaw, Aranyak Mehta, Grigoris Velegkas, and Di Wang (Google Research
-and Google DeepMind).
+and Google DeepMind; Yang Cai is also affiliated with Yale University).
 
 ## License and disclaimer
 

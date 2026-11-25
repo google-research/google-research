@@ -1,13 +1,13 @@
 # An Exact Polynomial-Time Algorithm for $1/5$-Approximate Nash Equilibria in Bimatrix Games
 
 [This paper](paper.pdf) constructs an explicit deterministic algorithm,
-$\textsc{MaximinKiteNE}$, that, given any integers $m, n \ge 1$ and any
+`MaximinKiteNE`, that, given any integers $m, n \ge 1$ and any
 two-player normal-form (bimatrix) game $G = (R, C)$ with rational payoff
 matrices $R, C \in ([0, 1] \cap \mathbb{Q})^{m \times n}$ of total binary
-encoding length $L$, runs in deterministic time $\operatorname{poly}(L)$ and
+encoding length $L$, runs in deterministic time $\mathrm{poly}(L)$ and
 outputs a rational mixed strategy profile $(x^{\mathrm{out}}, y^{\mathrm{out}})$
 in $(\Delta_m \cap \mathbb{Q}^m) \times (\Delta_n \cap \mathbb{Q}^n)$
-of binary encoding length $\operatorname{poly}(L)$ satisfying maximum unilateral
+of binary encoding length $\mathrm{poly}(L)$ satisfying maximum unilateral
 regret
 
 $$f(x^{\mathrm{out}}, y^{\mathrm{out}}) \le \frac{1}{5}.$$
@@ -18,7 +18,7 @@ and the recent bound of approximately $0.30954 + \delta$ (Li and Li, 2026)—and
 immediately yields a deterministic polynomial-time approximation scheme (PTAS)
 at threshold $r = 1/5$ computing a rational $(1/5 + \delta)$-approximate Nash
 equilibrium for every rational $\delta > 0$ in time
-$\operatorname{poly}(L) \le \operatorname{poly}(L, 1/\delta)$. A complete,
+$\mathrm{poly}(L) \le \mathrm{poly}(L, 1/\delta)$. A complete,
 unconditional, Mathlib-only Lean 4 (`v4.35.0`) formalization of the entire proof
 has also been completed and will be released in a companion submission.
 
@@ -29,7 +29,7 @@ There was no human interaction other than the initial prompt for Cogentic to
 generate a full proof and formalization.
 The Cogentic harness was built by Yang Cai, Vineet Gupta, Yanchen Jiang,
 Christopher Liaw, Aranyak Mehta, Grigoris Velegkas, and Di Wang (Google Research
-and Google DeepMind).
+and Google DeepMind; Yang Cai is also affiliated with Yale University).
 
 ## License and disclaimer
 

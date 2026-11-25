@@ -9,7 +9,7 @@ with probability $1$ over its read-once fair coin flips, in worst-case expected
 time $L_N[1/3, 105]$ and worst-case deterministic workspace $L_N[1/3, 40]$,
 where
 
-$$L_x(\alpha, c) := \exp\!\bigl(c\,(\ln x)^\alpha (\ln\ln x)^{1-\alpha}\bigr)$$
+$$L_x(\alpha, c) := \exp\bigl(c\ (\ln x)^\alpha (\ln\ln x)^{1-\alpha}\bigr)$$
 
 and $T(N) \le L_N[\alpha, c]$ means
 
@@ -32,7 +32,7 @@ There was no human interaction other than the initial prompt for Cogentic to
 generate a full proof and formalization.
 The Cogentic harness was built by Yang Cai, Vineet Gupta, Yanchen Jiang,
 Christopher Liaw, Aranyak Mehta, Grigoris Velegkas, and Di Wang (Google Research
-and Google DeepMind).
+and Google DeepMind; Yang Cai is also affiliated with Yale University).
 
 ## License and disclaimer
 
