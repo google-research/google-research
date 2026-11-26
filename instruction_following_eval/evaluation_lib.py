@@ -54,6 +54,19 @@ def read_prompt_list(input_jsonl_filename):
   return inputs
 
 
+def validate_prompt_coverage(inputs, prompt_to_response):
+  """Checks that every input has a response with exactly matching prompt text."""
+  missing_keys = [
+      inp.key for inp in inputs if inp.prompt not in prompt_to_response
+  ]
+  if missing_keys:
+    raise ValueError(
+        f"Missing responses for input task keys: {missing_keys}. "
+        "Each input prompt must exactly match a response prompt. "
+        "Check that the input and response files use the same prompt revision."
+    )
+
+
 def write_outputs(output_jsonl_filename, outputs):
   """Writes outputs to jsonl."""
   assert outputs
