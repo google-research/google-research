@@ -32,7 +32,7 @@ def PowerIter(mat_g, error_tolerance=1e-6, num_iters=100):
   Returns:
     eigen vector, eigen value, num_iters
   """
-  v = torch.rand(list(mat_g.shape)[0], device=mat_g.get_device()) * 2 - 1
+  v = torch.rand(list(mat_g.shape)[0], device=mat_g.device) * 2 - 1
   error = 1
   iters = 0
   singular_val = 0
@@ -102,7 +102,7 @@ def ComputePower(mat_g, p,
   shape = list(mat_g.shape)
   if len(shape) == 1:
     return torch.pow(mat_g + ridge_epsilon, -1/p)
-  identity = torch.eye(shape[0], device=mat_g.get_device())
+  identity = torch.eye(shape[0], device=mat_g.device)
   if shape[0] == 1:
     return identity
   alpha = -1.0/p
