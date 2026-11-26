@@ -22,10 +22,10 @@ from gradient_coresets_replay.datasets.seq_tinyimagenet import SequentialTinyIma
 from gradient_coresets_replay.datasets.utils.continual_dataset import ContinualDataset
 
 NAMES = {
-    SequentialCIFAR10.NAME: SequentialCIFAR10,
-    SequentialCIFAR100.NAME: SequentialCIFAR100,
-    SequentialTinyImagenet.NAME: SequentialTinyImagenet,
-    SequentialImagenet1k.NAME: SequentialImagenet1k,
+    SequentialCIFAR10.name: SequentialCIFAR10,
+    SequentialCIFAR100.name: SequentialCIFAR100,
+    SequentialTinyImagenet.name: SequentialTinyImagenet,
+    SequentialImagenet1k.name: SequentialImagenet1k,
 }
 
 

@@ -15,7 +15,7 @@
 
 """Continual learning base model."""
 
-from continual_learning_rishabh.utils.conf import get_device
+from gradient_coresets_replay.utils.conf import get_device
 import torch
 from torch.optim import SGD
 
