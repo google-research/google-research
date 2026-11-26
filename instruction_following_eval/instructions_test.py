@@ -42,6 +42,9 @@ class InstructionsTest(parameterized.TestCase):
     instruction.build_description(language=language)
     self.assertTrue(instruction.check_following(response))
 
+  def test_language_detection_seed_is_fixed(self):
+    self.assertEqual(instructions.langdetect.DetectorFactory.seed, 0)
+
   @parameterized.named_parameters(
       [
           {
@@ -1127,6 +1130,33 @@ I love it too much. I'll just have to make sure to eat it in moderation.
     with self.subTest(f'test {self.TEST_LETTER_FREQUENCY_MESSAGE_2}'):
       self.assertFalse(
           instruction.check_following(self.TEST_LETTER_FREQUENCY_MESSAGE_2)
+      )
+
+  def test_letter_frequency_checker_accepts_punctuation(self):
+    instruction = instructions.LetterFrequencyChecker(
+        'keywords:letter_frequency'
+    )
+    description = instruction.build_description(
+        letter='#',
+        let_frequency=4,
+        let_relation=instructions._COMPARISON_RELATION[1],
+    )
+
+    self.assertIn('letter #', description)
+    self.assertTrue(instruction.check_following('#one #two #three #four'))
+    self.assertFalse(instruction.check_following('#one #two #three'))
+
+  def test_letter_frequency_checker_rejects_invalid_explicit_args(self):
+    instruction = instructions.LetterFrequencyChecker(
+        'keywords:letter_frequency'
+    )
+    with self.assertRaisesRegex(ValueError, 'single non-whitespace character'):
+      instruction.build_description(
+          letter='ab', let_frequency=1, let_relation='at least'
+      )
+    with self.assertRaisesRegex(ValueError, 'let_frequency must be non-negative'):
+      instruction.build_description(
+          letter='a', let_frequency=-1, let_relation='at least'
       )
 
   TEST_ENGLISH_CAPITAL_1 = """
