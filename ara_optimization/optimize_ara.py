@@ -1,4 +1,3 @@
-# coding=utf-8
 # Copyright 2026 The Google Research Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,11 +15,11 @@
 """Optimization of hyperparameters for attribution reporting API."""
 
 import dataclasses
-from absl import logging
+
 import numpy as np
+from absl import logging
+from ara_optimization import dataset_evaluation, metrics
 from scipy import optimize
-from ara_optimization import dataset_evaluation
-from ara_optimization import metrics
 
 
 @dataclasses.dataclass(frozen=True)
@@ -34,16 +33,21 @@ class ARAObjective:
     """Choose initial value of hyperparameters before optimization.
 
     The initial hyperparameters are an equal split of the contribution budget
-    and clipping thresholds equal to the 99% quantile of each column. Note that
-    the clipping thresholds are stored in a logarithmic representation.
+    and clipping thresholds equal to the 99% quantile of each column (or 1.0
+    if the quantile is <= 0). Note that the clipping thresholds are stored in a
+    logarithmic representation.
 
     Returns:
       A suggested initial hyperparameter setting before optimization
     """
     num_features = len(self.dataset.value_columns)
     contribution_budgets = [1 / num_features] * num_features
-    clipping_thresholds = [self.dataset.df[col].quantile(0.99) for
-                           col in self.dataset.value_columns]
+    clipping_thresholds = [
+        self.dataset.df[col].quantile(0.99)
+        if self.dataset.df[col].quantile(0.99) > 0
+        else 1.0
+        for col in self.dataset.value_columns
+    ]
     return _combine_hyperparameters(contribution_budgets, clipping_thresholds)
 
   def evaluate_objective(self, hyperparameters):
@@ -109,11 +113,10 @@ def optimize_ara(train_dataset,
     optimized hyperparameters.
   """
 
-  objective = ARAObjective(train_dataset, error_metrics, total_privacy_budget)
-  initial_point = objective.initial_value()
-  num_features = len(objective.dataset.value_columns)
-  num_hyperparameters = 2 * num_features
-  bounds = [[1e-10, np.inf]] * num_hyperparameters
+  objective= ARAObjective(train_dataset, error_metrics, total_privacy_budget)
+  initial_point= objective.initial_value()
+  num_features= len(objective.dataset.value_columns)
+  bounds= [[1e-10, np.inf]] * num_features + [[-np.inf, np.inf]] * num_features
 
   result = optimize.minimize(objective.evaluate_objective, x0=initial_point,
                              bounds=bounds)
