@@ -15,6 +15,8 @@
 
 """Tests for TriMap."""
 
+from unittest import mock
+
 from absl.testing import absltest
 import jax
 import jax.numpy as jnp
@@ -28,6 +30,10 @@ from trimap import trimap
 jax.config.update('jax_threefry_partitionable', False)
 
 python_version = 'PY3'
+
+
+class _StopTransform(Exception):
+  pass
 
 
 class TestTrimap(absltest.TestCase):
@@ -100,6 +106,37 @@ class TestTrimap(absltest.TestCase):
     embedding = trimap.transform(key, inputs, n_dims=4)
     npt.assert_equal(embedding.shape[0], inputs.shape[0])
     npt.assert_equal(embedding.shape[1], 4)
+
+  def _inputs_for_triplets(self, inputs, **kwargs):
+    """The preprocessed inputs that transform hands to generate_triplets."""
+    seen = []
+
+    def capture_and_stop(key, inputs, *args, **kwargs):
+      del key, args, kwargs  # Unused.
+      seen.append(np.array(inputs))
+      raise _StopTransform()
+
+    with mock.patch.object(trimap, 'generate_triplets', capture_and_stop):
+      with self.assertRaises(_StopTransform):
+        trimap.transform(random.PRNGKey(42), inputs.copy(), **kwargs)
+    return seen[0]
+
+  def test_preprocessing_does_not_depend_on_verbose(self):
+    inputs = np.random.RandomState(0).normal(size=(200, 150))
+    for apply_pca in [True, False]:
+      quiet = self._inputs_for_triplets(
+          inputs, apply_pca=apply_pca, verbose=False)
+      logged = self._inputs_for_triplets(
+          inputs, apply_pca=apply_pca, verbose=True)
+      npt.assert_allclose(quiet, logged)
+
+  def test_inputs_are_rescaled_when_pca_is_skipped(self):
+    # Rescaling makes the triplets independent of the inputs' units.
+    inputs = np.random.RandomState(0).normal(size=(200, 10))
+    npt.assert_allclose(
+        self._inputs_for_triplets(inputs),
+        self._inputs_for_triplets(inputs * 1000.0 + 5.0),
+        atol=1e-12)
 
 
 if __name__ == '__main__':
