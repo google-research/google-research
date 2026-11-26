@@ -1002,6 +1002,7 @@ def random_gaussian_noise(images,
     noise = tf.random.normal(
         tf.shape(input=images), stddev=sigma, dtype=tf.float32)
     images = images + noise
+    return images
   def false_fn(images):
     return images
   return tf.cond(perform_gaussian_noise,
