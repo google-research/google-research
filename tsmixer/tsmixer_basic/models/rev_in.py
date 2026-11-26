@@ -66,6 +66,10 @@ class RevNorm(layers.Layer):
     return x
 
   def _denormalize(self, x, target_slice=None):
+    # A None index adds a new axis, whereas omitting the target slice should
+    # select all feature channels and preserve the original tensor rank.
+    if target_slice is None:
+      target_slice = slice(None)
     if self.affine:
       x = x - self.affine_bias[target_slice]
       x = x / self.affine_weight[target_slice]
