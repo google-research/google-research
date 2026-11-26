@@ -70,6 +70,13 @@ python -m rouge.rouge \
     --split_summaries=true
 ```
 
+When using file globs, the wildcard portions must identify the same documents
+on both sides. For example, `doc42.targets` is paired with `doc42.decodes`
+under the patterns above. Mismatched identifiers, including different
+zero-padding conventions (`1` versus `01`), raise an error rather than
+silently scoring unrelated files. Single explicitly named target and
+prediction files are also supported.
+
 ## Using pip
 ```
 pip install -r rouge/requirements.txt
