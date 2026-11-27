@@ -15,7 +15,7 @@
 
 """Trainer strategy for object detection models."""
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping, Sequence
 import datetime
 import json
 import os
@@ -51,6 +51,26 @@ def _get_warmup_steps(cfg: ml_collections.ConfigDict) -> int:
   max_steps = cfg.training.get("max_steps", -1)
   total_steps = max_steps if max_steps > 0 else 1000
   return int(warmup_ratio * total_steps)
+
+
+def _select_target_categories(
+    category_names: Sequence[str], exclude_classes: Iterable[str]
+) -> Sequence[str]:
+  """Returns dataset categories in order, excluding `exclude_classes`.
+
+  Matching ignores case and surrounding whitespace.
+
+  Args:
+    category_names: Dataset category names, indexed by dataset id.
+    exclude_classes: Category names to drop.
+
+  Returns:
+    Kept category names in dataset order.
+  """
+  excluded = {name.strip().lower() for name in exclude_classes}
+  return [
+      name for name in category_names if name.strip().lower() not in excluded
+  ]
 
 
 class DetectionTrainer(trainers_base.TrainerStrategy):
@@ -167,11 +187,9 @@ class DetectionTrainer(trainers_base.TrainerStrategy):
     label_by_dataset_id = train_dataset.features["objects"][
         "category"
     ].feature.names
-    categories_to_exclude = set(cfg.dataset.get("exclude_classes", []))
-    valid_categories = [
-        name for name in label_by_dataset_id
-        if name not in categories_to_exclude
-    ]
+    valid_categories = _select_target_categories(
+        label_by_dataset_id, cfg.dataset.get("exclude_classes", [])
+    )
     num_classes = len(valid_categories)
 
     id_by_model_label = {name: i for i, name in enumerate(valid_categories)}

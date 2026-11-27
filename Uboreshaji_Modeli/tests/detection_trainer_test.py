@@ -64,6 +64,18 @@ class FakeModelEngine(engines_base.ModelEngine):
     return FakeCriterion(), {}
 
 
+class RecordingModelEngine(FakeModelEngine):
+  """FakeModelEngine that records get_transform_fn keyword arguments."""
+
+  def __init__(self):
+    super().__init__()
+    self.transform_kwargs = []
+
+  def get_transform_fn(self, *args, **kwargs):
+    self.transform_kwargs.append(kwargs)
+    return super().get_transform_fn(*args, **kwargs)
+
+
 class FakeCategoryFeature:
 
   def __init__(self, names):
@@ -92,6 +104,24 @@ class MockTpuDevice:
 
 class MockCudaDevice:
   type = "cuda"
+
+
+class SelectTargetCategoriesTest(parameterized.TestCase):
+
+  @parameterized.named_parameters(
+      ("exact", ["background", "leaf"], ["background"], ["leaf"]),
+      (
+          "case_and_padding",
+          ["Background", "plot row ", "leaf", "Stem"],
+          ["background", " Plot Row", "discard"],
+          ["leaf", "Stem"],
+      ),
+      ("nothing_excluded", ["leaf", "stem"], [], ["leaf", "stem"]),
+  )
+  def test_select_target_categories(self, names, exclude, expected):
+    self.assertEqual(
+        detection._select_target_categories(names, exclude), expected
+    )
 
 
 class DetectionTrainerTest(parameterized.TestCase):
@@ -194,6 +224,48 @@ class DetectionTrainerTest(parameterized.TestCase):
     )
     self.mock_viz_loop.assert_called_once()
 
+  def test_excluded_classes_are_dropped_from_queries_and_targets(self):
+    self.mock_dataset = {
+        "train": FakeDatasetSplit(["Background", "leaf", "plot row ", "stem"]),
+        "validation": FakeDatasetSplit(
+            ["Background", "leaf", "plot row ", "stem"]
+        ),
+    }
+    self.cfg.dataset.exclude_classes = ["background", "Plot Row"]
+    engine = RecordingModelEngine()
+    self.enter_context(
+        unittest.mock.patch.object(
+            transformers, "Seq2SeqTrainingArguments", autospec=True
+        )
+    )
+    mock_trainer_instance = unittest.mock.create_autospec(
+        trainer.CustomTrainer, instance=True
+    )
+    mock_trainer_instance.state = transformers.TrainerState()
+    mock_trainer_instance.evaluate.return_value = {"eval_loss": 0.3}
+    self.enter_context(
+        unittest.mock.patch.object(
+            trainer,
+            "CustomTrainer",
+            autospec=True,
+            return_value=mock_trainer_instance,
+        )
+    )
+
+    detection.DetectionTrainer().train(
+        engine=engine,
+        dataset=self.mock_dataset,
+        cfg=self.cfg,
+        device=torch.device("cpu"),
+        model=torch.nn.Module(),
+        processor=object(),
+        output_path=self.create_tempdir().full_path,
+    )
+
+    self.assertNotEmpty(engine.transform_kwargs)
+    for kwargs in engine.transform_kwargs:
+      self.assertEqual(kwargs["text_inputs"], ["leaf", "stem"])
+      self.assertEqual(kwargs["model_label2id"], {"leaf": 0, "stem": 1})
 
 if __name__ == "__main__":
   absltest.main()
